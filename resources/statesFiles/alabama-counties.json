@@ -1,8 +1,8 @@
 {
-    "counties": [
+    "Counties": [
         {
-            "countyName": "Autauga",
-            "cities": [
+            "County Name": "Autauga",
+            "Cities": [
                 {
                     "cityName": "Autaugaville",
                     "cityDomain": "https://autaugaville-city-al.mydripnurse.com",
@@ -35,11 +35,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://autauga-county-al.mydripnurse.com",
-            "countySitemap": "https://autauga-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://autauga-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://autauga-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://autaugaville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://billingsley-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://marbury-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://prattville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pine-level-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Baldwin",
-            "cities": [
+            "County Name": "Baldwin",
+            "Cities": [
                 {
                     "cityName": "Bay Minette",
                     "cityDomain": "https://bay-minette-city-al.mydripnurse.com",
@@ -112,11 +113,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://baldwin-county-al.mydripnurse.com",
-            "countySitemap": "https://baldwin-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://baldwin-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://baldwin-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bay-minette-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://daphne-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fairhope-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://foley-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gulf-shores-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://orange-beach-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://robertsdale-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://spanish-fort-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://elberta-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lillian-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://magnolia-springs-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://perdido-beach-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://summerdale-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Barbour",
-            "cities": [
+            "County Name": "Barbour",
+            "Cities": [
                 {
                     "cityName": "Clayton",
                     "cityDomain": "https://clayton-city-al.mydripnurse.com",
@@ -139,11 +141,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://barbour-county-al.mydripnurse.com",
-            "countySitemap": "https://barbour-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://barbour-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://barbour-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://clayton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://eufaula-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://louisville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Bibb",
-            "cities": [
+            "County Name": "Bibb",
+            "Cities": [
                 {
                     "cityName": "Brent",
                     "cityDomain": "https://brent-city-al.mydripnurse.com",
@@ -166,11 +169,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://bibb-county-al.mydripnurse.com",
-            "countySitemap": "https://bibb-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://bibb-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://bibb-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brent-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://centreville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://west-blocton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Blount",
-            "cities": [
+            "County Name": "Blount",
+            "Cities": [
                 {
                     "cityName": "Blountsville",
                     "cityDomain": "https://blountsville-city-al.mydripnurse.com",
@@ -203,11 +207,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://blount-county-al.mydripnurse.com",
-            "countySitemap": "https://blount-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://blount-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://blount-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://blountsville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cleveland-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hayden-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://oneonta-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://snead-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Bullock",
-            "cities": [
+            "County Name": "Bullock",
+            "Cities": [
                 {
                     "cityName": "Union Springs",
                     "cityDomain": "https://union-springs-city-al.mydripnurse.com",
@@ -220,11 +225,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://bullock-county-al.mydripnurse.com",
-            "countySitemap": "https://bullock-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://bullock-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://bullock-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://union-springs-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Butler",
-            "cities": [
+            "County Name": "Butler",
+            "Cities": [
                 {
                     "cityName": "Georgiana",
                     "cityDomain": "https://georgiana-city-al.mydripnurse.com",
@@ -247,11 +253,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://butler-county-al.mydripnurse.com",
-            "countySitemap": "https://butler-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://butler-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://butler-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://georgiana-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://greenville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mckenzie-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Calhoun",
-            "cities": [
+            "County Name": "Calhoun",
+            "Cities": [
                 {
                     "cityName": "Anniston",
                     "cityDomain": "https://anniston-city-al.mydripnurse.com",
@@ -284,11 +291,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://calhoun-county-al.mydripnurse.com",
-            "countySitemap": "https://calhoun-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://calhoun-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://calhoun-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://anniston-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://jacksonville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://oxford-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://piedmont-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hobson-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Chambers",
-            "cities": [
+            "County Name": "Chambers",
+            "Cities": [
                 {
                     "cityName": "Cusseta",
                     "cityDomain": "https://cusseta-city-al.mydripnurse.com",
@@ -316,11 +324,12 @@
                 "UTC_Offset": "-05:00"
             },
             "countyDomain": "https://chambers-county-al.mydripnurse.com",
-            "countySitemap": "https://chambers-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://chambers-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://chambers-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cusseta-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lafayette-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lanett-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://valley-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Cherokee",
-            "cities": [
+            "County Name": "Cherokee",
+            "Cities": [
                 {
                     "cityName": "Centre",
                     "cityDomain": "https://centre-city-al.mydripnurse.com",
@@ -353,11 +362,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://cherokee-county-al.mydripnurse.com",
-            "countySitemap": "https://cherokee-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://cherokee-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://cherokee-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://centre-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://leesburg-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sand-rock-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://spring-garden-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gaylesville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Chilton",
-            "cities": [
+            "County Name": "Chilton",
+            "Cities": [
                 {
                     "cityName": "Clanton",
                     "cityDomain": "https://clanton-city-al.mydripnurse.com",
@@ -385,11 +395,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://chilton-county-al.mydripnurse.com",
-            "countySitemap": "https://chilton-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://chilton-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://chilton-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://clanton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://jemison-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://maplesville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://thorsby-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Choctaw",
-            "cities": [
+            "County Name": "Choctaw",
+            "Cities": [
                 {
                     "cityName": "Butler",
                     "cityDomain": "https://butler-city-al.mydripnurse.com",
@@ -417,11 +428,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://choctaw-county-al.mydripnurse.com",
-            "countySitemap": "https://choctaw-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://choctaw-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://choctaw-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://butler-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lisman-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://silas-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://toxey-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Clarke",
-            "cities": [
+            "County Name": "Clarke",
+            "Cities": [
                 {
                     "cityName": "Coffeeville",
                     "cityDomain": "https://coffeeville-city-al.mydripnurse.com",
@@ -449,11 +461,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://clarke-county-al.mydripnurse.com",
-            "countySitemap": "https://clarke-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://clarke-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://clarke-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://coffeeville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://grove-hill-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://jackson-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://thomasville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Clay",
-            "cities": [
+            "County Name": "Clay",
+            "Cities": [
                 {
                     "cityName": "Ashland",
                     "cityDomain": "https://ashland-city-al.mydripnurse.com",
@@ -476,11 +489,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://clay-county-al.mydripnurse.com",
-            "countySitemap": "https://clay-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://clay-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://clay-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ashland-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://delta-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lineville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Cleburne",
-            "cities": [
+            "County Name": "Cleburne",
+            "Cities": [
                 {
                     "cityName": "Edwardsville",
                     "cityDomain": "https://edwardsville-city-al.mydripnurse.com",
@@ -503,11 +517,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://cleburne-county-al.mydripnurse.com",
-            "countySitemap": "https://cleburne-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://cleburne-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://cleburne-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://edwardsville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://heflin-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ranburne-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Coffee",
-            "cities": [
+            "County Name": "Coffee",
+            "Cities": [
                 {
                     "cityName": "Elba",
                     "cityDomain": "https://elba-city-al.mydripnurse.com",
@@ -530,11 +545,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://coffee-county-al.mydripnurse.com",
-            "countySitemap": "https://coffee-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://coffee-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://coffee-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://elba-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://enterprise-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://new-brockton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Colbert",
-            "cities": [
+            "County Name": "Colbert",
+            "Cities": [
                 {
                     "cityName": "Leighton",
                     "cityDomain": "https://leighton-city-al.mydripnurse.com",
@@ -562,11 +578,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://colbert-county-al.mydripnurse.com",
-            "countySitemap": "https://colbert-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://colbert-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://colbert-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://leighton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://muscle-shoals-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sheffield-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tuscumbia-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Conecuh",
-            "cities": [
+            "County Name": "Conecuh",
+            "Cities": [
                 {
                     "cityName": "Evergreen",
                     "cityDomain": "https://evergreen-city-al.mydripnurse.com",
@@ -584,11 +601,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://conecuh-county-al.mydripnurse.com",
-            "countySitemap": "https://conecuh-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://conecuh-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://conecuh-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://evergreen-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://repton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Coosa",
-            "cities": [
+            "County Name": "Coosa",
+            "Cities": [
                 {
                     "cityName": "Goodwater",
                     "cityDomain": "https://goodwater-city-al.mydripnurse.com",
@@ -606,11 +624,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://coosa-county-al.mydripnurse.com",
-            "countySitemap": "https://coosa-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://coosa-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://coosa-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://goodwater-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://rockford-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Covington",
-            "cities": [
+            "County Name": "Covington",
+            "Cities": [
                 {
                     "cityName": "Andalusia",
                     "cityDomain": "https://andalusia-city-al.mydripnurse.com",
@@ -638,11 +657,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://covington-county-al.mydripnurse.com",
-            "countySitemap": "https://covington-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://covington-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://covington-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://andalusia-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://florala-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lockhart-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://opp-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Crenshaw",
-            "cities": [
+            "County Name": "Crenshaw",
+            "Cities": [
                 {
                     "cityName": "Brantley",
                     "cityDomain": "https://brantley-city-al.mydripnurse.com",
@@ -660,11 +680,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://crenshaw-county-al.mydripnurse.com",
-            "countySitemap": "https://crenshaw-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://crenshaw-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://crenshaw-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brantley-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://luverne-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Cullman",
-            "cities": [
+            "County Name": "Cullman",
+            "Cities": [
                 {
                     "cityName": "Cullman",
                     "cityDomain": "https://cullman-city-al.mydripnurse.com",
@@ -707,11 +728,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://cullman-county-al.mydripnurse.com",
-            "countySitemap": "https://cullman-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://cullman-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://cullman-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cullman-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://arab-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://good-hope-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hanceville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://holly-pond-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://south-vinemont-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://west-point-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Dale",
-            "cities": [
+            "County Name": "Dale",
+            "Cities": [
                 {
                     "cityName": "Daleville",
                     "cityDomain": "https://daleville-city-al.mydripnurse.com",
@@ -744,11 +766,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://dale-county-al.mydripnurse.com",
-            "countySitemap": "https://dale-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://dale-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://dale-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://daleville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://grimes-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://midland-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://newton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ozark-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Dallas",
-            "cities": [
+            "County Name": "Dallas",
+            "Cities": [
                 {
                     "cityName": "Marion",
                     "cityDomain": "https://marion-city-al.mydripnurse.com",
@@ -766,11 +789,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://dallas-county-al.mydripnurse.com",
-            "countySitemap": "https://dallas-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://dallas-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://dallas-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://marion-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://selma-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "DeKalb",
-            "cities": [
+            "County Name": "DeKalb",
+            "Cities": [
                 {
                     "cityName": "Fort Payne",
                     "cityDomain": "https://fort-payne-city-al.mydripnurse.com",
@@ -828,11 +852,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://dekalb-county-al.mydripnurse.com",
-            "countySitemap": "https://dekalb-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://dekalb-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://dekalb-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fort-payne-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://collinsville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://crossville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fyffe-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://geraldine-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hammondville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://henagar-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ider-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://rainsville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://valley-head-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Elmore",
-            "cities": [
+            "County Name": "Elmore",
+            "Cities": [
                 {
                     "cityName": "Coosada",
                     "cityDomain": "https://coosada-city-al.mydripnurse.com",
@@ -865,11 +890,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://elmore-county-al.mydripnurse.com",
-            "countySitemap": "https://elmore-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://elmore-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://elmore-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://coosada-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://eclectic-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://millbrook-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tallassee-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wetumpka-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Escambia",
-            "cities": [
+            "County Name": "Escambia",
+            "Cities": [
                 {
                     "cityName": "Atmore",
                     "cityDomain": "https://atmore-city-al.mydripnurse.com",
@@ -892,11 +918,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://escambia-county-al.mydripnurse.com",
-            "countySitemap": "https://escambia-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://escambia-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://escambia-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://atmore-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brewton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://east-brewton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Etowah",
-            "cities": [
+            "County Name": "Etowah",
+            "Cities": [
                 {
                     "cityName": "Attalla",
                     "cityDomain": "https://attalla-city-al.mydripnurse.com",
@@ -954,11 +981,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://etowah-county-al.mydripnurse.com",
-            "countySitemap": "https://etowah-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://etowah-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://etowah-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://attalla-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gadsden-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://glencoe-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hokes-bluff-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mountainboro-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://rainbow-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://reece-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ridgeville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://southside-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://walnut-grove-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Fayette",
-            "cities": [
+            "County Name": "Fayette",
+            "Cities": [
                 {
                     "cityName": "Fayette",
                     "cityDomain": "https://fayette-city-al.mydripnurse.com",
@@ -976,11 +1004,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://fayette-county-al.mydripnurse.com",
-            "countySitemap": "https://fayette-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://fayette-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://fayette-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fayette-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://glen-allen-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Franklin",
-            "cities": [
+            "County Name": "Franklin",
+            "Cities": [
                 {
                     "cityName": "Red Bay",
                     "cityDomain": "https://red-bay-city-al.mydripnurse.com",
@@ -1003,11 +1032,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://franklin-county-al.mydripnurse.com",
-            "countySitemap": "https://franklin-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://franklin-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://franklin-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://red-bay-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://russellville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://vina-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Geneva",
-            "cities": [
+            "County Name": "Geneva",
+            "Cities": [
                 {
                     "cityName": "Black",
                     "cityDomain": "https://black-city-al.mydripnurse.com",
@@ -1050,11 +1080,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://geneva-county-al.mydripnurse.com",
-            "countySitemap": "https://geneva-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://geneva-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://geneva-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://black-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://coffee-springs-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://geneva-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hartford-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://malvern-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://samson-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://slocomb-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Greene",
-            "cities": [
+            "County Name": "Greene",
+            "Cities": [
                 {
                     "cityName": "Boligee",
                     "cityDomain": "https://boligee-city-al.mydripnurse.com",
@@ -1072,11 +1103,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://greene-county-al.mydripnurse.com",
-            "countySitemap": "https://greene-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://greene-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://greene-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://boligee-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://eutaw-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Hale",
-            "cities": [
+            "County Name": "Hale",
+            "Cities": [
                 {
                     "cityName": "Akron",
                     "cityDomain": "https://akron-city-al.mydripnurse.com",
@@ -1099,11 +1131,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://hale-county-al.mydripnurse.com",
-            "countySitemap": "https://hale-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://hale-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://hale-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://akron-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://greensboro-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://moundville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Henry",
-            "cities": [
+            "County Name": "Henry",
+            "Cities": [
                 {
                     "cityName": "Abbeville",
                     "cityDomain": "https://abbeville-city-al.mydripnurse.com",
@@ -1131,11 +1164,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://henry-county-al.mydripnurse.com",
-            "countySitemap": "https://henry-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://henry-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://henry-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://abbeville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://haleburg-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://headland-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://newville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Houston",
-            "cities": [
+            "County Name": "Houston",
+            "Cities": [
                 {
                     "cityName": "Ashford",
                     "cityDomain": "https://ashford-city-al.mydripnurse.com",
@@ -1193,11 +1227,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://houston-county-al.mydripnurse.com",
-            "countySitemap": "https://houston-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://houston-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://houston-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ashford-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://columbia-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cottonwood-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cowarts-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://dothan-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gordon-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kinsey-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://rehobeth-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://taylor-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://webb-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Jackson",
-            "cities": [
+            "County Name": "Jackson",
+            "Cities": [
                 {
                     "cityName": "Bridgeport",
                     "cityDomain": "https://bridgeport-city-al.mydripnurse.com",
@@ -1250,11 +1285,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://jackson-county-al.mydripnurse.com",
-            "countySitemap": "https://jackson-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://jackson-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://jackson-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bridgeport-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://dutton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hollywood-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://paint-rock-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://scottsboro-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://section-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://skyline-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://stevenson-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://woodville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Jefferson",
-            "cities": [
+            "County Name": "Jefferson",
+            "Cities": [
                 {
                     "cityName": "Birmingham",
                     "cityDomain": "https://birmingham-city-al.mydripnurse.com",
@@ -1432,11 +1468,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://jefferson-county-al.mydripnurse.com",
-            "countySitemap": "https://jefferson-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://jefferson-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://jefferson-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://birmingham-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bessemer-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brighton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brookside-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://center-point-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://clay-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://concord-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cordova-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://county-line-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://dora-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fairfield-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fultondale-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gardendale-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://graysville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://helena-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hoover-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hueytown-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://irondale-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kimberly-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://leeds-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lipscomb-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://midfield-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mountain-brook-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mulga-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://oak-grove-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pinson-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pleasant-grove-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://quinton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sumiton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://trussville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tarrant-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://vestavia-hills-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://warrior-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://west-jefferson-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Lamar",
-            "cities": [
+            "County Name": "Lamar",
+            "Cities": [
                 {
                     "cityName": "Sulligent",
                     "cityDomain": "https://sulligent-city-al.mydripnurse.com",
@@ -1459,11 +1496,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://lamar-county-al.mydripnurse.com",
-            "countySitemap": "https://lamar-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://lamar-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://lamar-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sulligent-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://vernon-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://millport-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Lauderdale",
-            "cities": [
+            "County Name": "Lauderdale",
+            "Cities": [
                 {
                     "cityName": "Florence",
                     "cityDomain": "https://florence-city-al.mydripnurse.com",
@@ -1491,11 +1529,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://lauderdale-county-al.mydripnurse.com",
-            "countySitemap": "https://lauderdale-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://lauderdale-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://lauderdale-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://florence-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://killen-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://rogersville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waterloo-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Lawrence",
-            "cities": [
+            "County Name": "Lawrence",
+            "Cities": [
                 {
                     "cityName": "Courtland",
                     "cityDomain": "https://courtland-city-al.mydripnurse.com",
@@ -1523,11 +1562,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://lawrence-county-al.mydripnurse.com",
-            "countySitemap": "https://lawrence-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://lawrence-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://lawrence-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://courtland-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hillsboro-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://moulton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://town-creek-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Lee",
-            "cities": [
+            "County Name": "Lee",
+            "Cities": [
                 {
                     "cityName": "Auburn",
                     "cityDomain": "https://auburn-city-al.mydripnurse.com",
@@ -1560,11 +1600,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://lee-county-al.mydripnurse.com",
-            "countySitemap": "https://lee-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://lee-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://lee-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://auburn-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://opelika-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://loachapoka-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://smiths-station-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://salem-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Limestone",
-            "cities": [
+            "County Name": "Limestone",
+            "Cities": [
                 {
                     "cityName": "Ardmore",
                     "cityDomain": "https://ardmore-city-al.mydripnurse.com",
@@ -1592,11 +1633,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://limestone-county-al.mydripnurse.com",
-            "countySitemap": "https://limestone-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://limestone-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://limestone-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ardmore-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://athens-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lester-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mooresville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Lowndes",
-            "cities": [
+            "County Name": "Lowndes",
+            "Cities": [
                 {
                     "cityName": "Hayneville",
                     "cityDomain": "https://hayneville-city-al.mydripnurse.com",
@@ -1614,11 +1656,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://lowndes-county-al.mydripnurse.com",
-            "countySitemap": "https://lowndes-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://lowndes-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://lowndes-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hayneville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fort-deposit-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Macon",
-            "cities": [
+            "County Name": "Macon",
+            "Cities": [
                 {
                     "cityName": "Notasulga",
                     "cityDomain": "https://notasulga-city-al.mydripnurse.com",
@@ -1641,11 +1684,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://macon-county-al.mydripnurse.com",
-            "countySitemap": "https://macon-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://macon-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://macon-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://notasulga-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://shorter-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tuskegee-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Madison",
-            "cities": [
+            "County Name": "Madison",
+            "Cities": [
                 {
                     "cityName": "Huntsville",
                     "cityDomain": "https://huntsville-city-al.mydripnurse.com",
@@ -1703,11 +1747,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://madison-county-al.mydripnurse.com",
-            "countySitemap": "https://madison-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://madison-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://madison-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://huntsville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://madison-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://triana-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gurley-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://harvest-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://meridianville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://monrovia-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://new-hope-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://owens-cross-roads-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://redstone-arsenal-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Marengo",
-            "cities": [
+            "County Name": "Marengo",
+            "Cities": [
                 {
                     "cityName": "Demopolis",
                     "cityDomain": "https://demopolis-city-al.mydripnurse.com",
@@ -1730,11 +1775,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://marengo-county-al.mydripnurse.com",
-            "countySitemap": "https://marengo-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://marengo-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://marengo-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://demopolis-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://linden-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sweet-water-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Marion",
-            "cities": [
+            "County Name": "Marion",
+            "Cities": [
                 {
                     "cityName": "Bear Creek",
                     "cityDomain": "https://bear-creek-city-al.mydripnurse.com",
@@ -1772,11 +1818,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://marion-county-al.mydripnurse.com",
-            "countySitemap": "https://marion-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://marion-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://marion-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bear-creek-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brilliant-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://guin-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hamilton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hackleburg-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://winfield-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Marshall",
-            "cities": [
+            "County Name": "Marshall",
+            "Cities": [
                 {
                     "cityName": "Albertville",
                     "cityDomain": "https://albertville-city-al.mydripnurse.com",
@@ -1814,11 +1861,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://marshall-county-al.mydripnurse.com",
-            "countySitemap": "https://marshall-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://marshall-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://marshall-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://albertville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://arab-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://boaz-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://douglas-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://guntersville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://union-grove-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Mobile",
-            "cities": [
+            "County Name": "Mobile",
+            "Cities": [
                 {
                     "cityName": "Mobile",
                     "cityDomain": "https://mobile-city-al.mydripnurse.com",
@@ -1891,11 +1939,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://mobile-county-al.mydripnurse.com",
-            "countySitemap": "https://mobile-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://mobile-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://mobile-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mobile-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bayou-la-batre-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://chickasaw-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://citronelle-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://creola-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://dauphin-island-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mount-vernon-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://prichard-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://saraland-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://satsuma-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://semmes-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://theodore-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tillmans-corner-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Monroe",
-            "cities": [
+            "County Name": "Monroe",
+            "Cities": [
                 {
                     "cityName": "Beatrice",
                     "cityDomain": "https://beatrice-city-al.mydripnurse.com",
@@ -1928,11 +1977,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://monroe-county-al.mydripnurse.com",
-            "countySitemap": "https://monroe-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://monroe-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://monroe-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://beatrice-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://excel-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://frisco-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://monroeville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://vredenburgh-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Montgomery",
-            "cities": [
+            "County Name": "Montgomery",
+            "Cities": [
                 {
                     "cityName": "Montgomery",
                     "cityDomain": "https://montgomery-city-al.mydripnurse.com",
@@ -1955,11 +2005,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://montgomery-county-al.mydripnurse.com",
-            "countySitemap": "https://montgomery-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://montgomery-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://montgomery-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://montgomery-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pike-road-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hope-hull-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Morgan",
-            "cities": [
+            "County Name": "Morgan",
+            "Cities": [
                 {
                     "cityName": "Decatur",
                     "cityDomain": "https://decatur-city-al.mydripnurse.com",
@@ -1992,11 +2043,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://morgan-county-al.mydripnurse.com",
-            "countySitemap": "https://morgan-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://morgan-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://morgan-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://decatur-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hartselle-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://priceville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://somerville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://trinity-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Perry",
-            "cities": [
+            "County Name": "Perry",
+            "Cities": [
                 {
                     "cityName": "Marion",
                     "cityDomain": "https://marion-city-al.mydripnurse.com",
@@ -2014,11 +2066,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://perry-county-al.mydripnurse.com",
-            "countySitemap": "https://perry-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://perry-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://perry-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://marion-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://uniontown-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Pickens",
-            "cities": [
+            "County Name": "Pickens",
+            "Cities": [
                 {
                     "cityName": "Carrollton",
                     "cityDomain": "https://carrollton-city-al.mydripnurse.com",
@@ -2051,11 +2104,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://pickens-county-al.mydripnurse.com",
-            "countySitemap": "https://pickens-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://pickens-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://pickens-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://carrollton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ethelsville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gordo-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pickensville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://reform-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Pike",
-            "cities": [
+            "County Name": "Pike",
+            "Cities": [
                 {
                     "cityName": "Banks",
                     "cityDomain": "https://banks-city-al.mydripnurse.com",
@@ -2078,11 +2132,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://pike-county-al.mydripnurse.com",
-            "countySitemap": "https://pike-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://pike-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://pike-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://banks-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brundidge-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://troy-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Randolph",
-            "cities": [
+            "County Name": "Randolph",
+            "Cities": [
                 {
                     "cityName": "Wedowee",
                     "cityDomain": "https://wedowee-city-al.mydripnurse.com",
@@ -2105,11 +2160,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://randolph-county-al.mydripnurse.com",
-            "countySitemap": "https://randolph-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://randolph-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://randolph-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wedowee-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://roanoke-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lineville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Russell",
-            "cities": [
+            "County Name": "Russell",
+            "Cities": [
                 {
                     "cityName": "Phenix City",
                     "cityDomain": "https://phenix-city-city-al.mydripnurse.com",
@@ -2127,11 +2183,12 @@
                 "UTC_Offset": "-05:00"
             },
             "countyDomain": "https://russell-county-al.mydripnurse.com",
-            "countySitemap": "https://russell-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://russell-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://russell-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://phenix-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hurtsboro-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "St. Clair",
-            "cities": [
+            "County Name": "St. Clair",
+            "Cities": [
                 {
                     "cityName": "Ashville",
                     "cityDomain": "https://ashville-city-al.mydripnurse.com",
@@ -2184,11 +2241,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://st-clair-county-al.mydripnurse.com",
-            "countySitemap": "https://st-clair-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://st-clair-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://st-clair-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ashville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://leeds-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://margaret-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://moody-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://odenville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pell-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ragland-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://springville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://steele-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Shelby",
-            "cities": [
+            "County Name": "Shelby",
+            "Cities": [
                 {
                     "cityName": "Alabaster",
                     "cityDomain": "https://alabaster-city-al.mydripnurse.com",
@@ -2251,11 +2309,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://shelby-county-al.mydripnurse.com",
-            "countySitemap": "https://shelby-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://shelby-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://shelby-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://alabaster-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://calera-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://chelsea-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://columbiana-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://helena-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hoover-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://indian-springs-village-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://montevallo-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pelham-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://vincent-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wilsonville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Sumter",
-            "cities": [
+            "County Name": "Sumter",
+            "Cities": [
                 {
                     "cityName": "Bellamy",
                     "cityDomain": "https://bellamy-city-al.mydripnurse.com",
@@ -2288,11 +2347,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://sumter-county-al.mydripnurse.com",
-            "countySitemap": "https://sumter-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://sumter-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://sumter-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bellamy-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://epes-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://geiger-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://livingston-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://york-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Talladega",
-            "cities": [
+            "County Name": "Talladega",
+            "Cities": [
                 {
                     "cityName": "Childersburg",
                     "cityDomain": "https://childersburg-city-al.mydripnurse.com",
@@ -2335,11 +2395,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://talladega-county-al.mydripnurse.com",
-            "countySitemap": "https://talladega-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://talladega-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://talladega-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://childersburg-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lincoln-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://munford-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://oak-grove-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://oxford-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sylacauga-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://talladega-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Tallapoosa",
-            "cities": [
+            "County Name": "Tallapoosa",
+            "Cities": [
                 {
                     "cityName": "Alexander City",
                     "cityDomain": "https://alexander-city-city-al.mydripnurse.com",
@@ -2362,11 +2423,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://tallapoosa-county-al.mydripnurse.com",
-            "countySitemap": "https://tallapoosa-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://tallapoosa-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://tallapoosa-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://alexander-city-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://dadeville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://jacksons-gap-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Tuscaloosa",
-            "cities": [
+            "County Name": "Tuscaloosa",
+            "Cities": [
                 {
                     "cityName": "Tuscaloosa",
                     "cityDomain": "https://tuscaloosa-city-al.mydripnurse.com",
@@ -2419,11 +2481,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://tuscaloosa-county-al.mydripnurse.com",
-            "countySitemap": "https://tuscaloosa-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://tuscaloosa-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://tuscaloosa-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tuscaloosa-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://northport-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://brookwood-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://coaling-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cottondale-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://coker-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lake-view-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://moundville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://vance-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Walker",
-            "cities": [
+            "County Name": "Walker",
+            "Cities": [
                 {
                     "cityName": "Carbon Hill",
                     "cityDomain": "https://carbon-hill-city-al.mydripnurse.com",
@@ -2466,11 +2529,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://walker-county-al.mydripnurse.com",
-            "countySitemap": "https://walker-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://walker-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://walker-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://carbon-hill-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://cordova-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://dora-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://jasper-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://oakman-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://parrish-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sumiton-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Washington",
-            "cities": [
+            "County Name": "Washington",
+            "Cities": [
                 {
                     "cityName": "Chatom",
                     "cityDomain": "https://chatom-city-al.mydripnurse.com",
@@ -2503,11 +2567,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://washington-county-al.mydripnurse.com",
-            "countySitemap": "https://washington-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://washington-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://washington-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://chatom-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fruitdale-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://millry-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mcintosh-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wagarville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Wilcox",
-            "cities": [
+            "County Name": "Wilcox",
+            "Cities": [
                 {
                     "cityName": "Camden",
                     "cityDomain": "https://camden-city-al.mydripnurse.com",
@@ -2530,11 +2595,12 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://wilcox-county-al.mydripnurse.com",
-            "countySitemap": "https://wilcox-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://wilcox-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://wilcox-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://camden-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pine-apple-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gastonburg-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "countyName": "Winston",
-            "cities": [
+            "County Name": "Winston",
+            "Cities": [
                 {
                     "cityName": "Addison",
                     "cityDomain": "https://addison-city-al.mydripnurse.com",
@@ -2572,7 +2638,8 @@
                 "UTC_Offset": "-06:00"
             },
             "countyDomain": "https://winston-county-al.mydripnurse.com",
-            "countySitemap": "https://winston-county-al.mydripnurse.com/sitemap.xml"
+            "countySitemap": "https://winston-county-al.mydripnurse.com/sitemap.xml",
+            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://winston-county-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://addison-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://arley-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://double-springs-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://haleyville-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lynn-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://natural-bridge-city-al.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         }
     ],
     "website": "https://www.mydripnurse.com",
