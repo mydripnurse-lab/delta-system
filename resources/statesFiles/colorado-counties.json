@@ -3,850 +3,1810 @@
         {
             "County Name": "Adams",
             "Cities": [
-                "Aurora",
-                "Brighton",
-                "Commerce City",
-                "Federal Heights",
-                "Northglenn",
-                "Thornton",
-                "Westminster"
+                {
+                    "cityName": "Aurora",
+                    "cityDomain": "https://aurora-city-co.mydripnurse.com",
+                    "citySitemap": "https://aurora-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Brighton",
+                    "cityDomain": "https://brighton-city-co.mydripnurse.com",
+                    "citySitemap": "https://brighton-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Commerce City",
+                    "cityDomain": "https://commerce-city-city-co.mydripnurse.com",
+                    "citySitemap": "https://commerce-city-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Federal Heights",
+                    "cityDomain": "https://federal-heights-city-co.mydripnurse.com",
+                    "citySitemap": "https://federal-heights-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Northglenn",
+                    "cityDomain": "https://northglenn-city-co.mydripnurse.com",
+                    "citySitemap": "https://northglenn-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Thornton",
+                    "cityDomain": "https://thornton-city-co.mydripnurse.com",
+                    "citySitemap": "https://thornton-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Westminster",
+                    "cityDomain": "https://westminster-city-co.mydripnurse.com",
+                    "citySitemap": "https://westminster-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://adams-county-co.mydripnurse.com",
+            "countySitemap": "https://adams-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Alamosa",
             "Cities": [
-                "Alamosa"
+                {
+                    "cityName": "Alamosa",
+                    "cityDomain": "https://alamosa-city-co.mydripnurse.com",
+                    "citySitemap": "https://alamosa-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://alamosa-county-co.mydripnurse.com",
+            "countySitemap": "https://alamosa-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Arapahoe",
             "Cities": [
-                "Aurora",
-                "Centennial",
-                "Cherry Hills Village",
-                "Columbine Valley",
-                "Englewood",
-                "Glendale",
-                "Greenwood Village",
-                "Littleton"
+                {
+                    "cityName": "Aurora",
+                    "cityDomain": "https://aurora-city-co.mydripnurse.com",
+                    "citySitemap": "https://aurora-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Centennial",
+                    "cityDomain": "https://centennial-city-co.mydripnurse.com",
+                    "citySitemap": "https://centennial-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cherry Hills Village",
+                    "cityDomain": "https://cherry-hills-village-city-co.mydripnurse.com",
+                    "citySitemap": "https://cherry-hills-village-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Columbine Valley",
+                    "cityDomain": "https://columbine-valley-city-co.mydripnurse.com",
+                    "citySitemap": "https://columbine-valley-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Englewood",
+                    "cityDomain": "https://englewood-city-co.mydripnurse.com",
+                    "citySitemap": "https://englewood-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glendale",
+                    "cityDomain": "https://glendale-city-co.mydripnurse.com",
+                    "citySitemap": "https://glendale-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenwood Village",
+                    "cityDomain": "https://greenwood-village-city-co.mydripnurse.com",
+                    "citySitemap": "https://greenwood-village-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Littleton",
+                    "cityDomain": "https://littleton-city-co.mydripnurse.com",
+                    "citySitemap": "https://littleton-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://arapahoe-county-co.mydripnurse.com",
+            "countySitemap": "https://arapahoe-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Archuleta",
             "Cities": [
-                "Pagosa Springs"
+                {
+                    "cityName": "Pagosa Springs",
+                    "cityDomain": "https://pagosa-springs-city-co.mydripnurse.com",
+                    "citySitemap": "https://pagosa-springs-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://archuleta-county-co.mydripnurse.com",
+            "countySitemap": "https://archuleta-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Baca",
             "Cities": [
-                "Springfield",
-                "Walsh"
+                {
+                    "cityName": "Springfield",
+                    "cityDomain": "https://springfield-city-co.mydripnurse.com",
+                    "citySitemap": "https://springfield-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Walsh",
+                    "cityDomain": "https://walsh-city-co.mydripnurse.com",
+                    "citySitemap": "https://walsh-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://baca-county-co.mydripnurse.com",
+            "countySitemap": "https://baca-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Bent",
             "Cities": [
-                "Las Animas"
+                {
+                    "cityName": "Las Animas",
+                    "cityDomain": "https://las-animas-city-co.mydripnurse.com",
+                    "citySitemap": "https://las-animas-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://bent-county-co.mydripnurse.com",
+            "countySitemap": "https://bent-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Boulder",
             "Cities": [
-                "Boulder",
-                "Erie",
-                "Jamestown",
-                "Lafayette",
-                "Longmont",
-                "Louisville",
-                "Lyons",
-                "Nederland",
-                "Superior"
+                {
+                    "cityName": "Boulder",
+                    "cityDomain": "https://boulder-city-co.mydripnurse.com",
+                    "citySitemap": "https://boulder-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Erie",
+                    "cityDomain": "https://erie-city-co.mydripnurse.com",
+                    "citySitemap": "https://erie-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jamestown",
+                    "cityDomain": "https://jamestown-city-co.mydripnurse.com",
+                    "citySitemap": "https://jamestown-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lafayette",
+                    "cityDomain": "https://lafayette-city-co.mydripnurse.com",
+                    "citySitemap": "https://lafayette-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Longmont",
+                    "cityDomain": "https://longmont-city-co.mydripnurse.com",
+                    "citySitemap": "https://longmont-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Louisville",
+                    "cityDomain": "https://louisville-city-co.mydripnurse.com",
+                    "citySitemap": "https://louisville-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lyons",
+                    "cityDomain": "https://lyons-city-co.mydripnurse.com",
+                    "citySitemap": "https://lyons-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nederland",
+                    "cityDomain": "https://nederland-city-co.mydripnurse.com",
+                    "citySitemap": "https://nederland-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Superior",
+                    "cityDomain": "https://superior-city-co.mydripnurse.com",
+                    "citySitemap": "https://superior-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://boulder-county-co.mydripnurse.com",
+            "countySitemap": "https://boulder-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Broomfield",
             "Cities": [
-                "Broomfield"
+                {
+                    "cityName": "Broomfield",
+                    "cityDomain": "https://broomfield-city-co.mydripnurse.com",
+                    "citySitemap": "https://broomfield-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://broomfield-county-co.mydripnurse.com",
+            "countySitemap": "https://broomfield-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Chaffee",
             "Cities": [
-                "Buena Vista",
-                "Salida"
+                {
+                    "cityName": "Buena Vista",
+                    "cityDomain": "https://buena-vista-city-co.mydripnurse.com",
+                    "citySitemap": "https://buena-vista-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Salida",
+                    "cityDomain": "https://salida-city-co.mydripnurse.com",
+                    "citySitemap": "https://salida-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://chaffee-county-co.mydripnurse.com",
+            "countySitemap": "https://chaffee-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Cheyenne",
             "Cities": [
-                "Cheyenne Wells"
+                {
+                    "cityName": "Cheyenne Wells",
+                    "cityDomain": "https://cheyenne-wells-city-co.mydripnurse.com",
+                    "citySitemap": "https://cheyenne-wells-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://cheyenne-county-co.mydripnurse.com",
+            "countySitemap": "https://cheyenne-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Clear Creek",
             "Cities": [
-                "Empire",
-                "Georgetown",
-                "Idaho Springs",
-                "Silver Plume"
+                {
+                    "cityName": "Empire",
+                    "cityDomain": "https://empire-city-co.mydripnurse.com",
+                    "citySitemap": "https://empire-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Georgetown",
+                    "cityDomain": "https://georgetown-city-co.mydripnurse.com",
+                    "citySitemap": "https://georgetown-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Idaho Springs",
+                    "cityDomain": "https://idaho-springs-city-co.mydripnurse.com",
+                    "citySitemap": "https://idaho-springs-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Silver Plume",
+                    "cityDomain": "https://silver-plume-city-co.mydripnurse.com",
+                    "citySitemap": "https://silver-plume-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://clear-creek-county-co.mydripnurse.com",
+            "countySitemap": "https://clear-creek-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Conejos",
             "Cities": [
-                "Antonito",
-                "La Jara",
-                "Manassa",
-                "Romeo"
+                {
+                    "cityName": "Antonito",
+                    "cityDomain": "https://antonito-city-co.mydripnurse.com",
+                    "citySitemap": "https://antonito-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Jara",
+                    "cityDomain": "https://la-jara-city-co.mydripnurse.com",
+                    "citySitemap": "https://la-jara-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manassa",
+                    "cityDomain": "https://manassa-city-co.mydripnurse.com",
+                    "citySitemap": "https://manassa-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Romeo",
+                    "cityDomain": "https://romeo-city-co.mydripnurse.com",
+                    "citySitemap": "https://romeo-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://conejos-county-co.mydripnurse.com",
+            "countySitemap": "https://conejos-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Costilla",
             "Cities": [
-                "San Luis"
+                {
+                    "cityName": "San Luis",
+                    "cityDomain": "https://san-luis-city-co.mydripnurse.com",
+                    "citySitemap": "https://san-luis-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://costilla-county-co.mydripnurse.com",
+            "countySitemap": "https://costilla-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Crowley",
             "Cities": [
-                "Ordway"
+                {
+                    "cityName": "Ordway",
+                    "cityDomain": "https://ordway-city-co.mydripnurse.com",
+                    "citySitemap": "https://ordway-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://crowley-county-co.mydripnurse.com",
+            "countySitemap": "https://crowley-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Custer",
             "Cities": [
-                "Westcliffe",
-                "Silver Cliff"
+                {
+                    "cityName": "Westcliffe",
+                    "cityDomain": "https://westcliffe-city-co.mydripnurse.com",
+                    "citySitemap": "https://westcliffe-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Silver Cliff",
+                    "cityDomain": "https://silver-cliff-city-co.mydripnurse.com",
+                    "citySitemap": "https://silver-cliff-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://custer-county-co.mydripnurse.com",
+            "countySitemap": "https://custer-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Delta",
             "Cities": [
-                "Cedaredge",
-                "Crawford",
-                "Delta",
-                "Hotchkiss",
-                "Paonia"
+                {
+                    "cityName": "Cedaredge",
+                    "cityDomain": "https://cedaredge-city-co.mydripnurse.com",
+                    "citySitemap": "https://cedaredge-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Crawford",
+                    "cityDomain": "https://crawford-city-co.mydripnurse.com",
+                    "citySitemap": "https://crawford-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Delta",
+                    "cityDomain": "https://delta-city-co.mydripnurse.com",
+                    "citySitemap": "https://delta-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hotchkiss",
+                    "cityDomain": "https://hotchkiss-city-co.mydripnurse.com",
+                    "citySitemap": "https://hotchkiss-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Paonia",
+                    "cityDomain": "https://paonia-city-co.mydripnurse.com",
+                    "citySitemap": "https://paonia-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://delta-county-co.mydripnurse.com",
+            "countySitemap": "https://delta-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Denver",
             "Cities": [
-                "Denver"
+                {
+                    "cityName": "Denver",
+                    "cityDomain": "https://denver-city-co.mydripnurse.com",
+                    "citySitemap": "https://denver-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://denver-county-co.mydripnurse.com",
+            "countySitemap": "https://denver-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Dolores",
             "Cities": [
-                "Dove Creek"
+                {
+                    "cityName": "Dove Creek",
+                    "cityDomain": "https://dove-creek-city-co.mydripnurse.com",
+                    "citySitemap": "https://dove-creek-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://dolores-county-co.mydripnurse.com",
+            "countySitemap": "https://dolores-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Douglas",
             "Cities": [
-                "Castle Pines",
-                "Castle Rock",
-                "Lone Tree",
-                "Parker"
+                {
+                    "cityName": "Castle Pines",
+                    "cityDomain": "https://castle-pines-city-co.mydripnurse.com",
+                    "citySitemap": "https://castle-pines-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Castle Rock",
+                    "cityDomain": "https://castle-rock-city-co.mydripnurse.com",
+                    "citySitemap": "https://castle-rock-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lone Tree",
+                    "cityDomain": "https://lone-tree-city-co.mydripnurse.com",
+                    "citySitemap": "https://lone-tree-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Parker",
+                    "cityDomain": "https://parker-city-co.mydripnurse.com",
+                    "citySitemap": "https://parker-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://douglas-county-co.mydripnurse.com",
+            "countySitemap": "https://douglas-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Eagle",
             "Cities": [
-                "Avon",
-                "Eagle",
-                "Gypsum",
-                "Minturn",
-                "Red Cliff",
-                "Vail"
+                {
+                    "cityName": "Avon",
+                    "cityDomain": "https://avon-city-co.mydripnurse.com",
+                    "citySitemap": "https://avon-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eagle",
+                    "cityDomain": "https://eagle-city-co.mydripnurse.com",
+                    "citySitemap": "https://eagle-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gypsum",
+                    "cityDomain": "https://gypsum-city-co.mydripnurse.com",
+                    "citySitemap": "https://gypsum-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Minturn",
+                    "cityDomain": "https://minturn-city-co.mydripnurse.com",
+                    "citySitemap": "https://minturn-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Red Cliff",
+                    "cityDomain": "https://red-cliff-city-co.mydripnurse.com",
+                    "citySitemap": "https://red-cliff-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Vail",
+                    "cityDomain": "https://vail-city-co.mydripnurse.com",
+                    "citySitemap": "https://vail-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://eagle-county-co.mydripnurse.com",
+            "countySitemap": "https://eagle-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "El Paso",
             "Cities": [
-                "Colorado Springs",
-                "Fountain",
-                "Green Mountain Falls",
-                "Manitou Springs",
-                "Monument",
-                "Palmer Lake"
+                {
+                    "cityName": "Colorado Springs",
+                    "cityDomain": "https://colorado-springs-city-co.mydripnurse.com",
+                    "citySitemap": "https://colorado-springs-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fountain",
+                    "cityDomain": "https://fountain-city-co.mydripnurse.com",
+                    "citySitemap": "https://fountain-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Green Mountain Falls",
+                    "cityDomain": "https://green-mountain-falls-city-co.mydripnurse.com",
+                    "citySitemap": "https://green-mountain-falls-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manitou Springs",
+                    "cityDomain": "https://manitou-springs-city-co.mydripnurse.com",
+                    "citySitemap": "https://manitou-springs-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monument",
+                    "cityDomain": "https://monument-city-co.mydripnurse.com",
+                    "citySitemap": "https://monument-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Palmer Lake",
+                    "cityDomain": "https://palmer-lake-city-co.mydripnurse.com",
+                    "citySitemap": "https://palmer-lake-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://el-paso-county-co.mydripnurse.com",
+            "countySitemap": "https://el-paso-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Elbert",
             "Cities": [
-                "Elizabeth",
-                "Kiowa"
+                {
+                    "cityName": "Elizabeth",
+                    "cityDomain": "https://elizabeth-city-co.mydripnurse.com",
+                    "citySitemap": "https://elizabeth-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kiowa",
+                    "cityDomain": "https://kiowa-city-co.mydripnurse.com",
+                    "citySitemap": "https://kiowa-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://elbert-county-co.mydripnurse.com",
+            "countySitemap": "https://elbert-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Fremont",
             "Cities": [
-                "Ca\u00f1on City",
-                "Florence"
+                {
+                    "cityName": "Cañon City",
+                    "cityDomain": "https://canon-city-city-co.mydripnurse.com",
+                    "citySitemap": "https://canon-city-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Florence",
+                    "cityDomain": "https://florence-city-co.mydripnurse.com",
+                    "citySitemap": "https://florence-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://fremont-county-co.mydripnurse.com",
+            "countySitemap": "https://fremont-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Garfield",
             "Cities": [
-                "Carbondale",
-                "Glenwood Springs",
-                "New Castle",
-                "Parachute",
-                "Rifle",
-                "Silt"
+                {
+                    "cityName": "Carbondale",
+                    "cityDomain": "https://carbondale-city-co.mydripnurse.com",
+                    "citySitemap": "https://carbondale-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glenwood Springs",
+                    "cityDomain": "https://glenwood-springs-city-co.mydripnurse.com",
+                    "citySitemap": "https://glenwood-springs-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New Castle",
+                    "cityDomain": "https://new-castle-city-co.mydripnurse.com",
+                    "citySitemap": "https://new-castle-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Parachute",
+                    "cityDomain": "https://parachute-city-co.mydripnurse.com",
+                    "citySitemap": "https://parachute-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rifle",
+                    "cityDomain": "https://rifle-city-co.mydripnurse.com",
+                    "citySitemap": "https://rifle-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Silt",
+                    "cityDomain": "https://silt-city-co.mydripnurse.com",
+                    "citySitemap": "https://silt-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://garfield-county-co.mydripnurse.com",
+            "countySitemap": "https://garfield-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Gilpin",
             "Cities": [
-                "Black Hawk",
-                "Central City"
+                {
+                    "cityName": "Black Hawk",
+                    "cityDomain": "https://black-hawk-city-co.mydripnurse.com",
+                    "citySitemap": "https://black-hawk-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Central City",
+                    "cityDomain": "https://central-city-city-co.mydripnurse.com",
+                    "citySitemap": "https://central-city-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://gilpin-county-co.mydripnurse.com",
+            "countySitemap": "https://gilpin-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Grand",
             "Cities": [
-                "Granby",
-                "Grand Lake",
-                "Hot Sulphur Springs",
-                "Kremmling",
-                "Winter Park"
+                {
+                    "cityName": "Granby",
+                    "cityDomain": "https://granby-city-co.mydripnurse.com",
+                    "citySitemap": "https://granby-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Grand Lake",
+                    "cityDomain": "https://grand-lake-city-co.mydripnurse.com",
+                    "citySitemap": "https://grand-lake-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hot Sulphur Springs",
+                    "cityDomain": "https://hot-sulphur-springs-city-co.mydripnurse.com",
+                    "citySitemap": "https://hot-sulphur-springs-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kremmling",
+                    "cityDomain": "https://kremmling-city-co.mydripnurse.com",
+                    "citySitemap": "https://kremmling-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Winter Park",
+                    "cityDomain": "https://winter-park-city-co.mydripnurse.com",
+                    "citySitemap": "https://winter-park-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://grand-county-co.mydripnurse.com",
+            "countySitemap": "https://grand-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Gunnison",
             "Cities": [
-                "Crested Butte",
-                "Gunnison",
-                "Mount Crested Butte"
+                {
+                    "cityName": "Crested Butte",
+                    "cityDomain": "https://crested-butte-city-co.mydripnurse.com",
+                    "citySitemap": "https://crested-butte-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gunnison",
+                    "cityDomain": "https://gunnison-city-co.mydripnurse.com",
+                    "citySitemap": "https://gunnison-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mount Crested Butte",
+                    "cityDomain": "https://mount-crested-butte-city-co.mydripnurse.com",
+                    "citySitemap": "https://mount-crested-butte-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://gunnison-county-co.mydripnurse.com",
+            "countySitemap": "https://gunnison-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Hinsdale",
             "Cities": [
-                "Lake City"
+                {
+                    "cityName": "Lake City",
+                    "cityDomain": "https://lake-city-city-co.mydripnurse.com",
+                    "citySitemap": "https://lake-city-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://hinsdale-county-co.mydripnurse.com",
+            "countySitemap": "https://hinsdale-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Huerfano",
             "Cities": [
-                "La Veta",
-                "Walsenburg"
+                {
+                    "cityName": "La Veta",
+                    "cityDomain": "https://la-veta-city-co.mydripnurse.com",
+                    "citySitemap": "https://la-veta-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Walsenburg",
+                    "cityDomain": "https://walsenburg-city-co.mydripnurse.com",
+                    "citySitemap": "https://walsenburg-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://huerfano-county-co.mydripnurse.com",
+            "countySitemap": "https://huerfano-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Jackson",
             "Cities": [
-                "Walden"
+                {
+                    "cityName": "Walden",
+                    "cityDomain": "https://walden-city-co.mydripnurse.com",
+                    "citySitemap": "https://walden-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://jackson-county-co.mydripnurse.com",
+            "countySitemap": "https://jackson-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Jefferson",
             "Cities": [
-                "Arvada",
-                "Edgewater",
-                "Golden",
-                "Lakewood",
-                "Littleton",
-                "Morrison",
-                "Wheat Ridge"
+                {
+                    "cityName": "Arvada",
+                    "cityDomain": "https://arvada-city-co.mydripnurse.com",
+                    "citySitemap": "https://arvada-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Edgewater",
+                    "cityDomain": "https://edgewater-city-co.mydripnurse.com",
+                    "citySitemap": "https://edgewater-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Golden",
+                    "cityDomain": "https://golden-city-co.mydripnurse.com",
+                    "citySitemap": "https://golden-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lakewood",
+                    "cityDomain": "https://lakewood-city-co.mydripnurse.com",
+                    "citySitemap": "https://lakewood-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Littleton",
+                    "cityDomain": "https://littleton-city-co.mydripnurse.com",
+                    "citySitemap": "https://littleton-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Morrison",
+                    "cityDomain": "https://morrison-city-co.mydripnurse.com",
+                    "citySitemap": "https://morrison-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wheat Ridge",
+                    "cityDomain": "https://wheat-ridge-city-co.mydripnurse.com",
+                    "citySitemap": "https://wheat-ridge-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://jefferson-county-co.mydripnurse.com",
+            "countySitemap": "https://jefferson-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Kiowa",
             "Cities": [
-                "Eads"
+                {
+                    "cityName": "Eads",
+                    "cityDomain": "https://eads-city-co.mydripnurse.com",
+                    "citySitemap": "https://eads-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://kiowa-county-co.mydripnurse.com",
+            "countySitemap": "https://kiowa-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Kit Carson",
             "Cities": [
-                "Burlington",
-                "Stratton",
-                "Vona"
+                {
+                    "cityName": "Burlington",
+                    "cityDomain": "https://burlington-city-co.mydripnurse.com",
+                    "citySitemap": "https://burlington-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stratton",
+                    "cityDomain": "https://stratton-city-co.mydripnurse.com",
+                    "citySitemap": "https://stratton-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Vona",
+                    "cityDomain": "https://vona-city-co.mydripnurse.com",
+                    "citySitemap": "https://vona-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://kit-carson-county-co.mydripnurse.com",
+            "countySitemap": "https://kit-carson-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "La Plata",
             "Cities": [
-                "Durango"
+                {
+                    "cityName": "Durango",
+                    "cityDomain": "https://durango-city-co.mydripnurse.com",
+                    "citySitemap": "https://durango-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://la-plata-county-co.mydripnurse.com",
+            "countySitemap": "https://la-plata-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Lake",
             "Cities": [
-                "Leadville"
+                {
+                    "cityName": "Leadville",
+                    "cityDomain": "https://leadville-city-co.mydripnurse.com",
+                    "citySitemap": "https://leadville-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://lake-county-co.mydripnurse.com",
+            "countySitemap": "https://lake-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Larimer",
             "Cities": [
-                "Berthoud",
-                "Estes Park",
-                "Fort Collins",
-                "Johnstown",
-                "Loveland",
-                "Timnath",
-                "Wellington"
+                {
+                    "cityName": "Berthoud",
+                    "cityDomain": "https://berthoud-city-co.mydripnurse.com",
+                    "citySitemap": "https://berthoud-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Estes Park",
+                    "cityDomain": "https://estes-park-city-co.mydripnurse.com",
+                    "citySitemap": "https://estes-park-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Collins",
+                    "cityDomain": "https://fort-collins-city-co.mydripnurse.com",
+                    "citySitemap": "https://fort-collins-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Johnstown",
+                    "cityDomain": "https://johnstown-city-co.mydripnurse.com",
+                    "citySitemap": "https://johnstown-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Loveland",
+                    "cityDomain": "https://loveland-city-co.mydripnurse.com",
+                    "citySitemap": "https://loveland-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Timnath",
+                    "cityDomain": "https://timnath-city-co.mydripnurse.com",
+                    "citySitemap": "https://timnath-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wellington",
+                    "cityDomain": "https://wellington-city-co.mydripnurse.com",
+                    "citySitemap": "https://wellington-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://larimer-county-co.mydripnurse.com",
+            "countySitemap": "https://larimer-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Las Animas",
             "Cities": [
-                "Aguilar",
-                "Kim",
-                "Trinidad"
+                {
+                    "cityName": "Aguilar",
+                    "cityDomain": "https://aguilar-city-co.mydripnurse.com",
+                    "citySitemap": "https://aguilar-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kim",
+                    "cityDomain": "https://kim-city-co.mydripnurse.com",
+                    "citySitemap": "https://kim-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Trinidad",
+                    "cityDomain": "https://trinidad-city-co.mydripnurse.com",
+                    "citySitemap": "https://trinidad-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://las-animas-county-co.mydripnurse.com",
+            "countySitemap": "https://las-animas-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Lincoln",
             "Cities": [
-                "Hugo",
-                "Limon"
+                {
+                    "cityName": "Hugo",
+                    "cityDomain": "https://hugo-city-co.mydripnurse.com",
+                    "citySitemap": "https://hugo-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Limon",
+                    "cityDomain": "https://limon-city-co.mydripnurse.com",
+                    "citySitemap": "https://limon-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://lincoln-county-co.mydripnurse.com",
+            "countySitemap": "https://lincoln-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Logan",
             "Cities": [
-                "Crook",
-                "Fleming",
-                "Iliff",
-                "Merino",
-                "Peetz",
-                "Sterling"
+                {
+                    "cityName": "Crook",
+                    "cityDomain": "https://crook-city-co.mydripnurse.com",
+                    "citySitemap": "https://crook-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fleming",
+                    "cityDomain": "https://fleming-city-co.mydripnurse.com",
+                    "citySitemap": "https://fleming-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Iliff",
+                    "cityDomain": "https://iliff-city-co.mydripnurse.com",
+                    "citySitemap": "https://iliff-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Merino",
+                    "cityDomain": "https://merino-city-co.mydripnurse.com",
+                    "citySitemap": "https://merino-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Peetz",
+                    "cityDomain": "https://peetz-city-co.mydripnurse.com",
+                    "citySitemap": "https://peetz-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sterling",
+                    "cityDomain": "https://sterling-city-co.mydripnurse.com",
+                    "citySitemap": "https://sterling-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://logan-county-co.mydripnurse.com",
+            "countySitemap": "https://logan-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Mesa",
             "Cities": [
-                "Collbran",
-                "De Beque",
-                "Fruita",
-                "Grand Junction",
-                "Palisade"
+                {
+                    "cityName": "Collbran",
+                    "cityDomain": "https://collbran-city-co.mydripnurse.com",
+                    "citySitemap": "https://collbran-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "De Beque",
+                    "cityDomain": "https://de-beque-city-co.mydripnurse.com",
+                    "citySitemap": "https://de-beque-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fruita",
+                    "cityDomain": "https://fruita-city-co.mydripnurse.com",
+                    "citySitemap": "https://fruita-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Grand Junction",
+                    "cityDomain": "https://grand-junction-city-co.mydripnurse.com",
+                    "citySitemap": "https://grand-junction-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Palisade",
+                    "cityDomain": "https://palisade-city-co.mydripnurse.com",
+                    "citySitemap": "https://palisade-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://mesa-county-co.mydripnurse.com",
+            "countySitemap": "https://mesa-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Mineral",
             "Cities": [
-                "Creede"
+                {
+                    "cityName": "Creede",
+                    "cityDomain": "https://creede-city-co.mydripnurse.com",
+                    "citySitemap": "https://creede-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://mineral-county-co.mydripnurse.com",
+            "countySitemap": "https://mineral-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Moffat",
             "Cities": [
-                "Craig",
-                "Dinosaur"
+                {
+                    "cityName": "Craig",
+                    "cityDomain": "https://craig-city-co.mydripnurse.com",
+                    "citySitemap": "https://craig-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dinosaur",
+                    "cityDomain": "https://dinosaur-city-co.mydripnurse.com",
+                    "citySitemap": "https://dinosaur-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://moffat-county-co.mydripnurse.com",
+            "countySitemap": "https://moffat-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Montezuma",
             "Cities": [
-                "Cortez",
-                "Dolores",
-                "Mancos"
+                {
+                    "cityName": "Cortez",
+                    "cityDomain": "https://cortez-city-co.mydripnurse.com",
+                    "citySitemap": "https://cortez-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dolores",
+                    "cityDomain": "https://dolores-city-co.mydripnurse.com",
+                    "citySitemap": "https://dolores-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mancos",
+                    "cityDomain": "https://mancos-city-co.mydripnurse.com",
+                    "citySitemap": "https://mancos-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://montezuma-county-co.mydripnurse.com",
+            "countySitemap": "https://montezuma-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Montrose",
             "Cities": [
-                "Montrose",
-                "Naturita",
-                "Nucla",
-                "Olathe"
+                {
+                    "cityName": "Montrose",
+                    "cityDomain": "https://montrose-city-co.mydripnurse.com",
+                    "citySitemap": "https://montrose-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Naturita",
+                    "cityDomain": "https://naturita-city-co.mydripnurse.com",
+                    "citySitemap": "https://naturita-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nucla",
+                    "cityDomain": "https://nucla-city-co.mydripnurse.com",
+                    "citySitemap": "https://nucla-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Olathe",
+                    "cityDomain": "https://olathe-city-co.mydripnurse.com",
+                    "citySitemap": "https://olathe-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://montrose-county-co.mydripnurse.com",
+            "countySitemap": "https://montrose-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Morgan",
             "Cities": [
-                "Brush",
-                "Fort Morgan",
-                "Hillrose",
-                "Log Lane Village",
-                "Wiggins"
+                {
+                    "cityName": "Brush",
+                    "cityDomain": "https://brush-city-co.mydripnurse.com",
+                    "citySitemap": "https://brush-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Morgan",
+                    "cityDomain": "https://fort-morgan-city-co.mydripnurse.com",
+                    "citySitemap": "https://fort-morgan-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hillrose",
+                    "cityDomain": "https://hillrose-city-co.mydripnurse.com",
+                    "citySitemap": "https://hillrose-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Log Lane Village",
+                    "cityDomain": "https://log-lane-village-city-co.mydripnurse.com",
+                    "citySitemap": "https://log-lane-village-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wiggins",
+                    "cityDomain": "https://wiggins-city-co.mydripnurse.com",
+                    "citySitemap": "https://wiggins-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://morgan-county-co.mydripnurse.com",
+            "countySitemap": "https://morgan-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Otero",
             "Cities": [
-                "Fowler",
-                "La Junta",
-                "Manzanola",
-                "Rocky Ford",
-                "Swink"
+                {
+                    "cityName": "Fowler",
+                    "cityDomain": "https://fowler-city-co.mydripnurse.com",
+                    "citySitemap": "https://fowler-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Junta",
+                    "cityDomain": "https://la-junta-city-co.mydripnurse.com",
+                    "citySitemap": "https://la-junta-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manzanola",
+                    "cityDomain": "https://manzanola-city-co.mydripnurse.com",
+                    "citySitemap": "https://manzanola-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rocky Ford",
+                    "cityDomain": "https://rocky-ford-city-co.mydripnurse.com",
+                    "citySitemap": "https://rocky-ford-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Swink",
+                    "cityDomain": "https://swink-city-co.mydripnurse.com",
+                    "citySitemap": "https://swink-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://otero-county-co.mydripnurse.com",
+            "countySitemap": "https://otero-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Ouray",
             "Cities": [
-                "Ouray",
-                "Ridgway"
+                {
+                    "cityName": "Ouray",
+                    "cityDomain": "https://ouray-city-co.mydripnurse.com",
+                    "citySitemap": "https://ouray-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ridgway",
+                    "cityDomain": "https://ridgway-city-co.mydripnurse.com",
+                    "citySitemap": "https://ridgway-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://ouray-county-co.mydripnurse.com",
+            "countySitemap": "https://ouray-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Park",
             "Cities": [
-                "Fairplay"
+                {
+                    "cityName": "Fairplay",
+                    "cityDomain": "https://fairplay-city-co.mydripnurse.com",
+                    "citySitemap": "https://fairplay-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://park-county-co.mydripnurse.com",
+            "countySitemap": "https://park-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Phillips",
             "Cities": [
-                "Holyoke",
-                "Haxtun"
+                {
+                    "cityName": "Holyoke",
+                    "cityDomain": "https://holyoke-city-co.mydripnurse.com",
+                    "citySitemap": "https://holyoke-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Haxtun",
+                    "cityDomain": "https://haxtun-city-co.mydripnurse.com",
+                    "citySitemap": "https://haxtun-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://phillips-county-co.mydripnurse.com",
+            "countySitemap": "https://phillips-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Pitkin",
             "Cities": [
-                "Aspen",
-                "Snowmass Village"
+                {
+                    "cityName": "Aspen",
+                    "cityDomain": "https://aspen-city-co.mydripnurse.com",
+                    "citySitemap": "https://aspen-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Snowmass Village",
+                    "cityDomain": "https://snowmass-village-city-co.mydripnurse.com",
+                    "citySitemap": "https://snowmass-village-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://pitkin-county-co.mydripnurse.com",
+            "countySitemap": "https://pitkin-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Prowers",
             "Cities": [
-                "Granada",
-                "Holly",
-                "Lamar"
+                {
+                    "cityName": "Granada",
+                    "cityDomain": "https://granada-city-co.mydripnurse.com",
+                    "citySitemap": "https://granada-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Holly",
+                    "cityDomain": "https://holly-city-co.mydripnurse.com",
+                    "citySitemap": "https://holly-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lamar",
+                    "cityDomain": "https://lamar-city-co.mydripnurse.com",
+                    "citySitemap": "https://lamar-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://prowers-county-co.mydripnurse.com",
+            "countySitemap": "https://prowers-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Pueblo",
             "Cities": [
-                "Pueblo"
+                {
+                    "cityName": "Pueblo",
+                    "cityDomain": "https://pueblo-city-co.mydripnurse.com",
+                    "citySitemap": "https://pueblo-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://pueblo-county-co.mydripnurse.com",
+            "countySitemap": "https://pueblo-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Rio Blanco",
             "Cities": [
-                "Meeker",
-                "Rangely"
+                {
+                    "cityName": "Meeker",
+                    "cityDomain": "https://meeker-city-co.mydripnurse.com",
+                    "citySitemap": "https://meeker-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rangely",
+                    "cityDomain": "https://rangely-city-co.mydripnurse.com",
+                    "citySitemap": "https://rangely-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://rio-blanco-county-co.mydripnurse.com",
+            "countySitemap": "https://rio-blanco-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Rio Grande",
             "Cities": [
-                "Center",
-                "Del Norte",
-                "Monte Vista"
+                {
+                    "cityName": "Center",
+                    "cityDomain": "https://center-city-co.mydripnurse.com",
+                    "citySitemap": "https://center-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Del Norte",
+                    "cityDomain": "https://del-norte-city-co.mydripnurse.com",
+                    "citySitemap": "https://del-norte-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monte Vista",
+                    "cityDomain": "https://monte-vista-city-co.mydripnurse.com",
+                    "citySitemap": "https://monte-vista-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://rio-grande-county-co.mydripnurse.com",
+            "countySitemap": "https://rio-grande-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Routt",
             "Cities": [
-                "Hayden",
-                "Oak Creek",
-                "Steamboat Springs",
-                "Yampa"
+                {
+                    "cityName": "Hayden",
+                    "cityDomain": "https://hayden-city-co.mydripnurse.com",
+                    "citySitemap": "https://hayden-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oak Creek",
+                    "cityDomain": "https://oak-creek-city-co.mydripnurse.com",
+                    "citySitemap": "https://oak-creek-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Steamboat Springs",
+                    "cityDomain": "https://steamboat-springs-city-co.mydripnurse.com",
+                    "citySitemap": "https://steamboat-springs-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yampa",
+                    "cityDomain": "https://yampa-city-co.mydripnurse.com",
+                    "citySitemap": "https://yampa-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://routt-county-co.mydripnurse.com",
+            "countySitemap": "https://routt-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Saguache",
             "Cities": [
-                "Center",
-                "Saguache"
+                {
+                    "cityName": "Center",
+                    "cityDomain": "https://center-city-co.mydripnurse.com",
+                    "citySitemap": "https://center-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Saguache",
+                    "cityDomain": "https://saguache-city-co.mydripnurse.com",
+                    "citySitemap": "https://saguache-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://saguache-county-co.mydripnurse.com",
+            "countySitemap": "https://saguache-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Juan",
             "Cities": [
-                "Silverton"
+                {
+                    "cityName": "Silverton",
+                    "cityDomain": "https://silverton-city-co.mydripnurse.com",
+                    "citySitemap": "https://silverton-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://san-juan-county-co.mydripnurse.com",
+            "countySitemap": "https://san-juan-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Miguel",
             "Cities": [
-                "Mountain Village",
-                "Norwood",
-                "Telluride"
+                {
+                    "cityName": "Mountain Village",
+                    "cityDomain": "https://mountain-village-city-co.mydripnurse.com",
+                    "citySitemap": "https://mountain-village-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Norwood",
+                    "cityDomain": "https://norwood-city-co.mydripnurse.com",
+                    "citySitemap": "https://norwood-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Telluride",
+                    "cityDomain": "https://telluride-city-co.mydripnurse.com",
+                    "citySitemap": "https://telluride-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://san-miguel-county-co.mydripnurse.com",
+            "countySitemap": "https://san-miguel-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Sedgwick",
             "Cities": [
-                "Julesburg",
-                "Ovid"
+                {
+                    "cityName": "Julesburg",
+                    "cityDomain": "https://julesburg-city-co.mydripnurse.com",
+                    "citySitemap": "https://julesburg-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ovid",
+                    "cityDomain": "https://ovid-city-co.mydripnurse.com",
+                    "citySitemap": "https://ovid-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://sedgwick-county-co.mydripnurse.com",
+            "countySitemap": "https://sedgwick-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Summit",
             "Cities": [
-                "Blue River",
-                "Breckenridge",
-                "Dillon",
-                "Frisco",
-                "Silverthorne"
+                {
+                    "cityName": "Blue River",
+                    "cityDomain": "https://blue-river-city-co.mydripnurse.com",
+                    "citySitemap": "https://blue-river-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Breckenridge",
+                    "cityDomain": "https://breckenridge-city-co.mydripnurse.com",
+                    "citySitemap": "https://breckenridge-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dillon",
+                    "cityDomain": "https://dillon-city-co.mydripnurse.com",
+                    "citySitemap": "https://dillon-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Frisco",
+                    "cityDomain": "https://frisco-city-co.mydripnurse.com",
+                    "citySitemap": "https://frisco-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Silverthorne",
+                    "cityDomain": "https://silverthorne-city-co.mydripnurse.com",
+                    "citySitemap": "https://silverthorne-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://summit-county-co.mydripnurse.com",
+            "countySitemap": "https://summit-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Teller",
             "Cities": [
-                "Cripple Creek",
-                "Victor"
+                {
+                    "cityName": "Cripple Creek",
+                    "cityDomain": "https://cripple-creek-city-co.mydripnurse.com",
+                    "citySitemap": "https://cripple-creek-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Victor",
+                    "cityDomain": "https://victor-city-co.mydripnurse.com",
+                    "citySitemap": "https://victor-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://teller-county-co.mydripnurse.com",
+            "countySitemap": "https://teller-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Washington",
             "Cities": [
-                "Akron",
-                "Otis"
+                {
+                    "cityName": "Akron",
+                    "cityDomain": "https://akron-city-co.mydripnurse.com",
+                    "citySitemap": "https://akron-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Otis",
+                    "cityDomain": "https://otis-city-co.mydripnurse.com",
+                    "citySitemap": "https://otis-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://washington-county-co.mydripnurse.com",
+            "countySitemap": "https://washington-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Weld",
             "Cities": [
-                "Brighton",
-                "Dacono",
-                "Eaton",
-                "Erie",
-                "Evans",
-                "Firestone",
-                "Fort Lupton",
-                "Frederick",
-                "Garden City",
-                "Greeley",
-                "Hudson",
-                "Johnstown",
-                "Keenesburg",
-                "La Salle",
-                "Lochbuie",
-                "Milliken",
-                "Nunn",
-                "Platteville",
-                "Severance",
-                "Windsor"
+                {
+                    "cityName": "Brighton",
+                    "cityDomain": "https://brighton-city-co.mydripnurse.com",
+                    "citySitemap": "https://brighton-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dacono",
+                    "cityDomain": "https://dacono-city-co.mydripnurse.com",
+                    "citySitemap": "https://dacono-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eaton",
+                    "cityDomain": "https://eaton-city-co.mydripnurse.com",
+                    "citySitemap": "https://eaton-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Erie",
+                    "cityDomain": "https://erie-city-co.mydripnurse.com",
+                    "citySitemap": "https://erie-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Evans",
+                    "cityDomain": "https://evans-city-co.mydripnurse.com",
+                    "citySitemap": "https://evans-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Firestone",
+                    "cityDomain": "https://firestone-city-co.mydripnurse.com",
+                    "citySitemap": "https://firestone-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Lupton",
+                    "cityDomain": "https://fort-lupton-city-co.mydripnurse.com",
+                    "citySitemap": "https://fort-lupton-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Frederick",
+                    "cityDomain": "https://frederick-city-co.mydripnurse.com",
+                    "citySitemap": "https://frederick-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Garden City",
+                    "cityDomain": "https://garden-city-city-co.mydripnurse.com",
+                    "citySitemap": "https://garden-city-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greeley",
+                    "cityDomain": "https://greeley-city-co.mydripnurse.com",
+                    "citySitemap": "https://greeley-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hudson",
+                    "cityDomain": "https://hudson-city-co.mydripnurse.com",
+                    "citySitemap": "https://hudson-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Johnstown",
+                    "cityDomain": "https://johnstown-city-co.mydripnurse.com",
+                    "citySitemap": "https://johnstown-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Keenesburg",
+                    "cityDomain": "https://keenesburg-city-co.mydripnurse.com",
+                    "citySitemap": "https://keenesburg-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Salle",
+                    "cityDomain": "https://la-salle-city-co.mydripnurse.com",
+                    "citySitemap": "https://la-salle-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lochbuie",
+                    "cityDomain": "https://lochbuie-city-co.mydripnurse.com",
+                    "citySitemap": "https://lochbuie-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Milliken",
+                    "cityDomain": "https://milliken-city-co.mydripnurse.com",
+                    "citySitemap": "https://milliken-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nunn",
+                    "cityDomain": "https://nunn-city-co.mydripnurse.com",
+                    "citySitemap": "https://nunn-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Platteville",
+                    "cityDomain": "https://platteville-city-co.mydripnurse.com",
+                    "citySitemap": "https://platteville-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Severance",
+                    "cityDomain": "https://severance-city-co.mydripnurse.com",
+                    "citySitemap": "https://severance-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Windsor",
+                    "cityDomain": "https://windsor-city-co.mydripnurse.com",
+                    "citySitemap": "https://windsor-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://weld-county-co.mydripnurse.com",
+            "countySitemap": "https://weld-county-co.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Yuma",
             "Cities": [
-                "Eckley",
-                "Wray",
-                "Yuma"
+                {
+                    "cityName": "Eckley",
+                    "cityDomain": "https://eckley-city-co.mydripnurse.com",
+                    "citySitemap": "https://eckley-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wray",
+                    "cityDomain": "https://wray-city-co.mydripnurse.com",
+                    "citySitemap": "https://wray-city-co.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yuma",
+                    "cityDomain": "https://yuma-city-co.mydripnurse.com",
+                    "citySitemap": "https://yuma-city-co.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Mountain",
                 "UTC_Offset": "-07:00"
-            }
+            },
+            "countyDomain": "https://yuma-county-co.mydripnurse.com",
+            "countySitemap": "https://yuma-county-co.mydripnurse.com/sitemap.xml"
         }
     ],
     "website": "https://www.mydripnurse.com",

@@ -3,223 +3,537 @@
         {
             "County Name": "Apache",
             "Cities": [
-                "Chinle",
-                "Eagar",
-                "Springerville",
-                "St. Johns",
-                "Window Rock"
+                {
+                    "cityName": "Chinle",
+                    "cityDomain": "https://chinle-city-az.mydripnurse.com",
+                    "citySitemap": "https://chinle-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eagar",
+                    "cityDomain": "https://eagar-city-az.mydripnurse.com",
+                    "citySitemap": "https://eagar-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Springerville",
+                    "cityDomain": "https://springerville-city-az.mydripnurse.com",
+                    "citySitemap": "https://springerville-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "St. Johns",
+                    "cityDomain": "https://st-johns-city-az.mydripnurse.com",
+                    "citySitemap": "https://st-johns-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Window Rock",
+                    "cityDomain": "https://window-rock-city-az.mydripnurse.com",
+                    "citySitemap": "https://window-rock-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://apache-county-az.mydripnurse.com",
+            "countySitemap": "https://apache-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Cochise",
             "Cities": [
-                "Bisbee",
-                "Douglas",
-                "Sierra Vista",
-                "Tombstone",
-                "Willcox"
+                {
+                    "cityName": "Bisbee",
+                    "cityDomain": "https://bisbee-city-az.mydripnurse.com",
+                    "citySitemap": "https://bisbee-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Douglas",
+                    "cityDomain": "https://douglas-city-az.mydripnurse.com",
+                    "citySitemap": "https://douglas-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sierra Vista",
+                    "cityDomain": "https://sierra-vista-city-az.mydripnurse.com",
+                    "citySitemap": "https://sierra-vista-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tombstone",
+                    "cityDomain": "https://tombstone-city-az.mydripnurse.com",
+                    "citySitemap": "https://tombstone-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Willcox",
+                    "cityDomain": "https://willcox-city-az.mydripnurse.com",
+                    "citySitemap": "https://willcox-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://cochise-county-az.mydripnurse.com",
+            "countySitemap": "https://cochise-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Coconino",
             "Cities": [
-                "Flagstaff",
-                "Page",
-                "Sedona",
-                "Williams",
-                "Tuba City"
+                {
+                    "cityName": "Flagstaff",
+                    "cityDomain": "https://flagstaff-city-az.mydripnurse.com",
+                    "citySitemap": "https://flagstaff-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Page",
+                    "cityDomain": "https://page-city-az.mydripnurse.com",
+                    "citySitemap": "https://page-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sedona",
+                    "cityDomain": "https://sedona-city-az.mydripnurse.com",
+                    "citySitemap": "https://sedona-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Williams",
+                    "cityDomain": "https://williams-city-az.mydripnurse.com",
+                    "citySitemap": "https://williams-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tuba City",
+                    "cityDomain": "https://tuba-city-city-az.mydripnurse.com",
+                    "citySitemap": "https://tuba-city-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://coconino-county-az.mydripnurse.com",
+            "countySitemap": "https://coconino-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Gila",
             "Cities": [
-                "Globe",
-                "Miami",
-                "Payson",
-                "Strawberry",
-                "Star Valley"
+                {
+                    "cityName": "Globe",
+                    "cityDomain": "https://globe-city-az.mydripnurse.com",
+                    "citySitemap": "https://globe-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Miami",
+                    "cityDomain": "https://miami-city-az.mydripnurse.com",
+                    "citySitemap": "https://miami-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Payson",
+                    "cityDomain": "https://payson-city-az.mydripnurse.com",
+                    "citySitemap": "https://payson-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Strawberry",
+                    "cityDomain": "https://strawberry-city-az.mydripnurse.com",
+                    "citySitemap": "https://strawberry-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Star Valley",
+                    "cityDomain": "https://star-valley-city-az.mydripnurse.com",
+                    "citySitemap": "https://star-valley-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://gila-county-az.mydripnurse.com",
+            "countySitemap": "https://gila-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Graham",
             "Cities": [
-                "Safford",
-                "Thatcher",
-                "Pima",
-                "Solomon"
+                {
+                    "cityName": "Safford",
+                    "cityDomain": "https://safford-city-az.mydripnurse.com",
+                    "citySitemap": "https://safford-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Thatcher",
+                    "cityDomain": "https://thatcher-city-az.mydripnurse.com",
+                    "citySitemap": "https://thatcher-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pima",
+                    "cityDomain": "https://pima-city-az.mydripnurse.com",
+                    "citySitemap": "https://pima-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Solomon",
+                    "cityDomain": "https://solomon-city-az.mydripnurse.com",
+                    "citySitemap": "https://solomon-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://graham-county-az.mydripnurse.com",
+            "countySitemap": "https://graham-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Greenlee",
             "Cities": [
-                "Clifton",
-                "Duncan"
+                {
+                    "cityName": "Clifton",
+                    "cityDomain": "https://clifton-city-az.mydripnurse.com",
+                    "citySitemap": "https://clifton-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Duncan",
+                    "cityDomain": "https://duncan-city-az.mydripnurse.com",
+                    "citySitemap": "https://duncan-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://greenlee-county-az.mydripnurse.com",
+            "countySitemap": "https://greenlee-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "La Paz",
             "Cities": [
-                "Parker",
-                "Quartzsite",
-                "Salome",
-                "Wenden"
+                {
+                    "cityName": "Parker",
+                    "cityDomain": "https://parker-city-az.mydripnurse.com",
+                    "citySitemap": "https://parker-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Quartzsite",
+                    "cityDomain": "https://quartzsite-city-az.mydripnurse.com",
+                    "citySitemap": "https://quartzsite-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Salome",
+                    "cityDomain": "https://salome-city-az.mydripnurse.com",
+                    "citySitemap": "https://salome-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wenden",
+                    "cityDomain": "https://wenden-city-az.mydripnurse.com",
+                    "citySitemap": "https://wenden-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://la-paz-county-az.mydripnurse.com",
+            "countySitemap": "https://la-paz-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Maricopa",
             "Cities": [
-                "Phoenix",
-                "Scottsdale",
-                "Mesa",
-                "Chandler",
-                "Gilbert",
-                "Tempe",
-                "Glendale",
-                "Peoria",
-                "Surprise",
-                "Avondale",
-                "Goodyear",
-                "Buckeye"
+                {
+                    "cityName": "Phoenix",
+                    "cityDomain": "https://phoenix-city-az.mydripnurse.com",
+                    "citySitemap": "https://phoenix-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Scottsdale",
+                    "cityDomain": "https://scottsdale-city-az.mydripnurse.com",
+                    "citySitemap": "https://scottsdale-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mesa",
+                    "cityDomain": "https://mesa-city-az.mydripnurse.com",
+                    "citySitemap": "https://mesa-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chandler",
+                    "cityDomain": "https://chandler-city-az.mydripnurse.com",
+                    "citySitemap": "https://chandler-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gilbert",
+                    "cityDomain": "https://gilbert-city-az.mydripnurse.com",
+                    "citySitemap": "https://gilbert-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tempe",
+                    "cityDomain": "https://tempe-city-az.mydripnurse.com",
+                    "citySitemap": "https://tempe-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glendale",
+                    "cityDomain": "https://glendale-city-az.mydripnurse.com",
+                    "citySitemap": "https://glendale-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Peoria",
+                    "cityDomain": "https://peoria-city-az.mydripnurse.com",
+                    "citySitemap": "https://peoria-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Surprise",
+                    "cityDomain": "https://surprise-city-az.mydripnurse.com",
+                    "citySitemap": "https://surprise-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Avondale",
+                    "cityDomain": "https://avondale-city-az.mydripnurse.com",
+                    "citySitemap": "https://avondale-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Goodyear",
+                    "cityDomain": "https://goodyear-city-az.mydripnurse.com",
+                    "citySitemap": "https://goodyear-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Buckeye",
+                    "cityDomain": "https://buckeye-city-az.mydripnurse.com",
+                    "citySitemap": "https://buckeye-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://maricopa-county-az.mydripnurse.com",
+            "countySitemap": "https://maricopa-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Mohave",
             "Cities": [
-                "Kingman",
-                "Lake Havasu City",
-                "Bullhead City",
-                "Colorado City"
+                {
+                    "cityName": "Kingman",
+                    "cityDomain": "https://kingman-city-az.mydripnurse.com",
+                    "citySitemap": "https://kingman-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lake Havasu City",
+                    "cityDomain": "https://lake-havasu-city-city-az.mydripnurse.com",
+                    "citySitemap": "https://lake-havasu-city-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bullhead City",
+                    "cityDomain": "https://bullhead-city-city-az.mydripnurse.com",
+                    "citySitemap": "https://bullhead-city-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Colorado City",
+                    "cityDomain": "https://colorado-city-city-az.mydripnurse.com",
+                    "citySitemap": "https://colorado-city-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://mohave-county-az.mydripnurse.com",
+            "countySitemap": "https://mohave-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Navajo",
             "Cities": [
-                "Holbrook",
-                "Show Low",
-                "Winslow",
-                "Pinetop-Lakeside"
+                {
+                    "cityName": "Holbrook",
+                    "cityDomain": "https://holbrook-city-az.mydripnurse.com",
+                    "citySitemap": "https://holbrook-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Show Low",
+                    "cityDomain": "https://show-low-city-az.mydripnurse.com",
+                    "citySitemap": "https://show-low-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Winslow",
+                    "cityDomain": "https://winslow-city-az.mydripnurse.com",
+                    "citySitemap": "https://winslow-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pinetop-Lakeside",
+                    "cityDomain": "https://pinetop-lakeside-city-az.mydripnurse.com",
+                    "citySitemap": "https://pinetop-lakeside-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://navajo-county-az.mydripnurse.com",
+            "countySitemap": "https://navajo-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Pima",
             "Cities": [
-                "Tucson",
-                "Oro Valley",
-                "Marana",
-                "Sahuarita",
-                "South Tucson"
+                {
+                    "cityName": "Tucson",
+                    "cityDomain": "https://tucson-city-az.mydripnurse.com",
+                    "citySitemap": "https://tucson-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oro Valley",
+                    "cityDomain": "https://oro-valley-city-az.mydripnurse.com",
+                    "citySitemap": "https://oro-valley-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Marana",
+                    "cityDomain": "https://marana-city-az.mydripnurse.com",
+                    "citySitemap": "https://marana-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sahuarita",
+                    "cityDomain": "https://sahuarita-city-az.mydripnurse.com",
+                    "citySitemap": "https://sahuarita-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Tucson",
+                    "cityDomain": "https://south-tucson-city-az.mydripnurse.com",
+                    "citySitemap": "https://south-tucson-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://pima-county-az.mydripnurse.com",
+            "countySitemap": "https://pima-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Pinal",
             "Cities": [
-                "Casa Grande",
-                "Coolidge",
-                "Florence",
-                "Maricopa",
-                "San Tan Valley"
+                {
+                    "cityName": "Casa Grande",
+                    "cityDomain": "https://casa-grande-city-az.mydripnurse.com",
+                    "citySitemap": "https://casa-grande-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Coolidge",
+                    "cityDomain": "https://coolidge-city-az.mydripnurse.com",
+                    "citySitemap": "https://coolidge-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Florence",
+                    "cityDomain": "https://florence-city-az.mydripnurse.com",
+                    "citySitemap": "https://florence-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Maricopa",
+                    "cityDomain": "https://maricopa-city-az.mydripnurse.com",
+                    "citySitemap": "https://maricopa-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Tan Valley",
+                    "cityDomain": "https://san-tan-valley-city-az.mydripnurse.com",
+                    "citySitemap": "https://san-tan-valley-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://pinal-county-az.mydripnurse.com",
+            "countySitemap": "https://pinal-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Santa Cruz",
             "Cities": [
-                "Nogales",
-                "Patagonia"
+                {
+                    "cityName": "Nogales",
+                    "cityDomain": "https://nogales-city-az.mydripnurse.com",
+                    "citySitemap": "https://nogales-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Patagonia",
+                    "cityDomain": "https://patagonia-city-az.mydripnurse.com",
+                    "citySitemap": "https://patagonia-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://santa-cruz-county-az.mydripnurse.com",
+            "countySitemap": "https://santa-cruz-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Yavapai",
             "Cities": [
-                "Prescott",
-                "Prescott Valley",
-                "Cottonwood",
-                "Camp Verde",
-                "Jerome"
+                {
+                    "cityName": "Prescott",
+                    "cityDomain": "https://prescott-city-az.mydripnurse.com",
+                    "citySitemap": "https://prescott-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Prescott Valley",
+                    "cityDomain": "https://prescott-valley-city-az.mydripnurse.com",
+                    "citySitemap": "https://prescott-valley-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cottonwood",
+                    "cityDomain": "https://cottonwood-city-az.mydripnurse.com",
+                    "citySitemap": "https://cottonwood-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Camp Verde",
+                    "cityDomain": "https://camp-verde-city-az.mydripnurse.com",
+                    "citySitemap": "https://camp-verde-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jerome",
+                    "cityDomain": "https://jerome-city-az.mydripnurse.com",
+                    "citySitemap": "https://jerome-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://yavapai-county-az.mydripnurse.com",
+            "countySitemap": "https://yavapai-county-az.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Yuma",
             "Cities": [
-                "Yuma",
-                "Somerton",
-                "San Luis",
-                "Wellton"
+                {
+                    "cityName": "Yuma",
+                    "cityDomain": "https://yuma-city-az.mydripnurse.com",
+                    "citySitemap": "https://yuma-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Somerton",
+                    "cityDomain": "https://somerton-city-az.mydripnurse.com",
+                    "citySitemap": "https://somerton-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Luis",
+                    "cityDomain": "https://san-luis-city-az.mydripnurse.com",
+                    "citySitemap": "https://san-luis-city-az.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wellton",
+                    "cityDomain": "https://wellton-city-az.mydripnurse.com",
+                    "citySitemap": "https://wellton-city-az.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Mountain",
                 "Zone": "US/Arizona",
                 "GMT_Offset": "(GMT-07:00)"
-            }
+            },
+            "countyDomain": "https://yuma-county-az.mydripnurse.com",
+            "countySitemap": "https://yuma-county-az.mydripnurse.com/sitemap.xml"
         }
     ],
     "website": "https://www.mydripnurse.com",

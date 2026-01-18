@@ -3,1054 +3,2780 @@
         {
             "County Name": "Alameda",
             "Cities": [
-                "Alameda",
-                "Albany",
-                "Berkeley",
-                "Dublin",
-                "Emeryville",
-                "Fremont",
-                "Hayward",
-                "Livermore",
-                "Newark",
-                "Oakland",
-                "Piedmont",
-                "Pleasanton",
-                "San Leandro",
-                "Union City"
+                {
+                    "cityName": "Alameda",
+                    "cityDomain": "https://alameda-city-ca.mydripnurse.com",
+                    "citySitemap": "https://alameda-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Albany",
+                    "cityDomain": "https://albany-city-ca.mydripnurse.com",
+                    "citySitemap": "https://albany-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Berkeley",
+                    "cityDomain": "https://berkeley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://berkeley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dublin",
+                    "cityDomain": "https://dublin-city-ca.mydripnurse.com",
+                    "citySitemap": "https://dublin-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Emeryville",
+                    "cityDomain": "https://emeryville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://emeryville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fremont",
+                    "cityDomain": "https://fremont-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fremont-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hayward",
+                    "cityDomain": "https://hayward-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hayward-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Livermore",
+                    "cityDomain": "https://livermore-city-ca.mydripnurse.com",
+                    "citySitemap": "https://livermore-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newark",
+                    "cityDomain": "https://newark-city-ca.mydripnurse.com",
+                    "citySitemap": "https://newark-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oakland",
+                    "cityDomain": "https://oakland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://oakland-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Piedmont",
+                    "cityDomain": "https://piedmont-city-ca.mydripnurse.com",
+                    "citySitemap": "https://piedmont-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pleasanton",
+                    "cityDomain": "https://pleasanton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pleasanton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Leandro",
+                    "cityDomain": "https://san-leandro-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-leandro-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Union City",
+                    "cityDomain": "https://union-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://union-city-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://alameda-county-ca.mydripnurse.com",
+            "countySitemap": "https://alameda-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Alpine",
             "Cities": [],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://alpine-county-ca.mydripnurse.com",
+            "countySitemap": "https://alpine-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Amador",
             "Cities": [
-                "Amador City",
-                "Ione",
-                "Jackson",
-                "Plymouth",
-                "Sutter Creek"
+                {
+                    "cityName": "Amador City",
+                    "cityDomain": "https://amador-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://amador-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ione",
+                    "cityDomain": "https://ione-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ione-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jackson",
+                    "cityDomain": "https://jackson-city-ca.mydripnurse.com",
+                    "citySitemap": "https://jackson-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Plymouth",
+                    "cityDomain": "https://plymouth-city-ca.mydripnurse.com",
+                    "citySitemap": "https://plymouth-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sutter Creek",
+                    "cityDomain": "https://sutter-creek-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sutter-creek-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://amador-county-ca.mydripnurse.com",
+            "countySitemap": "https://amador-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Butte",
             "Cities": [
-                "Biggs",
-                "Chico",
-                "Gridley",
-                "Oroville",
-                "Paradise"
+                {
+                    "cityName": "Biggs",
+                    "cityDomain": "https://biggs-city-ca.mydripnurse.com",
+                    "citySitemap": "https://biggs-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chico",
+                    "cityDomain": "https://chico-city-ca.mydripnurse.com",
+                    "citySitemap": "https://chico-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gridley",
+                    "cityDomain": "https://gridley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://gridley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oroville",
+                    "cityDomain": "https://oroville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://oroville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Paradise",
+                    "cityDomain": "https://paradise-city-ca.mydripnurse.com",
+                    "citySitemap": "https://paradise-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://butte-county-ca.mydripnurse.com",
+            "countySitemap": "https://butte-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Calaveras",
             "Cities": [
-                "Angels Camp"
+                {
+                    "cityName": "Angels Camp",
+                    "cityDomain": "https://angels-camp-city-ca.mydripnurse.com",
+                    "citySitemap": "https://angels-camp-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://calaveras-county-ca.mydripnurse.com",
+            "countySitemap": "https://calaveras-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Colusa",
             "Cities": [
-                "Colusa",
-                "Williams"
+                {
+                    "cityName": "Colusa",
+                    "cityDomain": "https://colusa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://colusa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Williams",
+                    "cityDomain": "https://williams-city-ca.mydripnurse.com",
+                    "citySitemap": "https://williams-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://colusa-county-ca.mydripnurse.com",
+            "countySitemap": "https://colusa-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Contra Costa",
             "Cities": [
-                "Antioch",
-                "Brentwood",
-                "Clayton",
-                "Concord",
-                "Danville",
-                "El Cerrito",
-                "Hercules",
-                "Lafayette",
-                "Martinez",
-                "Moraga",
-                "Oakley",
-                "Orinda",
-                "Pittsburg",
-                "Pleasant Hill",
-                "Richmond",
-                "San Pablo",
-                "San Ramon",
-                "Walnut Creek"
+                {
+                    "cityName": "Antioch",
+                    "cityDomain": "https://antioch-city-ca.mydripnurse.com",
+                    "citySitemap": "https://antioch-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Brentwood",
+                    "cityDomain": "https://brentwood-city-ca.mydripnurse.com",
+                    "citySitemap": "https://brentwood-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Clayton",
+                    "cityDomain": "https://clayton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://clayton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Concord",
+                    "cityDomain": "https://concord-city-ca.mydripnurse.com",
+                    "citySitemap": "https://concord-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Danville",
+                    "cityDomain": "https://danville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://danville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "El Cerrito",
+                    "cityDomain": "https://el-cerrito-city-ca.mydripnurse.com",
+                    "citySitemap": "https://el-cerrito-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hercules",
+                    "cityDomain": "https://hercules-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hercules-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lafayette",
+                    "cityDomain": "https://lafayette-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lafayette-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Martinez",
+                    "cityDomain": "https://martinez-city-ca.mydripnurse.com",
+                    "citySitemap": "https://martinez-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Moraga",
+                    "cityDomain": "https://moraga-city-ca.mydripnurse.com",
+                    "citySitemap": "https://moraga-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oakley",
+                    "cityDomain": "https://oakley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://oakley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Orinda",
+                    "cityDomain": "https://orinda-city-ca.mydripnurse.com",
+                    "citySitemap": "https://orinda-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pittsburg",
+                    "cityDomain": "https://pittsburg-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pittsburg-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pleasant Hill",
+                    "cityDomain": "https://pleasant-hill-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pleasant-hill-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Richmond",
+                    "cityDomain": "https://richmond-city-ca.mydripnurse.com",
+                    "citySitemap": "https://richmond-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Pablo",
+                    "cityDomain": "https://san-pablo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-pablo-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Ramon",
+                    "cityDomain": "https://san-ramon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-ramon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Walnut Creek",
+                    "cityDomain": "https://walnut-creek-city-ca.mydripnurse.com",
+                    "citySitemap": "https://walnut-creek-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://contra-costa-county-ca.mydripnurse.com",
+            "countySitemap": "https://contra-costa-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Del Norte",
             "Cities": [
-                "Crescent City"
+                {
+                    "cityName": "Crescent City",
+                    "cityDomain": "https://crescent-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://crescent-city-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://del-norte-county-ca.mydripnurse.com",
+            "countySitemap": "https://del-norte-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "El Dorado",
             "Cities": [
-                "Placerville",
-                "South Lake Tahoe"
+                {
+                    "cityName": "Placerville",
+                    "cityDomain": "https://placerville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://placerville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Lake Tahoe",
+                    "cityDomain": "https://south-lake-tahoe-city-ca.mydripnurse.com",
+                    "citySitemap": "https://south-lake-tahoe-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://el-dorado-county-ca.mydripnurse.com",
+            "countySitemap": "https://el-dorado-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Fresno",
             "Cities": [
-                "Clovis",
-                "Coalinga",
-                "Firebaugh",
-                "Fowler",
-                "Fresno",
-                "Huron",
-                "Kerman",
-                "Kingsburg",
-                "Mendota",
-                "Orange Cove",
-                "Parlier",
-                "Reedley",
-                "San Joaquin",
-                "Sanger",
-                "Selma"
+                {
+                    "cityName": "Clovis",
+                    "cityDomain": "https://clovis-city-ca.mydripnurse.com",
+                    "citySitemap": "https://clovis-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Coalinga",
+                    "cityDomain": "https://coalinga-city-ca.mydripnurse.com",
+                    "citySitemap": "https://coalinga-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Firebaugh",
+                    "cityDomain": "https://firebaugh-city-ca.mydripnurse.com",
+                    "citySitemap": "https://firebaugh-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fowler",
+                    "cityDomain": "https://fowler-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fowler-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fresno",
+                    "cityDomain": "https://fresno-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fresno-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Huron",
+                    "cityDomain": "https://huron-city-ca.mydripnurse.com",
+                    "citySitemap": "https://huron-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kerman",
+                    "cityDomain": "https://kerman-city-ca.mydripnurse.com",
+                    "citySitemap": "https://kerman-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kingsburg",
+                    "cityDomain": "https://kingsburg-city-ca.mydripnurse.com",
+                    "citySitemap": "https://kingsburg-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mendota",
+                    "cityDomain": "https://mendota-city-ca.mydripnurse.com",
+                    "citySitemap": "https://mendota-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Orange Cove",
+                    "cityDomain": "https://orange-cove-city-ca.mydripnurse.com",
+                    "citySitemap": "https://orange-cove-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Parlier",
+                    "cityDomain": "https://parlier-city-ca.mydripnurse.com",
+                    "citySitemap": "https://parlier-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Reedley",
+                    "cityDomain": "https://reedley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://reedley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Joaquin",
+                    "cityDomain": "https://san-joaquin-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-joaquin-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sanger",
+                    "cityDomain": "https://sanger-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sanger-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Selma",
+                    "cityDomain": "https://selma-city-ca.mydripnurse.com",
+                    "citySitemap": "https://selma-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://fresno-county-ca.mydripnurse.com",
+            "countySitemap": "https://fresno-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Glenn",
             "Cities": [
-                "Orland",
-                "Willows"
+                {
+                    "cityName": "Orland",
+                    "cityDomain": "https://orland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://orland-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Willows",
+                    "cityDomain": "https://willows-city-ca.mydripnurse.com",
+                    "citySitemap": "https://willows-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://glenn-county-ca.mydripnurse.com",
+            "countySitemap": "https://glenn-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Humboldt",
             "Cities": [
-                "Arcata",
-                "Blue Lake",
-                "Eureka",
-                "Ferndale",
-                "Fortuna",
-                "Rio Dell",
-                "Trinidad"
+                {
+                    "cityName": "Arcata",
+                    "cityDomain": "https://arcata-city-ca.mydripnurse.com",
+                    "citySitemap": "https://arcata-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Blue Lake",
+                    "cityDomain": "https://blue-lake-city-ca.mydripnurse.com",
+                    "citySitemap": "https://blue-lake-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eureka",
+                    "cityDomain": "https://eureka-city-ca.mydripnurse.com",
+                    "citySitemap": "https://eureka-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ferndale",
+                    "cityDomain": "https://ferndale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ferndale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fortuna",
+                    "cityDomain": "https://fortuna-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fortuna-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rio Dell",
+                    "cityDomain": "https://rio-dell-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rio-dell-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Trinidad",
+                    "cityDomain": "https://trinidad-city-ca.mydripnurse.com",
+                    "citySitemap": "https://trinidad-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://humboldt-county-ca.mydripnurse.com",
+            "countySitemap": "https://humboldt-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Imperial",
             "Cities": [
-                "Brawley",
-                "Calexico",
-                "Calipatria",
-                "El Centro",
-                "Holtville",
-                "Imperial",
-                "Westmorland"
+                {
+                    "cityName": "Brawley",
+                    "cityDomain": "https://brawley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://brawley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Calexico",
+                    "cityDomain": "https://calexico-city-ca.mydripnurse.com",
+                    "citySitemap": "https://calexico-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Calipatria",
+                    "cityDomain": "https://calipatria-city-ca.mydripnurse.com",
+                    "citySitemap": "https://calipatria-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "El Centro",
+                    "cityDomain": "https://el-centro-city-ca.mydripnurse.com",
+                    "citySitemap": "https://el-centro-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Holtville",
+                    "cityDomain": "https://holtville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://holtville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Imperial",
+                    "cityDomain": "https://imperial-city-ca.mydripnurse.com",
+                    "citySitemap": "https://imperial-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Westmorland",
+                    "cityDomain": "https://westmorland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://westmorland-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://imperial-county-ca.mydripnurse.com",
+            "countySitemap": "https://imperial-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Inyo",
             "Cities": [],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://inyo-county-ca.mydripnurse.com",
+            "countySitemap": "https://inyo-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Kern",
             "Cities": [
-                "Arvin",
-                "Bakersfield",
-                "California City",
-                "Delano",
-                "McFarland",
-                "Maricopa",
-                "Ridgecrest",
-                "Shafter",
-                "Taft",
-                "Tehachapi",
-                "Wasco"
+                {
+                    "cityName": "Arvin",
+                    "cityDomain": "https://arvin-city-ca.mydripnurse.com",
+                    "citySitemap": "https://arvin-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bakersfield",
+                    "cityDomain": "https://bakersfield-city-ca.mydripnurse.com",
+                    "citySitemap": "https://bakersfield-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "California City",
+                    "cityDomain": "https://california-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://california-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Delano",
+                    "cityDomain": "https://delano-city-ca.mydripnurse.com",
+                    "citySitemap": "https://delano-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "McFarland",
+                    "cityDomain": "https://mcfarland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://mcfarland-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Maricopa",
+                    "cityDomain": "https://maricopa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://maricopa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ridgecrest",
+                    "cityDomain": "https://ridgecrest-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ridgecrest-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Shafter",
+                    "cityDomain": "https://shafter-city-ca.mydripnurse.com",
+                    "citySitemap": "https://shafter-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Taft",
+                    "cityDomain": "https://taft-city-ca.mydripnurse.com",
+                    "citySitemap": "https://taft-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tehachapi",
+                    "cityDomain": "https://tehachapi-city-ca.mydripnurse.com",
+                    "citySitemap": "https://tehachapi-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wasco",
+                    "cityDomain": "https://wasco-city-ca.mydripnurse.com",
+                    "citySitemap": "https://wasco-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://kern-county-ca.mydripnurse.com",
+            "countySitemap": "https://kern-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Kings",
             "Cities": [
-                "Avenal",
-                "Corcoran",
-                "Hanford",
-                "Lemoore"
+                {
+                    "cityName": "Avenal",
+                    "cityDomain": "https://avenal-city-ca.mydripnurse.com",
+                    "citySitemap": "https://avenal-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Corcoran",
+                    "cityDomain": "https://corcoran-city-ca.mydripnurse.com",
+                    "citySitemap": "https://corcoran-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hanford",
+                    "cityDomain": "https://hanford-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hanford-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lemoore",
+                    "cityDomain": "https://lemoore-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lemoore-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://kings-county-ca.mydripnurse.com",
+            "countySitemap": "https://kings-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Lake",
             "Cities": [
-                "Clearlake",
-                "Lakeport"
+                {
+                    "cityName": "Clearlake",
+                    "cityDomain": "https://clearlake-city-ca.mydripnurse.com",
+                    "citySitemap": "https://clearlake-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lakeport",
+                    "cityDomain": "https://lakeport-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lakeport-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://lake-county-ca.mydripnurse.com",
+            "countySitemap": "https://lake-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Lassen",
             "Cities": [
-                "Susanville"
+                {
+                    "cityName": "Susanville",
+                    "cityDomain": "https://susanville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://susanville-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://lassen-county-ca.mydripnurse.com",
+            "countySitemap": "https://lassen-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Los Angeles",
             "Cities": [
-                "Agoura Hills",
-                "Alhambra",
-                "Arcadia",
-                "Artesia",
-                "Avalon",
-                "Azusa",
-                "Baldwin Park",
-                "Bell",
-                "Bell Gardens",
-                "Bellflower",
-                "Beverly Hills",
-                "Burbank",
-                "Calabasas",
-                "Carson",
-                "Cerritos",
-                "Claremont",
-                "Commerce",
-                "Compton",
-                "Covina",
-                "Cudahy",
-                "Culver City",
-                "Diamond Bar",
-                "Downey",
-                "Duarte",
-                "El Monte",
-                "El Segundo",
-                "Gardena",
-                "Glendale",
-                "Glendora",
-                "Hawthorne",
-                "Hermosa Beach",
-                "Hidden Hills",
-                "Huntington Park",
-                "Inglewood",
-                "Irwindale",
-                "La Canada Flintridge",
-                "La Habra Heights",
-                "La Mirada",
-                "La Puente",
-                "La Verne",
-                "Lakewood",
-                "Lancaster",
-                "Lawndale",
-                "Lomita",
-                "Long Beach",
-                "Los Angeles",
-                "Lynwood",
-                "Malibu",
-                "Manhattan Beach",
-                "Maywood",
-                "Monrovia",
-                "Montebello",
-                "Monterey Park",
-                "Norwalk",
-                "Palmdale",
-                "Paramount",
-                "Pasadena",
-                "Pico Rivera",
-                "Pomona",
-                "Rancho Palos Verdes",
-                "Redondo Beach",
-                "Rolling Hills",
-                "Rolling Hills Estates",
-                "Rosemead",
-                "San Dimas",
-                "San Fernando",
-                "San Gabriel",
-                "San Marino",
-                "Santa Clarita",
-                "Santa Fe Springs",
-                "Santa Monica",
-                "Sierra Madre",
-                "Signal Hill",
-                "South El Monte",
-                "South Gate",
-                "South Pasadena",
-                "Temple City",
-                "Torrance",
-                "Vernon",
-                "Walnut",
-                "West Covina",
-                "West Hollywood",
-                "Westlake Village",
-                "Whittier"
+                {
+                    "cityName": "Agoura Hills",
+                    "cityDomain": "https://agoura-hills-city-ca.mydripnurse.com",
+                    "citySitemap": "https://agoura-hills-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Alhambra",
+                    "cityDomain": "https://alhambra-city-ca.mydripnurse.com",
+                    "citySitemap": "https://alhambra-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Arcadia",
+                    "cityDomain": "https://arcadia-city-ca.mydripnurse.com",
+                    "citySitemap": "https://arcadia-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Artesia",
+                    "cityDomain": "https://artesia-city-ca.mydripnurse.com",
+                    "citySitemap": "https://artesia-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Avalon",
+                    "cityDomain": "https://avalon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://avalon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Azusa",
+                    "cityDomain": "https://azusa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://azusa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Baldwin Park",
+                    "cityDomain": "https://baldwin-park-city-ca.mydripnurse.com",
+                    "citySitemap": "https://baldwin-park-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bell",
+                    "cityDomain": "https://bell-city-ca.mydripnurse.com",
+                    "citySitemap": "https://bell-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bell Gardens",
+                    "cityDomain": "https://bell-gardens-city-ca.mydripnurse.com",
+                    "citySitemap": "https://bell-gardens-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bellflower",
+                    "cityDomain": "https://bellflower-city-ca.mydripnurse.com",
+                    "citySitemap": "https://bellflower-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Beverly Hills",
+                    "cityDomain": "https://beverly-hills-city-ca.mydripnurse.com",
+                    "citySitemap": "https://beverly-hills-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Burbank",
+                    "cityDomain": "https://burbank-city-ca.mydripnurse.com",
+                    "citySitemap": "https://burbank-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Calabasas",
+                    "cityDomain": "https://calabasas-city-ca.mydripnurse.com",
+                    "citySitemap": "https://calabasas-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Carson",
+                    "cityDomain": "https://carson-city-ca.mydripnurse.com",
+                    "citySitemap": "https://carson-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cerritos",
+                    "cityDomain": "https://cerritos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://cerritos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Claremont",
+                    "cityDomain": "https://claremont-city-ca.mydripnurse.com",
+                    "citySitemap": "https://claremont-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Commerce",
+                    "cityDomain": "https://commerce-city-ca.mydripnurse.com",
+                    "citySitemap": "https://commerce-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Compton",
+                    "cityDomain": "https://compton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://compton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Covina",
+                    "cityDomain": "https://covina-city-ca.mydripnurse.com",
+                    "citySitemap": "https://covina-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cudahy",
+                    "cityDomain": "https://cudahy-city-ca.mydripnurse.com",
+                    "citySitemap": "https://cudahy-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Culver City",
+                    "cityDomain": "https://culver-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://culver-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Diamond Bar",
+                    "cityDomain": "https://diamond-bar-city-ca.mydripnurse.com",
+                    "citySitemap": "https://diamond-bar-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Downey",
+                    "cityDomain": "https://downey-city-ca.mydripnurse.com",
+                    "citySitemap": "https://downey-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Duarte",
+                    "cityDomain": "https://duarte-city-ca.mydripnurse.com",
+                    "citySitemap": "https://duarte-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "El Monte",
+                    "cityDomain": "https://el-monte-city-ca.mydripnurse.com",
+                    "citySitemap": "https://el-monte-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "El Segundo",
+                    "cityDomain": "https://el-segundo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://el-segundo-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gardena",
+                    "cityDomain": "https://gardena-city-ca.mydripnurse.com",
+                    "citySitemap": "https://gardena-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glendale",
+                    "cityDomain": "https://glendale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://glendale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glendora",
+                    "cityDomain": "https://glendora-city-ca.mydripnurse.com",
+                    "citySitemap": "https://glendora-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hawthorne",
+                    "cityDomain": "https://hawthorne-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hawthorne-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hermosa Beach",
+                    "cityDomain": "https://hermosa-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hermosa-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hidden Hills",
+                    "cityDomain": "https://hidden-hills-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hidden-hills-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Huntington Park",
+                    "cityDomain": "https://huntington-park-city-ca.mydripnurse.com",
+                    "citySitemap": "https://huntington-park-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Inglewood",
+                    "cityDomain": "https://inglewood-city-ca.mydripnurse.com",
+                    "citySitemap": "https://inglewood-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Irwindale",
+                    "cityDomain": "https://irwindale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://irwindale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Canada Flintridge",
+                    "cityDomain": "https://la-canada-flintridge-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-canada-flintridge-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Habra Heights",
+                    "cityDomain": "https://la-habra-heights-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-habra-heights-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Mirada",
+                    "cityDomain": "https://la-mirada-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-mirada-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Puente",
+                    "cityDomain": "https://la-puente-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-puente-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Verne",
+                    "cityDomain": "https://la-verne-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-verne-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lakewood",
+                    "cityDomain": "https://lakewood-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lakewood-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lancaster",
+                    "cityDomain": "https://lancaster-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lancaster-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lawndale",
+                    "cityDomain": "https://lawndale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lawndale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lomita",
+                    "cityDomain": "https://lomita-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lomita-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Long Beach",
+                    "cityDomain": "https://long-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://long-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Los Angeles",
+                    "cityDomain": "https://los-angeles-city-ca.mydripnurse.com",
+                    "citySitemap": "https://los-angeles-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lynwood",
+                    "cityDomain": "https://lynwood-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lynwood-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Malibu",
+                    "cityDomain": "https://malibu-city-ca.mydripnurse.com",
+                    "citySitemap": "https://malibu-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manhattan Beach",
+                    "cityDomain": "https://manhattan-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://manhattan-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Maywood",
+                    "cityDomain": "https://maywood-city-ca.mydripnurse.com",
+                    "citySitemap": "https://maywood-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monrovia",
+                    "cityDomain": "https://monrovia-city-ca.mydripnurse.com",
+                    "citySitemap": "https://monrovia-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Montebello",
+                    "cityDomain": "https://montebello-city-ca.mydripnurse.com",
+                    "citySitemap": "https://montebello-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monterey Park",
+                    "cityDomain": "https://monterey-park-city-ca.mydripnurse.com",
+                    "citySitemap": "https://monterey-park-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Norwalk",
+                    "cityDomain": "https://norwalk-city-ca.mydripnurse.com",
+                    "citySitemap": "https://norwalk-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Palmdale",
+                    "cityDomain": "https://palmdale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://palmdale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Paramount",
+                    "cityDomain": "https://paramount-city-ca.mydripnurse.com",
+                    "citySitemap": "https://paramount-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pasadena",
+                    "cityDomain": "https://pasadena-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pasadena-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pico Rivera",
+                    "cityDomain": "https://pico-rivera-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pico-rivera-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pomona",
+                    "cityDomain": "https://pomona-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pomona-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rancho Palos Verdes",
+                    "cityDomain": "https://rancho-palos-verdes-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rancho-palos-verdes-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Redondo Beach",
+                    "cityDomain": "https://redondo-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://redondo-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rolling Hills",
+                    "cityDomain": "https://rolling-hills-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rolling-hills-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rolling Hills Estates",
+                    "cityDomain": "https://rolling-hills-estates-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rolling-hills-estates-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rosemead",
+                    "cityDomain": "https://rosemead-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rosemead-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Dimas",
+                    "cityDomain": "https://san-dimas-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-dimas-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Fernando",
+                    "cityDomain": "https://san-fernando-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-fernando-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Gabriel",
+                    "cityDomain": "https://san-gabriel-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-gabriel-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Marino",
+                    "cityDomain": "https://san-marino-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-marino-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Clarita",
+                    "cityDomain": "https://santa-clarita-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-clarita-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Fe Springs",
+                    "cityDomain": "https://santa-fe-springs-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-fe-springs-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Monica",
+                    "cityDomain": "https://santa-monica-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-monica-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sierra Madre",
+                    "cityDomain": "https://sierra-madre-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sierra-madre-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Signal Hill",
+                    "cityDomain": "https://signal-hill-city-ca.mydripnurse.com",
+                    "citySitemap": "https://signal-hill-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South El Monte",
+                    "cityDomain": "https://south-el-monte-city-ca.mydripnurse.com",
+                    "citySitemap": "https://south-el-monte-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Gate",
+                    "cityDomain": "https://south-gate-city-ca.mydripnurse.com",
+                    "citySitemap": "https://south-gate-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Pasadena",
+                    "cityDomain": "https://south-pasadena-city-ca.mydripnurse.com",
+                    "citySitemap": "https://south-pasadena-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Temple City",
+                    "cityDomain": "https://temple-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://temple-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Torrance",
+                    "cityDomain": "https://torrance-city-ca.mydripnurse.com",
+                    "citySitemap": "https://torrance-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Vernon",
+                    "cityDomain": "https://vernon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://vernon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Walnut",
+                    "cityDomain": "https://walnut-city-ca.mydripnurse.com",
+                    "citySitemap": "https://walnut-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Covina",
+                    "cityDomain": "https://west-covina-city-ca.mydripnurse.com",
+                    "citySitemap": "https://west-covina-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Hollywood",
+                    "cityDomain": "https://west-hollywood-city-ca.mydripnurse.com",
+                    "citySitemap": "https://west-hollywood-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Westlake Village",
+                    "cityDomain": "https://westlake-village-city-ca.mydripnurse.com",
+                    "citySitemap": "https://westlake-village-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Whittier",
+                    "cityDomain": "https://whittier-city-ca.mydripnurse.com",
+                    "citySitemap": "https://whittier-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://los-angeles-county-ca.mydripnurse.com",
+            "countySitemap": "https://los-angeles-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Madera",
             "Cities": [
-                "Chowchilla",
-                "Madera"
+                {
+                    "cityName": "Chowchilla",
+                    "cityDomain": "https://chowchilla-city-ca.mydripnurse.com",
+                    "citySitemap": "https://chowchilla-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Madera",
+                    "cityDomain": "https://madera-city-ca.mydripnurse.com",
+                    "citySitemap": "https://madera-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://madera-county-ca.mydripnurse.com",
+            "countySitemap": "https://madera-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Marin",
             "Cities": [
-                "Belvedere",
-                "Corte Madera",
-                "Fairfax",
-                "Larkspur",
-                "Mill Valley",
-                "Novato",
-                "Ross",
-                "San Anselmo",
-                "San Rafael",
-                "Sausalito",
-                "Tiburon"
+                {
+                    "cityName": "Belvedere",
+                    "cityDomain": "https://belvedere-city-ca.mydripnurse.com",
+                    "citySitemap": "https://belvedere-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Corte Madera",
+                    "cityDomain": "https://corte-madera-city-ca.mydripnurse.com",
+                    "citySitemap": "https://corte-madera-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fairfax",
+                    "cityDomain": "https://fairfax-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fairfax-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Larkspur",
+                    "cityDomain": "https://larkspur-city-ca.mydripnurse.com",
+                    "citySitemap": "https://larkspur-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mill Valley",
+                    "cityDomain": "https://mill-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://mill-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Novato",
+                    "cityDomain": "https://novato-city-ca.mydripnurse.com",
+                    "citySitemap": "https://novato-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ross",
+                    "cityDomain": "https://ross-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ross-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Anselmo",
+                    "cityDomain": "https://san-anselmo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-anselmo-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Rafael",
+                    "cityDomain": "https://san-rafael-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-rafael-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sausalito",
+                    "cityDomain": "https://sausalito-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sausalito-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tiburon",
+                    "cityDomain": "https://tiburon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://tiburon-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://marin-county-ca.mydripnurse.com",
+            "countySitemap": "https://marin-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Mariposa",
             "Cities": [],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://mariposa-county-ca.mydripnurse.com",
+            "countySitemap": "https://mariposa-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Mendocino",
             "Cities": [
-                "Fort Bragg",
-                "Point Arena",
-                "Ukiah",
-                "Willits"
+                {
+                    "cityName": "Fort Bragg",
+                    "cityDomain": "https://fort-bragg-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fort-bragg-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Point Arena",
+                    "cityDomain": "https://point-arena-city-ca.mydripnurse.com",
+                    "citySitemap": "https://point-arena-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ukiah",
+                    "cityDomain": "https://ukiah-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ukiah-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Willits",
+                    "cityDomain": "https://willits-city-ca.mydripnurse.com",
+                    "citySitemap": "https://willits-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://mendocino-county-ca.mydripnurse.com",
+            "countySitemap": "https://mendocino-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Merced",
             "Cities": [
-                "Atwater",
-                "Dos Palos",
-                "Gustine",
-                "Livingston",
-                "Los Banos",
-                "Merced"
+                {
+                    "cityName": "Atwater",
+                    "cityDomain": "https://atwater-city-ca.mydripnurse.com",
+                    "citySitemap": "https://atwater-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dos Palos",
+                    "cityDomain": "https://dos-palos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://dos-palos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gustine",
+                    "cityDomain": "https://gustine-city-ca.mydripnurse.com",
+                    "citySitemap": "https://gustine-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Livingston",
+                    "cityDomain": "https://livingston-city-ca.mydripnurse.com",
+                    "citySitemap": "https://livingston-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Los Banos",
+                    "cityDomain": "https://los-banos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://los-banos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Merced",
+                    "cityDomain": "https://merced-city-ca.mydripnurse.com",
+                    "citySitemap": "https://merced-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://merced-county-ca.mydripnurse.com",
+            "countySitemap": "https://merced-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Modoc",
             "Cities": [
-                "Alturas"
+                {
+                    "cityName": "Alturas",
+                    "cityDomain": "https://alturas-city-ca.mydripnurse.com",
+                    "citySitemap": "https://alturas-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://modoc-county-ca.mydripnurse.com",
+            "countySitemap": "https://modoc-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Mono",
             "Cities": [
-                "Mammoth Lakes"
+                {
+                    "cityName": "Mammoth Lakes",
+                    "cityDomain": "https://mammoth-lakes-city-ca.mydripnurse.com",
+                    "citySitemap": "https://mammoth-lakes-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://mono-county-ca.mydripnurse.com",
+            "countySitemap": "https://mono-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Monterey",
             "Cities": [
-                "Carmel-by-the-Sea",
-                "Del Rey Oaks",
-                "Gonzales",
-                "Greenfield",
-                "King City",
-                "Marina",
-                "Monterey",
-                "Pacific Grove",
-                "Salinas",
-                "Sand City",
-                "Seaside",
-                "Soledad"
+                {
+                    "cityName": "Carmel-by-the-Sea",
+                    "cityDomain": "https://carmel-by-the-sea-city-ca.mydripnurse.com",
+                    "citySitemap": "https://carmel-by-the-sea-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Del Rey Oaks",
+                    "cityDomain": "https://del-rey-oaks-city-ca.mydripnurse.com",
+                    "citySitemap": "https://del-rey-oaks-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gonzales",
+                    "cityDomain": "https://gonzales-city-ca.mydripnurse.com",
+                    "citySitemap": "https://gonzales-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenfield",
+                    "cityDomain": "https://greenfield-city-ca.mydripnurse.com",
+                    "citySitemap": "https://greenfield-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "King City",
+                    "cityDomain": "https://king-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://king-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Marina",
+                    "cityDomain": "https://marina-city-ca.mydripnurse.com",
+                    "citySitemap": "https://marina-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monterey",
+                    "cityDomain": "https://monterey-city-ca.mydripnurse.com",
+                    "citySitemap": "https://monterey-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pacific Grove",
+                    "cityDomain": "https://pacific-grove-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pacific-grove-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Salinas",
+                    "cityDomain": "https://salinas-city-ca.mydripnurse.com",
+                    "citySitemap": "https://salinas-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sand City",
+                    "cityDomain": "https://sand-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sand-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Seaside",
+                    "cityDomain": "https://seaside-city-ca.mydripnurse.com",
+                    "citySitemap": "https://seaside-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Soledad",
+                    "cityDomain": "https://soledad-city-ca.mydripnurse.com",
+                    "citySitemap": "https://soledad-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://monterey-county-ca.mydripnurse.com",
+            "countySitemap": "https://monterey-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Napa",
             "Cities": [
-                "American Canyon",
-                "Calistoga",
-                "Napa",
-                "St. Helena",
-                "Yountville"
+                {
+                    "cityName": "American Canyon",
+                    "cityDomain": "https://american-canyon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://american-canyon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Calistoga",
+                    "cityDomain": "https://calistoga-city-ca.mydripnurse.com",
+                    "citySitemap": "https://calistoga-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Napa",
+                    "cityDomain": "https://napa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://napa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "St. Helena",
+                    "cityDomain": "https://st-helena-city-ca.mydripnurse.com",
+                    "citySitemap": "https://st-helena-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yountville",
+                    "cityDomain": "https://yountville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://yountville-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://napa-county-ca.mydripnurse.com",
+            "countySitemap": "https://napa-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Nevada",
             "Cities": [
-                "Grass Valley",
-                "Nevada City",
-                "Truckee"
+                {
+                    "cityName": "Grass Valley",
+                    "cityDomain": "https://grass-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://grass-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nevada City",
+                    "cityDomain": "https://nevada-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://nevada-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Truckee",
+                    "cityDomain": "https://truckee-city-ca.mydripnurse.com",
+                    "citySitemap": "https://truckee-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://nevada-county-ca.mydripnurse.com",
+            "countySitemap": "https://nevada-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Orange",
             "Cities": [
-                "Aliso Viejo",
-                "Anaheim",
-                "Brea",
-                "Buena Park",
-                "Costa Mesa",
-                "Cypress",
-                "Dana Point",
-                "Fountain Valley",
-                "Fullerton",
-                "Garden Grove",
-                "Huntington Beach",
-                "Irvine",
-                "La Habra",
-                "La Palma",
-                "Laguna Beach",
-                "Laguna Hills",
-                "Laguna Niguel",
-                "Laguna Woods",
-                "Lake Forest",
-                "Los Alamitos",
-                "Mission Viejo",
-                "Newport Beach",
-                "Orange",
-                "Placentia",
-                "Rancho Santa Margarita",
-                "San Clemente",
-                "San Juan Capistrano",
-                "Santa Ana",
-                "Seal Beach",
-                "Stanton",
-                "Tustin",
-                "Villa Park",
-                "Westminster",
-                "Yorba Linda"
+                {
+                    "cityName": "Aliso Viejo",
+                    "cityDomain": "https://aliso-viejo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://aliso-viejo-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Anaheim",
+                    "cityDomain": "https://anaheim-city-ca.mydripnurse.com",
+                    "citySitemap": "https://anaheim-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Brea",
+                    "cityDomain": "https://brea-city-ca.mydripnurse.com",
+                    "citySitemap": "https://brea-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Buena Park",
+                    "cityDomain": "https://buena-park-city-ca.mydripnurse.com",
+                    "citySitemap": "https://buena-park-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Costa Mesa",
+                    "cityDomain": "https://costa-mesa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://costa-mesa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cypress",
+                    "cityDomain": "https://cypress-city-ca.mydripnurse.com",
+                    "citySitemap": "https://cypress-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dana Point",
+                    "cityDomain": "https://dana-point-city-ca.mydripnurse.com",
+                    "citySitemap": "https://dana-point-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fountain Valley",
+                    "cityDomain": "https://fountain-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fountain-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fullerton",
+                    "cityDomain": "https://fullerton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fullerton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Garden Grove",
+                    "cityDomain": "https://garden-grove-city-ca.mydripnurse.com",
+                    "citySitemap": "https://garden-grove-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Huntington Beach",
+                    "cityDomain": "https://huntington-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://huntington-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Irvine",
+                    "cityDomain": "https://irvine-city-ca.mydripnurse.com",
+                    "citySitemap": "https://irvine-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Habra",
+                    "cityDomain": "https://la-habra-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-habra-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Palma",
+                    "cityDomain": "https://la-palma-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-palma-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Laguna Beach",
+                    "cityDomain": "https://laguna-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://laguna-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Laguna Hills",
+                    "cityDomain": "https://laguna-hills-city-ca.mydripnurse.com",
+                    "citySitemap": "https://laguna-hills-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Laguna Niguel",
+                    "cityDomain": "https://laguna-niguel-city-ca.mydripnurse.com",
+                    "citySitemap": "https://laguna-niguel-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Laguna Woods",
+                    "cityDomain": "https://laguna-woods-city-ca.mydripnurse.com",
+                    "citySitemap": "https://laguna-woods-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lake Forest",
+                    "cityDomain": "https://lake-forest-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lake-forest-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Los Alamitos",
+                    "cityDomain": "https://los-alamitos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://los-alamitos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mission Viejo",
+                    "cityDomain": "https://mission-viejo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://mission-viejo-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newport Beach",
+                    "cityDomain": "https://newport-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://newport-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Orange",
+                    "cityDomain": "https://orange-city-ca.mydripnurse.com",
+                    "citySitemap": "https://orange-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Placentia",
+                    "cityDomain": "https://placentia-city-ca.mydripnurse.com",
+                    "citySitemap": "https://placentia-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rancho Santa Margarita",
+                    "cityDomain": "https://rancho-santa-margarita-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rancho-santa-margarita-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Clemente",
+                    "cityDomain": "https://san-clemente-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-clemente-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Juan Capistrano",
+                    "cityDomain": "https://san-juan-capistrano-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-juan-capistrano-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Ana",
+                    "cityDomain": "https://santa-ana-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-ana-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Seal Beach",
+                    "cityDomain": "https://seal-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://seal-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stanton",
+                    "cityDomain": "https://stanton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://stanton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tustin",
+                    "cityDomain": "https://tustin-city-ca.mydripnurse.com",
+                    "citySitemap": "https://tustin-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Villa Park",
+                    "cityDomain": "https://villa-park-city-ca.mydripnurse.com",
+                    "citySitemap": "https://villa-park-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Westminster",
+                    "cityDomain": "https://westminster-city-ca.mydripnurse.com",
+                    "citySitemap": "https://westminster-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yorba Linda",
+                    "cityDomain": "https://yorba-linda-city-ca.mydripnurse.com",
+                    "citySitemap": "https://yorba-linda-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://orange-county-ca.mydripnurse.com",
+            "countySitemap": "https://orange-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Placer",
             "Cities": [
-                "Auburn",
-                "Colfax",
-                "Lincoln",
-                "Loomis",
-                "Rocklin",
-                "Roseville"
+                {
+                    "cityName": "Auburn",
+                    "cityDomain": "https://auburn-city-ca.mydripnurse.com",
+                    "citySitemap": "https://auburn-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Colfax",
+                    "cityDomain": "https://colfax-city-ca.mydripnurse.com",
+                    "citySitemap": "https://colfax-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lincoln",
+                    "cityDomain": "https://lincoln-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lincoln-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Loomis",
+                    "cityDomain": "https://loomis-city-ca.mydripnurse.com",
+                    "citySitemap": "https://loomis-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rocklin",
+                    "cityDomain": "https://rocklin-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rocklin-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Roseville",
+                    "cityDomain": "https://roseville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://roseville-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://placer-county-ca.mydripnurse.com",
+            "countySitemap": "https://placer-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Plumas",
             "Cities": [
-                "Portola"
+                {
+                    "cityName": "Portola",
+                    "cityDomain": "https://portola-city-ca.mydripnurse.com",
+                    "citySitemap": "https://portola-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://plumas-county-ca.mydripnurse.com",
+            "countySitemap": "https://plumas-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Riverside",
             "Cities": [
-                "Banning",
-                "Beaumont",
-                "Blythe",
-                "Calimesa",
-                "Canyon Lake",
-                "Cathedral City",
-                "Coachella",
-                "Corona",
-                "Desert Hot Springs",
-                "Eastvale",
-                "Hemet",
-                "Indian Wells",
-                "Indio",
-                "Jurupa Valley",
-                "La Quinta",
-                "Lake Elsinore",
-                "Menifee",
-                "Moreno Valley",
-                "Murrieta",
-                "Norco",
-                "Palm Desert",
-                "Palm Springs",
-                "Perris",
-                "Rancho Mirage",
-                "Riverside",
-                "San Jacinto",
-                "Temecula",
-                "Wildomar"
+                {
+                    "cityName": "Banning",
+                    "cityDomain": "https://banning-city-ca.mydripnurse.com",
+                    "citySitemap": "https://banning-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Beaumont",
+                    "cityDomain": "https://beaumont-city-ca.mydripnurse.com",
+                    "citySitemap": "https://beaumont-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Blythe",
+                    "cityDomain": "https://blythe-city-ca.mydripnurse.com",
+                    "citySitemap": "https://blythe-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Calimesa",
+                    "cityDomain": "https://calimesa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://calimesa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Canyon Lake",
+                    "cityDomain": "https://canyon-lake-city-ca.mydripnurse.com",
+                    "citySitemap": "https://canyon-lake-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cathedral City",
+                    "cityDomain": "https://cathedral-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://cathedral-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Coachella",
+                    "cityDomain": "https://coachella-city-ca.mydripnurse.com",
+                    "citySitemap": "https://coachella-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Corona",
+                    "cityDomain": "https://corona-city-ca.mydripnurse.com",
+                    "citySitemap": "https://corona-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Desert Hot Springs",
+                    "cityDomain": "https://desert-hot-springs-city-ca.mydripnurse.com",
+                    "citySitemap": "https://desert-hot-springs-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eastvale",
+                    "cityDomain": "https://eastvale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://eastvale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hemet",
+                    "cityDomain": "https://hemet-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hemet-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Indian Wells",
+                    "cityDomain": "https://indian-wells-city-ca.mydripnurse.com",
+                    "citySitemap": "https://indian-wells-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Indio",
+                    "cityDomain": "https://indio-city-ca.mydripnurse.com",
+                    "citySitemap": "https://indio-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jurupa Valley",
+                    "cityDomain": "https://jurupa-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://jurupa-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Quinta",
+                    "cityDomain": "https://la-quinta-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-quinta-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lake Elsinore",
+                    "cityDomain": "https://lake-elsinore-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lake-elsinore-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Menifee",
+                    "cityDomain": "https://menifee-city-ca.mydripnurse.com",
+                    "citySitemap": "https://menifee-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Moreno Valley",
+                    "cityDomain": "https://moreno-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://moreno-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Murrieta",
+                    "cityDomain": "https://murrieta-city-ca.mydripnurse.com",
+                    "citySitemap": "https://murrieta-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Norco",
+                    "cityDomain": "https://norco-city-ca.mydripnurse.com",
+                    "citySitemap": "https://norco-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Palm Desert",
+                    "cityDomain": "https://palm-desert-city-ca.mydripnurse.com",
+                    "citySitemap": "https://palm-desert-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Palm Springs",
+                    "cityDomain": "https://palm-springs-city-ca.mydripnurse.com",
+                    "citySitemap": "https://palm-springs-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Perris",
+                    "cityDomain": "https://perris-city-ca.mydripnurse.com",
+                    "citySitemap": "https://perris-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rancho Mirage",
+                    "cityDomain": "https://rancho-mirage-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rancho-mirage-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Riverside",
+                    "cityDomain": "https://riverside-city-ca.mydripnurse.com",
+                    "citySitemap": "https://riverside-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Jacinto",
+                    "cityDomain": "https://san-jacinto-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-jacinto-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Temecula",
+                    "cityDomain": "https://temecula-city-ca.mydripnurse.com",
+                    "citySitemap": "https://temecula-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wildomar",
+                    "cityDomain": "https://wildomar-city-ca.mydripnurse.com",
+                    "citySitemap": "https://wildomar-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://riverside-county-ca.mydripnurse.com",
+            "countySitemap": "https://riverside-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Sacramento",
             "Cities": [
-                "Citrus Heights",
-                "Elk Grove",
-                "Folsom",
-                "Galt",
-                "Isleton",
-                "Rancho Cordova",
-                "Sacramento"
+                {
+                    "cityName": "Citrus Heights",
+                    "cityDomain": "https://citrus-heights-city-ca.mydripnurse.com",
+                    "citySitemap": "https://citrus-heights-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Elk Grove",
+                    "cityDomain": "https://elk-grove-city-ca.mydripnurse.com",
+                    "citySitemap": "https://elk-grove-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Folsom",
+                    "cityDomain": "https://folsom-city-ca.mydripnurse.com",
+                    "citySitemap": "https://folsom-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Galt",
+                    "cityDomain": "https://galt-city-ca.mydripnurse.com",
+                    "citySitemap": "https://galt-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Isleton",
+                    "cityDomain": "https://isleton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://isleton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rancho Cordova",
+                    "cityDomain": "https://rancho-cordova-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rancho-cordova-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sacramento",
+                    "cityDomain": "https://sacramento-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sacramento-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://sacramento-county-ca.mydripnurse.com",
+            "countySitemap": "https://sacramento-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Benito",
             "Cities": [
-                "Hollister",
-                "San Juan Bautista"
+                {
+                    "cityName": "Hollister",
+                    "cityDomain": "https://hollister-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hollister-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Juan Bautista",
+                    "cityDomain": "https://san-juan-bautista-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-juan-bautista-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://san-benito-county-ca.mydripnurse.com",
+            "countySitemap": "https://san-benito-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Bernardino",
             "Cities": [
-                "Adelanto",
-                "Apple Valley",
-                "Barstow",
-                "Big Bear Lake",
-                "Chino",
-                "Chino Hills",
-                "Colton",
-                "Fontana",
-                "Grand Terrace",
-                "Hesperia",
-                "Highland",
-                "Loma Linda",
-                "Montclair",
-                "Needles",
-                "Ontario",
-                "Rancho Cucamonga",
-                "Redlands",
-                "Rialto",
-                "San Bernardino",
-                "Twentynine Palms",
-                "Upland",
-                "Victorville",
-                "Yucaipa",
-                "Yucca Valley"
+                {
+                    "cityName": "Adelanto",
+                    "cityDomain": "https://adelanto-city-ca.mydripnurse.com",
+                    "citySitemap": "https://adelanto-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Apple Valley",
+                    "cityDomain": "https://apple-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://apple-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Barstow",
+                    "cityDomain": "https://barstow-city-ca.mydripnurse.com",
+                    "citySitemap": "https://barstow-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Big Bear Lake",
+                    "cityDomain": "https://big-bear-lake-city-ca.mydripnurse.com",
+                    "citySitemap": "https://big-bear-lake-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chino",
+                    "cityDomain": "https://chino-city-ca.mydripnurse.com",
+                    "citySitemap": "https://chino-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chino Hills",
+                    "cityDomain": "https://chino-hills-city-ca.mydripnurse.com",
+                    "citySitemap": "https://chino-hills-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Colton",
+                    "cityDomain": "https://colton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://colton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fontana",
+                    "cityDomain": "https://fontana-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fontana-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Grand Terrace",
+                    "cityDomain": "https://grand-terrace-city-ca.mydripnurse.com",
+                    "citySitemap": "https://grand-terrace-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hesperia",
+                    "cityDomain": "https://hesperia-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hesperia-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Highland",
+                    "cityDomain": "https://highland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://highland-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Loma Linda",
+                    "cityDomain": "https://loma-linda-city-ca.mydripnurse.com",
+                    "citySitemap": "https://loma-linda-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Montclair",
+                    "cityDomain": "https://montclair-city-ca.mydripnurse.com",
+                    "citySitemap": "https://montclair-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Needles",
+                    "cityDomain": "https://needles-city-ca.mydripnurse.com",
+                    "citySitemap": "https://needles-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ontario",
+                    "cityDomain": "https://ontario-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ontario-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rancho Cucamonga",
+                    "cityDomain": "https://rancho-cucamonga-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rancho-cucamonga-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Redlands",
+                    "cityDomain": "https://redlands-city-ca.mydripnurse.com",
+                    "citySitemap": "https://redlands-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rialto",
+                    "cityDomain": "https://rialto-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rialto-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Bernardino",
+                    "cityDomain": "https://san-bernardino-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-bernardino-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Twentynine Palms",
+                    "cityDomain": "https://twentynine-palms-city-ca.mydripnurse.com",
+                    "citySitemap": "https://twentynine-palms-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Upland",
+                    "cityDomain": "https://upland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://upland-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Victorville",
+                    "cityDomain": "https://victorville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://victorville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yucaipa",
+                    "cityDomain": "https://yucaipa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://yucaipa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yucca Valley",
+                    "cityDomain": "https://yucca-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://yucca-valley-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://san-bernardino-county-ca.mydripnurse.com",
+            "countySitemap": "https://san-bernardino-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Diego",
             "Cities": [
-                "Carlsbad",
-                "Chula Vista",
-                "Coronado",
-                "Del Mar",
-                "El Cajon",
-                "Encinitas",
-                "Escondido",
-                "Imperial Beach",
-                "La Mesa",
-                "Lemon Grove",
-                "National City",
-                "Oceanside",
-                "Poway",
-                "San Diego",
-                "San Marcos",
-                "Santee",
-                "Solana Beach",
-                "Vista"
+                {
+                    "cityName": "Carlsbad",
+                    "cityDomain": "https://carlsbad-city-ca.mydripnurse.com",
+                    "citySitemap": "https://carlsbad-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chula Vista",
+                    "cityDomain": "https://chula-vista-city-ca.mydripnurse.com",
+                    "citySitemap": "https://chula-vista-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Coronado",
+                    "cityDomain": "https://coronado-city-ca.mydripnurse.com",
+                    "citySitemap": "https://coronado-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Del Mar",
+                    "cityDomain": "https://del-mar-city-ca.mydripnurse.com",
+                    "citySitemap": "https://del-mar-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "El Cajon",
+                    "cityDomain": "https://el-cajon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://el-cajon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Encinitas",
+                    "cityDomain": "https://encinitas-city-ca.mydripnurse.com",
+                    "citySitemap": "https://encinitas-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Escondido",
+                    "cityDomain": "https://escondido-city-ca.mydripnurse.com",
+                    "citySitemap": "https://escondido-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Imperial Beach",
+                    "cityDomain": "https://imperial-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://imperial-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "La Mesa",
+                    "cityDomain": "https://la-mesa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://la-mesa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lemon Grove",
+                    "cityDomain": "https://lemon-grove-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lemon-grove-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "National City",
+                    "cityDomain": "https://national-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://national-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oceanside",
+                    "cityDomain": "https://oceanside-city-ca.mydripnurse.com",
+                    "citySitemap": "https://oceanside-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Poway",
+                    "cityDomain": "https://poway-city-ca.mydripnurse.com",
+                    "citySitemap": "https://poway-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Diego",
+                    "cityDomain": "https://san-diego-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-diego-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Marcos",
+                    "cityDomain": "https://san-marcos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-marcos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santee",
+                    "cityDomain": "https://santee-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santee-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Solana Beach",
+                    "cityDomain": "https://solana-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://solana-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Vista",
+                    "cityDomain": "https://vista-city-ca.mydripnurse.com",
+                    "citySitemap": "https://vista-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://san-diego-county-ca.mydripnurse.com",
+            "countySitemap": "https://san-diego-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Francisco",
             "Cities": [
-                "San Francisco"
+                {
+                    "cityName": "San Francisco",
+                    "cityDomain": "https://san-francisco-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-francisco-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://san-francisco-county-ca.mydripnurse.com",
+            "countySitemap": "https://san-francisco-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Joaquin",
             "Cities": [
-                "Escalon",
-                "Lathrop",
-                "Lodi",
-                "Manteca",
-                "Ripon",
-                "Stockton",
-                "Tracy"
+                {
+                    "cityName": "Escalon",
+                    "cityDomain": "https://escalon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://escalon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lathrop",
+                    "cityDomain": "https://lathrop-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lathrop-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lodi",
+                    "cityDomain": "https://lodi-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lodi-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manteca",
+                    "cityDomain": "https://manteca-city-ca.mydripnurse.com",
+                    "citySitemap": "https://manteca-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ripon",
+                    "cityDomain": "https://ripon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ripon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stockton",
+                    "cityDomain": "https://stockton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://stockton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tracy",
+                    "cityDomain": "https://tracy-city-ca.mydripnurse.com",
+                    "citySitemap": "https://tracy-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://san-joaquin-county-ca.mydripnurse.com",
+            "countySitemap": "https://san-joaquin-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Luis Obispo",
             "Cities": [
-                "Arroyo Grande",
-                "Atascadero",
-                "Grover Beach",
-                "Morro Bay",
-                "Paso Robles",
-                "Pismo Beach",
-                "San Luis Obispo"
+                {
+                    "cityName": "Arroyo Grande",
+                    "cityDomain": "https://arroyo-grande-city-ca.mydripnurse.com",
+                    "citySitemap": "https://arroyo-grande-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Atascadero",
+                    "cityDomain": "https://atascadero-city-ca.mydripnurse.com",
+                    "citySitemap": "https://atascadero-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Grover Beach",
+                    "cityDomain": "https://grover-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://grover-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Morro Bay",
+                    "cityDomain": "https://morro-bay-city-ca.mydripnurse.com",
+                    "citySitemap": "https://morro-bay-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Paso Robles",
+                    "cityDomain": "https://paso-robles-city-ca.mydripnurse.com",
+                    "citySitemap": "https://paso-robles-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pismo Beach",
+                    "cityDomain": "https://pismo-beach-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pismo-beach-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Luis Obispo",
+                    "cityDomain": "https://san-luis-obispo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-luis-obispo-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://san-luis-obispo-county-ca.mydripnurse.com",
+            "countySitemap": "https://san-luis-obispo-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "San Mateo",
             "Cities": [
-                "Atherton",
-                "Belmont",
-                "Brisbane",
-                "Burlingame",
-                "Colma",
-                "Daly City",
-                "East Palo Alto",
-                "Foster City",
-                "Half Moon Bay",
-                "Hillsborough",
-                "Menlo Park",
-                "Millbrae",
-                "Pacifica",
-                "Redwood City",
-                "San Bruno",
-                "San Carlos",
-                "San Mateo",
-                "South San Francisco",
-                "Woodside"
+                {
+                    "cityName": "Atherton",
+                    "cityDomain": "https://atherton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://atherton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Belmont",
+                    "cityDomain": "https://belmont-city-ca.mydripnurse.com",
+                    "citySitemap": "https://belmont-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Brisbane",
+                    "cityDomain": "https://brisbane-city-ca.mydripnurse.com",
+                    "citySitemap": "https://brisbane-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Burlingame",
+                    "cityDomain": "https://burlingame-city-ca.mydripnurse.com",
+                    "citySitemap": "https://burlingame-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Colma",
+                    "cityDomain": "https://colma-city-ca.mydripnurse.com",
+                    "citySitemap": "https://colma-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Daly City",
+                    "cityDomain": "https://daly-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://daly-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Palo Alto",
+                    "cityDomain": "https://east-palo-alto-city-ca.mydripnurse.com",
+                    "citySitemap": "https://east-palo-alto-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Foster City",
+                    "cityDomain": "https://foster-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://foster-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Half Moon Bay",
+                    "cityDomain": "https://half-moon-bay-city-ca.mydripnurse.com",
+                    "citySitemap": "https://half-moon-bay-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hillsborough",
+                    "cityDomain": "https://hillsborough-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hillsborough-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Menlo Park",
+                    "cityDomain": "https://menlo-park-city-ca.mydripnurse.com",
+                    "citySitemap": "https://menlo-park-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Millbrae",
+                    "cityDomain": "https://millbrae-city-ca.mydripnurse.com",
+                    "citySitemap": "https://millbrae-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pacifica",
+                    "cityDomain": "https://pacifica-city-ca.mydripnurse.com",
+                    "citySitemap": "https://pacifica-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Redwood City",
+                    "cityDomain": "https://redwood-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://redwood-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Bruno",
+                    "cityDomain": "https://san-bruno-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-bruno-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Carlos",
+                    "cityDomain": "https://san-carlos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-carlos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Mateo",
+                    "cityDomain": "https://san-mateo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-mateo-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South San Francisco",
+                    "cityDomain": "https://south-san-francisco-city-ca.mydripnurse.com",
+                    "citySitemap": "https://south-san-francisco-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Woodside",
+                    "cityDomain": "https://woodside-city-ca.mydripnurse.com",
+                    "citySitemap": "https://woodside-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://san-mateo-county-ca.mydripnurse.com",
+            "countySitemap": "https://san-mateo-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Santa Barbara",
             "Cities": [
-                "Buellton",
-                "Carpinteria",
-                "Goleta",
-                "Guadalupe",
-                "Lompoc",
-                "Santa Barbara",
-                "Santa Maria",
-                "Solvang"
+                {
+                    "cityName": "Buellton",
+                    "cityDomain": "https://buellton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://buellton-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Carpinteria",
+                    "cityDomain": "https://carpinteria-city-ca.mydripnurse.com",
+                    "citySitemap": "https://carpinteria-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Goleta",
+                    "cityDomain": "https://goleta-city-ca.mydripnurse.com",
+                    "citySitemap": "https://goleta-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Guadalupe",
+                    "cityDomain": "https://guadalupe-city-ca.mydripnurse.com",
+                    "citySitemap": "https://guadalupe-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lompoc",
+                    "cityDomain": "https://lompoc-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lompoc-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Barbara",
+                    "cityDomain": "https://santa-barbara-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-barbara-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Maria",
+                    "cityDomain": "https://santa-maria-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-maria-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Solvang",
+                    "cityDomain": "https://solvang-city-ca.mydripnurse.com",
+                    "citySitemap": "https://solvang-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://santa-barbara-county-ca.mydripnurse.com",
+            "countySitemap": "https://santa-barbara-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Santa Clara",
             "Cities": [
-                "Campbell",
-                "Cupertino",
-                "Gilroy",
-                "Los Altos",
-                "Los Altos Hills",
-                "Los Gatos",
-                "Milpitas",
-                "Monte Sereno",
-                "Morgan Hill",
-                "Mountain View",
-                "Palo Alto",
-                "San Jose",
-                "Santa Clara",
-                "Saratoga",
-                "Sunnyvale"
+                {
+                    "cityName": "Campbell",
+                    "cityDomain": "https://campbell-city-ca.mydripnurse.com",
+                    "citySitemap": "https://campbell-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cupertino",
+                    "cityDomain": "https://cupertino-city-ca.mydripnurse.com",
+                    "citySitemap": "https://cupertino-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gilroy",
+                    "cityDomain": "https://gilroy-city-ca.mydripnurse.com",
+                    "citySitemap": "https://gilroy-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Los Altos",
+                    "cityDomain": "https://los-altos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://los-altos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Los Altos Hills",
+                    "cityDomain": "https://los-altos-hills-city-ca.mydripnurse.com",
+                    "citySitemap": "https://los-altos-hills-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Los Gatos",
+                    "cityDomain": "https://los-gatos-city-ca.mydripnurse.com",
+                    "citySitemap": "https://los-gatos-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Milpitas",
+                    "cityDomain": "https://milpitas-city-ca.mydripnurse.com",
+                    "citySitemap": "https://milpitas-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monte Sereno",
+                    "cityDomain": "https://monte-sereno-city-ca.mydripnurse.com",
+                    "citySitemap": "https://monte-sereno-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Morgan Hill",
+                    "cityDomain": "https://morgan-hill-city-ca.mydripnurse.com",
+                    "citySitemap": "https://morgan-hill-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mountain View",
+                    "cityDomain": "https://mountain-view-city-ca.mydripnurse.com",
+                    "citySitemap": "https://mountain-view-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Palo Alto",
+                    "cityDomain": "https://palo-alto-city-ca.mydripnurse.com",
+                    "citySitemap": "https://palo-alto-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Jose",
+                    "cityDomain": "https://san-jose-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-jose-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Clara",
+                    "cityDomain": "https://santa-clara-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-clara-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Saratoga",
+                    "cityDomain": "https://saratoga-city-ca.mydripnurse.com",
+                    "citySitemap": "https://saratoga-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sunnyvale",
+                    "cityDomain": "https://sunnyvale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sunnyvale-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://santa-clara-county-ca.mydripnurse.com",
+            "countySitemap": "https://santa-clara-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Santa Cruz",
             "Cities": [
-                "Capitola",
-                "Santa Cruz",
-                "Scotts Valley",
-                "Watsonville"
+                {
+                    "cityName": "Capitola",
+                    "cityDomain": "https://capitola-city-ca.mydripnurse.com",
+                    "citySitemap": "https://capitola-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Cruz",
+                    "cityDomain": "https://santa-cruz-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-cruz-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Scotts Valley",
+                    "cityDomain": "https://scotts-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://scotts-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Watsonville",
+                    "cityDomain": "https://watsonville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://watsonville-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://santa-cruz-county-ca.mydripnurse.com",
+            "countySitemap": "https://santa-cruz-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Shasta",
             "Cities": [
-                "Anderson",
-                "Redding",
-                "Shasta Lake"
+                {
+                    "cityName": "Anderson",
+                    "cityDomain": "https://anderson-city-ca.mydripnurse.com",
+                    "citySitemap": "https://anderson-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Redding",
+                    "cityDomain": "https://redding-city-ca.mydripnurse.com",
+                    "citySitemap": "https://redding-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Shasta Lake",
+                    "cityDomain": "https://shasta-lake-city-ca.mydripnurse.com",
+                    "citySitemap": "https://shasta-lake-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://shasta-county-ca.mydripnurse.com",
+            "countySitemap": "https://shasta-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Sierra",
             "Cities": [
-                "Loyalton"
+                {
+                    "cityName": "Loyalton",
+                    "cityDomain": "https://loyalton-city-ca.mydripnurse.com",
+                    "citySitemap": "https://loyalton-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://sierra-county-ca.mydripnurse.com",
+            "countySitemap": "https://sierra-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Siskiyou",
             "Cities": [
-                "Dorris",
-                "Dunsmuir",
-                "Etna",
-                "Fort Jones",
-                "Mount Shasta",
-                "Tulelake",
-                "Weed",
-                "Yreka"
+                {
+                    "cityName": "Dorris",
+                    "cityDomain": "https://dorris-city-ca.mydripnurse.com",
+                    "citySitemap": "https://dorris-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dunsmuir",
+                    "cityDomain": "https://dunsmuir-city-ca.mydripnurse.com",
+                    "citySitemap": "https://dunsmuir-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Etna",
+                    "cityDomain": "https://etna-city-ca.mydripnurse.com",
+                    "citySitemap": "https://etna-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Jones",
+                    "cityDomain": "https://fort-jones-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fort-jones-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mount Shasta",
+                    "cityDomain": "https://mount-shasta-city-ca.mydripnurse.com",
+                    "citySitemap": "https://mount-shasta-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tulelake",
+                    "cityDomain": "https://tulelake-city-ca.mydripnurse.com",
+                    "citySitemap": "https://tulelake-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Weed",
+                    "cityDomain": "https://weed-city-ca.mydripnurse.com",
+                    "citySitemap": "https://weed-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yreka",
+                    "cityDomain": "https://yreka-city-ca.mydripnurse.com",
+                    "citySitemap": "https://yreka-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://siskiyou-county-ca.mydripnurse.com",
+            "countySitemap": "https://siskiyou-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Solano",
             "Cities": [
-                "Benicia",
-                "Dixon",
-                "Fairfield",
-                "Rio Vista",
-                "Suisun City",
-                "Vacaville",
-                "Vallejo"
+                {
+                    "cityName": "Benicia",
+                    "cityDomain": "https://benicia-city-ca.mydripnurse.com",
+                    "citySitemap": "https://benicia-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dixon",
+                    "cityDomain": "https://dixon-city-ca.mydripnurse.com",
+                    "citySitemap": "https://dixon-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fairfield",
+                    "cityDomain": "https://fairfield-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fairfield-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rio Vista",
+                    "cityDomain": "https://rio-vista-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rio-vista-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Suisun City",
+                    "cityDomain": "https://suisun-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://suisun-city-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Vacaville",
+                    "cityDomain": "https://vacaville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://vacaville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Vallejo",
+                    "cityDomain": "https://vallejo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://vallejo-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://solano-county-ca.mydripnurse.com",
+            "countySitemap": "https://solano-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Sonoma",
             "Cities": [
-                "Cloverdale",
-                "Cotati",
-                "Healdsburg",
-                "Petaluma",
-                "Rohnert Park",
-                "Santa Rosa",
-                "Sebastopol",
-                "Sonoma",
-                "Windsor"
+                {
+                    "cityName": "Cloverdale",
+                    "cityDomain": "https://cloverdale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://cloverdale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cotati",
+                    "cityDomain": "https://cotati-city-ca.mydripnurse.com",
+                    "citySitemap": "https://cotati-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Healdsburg",
+                    "cityDomain": "https://healdsburg-city-ca.mydripnurse.com",
+                    "citySitemap": "https://healdsburg-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Petaluma",
+                    "cityDomain": "https://petaluma-city-ca.mydripnurse.com",
+                    "citySitemap": "https://petaluma-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rohnert Park",
+                    "cityDomain": "https://rohnert-park-city-ca.mydripnurse.com",
+                    "citySitemap": "https://rohnert-park-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Rosa",
+                    "cityDomain": "https://santa-rosa-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-rosa-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sebastopol",
+                    "cityDomain": "https://sebastopol-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sebastopol-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sonoma",
+                    "cityDomain": "https://sonoma-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sonoma-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Windsor",
+                    "cityDomain": "https://windsor-city-ca.mydripnurse.com",
+                    "citySitemap": "https://windsor-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://sonoma-county-ca.mydripnurse.com",
+            "countySitemap": "https://sonoma-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Stanislaus",
             "Cities": [
-                "Ceres",
-                "Hughson",
-                "Modesto",
-                "Newman",
-                "Oakdale",
-                "Patterson",
-                "Riverbank",
-                "Turlock",
-                "Waterford"
+                {
+                    "cityName": "Ceres",
+                    "cityDomain": "https://ceres-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ceres-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hughson",
+                    "cityDomain": "https://hughson-city-ca.mydripnurse.com",
+                    "citySitemap": "https://hughson-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Modesto",
+                    "cityDomain": "https://modesto-city-ca.mydripnurse.com",
+                    "citySitemap": "https://modesto-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newman",
+                    "cityDomain": "https://newman-city-ca.mydripnurse.com",
+                    "citySitemap": "https://newman-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oakdale",
+                    "cityDomain": "https://oakdale-city-ca.mydripnurse.com",
+                    "citySitemap": "https://oakdale-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Patterson",
+                    "cityDomain": "https://patterson-city-ca.mydripnurse.com",
+                    "citySitemap": "https://patterson-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Riverbank",
+                    "cityDomain": "https://riverbank-city-ca.mydripnurse.com",
+                    "citySitemap": "https://riverbank-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Turlock",
+                    "cityDomain": "https://turlock-city-ca.mydripnurse.com",
+                    "citySitemap": "https://turlock-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waterford",
+                    "cityDomain": "https://waterford-city-ca.mydripnurse.com",
+                    "citySitemap": "https://waterford-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://stanislaus-county-ca.mydripnurse.com",
+            "countySitemap": "https://stanislaus-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Sutter",
             "Cities": [
-                "Live Oak",
-                "Yuba City"
+                {
+                    "cityName": "Live Oak",
+                    "cityDomain": "https://live-oak-city-ca.mydripnurse.com",
+                    "citySitemap": "https://live-oak-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Yuba City",
+                    "cityDomain": "https://yuba-city-city-ca.mydripnurse.com",
+                    "citySitemap": "https://yuba-city-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://sutter-county-ca.mydripnurse.com",
+            "countySitemap": "https://sutter-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Tehama",
             "Cities": [
-                "Corning",
-                "Red Bluff",
-                "Tehama"
+                {
+                    "cityName": "Corning",
+                    "cityDomain": "https://corning-city-ca.mydripnurse.com",
+                    "citySitemap": "https://corning-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Red Bluff",
+                    "cityDomain": "https://red-bluff-city-ca.mydripnurse.com",
+                    "citySitemap": "https://red-bluff-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tehama",
+                    "cityDomain": "https://tehama-city-ca.mydripnurse.com",
+                    "citySitemap": "https://tehama-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://tehama-county-ca.mydripnurse.com",
+            "countySitemap": "https://tehama-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Trinity",
             "Cities": [
-                "Weaverville"
+                {
+                    "cityName": "Weaverville",
+                    "cityDomain": "https://weaverville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://weaverville-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://trinity-county-ca.mydripnurse.com",
+            "countySitemap": "https://trinity-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Tulare",
             "Cities": [
-                "Dinuba",
-                "Exeter",
-                "Farmersville",
-                "Lindsay",
-                "Porterville",
-                "Tulare",
-                "Visalia",
-                "Woodlake"
+                {
+                    "cityName": "Dinuba",
+                    "cityDomain": "https://dinuba-city-ca.mydripnurse.com",
+                    "citySitemap": "https://dinuba-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Exeter",
+                    "cityDomain": "https://exeter-city-ca.mydripnurse.com",
+                    "citySitemap": "https://exeter-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Farmersville",
+                    "cityDomain": "https://farmersville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://farmersville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lindsay",
+                    "cityDomain": "https://lindsay-city-ca.mydripnurse.com",
+                    "citySitemap": "https://lindsay-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Porterville",
+                    "cityDomain": "https://porterville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://porterville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tulare",
+                    "cityDomain": "https://tulare-city-ca.mydripnurse.com",
+                    "citySitemap": "https://tulare-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Visalia",
+                    "cityDomain": "https://visalia-city-ca.mydripnurse.com",
+                    "citySitemap": "https://visalia-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Woodlake",
+                    "cityDomain": "https://woodlake-city-ca.mydripnurse.com",
+                    "citySitemap": "https://woodlake-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://tulare-county-ca.mydripnurse.com",
+            "countySitemap": "https://tulare-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Tuolumne",
             "Cities": [
-                "Sonora"
+                {
+                    "cityName": "Sonora",
+                    "cityDomain": "https://sonora-city-ca.mydripnurse.com",
+                    "citySitemap": "https://sonora-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://tuolumne-county-ca.mydripnurse.com",
+            "countySitemap": "https://tuolumne-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Ventura",
             "Cities": [
-                "Camarillo",
-                "Fillmore",
-                "Moorpark",
-                "Ojai",
-                "Oxnard",
-                "Port Hueneme",
-                "San Buenaventura",
-                "Santa Paula",
-                "Simi Valley",
-                "Thousand Oaks"
+                {
+                    "cityName": "Camarillo",
+                    "cityDomain": "https://camarillo-city-ca.mydripnurse.com",
+                    "citySitemap": "https://camarillo-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fillmore",
+                    "cityDomain": "https://fillmore-city-ca.mydripnurse.com",
+                    "citySitemap": "https://fillmore-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Moorpark",
+                    "cityDomain": "https://moorpark-city-ca.mydripnurse.com",
+                    "citySitemap": "https://moorpark-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ojai",
+                    "cityDomain": "https://ojai-city-ca.mydripnurse.com",
+                    "citySitemap": "https://ojai-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Oxnard",
+                    "cityDomain": "https://oxnard-city-ca.mydripnurse.com",
+                    "citySitemap": "https://oxnard-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Port Hueneme",
+                    "cityDomain": "https://port-hueneme-city-ca.mydripnurse.com",
+                    "citySitemap": "https://port-hueneme-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "San Buenaventura",
+                    "cityDomain": "https://san-buenaventura-city-ca.mydripnurse.com",
+                    "citySitemap": "https://san-buenaventura-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Santa Paula",
+                    "cityDomain": "https://santa-paula-city-ca.mydripnurse.com",
+                    "citySitemap": "https://santa-paula-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Simi Valley",
+                    "cityDomain": "https://simi-valley-city-ca.mydripnurse.com",
+                    "citySitemap": "https://simi-valley-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Thousand Oaks",
+                    "cityDomain": "https://thousand-oaks-city-ca.mydripnurse.com",
+                    "citySitemap": "https://thousand-oaks-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://ventura-county-ca.mydripnurse.com",
+            "countySitemap": "https://ventura-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Yolo",
             "Cities": [
-                "Davis",
-                "West Sacramento",
-                "Winters",
-                "Woodland"
+                {
+                    "cityName": "Davis",
+                    "cityDomain": "https://davis-city-ca.mydripnurse.com",
+                    "citySitemap": "https://davis-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Sacramento",
+                    "cityDomain": "https://west-sacramento-city-ca.mydripnurse.com",
+                    "citySitemap": "https://west-sacramento-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Winters",
+                    "cityDomain": "https://winters-city-ca.mydripnurse.com",
+                    "citySitemap": "https://winters-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Woodland",
+                    "cityDomain": "https://woodland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://woodland-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://yolo-county-ca.mydripnurse.com",
+            "countySitemap": "https://yolo-county-ca.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Yuba",
             "Cities": [
-                "Marysville",
-                "Wheatland"
+                {
+                    "cityName": "Marysville",
+                    "cityDomain": "https://marysville-city-ca.mydripnurse.com",
+                    "citySitemap": "https://marysville-city-ca.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wheatland",
+                    "cityDomain": "https://wheatland-city-ca.mydripnurse.com",
+                    "citySitemap": "https://wheatland-city-ca.mydripnurse.com/sitemap.xml"
+                }
             ],
-            "Timezone": {
-                "Name": "Pacific",
-                "Zone": "US/Pacific",
-                "UTC_Offset": "-08:00"
-            }
+            "countyDomain": "https://yuba-county-ca.mydripnurse.com",
+            "countySitemap": "https://yuba-county-ca.mydripnurse.com/sitemap.xml"
         }
     ],
     "website": "https://www.mydripnurse.com",

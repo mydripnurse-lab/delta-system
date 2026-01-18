@@ -3,262 +3,694 @@
         {
             "County Name": "Arkansas",
             "Cities": [
-                "Almyra",
-                "De Witt",
-                "Gillett",
-                "Humphrey",
-                "Stuttgart"
+                {
+                    "cityName": "Almyra",
+                    "cityDomain": "https://almyra-city-ar.mydripnurse.com",
+                    "citySitemap": "https://almyra-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "De Witt",
+                    "cityDomain": "https://de-witt-city-ar.mydripnurse.com",
+                    "citySitemap": "https://de-witt-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gillett",
+                    "cityDomain": "https://gillett-city-ar.mydripnurse.com",
+                    "citySitemap": "https://gillett-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Humphrey",
+                    "cityDomain": "https://humphrey-city-ar.mydripnurse.com",
+                    "citySitemap": "https://humphrey-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stuttgart",
+                    "cityDomain": "https://stuttgart-city-ar.mydripnurse.com",
+                    "citySitemap": "https://stuttgart-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://arkansas-county-ar.mydripnurse.com",
+            "countySitemap": "https://arkansas-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Ashley",
             "Cities": [
-                "Crossett",
-                "Hamburg",
-                "Portland",
-                "Wilmot"
+                {
+                    "cityName": "Crossett",
+                    "cityDomain": "https://crossett-city-ar.mydripnurse.com",
+                    "citySitemap": "https://crossett-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hamburg",
+                    "cityDomain": "https://hamburg-city-ar.mydripnurse.com",
+                    "citySitemap": "https://hamburg-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Portland",
+                    "cityDomain": "https://portland-city-ar.mydripnurse.com",
+                    "citySitemap": "https://portland-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wilmot",
+                    "cityDomain": "https://wilmot-city-ar.mydripnurse.com",
+                    "citySitemap": "https://wilmot-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://ashley-county-ar.mydripnurse.com",
+            "countySitemap": "https://ashley-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Baxter",
             "Cities": [
-                "Cotter",
-                "Gassville",
-                "Lakeview",
-                "Mountain Home",
-                "Norfork"
+                {
+                    "cityName": "Cotter",
+                    "cityDomain": "https://cotter-city-ar.mydripnurse.com",
+                    "citySitemap": "https://cotter-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gassville",
+                    "cityDomain": "https://gassville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://gassville-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lakeview",
+                    "cityDomain": "https://lakeview-city-ar.mydripnurse.com",
+                    "citySitemap": "https://lakeview-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mountain Home",
+                    "cityDomain": "https://mountain-home-city-ar.mydripnurse.com",
+                    "citySitemap": "https://mountain-home-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Norfork",
+                    "cityDomain": "https://norfork-city-ar.mydripnurse.com",
+                    "citySitemap": "https://norfork-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://baxter-county-ar.mydripnurse.com",
+            "countySitemap": "https://baxter-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Benton",
             "Cities": [
-                "Bella Vista",
-                "Bentonville",
-                "Cave Springs",
-                "Centerton",
-                "Decatur",
-                "Elm Springs",
-                "Gentry",
-                "Gravette",
-                "Highfill",
-                "Lowell",
-                "Pea Ridge",
-                "Rogers",
-                "Siloam Springs"
+                {
+                    "cityName": "Bella Vista",
+                    "cityDomain": "https://bella-vista-city-ar.mydripnurse.com",
+                    "citySitemap": "https://bella-vista-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bentonville",
+                    "cityDomain": "https://bentonville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://bentonville-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cave Springs",
+                    "cityDomain": "https://cave-springs-city-ar.mydripnurse.com",
+                    "citySitemap": "https://cave-springs-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Centerton",
+                    "cityDomain": "https://centerton-city-ar.mydripnurse.com",
+                    "citySitemap": "https://centerton-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Decatur",
+                    "cityDomain": "https://decatur-city-ar.mydripnurse.com",
+                    "citySitemap": "https://decatur-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Elm Springs",
+                    "cityDomain": "https://elm-springs-city-ar.mydripnurse.com",
+                    "citySitemap": "https://elm-springs-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gentry",
+                    "cityDomain": "https://gentry-city-ar.mydripnurse.com",
+                    "citySitemap": "https://gentry-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gravette",
+                    "cityDomain": "https://gravette-city-ar.mydripnurse.com",
+                    "citySitemap": "https://gravette-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Highfill",
+                    "cityDomain": "https://highfill-city-ar.mydripnurse.com",
+                    "citySitemap": "https://highfill-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lowell",
+                    "cityDomain": "https://lowell-city-ar.mydripnurse.com",
+                    "citySitemap": "https://lowell-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pea Ridge",
+                    "cityDomain": "https://pea-ridge-city-ar.mydripnurse.com",
+                    "citySitemap": "https://pea-ridge-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rogers",
+                    "cityDomain": "https://rogers-city-ar.mydripnurse.com",
+                    "citySitemap": "https://rogers-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Siloam Springs",
+                    "cityDomain": "https://siloam-springs-city-ar.mydripnurse.com",
+                    "citySitemap": "https://siloam-springs-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://benton-county-ar.mydripnurse.com",
+            "countySitemap": "https://benton-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Boone",
             "Cities": [
-                "Alpena",
-                "Bellefonte",
-                "Bergman",
-                "Diamond City",
-                "Harrison",
-                "Lead Hill",
-                "Omaha",
-                "Valley Springs"
+                {
+                    "cityName": "Alpena",
+                    "cityDomain": "https://alpena-city-ar.mydripnurse.com",
+                    "citySitemap": "https://alpena-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bellefonte",
+                    "cityDomain": "https://bellefonte-city-ar.mydripnurse.com",
+                    "citySitemap": "https://bellefonte-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bergman",
+                    "cityDomain": "https://bergman-city-ar.mydripnurse.com",
+                    "citySitemap": "https://bergman-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Diamond City",
+                    "cityDomain": "https://diamond-city-city-ar.mydripnurse.com",
+                    "citySitemap": "https://diamond-city-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Harrison",
+                    "cityDomain": "https://harrison-city-ar.mydripnurse.com",
+                    "citySitemap": "https://harrison-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lead Hill",
+                    "cityDomain": "https://lead-hill-city-ar.mydripnurse.com",
+                    "citySitemap": "https://lead-hill-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Omaha",
+                    "cityDomain": "https://omaha-city-ar.mydripnurse.com",
+                    "citySitemap": "https://omaha-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Valley Springs",
+                    "cityDomain": "https://valley-springs-city-ar.mydripnurse.com",
+                    "citySitemap": "https://valley-springs-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://boone-county-ar.mydripnurse.com",
+            "countySitemap": "https://boone-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Carroll",
             "Cities": [
-                "Berryville",
-                "Eureka Springs",
-                "Green Forest",
-                "Holiday Island"
+                {
+                    "cityName": "Berryville",
+                    "cityDomain": "https://berryville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://berryville-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eureka Springs",
+                    "cityDomain": "https://eureka-springs-city-ar.mydripnurse.com",
+                    "citySitemap": "https://eureka-springs-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Green Forest",
+                    "cityDomain": "https://green-forest-city-ar.mydripnurse.com",
+                    "citySitemap": "https://green-forest-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Holiday Island",
+                    "cityDomain": "https://holiday-island-city-ar.mydripnurse.com",
+                    "citySitemap": "https://holiday-island-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://carroll-county-ar.mydripnurse.com",
+            "countySitemap": "https://carroll-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Craighead",
             "Cities": [
-                "Bay",
-                "Black Oak",
-                "Brookland",
-                "Caraway",
-                "Cash",
-                "Jonesboro",
-                "Lake City",
-                "Monette",
-                "Nettleton",
-                "Trumann"
+                {
+                    "cityName": "Bay",
+                    "cityDomain": "https://bay-city-ar.mydripnurse.com",
+                    "citySitemap": "https://bay-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Black Oak",
+                    "cityDomain": "https://black-oak-city-ar.mydripnurse.com",
+                    "citySitemap": "https://black-oak-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Brookland",
+                    "cityDomain": "https://brookland-city-ar.mydripnurse.com",
+                    "citySitemap": "https://brookland-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Caraway",
+                    "cityDomain": "https://caraway-city-ar.mydripnurse.com",
+                    "citySitemap": "https://caraway-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cash",
+                    "cityDomain": "https://cash-city-ar.mydripnurse.com",
+                    "citySitemap": "https://cash-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jonesboro",
+                    "cityDomain": "https://jonesboro-city-ar.mydripnurse.com",
+                    "citySitemap": "https://jonesboro-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lake City",
+                    "cityDomain": "https://lake-city-city-ar.mydripnurse.com",
+                    "citySitemap": "https://lake-city-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monette",
+                    "cityDomain": "https://monette-city-ar.mydripnurse.com",
+                    "citySitemap": "https://monette-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nettleton",
+                    "cityDomain": "https://nettleton-city-ar.mydripnurse.com",
+                    "citySitemap": "https://nettleton-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Trumann",
+                    "cityDomain": "https://trumann-city-ar.mydripnurse.com",
+                    "citySitemap": "https://trumann-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://craighead-county-ar.mydripnurse.com",
+            "countySitemap": "https://craighead-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Crittenden",
             "Cities": [
-                "Earle",
-                "Marion",
-                "Sunset",
-                "West Memphis"
+                {
+                    "cityName": "Earle",
+                    "cityDomain": "https://earle-city-ar.mydripnurse.com",
+                    "citySitemap": "https://earle-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Marion",
+                    "cityDomain": "https://marion-city-ar.mydripnurse.com",
+                    "citySitemap": "https://marion-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sunset",
+                    "cityDomain": "https://sunset-city-ar.mydripnurse.com",
+                    "citySitemap": "https://sunset-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Memphis",
+                    "cityDomain": "https://west-memphis-city-ar.mydripnurse.com",
+                    "citySitemap": "https://west-memphis-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://crittenden-county-ar.mydripnurse.com",
+            "countySitemap": "https://crittenden-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Faulkner",
             "Cities": [
-                "Conway",
-                "Greenbrier",
-                "Guy",
-                "Mayflower",
-                "Mount Vernon",
-                "Vilonia",
-                "Wooster"
+                {
+                    "cityName": "Conway",
+                    "cityDomain": "https://conway-city-ar.mydripnurse.com",
+                    "citySitemap": "https://conway-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenbrier",
+                    "cityDomain": "https://greenbrier-city-ar.mydripnurse.com",
+                    "citySitemap": "https://greenbrier-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Guy",
+                    "cityDomain": "https://guy-city-ar.mydripnurse.com",
+                    "citySitemap": "https://guy-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mayflower",
+                    "cityDomain": "https://mayflower-city-ar.mydripnurse.com",
+                    "citySitemap": "https://mayflower-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mount Vernon",
+                    "cityDomain": "https://mount-vernon-city-ar.mydripnurse.com",
+                    "citySitemap": "https://mount-vernon-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Vilonia",
+                    "cityDomain": "https://vilonia-city-ar.mydripnurse.com",
+                    "citySitemap": "https://vilonia-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wooster",
+                    "cityDomain": "https://wooster-city-ar.mydripnurse.com",
+                    "citySitemap": "https://wooster-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://faulkner-county-ar.mydripnurse.com",
+            "countySitemap": "https://faulkner-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Garland",
             "Cities": [
-                "Hot Springs",
-                "Hot Springs Village",
-                "Mountain Pine"
+                {
+                    "cityName": "Hot Springs",
+                    "cityDomain": "https://hot-springs-city-ar.mydripnurse.com",
+                    "citySitemap": "https://hot-springs-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hot Springs Village",
+                    "cityDomain": "https://hot-springs-village-city-ar.mydripnurse.com",
+                    "citySitemap": "https://hot-springs-village-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mountain Pine",
+                    "cityDomain": "https://mountain-pine-city-ar.mydripnurse.com",
+                    "citySitemap": "https://mountain-pine-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://garland-county-ar.mydripnurse.com",
+            "countySitemap": "https://garland-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Jefferson",
             "Cities": [
-                "Altheimer",
-                "Pine Bluff",
-                "Redfield",
-                "White Hall"
+                {
+                    "cityName": "Altheimer",
+                    "cityDomain": "https://altheimer-city-ar.mydripnurse.com",
+                    "citySitemap": "https://altheimer-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pine Bluff",
+                    "cityDomain": "https://pine-bluff-city-ar.mydripnurse.com",
+                    "citySitemap": "https://pine-bluff-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Redfield",
+                    "cityDomain": "https://redfield-city-ar.mydripnurse.com",
+                    "citySitemap": "https://redfield-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "White Hall",
+                    "cityDomain": "https://white-hall-city-ar.mydripnurse.com",
+                    "citySitemap": "https://white-hall-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://jefferson-county-ar.mydripnurse.com",
+            "countySitemap": "https://jefferson-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Mississippi",
             "Cities": [
-                "Blytheville",
-                "Dell",
-                "Gosnell",
-                "Leachville",
-                "Luxora",
-                "Manila",
-                "Osceola"
+                {
+                    "cityName": "Blytheville",
+                    "cityDomain": "https://blytheville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://blytheville-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dell",
+                    "cityDomain": "https://dell-city-ar.mydripnurse.com",
+                    "citySitemap": "https://dell-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gosnell",
+                    "cityDomain": "https://gosnell-city-ar.mydripnurse.com",
+                    "citySitemap": "https://gosnell-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Leachville",
+                    "cityDomain": "https://leachville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://leachville-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Luxora",
+                    "cityDomain": "https://luxora-city-ar.mydripnurse.com",
+                    "citySitemap": "https://luxora-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manila",
+                    "cityDomain": "https://manila-city-ar.mydripnurse.com",
+                    "citySitemap": "https://manila-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Osceola",
+                    "cityDomain": "https://osceola-city-ar.mydripnurse.com",
+                    "citySitemap": "https://osceola-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://mississippi-county-ar.mydripnurse.com",
+            "countySitemap": "https://mississippi-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Pulaski",
             "Cities": [
-                "Jacksonville",
-                "Little Rock",
-                "Maumelle",
-                "North Little Rock",
-                "Sherwood",
-                "Wrightsville"
+                {
+                    "cityName": "Jacksonville",
+                    "cityDomain": "https://jacksonville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://jacksonville-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Little Rock",
+                    "cityDomain": "https://little-rock-city-ar.mydripnurse.com",
+                    "citySitemap": "https://little-rock-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Maumelle",
+                    "cityDomain": "https://maumelle-city-ar.mydripnurse.com",
+                    "citySitemap": "https://maumelle-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Little Rock",
+                    "cityDomain": "https://north-little-rock-city-ar.mydripnurse.com",
+                    "citySitemap": "https://north-little-rock-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sherwood",
+                    "cityDomain": "https://sherwood-city-ar.mydripnurse.com",
+                    "citySitemap": "https://sherwood-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wrightsville",
+                    "cityDomain": "https://wrightsville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://wrightsville-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://pulaski-county-ar.mydripnurse.com",
+            "countySitemap": "https://pulaski-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Saline",
             "Cities": [
-                "Alexander",
-                "Bauxite",
-                "Benton",
-                "Bryant",
-                "Haskell",
-                "Shannon Hills"
+                {
+                    "cityName": "Alexander",
+                    "cityDomain": "https://alexander-city-ar.mydripnurse.com",
+                    "citySitemap": "https://alexander-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bauxite",
+                    "cityDomain": "https://bauxite-city-ar.mydripnurse.com",
+                    "citySitemap": "https://bauxite-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Benton",
+                    "cityDomain": "https://benton-city-ar.mydripnurse.com",
+                    "citySitemap": "https://benton-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bryant",
+                    "cityDomain": "https://bryant-city-ar.mydripnurse.com",
+                    "citySitemap": "https://bryant-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Haskell",
+                    "cityDomain": "https://haskell-city-ar.mydripnurse.com",
+                    "citySitemap": "https://haskell-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Shannon Hills",
+                    "cityDomain": "https://shannon-hills-city-ar.mydripnurse.com",
+                    "citySitemap": "https://shannon-hills-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://saline-county-ar.mydripnurse.com",
+            "countySitemap": "https://saline-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Sebastian",
             "Cities": [
-                "Barling",
-                "Fort Smith",
-                "Greenwood",
-                "Hackett",
-                "Lavaca",
-                "Mansfield"
+                {
+                    "cityName": "Barling",
+                    "cityDomain": "https://barling-city-ar.mydripnurse.com",
+                    "citySitemap": "https://barling-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Smith",
+                    "cityDomain": "https://fort-smith-city-ar.mydripnurse.com",
+                    "citySitemap": "https://fort-smith-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenwood",
+                    "cityDomain": "https://greenwood-city-ar.mydripnurse.com",
+                    "citySitemap": "https://greenwood-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hackett",
+                    "cityDomain": "https://hackett-city-ar.mydripnurse.com",
+                    "citySitemap": "https://hackett-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lavaca",
+                    "cityDomain": "https://lavaca-city-ar.mydripnurse.com",
+                    "citySitemap": "https://lavaca-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mansfield",
+                    "cityDomain": "https://mansfield-city-ar.mydripnurse.com",
+                    "citySitemap": "https://mansfield-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://sebastian-county-ar.mydripnurse.com",
+            "countySitemap": "https://sebastian-county-ar.mydripnurse.com/sitemap.xml"
         },
         {
             "County Name": "Washington",
             "Cities": [
-                "Elkins",
-                "Farmington",
-                "Fayetteville",
-                "Greenland",
-                "Johnson",
-                "Prairie Grove",
-                "Springdale",
-                "West Fork"
+                {
+                    "cityName": "Elkins",
+                    "cityDomain": "https://elkins-city-ar.mydripnurse.com",
+                    "citySitemap": "https://elkins-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Farmington",
+                    "cityDomain": "https://farmington-city-ar.mydripnurse.com",
+                    "citySitemap": "https://farmington-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fayetteville",
+                    "cityDomain": "https://fayetteville-city-ar.mydripnurse.com",
+                    "citySitemap": "https://fayetteville-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenland",
+                    "cityDomain": "https://greenland-city-ar.mydripnurse.com",
+                    "citySitemap": "https://greenland-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Johnson",
+                    "cityDomain": "https://johnson-city-ar.mydripnurse.com",
+                    "citySitemap": "https://johnson-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Prairie Grove",
+                    "cityDomain": "https://prairie-grove-city-ar.mydripnurse.com",
+                    "citySitemap": "https://prairie-grove-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Springdale",
+                    "cityDomain": "https://springdale-city-ar.mydripnurse.com",
+                    "citySitemap": "https://springdale-city-ar.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Fork",
+                    "cityDomain": "https://west-fork-city-ar.mydripnurse.com",
+                    "citySitemap": "https://west-fork-city-ar.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Central",
                 "Zone": "US/Central",
                 "UTC_Offset": "-06:00"
-            }
+            },
+            "countyDomain": "https://washington-county-ar.mydripnurse.com",
+            "countySitemap": "https://washington-county-ar.mydripnurse.com/sitemap.xml"
         }
     ],
     "website": "https://www.mydripnurse.com",
