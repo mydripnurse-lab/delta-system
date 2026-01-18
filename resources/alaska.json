@@ -1,0 +1,197 @@
+{
+    "Counties": [
+        {
+            "County Name": "Anchorage Municipality",
+            "Cities": [
+                "Anchorage"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Anchorage",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Matanuska-Susitna Borough",
+            "Cities": [
+                "Wasilla",
+                "Palmer",
+                "Houston"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Anchorage",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Fairbanks North Star Borough",
+            "Cities": [
+                "Fairbanks",
+                "North Pole"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Anchorage",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Kenai Peninsula Borough",
+            "Cities": [
+                "Kenai",
+                "Soldotna",
+                "Homer",
+                "Seward"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Anchorage",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Juneau City and Borough",
+            "Cities": [
+                "Juneau"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Juneau",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Sitka City and Borough",
+            "Cities": [
+                "Sitka"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Sitka",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Ketchikan Gateway Borough",
+            "Cities": [
+                "Ketchikan"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Metlakatla",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Kodiak Island Borough",
+            "Cities": [
+                "Kodiak"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Anchorage",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Bethel Census Area",
+            "Cities": [
+                "Bethel"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Anchorage",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Nome Census Area",
+            "Cities": [
+                "Nome"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Nome",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "North Slope Borough",
+            "Cities": [
+                "Utqiaġvik"
+            ],
+            "Timezone": {
+                "Name": "Alaska Time",
+                "Zone": "America/Anchorage",
+                "UTC_Offset": "-09:00"
+            }
+        },
+        {
+            "County Name": "Aleutians West Census Area",
+            "Cities": [
+                "Unalaska"
+            ],
+            "Timezone": {
+                "Name": "Aleutian Time",
+                "Zone": "America/Adak",
+                "UTC_Offset": "-10:00"
+            }
+        }
+    ],
+    "website": "https://www.mydripnurse.com",
+    "ownerName": "Keishla",
+    "ownerLastName": "Caraballo",
+    "phone": "9392749203",
+    "email": "keyla03@live.com",
+    "twilio": {
+        "sid": "secret",
+        "authToken": "secret"
+    },
+    "mailgun": {
+        "apiKey": "secret",
+        "domain": "secret"
+    },
+    "customValues": {
+        "businessInformation": {
+            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
+            "businessPhone": ""
+        },
+        "ivTherapyPrice": {
+            "myersCocktailPrice": "299",
+            "alleviatePrice": "219",
+            "brainStormPrice": "199",
+            "getLeanPrice": "179",
+            "immunityDefensePrice": "279",
+            "immunityDefenseAndGlutathionePrice": "299",
+            "hangoverPrice": "219",
+            "hydratePrice": "219",
+            "nadPrice": "599",
+            "nadBoostPrice": "797",
+            "recoveryPerformancePrice": "219",
+            "theGlowPrice": "199"
+        },
+        "vitaminPrice": {
+            "vitaminD3": "100",
+            "bComplex": "70",
+            "biotin": "75",
+            "vitaminC": "70",
+            "aminoBlend": "80",
+            "glutathione": "90",
+            "lipoMino": "120",
+            "triImmuneBoost": "120",
+            "vitaminB12": "70",
+            "ondansetron": "70"
+        },
+        "facebook": {
+            "accessToken": "secret",
+            "facebookPixel": "secret",
+            "instagramUrl": "https://www.instagram.com/mydripnurse/",
+            "facebookUrl": "https://www.facebook.com/MyDripNurse"
+        }
+    },
+    "businessInformation": {
+        "snapshotId": "secret",
+        "companyId": "secret"
+    }
+}
