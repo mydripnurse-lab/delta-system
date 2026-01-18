@@ -1,7 +1,7 @@
 {
     "Counties": [
         {
-            "County Name": "Autauga County",
+            "County Name": "Autauga",
             "Cities": [
                 "Autaugaville",
                 "Billingsley",
@@ -16,7 +16,7 @@
             }
         },
         {
-            "County Name": "Baldwin County",
+            "County Name": "Baldwin",
             "Cities": [
                 "Bay Minette",
                 "Daphne",
@@ -39,7 +39,7 @@
             }
         },
         {
-            "County Name": "Barbour County",
+            "County Name": "Barbour",
             "Cities": [
                 "Clayton",
                 "Eufaula",
@@ -52,7 +52,7 @@
             }
         },
         {
-            "County Name": "Bibb County",
+            "County Name": "Bibb",
             "Cities": [
                 "Brent",
                 "Centreville",
@@ -65,7 +65,7 @@
             }
         },
         {
-            "County Name": "Blount County",
+            "County Name": "Blount",
             "Cities": [
                 "Blountsville",
                 "Cleveland",
@@ -80,7 +80,7 @@
             }
         },
         {
-            "County Name": "Bullock County",
+            "County Name": "Bullock",
             "Cities": [
                 "Union Springs"
             ],
@@ -91,7 +91,7 @@
             }
         },
         {
-            "County Name": "Butler County",
+            "County Name": "Butler",
             "Cities": [
                 "Georgiana",
                 "Greenville",
@@ -104,7 +104,7 @@
             }
         },
         {
-            "County Name": "Calhoun County",
+            "County Name": "Calhoun",
             "Cities": [
                 "Anniston",
                 "Jacksonville",
@@ -119,7 +119,7 @@
             }
         },
         {
-            "County Name": "Chambers County",
+            "County Name": "Chambers",
             "Cities": [
                 "Cusseta",
                 "LaFayette",
@@ -133,7 +133,7 @@
             }
         },
         {
-            "County Name": "Cherokee County",
+            "County Name": "Cherokee",
             "Cities": [
                 "Centre",
                 "Leesburg",
@@ -148,7 +148,7 @@
             }
         },
         {
-            "County Name": "Chilton County",
+            "County Name": "Chilton",
             "Cities": [
                 "Clanton",
                 "Jemison",
@@ -162,7 +162,7 @@
             }
         },
         {
-            "County Name": "Choctaw County",
+            "County Name": "Choctaw",
             "Cities": [
                 "Butler",
                 "Lisman",
@@ -176,7 +176,7 @@
             }
         },
         {
-            "County Name": "Clarke County",
+            "County Name": "Clarke",
             "Cities": [
                 "Coffeeville",
                 "Grove Hill",
@@ -190,7 +190,7 @@
             }
         },
         {
-            "County Name": "Clay County",
+            "County Name": "Clay",
             "Cities": [
                 "Ashland",
                 "Delta",
@@ -203,7 +203,7 @@
             }
         },
         {
-            "County Name": "Cleburne County",
+            "County Name": "Cleburne",
             "Cities": [
                 "Edwardsville",
                 "Heflin",
@@ -216,7 +216,7 @@
             }
         },
         {
-            "County Name": "Coffee County",
+            "County Name": "Coffee",
             "Cities": [
                 "Elba",
                 "Enterprise",
@@ -229,7 +229,7 @@
             }
         },
         {
-            "County Name": "Colbert County",
+            "County Name": "Colbert",
             "Cities": [
                 "Leighton",
                 "Muscle Shoals",
@@ -243,7 +243,7 @@
             }
         },
         {
-            "County Name": "Conecuh County",
+            "County Name": "Conecuh",
             "Cities": [
                 "Evergreen",
                 "Repton"
@@ -255,7 +255,7 @@
             }
         },
         {
-            "County Name": "Coosa County",
+            "County Name": "Coosa",
             "Cities": [
                 "Goodwater",
                 "Rockford"
@@ -267,7 +267,7 @@
             }
         },
         {
-            "County Name": "Covington County",
+            "County Name": "Covington",
             "Cities": [
                 "Andalusia",
                 "Florala",
@@ -281,7 +281,7 @@
             }
         },
         {
-            "County Name": "Crenshaw County",
+            "County Name": "Crenshaw",
             "Cities": [
                 "Brantley",
                 "Luverne"
@@ -293,7 +293,7 @@
             }
         },
         {
-            "County Name": "Cullman County",
+            "County Name": "Cullman",
             "Cities": [
                 "Cullman",
                 "Arab",
@@ -310,7 +310,7 @@
             }
         },
         {
-            "County Name": "Dale County",
+            "County Name": "Dale",
             "Cities": [
                 "Daleville",
                 "Grimes",
@@ -325,7 +325,7 @@
             }
         },
         {
-            "County Name": "Dallas County",
+            "County Name": "Dallas",
             "Cities": [
                 "Marion",
                 "Selma"
@@ -337,7 +337,7 @@
             }
         },
         {
-            "County Name": "DeKalb County",
+            "County Name": "DeKalb",
             "Cities": [
                 "Fort Payne",
                 "Collinsville",
@@ -357,7 +357,7 @@
             }
         },
         {
-            "County Name": "Elmore County",
+            "County Name": "Elmore",
             "Cities": [
                 "Coosada",
                 "Eclectic",
@@ -372,7 +372,7 @@
             }
         },
         {
-            "County Name": "Escambia County",
+            "County Name": "Escambia",
             "Cities": [
                 "Atmore",
                 "Brewton",
@@ -385,7 +385,7 @@
             }
         },
         {
-            "County Name": "Etowah County",
+            "County Name": "Etowah",
             "Cities": [
                 "Attalla",
                 "Gadsden",
@@ -405,7 +405,7 @@
             }
         },
         {
-            "County Name": "Fayette County",
+            "County Name": "Fayette",
             "Cities": [
                 "Fayette",
                 "Glen Allen"
@@ -417,7 +417,7 @@
             }
         },
         {
-            "County Name": "Franklin County",
+            "County Name": "Franklin",
             "Cities": [
                 "Red Bay",
                 "Russellville",
@@ -430,7 +430,7 @@
             }
         },
         {
-            "County Name": "Geneva County",
+            "County Name": "Geneva",
             "Cities": [
                 "Black",
                 "Coffee Springs",
@@ -447,7 +447,7 @@
             }
         },
         {
-            "County Name": "Greene County",
+            "County Name": "Greene",
             "Cities": [
                 "Boligee",
                 "Eutaw"
@@ -459,7 +459,7 @@
             }
         },
         {
-            "County Name": "Hale County",
+            "County Name": "Hale",
             "Cities": [
                 "Akron",
                 "Greensboro",
@@ -472,7 +472,7 @@
             }
         },
         {
-            "County Name": "Henry County",
+            "County Name": "Henry",
             "Cities": [
                 "Abbeville",
                 "Haleburg",
@@ -486,7 +486,7 @@
             }
         },
         {
-            "County Name": "Houston County",
+            "County Name": "Houston",
             "Cities": [
                 "Ashford",
                 "Columbia",
@@ -506,7 +506,7 @@
             }
         },
         {
-            "County Name": "Jackson County",
+            "County Name": "Jackson",
             "Cities": [
                 "Bridgeport",
                 "Dutton",
@@ -525,7 +525,7 @@
             }
         },
         {
-            "County Name": "Jefferson County",
+            "County Name": "Jefferson",
             "Cities": [
                 "Birmingham",
                 "Bessemer",
@@ -569,7 +569,7 @@
             }
         },
         {
-            "County Name": "Lamar County",
+            "County Name": "Lamar",
             "Cities": [
                 "Sulligent",
                 "Vernon",
@@ -582,7 +582,7 @@
             }
         },
         {
-            "County Name": "Lauderdale County",
+            "County Name": "Lauderdale",
             "Cities": [
                 "Florence",
                 "Killen",
@@ -596,7 +596,7 @@
             }
         },
         {
-            "County Name": "Lawrence County",
+            "County Name": "Lawrence",
             "Cities": [
                 "Courtland",
                 "Hillsboro",
@@ -610,7 +610,7 @@
             }
         },
         {
-            "County Name": "Lee County",
+            "County Name": "Lee",
             "Cities": [
                 "Auburn",
                 "Opelika",
@@ -625,7 +625,7 @@
             }
         },
         {
-            "County Name": "Limestone County",
+            "County Name": "Limestone",
             "Cities": [
                 "Ardmore",
                 "Athens",
@@ -639,7 +639,7 @@
             }
         },
         {
-            "County Name": "Lowndes County",
+            "County Name": "Lowndes",
             "Cities": [
                 "Hayneville",
                 "Fort Deposit"
@@ -651,7 +651,7 @@
             }
         },
         {
-            "County Name": "Macon County",
+            "County Name": "Macon",
             "Cities": [
                 "Notasulga",
                 "Shorter",
@@ -664,7 +664,7 @@
             }
         },
         {
-            "County Name": "Madison County",
+            "County Name": "Madison",
             "Cities": [
                 "Huntsville",
                 "Madison",
@@ -684,7 +684,7 @@
             }
         },
         {
-            "County Name": "Marengo County",
+            "County Name": "Marengo",
             "Cities": [
                 "Demopolis",
                 "Linden",
@@ -697,7 +697,7 @@
             }
         },
         {
-            "County Name": "Marion County",
+            "County Name": "Marion",
             "Cities": [
                 "Bear Creek",
                 "Brilliant",
@@ -713,7 +713,7 @@
             }
         },
         {
-            "County Name": "Marshall County",
+            "County Name": "Marshall",
             "Cities": [
                 "Albertville",
                 "Arab",
@@ -729,7 +729,7 @@
             }
         },
         {
-            "County Name": "Mobile County",
+            "County Name": "Mobile",
             "Cities": [
                 "Mobile",
                 "Bayou La Batre",
@@ -752,7 +752,7 @@
             }
         },
         {
-            "County Name": "Monroe County",
+            "County Name": "Monroe",
             "Cities": [
                 "Beatrice",
                 "Excel",
@@ -767,7 +767,7 @@
             }
         },
         {
-            "County Name": "Montgomery County",
+            "County Name": "Montgomery",
             "Cities": [
                 "Montgomery",
                 "Pike Road",
@@ -780,7 +780,7 @@
             }
         },
         {
-            "County Name": "Morgan County",
+            "County Name": "Morgan",
             "Cities": [
                 "Decatur",
                 "Hartselle",
@@ -795,7 +795,7 @@
             }
         },
         {
-            "County Name": "Perry County",
+            "County Name": "Perry",
             "Cities": [
                 "Marion",
                 "Uniontown"
@@ -807,7 +807,7 @@
             }
         },
         {
-            "County Name": "Pickens County",
+            "County Name": "Pickens",
             "Cities": [
                 "Carrollton",
                 "Ethelsville",
@@ -822,7 +822,7 @@
             }
         },
         {
-            "County Name": "Pike County",
+            "County Name": "Pike",
             "Cities": [
                 "Banks",
                 "Brundidge",
@@ -835,7 +835,7 @@
             }
         },
         {
-            "County Name": "Randolph County",
+            "County Name": "Randolph",
             "Cities": [
                 "Wedowee",
                 "Roanoke",
@@ -848,7 +848,7 @@
             }
         },
         {
-            "County Name": "Russell County",
+            "County Name": "Russell",
             "Cities": [
                 "Phenix City",
                 "Hurtsboro"
@@ -860,7 +860,7 @@
             }
         },
         {
-            "County Name": "St. Clair County",
+            "County Name": "St. Clair",
             "Cities": [
                 "Ashville",
                 "Leeds",
@@ -879,7 +879,7 @@
             }
         },
         {
-            "County Name": "Shelby County",
+            "County Name": "Shelby",
             "Cities": [
                 "Alabaster",
                 "Calera",
@@ -900,7 +900,7 @@
             }
         },
         {
-            "County Name": "Sumter County",
+            "County Name": "Sumter",
             "Cities": [
                 "Bellamy",
                 "Epes",
@@ -915,7 +915,7 @@
             }
         },
         {
-            "County Name": "Talladega County",
+            "County Name": "Talladega",
             "Cities": [
                 "Childersburg",
                 "Lincoln",
@@ -932,7 +932,7 @@
             }
         },
         {
-            "County Name": "Tallapoosa County",
+            "County Name": "Tallapoosa",
             "Cities": [
                 "Alexander City",
                 "Dadeville",
@@ -945,7 +945,7 @@
             }
         },
         {
-            "County Name": "Tuscaloosa County",
+            "County Name": "Tuscaloosa",
             "Cities": [
                 "Tuscaloosa",
                 "Northport",
@@ -964,7 +964,7 @@
             }
         },
         {
-            "County Name": "Walker County",
+            "County Name": "Walker",
             "Cities": [
                 "Carbon Hill",
                 "Cordova",
@@ -981,7 +981,7 @@
             }
         },
         {
-            "County Name": "Washington County",
+            "County Name": "Washington",
             "Cities": [
                 "Chatom",
                 "Fruitdale",
@@ -996,7 +996,7 @@
             }
         },
         {
-            "County Name": "Wilcox County",
+            "County Name": "Wilcox",
             "Cities": [
                 "Camden",
                 "Pine Apple",
@@ -1009,7 +1009,7 @@
             }
         },
         {
-            "County Name": "Winston County",
+            "County Name": "Winston",
             "Cities": [
                 "Addison",
                 "Arley",

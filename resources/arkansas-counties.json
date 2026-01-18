@@ -1,7 +1,7 @@
 {
     "Counties": [
         {
-            "County Name": "Arkansas County",
+            "County Name": "Arkansas",
             "Cities": [
                 "Almyra",
                 "De Witt",
@@ -16,7 +16,7 @@
             }
         },
         {
-            "County Name": "Ashley County",
+            "County Name": "Ashley",
             "Cities": [
                 "Crossett",
                 "Hamburg",
@@ -30,7 +30,7 @@
             }
         },
         {
-            "County Name": "Baxter County",
+            "County Name": "Baxter",
             "Cities": [
                 "Cotter",
                 "Gassville",
@@ -45,7 +45,7 @@
             }
         },
         {
-            "County Name": "Benton County",
+            "County Name": "Benton",
             "Cities": [
                 "Bella Vista",
                 "Bentonville",
@@ -68,7 +68,7 @@
             }
         },
         {
-            "County Name": "Boone County",
+            "County Name": "Boone",
             "Cities": [
                 "Alpena",
                 "Bellefonte",
@@ -86,7 +86,7 @@
             }
         },
         {
-            "County Name": "Carroll County",
+            "County Name": "Carroll",
             "Cities": [
                 "Berryville",
                 "Eureka Springs",
@@ -100,7 +100,7 @@
             }
         },
         {
-            "County Name": "Craighead County",
+            "County Name": "Craighead",
             "Cities": [
                 "Bay",
                 "Black Oak",
@@ -120,7 +120,7 @@
             }
         },
         {
-            "County Name": "Crittenden County",
+            "County Name": "Crittenden",
             "Cities": [
                 "Earle",
                 "Marion",
@@ -134,7 +134,7 @@
             }
         },
         {
-            "County Name": "Faulkner County",
+            "County Name": "Faulkner",
             "Cities": [
                 "Conway",
                 "Greenbrier",
@@ -151,7 +151,7 @@
             }
         },
         {
-            "County Name": "Garland County",
+            "County Name": "Garland",
             "Cities": [
                 "Hot Springs",
                 "Hot Springs Village",
@@ -164,7 +164,7 @@
             }
         },
         {
-            "County Name": "Jefferson County",
+            "County Name": "Jefferson",
             "Cities": [
                 "Altheimer",
                 "Pine Bluff",
@@ -178,7 +178,7 @@
             }
         },
         {
-            "County Name": "Mississippi County",
+            "County Name": "Mississippi",
             "Cities": [
                 "Blytheville",
                 "Dell",
@@ -195,7 +195,7 @@
             }
         },
         {
-            "County Name": "Pulaski County",
+            "County Name": "Pulaski",
             "Cities": [
                 "Jacksonville",
                 "Little Rock",
@@ -211,7 +211,7 @@
             }
         },
         {
-            "County Name": "Saline County",
+            "County Name": "Saline",
             "Cities": [
                 "Alexander",
                 "Bauxite",
@@ -227,7 +227,7 @@
             }
         },
         {
-            "County Name": "Sebastian County",
+            "County Name": "Sebastian",
             "Cities": [
                 "Barling",
                 "Fort Smith",
@@ -243,7 +243,7 @@
             }
         },
         {
-            "County Name": "Washington County",
+            "County Name": "Washington",
             "Cities": [
                 "Elkins",
                 "Farmington",

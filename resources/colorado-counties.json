@@ -1,7 +1,7 @@
 {
     "Counties": [
         {
-            "County Name": "Adams County",
+            "County Name": "Adams",
             "Cities": [
                 "Aurora",
                 "Brighton",
@@ -18,7 +18,7 @@
             }
         },
         {
-            "County Name": "Alamosa County",
+            "County Name": "Alamosa",
             "Cities": [
                 "Alamosa"
             ],
@@ -29,7 +29,7 @@
             }
         },
         {
-            "County Name": "Arapahoe County",
+            "County Name": "Arapahoe",
             "Cities": [
                 "Aurora",
                 "Centennial",
@@ -47,7 +47,7 @@
             }
         },
         {
-            "County Name": "Archuleta County",
+            "County Name": "Archuleta",
             "Cities": [
                 "Pagosa Springs"
             ],
@@ -58,7 +58,7 @@
             }
         },
         {
-            "County Name": "Baca County",
+            "County Name": "Baca",
             "Cities": [
                 "Springfield",
                 "Walsh"
@@ -70,7 +70,7 @@
             }
         },
         {
-            "County Name": "Bent County",
+            "County Name": "Bent",
             "Cities": [
                 "Las Animas"
             ],
@@ -81,7 +81,7 @@
             }
         },
         {
-            "County Name": "Boulder County",
+            "County Name": "Boulder",
             "Cities": [
                 "Boulder",
                 "Erie",
@@ -100,7 +100,7 @@
             }
         },
         {
-            "County Name": "Broomfield County",
+            "County Name": "Broomfield",
             "Cities": [
                 "Broomfield"
             ],
@@ -111,7 +111,7 @@
             }
         },
         {
-            "County Name": "Chaffee County",
+            "County Name": "Chaffee",
             "Cities": [
                 "Buena Vista",
                 "Salida"
@@ -123,7 +123,7 @@
             }
         },
         {
-            "County Name": "Cheyenne County",
+            "County Name": "Cheyenne",
             "Cities": [
                 "Cheyenne Wells"
             ],
@@ -134,7 +134,7 @@
             }
         },
         {
-            "County Name": "Clear Creek County",
+            "County Name": "Clear Creek",
             "Cities": [
                 "Empire",
                 "Georgetown",
@@ -148,7 +148,7 @@
             }
         },
         {
-            "County Name": "Conejos County",
+            "County Name": "Conejos",
             "Cities": [
                 "Antonito",
                 "La Jara",
@@ -162,7 +162,7 @@
             }
         },
         {
-            "County Name": "Costilla County",
+            "County Name": "Costilla",
             "Cities": [
                 "San Luis"
             ],
@@ -173,7 +173,7 @@
             }
         },
         {
-            "County Name": "Crowley County",
+            "County Name": "Crowley",
             "Cities": [
                 "Ordway"
             ],
@@ -184,7 +184,7 @@
             }
         },
         {
-            "County Name": "Custer County",
+            "County Name": "Custer",
             "Cities": [
                 "Westcliffe",
                 "Silver Cliff"
@@ -196,7 +196,7 @@
             }
         },
         {
-            "County Name": "Delta County",
+            "County Name": "Delta",
             "Cities": [
                 "Cedaredge",
                 "Crawford",
@@ -211,7 +211,7 @@
             }
         },
         {
-            "County Name": "Denver County",
+            "County Name": "Denver",
             "Cities": [
                 "Denver"
             ],
@@ -222,7 +222,7 @@
             }
         },
         {
-            "County Name": "Dolores County",
+            "County Name": "Dolores",
             "Cities": [
                 "Dove Creek"
             ],
@@ -233,7 +233,7 @@
             }
         },
         {
-            "County Name": "Douglas County",
+            "County Name": "Douglas",
             "Cities": [
                 "Castle Pines",
                 "Castle Rock",
@@ -247,7 +247,7 @@
             }
         },
         {
-            "County Name": "Eagle County",
+            "County Name": "Eagle",
             "Cities": [
                 "Avon",
                 "Eagle",
@@ -263,7 +263,7 @@
             }
         },
         {
-            "County Name": "El Paso County",
+            "County Name": "El Paso",
             "Cities": [
                 "Colorado Springs",
                 "Fountain",
@@ -279,7 +279,7 @@
             }
         },
         {
-            "County Name": "Elbert County",
+            "County Name": "Elbert",
             "Cities": [
                 "Elizabeth",
                 "Kiowa"
@@ -291,7 +291,7 @@
             }
         },
         {
-            "County Name": "Fremont County",
+            "County Name": "Fremont",
             "Cities": [
                 "Ca\u00f1on City",
                 "Florence"
@@ -303,7 +303,7 @@
             }
         },
         {
-            "County Name": "Garfield County",
+            "County Name": "Garfield",
             "Cities": [
                 "Carbondale",
                 "Glenwood Springs",
@@ -319,7 +319,7 @@
             }
         },
         {
-            "County Name": "Gilpin County",
+            "County Name": "Gilpin",
             "Cities": [
                 "Black Hawk",
                 "Central City"
@@ -331,7 +331,7 @@
             }
         },
         {
-            "County Name": "Grand County",
+            "County Name": "Grand",
             "Cities": [
                 "Granby",
                 "Grand Lake",
@@ -346,7 +346,7 @@
             }
         },
         {
-            "County Name": "Gunnison County",
+            "County Name": "Gunnison",
             "Cities": [
                 "Crested Butte",
                 "Gunnison",
@@ -359,7 +359,7 @@
             }
         },
         {
-            "County Name": "Hinsdale County",
+            "County Name": "Hinsdale",
             "Cities": [
                 "Lake City"
             ],
@@ -370,7 +370,7 @@
             }
         },
         {
-            "County Name": "Huerfano County",
+            "County Name": "Huerfano",
             "Cities": [
                 "La Veta",
                 "Walsenburg"
@@ -382,7 +382,7 @@
             }
         },
         {
-            "County Name": "Jackson County",
+            "County Name": "Jackson",
             "Cities": [
                 "Walden"
             ],
@@ -393,7 +393,7 @@
             }
         },
         {
-            "County Name": "Jefferson County",
+            "County Name": "Jefferson",
             "Cities": [
                 "Arvada",
                 "Edgewater",
@@ -410,7 +410,7 @@
             }
         },
         {
-            "County Name": "Kiowa County",
+            "County Name": "Kiowa",
             "Cities": [
                 "Eads"
             ],
@@ -421,7 +421,7 @@
             }
         },
         {
-            "County Name": "Kit Carson County",
+            "County Name": "Kit Carson",
             "Cities": [
                 "Burlington",
                 "Stratton",
@@ -434,7 +434,7 @@
             }
         },
         {
-            "County Name": "La Plata County",
+            "County Name": "La Plata",
             "Cities": [
                 "Durango"
             ],
@@ -445,7 +445,7 @@
             }
         },
         {
-            "County Name": "Lake County",
+            "County Name": "Lake",
             "Cities": [
                 "Leadville"
             ],
@@ -456,7 +456,7 @@
             }
         },
         {
-            "County Name": "Larimer County",
+            "County Name": "Larimer",
             "Cities": [
                 "Berthoud",
                 "Estes Park",
@@ -473,7 +473,7 @@
             }
         },
         {
-            "County Name": "Las Animas County",
+            "County Name": "Las Animas",
             "Cities": [
                 "Aguilar",
                 "Kim",
@@ -486,7 +486,7 @@
             }
         },
         {
-            "County Name": "Lincoln County",
+            "County Name": "Lincoln",
             "Cities": [
                 "Hugo",
                 "Limon"
@@ -498,7 +498,7 @@
             }
         },
         {
-            "County Name": "Logan County",
+            "County Name": "Logan",
             "Cities": [
                 "Crook",
                 "Fleming",
@@ -514,7 +514,7 @@
             }
         },
         {
-            "County Name": "Mesa County",
+            "County Name": "Mesa",
             "Cities": [
                 "Collbran",
                 "De Beque",
@@ -529,7 +529,7 @@
             }
         },
         {
-            "County Name": "Mineral County",
+            "County Name": "Mineral",
             "Cities": [
                 "Creede"
             ],
@@ -540,7 +540,7 @@
             }
         },
         {
-            "County Name": "Moffat County",
+            "County Name": "Moffat",
             "Cities": [
                 "Craig",
                 "Dinosaur"
@@ -552,7 +552,7 @@
             }
         },
         {
-            "County Name": "Montezuma County",
+            "County Name": "Montezuma",
             "Cities": [
                 "Cortez",
                 "Dolores",
@@ -565,7 +565,7 @@
             }
         },
         {
-            "County Name": "Montrose County",
+            "County Name": "Montrose",
             "Cities": [
                 "Montrose",
                 "Naturita",
@@ -579,7 +579,7 @@
             }
         },
         {
-            "County Name": "Morgan County",
+            "County Name": "Morgan",
             "Cities": [
                 "Brush",
                 "Fort Morgan",
@@ -594,7 +594,7 @@
             }
         },
         {
-            "County Name": "Otero County",
+            "County Name": "Otero",
             "Cities": [
                 "Fowler",
                 "La Junta",
@@ -609,7 +609,7 @@
             }
         },
         {
-            "County Name": "Ouray County",
+            "County Name": "Ouray",
             "Cities": [
                 "Ouray",
                 "Ridgway"
@@ -621,7 +621,7 @@
             }
         },
         {
-            "County Name": "Park County",
+            "County Name": "Park",
             "Cities": [
                 "Fairplay"
             ],
@@ -632,7 +632,7 @@
             }
         },
         {
-            "County Name": "Phillips County",
+            "County Name": "Phillips",
             "Cities": [
                 "Holyoke",
                 "Haxtun"
@@ -644,7 +644,7 @@
             }
         },
         {
-            "County Name": "Pitkin County",
+            "County Name": "Pitkin",
             "Cities": [
                 "Aspen",
                 "Snowmass Village"
@@ -656,7 +656,7 @@
             }
         },
         {
-            "County Name": "Prowers County",
+            "County Name": "Prowers",
             "Cities": [
                 "Granada",
                 "Holly",
@@ -669,7 +669,7 @@
             }
         },
         {
-            "County Name": "Pueblo County",
+            "County Name": "Pueblo",
             "Cities": [
                 "Pueblo"
             ],
@@ -680,7 +680,7 @@
             }
         },
         {
-            "County Name": "Rio Blanco County",
+            "County Name": "Rio Blanco",
             "Cities": [
                 "Meeker",
                 "Rangely"
@@ -692,7 +692,7 @@
             }
         },
         {
-            "County Name": "Rio Grande County",
+            "County Name": "Rio Grande",
             "Cities": [
                 "Center",
                 "Del Norte",
@@ -705,7 +705,7 @@
             }
         },
         {
-            "County Name": "Routt County",
+            "County Name": "Routt",
             "Cities": [
                 "Hayden",
                 "Oak Creek",
@@ -719,7 +719,7 @@
             }
         },
         {
-            "County Name": "Saguache County",
+            "County Name": "Saguache",
             "Cities": [
                 "Center",
                 "Saguache"
@@ -731,7 +731,7 @@
             }
         },
         {
-            "County Name": "San Juan County",
+            "County Name": "San Juan",
             "Cities": [
                 "Silverton"
             ],
@@ -742,7 +742,7 @@
             }
         },
         {
-            "County Name": "San Miguel County",
+            "County Name": "San Miguel",
             "Cities": [
                 "Mountain Village",
                 "Norwood",
@@ -755,7 +755,7 @@
             }
         },
         {
-            "County Name": "Sedgwick County",
+            "County Name": "Sedgwick",
             "Cities": [
                 "Julesburg",
                 "Ovid"
@@ -767,7 +767,7 @@
             }
         },
         {
-            "County Name": "Summit County",
+            "County Name": "Summit",
             "Cities": [
                 "Blue River",
                 "Breckenridge",
@@ -782,7 +782,7 @@
             }
         },
         {
-            "County Name": "Teller County",
+            "County Name": "Teller",
             "Cities": [
                 "Cripple Creek",
                 "Victor"
@@ -794,7 +794,7 @@
             }
         },
         {
-            "County Name": "Washington County",
+            "County Name": "Washington",
             "Cities": [
                 "Akron",
                 "Otis"
@@ -806,7 +806,7 @@
             }
         },
         {
-            "County Name": "Weld County",
+            "County Name": "Weld",
             "Cities": [
                 "Brighton",
                 "Dacono",
@@ -836,7 +836,7 @@
             }
         },
         {
-            "County Name": "Yuma County",
+            "County Name": "Yuma",
             "Cities": [
                 "Eckley",
                 "Wray",

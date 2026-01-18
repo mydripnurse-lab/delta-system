@@ -1,0 +1,2041 @@
+{
+    "Counties": [
+        {
+            "County Name": "Appling",
+            "Cities": [
+                "Baxley",
+                "Graham"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Atkinson",
+            "Cities": [
+                "Pearson"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Bacon",
+            "Cities": [
+                "Alma"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Baker",
+            "Cities": [
+                "Newton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Baldwin",
+            "Cities": [
+                "Milledgeville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Banks",
+            "Cities": [
+                "Homer",
+                "Maysville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Barrow",
+            "Cities": [
+                "Auburn",
+                "Bethlehem",
+                "Braselton",
+                "Carl",
+                "Statham",
+                "Winder"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Bartow",
+            "Cities": [
+                "Adairsville",
+                "Cartersville",
+                "Emerson",
+                "Euharlee",
+                "Kingston",
+                "White"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Ben Hill",
+            "Cities": [
+                "Fitzgerald"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Berrien",
+            "Cities": [
+                "Enigma",
+                "Nashville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Bibb",
+            "Cities": [
+                "Macon"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Bleckley",
+            "Cities": [
+                "Cochran"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Brantley",
+            "Cities": [
+                "Hoboken",
+                "Nahunta"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Brooks",
+            "Cities": [
+                "Morven",
+                "Quitman"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Bryan",
+            "Cities": [
+                "Pembroke",
+                "Richmond Hill"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Bulloch",
+            "Cities": [
+                "Brooklet",
+                "Portal",
+                "Register",
+                "Statesboro"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Burke",
+            "Cities": [
+                "Girard",
+                "Keysville",
+                "Midville",
+                "Sardis",
+                "Waynesboro"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Butts",
+            "Cities": [
+                "Flovilla",
+                "Jackson",
+                "Jenkinsburg"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Calhoun",
+            "Cities": [
+                "Arlington",
+                "Edison",
+                "Leary",
+                "Morgan"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Camden",
+            "Cities": [
+                "Kingsland",
+                "St. Marys",
+                "Woodbine"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Candler",
+            "Cities": [
+                "Metter"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Carroll",
+            "Cities": [
+                "Bowdon",
+                "Bremen",
+                "Carrollton",
+                "Mount Zion",
+                "Roopville",
+                "Temple",
+                "Villa Rica",
+                "Whitesburg"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Catoosa",
+            "Cities": [
+                "Fort Oglethorpe",
+                "Lakeview",
+                "Ringgold"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Charlton",
+            "Cities": [
+                "Folkston",
+                "Homeland"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Chatham",
+            "Cities": [
+                "Bloomingdale",
+                "Garden City",
+                "Pooler",
+                "Port Wentworth",
+                "Savannah",
+                "Thunderbolt",
+                "Tybee Island",
+                "Vernonburg"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Cherokee",
+            "Cities": [
+                "Ball Ground",
+                "Canton",
+                "Holly Springs",
+                "Woodstock"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Clarke",
+            "Cities": [
+                "Athens"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Clay",
+            "Cities": [
+                "Fort Gaines"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Clayton",
+            "Cities": [
+                "College Park",
+                "Forest Park",
+                "Jonesboro",
+                "Lake City",
+                "Lovejoy",
+                "Morrow",
+                "Riverdale"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Clinch",
+            "Cities": [
+                "Homerville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Cobb",
+            "Cities": [
+                "Acworth",
+                "Austell",
+                "Kennesaw",
+                "Marietta",
+                "Powder Springs",
+                "Smyrna",
+                "Vinings"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Coffee",
+            "Cities": [
+                "Broxton",
+                "Douglas",
+                "Nicholls"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Colquitt",
+            "Cities": [
+                "Berlin",
+                "Doerun",
+                "Funston",
+                "Moultrie",
+                "Norman Park"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Columbia",
+            "Cities": [
+                "Grovetown",
+                "Harlem",
+                "Martinez"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Cook",
+            "Cities": [
+                "Adel",
+                "Lenox",
+                "Sparks"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Coweta",
+            "Cities": [
+                "Grantville",
+                "Moreland",
+                "Newnan",
+                "Senoia",
+                "Sharpsburg",
+                "Turin"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Crawford",
+            "Cities": [
+                "Byron",
+                "Roberta"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Crisp",
+            "Cities": [
+                "Arabi",
+                "Cordele"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Dade",
+            "Cities": [
+                "Trenton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Dawson",
+            "Cities": [
+                "Dawsonville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Decatur",
+            "Cities": [
+                "Attapulgus",
+                "Bainbridge",
+                "Climax",
+                "Iron City"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "DeKalb",
+            "Cities": [
+                "Atlanta",
+                "Avondale Estates",
+                "Brookhaven",
+                "Chamblee",
+                "Clarkston",
+                "Decatur",
+                "Doraville",
+                "Dunwoody",
+                "Lithonia",
+                "Pine Lake",
+                "Stonecrest",
+                "Stone Mountain",
+                "Tucker"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Dodge",
+            "Cities": [
+                "Chester",
+                "Eastman",
+                "Milan"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Dooly",
+            "Cities": [
+                "Byromville",
+                "Pinehurst",
+                "Unadilla",
+                "Vienna"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Dougherty",
+            "Cities": [
+                "Albany"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Douglas",
+            "Cities": [
+                "Douglasville",
+                "Lithia Springs"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Early",
+            "Cities": [
+                "Blakely"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Echols",
+            "Cities": [
+                "Statenville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Effingham",
+            "Cities": [
+                "Guyton",
+                "Rincon",
+                "Springfield"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Elbert",
+            "Cities": [
+                "Bowman",
+                "Elberton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Emanuel",
+            "Cities": [
+                "Garfield",
+                "Nunez",
+                "Stillmore",
+                "Swainsboro",
+                "Twin City"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Evans",
+            "Cities": [
+                "Claxton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Fannin",
+            "Cities": [
+                "Blue Ridge",
+                "McCaysville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Fayette",
+            "Cities": [
+                "Brooks",
+                "Fayetteville",
+                "Peachtree City",
+                "Tyrone",
+                "Woolsey"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Floyd",
+            "Cities": [
+                "Cave Spring",
+                "Lindale",
+                "Mount Berry",
+                "Rome"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Forsyth",
+            "Cities": [
+                "Cumming"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Franklin",
+            "Cities": [
+                "Canon",
+                "Carnesville",
+                "Lavonia",
+                "Royston"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Fulton",
+            "Cities": [
+                "Alpharetta",
+                "Atlanta",
+                "College Park",
+                "East Point",
+                "Fairburn",
+                "Hapeville",
+                "Johns Creek",
+                "Milton",
+                "Mountain Park",
+                "Palmetto",
+                "Roswell",
+                "Sandy Springs",
+                "South Fulton",
+                "Union City"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Gilmer",
+            "Cities": [
+                "Ellijay"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Glascock",
+            "Cities": [
+                "Gibson"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Gordon",
+            "Cities": [
+                "Calhoun",
+                "Fairmount",
+                "Plainville",
+                "Resaca"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Grady",
+            "Cities": [
+                "Cairo",
+                "Whigham"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Greene",
+            "Cities": [
+                "Greensboro",
+                "Union Point",
+                "White Plains"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Gwinnett",
+            "Cities": [
+                "Berkeley Lake",
+                "Braselton",
+                "Buford",
+                "Dacula",
+                "Duluth",
+                "Grayson",
+                "Lawrenceville",
+                "Lilburn",
+                "Loganville",
+                "Norcross",
+                "Peachtree Corners",
+                "Snellville",
+                "Sugar Hill",
+                "Suwanee"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Habersham",
+            "Cities": [
+                "Baldwin",
+                "Clarkesville",
+                "Cornelia",
+                "Demorest",
+                "Mount Airy"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Hall",
+            "Cities": [
+                "Braselton",
+                "Clermont",
+                "Flowery Branch",
+                "Gainesville",
+                "Gillsville",
+                "Lula",
+                "Oakwood"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Hancock",
+            "Cities": [
+                "Sparta"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Haralson",
+            "Cities": [
+                "Bremen",
+                "Buchanan",
+                "Tallapoosa",
+                "Waco"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Harris",
+            "Cities": [
+                "Hamilton",
+                "Pine Mountain",
+                "Shiloh",
+                "Waverly Hall"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Hart",
+            "Cities": [
+                "Bowersville",
+                "Hartwell",
+                "Royston"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Heard",
+            "Cities": [
+                "Centralhatchee",
+                "Ephesus",
+                "Franklin"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Henry",
+            "Cities": [
+                "Hampton",
+                "Locust Grove",
+                "McDonough",
+                "Stockbridge"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Houston",
+            "Cities": [
+                "Bonaire",
+                "Centerville",
+                "Kathleen",
+                "Perry",
+                "Warner Robins"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Irwin",
+            "Cities": [
+                "Ocilla"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Jackson",
+            "Cities": [
+                "Arcade",
+                "Braselton",
+                "Commerce",
+                "Hoschton",
+                "Jefferson",
+                "Maysville",
+                "Nicholson",
+                "Pendergrass",
+                "Talmo"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Jasper",
+            "Cities": [
+                "Monticello",
+                "Shady Dale"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Jeff Davis",
+            "Cities": [
+                "Hazlehurst",
+                "Denton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Jones",
+            "Cities": [
+                "Gray",
+                "Haddock"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Lamar",
+            "Cities": [
+                "Barnesville",
+                "Milner"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Lanier",
+            "Cities": [
+                "Lakeland"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Laurens",
+            "Cities": [
+                "Dexter",
+                "Dublin",
+                "East Dublin",
+                "Rentz"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Lee",
+            "Cities": [
+                "Leesburg",
+                "Smithville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Liberty",
+            "Cities": [
+                "Allenhurst",
+                "Flemington",
+                "Hinesville",
+                "Riceboro",
+                "Walthourville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Lincoln",
+            "Cities": [
+                "Lincolnton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Long",
+            "Cities": [
+                "Ludowici"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Lowndes",
+            "Cities": [
+                "Hahira",
+                "Lake Park",
+                "Remerton",
+                "Valdosta"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Lumpkin",
+            "Cities": [
+                "Dahlonega"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "McDuffie",
+            "Cities": [
+                "Dearing",
+                "Thomson"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "McIntosh",
+            "Cities": [
+                "Darien"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Macon",
+            "Cities": [
+                "Ideal",
+                "Marshallville",
+                "Montezuma",
+                "Oglethorpe"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Madison",
+            "Cities": [
+                "Colbert",
+                "Danielsville",
+                "Hull",
+                "Ila"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Marion",
+            "Cities": [
+                "Buena Vista"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Meriwether",
+            "Cities": [
+                "Gay",
+                "Greenville",
+                "Lone Oak",
+                "Manchester",
+                "Warm Springs"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Miller",
+            "Cities": [
+                "Colquitt"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Mitchell",
+            "Cities": [
+                "Baconton",
+                "Camilla",
+                "Pelham",
+                "Sale City"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Monroe",
+            "Cities": [
+                "Bolingbroke",
+                "Culloden",
+                "Forsyth",
+                "Juliette"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Montgomery",
+            "Cities": [
+                "Mount Vernon",
+                "Uvalda"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Morgan",
+            "Cities": [
+                "Bostwick",
+                "Madison",
+                "Rutledge"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Murray",
+            "Cities": [
+                "Chatsworth",
+                "Eton",
+                "Spring Place"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Muscogee",
+            "Cities": [
+                "Columbus"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Newton",
+            "Cities": [
+                "Covington",
+                "Mansfield",
+                "Newborn",
+                "Oxford",
+                "Porterdale"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Oconee",
+            "Cities": [
+                "Bogart",
+                "North High Shoals",
+                "Watkinsville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Oglethorpe",
+            "Cities": [
+                "Arnoldsville",
+                "Crawford",
+                "Lexington",
+                "Maxeys",
+                "Stephens"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Paulding",
+            "Cities": [
+                "Braswell",
+                "Dallas",
+                "Hiram"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Peach",
+            "Cities": [
+                "Byron",
+                "Fort Valley"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Pickens",
+            "Cities": [
+                "Ball Ground",
+                "Jasper",
+                "Nelson",
+                "Talking Rock"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Pierce",
+            "Cities": [
+                "Blackshear",
+                "Patterson"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Pike",
+            "Cities": [
+                "Concord",
+                "Meansville",
+                "Molena",
+                "Williamson"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Polk",
+            "Cities": [
+                "Aragon",
+                "Cedartown",
+                "Rockmart"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Pulaski",
+            "Cities": [
+                "Hawkinsville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Putnam",
+            "Cities": [
+                "Eatonton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Quitman",
+            "Cities": [
+                "Georgetown"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Rabun",
+            "Cities": [
+                "Clayton",
+                "Dillard"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Randolph",
+            "Cities": [
+                "Cuthbert",
+                "Shellman"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Richmond",
+            "Cities": [
+                "Augusta"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Rockdale",
+            "Cities": [
+                "Conyers"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Schley",
+            "Cities": [
+                "Ellaville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Screven",
+            "Cities": [
+                "Sylvania"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Seminole",
+            "Cities": [
+                "Donalsonville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Spalding",
+            "Cities": [
+                "Griffin",
+                "Orchard Hill",
+                "Sunny Side"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Stephens",
+            "Cities": [
+                "Toccoa"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Stewart",
+            "Cities": [
+                "Lumpkin",
+                "Richland"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Sumter",
+            "Cities": [
+                "Americus",
+                "Leslie",
+                "Plains"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Talbot",
+            "Cities": [
+                "Geneva",
+                "Talbotton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Taliaferro",
+            "Cities": [
+                "Crawfordville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Tattnall",
+            "Cities": [
+                "Glennville",
+                "Reidsville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Taylor",
+            "Cities": [
+                "Butler",
+                "Reynolds"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Telfair",
+            "Cities": [
+                "Helena",
+                "McRae-Helena"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Terrell",
+            "Cities": [
+                "Bronwood",
+                "Dawson",
+                "Parrott"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Thomas",
+            "Cities": [
+                "Barwick",
+                "Boston",
+                "Meigs",
+                "Ochlocknee",
+                "Pavo",
+                "Thomasville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Tift",
+            "Cities": [
+                "Omega",
+                "Tifton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Toombs",
+            "Cities": [
+                "Lyons",
+                "Santa Claus",
+                "Vidalia"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Towns",
+            "Cities": [
+                "Hiawassee",
+                "Young Harris"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Treutlen",
+            "Cities": [
+                "Soperton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Troup",
+            "Cities": [
+                "Hogansville",
+                "LaGrange",
+                "West Point"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Turner",
+            "Cities": [
+                "Ashburn",
+                "Rebecca",
+                "Sycamore"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Twiggs",
+            "Cities": [
+                "Danville",
+                "Jeffersonville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Union",
+            "Cities": [
+                "Blairsville",
+                "Suches"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Upson",
+            "Cities": [
+                "Thomaston"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Walker",
+            "Cities": [
+                "Chickamauga",
+                "LaFayette",
+                "Lookout Mountain",
+                "Rossville"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Walton",
+            "Cities": [
+                "Between",
+                "Good Hope",
+                "Loganville",
+                "Monroe",
+                "Social Circle",
+                "Walnut Grove",
+                "Winder"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Ware",
+            "Cities": [
+                "Manor",
+                "Waycross"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Warren",
+            "Cities": [
+                "Camak",
+                "Norwood",
+                "Warrenton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Washington",
+            "Cities": [
+                "Davisboro",
+                "Sandersville",
+                "Tennille"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Wayne",
+            "Cities": [
+                "Jesup",
+                "Odum",
+                "Screven"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Webster",
+            "Cities": [
+                "Preston"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Wheeler",
+            "Cities": [
+                "Alamo"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "White",
+            "Cities": [
+                "Cleveland",
+                "Helen"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Whitfield",
+            "Cities": [
+                "Cohutta",
+                "Dalton",
+                "Tunnel Hill",
+                "Varnell"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Wilcox",
+            "Cities": [
+                "Abbeville",
+                "Rochelle"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Wilkes",
+            "Cities": [
+                "Tignall",
+                "Washington"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Wilkinson",
+            "Cities": [
+                "Gordon",
+                "Irwinton",
+                "McIntyre",
+                "Toomsboro"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Worth",
+            "Cities": [
+                "Poulan",
+                "Sumner",
+                "Sylvester"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        }
+    ],
+    "website": "https://www.mydripnurse.com",
+    "ownerName": "Keishla",
+    "ownerLastName": "Caraballo",
+    "phone": "9392749203",
+    "email": "keyla03@live.com",
+    "twilio": {
+        "sid": "secret",
+        "authToken": "secret"
+    },
+    "mailgun": {
+        "apiKey": "secret",
+        "domain": "secret"
+    },
+    "customValues": {
+        "businessInformation": {
+            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
+            "businessPhone": ""
+        },
+        "ivTherapyPrice": {
+            "myersCocktailPrice": "299",
+            "alleviatePrice": "219",
+            "brainStormPrice": "199",
+            "getLeanPrice": "179",
+            "immunityDefensePrice": "279",
+            "immunityDefenseAndGlutathionePrice": "299",
+            "hangoverPrice": "219",
+            "hydratePrice": "219",
+            "nadPrice": "599",
+            "nadBoostPrice": "797",
+            "recoveryPerformancePrice": "219",
+            "theGlowPrice": "199"
+        },
+        "vitaminPrice": {
+            "vitaminD3": "100",
+            "bComplex": "70",
+            "biotin": "75",
+            "vitaminC": "70",
+            "aminoBlend": "80",
+            "glutathione": "90",
+            "lipoMino": "120",
+            "triImmuneBoost": "120",
+            "vitaminB12": "70",
+            "ondansetron": "70"
+        },
+        "facebook": {
+            "accessToken": "secret",
+            "facebookPixel": "secret",
+            "instagramUrl": "https://www.instagram.com/mydripnurse/",
+            "facebookUrl": "https://www.facebook.com/MyDripNurse"
+        }
+    },
+    "businessInformation": {
+        "snapshotId": "secret",
+        "companyId": "secret"
+    }
+}

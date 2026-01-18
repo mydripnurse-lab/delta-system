@@ -1,0 +1,305 @@
+{
+    "Counties": [
+        {
+            "County Name": "Fairfield",
+            "Cities": [
+                "Bethel",
+                "Bridgeport",
+                "Brookfield",
+                "Danbury",
+                "Darien",
+                "Easton",
+                "Fairfield",
+                "Greenwich",
+                "Monroe",
+                "New Canaan",
+                "New Fairfield",
+                "Newtown",
+                "Norwalk",
+                "Redding",
+                "Ridgefield",
+                "Shelton",
+                "Sherman",
+                "Stamford",
+                "Stratford",
+                "Trumbull",
+                "Weston",
+                "Westport",
+                "Wilton"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Hartford",
+            "Cities": [
+                "Avon",
+                "Berlin",
+                "Bloomfield",
+                "Bristol",
+                "Burlington",
+                "Canton",
+                "East Granby",
+                "East Hartford",
+                "East Windsor",
+                "Enfield",
+                "Farmington",
+                "Glastonbury",
+                "Granby",
+                "Hartford",
+                "Manchester",
+                "Marlborough",
+                "New Britain",
+                "Newington",
+                "Plainville",
+                "Rocky Hill",
+                "Simsbury",
+                "Southington",
+                "South Windsor",
+                "West Hartford",
+                "Wethersfield",
+                "Windsor",
+                "Windsor Locks"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Litchfield",
+            "Cities": [
+                "Barkhamsted",
+                "Bethlehem",
+                "Bridgewater",
+                "Canaan",
+                "Colebrook",
+                "Cornwall",
+                "Goshen",
+                "Harwinton",
+                "Kent",
+                "Litchfield",
+                "Morris",
+                "New Hartford",
+                "New Milford",
+                "Norfolk",
+                "North Canaan",
+                "Plymouth",
+                "Roxbury",
+                "Salisbury",
+                "Sharon",
+                "Thomaston",
+                "Torrington",
+                "Warren",
+                "Washington",
+                "Watertown",
+                "Winchester",
+                "Woodbury"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Middlesex",
+            "Cities": [
+                "Chester",
+                "Clinton",
+                "Cromwell",
+                "Deep River",
+                "Durham",
+                "East Haddam",
+                "East Hampton",
+                "Essex",
+                "Haddam",
+                "Killingworth",
+                "Middlefield",
+                "Middletown",
+                "Old Saybrook",
+                "Portland",
+                "Westbrook"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "New Haven",
+            "Cities": [
+                "Ansonia",
+                "Beacon Falls",
+                "Bethany",
+                "Branford",
+                "Cheshire",
+                "Derby",
+                "East Haven",
+                "Guilford",
+                "Hamden",
+                "Meriden",
+                "Middlebury",
+                "Milford",
+                "Naugatuck",
+                "New Haven",
+                "North Branford",
+                "North Haven",
+                "Orange",
+                "Oxford",
+                "Prospect",
+                "Seymour",
+                "Shelton",
+                "Southbury",
+                "Wallingford",
+                "Waterbury",
+                "West Haven",
+                "Wolcott",
+                "Woodbridge"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "New London",
+            "Cities": [
+                "Bozrah",
+                "Colchester",
+                "East Lyme",
+                "Franklin",
+                "Griswold",
+                "Groton",
+                "Lebanon",
+                "Ledyard",
+                "Lisbon",
+                "Lyme",
+                "Montville",
+                "New London",
+                "North Stonington",
+                "Norwich",
+                "Old Lyme",
+                "Preston",
+                "Salem",
+                "Sprague",
+                "Stonington",
+                "Voluntown",
+                "Waterford"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Tolland",
+            "Cities": [
+                "Andover",
+                "Bolton",
+                "Coventry",
+                "Ellington",
+                "Hebron",
+                "Mansfield",
+                "Somers",
+                "Stafford",
+                "Tolland",
+                "Union",
+                "Vernon",
+                "Willington"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Windham",
+            "Cities": [
+                "Ashford",
+                "Brooklyn",
+                "Canterbury",
+                "Chaplin",
+                "Eastford",
+                "Hampton",
+                "Killingly",
+                "Plainfield",
+                "Pomfret",
+                "Putnam",
+                "Scotland",
+                "Sterling",
+                "Thompson",
+                "Windham",
+                "Woodstock"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        }
+    ],
+    "website": "https://www.mydripnurse.com",
+    "ownerName": "Keishla",
+    "ownerLastName": "Caraballo",
+    "phone": "9392749203",
+    "email": "keyla03@live.com",
+    "twilio": {
+        "sid": "secret",
+        "authToken": "secret"
+    },
+    "mailgun": {
+        "apiKey": "secret",
+        "domain": "secret"
+    },
+    "customValues": {
+        "businessInformation": {
+            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
+            "businessPhone": ""
+        },
+        "ivTherapyPrice": {
+            "myersCocktailPrice": "299",
+            "alleviatePrice": "219",
+            "brainStormPrice": "199",
+            "getLeanPrice": "179",
+            "immunityDefensePrice": "279",
+            "immunityDefenseAndGlutathionePrice": "299",
+            "hangoverPrice": "219",
+            "hydratePrice": "219",
+            "nadPrice": "599",
+            "nadBoostPrice": "797",
+            "recoveryPerformancePrice": "219",
+            "theGlowPrice": "199"
+        },
+        "vitaminPrice": {
+            "vitaminD3": "100",
+            "bComplex": "70",
+            "biotin": "75",
+            "vitaminC": "70",
+            "aminoBlend": "80",
+            "glutathione": "90",
+            "lipoMino": "120",
+            "triImmuneBoost": "120",
+            "vitaminB12": "70",
+            "ondansetron": "70"
+        },
+        "facebook": {
+            "accessToken": "secret",
+            "facebookPixel": "secret",
+            "instagramUrl": "https://www.instagram.com/mydripnurse/",
+            "facebookUrl": "https://www.facebook.com/MyDripNurse"
+        }
+    },
+    "businessInformation": {
+        "snapshotId": "secret",
+        "companyId": "secret"
+    }
+}

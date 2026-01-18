@@ -1,7 +1,7 @@
 {
     "Counties": [
         {
-            "County Name": "Alameda County",
+            "County Name": "Alameda",
             "Cities": [
                 "Alameda",
                 "Albany",
@@ -25,7 +25,7 @@
             }
         },
         {
-            "County Name": "Alpine County",
+            "County Name": "Alpine",
             "Cities": [],
             "Timezone": {
                 "Name": "Pacific",
@@ -34,7 +34,7 @@
             }
         },
         {
-            "County Name": "Amador County",
+            "County Name": "Amador",
             "Cities": [
                 "Amador City",
                 "Ione",
@@ -49,7 +49,7 @@
             }
         },
         {
-            "County Name": "Butte County",
+            "County Name": "Butte",
             "Cities": [
                 "Biggs",
                 "Chico",
@@ -64,7 +64,7 @@
             }
         },
         {
-            "County Name": "Calaveras County",
+            "County Name": "Calaveras",
             "Cities": [
                 "Angels Camp"
             ],
@@ -75,7 +75,7 @@
             }
         },
         {
-            "County Name": "Colusa County",
+            "County Name": "Colusa",
             "Cities": [
                 "Colusa",
                 "Williams"
@@ -87,7 +87,7 @@
             }
         },
         {
-            "County Name": "Contra Costa County",
+            "County Name": "Contra Costa",
             "Cities": [
                 "Antioch",
                 "Brentwood",
@@ -115,7 +115,7 @@
             }
         },
         {
-            "County Name": "Del Norte County",
+            "County Name": "Del Norte",
             "Cities": [
                 "Crescent City"
             ],
@@ -126,7 +126,7 @@
             }
         },
         {
-            "County Name": "El Dorado County",
+            "County Name": "El Dorado",
             "Cities": [
                 "Placerville",
                 "South Lake Tahoe"
@@ -138,7 +138,7 @@
             }
         },
         {
-            "County Name": "Fresno County",
+            "County Name": "Fresno",
             "Cities": [
                 "Clovis",
                 "Coalinga",
@@ -163,7 +163,7 @@
             }
         },
         {
-            "County Name": "Glenn County",
+            "County Name": "Glenn",
             "Cities": [
                 "Orland",
                 "Willows"
@@ -175,7 +175,7 @@
             }
         },
         {
-            "County Name": "Humboldt County",
+            "County Name": "Humboldt",
             "Cities": [
                 "Arcata",
                 "Blue Lake",
@@ -192,7 +192,7 @@
             }
         },
         {
-            "County Name": "Imperial County",
+            "County Name": "Imperial",
             "Cities": [
                 "Brawley",
                 "Calexico",
@@ -209,7 +209,7 @@
             }
         },
         {
-            "County Name": "Inyo County",
+            "County Name": "Inyo",
             "Cities": [],
             "Timezone": {
                 "Name": "Pacific",
@@ -218,7 +218,7 @@
             }
         },
         {
-            "County Name": "Kern County",
+            "County Name": "Kern",
             "Cities": [
                 "Arvin",
                 "Bakersfield",
@@ -239,7 +239,7 @@
             }
         },
         {
-            "County Name": "Kings County",
+            "County Name": "Kings",
             "Cities": [
                 "Avenal",
                 "Corcoran",
@@ -253,7 +253,7 @@
             }
         },
         {
-            "County Name": "Lake County",
+            "County Name": "Lake",
             "Cities": [
                 "Clearlake",
                 "Lakeport"
@@ -265,7 +265,7 @@
             }
         },
         {
-            "County Name": "Lassen County",
+            "County Name": "Lassen",
             "Cities": [
                 "Susanville"
             ],
@@ -276,7 +276,7 @@
             }
         },
         {
-            "County Name": "Los Angeles County",
+            "County Name": "Los Angeles",
             "Cities": [
                 "Agoura Hills",
                 "Alhambra",
@@ -370,7 +370,7 @@
             }
         },
         {
-            "County Name": "Madera County",
+            "County Name": "Madera",
             "Cities": [
                 "Chowchilla",
                 "Madera"
@@ -382,7 +382,7 @@
             }
         },
         {
-            "County Name": "Marin County",
+            "County Name": "Marin",
             "Cities": [
                 "Belvedere",
                 "Corte Madera",
@@ -403,7 +403,7 @@
             }
         },
         {
-            "County Name": "Mariposa County",
+            "County Name": "Mariposa",
             "Cities": [],
             "Timezone": {
                 "Name": "Pacific",
@@ -412,7 +412,7 @@
             }
         },
         {
-            "County Name": "Mendocino County",
+            "County Name": "Mendocino",
             "Cities": [
                 "Fort Bragg",
                 "Point Arena",
@@ -426,7 +426,7 @@
             }
         },
         {
-            "County Name": "Merced County",
+            "County Name": "Merced",
             "Cities": [
                 "Atwater",
                 "Dos Palos",
@@ -442,7 +442,7 @@
             }
         },
         {
-            "County Name": "Modoc County",
+            "County Name": "Modoc",
             "Cities": [
                 "Alturas"
             ],
@@ -453,7 +453,7 @@
             }
         },
         {
-            "County Name": "Mono County",
+            "County Name": "Mono",
             "Cities": [
                 "Mammoth Lakes"
             ],
@@ -464,7 +464,7 @@
             }
         },
         {
-            "County Name": "Monterey County",
+            "County Name": "Monterey",
             "Cities": [
                 "Carmel-by-the-Sea",
                 "Del Rey Oaks",
@@ -486,7 +486,7 @@
             }
         },
         {
-            "County Name": "Napa County",
+            "County Name": "Napa",
             "Cities": [
                 "American Canyon",
                 "Calistoga",
@@ -501,7 +501,7 @@
             }
         },
         {
-            "County Name": "Nevada County",
+            "County Name": "Nevada",
             "Cities": [
                 "Grass Valley",
                 "Nevada City",
@@ -514,7 +514,7 @@
             }
         },
         {
-            "County Name": "Orange County",
+            "County Name": "Orange",
             "Cities": [
                 "Aliso Viejo",
                 "Anaheim",
@@ -558,7 +558,7 @@
             }
         },
         {
-            "County Name": "Placer County",
+            "County Name": "Placer",
             "Cities": [
                 "Auburn",
                 "Colfax",
@@ -574,7 +574,7 @@
             }
         },
         {
-            "County Name": "Plumas County",
+            "County Name": "Plumas",
             "Cities": [
                 "Portola"
             ],
@@ -585,7 +585,7 @@
             }
         },
         {
-            "County Name": "Riverside County",
+            "County Name": "Riverside",
             "Cities": [
                 "Banning",
                 "Beaumont",
@@ -623,7 +623,7 @@
             }
         },
         {
-            "County Name": "Sacramento County",
+            "County Name": "Sacramento",
             "Cities": [
                 "Citrus Heights",
                 "Elk Grove",
@@ -640,7 +640,7 @@
             }
         },
         {
-            "County Name": "San Benito County",
+            "County Name": "San Benito",
             "Cities": [
                 "Hollister",
                 "San Juan Bautista"
@@ -652,7 +652,7 @@
             }
         },
         {
-            "County Name": "San Bernardino County",
+            "County Name": "San Bernardino",
             "Cities": [
                 "Adelanto",
                 "Apple Valley",
@@ -686,7 +686,7 @@
             }
         },
         {
-            "County Name": "San Diego County",
+            "County Name": "San Diego",
             "Cities": [
                 "Carlsbad",
                 "Chula Vista",
@@ -714,7 +714,7 @@
             }
         },
         {
-            "County Name": "San Francisco County",
+            "County Name": "San Francisco",
             "Cities": [
                 "San Francisco"
             ],
@@ -725,7 +725,7 @@
             }
         },
         {
-            "County Name": "San Joaquin County",
+            "County Name": "San Joaquin",
             "Cities": [
                 "Escalon",
                 "Lathrop",
@@ -742,7 +742,7 @@
             }
         },
         {
-            "County Name": "San Luis Obispo County",
+            "County Name": "San Luis Obispo",
             "Cities": [
                 "Arroyo Grande",
                 "Atascadero",
@@ -759,7 +759,7 @@
             }
         },
         {
-            "County Name": "San Mateo County",
+            "County Name": "San Mateo",
             "Cities": [
                 "Atherton",
                 "Belmont",
@@ -788,7 +788,7 @@
             }
         },
         {
-            "County Name": "Santa Barbara County",
+            "County Name": "Santa Barbara",
             "Cities": [
                 "Buellton",
                 "Carpinteria",
@@ -806,7 +806,7 @@
             }
         },
         {
-            "County Name": "Santa Clara County",
+            "County Name": "Santa Clara",
             "Cities": [
                 "Campbell",
                 "Cupertino",
@@ -831,7 +831,7 @@
             }
         },
         {
-            "County Name": "Santa Cruz County",
+            "County Name": "Santa Cruz",
             "Cities": [
                 "Capitola",
                 "Santa Cruz",
@@ -845,7 +845,7 @@
             }
         },
         {
-            "County Name": "Shasta County",
+            "County Name": "Shasta",
             "Cities": [
                 "Anderson",
                 "Redding",
@@ -858,7 +858,7 @@
             }
         },
         {
-            "County Name": "Sierra County",
+            "County Name": "Sierra",
             "Cities": [
                 "Loyalton"
             ],
@@ -869,7 +869,7 @@
             }
         },
         {
-            "County Name": "Siskiyou County",
+            "County Name": "Siskiyou",
             "Cities": [
                 "Dorris",
                 "Dunsmuir",
@@ -887,7 +887,7 @@
             }
         },
         {
-            "County Name": "Solano County",
+            "County Name": "Solano",
             "Cities": [
                 "Benicia",
                 "Dixon",
@@ -904,7 +904,7 @@
             }
         },
         {
-            "County Name": "Sonoma County",
+            "County Name": "Sonoma",
             "Cities": [
                 "Cloverdale",
                 "Cotati",
@@ -923,7 +923,7 @@
             }
         },
         {
-            "County Name": "Stanislaus County",
+            "County Name": "Stanislaus",
             "Cities": [
                 "Ceres",
                 "Hughson",
@@ -942,7 +942,7 @@
             }
         },
         {
-            "County Name": "Sutter County",
+            "County Name": "Sutter",
             "Cities": [
                 "Live Oak",
                 "Yuba City"
@@ -954,7 +954,7 @@
             }
         },
         {
-            "County Name": "Tehama County",
+            "County Name": "Tehama",
             "Cities": [
                 "Corning",
                 "Red Bluff",
@@ -967,7 +967,7 @@
             }
         },
         {
-            "County Name": "Trinity County",
+            "County Name": "Trinity",
             "Cities": [
                 "Weaverville"
             ],
@@ -978,7 +978,7 @@
             }
         },
         {
-            "County Name": "Tulare County",
+            "County Name": "Tulare",
             "Cities": [
                 "Dinuba",
                 "Exeter",
@@ -996,7 +996,7 @@
             }
         },
         {
-            "County Name": "Tuolumne County",
+            "County Name": "Tuolumne",
             "Cities": [
                 "Sonora"
             ],
@@ -1007,7 +1007,7 @@
             }
         },
         {
-            "County Name": "Ventura County",
+            "County Name": "Ventura",
             "Cities": [
                 "Camarillo",
                 "Fillmore",
@@ -1027,7 +1027,7 @@
             }
         },
         {
-            "County Name": "Yolo County",
+            "County Name": "Yolo",
             "Cities": [
                 "Davis",
                 "West Sacramento",
@@ -1041,7 +1041,7 @@
             }
         },
         {
-            "County Name": "Yuba County",
+            "County Name": "Yuba",
             "Cities": [
                 "Marysville",
                 "Wheatland"

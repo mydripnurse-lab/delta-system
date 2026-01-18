@@ -1,0 +1,155 @@
+{
+    "Counties": [
+        {
+            "County Name": "New Castle",
+            "Cities": [
+                "Arden",
+                "Ardencroft",
+                "Ardentown",
+                "Bellefonte",
+                "Claymont",
+                "Delaware City",
+                "Elsmere",
+                "Greenville",
+                "Hockessin",
+                "Middletown",
+                "Newark",
+                "New Castle",
+                "Newport",
+                "Odessa",
+                "Port Penn",
+                "Stanton",
+                "Townsend",
+                "Wilmington",
+                "Yorklyn"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Kent",
+            "Cities": [
+                "Camden",
+                "Cheswold",
+                "Clayton",
+                "Dover",
+                "Farmington",
+                "Felton",
+                "Frederica",
+                "Harrington",
+                "Hartly",
+                "Houston",
+                "Kenton",
+                "Leipsic",
+                "Little Creek",
+                "Magnolia",
+                "Milford",
+                "Smyrna",
+                "Viola",
+                "Woodside",
+                "Wyoming"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        },
+        {
+            "County Name": "Sussex",
+            "Cities": [
+                "Bethany Beach",
+                "Bethel",
+                "Blades",
+                "Bridgeville",
+                "Dagsboro",
+                "Delmar",
+                "Dewey Beach",
+                "Ellendale",
+                "Fenwick Island",
+                "Frankford",
+                "Georgetown",
+                "Greenwood",
+                "Henlopen Acres",
+                "Laurel",
+                "Lewes",
+                "Lincoln",
+                "Long Neck",
+                "Milford",
+                "Millville",
+                "Milton",
+                "Ocean View",
+                "Rehoboth Beach",
+                "Seaford",
+                "Selbyville",
+                "Slaughter Beach",
+                "South Bethany",
+                "Viola",
+                "Woodside"
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            }
+        }
+    ],
+    "website": "https://www.mydripnurse.com",
+    "ownerName": "Keishla",
+    "ownerLastName": "Caraballo",
+    "phone": "9392749203",
+    "email": "keyla03@live.com",
+    "twilio": {
+        "sid": "secret",
+        "authToken": "secret"
+    },
+    "mailgun": {
+        "apiKey": "secret",
+        "domain": "secret"
+    },
+    "customValues": {
+        "businessInformation": {
+            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
+            "businessPhone": ""
+        },
+        "ivTherapyPrice": {
+            "myersCocktailPrice": "299",
+            "alleviatePrice": "219",
+            "brainStormPrice": "199",
+            "getLeanPrice": "179",
+            "immunityDefensePrice": "279",
+            "immunityDefenseAndGlutathionePrice": "299",
+            "hangoverPrice": "219",
+            "hydratePrice": "219",
+            "nadPrice": "599",
+            "nadBoostPrice": "797",
+            "recoveryPerformancePrice": "219",
+            "theGlowPrice": "199"
+        },
+        "vitaminPrice": {
+            "vitaminD3": "100",
+            "bComplex": "70",
+            "biotin": "75",
+            "vitaminC": "70",
+            "aminoBlend": "80",
+            "glutathione": "90",
+            "lipoMino": "120",
+            "triImmuneBoost": "120",
+            "vitaminB12": "70",
+            "ondansetron": "70"
+        },
+        "facebook": {
+            "accessToken": "secret",
+            "facebookPixel": "secret",
+            "instagramUrl": "https://www.instagram.com/mydripnurse/",
+            "facebookUrl": "https://www.facebook.com/MyDripNurse"
+        }
+    },
+    "businessInformation": {
+        "snapshotId": "secret",
+        "companyId": "secret"
+    }
+}
