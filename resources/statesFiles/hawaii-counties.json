@@ -1,218 +1,889 @@
 {
-    "Counties": [
+    "counties": [
         {
-            "County Name": "Hawaii",
-            "Cities": [
-                "ʻĀinaloa",
-                "Black Sands",
-                "Captain Cook",
-                "Discovery Harbour",
-                "Eden Roc",
-                "Fern Acres",
-                "Fern Forest",
-                "Halaʻula",
-                "Hawaiian Acres",
-                "Hawaiian Beaches",
-                "Hawaiian Ocean View",
-                "Hawaiian Paradise Park",
-                "Hāwī",
-                "Hilo",
-                "Hōlualoa",
-                "Honalo",
-                "Hōnaunau-Nāpōʻopoʻo",
-                "Honokaʻa",
-                "Honomū",
-                "Kahaluʻu-Keauhou",
-                "Kailua",
-                "Kaiminani",
-                "Kalapana",
-                "Kaloko",
-                "Kamāʻili",
-                "Kapaʻau",
-                "Keaʻau",
-                "Kealakekua",
-                "Kukuihaele",
-                "Kurtistown",
-                "Laupāhoehoe",
-                "Leilani Estates",
-                "Mountain View",
-                "Nāʻālehu",
-                "Nānāwale Estates",
-                "Orchidlands Estates",
-                "Paʻauilo",
-                "Pāhala",
-                "Pāhoa",
-                "Pāpaʻikou",
-                "Paukaʻa",
-                "Pepeʻekeo",
-                "Puakō",
-                "Royal Hawaiian Estates",
-                "Seaview",
-                "Tiki Gardens",
-                "Volcano",
-                "Volcano Golf Course",
-                "Waikoloa Beach Resort",
-                "Waikoloa Village",
-                "Waimea (Kamuela)",
-                "Wainaku",
-                "Waiʻōhinu"
+            "countyName": "Hawaii",
+            "cities": [
+                {
+                    "cityName": "ʻĀinaloa",
+                    "cityDomain": "https://ainaloa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ainaloa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Black Sands",
+                    "cityDomain": "https://black-sands-city-hi.mydripnurse.com",
+                    "citySitemap": "https://black-sands-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Captain Cook",
+                    "cityDomain": "https://captain-cook-city-hi.mydripnurse.com",
+                    "citySitemap": "https://captain-cook-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Discovery Harbour",
+                    "cityDomain": "https://discovery-harbour-city-hi.mydripnurse.com",
+                    "citySitemap": "https://discovery-harbour-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eden Roc",
+                    "cityDomain": "https://eden-roc-city-hi.mydripnurse.com",
+                    "citySitemap": "https://eden-roc-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fern Acres",
+                    "cityDomain": "https://fern-acres-city-hi.mydripnurse.com",
+                    "citySitemap": "https://fern-acres-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fern Forest",
+                    "cityDomain": "https://fern-forest-city-hi.mydripnurse.com",
+                    "citySitemap": "https://fern-forest-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Halaʻula",
+                    "cityDomain": "https://halaula-city-hi.mydripnurse.com",
+                    "citySitemap": "https://halaula-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hawaiian Acres",
+                    "cityDomain": "https://hawaiian-acres-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hawaiian-acres-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hawaiian Beaches",
+                    "cityDomain": "https://hawaiian-beaches-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hawaiian-beaches-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hawaiian Ocean View",
+                    "cityDomain": "https://hawaiian-ocean-view-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hawaiian-ocean-view-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hawaiian Paradise Park",
+                    "cityDomain": "https://hawaiian-paradise-park-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hawaiian-paradise-park-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hāwī",
+                    "cityDomain": "https://hawi-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hawi-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hilo",
+                    "cityDomain": "https://hilo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hilo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hōlualoa",
+                    "cityDomain": "https://holualoa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://holualoa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Honalo",
+                    "cityDomain": "https://honalo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://honalo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hōnaunau-Nāpōʻopoʻo",
+                    "cityDomain": "https://honaunau-napoopoo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://honaunau-napoopoo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Honokaʻa",
+                    "cityDomain": "https://honokaa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://honokaa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Honomū",
+                    "cityDomain": "https://honomu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://honomu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kahaluʻu-Keauhou",
+                    "cityDomain": "https://kahaluu-keauhou-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kahaluu-keauhou-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kailua",
+                    "cityDomain": "https://kailua-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kailua-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kaiminani",
+                    "cityDomain": "https://kaiminani-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaiminani-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kalapana",
+                    "cityDomain": "https://kalapana-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kalapana-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kaloko",
+                    "cityDomain": "https://kaloko-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaloko-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kamāʻili",
+                    "cityDomain": "https://kamaili-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kamaili-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kapaʻau",
+                    "cityDomain": "https://kapaau-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kapaau-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Keaʻau",
+                    "cityDomain": "https://keaau-city-hi.mydripnurse.com",
+                    "citySitemap": "https://keaau-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kealakekua",
+                    "cityDomain": "https://kealakekua-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kealakekua-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kukuihaele",
+                    "cityDomain": "https://kukuihaele-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kukuihaele-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kurtistown",
+                    "cityDomain": "https://kurtistown-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kurtistown-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Laupāhoehoe",
+                    "cityDomain": "https://laupahoehoe-city-hi.mydripnurse.com",
+                    "citySitemap": "https://laupahoehoe-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Leilani Estates",
+                    "cityDomain": "https://leilani-estates-city-hi.mydripnurse.com",
+                    "citySitemap": "https://leilani-estates-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mountain View",
+                    "cityDomain": "https://mountain-view-city-hi.mydripnurse.com",
+                    "citySitemap": "https://mountain-view-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nāʻālehu",
+                    "cityDomain": "https://naalehu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://naalehu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nānāwale Estates",
+                    "cityDomain": "https://nanawale-estates-city-hi.mydripnurse.com",
+                    "citySitemap": "https://nanawale-estates-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Orchidlands Estates",
+                    "cityDomain": "https://orchidlands-estates-city-hi.mydripnurse.com",
+                    "citySitemap": "https://orchidlands-estates-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Paʻauilo",
+                    "cityDomain": "https://paauilo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://paauilo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pāhala",
+                    "cityDomain": "https://pahala-city-hi.mydripnurse.com",
+                    "citySitemap": "https://pahala-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pāhoa",
+                    "cityDomain": "https://pahoa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://pahoa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pāpaʻikou",
+                    "cityDomain": "https://papaikou-city-hi.mydripnurse.com",
+                    "citySitemap": "https://papaikou-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Paukaʻa",
+                    "cityDomain": "https://paukaa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://paukaa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pepeʻekeo",
+                    "cityDomain": "https://pepeekeo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://pepeekeo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Puakō",
+                    "cityDomain": "https://puako-city-hi.mydripnurse.com",
+                    "citySitemap": "https://puako-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Royal Hawaiian Estates",
+                    "cityDomain": "https://royal-hawaiian-estates-city-hi.mydripnurse.com",
+                    "citySitemap": "https://royal-hawaiian-estates-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Seaview",
+                    "cityDomain": "https://seaview-city-hi.mydripnurse.com",
+                    "citySitemap": "https://seaview-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tiki Gardens",
+                    "cityDomain": "https://tiki-gardens-city-hi.mydripnurse.com",
+                    "citySitemap": "https://tiki-gardens-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Volcano",
+                    "cityDomain": "https://volcano-city-hi.mydripnurse.com",
+                    "citySitemap": "https://volcano-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Volcano Golf Course",
+                    "cityDomain": "https://volcano-golf-course-city-hi.mydripnurse.com",
+                    "citySitemap": "https://volcano-golf-course-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waikoloa Beach Resort",
+                    "cityDomain": "https://waikoloa-beach-resort-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waikoloa-beach-resort-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waikoloa Village",
+                    "cityDomain": "https://waikoloa-village-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waikoloa-village-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waimea (Kamuela)",
+                    "cityDomain": "https://waimea-kamuela-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waimea-kamuela-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wainaku",
+                    "cityDomain": "https://wainaku-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wainaku-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waiʻōhinu",
+                    "cityDomain": "https://waiohinu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waiohinu-city-hi.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Hawaii-Aleutian",
                 "Zone": "Pacific/Honolulu",
                 "GMT_Offset": "(GMT-10:00)"
-            }
+            },
+            "countyDomain": "https://hawaii-county-hi.mydripnurse.com",
+            "countySitemap": "https://hawaii-county-hi.mydripnurse.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://hawaii-county-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ainaloa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://black-sands-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://captain-cook-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://discovery-harbour-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://eden-roc-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fern-acres-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fern-forest-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://halaula-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hawaiian-acres-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hawaiian-beaches-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hawaiian-ocean-view-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hawaiian-paradise-park-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hawi-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hilo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://holualoa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://honalo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://honaunau-napoopoo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://honokaa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://honomu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kahaluu-keauhou-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kailua-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaiminani-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kalapana-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaloko-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kamaili-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kapaau-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://keaau-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kealakekua-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kukuihaele-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kurtistown-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://laupahoehoe-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://leilani-estates-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mountain-view-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://naalehu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://nanawale-estates-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://orchidlands-estates-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://paauilo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pahala-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pahoa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://papaikou-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://paukaa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pepeekeo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://puako-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://royal-hawaiian-estates-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://seaview-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tiki-gardens-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://volcano-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://volcano-golf-course-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waikoloa-beach-resort-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waikoloa-village-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waimea-kamuela-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wainaku-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waiohinu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "County Name": "Honolulu",
-            "Cities": [
-                "ʻĀhuimanu",
-                "ʻAiea",
-                "East Honolulu",
-                "East Kapolei",
-                "ʻEwa Beach",
-                "ʻEwa Gentry",
-                "ʻEwa Villages",
-                "Hālawa",
-                "Haleʻiwa",
-                "Hauʻula",
-                "Helemano",
-                "Heʻeia",
-                "Hickam Housing",
-                "Honolulu",
-                "Iroquois Point",
-                "Kaʻaʻawa",
-                "Kahaluʻu",
-                "Kahuku",
-                "Kailua",
-                "Kalaeloa",
-                "Kāneʻohe",
-                "Kāneʻohe Base (Marine Corps Base Hawaii)",
-                "Kapolei",
-                "Kawela Bay",
-                "Ko Olina",
-                "Lāʻie",
-                "Māʻili",
-                "Mākaha",
-                "Mākaha Valley",
-                "Makakilo",
-                "Maunawili",
-                "Mililani Mauka",
-                "Mililani Town",
-                "Mokulēʻia",
-                "Nānākuli",
-                "Ocean Pointe",
-                "Pearl City",
-                "Punaluʻu",
-                "Pūpūkea",
-                "Royal Kunia (formerly Village Park)",
-                "Schofield Barracks",
-                "Wahiawā",
-                "Waiāhole",
-                "Waialua",
-                "Waiʻanae",
-                "Waikāne",
-                "Waikele",
-                "Waimalu",
-                "Waimānalo",
-                "Waimānalo Beach",
-                "Waipahu",
-                "Waipiʻo",
-                "Waipiʻo Acres",
-                "West Loch Estate",
-                "Wheeler Army Airfield",
-                "Whitmore Village"
+            "countyName": "Honolulu",
+            "cities": [
+                {
+                    "cityName": "ʻĀhuimanu",
+                    "cityDomain": "https://ahuimanu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ahuimanu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "ʻAiea",
+                    "cityDomain": "https://aiea-city-hi.mydripnurse.com",
+                    "citySitemap": "https://aiea-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Honolulu",
+                    "cityDomain": "https://east-honolulu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://east-honolulu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Kapolei",
+                    "cityDomain": "https://east-kapolei-city-hi.mydripnurse.com",
+                    "citySitemap": "https://east-kapolei-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "ʻEwa Beach",
+                    "cityDomain": "https://ewa-beach-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ewa-beach-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "ʻEwa Gentry",
+                    "cityDomain": "https://ewa-gentry-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ewa-gentry-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "ʻEwa Villages",
+                    "cityDomain": "https://ewa-villages-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ewa-villages-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hālawa",
+                    "cityDomain": "https://halawa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://halawa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Haleʻiwa",
+                    "cityDomain": "https://haleiwa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://haleiwa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hauʻula",
+                    "cityDomain": "https://hauula-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hauula-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Helemano",
+                    "cityDomain": "https://helemano-city-hi.mydripnurse.com",
+                    "citySitemap": "https://helemano-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Heʻeia",
+                    "cityDomain": "https://heeia-city-hi.mydripnurse.com",
+                    "citySitemap": "https://heeia-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hickam Housing",
+                    "cityDomain": "https://hickam-housing-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hickam-housing-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Honolulu",
+                    "cityDomain": "https://honolulu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://honolulu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Iroquois Point",
+                    "cityDomain": "https://iroquois-point-city-hi.mydripnurse.com",
+                    "citySitemap": "https://iroquois-point-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kaʻaʻawa",
+                    "cityDomain": "https://kaaawa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaaawa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kahaluʻu",
+                    "cityDomain": "https://kahaluu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kahaluu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kahuku",
+                    "cityDomain": "https://kahuku-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kahuku-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kailua",
+                    "cityDomain": "https://kailua-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kailua-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kalaeloa",
+                    "cityDomain": "https://kalaeloa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kalaeloa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kāneʻohe",
+                    "cityDomain": "https://kaneohe-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaneohe-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kāneʻohe Base (Marine Corps Base Hawaii)",
+                    "cityDomain": "https://kaneohe-base-marine-corps-base-hawaii-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaneohe-base-marine-corps-base-hawaii-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kapolei",
+                    "cityDomain": "https://kapolei-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kapolei-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kawela Bay",
+                    "cityDomain": "https://kawela-bay-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kawela-bay-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ko Olina",
+                    "cityDomain": "https://ko-olina-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ko-olina-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lāʻie",
+                    "cityDomain": "https://laie-city-hi.mydripnurse.com",
+                    "citySitemap": "https://laie-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Māʻili",
+                    "cityDomain": "https://maili-city-hi.mydripnurse.com",
+                    "citySitemap": "https://maili-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mākaha",
+                    "cityDomain": "https://makaha-city-hi.mydripnurse.com",
+                    "citySitemap": "https://makaha-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mākaha Valley",
+                    "cityDomain": "https://makaha-valley-city-hi.mydripnurse.com",
+                    "citySitemap": "https://makaha-valley-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Makakilo",
+                    "cityDomain": "https://makakilo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://makakilo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Maunawili",
+                    "cityDomain": "https://maunawili-city-hi.mydripnurse.com",
+                    "citySitemap": "https://maunawili-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mililani Mauka",
+                    "cityDomain": "https://mililani-mauka-city-hi.mydripnurse.com",
+                    "citySitemap": "https://mililani-mauka-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mililani Town",
+                    "cityDomain": "https://mililani-town-city-hi.mydripnurse.com",
+                    "citySitemap": "https://mililani-town-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mokulēʻia",
+                    "cityDomain": "https://mokuleia-city-hi.mydripnurse.com",
+                    "citySitemap": "https://mokuleia-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nānākuli",
+                    "cityDomain": "https://nanakuli-city-hi.mydripnurse.com",
+                    "citySitemap": "https://nanakuli-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ocean Pointe",
+                    "cityDomain": "https://ocean-pointe-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ocean-pointe-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pearl City",
+                    "cityDomain": "https://pearl-city-city-hi.mydripnurse.com",
+                    "citySitemap": "https://pearl-city-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Punaluʻu",
+                    "cityDomain": "https://punaluu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://punaluu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pūpūkea",
+                    "cityDomain": "https://pupukea-city-hi.mydripnurse.com",
+                    "citySitemap": "https://pupukea-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Royal Kunia (formerly Village Park)",
+                    "cityDomain": "https://royal-kunia-formerly-village-park-city-hi.mydripnurse.com",
+                    "citySitemap": "https://royal-kunia-formerly-village-park-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Schofield Barracks",
+                    "cityDomain": "https://schofield-barracks-city-hi.mydripnurse.com",
+                    "citySitemap": "https://schofield-barracks-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wahiawā",
+                    "cityDomain": "https://wahiawa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wahiawa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waiāhole",
+                    "cityDomain": "https://waiahole-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waiahole-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waialua",
+                    "cityDomain": "https://waialua-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waialua-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waiʻanae",
+                    "cityDomain": "https://waianae-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waianae-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waikāne",
+                    "cityDomain": "https://waikane-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waikane-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waikele",
+                    "cityDomain": "https://waikele-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waikele-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waimalu",
+                    "cityDomain": "https://waimalu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waimalu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waimānalo",
+                    "cityDomain": "https://waimanalo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waimanalo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waimānalo Beach",
+                    "cityDomain": "https://waimanalo-beach-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waimanalo-beach-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waipahu",
+                    "cityDomain": "https://waipahu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waipahu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waipiʻo",
+                    "cityDomain": "https://waipio-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waipio-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waipiʻo Acres",
+                    "cityDomain": "https://waipio-acres-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waipio-acres-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Loch Estate",
+                    "cityDomain": "https://west-loch-estate-city-hi.mydripnurse.com",
+                    "citySitemap": "https://west-loch-estate-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wheeler Army Airfield",
+                    "cityDomain": "https://wheeler-army-airfield-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wheeler-army-airfield-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Whitmore Village",
+                    "cityDomain": "https://whitmore-village-city-hi.mydripnurse.com",
+                    "citySitemap": "https://whitmore-village-city-hi.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Hawaii-Aleutian",
                 "Zone": "Pacific/Honolulu",
                 "GMT_Offset": "(GMT-10:00)"
-            }
+            },
+            "countyDomain": "https://honolulu-county-hi.mydripnurse.com",
+            "countySitemap": "https://honolulu-county-hi.mydripnurse.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://honolulu-county-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ahuimanu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://aiea-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://east-honolulu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://east-kapolei-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ewa-beach-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ewa-gentry-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ewa-villages-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://halawa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://haleiwa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hauula-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://helemano-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://heeia-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hickam-housing-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://honolulu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://iroquois-point-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaaawa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kahaluu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kahuku-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kailua-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kalaeloa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaneohe-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaneohe-base-marine-corps-base-hawaii-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kapolei-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kawela-bay-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ko-olina-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://laie-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://maili-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://makaha-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://makaha-valley-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://makakilo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://maunawili-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mililani-mauka-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mililani-town-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mokuleia-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://nanakuli-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ocean-pointe-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pearl-city-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://punaluu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pupukea-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://royal-kunia-formerly-village-park-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://schofield-barracks-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wahiawa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waiahole-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waialua-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waianae-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waikane-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waikele-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waimalu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waimanalo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waimanalo-beach-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waipahu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waipio-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waipio-acres-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://west-loch-estate-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wheeler-army-airfield-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://whitmore-village-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "County Name": "Kauai",
-            "Cities": [
-                "Anahola",
-                "ʻEleʻele",
-                "Hāʻena",
-                "Hanalei",
-                "Hanamāʻulu",
-                "Hanapēpē",
-                "Kalāheo",
-                "Kalihiwai",
-                "Kapaʻa",
-                "Kaumakani",
-                "Kekaha",
-                "Kīlauea",
-                "Kōloa",
-                "Lāwaʻi",
-                "Līhuʻe",
-                "ʻŌmaʻo",
-                "Pākalā Village",
-                "Poʻipū",
-                "Princeville",
-                "Puhi",
-                "Wailua",
-                "Wailua Homesteads",
-                "Waimea",
-                "Wainiha"
+            "countyName": "Kauai",
+            "cities": [
+                {
+                    "cityName": "Anahola",
+                    "cityDomain": "https://anahola-city-hi.mydripnurse.com",
+                    "citySitemap": "https://anahola-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "ʻEleʻele",
+                    "cityDomain": "https://eleele-city-hi.mydripnurse.com",
+                    "citySitemap": "https://eleele-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hāʻena",
+                    "cityDomain": "https://haena-city-hi.mydripnurse.com",
+                    "citySitemap": "https://haena-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hanalei",
+                    "cityDomain": "https://hanalei-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hanalei-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hanamāʻulu",
+                    "cityDomain": "https://hanamaulu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hanamaulu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hanapēpē",
+                    "cityDomain": "https://hanapepe-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hanapepe-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kalāheo",
+                    "cityDomain": "https://kalaheo-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kalaheo-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kalihiwai",
+                    "cityDomain": "https://kalihiwai-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kalihiwai-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kapaʻa",
+                    "cityDomain": "https://kapaa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kapaa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kaumakani",
+                    "cityDomain": "https://kaumakani-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaumakani-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kekaha",
+                    "cityDomain": "https://kekaha-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kekaha-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kīlauea",
+                    "cityDomain": "https://kilauea-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kilauea-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kōloa",
+                    "cityDomain": "https://koloa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://koloa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lāwaʻi",
+                    "cityDomain": "https://lawai-city-hi.mydripnurse.com",
+                    "citySitemap": "https://lawai-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Līhuʻe",
+                    "cityDomain": "https://lihue-city-hi.mydripnurse.com",
+                    "citySitemap": "https://lihue-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "ʻŌmaʻo",
+                    "cityDomain": "https://omao-city-hi.mydripnurse.com",
+                    "citySitemap": "https://omao-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pākalā Village",
+                    "cityDomain": "https://pakala-village-city-hi.mydripnurse.com",
+                    "citySitemap": "https://pakala-village-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Poʻipū",
+                    "cityDomain": "https://poipu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://poipu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Princeville",
+                    "cityDomain": "https://princeville-city-hi.mydripnurse.com",
+                    "citySitemap": "https://princeville-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Puhi",
+                    "cityDomain": "https://puhi-city-hi.mydripnurse.com",
+                    "citySitemap": "https://puhi-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wailua",
+                    "cityDomain": "https://wailua-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wailua-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wailua Homesteads",
+                    "cityDomain": "https://wailua-homesteads-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wailua-homesteads-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waimea",
+                    "cityDomain": "https://waimea-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waimea-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wainiha",
+                    "cityDomain": "https://wainiha-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wainiha-city-hi.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Hawaii-Aleutian",
                 "Zone": "Pacific/Honolulu",
                 "GMT_Offset": "(GMT-10:00)"
-            }
+            },
+            "countyDomain": "https://kauai-county-hi.mydripnurse.com",
+            "countySitemap": "https://kauai-county-hi.mydripnurse.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://kauai-county-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://anahola-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://eleele-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://haena-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hanalei-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hanamaulu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hanapepe-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kalaheo-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kalihiwai-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kapaa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaumakani-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kekaha-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kilauea-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://koloa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lawai-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lihue-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://omao-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pakala-village-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://poipu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://princeville-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://puhi-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wailua-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wailua-homesteads-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waimea-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wainiha-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "County Name": "Maui",
-            "Cities": [
-                "Haʻikū-Pauwela",
-                "Hāliʻimaile",
-                "Hāna",
-                "Kāʻanapali",
-                "Kahului",
-                "Kapalua",
-                "Kaunakakai",
-                "Kēōkea",
-                "Kīhei",
-                "Kualapuʻu",
-                "Kula",
-                "Lahaina",
-                "Lānaʻi City",
-                "Launiupoko",
-                "Māʻalaea",
-                "Māhinahina",
-                "Makawao",
-                "Mākena",
-                "Mānele",
-                "Maunaloa",
-                "Nāpili-Honokōwai",
-                "Olinda",
-                "Olowalu",
-                "Pāʻia",
-                "Pukalani",
-                "ʻUalapuʻe",
-                "Waiheʻe-Waiehu",
-                "Waikapū",
-                "Wailea",
-                "Wailuku"
+            "countyName": "Maui",
+            "cities": [
+                {
+                    "cityName": "Haʻikū-Pauwela",
+                    "cityDomain": "https://haiku-pauwela-city-hi.mydripnurse.com",
+                    "citySitemap": "https://haiku-pauwela-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hāliʻimaile",
+                    "cityDomain": "https://haliimaile-city-hi.mydripnurse.com",
+                    "citySitemap": "https://haliimaile-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hāna",
+                    "cityDomain": "https://hana-city-hi.mydripnurse.com",
+                    "citySitemap": "https://hana-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kāʻanapali",
+                    "cityDomain": "https://kaanapali-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaanapali-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kahului",
+                    "cityDomain": "https://kahului-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kahului-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kapalua",
+                    "cityDomain": "https://kapalua-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kapalua-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kaunakakai",
+                    "cityDomain": "https://kaunakakai-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kaunakakai-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kēōkea",
+                    "cityDomain": "https://keokea-city-hi.mydripnurse.com",
+                    "citySitemap": "https://keokea-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kīhei",
+                    "cityDomain": "https://kihei-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kihei-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kualapuʻu",
+                    "cityDomain": "https://kualapuu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kualapuu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kula",
+                    "cityDomain": "https://kula-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kula-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lahaina",
+                    "cityDomain": "https://lahaina-city-hi.mydripnurse.com",
+                    "citySitemap": "https://lahaina-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lānaʻi City",
+                    "cityDomain": "https://lanai-city-city-hi.mydripnurse.com",
+                    "citySitemap": "https://lanai-city-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Launiupoko",
+                    "cityDomain": "https://launiupoko-city-hi.mydripnurse.com",
+                    "citySitemap": "https://launiupoko-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Māʻalaea",
+                    "cityDomain": "https://maalaea-city-hi.mydripnurse.com",
+                    "citySitemap": "https://maalaea-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Māhinahina",
+                    "cityDomain": "https://mahinahina-city-hi.mydripnurse.com",
+                    "citySitemap": "https://mahinahina-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Makawao",
+                    "cityDomain": "https://makawao-city-hi.mydripnurse.com",
+                    "citySitemap": "https://makawao-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mākena",
+                    "cityDomain": "https://makena-city-hi.mydripnurse.com",
+                    "citySitemap": "https://makena-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mānele",
+                    "cityDomain": "https://manele-city-hi.mydripnurse.com",
+                    "citySitemap": "https://manele-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Maunaloa",
+                    "cityDomain": "https://maunaloa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://maunaloa-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nāpili-Honokōwai",
+                    "cityDomain": "https://napili-honokowai-city-hi.mydripnurse.com",
+                    "citySitemap": "https://napili-honokowai-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Olinda",
+                    "cityDomain": "https://olinda-city-hi.mydripnurse.com",
+                    "citySitemap": "https://olinda-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Olowalu",
+                    "cityDomain": "https://olowalu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://olowalu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pāʻia",
+                    "cityDomain": "https://paia-city-hi.mydripnurse.com",
+                    "citySitemap": "https://paia-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pukalani",
+                    "cityDomain": "https://pukalani-city-hi.mydripnurse.com",
+                    "citySitemap": "https://pukalani-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "ʻUalapuʻe",
+                    "cityDomain": "https://ualapue-city-hi.mydripnurse.com",
+                    "citySitemap": "https://ualapue-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waiheʻe-Waiehu",
+                    "cityDomain": "https://waihee-waiehu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waihee-waiehu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waikapū",
+                    "cityDomain": "https://waikapu-city-hi.mydripnurse.com",
+                    "citySitemap": "https://waikapu-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wailea",
+                    "cityDomain": "https://wailea-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wailea-city-hi.mydripnurse.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wailuku",
+                    "cityDomain": "https://wailuku-city-hi.mydripnurse.com",
+                    "citySitemap": "https://wailuku-city-hi.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Hawaii-Aleutian",
                 "Zone": "Pacific/Honolulu",
                 "GMT_Offset": "(GMT-10:00)"
-            }
+            },
+            "countyDomain": "https://maui-county-hi.mydripnurse.com",
+            "countySitemap": "https://maui-county-hi.mydripnurse.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://maui-county-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://haiku-pauwela-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://haliimaile-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hana-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaanapali-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kahului-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kapalua-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kaunakakai-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://keokea-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kihei-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kualapuu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kula-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lahaina-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lanai-city-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://launiupoko-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://maalaea-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://mahinahina-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://makawao-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://makena-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://manele-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://maunaloa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://napili-honokowai-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://olinda-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://olowalu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://paia-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pukalani-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ualapue-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waihee-waiehu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://waikapu-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wailea-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wailuku-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         },
         {
-            "County Name": "Kalawao",
-            "Cities": [
-                "Kalaupapa"
+            "countyName": "Kalawao",
+            "cities": [
+                {
+                    "cityName": "Kalaupapa",
+                    "cityDomain": "https://kalaupapa-city-hi.mydripnurse.com",
+                    "citySitemap": "https://kalaupapa-city-hi.mydripnurse.com/sitemap.xml"
+                }
             ],
             "Timezone": {
                 "Name": "Hawaii-Aleutian",
                 "Zone": "Pacific/Honolulu",
                 "GMT_Offset": "(GMT-10:00)"
-            }
+            },
+            "countyDomain": "https://kalawao-county-hi.mydripnurse.com",
+            "countySitemap": "https://kalawao-county-hi.mydripnurse.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://kalawao-county-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kalaupapa-city-hi.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
         }
     ],
     "website": "https://www.mydripnurse.com",
