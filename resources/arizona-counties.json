@@ -1,280 +1,280 @@
 {
-  "Counties": [
-    {
-      "County Name": "Apache",
-      "Cities": [
-        "Chinle",
-        "Eagar",
-        "Springerville",
-        "St. Johns",
-        "Window Rock"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
+    "Counties": [
+        {
+            "County Name": "Apache",
+            "Cities": [
+                "Chinle",
+                "Eagar",
+                "Springerville",
+                "St. Johns",
+                "Window Rock"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Cochise",
+            "Cities": [
+                "Bisbee",
+                "Douglas",
+                "Sierra Vista",
+                "Tombstone",
+                "Willcox"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Coconino",
+            "Cities": [
+                "Flagstaff",
+                "Page",
+                "Sedona",
+                "Williams",
+                "Tuba City"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Gila",
+            "Cities": [
+                "Globe",
+                "Miami",
+                "Payson",
+                "Strawberry",
+                "Star Valley"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Graham",
+            "Cities": [
+                "Safford",
+                "Thatcher",
+                "Pima",
+                "Solomon"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Greenlee",
+            "Cities": [
+                "Clifton",
+                "Duncan"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "La Paz",
+            "Cities": [
+                "Parker",
+                "Quartzsite",
+                "Salome",
+                "Wenden"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Maricopa",
+            "Cities": [
+                "Phoenix",
+                "Scottsdale",
+                "Mesa",
+                "Chandler",
+                "Gilbert",
+                "Tempe",
+                "Glendale",
+                "Peoria",
+                "Surprise",
+                "Avondale",
+                "Goodyear",
+                "Buckeye"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Mohave",
+            "Cities": [
+                "Kingman",
+                "Lake Havasu City",
+                "Bullhead City",
+                "Colorado City"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Navajo",
+            "Cities": [
+                "Holbrook",
+                "Show Low",
+                "Winslow",
+                "Pinetop-Lakeside"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Pima",
+            "Cities": [
+                "Tucson",
+                "Oro Valley",
+                "Marana",
+                "Sahuarita",
+                "South Tucson"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Pinal",
+            "Cities": [
+                "Casa Grande",
+                "Coolidge",
+                "Florence",
+                "Maricopa",
+                "San Tan Valley"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Santa Cruz",
+            "Cities": [
+                "Nogales",
+                "Patagonia"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Yavapai",
+            "Cities": [
+                "Prescott",
+                "Prescott Valley",
+                "Cottonwood",
+                "Camp Verde",
+                "Jerome"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        },
+        {
+            "County Name": "Yuma",
+            "Cities": [
+                "Yuma",
+                "Somerton",
+                "San Luis",
+                "Wellton"
+            ],
+            "Timezone": {
+                "Name": "Mountain",
+                "Zone": "US/Arizona",
+                "GMT_Offset": "(GMT-07:00)"
+            }
+        }
+    ],
+    "website": "https://www.mydripnurse.com",
+    "ownerName": "Keishla",
+    "ownerLastName": "Caraballo",
+    "phone": "9392749203",
+    "email": "keyla03@live.com",
+    "twilio": {
+        "sid": "secret",
+        "authToken": "secret"
     },
-    {
-      "County Name": "Cochise",
-      "Cities": [
-        "Bisbee",
-        "Douglas",
-        "Sierra Vista",
-        "Tombstone",
-        "Willcox"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
+    "mailgun": {
+        "apiKey": "secret",
+        "domain": "secret"
     },
-    {
-      "County Name": "Coconino",
-      "Cities": [
-        "Flagstaff",
-        "Page",
-        "Sedona",
-        "Williams",
-        "Tuba City"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
+    "customValues": {
+        "businessInformation": {
+            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
+            "businessPhone": ""
+        },
+        "ivTherapyPrice": {
+            "myersCocktailPrice": "299",
+            "alleviatePrice": "219",
+            "brainStormPrice": "199",
+            "getLeanPrice": "179",
+            "immunityDefensePrice": "279",
+            "immunityDefenseAndGlutathionePrice": "299",
+            "hangoverPrice": "219",
+            "hydratePrice": "219",
+            "nadPrice": "599",
+            "nadBoostPrice": "797",
+            "recoveryPerformancePrice": "219",
+            "theGlowPrice": "199"
+        },
+        "vitaminPrice": {
+            "vitaminD3": "100",
+            "bComplex": "70",
+            "biotin": "75",
+            "vitaminC": "70",
+            "aminoBlend": "80",
+            "glutathione": "90",
+            "lipoMino": "120",
+            "triImmuneBoost": "120",
+            "vitaminB12": "70",
+            "ondansetron": "70"
+        },
+        "facebook": {
+            "accessToken": "secret",
+            "facebookPixel": "secret",
+            "instagramUrl": "https://www.instagram.com/mydripnurse/",
+            "facebookUrl": "https://www.facebook.com/MyDripNurse"
+        }
     },
-    {
-      "County Name": "Gila",
-      "Cities": [
-        "Globe",
-        "Miami",
-        "Payson",
-        "Strawberry",
-        "Star Valley"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Graham",
-      "Cities": [
-        "Safford",
-        "Thatcher",
-        "Pima",
-        "Solomon"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Greenlee",
-      "Cities": [
-        "Clifton",
-        "Duncan"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "La Paz",
-      "Cities": [
-        "Parker",
-        "Quartzsite",
-        "Salome",
-        "Wenden"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Maricopa",
-      "Cities": [
-        "Phoenix",
-        "Scottsdale",
-        "Mesa",
-        "Chandler",
-        "Gilbert",
-        "Tempe",
-        "Glendale",
-        "Peoria",
-        "Surprise",
-        "Avondale",
-        "Goodyear",
-        "Buckeye"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Mohave",
-      "Cities": [
-        "Kingman",
-        "Lake Havasu City",
-        "Bullhead City",
-        "Colorado City"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Navajo",
-      "Cities": [
-        "Holbrook",
-        "Show Low",
-        "Winslow",
-        "Pinetop-Lakeside"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Pima",
-      "Cities": [
-        "Tucson",
-        "Oro Valley",
-        "Marana",
-        "Sahuarita",
-        "South Tucson"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Pinal",
-      "Cities": [
-        "Casa Grande",
-        "Coolidge",
-        "Florence",
-        "Maricopa",
-        "San Tan Valley"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Santa Cruz",
-      "Cities": [
-        "Nogales",
-        "Patagonia"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Yavapai",
-      "Cities": [
-        "Prescott",
-        "Prescott Valley",
-        "Cottonwood",
-        "Camp Verde",
-        "Jerome"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    },
-    {
-      "County Name": "Yuma",
-      "Cities": [
-        "Yuma",
-        "Somerton",
-        "San Luis",
-        "Wellton"
-      ],
-      "Timezone": {
-        "Name": "Mountain",
-        "Zone": "US/Arizona",
-        "GMT_Offset": "(GMT-07:00)"
-      }
-    }
-  ],
-  "website": "https://www.mydripnurse.com",
-  "ownerName": "Keishla",
-  "ownerLastName": "Caraballo",
-  "phone": "9392749203",
-  "email": "keyla03@live.com",
-  "twilio": {
-    "sid": "secret",
-    "authToken": "secret"
-  },
-  "mailgun": {
-    "apiKey": "secret",
-    "domain": "secret"
-  },
-  "customValues": {
     "businessInformation": {
-      "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
-      "businessPhone": ""
-    },
-    "ivTherapyPrice": {
-      "myersCocktailPrice": "299",
-      "alleviatePrice": "219",
-      "brainStormPrice": "199",
-      "getLeanPrice": "179",
-      "immunityDefensePrice": "279",
-      "immunityDefenseAndGlutathionePrice": "299",
-      "hangoverPrice": "219",
-      "hydratePrice": "219",
-      "nadPrice": "599",
-      "nadBoostPrice": "797",
-      "recoveryPerformancePrice": "219",
-      "theGlowPrice": "199"
-    },
-    "vitaminPrice": {
-      "vitaminD3": "100",
-      "bComplex": "70",
-      "biotin": "75",
-      "vitaminC": "70",
-      "aminoBlend": "80",
-      "glutathione": "90",
-      "lipoMino": "120",
-      "triImmuneBoost": "120",
-      "vitaminB12": "70",
-      "ondansetron": "70"
-    },
-    "facebook": {
-      "accessToken": "secret",
-      "facebookPixel": "secret",
-      "instagramUrl": "https://www.instagram.com/mydripnurse/",
-      "facebookUrl": "https://www.facebook.com/MyDripNurse"
+        "snapshotId": "secret",
+        "companyId": "secret"
     }
-  },
-  "businessInformation": {
-    "snapshotId": "secret",
-    "companyId": "secret"
-  }
 }
