@@ -928,6 +928,7 @@
             "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://de-baca-county-nm.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-01-18</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fort-sumner-city-nm.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-01-18</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         }
     ],
+    "stateName": "New Mexico",
     "companyName": "My Drip Nurse",
     "website": "https://www.mydripnurse.com",
     "ownerName": "Keishla",
