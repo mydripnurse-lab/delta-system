@@ -124,7 +124,7 @@ npm run dev
 
 3. Open browser and authorize the app:
 ```
-http://localhost:3000/auth
+http://localhost:3000/connect/gh
 ```
 
 4. GHL will redirect back with the authorization code.
