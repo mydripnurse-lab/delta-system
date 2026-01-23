@@ -1,39 +1,35 @@
-# 📦 MyDripNurse – Automated GHL Subaccount Builder  
-*(Counties & Cities Infrastructure)*
+# 📦 MyDripNurse – Automated GHL Subaccount & Sitemap Infrastructure
+*(Counties & Cities · Multi‑Industry Ready)*
 
 ---
 
 ## 📌 Overview (English)
 
-This project automates the creation and management of **GoHighLevel (GHL) subaccounts** (locations) for **Counties and Cities**, using structured JSON files as the source of truth.
+This repository provides a **scalable automation framework** to:
 
-The system:
-- Builds deterministic JSON payloads per **State → County → City**
-- Creates GHL subaccounts **one by one (safe & traceable)**
-- Integrates with **Twilio** to close auto-generated subaccounts
-- Uses **OAuth (Marketplace App)** for secure GHL API access
-- Prevents duplicate subaccount creation via **local checkpoints**
-- Measures **execution time per county and per run**
-- Prepares data to be sent to **Google Sheets** (next phase)
+- Generate **SEO sitemaps** for **all U.S. states**, their **counties**, and **cities**
+- Automatically create **GoHighLevel (GHL) subaccounts (locations)** from structured JSON
+- Integrate with **Twilio** to manage auto‑generated subaccounts
+- Prepare structured data to be synced into **Google Sheets**
+- Serve as a **reusable blueprint for any industry**, not just healthcare
 
-This repository is designed for **large-scale, state-by-state rollout** without duplication or data corruption.
+Although branded as *MyDripNurse*, this project is **industry‑agnostic**.  
+You can reuse it for **Solar, IV Therapy, Construction, Legal, Real Estate, or any local service** by changing environment variables and business data.
 
 ---
 
 ## 📌 Visión General (Español)
 
-Este proyecto automatiza la creación y administración de **subcuentas (locations) en GoHighLevel (GHL)** para **Counties y Cities**, usando archivos JSON estructurados como fuente única de verdad.
+Este repositorio provee una **infraestructura de automatización escalable** para:
 
-El sistema:
-- Construye JSON determinísticos por **Estado → County → City**
-- Crea subcuentas en GHL **una por una (seguro y trazable)**
-- Integra **Twilio** para cerrar subcuentas generadas automáticamente
-- Usa **OAuth (Marketplace App)** para acceso seguro a la API de GHL
-- Evita duplicados usando **checkpoints locales**
-- Mide **tiempo por county y tiempo total del proceso**
-- Prepara la data para enviarse a **Google Sheets** (fase siguiente)
+- Generar **sitemaps SEO** de **todos los estados**, sus **counties** y **ciudades**
+- Crear automáticamente **subcuentas (locations) en GoHighLevel**
+- Integrarse con **Twilio** para manejar subcuentas generadas
+- Preparar la data para **Google Sheets**
+- Servir como **plantilla reutilizable para cualquier industria**
 
-Este repositorio está diseñado para **escalar estado por estado**, sin duplicaciones ni errores.
+Aunque el proyecto se llama *MyDripNurse*, es **agnóstico a la industria**.  
+Puede reutilizarse para **Solar, IV Therapy, Construcción, Legal, Bienes Raíces**, etc.
 
 ---
 
@@ -43,21 +39,22 @@ Este repositorio está diseñado para **escalar estado por estado**, sin duplica
 mydripnurse-sitemaps/
 ├── resources/
 │   ├── statesFiles/           # Raw state JSON (counties + cities)
-│   ├── customValues/          # Custom Values templates for GHL
+│   ├── customValues/          # GHL custom values templates
 │
 ├── scripts/
 │   ├── src/
-│   │   ├── build-counties.js  # Builds GHL payloads per county
-│   │   ├── run-create-subaccounts.js # Executes GHL + Twilio flow
+│   │   ├── build-counties.js
+│   │   ├── run-create-subaccounts.js
 │   │   └── services/
 │   │       ├── ghlClient.js
 │   │       ├── twilioClient.js
 │   │       ├── tokenStore.js
 │   │
 │   └── out/
-│       ├── <state>/           # Build outputs per state
+│       ├── <state>/           # Generated sitemap + payload outputs
 │       ├── checkpoints/       # Anti-duplication checkpoints
 │
+├── server.js                  # Local server for OAuth callback
 ├── .env
 ├── package.json
 └── README.md
@@ -65,9 +62,32 @@ mydripnurse-sitemaps/
 
 ---
 
-## 🔐 Environment Variables (.env)
+## 🌐 Sitemaps Scope (Important)
 
-### Required (English)
+### English
+
+This project already includes or generates:
+
+- **State-level sitemaps**
+- **County-level sitemaps**
+- **City-level sitemaps per county**
+
+Each sitemap can be:
+- Indexed in Google Search Console
+- Used for internal linking
+- Reused across industries by domain replacement
+
+### Español
+
+Este proyecto incluye/genera:
+
+- Sitemaps por **estado**
+- Sitemaps por **county**
+- Sitemaps por **ciudad dentro de cada county**
+
+---
+
+## 🔐 Environment Variables (.env)
 
 ```env
 # GHL OAuth (Marketplace App)
@@ -75,260 +95,165 @@ CLIENT_ID=your_marketplace_client_id
 CLIENT_SECRET=your_marketplace_client_secret
 REDIRECT_URI=http://localhost:3000/callback
 
-# Twilio (Master account)
-TWILIO_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
+# Twilio
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxx
 
-### Requeridas (Español)
-
-```env
-CLIENT_ID y CLIENT_SECRET deben venir del Marketplace App de GHL.
-REDIRECT_URI debe coincidir EXACTAMENTE con el redirect configurado en tu app.
-TWILIO_* corresponde a la cuenta master de Twilio.
+# Business / Domain
+BASE_DOMAIN=mydripnurse.com
+COMPANY_NAME=My Drip Nurse
 ```
 
 ---
 
-## 🔑 Authentication Flow (OAuth – GHL)
+## 🖥️ Running the Local Server (OAuth)
 
 ### English
 
-1. A **Marketplace App** is created in GHL (Target User: **Sub-Account**, “Agency Only” install).
-2. An **authorization code** is generated via browser (interactive login/consent).
-3. The code is exchanged for **access + refresh tokens**.
-4. Tokens are stored locally using `tokenStore.js`.
-5. All API calls are performed with `ghlFetch()`.
+The local server is required **only for OAuth authorization**.
 
-> Important: `POST /oauth/token` does **not** generate the `code`.  
-> The `code` is only obtained through the browser-based authorization flow.
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Run the server:
+```bash
+node server.js
+```
+
+3. Open browser and authorize the app:
+```
+http://localhost:3000/auth
+```
+
+4. GHL will redirect back with the authorization code.
+5. Tokens are stored automatically.
 
 ### Español
 
-1. Se crea una **Marketplace App** en GHL (Target User: **Sub-Account**, instalación “Agency Only”).
-2. Se genera un **authorization code** vía navegador (login/consentimiento).
-3. Ese `code` se intercambia por **access + refresh tokens**.
-4. Los tokens se guardan localmente con `tokenStore.js`.
-5. Todas las llamadas se realizan usando `ghlFetch()`.
+El servidor local se usa **solo para OAuth**.
 
-> Importante: `POST /oauth/token` **no** crea el `code`.  
-> El `code` solo se obtiene mediante el flujo de autorización en el navegador.
+1. Instalar dependencias
+2. Correr:
+```bash
+node server.js
+```
+3. Abrir:
+```
+http://localhost:3000/auth
+```
 
 ---
 
-## 🏗️ Step 1 – Build County Payloads / Construir Payloads de Counties
-
-### English
-
-Generate the JSON files that will later be used to create subaccounts (no API calls at this stage).
+## 🏗️ Step 1 – Build Counties / Construir Counties
 
 ```bash
 node scripts/src/build-counties.js
 ```
 
-Output (examples):
-- `scripts/out/<state>/preview-counties-XXXX.json`
-- `scripts/out/<state>/ghl-create-counties-XXXX.json`
-- `scripts/out/<state>/sheets-rows-counties-XXXX.json`
+Creates:
+- Sitemap files
+- GHL payload JSON
+- Google Sheets row previews
 
-Each item includes:
-- `countyName`
-- `countyDomain`
-- `countySitemap`
-- `Timezone.Zone`
-- `body` (payload for `POST /locations`)
-- `customValuesBody` (base + dynamic custom values)
-
-### Español
-
-Este paso **NO llama APIs**. Solo construye la data necesaria para ejecutar el proceso real.
+⚠️ No API calls at this stage.
 
 ---
 
-## 🚀 Step 2 – Create Subaccounts / Crear Subcuentas (Main Run)
-
-### English
-
-Run the creator script against the build output.
+## 🚀 Step 2 – Create GHL Subaccounts
 
 ```bash
 node scripts/run-create-subaccounts.js scripts/out/<state>/ghl-create-counties-XXXX.json
 ```
 
-Dry run (no Twilio close):
+Dry run:
 ```bash
 node scripts/run-create-subaccounts.js scripts/out/<state>/ghl-create-counties-XXXX.json --dry-run
 ```
 
-Resume behavior (default ON):
-- The script writes checkpoints and skips already-created counties automatically.
+---
 
-Disable resume (not recommended):
-```bash
-node scripts/run-create-subaccounts.js scripts/out/<state>/ghl-create-counties-XXXX.json --no-resume
-```
+## 🔁 Execution Flow (Per County)
 
-### Español
-
-Ejecuta el script principal con el JSON que generó el build.
+1. Create GHL Location
+2. Save checkpoint immediately
+3. Twilio lookup + optional close
+4. (Next) Custom values update
+5. (Next) Google Sheets sync
 
 ---
 
-## 🔁 Execution Flow (Per County) / Flujo por County
+## 🧠 Anti‑Duplication System
 
-### English
-
-For each county:
-
-1. **Create GHL Location**  
-   `POST /locations` using the county payload (`it.body`)
-
-2. **Write checkpoint immediately**  
-   Prevents duplicates in re-runs even if later steps fail.
-
-3. **Twilio step**  
-   Find Twilio subaccount by `friendlyName == created.name`  
-   Optionally close that subaccount (LIVE mode)
-
-4. **(Next) Custom values** *(planned / next phase)*  
-   - Generate Location Token  
-   - Get custom values  
-   - Update custom values one-by-one
-
-5. **(Next) Google Sheets** *(planned / next phase)*  
-   Append run results (locationId, domain activation URL, etc.)
-
-### Español
-
-Por cada county:
-
-1. Crear location en GHL  
-2. Guardar checkpoint local de inmediato  
-3. Buscar y cerrar subcuenta en Twilio (opcional)  
-4. Próximo: setear custom values  
-5. Próximo: guardar en Google Sheets
-
----
-
-## 🧠 Anti-Duplication System (Checkpoints) / Sistema Anti-Duplicados
-
-### English
-
-Checkpoints are stored in:
-
+Checkpoints stored in:
 ```
 scripts/out/checkpoints/<state>.json
 ```
 
-A county is considered already processed if it has a stored `locationId`.  
-This makes the process **safe to re-run** without duplicating locations.
-
-### Español
-
-Los checkpoints evitan que vuelvas a crear la misma subcuenta si tu proceso se interrumpe o si lo vuelves a correr.
+Safe to re-run.
 
 ---
 
-## ⏱️ Performance Metrics / Métricas de Tiempo
-
-### English
-
-The run script logs:
+## ⏱️ Performance Metrics
 
 - Time per county
 - Total execution time
 
-Example:
-
-```
-⏱️ 3/12 | Anchorage Municipality completed in 3.42s
-⏱️ TOTAL TIME: 51s (0.85 min)
-```
-
-### Español
-
-Se imprime el tiempo por cada county y el total del run.
-
 ---
 
-## ☎️ Twilio Integration / Integración Twilio
+## 🔄 Reusing This Project for Any Industry
 
 ### English
 
-Twilio is used to locate subaccounts by `friendlyName`.  
-Common pitfalls:
-- Don’t duplicate the API version in Twilio URLs (use SDK if possible)
-- Ensure Twilio SDK is installed: `npm i twilio`
+To reuse this project:
+1. Update `.env` business variables
+2. Replace domain references
+3. Replace business name and branding
+4. Update sitemap base URLs
+5. Adjust custom values JSON
 
-Environment variables:
-- `TWILIO_SID`
-- `TWILIO_AUTH_TOKEN`
+Recommended:
+- Use **VS Code Find & Replace**
+- Keep structure unchanged
 
 ### Español
 
-Twilio se usa para encontrar subcuentas por `friendlyName` y opcionalmente cerrarlas.
+Este proyecto puede reutilizarse para cualquier industria:
+- Solo cambia variables de entorno
+- Reemplaza dominio e información del negocio
+- Mantén la estructura intacta
 
 ---
 
-## 📊 Google Sheets (Next Phase) / Google Sheets (Siguiente Fase)
+## 🧱 Current Status
 
-### Planned (English)
+### ✅ Completed
+- Sitemap generation (states, counties, cities)
+- GHL subaccount creation
+- Twilio integration
+- Checkpoint system
+- Timing logs
 
-We will append rows for each county with fields like:
-
-- Account Name
-- Location ID
-- Company ID
-- County
-- State
-- Domain
-- Sitemap
-- Timezone
-- Status
-- Domain URL Activation
-
-A separate sheet will be used for Cities.
-
-### Planificado (Español)
-
-Luego se añadirá integración a Google Sheets. Habrá un sheet para counties y otro para cities.
+### 🔜 Next
+- Google Sheets API
+- City‑level subaccounts
+- Parallel execution
+- Reporting dashboards
 
 ---
 
-## 🧱 Current Status / Estado Actual
+## 🧠 Design Principles
 
-### ✅ Completed / Completado
-
-- County JSON build system
-- Run script with sequential GHL creation
-- Twilio integration (lookup + optional close)
-- Anti-duplication via checkpoints
-- Timing logs (per county + total)
-
-### 🔜 Next / Próximo
-
-- Full GHL OAuth operational flow:
-  - capture authorization code
-  - exchange code for tokens
-  - generate location token
-- Custom values update pipeline
-- Google Sheets API integration
-- City-level workflows
-
----
-
-## 🧠 Design Principles / Principios
-
-- **Deterministic builds** (same input → same payload)
-- **Idempotent execution** (safe to re-run with checkpoints)
-- **State-by-state isolation**
-- **Auditability first** (logs + artifacts)
-- **No blind retries** for side-effect requests
+- Deterministic builds
+- Idempotent execution
+- State isolation
+- Auditability
+- No blind retries
 
 ---
 
 ## 👤 Maintainer
 
-Built for **My Drip Nurse**  
-Infrastructure & Automation System  
-GoHighLevel · Twilio · SEO · Scaling
+Built by **My Drip Nurse**  
+Automation · SEO · GHL · Scaling
