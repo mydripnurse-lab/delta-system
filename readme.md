@@ -119,7 +119,7 @@ npm install
 
 2. Run the server:
 ```bash
-node server.js
+npm run dev
 ```
 
 3. Open browser and authorize the app:
