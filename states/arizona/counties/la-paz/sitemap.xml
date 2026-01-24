@@ -3,7 +3,7 @@
 
   <!-- La Paz Main Sitemap -->
   <sitemap>
-    <loc>https://la-paz-county-az.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://la-paz-county.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
@@ -20,15 +20,15 @@
   </sitemap>
 
   <!-- Salome Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/la-paz/salome/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
   <!-- Wenden Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/la-paz/wenden/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
 </sitemapindex>

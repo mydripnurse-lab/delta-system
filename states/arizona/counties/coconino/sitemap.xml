@@ -3,7 +3,7 @@
 
   <!-- Coconino Main Sitemap -->
   <sitemap>
-    <loc>https://coconino-county-az.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://coconino-county.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
@@ -32,9 +32,9 @@
   </sitemap>
 
   <!-- Tuba City Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/coconino/tuba-city/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
 </sitemapindex>

@@ -3,7 +3,7 @@
 
   <!-- Graham Main Sitemap -->
   <sitemap>
-    <loc>https://graham-county-az.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://graham-county.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
@@ -26,9 +26,9 @@
   </sitemap>
 
   <!-- Solomon Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/graham/solomon/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
 </sitemapindex>

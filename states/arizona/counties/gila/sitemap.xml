@@ -3,7 +3,7 @@
 
   <!-- Gila Main Sitemap -->
   <sitemap>
-    <loc>https://gila-county-az.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://gila-county.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
@@ -14,10 +14,10 @@
   </sitemap>
 
   <!-- Miami Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/gila/miami/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
   <!-- Payson Hosted Sitemap -->
   <sitemap>
@@ -26,10 +26,10 @@
   </sitemap>
 
   <!-- Strawberry Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/gila/strawberry/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
   <!-- Star Valley Hosted Sitemap -->
   <sitemap>

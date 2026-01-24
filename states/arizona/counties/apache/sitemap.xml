@@ -3,15 +3,15 @@
 
   <!-- Apache Main Sitemap -->
   <sitemap>
-    <loc>https://apache-county-az.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://apache-county.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
   <!-- Chinle Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/apache/chinle/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
   <!-- Eagar Hosted Sitemap -->
   <sitemap>
@@ -32,9 +32,9 @@
   </sitemap>
 
   <!-- Window Rock Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/arizona/counties/apache/window-rock/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
 </sitemapindex>
