@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Choose your location</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+          sans-serif;
+        background: #f7f9fb;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="mdn-locations-widget"></div>
+
+    <script>
+      window.__MDN_LOCATIONS_CONFIG__ = {
+        statesIndexUrl: "https://sitemaps.mydripnurse.com/ui/states-index.json",
+        redirectMode: "county",
+        bookPath: "/book-service",
+        stickyBook: true,
+        placeholder: "Choose your City, State, or Country",
+      };
+    </script>
+
+    <script src="./locations-widget.js"></script>
+    <script>
+      MDNLocationsWidget.mount(
+        "#mdn-locations-widget",
+        window.__MDN_LOCATIONS_CONFIG__
+      );
+    </script>
+  </body>
+</html>
