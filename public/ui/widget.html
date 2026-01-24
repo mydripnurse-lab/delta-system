@@ -1,29 +1,119 @@
-<div id="mdn-locations-widget"></div>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MDN Locations</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        margin: 0;
+        padding: 16px;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .search {
+        width: 100%;
+        padding: 14px 14px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+      select {
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        min-width: 220px;
+      }
+      .results {
+        margin-top: 14px;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .item {
+        padding: 12px 14px;
+        border-top: 1px solid #f1f1f1;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+      }
+      .item:first-child {
+        border-top: none;
+      }
+      .meta {
+        font-size: 13px;
+        color: #555;
+      }
+      button {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #111;
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #fff;
+        color: #111;
+      }
+      .hint {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <input
+        id="q"
+        class="search"
+        placeholder="Choose your City, State, or Country"
+      />
+      <div class="row">
+        <select id="stateSelect">
+          <option value="">Select a state…</option>
+        </select>
 
-<script>
-  window.__MDN_LOCATIONS_CONFIG__ = {
-    statesIndexUrl: "https://sitemaps.mydripnurse.com/ui/states-index.json",
-    redirectMode: "county",
-    bookPath: "/book-service",
-    stickyBook: true,
-    placeholder: "Choose your City, State, or Country",
-  };
+        <select id="modeSelect" title="Redirect mode">
+          <option value="county">Book by County</option>
+          <option value="city">Book by City</option>
+        </select>
 
-  window.__MDN_LOCATIONS_MOUNT__ = function () {
-    try {
-      if (!window.MDNLocationsWidget)
-        return setTimeout(window.__MDN_LOCATIONS_MOUNT__, 80);
-      window.MDNLocationsWidget.mount(
-        "#mdn-locations-widget",
-        window.__MDN_LOCATIONS_CONFIG__
-      );
-    } catch (e) {
-      console.error("MDN mount error:", e);
-    }
-  };
-</script>
+        <button id="closeBtn" class="secondary" type="button">Close</button>
+      </div>
 
-<script
-  src="https://sitemaps.mydripnurse.com/ui/locations-widget.js"
-  onload="window.__MDN_LOCATIONS_MOUNT__()"
-></script>
+      <div class="hint">
+        Type a city or county name (e.g., “Miami”, “Broward”, “San Juan”). Then
+        click “Book”.
+      </div>
+
+      <div id="results" class="results" style="display: none"></div>
+    </div>
+
+    <script>
+      // Config via query params (optional)
+      // widget.html?statesIndexUrl=...&redirectMode=county&bookPath=/book-service
+      const params = new URLSearchParams(location.search);
+
+      window.__MDN_CFG__ = {
+        statesIndexUrl:
+          params.get("statesIndexUrl") ||
+          "https://sitemaps.mydripnurse.com/ui/states-index.json",
+        redirectMode: params.get("redirectMode") || "county",
+        bookPath: params.get("bookPath") || "/book-service",
+      };
+    </script>
+    <script src="./widget.js"></script>
+  </body>
+</html>

@@ -1,302 +1,192 @@
-// public/ui/locations-widget.js
-(function () {
-    function el(tag, attrs = {}, children = []) {
-        const node = document.createElement(tag);
-        Object.entries(attrs).forEach(([k, v]) => {
-            if (k === "class") node.className = v;
-            else if (k === "style") node.setAttribute("style", v);
-            else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
-            else node.setAttribute(k, v);
-        });
-        (Array.isArray(children) ? children : [children]).forEach((c) => {
-            if (c == null) return;
-            node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
-        });
-        return node;
-    }
+async function fetchJson(url) {
+    const r = await fetch(url, { cache: "no-store" });
+    if (!r.ok) throw new Error(`Fetch failed ${r.status}: ${url}`);
+    return r.json();
+}
 
-    function normalize(str) {
-        return (str || "")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "") // diacríticos
-            .toLowerCase()
-            .trim();
-    }
+function normalizeText(s) {
+    // IMPORTANTE: quita tildes/diéresis pero conserva letras base (ñ -> n, ü -> u, á -> a)
+    return (s || "")
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
 
-    async function fetchJson(url) {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error(`Fetch failed ${res.status} for ${url}`);
-        return await res.json();
-    }
+function sendToParent(payload) {
+    // Enviar selección al parent (GHL page)
+    window.parent.postMessage({ source: "MDN_LOCATIONS_WIDGET", ...payload }, "*");
+}
 
-    function findCityInState(stateJson, cityName) {
-        const target = normalize(cityName);
-        for (const county of stateJson.counties || []) {
-            for (const city of county.cities || []) {
-                if (normalize(city.cityName) === target) {
-                    return { county, city };
-                }
-            }
-        }
-        return null;
-    }
+let index = null;
+let stateMeta = []; // [{name, slug, jsonUrl}]
+let stateCache = new Map(); // slug -> full state JSON
 
-    function makeResults(cities) {
-        // cities: [{ cityName, countyName }]
-        const ul = el("div", { class: "mdn-loc-results" });
-        cities.forEach((item) => {
-            const row = el("div", { class: "mdn-loc-row", "data-city": item.cityName }, [
-                el("div", { class: "mdn-loc-city" }, item.cityName),
-                el("div", { class: "mdn-loc-county" }, item.countyName),
-            ]);
-            ul.appendChild(row);
-        });
-        return ul;
-    }
+const qEl = document.getElementById("q");
+const resultsEl = document.getElementById("results");
+const stateSelect = document.getElementById("stateSelect");
+const modeSelect = document.getElementById("modeSelect");
+const closeBtn = document.getElementById("closeBtn");
 
-    function injectStyles() {
-        const css = `
-      .mdn-loc-wrap{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;width:100%;}
-      .mdn-loc-bar{display:flex;gap:10px;align-items:center;max-width:900px;margin:0 auto;}
-      .mdn-loc-select,.mdn-loc-input{width:100%;padding:14px 14px;border:1px solid rgba(0,0,0,.15);border-radius:12px;font-size:16px;outline:none;}
-      .mdn-loc-input:focus,.mdn-loc-select:focus{border-color: rgba(0,0,0,.35);}
-      .mdn-loc-btn{padding:14px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:600;}
-      .mdn-loc-btn-primary{background:#0b5961;color:#fff;}
-      .mdn-loc-meta{max-width:900px;margin:10px auto 0;color:rgba(0,0,0,.6);font-size:13px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-      .mdn-loc-panel{position:relative;max-width:900px;margin:10px auto 0;}
-      .mdn-loc-results{border:1px solid rgba(0,0,0,.12);border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.07);}
-      .mdn-loc-row{padding:12px 14px;display:flex;justify-content:space-between;gap:10px;cursor:pointer;}
-      .mdn-loc-row:hover{background:rgba(0,0,0,.04);}
-      .mdn-loc-city{font-weight:650;}
-      .mdn-loc-county{color:rgba(0,0,0,.6);font-size:13px;align-self:center;}
-      .mdn-loc-hidden{display:none;}
-      .mdn-loc-sticky{position:fixed;right:18px;bottom:18px;z-index:99999;}
-      .mdn-loc-sticky a{display:inline-block;padding:14px 16px;border-radius:999px;background:#0b5961;color:#fff;text-decoration:none;font-weight:700;box-shadow:0 10px 25px rgba(0,0,0,.18);}
+modeSelect.value = window.__MDN_CFG__.redirectMode;
+
+closeBtn.addEventListener("click", () => {
+    sendToParent({ type: "CLOSE_MODAL" });
+});
+
+function renderResults(items) {
+    if (!items.length) {
+        resultsEl.style.display = "none";
+        resultsEl.innerHTML = "";
+        return;
+    }
+    resultsEl.style.display = "block";
+    resultsEl.innerHTML = items.map((it) => {
+        return `
+      <div class="item">
+        <div>
+          <div><strong>${it.title}</strong></div>
+          <div class="meta">${it.subtitle}</div>
+        </div>
+        <div>
+          <button data-action="book" data-url="${it.bookUrl}">Book</button>
+        </div>
+      </div>
     `;
-        const style = document.createElement("style");
-        style.textContent = css;
-        document.head.appendChild(style);
+    }).join("");
+
+    resultsEl.querySelectorAll("button[data-action='book']").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const url = btn.getAttribute("data-url");
+            sendToParent({ type: "BOOK", url });
+        });
+    });
+}
+
+function buildBookUrl({ redirectMode, countyDomain, cityDomain }) {
+    const base = (redirectMode === "city" ? cityDomain : countyDomain);
+    if (!base) return null;
+    const path = window.__MDN_CFG__.bookPath || "/book-service";
+    return `${base.replace(/\/$/, "")}${path.startsWith("/") ? path : "/" + path}`;
+}
+
+async function loadState(slug, jsonUrl) {
+    if (stateCache.has(slug)) return stateCache.get(slug);
+    const data = await fetchJson(jsonUrl);
+    stateCache.set(slug, data);
+    return data;
+}
+
+function scoreMatch(q, ...parts) {
+    const nq = normalizeText(q);
+    const text = normalizeText(parts.join(" "));
+    if (!nq) return 0;
+    if (text === nq) return 100;
+    if (text.startsWith(nq)) return 80;
+    if (text.includes(nq)) return 60;
+    return 0;
+}
+
+async function search(q) {
+    q = (q || "").trim();
+    if (!q || q.length < 2) {
+        renderResults([]);
+        return;
     }
 
-    async function init(rootEl, opts) {
-        injectStyles();
+    const selectedSlug = stateSelect.value;
+    const redirectMode = modeSelect.value;
 
-        const config = {
-            statesIndexUrl: opts.statesIndexUrl,
-            redirectMode: opts.redirectMode || "county", // "county" | "city"
-            bookPath: opts.bookPath || "/book-service",
-            stickyBook: opts.stickyBook !== false,
-            placeholder: opts.placeholder || "Choose your City, State, or Country",
-        };
+    let candidates = [];
 
-        let statesIndex = null;
-        let selectedState = null;
-        let selectedStateJson = null;
+    const statesToSearch = selectedSlug
+        ? stateMeta.filter(s => s.slug === selectedSlug)
+        : stateMeta;
 
-        const stateSelect = el("select", { class: "mdn-loc-select" });
-        stateSelect.appendChild(el("option", { value: "" }, "Select a State"));
+    // Limitar: si no hay estado seleccionado, solo busca en index primero (rápido).
+    // Luego si quieres, puedes hacer lazy-load de estados según necesidad.
+    for (const st of statesToSearch) {
+        const stateData = await loadState(st.slug, st.jsonUrl);
 
-        const input = el("input", {
-            class: "mdn-loc-input",
-            type: "text",
-            placeholder: config.placeholder,
-            disabled: true,
-        });
+        // Estructura esperada: stateData.divisions || stateData.counties || stateData.items etc.
+        // En tus estadosFiles típicamente es un array de counties/parishes/cities.
+        const divisions = stateData?.divisions || stateData?.counties || stateData?.items || stateData;
 
-        const bookBtn = el("button", { class: "mdn-loc-btn mdn-loc-btn-primary", type: "button" }, "Book");
-        const resultsHost = el("div", { class: "mdn-loc-panel mdn-loc-hidden" });
+        if (!Array.isArray(divisions)) continue;
 
-        const meta = el("div", { class: "mdn-loc-meta" }, [
-            el("div", {}, "Tip: Select a state first, then search for a city."),
-            el("div", { id: "mdn-loc-selected" }, ""),
-        ]);
+        for (const div of divisions) {
+            const countyName = div.countyName || div.parishName || div.cityName || "";
+            const countyDomain = div.countyDomain || div.parishDomain || div.cityDomain || "";
+            const cities = Array.isArray(div.cities) ? div.cities : [];
 
-        const bar = el("div", { class: "mdn-loc-bar" }, [stateSelect, input, bookBtn]);
-        const wrap = el("div", { class: "mdn-loc-wrap" }, [bar, meta, resultsHost]);
-        rootEl.appendChild(wrap);
-
-        function setSelectedLabel(text) {
-            const elSel = wrap.querySelector("#mdn-loc-selected");
-            if (elSel) elSel.textContent = text || "";
-        }
-
-        function setSticky(linkUrl, label) {
-            const existing = document.getElementById("mdn-loc-sticky");
-            if (!config.stickyBook) return;
-
-            if (!existing) {
-                const div = el("div", { class: "mdn-loc-sticky", id: "mdn-loc-sticky" }, [
-                    el("a", { href: linkUrl || "#", id: "mdn-loc-sticky-a" }, label || "Book"),
-                ]);
-                document.body.appendChild(div);
-            } else {
-                const a = existing.querySelector("#mdn-loc-sticky-a");
-                if (a) {
-                    a.href = linkUrl || "#";
-                    a.textContent = label || "Book";
+            // match por county/parish
+            const countyScore = scoreMatch(q, countyName, st.name);
+            if (countyScore) {
+                const bookUrl = buildBookUrl({
+                    redirectMode,
+                    countyDomain,
+                    cityDomain: null,
+                });
+                if (bookUrl) {
+                    candidates.push({
+                        score: countyScore,
+                        title: `${countyName}, ${st.name}`,
+                        subtitle: `County/Division`,
+                        bookUrl,
+                    });
                 }
             }
-        }
 
-        function computeBookUrl(selection) {
-            // selection: { county, city, stateSlug }
-            const targetDomain = config.redirectMode === "city" ? selection.city.cityDomain : selection.county.countyDomain;
-            // Si quieres que el book vaya a una ruta específica dentro del county:
-            // Ej: https://coffee-county-al.mydripnurse.com/book-service
-            return `${targetDomain}${config.bookPath}`;
-        }
+            // match por city dentro del county
+            for (const c of cities) {
+                const cityScore = scoreMatch(q, c.cityName, st.name, countyName);
+                if (!cityScore) continue;
 
-        function saveSelection(sel) {
-            localStorage.setItem(
-                "mdn_location_selection",
-                JSON.stringify({
-                    stateName: selectedState.stateName,
-                    stateSlug: selectedState.stateSlug,
-                    redirectMode: config.redirectMode,
-                    cityName: sel.city.cityName,
-                    countyName: sel.county.countyName,
-                    bookUrl: computeBookUrl({ ...sel, stateSlug: selectedState.stateSlug }),
-                    ts: Date.now(),
-                })
-            );
-        }
+                const bookUrl = buildBookUrl({
+                    redirectMode,
+                    countyDomain,
+                    cityDomain: c.cityDomain,
+                });
+                if (!bookUrl) continue;
 
-        function loadSelection() {
-            try {
-                const raw = localStorage.getItem("mdn_location_selection");
-                if (!raw) return null;
-                return JSON.parse(raw);
-            } catch {
-                return null;
+                candidates.push({
+                    score: cityScore,
+                    title: `${c.cityName}, ${st.name}`,
+                    subtitle: `County: ${countyName}`,
+                    bookUrl,
+                });
             }
         }
-
-        function hideResults() {
-            resultsHost.classList.add("mdn-loc-hidden");
-            resultsHost.innerHTML = "";
-        }
-
-        function showResults(list) {
-            resultsHost.classList.remove("mdn-loc-hidden");
-            resultsHost.innerHTML = "";
-            resultsHost.appendChild(list);
-        }
-
-        // Load states index
-        try {
-            statesIndex = await fetchJson(config.statesIndexUrl);
-            (statesIndex.states || []).forEach((s) => {
-                stateSelect.appendChild(el("option", { value: s.stateSlug }, s.stateName));
-            });
-        } catch (e) {
-            setSelectedLabel("Error loading states index.");
-            console.error(e);
-            return;
-        }
-
-        // Restore previous selection (optional)
-        const prev = loadSelection();
-        if (prev?.stateSlug) {
-            stateSelect.value = prev.stateSlug;
-            // trigger loading
-            stateSelect.dispatchEvent(new Event("change"));
-        } else {
-            setSticky("#", "Book");
-        }
-
-        stateSelect.addEventListener("change", async () => {
-            hideResults();
-            input.value = "";
-            input.disabled = true;
-
-            const slug = stateSelect.value;
-            if (!slug) {
-                selectedState = null;
-                selectedStateJson = null;
-                setSelectedLabel("");
-                setSticky("#", "Book");
-                return;
-            }
-
-            selectedState = (statesIndex.states || []).find((s) => s.stateSlug === slug);
-            if (!selectedState) return;
-
-            setSelectedLabel(`Loading ${selectedState.stateName}...`);
-            try {
-                selectedStateJson = await fetchJson(selectedState.stateJsonUrl);
-                input.disabled = false;
-                setSelectedLabel(`Selected: ${selectedState.stateName}`);
-            } catch (e) {
-                console.error(e);
-                setSelectedLabel(`Failed loading ${selectedState.stateName}`);
-            }
-        });
-
-        input.addEventListener("input", () => {
-            hideResults();
-            if (!selectedStateJson) return;
-
-            const q = normalize(input.value);
-            if (!q || q.length < 2) return;
-
-            const matches = [];
-            for (const county of selectedStateJson.counties || []) {
-                for (const city of county.cities || []) {
-                    const name = normalize(city.cityName);
-                    if (name.includes(q)) {
-                        matches.push({ cityName: city.cityName, countyName: county.countyName });
-                        if (matches.length >= 12) break;
-                    }
-                }
-                if (matches.length >= 12) break;
-            }
-
-            if (!matches.length) return;
-
-            const list = makeResults(matches);
-            showResults(list);
-
-            list.addEventListener("click", (ev) => {
-                const row = ev.target.closest(".mdn-loc-row");
-                if (!row) return;
-
-                const cityName = row.getAttribute("data-city");
-                const found = findCityInState(selectedStateJson, cityName);
-                if (!found) return;
-
-                input.value = found.city.cityName;
-                hideResults();
-
-                const bookUrl = computeBookUrl({ ...found, stateSlug: selectedState.stateSlug });
-                saveSelection(found);
-
-                setSelectedLabel(`Selected: ${found.city.cityName} • ${found.county.countyName} County`);
-                setSticky(bookUrl, `Book in ${found.county.countyName}`);
-
-                // Botón Book también redirige
-                bookBtn.onclick = () => (window.location.href = bookUrl);
-            });
-        });
-
-        // Book button default
-        bookBtn.addEventListener("click", () => {
-            const prev = loadSelection();
-            if (prev?.bookUrl) window.location.href = prev.bookUrl;
-            else alert("Select a state and city first.");
-        });
-
-        // Close results on outside click
-        document.addEventListener("click", (e) => {
-            if (!wrap.contains(e.target)) hideResults();
-        });
     }
 
-    // Public init
-    window.MDNLocationsWidget = {
-        mount: function (selector, opts) {
-            const root = typeof selector === "string" ? document.querySelector(selector) : selector;
-            if (!root) throw new Error("MDNLocationsWidget: root not found");
-            return init(root, opts);
-        },
-    };
-})();
+    candidates.sort((a, b) => b.score - a.score);
+    renderResults(candidates.slice(0, 25));
+}
+
+async function init() {
+    index = await fetchJson(window.__MDN_CFG__.statesIndexUrl);
+
+    // states-index.json recomendado:
+    // [{ "name":"Alabama", "slug":"alabama", "jsonUrl":"https://sitemaps.../resources/statesFiles/alabama.json" }, ...]
+    stateMeta = Array.isArray(index) ? index : (index?.states || []);
+    for (const st of stateMeta) {
+        const opt = document.createElement("option");
+        opt.value = st.slug;
+        opt.textContent = st.name;
+        stateSelect.appendChild(opt);
+    }
+
+    qEl.addEventListener("input", () => search(qEl.value));
+    stateSelect.addEventListener("change", () => search(qEl.value));
+    modeSelect.addEventListener("change", () => search(qEl.value));
+
+    // auto focus
+    setTimeout(() => qEl.focus(), 200);
+}
+
+init().catch(err => {
+    console.error(err);
+    resultsEl.style.display = "block";
+    resultsEl.innerHTML = `<div class="item"><div><strong>Error</strong><div class="meta">${String(err.message || err)}</div></div></div>`;
+});
