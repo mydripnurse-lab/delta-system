@@ -1,0 +1,29 @@
+<div id="mdn-locations-widget"></div>
+
+<script>
+  window.__MDN_LOCATIONS_CONFIG__ = {
+    statesIndexUrl: "https://sitemaps.mydripnurse.com/ui/states-index.json",
+    redirectMode: "county",
+    bookPath: "/book-service",
+    stickyBook: true,
+    placeholder: "Choose your City, State, or Country",
+  };
+
+  window.__MDN_LOCATIONS_MOUNT__ = function () {
+    try {
+      if (!window.MDNLocationsWidget)
+        return setTimeout(window.__MDN_LOCATIONS_MOUNT__, 80);
+      window.MDNLocationsWidget.mount(
+        "#mdn-locations-widget",
+        window.__MDN_LOCATIONS_CONFIG__
+      );
+    } catch (e) {
+      console.error("MDN mount error:", e);
+    }
+  };
+</script>
+
+<script
+  src="https://sitemaps.mydripnurse.com/ui/locations-widget.js"
+  onload="window.__MDN_LOCATIONS_MOUNT__()"
+></script>
