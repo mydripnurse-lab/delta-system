@@ -3,15 +3,15 @@
 
   <!-- Monroe Main Sitemap -->
   <sitemap>
-    <loc>https://monroe-county-fl.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://monroe-county.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
   <!-- Key Colony Beach Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/florida/counties/monroe/key-colony-beach/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
   <!-- Key West Hosted Sitemap -->
   <sitemap>
@@ -32,9 +32,9 @@
   </sitemap>
 
   <!-- Islamorada Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/florida/counties/monroe/islamorada/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
 </sitemapindex>

@@ -3,7 +3,7 @@
 
   <!-- Palm Beach Main Sitemap -->
   <sitemap>
-    <loc>https://palm-beach-county-fl.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://palmbeach-county.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
@@ -62,10 +62,10 @@
   </sitemap>
 
   <!-- Gulf Stream Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/florida/counties/palm-beach/gulf-stream/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
   <!-- Haverhill Hosted Sitemap -->
   <sitemap>

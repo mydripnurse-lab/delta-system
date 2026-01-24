@@ -3,7 +3,7 @@
 
   <!-- Miami-Dade Main Sitemap -->
   <sitemap>
-    <loc>https://miami-dade-county-fl.mydripnurse.com/sitemap.xml</loc>
+    <loc>https://miami-dade.mydripnurse.com/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
   </sitemap>
 
@@ -206,9 +206,9 @@
   </sitemap>
 
   <!-- West Miami Hosted Sitemap -->
-  <sitemap>
+  <!-- <sitemap>
     <loc>https://sitemaps.mydripnurse.com/states/florida/counties/miami-dade/west-miami/sitemap.xml</loc>
     <lastmod>2026-01-24</lastmod>
-  </sitemap>
+  </sitemap> -->
 
 </sitemapindex>
