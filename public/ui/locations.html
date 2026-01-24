@@ -1,38 +1,46 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Choose your location</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Choose your location</title>
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#fff; }
+    .wrap { padding:18px; }
+    .title { font-size:20px; font-weight:700; margin:0 0 12px; }
+  </style>
+</head>
 
-    <style>
-      body {
-        margin: 0;
-        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
-          sans-serif;
-        background: #f7f9fb;
-      }
-    </style>
-  </head>
-  <body>
+<body>
+  <div class="wrap">
+    <h1 class="title">Choose your location</h1>
     <div id="mdn-locations-widget"></div>
+  </div>
 
-    <script>
-      window.__MDN_LOCATIONS_CONFIG__ = {
-        statesIndexUrl: "https://sitemaps.mydripnurse.com/ui/states-index.json",
-        redirectMode: "county",
-        bookPath: "/book-service",
-        stickyBook: true,
-        placeholder: "Choose your City, State, or Country",
-      };
-    </script>
+  <!-- 1) Config primero (ANTES del widget) -->
+  <script>
+    window.__MDN_LOCATIONS_CONFIG__ = {
+      statesIndexUrl: "https://sitemaps.mydripnurse.com/public/ui/states-index.json",
+      redirectMode: "county",   // "county" o "city"
+      bookPath: "/book-service",
+      stickyBook: true,
+      placeholder: "Choose your City, State, or Country"
+    };
+  </script>
 
-    <script src="./locations-widget.js"></script>
-    <script>
-      MDNLocationsWidget.mount(
-        "#mdn-locations-widget",
-        window.__MDN_LOCATIONS_CONFIG__
-      );
-    </script>
-  </body>
+  <!-- 2) Carga el widget -->
+  <script src="https://sitemaps.mydripnurse.com/public/ui/locations-widget.js" defer></script>
+
+  <!-- 3) Monta el widget cuando el script ya exista -->
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const cfg = window.__MDN_LOCATIONS_CONFIG__ || {};
+      if (!window.MDNLocationsWidget || typeof window.MDNLocationsWidget.mount !== "function") {
+        console.error("MDNLocationsWidget not available. Check locations-widget.js path or global export name.");
+        return;
+      }
+      window.MDNLocationsWidget.mount("#mdn-locations-widget", cfg);
+    });
+  </script>
+</body>
 </html>
