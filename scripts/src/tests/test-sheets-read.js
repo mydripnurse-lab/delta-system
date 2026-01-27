@@ -1,6 +1,6 @@
 // scripts/src/test-sheets-read.js
 import "dotenv/config";
-import { loadSheetIndex } from "../../services/sheetsClient.js";
+import { loadSheetIndex } from "../../../services/sheetsClient.js";
 
 async function main() {
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;

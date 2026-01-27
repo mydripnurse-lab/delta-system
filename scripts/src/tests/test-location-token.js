@@ -1,6 +1,6 @@
 // scripts/src/test-location-token.js
-import { loadTokens, getTokens } from "../../services/tokenStore.js";
-import { getLocationAccessToken } from "../../services/ghlLocationToken.js";
+import { loadTokens, getTokens } from "../../../services/tokenStore.js";
+import { getLocationAccessToken } from "../../../services/ghlLocationToken.js";
 
 const locationId = process.argv[2];
 

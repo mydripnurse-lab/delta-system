@@ -64,14 +64,14 @@ const RUN_ID = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const RUN_STARTED_AT = Date.now();
 
 // Uso:
-// node scripts/run-create-subaccounts.js scripts/out/fl/ghl-create-counties-XXXX.json [--dry-run] [--no-resume]
+// node scripts/run-delta-system.js scripts/out/fl/ghl-create-counties-XXXX.json [--dry-run] [--no-resume]
 async function main() {
     const inputPath = process.argv[2];
     const isDryRun = process.argv.includes("--dry-run");
     const resume = !process.argv.includes("--no-resume"); // default ON
 
     if (!inputPath) {
-        console.error("❌ Usage: node scripts/run-create-subaccounts.js <path-to-json> [--dry-run] [--no-resume]");
+        console.error("❌ Usage: node scripts/run-delta-system.js <path-to-json> [--dry-run] [--no-resume]");
         process.exit(1);
     }
 
