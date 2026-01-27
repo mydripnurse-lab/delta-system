@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-01-27T05:47:44.060Z",
+  "baseUrl": "https://sitemaps.mydripnurse.com",
+  "states": [
+    {
+      "stateName": "Alaska",
+      "stateSlug": "alaska",
+      "stateJsonUrl": "https://sitemaps.mydripnurse.com/resources/statesFiles/alaska.json",
+      "stateFileUrl": "https://sitemaps.mydripnurse.com/resources/statesFiles/alaska.json",
+      "url": "https://sitemaps.mydripnurse.com/resources/statesFiles/alaska.json"
+    },
+    {
+      "stateName": "Kentucky",
+      "stateSlug": "kentucky",
+      "stateJsonUrl": "https://sitemaps.mydripnurse.com/resources/statesFiles/kentucky.json",
+      "stateFileUrl": "https://sitemaps.mydripnurse.com/resources/statesFiles/kentucky.json",
+      "url": "https://sitemaps.mydripnurse.com/resources/statesFiles/kentucky.json"
+    },
+    {
+      "stateName": "Puerto Rico",
+      "stateSlug": "puerto-rico",
+      "stateJsonUrl": "https://sitemaps.mydripnurse.com/resources/statesFiles/puerto-rico.json",
+      "stateFileUrl": "https://sitemaps.mydripnurse.com/resources/statesFiles/puerto-rico.json",
+      "url": "https://sitemaps.mydripnurse.com/resources/statesFiles/puerto-rico.json"
+    }
+  ],
+  "includedOnlyIfFolderExistsIn": "scripts/out/<stateSlug>"
+}

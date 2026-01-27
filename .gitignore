@@ -26,5 +26,5 @@ scripts/out/**
 secrets/
 *.json
 
-!public/ui/*.json
+!public/json/*.json
 !resources/statesFiles/*.json
