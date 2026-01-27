@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { performance } from "node:perf_hooks";
-import { nowISO, ensureDir, titleCaseFromKey, cleanUndefined } from "./utils.js";
+import { nowISO, ensureDir, titleCaseFromKey, cleanUndefined } from "../utils.js";
 
 const ROOT = process.cwd();
 

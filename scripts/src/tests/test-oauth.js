@@ -1,6 +1,6 @@
 // scripts/src/test-oauth.js
 import "dotenv/config";
-import { exchangeCodeForAgencyToken, exchangeAgencyTokenForLocationToken } from "../oauth.js";
+import { exchangeCodeForAgencyToken, exchangeAgencyTokenForLocationToken } from "./test-oauth-ghl.js";
 
 function must(name) {
     const v = process.env[name];

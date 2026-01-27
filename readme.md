@@ -38,23 +38,30 @@ Puede reutilizarse para **Solar, IV Therapy, Construcción, Legal, Bienes Raíce
 ```
 mydripnurse-sitemaps/
 ├── resources/
-│   ├── statesFiles/           # Raw state JSON (counties + cities)
-│   ├── customValues/          # GHL custom values templates
+│   ├── statesFiles/                    # Raw state JSON (counties + cities)
+│   ├── customValues/                   # GHL custom values templates
 │
 ├── scripts/
 │   ├── src/
-│   │   ├── build-counties.js
-│   │   ├── run-create-subaccounts.js
-│   │   └── services/
-│   │       ├── ghlClient.js
-│   │       ├── twilioClient.js
-│   │       ├── tokenStore.js
+│   │   ├── builds/
+│   │   │   ├── build-counties.js
+│   │   │   ├── build-state-sitemaps.js
+│   │   │   └── build-states-index.js
+│   │   │
+│   │   ├── tests/
+│   │   │   ├── test-create-county-subaccount.js
+│   │   │   ├── test-location-token.js
+│   │   │   ├── test-oauth-token.js
+│   │   │   ├── test-oauth.js
+│   │   │   └── test-sheets-read.js
+│   │   │
+│   │   └── run-delta-system.js
 │   │
 │   └── out/
-│       ├── <state>/           # Generated sitemap + payload outputs
-│       ├── checkpoints/       # Anti-duplication checkpoints
+│       ├── <state>/                    # Generated sitemap + payload outputs
+│       ├── checkpoints/                # Anti-duplication checkpoints
 │
-├── server.js                  # Local server for OAuth callback
+├── server.js                           # Local server for OAuth callback
 ├── .env
 ├── package.json
 └── README.md
