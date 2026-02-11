@@ -23,6 +23,7 @@ type RangePreset =
   | "last_6_months"
   | "last_year"
   | "custom";
+type SearchTab = "gsc" | "bing" | "all";
 
 function fmtInt(x: any) {
   const n = Number(x);
@@ -80,6 +81,7 @@ export default function GscDashboardPage() {
   const [data, setData] = useState<any>(null);
 
   const [showTopKeywords, setShowTopKeywords] = useState(true);
+  const [searchTab, setSearchTab] = useState<SearchTab>("all");
 
   function qs() {
     const p = new URLSearchParams();
@@ -114,11 +116,14 @@ export default function GscDashboardPage() {
     const p = new URLSearchParams(base);
     if (forceCatalog) p.set("force", "1");
     p.set("v", String(Date.now()));
+    if (searchTab === "bing") return `/api/dashboard/bing/join?${p.toString()}`;
+    if (searchTab === "all")
+      return `/api/dashboard/search-performance/join?${p.toString()}`;
     return `/api/dashboard/gsc/join?${p.toString()}`;
   }
 
   async function load(opts?: { force?: boolean }) {
-    const force = !!opts?.force;
+    const force = !!opts?.force || preset === "custom";
 
     setErr("");
     setLoading(true);
@@ -126,15 +131,22 @@ export default function GscDashboardPage() {
     setAiInsights(null);
 
     try {
-      const syncRes = await fetch(
-        `/api/dashboard/gsc/sync?${buildSyncParams(force)}`,
-        {
-          cache: "no-store",
-        },
-      );
-      const syncJson = await syncRes.json();
-      if (!syncRes.ok || !syncJson?.ok) {
-        throw new Error(syncJson?.error || `SYNC HTTP ${syncRes.status}`);
+      const syncTargets =
+        searchTab === "all"
+          ? ["/api/dashboard/gsc/sync", "/api/dashboard/bing/sync"]
+          : [searchTab === "bing" ? "/api/dashboard/bing/sync" : "/api/dashboard/gsc/sync"];
+
+      for (const syncTarget of syncTargets) {
+        const syncRes = await fetch(
+          `${syncTarget}?${buildSyncParams(force)}`,
+          {
+            cache: "no-store",
+          },
+        );
+        const syncJson = await syncRes.json();
+        if (!syncRes.ok || !syncJson?.ok) {
+          throw new Error(syncJson?.error || `SYNC HTTP ${syncRes.status}`);
+        }
       }
 
       const res = await fetch(buildJoinUrl(force), { cache: "no-store" });
@@ -156,7 +168,7 @@ export default function GscDashboardPage() {
     if (preset !== "custom") load();
     else if (customStart && customEnd) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, customStart, customEnd, compareOn]);
+  }, [preset, customStart, customEnd, compareOn, searchTab]);
 
   useEffect(() => {
     if (data) load();
@@ -269,6 +281,7 @@ export default function GscDashboardPage() {
 
     try {
       const payload = {
+        source: searchTab,
         range: {
           preset,
           start: summary.startDate,
@@ -296,13 +309,21 @@ export default function GscDashboardPage() {
           pages: topPages.slice(0, 25),
         },
         states: stateRows.slice(0, 20),
-        deltaSystem: {
-          note: "__unknown = páginas fuera del patrón Delta o sin match en catálogo scripts/out.",
+        searchPerformance: {
+          note:
+            "__unknown = páginas fuera del patrón Delta o sin match en catálogo scripts/out.",
         },
         debug: data?.debug || null,
       };
 
-      const res = await fetch("/api/dashboard/gsc/insights", {
+      const insightsEndpoint =
+        searchTab === "bing"
+          ? "/api/dashboard/bing/insights"
+          : searchTab === "all"
+            ? "/api/dashboard/search-performance/insights"
+            : "/api/dashboard/gsc/insights";
+
+      const res = await fetch(insightsEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -325,7 +346,7 @@ export default function GscDashboardPage() {
         <div className="brand">
           <div className="logo" />
           <div>
-            <h1>My Drip Nurse — Google Search Console Dashboard</h1>
+            <h1>My Drip Nurse — Search Performance Dashboard</h1>
           </div>
         </div>
 
@@ -394,6 +415,30 @@ export default function GscDashboardPage() {
         </div>
 
         <div className="cardBody">
+          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+            <button
+              className={`smallBtn ${searchTab === "gsc" ? "smallBtnOn" : ""}`}
+              onClick={() => setSearchTab("gsc")}
+              type="button"
+            >
+              Google Search Console
+            </button>
+            <button
+              className={`smallBtn ${searchTab === "bing" ? "smallBtnOn" : ""}`}
+              onClick={() => setSearchTab("bing")}
+              type="button"
+            >
+              Bing Webmaster
+            </button>
+            <button
+              className={`smallBtn ${searchTab === "all" ? "smallBtnOn" : ""}`}
+              onClick={() => setSearchTab("all")}
+              type="button"
+            >
+              All
+            </button>
+          </div>
+
           <div className="filtersBar">
             <div className="filtersGroup">
               <div className="filtersLabel">Range</div>
@@ -649,7 +694,12 @@ export default function GscDashboardPage() {
           <div>
             <h2 className="cardTitle">Summary</h2>
             <div className="cardSubtitle">
-              KPIs del rango seleccionado{" "}
+              {searchTab === "all"
+                ? "KPIs combinados de Google + Bing"
+                : searchTab === "bing"
+                  ? "KPIs de Bing Webmaster"
+                  : "KPIs de Google Search Console"}{" "}
+              del rango seleccionado{" "}
               {mapSelected ? "(filtrado por estado)" : ""}.
             </div>
           </div>
@@ -939,13 +989,18 @@ export default function GscDashboardPage() {
               <div className="aiCard" id="ai-playbook">
                 <div className="aiCardTop">
                   <div>
-                    <div className="aiTitle">AI Playbook (SEO/GSC Expert)</div>
+                    <div className="aiTitle">
+                      {searchTab === "all"
+                        ? "AI Playbook (Search Performance Expert)"
+                        : searchTab === "bing"
+                          ? "AI Playbook (Bing Webmaster Expert)"
+                          : "AI Playbook (Google Search Console Expert)"}
+                    </div>
                     <div
                       className="mini"
                       style={{ opacity: 0.85, marginTop: 4 }}
                     >
-                      Insights accionables basados en KPIs + top queries/pages +
-                      cobertura Delta.
+                      Insights accionables basados en KPIs + top queries/pages.
                     </div>
                   </div>
 
@@ -1072,9 +1127,22 @@ export default function GscDashboardPage() {
 
               <div style={{ marginTop: 12 }}>
                 <AiAgentChatPanel
-                  agent="gsc"
-                  title="GSC Agent Chat"
+                  agent={
+                    searchTab === "all"
+                      ? "search_performance"
+                      : searchTab === "bing"
+                        ? "bing_webmaster"
+                        : "gsc"
+                  }
+                  title={
+                    searchTab === "all"
+                      ? "Search Performance Agent Chat"
+                      : searchTab === "bing"
+                        ? "Bing Webmaster Agent Chat"
+                        : "GSC Agent Chat"
+                  }
                   context={{
+                    source: searchTab,
                     preset,
                     customStart,
                     customEnd,

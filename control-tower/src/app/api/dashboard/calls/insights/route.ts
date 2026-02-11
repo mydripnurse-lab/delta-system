@@ -104,7 +104,6 @@ export async function POST(req: Request) {
                     schema,
                 },
             },
-            temperature: 0.3,
         });
 
         // ✅ Node SDK suele exponer esto directamente:

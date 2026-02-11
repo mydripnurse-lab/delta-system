@@ -16,13 +16,16 @@ type ResponseOutputText = {
   }>;
 };
 
-type InsightMeta = {
-  scorecard?: {
-    health?: string;
-    primary_risk?: string;
-    primary_opportunity?: string;
-  };
-};
+function safeJsonStringify(x: unknown, maxChars = 140_000) {
+  let out = "";
+  try {
+    out = JSON.stringify(x);
+  } catch {
+    out = String(x ?? "");
+  }
+  if (out.length <= maxChars) return out;
+  return out.slice(0, maxChars) + `\n\n[TRUNCATED ${out.length - maxChars} chars]`;
+}
 
 export async function POST(req: Request) {
   try {
@@ -31,7 +34,6 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
-
     const schema = {
       type: "object",
       additionalProperties: false,
@@ -47,67 +49,53 @@ export async function POST(req: Request) {
           },
           required: ["health", "primary_risk", "primary_opportunity"],
         },
-        playbook: {
+        opportunities: {
           type: "array",
           maxItems: 6,
           items: {
             type: "object",
             additionalProperties: false,
             properties: {
-              region: { type: "string" },
-              objective: { type: "string" },
-              budget_daily_usd: { type: "number" },
-              campaign_structure: { type: "string" },
-              audience: { type: "string" },
-              ad_copy: { type: "string" },
-              landing_plan: { type: "string" },
+              title: { type: "string" },
               expected_impact: { type: "string", enum: ["low", "medium", "high"] },
+              why_it_matters: { type: "string" },
+              evidence: { type: "string" },
+              recommended_actions: { type: "array", items: { type: "string" }, maxItems: 7 },
             },
-            required: [
-              "region",
-              "objective",
-              "budget_daily_usd",
-              "campaign_structure",
-              "audience",
-              "ad_copy",
-              "landing_plan",
-              "expected_impact",
-            ],
+            required: ["title", "expected_impact", "why_it_matters", "evidence", "recommended_actions"],
           },
         },
+        quick_wins_next_7_days: { type: "array", items: { type: "string" }, maxItems: 8 },
+        experiments_next_30_days: { type: "array", items: { type: "string" }, maxItems: 8 },
       },
-      required: ["executive_summary", "scorecard", "playbook"],
+      required: ["executive_summary", "scorecard", "opportunities", "quick_wins_next_7_days", "experiments_next_30_days"],
     };
+
+    const systemPrompt =
+      "You are an elite Bing Webmaster SEO analyst. Use only provided dataset and output concise, action-oriented insights. " +
+      "Do not invent data. Prioritize CTR, clicks, impressions, average position, and geo opportunities. " +
+      "Output valid JSON per schema.";
 
     const resp = await client.responses.create({
       model: "gpt-5.2",
       reasoning: { effort: "none" },
       input: [
-        {
-          role: "system",
-          content:
-            "You are an elite Google Ads performance strategist for local healthcare lead generation. " +
-            "Generate practical campaign playbooks by geography, balancing scale and efficiency. " +
-            "Use only provided data. No hallucinations. Be specific and concise.",
-        },
-        { role: "user", content: JSON.stringify(payload) },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: safeJsonStringify(payload, 160_000) },
       ],
       text: {
         format: {
           type: "json_schema",
-          name: "ads_playbook_insights",
+          name: "bing_dashboard_insights",
           schema,
         },
       },
     });
 
-    const out = resp as ResponseOutputText;
-    let outText = out.output_text;
+    const outAny = resp as ResponseOutputText;
+    let outText = outAny?.output_text as string | undefined;
     if (!outText) {
-      outText =
-        out.output
-          ?.flatMap((o) => o.content || [])
-          ?.find((c) => c.type === "output_text")?.text || "";
+      outText = outAny?.output?.flatMap((o) => o.content || [])?.find((c) => c.type === "output_text")?.text || "";
     }
 
     if (!outText) {
@@ -118,17 +106,21 @@ export async function POST(req: Request) {
     try {
       insights = JSON.parse(outText);
     } catch {
-      return NextResponse.json(
-        { ok: false, error: "Model did not return valid JSON.", raw: outText.slice(0, 800) },
-        { status: 502 },
-      );
+      return NextResponse.json({ ok: false, error: "Model did not return valid JSON.", raw: outText.slice(0, 1200) }, { status: 502 });
     }
 
-    const parsed = insights as InsightMeta;
+    const parsed = insights as {
+      scorecard?: {
+        health?: string;
+        primary_risk?: string;
+        primary_opportunity?: string;
+      };
+    };
+
     await appendAiEvent({
-      agent: "ads",
+      agent: "bing_webmaster",
       kind: "insight_run",
-      summary: `Ads playbook generated (${String(parsed?.scorecard?.health || "mixed")})`,
+      summary: `Bing insights generated (${String(parsed?.scorecard?.health || "mixed")})`,
       metadata: {
         health: parsed?.scorecard?.health || null,
         risk: parsed?.scorecard?.primary_risk || null,
@@ -138,9 +130,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, insights }, { status: 200 });
   } catch (e: unknown) {
-    return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : "Failed to generate ads playbook" },
-      { status: 500 },
-    );
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "Failed to generate Bing insights" }, { status: 500 });
   }
 }

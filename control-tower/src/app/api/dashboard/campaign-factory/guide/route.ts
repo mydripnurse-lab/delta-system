@@ -23,6 +23,20 @@ type InsightMeta = {
   quick_summary?: string;
 };
 
+function s(v: unknown) {
+  return String(v ?? "").trim();
+}
+
+function clip(v: unknown, max = 320) {
+  const txt = s(v);
+  return txt.length > max ? `${txt.slice(0, max - 1)}...` : txt;
+}
+
+function n(v: unknown) {
+  const x = Number(v);
+  return Number.isFinite(x) ? x : 0;
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -33,6 +47,62 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
+    const p = (payload || {}) as Record<string, unknown>;
+    const campaign = (p.campaign || {}) as Record<string, unknown>;
+    const context = (p.context || {}) as Record<string, unknown>;
+    const topGeo = Array.isArray(context.topGeo) ? context.topGeo : [];
+    const attribution = Array.isArray(context.attribution) ? context.attribution : [];
+    const gscTopQueries = Array.isArray(context.gscTopQueries) ? context.gscTopQueries : [];
+
+    const compactPayload = {
+      range: p.range || null,
+      campaign: {
+        channel: clip(campaign.channel, 80),
+        region: clip(campaign.region, 120),
+        geoTier: clip(campaign.geoTier, 40),
+        objective: clip(campaign.objective, 140),
+        intentCluster: clip(campaign.intentCluster, 140),
+        serviceLine: clip(campaign.serviceLine, 140),
+        priorityScore: n(campaign.priorityScore),
+        potentialRevenueUsd: n(campaign.potentialRevenueUsd),
+        budgetDailyUsd: n(campaign.budgetDailyUsd),
+        campaignName: clip(campaign.campaignName, 180),
+        adSetOrAdGroup: clip(campaign.adSetOrAdGroup, 180),
+        landingUrl: clip(campaign.landingUrl, 220),
+        formUrl: clip(campaign.formUrl, 220),
+        bookingUrl: clip(campaign.bookingUrl, 220),
+        audience: clip(campaign.audience, 240),
+        copyHeadline: clip(campaign.copyHeadline, 160),
+        copyPrimary: clip(campaign.copyPrimary, 320),
+        cta: clip(campaign.cta, 60),
+        funnel: clip(campaign.funnel, 180),
+        kpiTarget: clip(campaign.kpiTarget, 180),
+        roasFloor: n(campaign.roasFloor),
+        roasTarget: n(campaign.roasTarget),
+        roasStretch: n(campaign.roasStretch),
+      },
+      context: {
+        business: {
+          name: clip((context.business as Record<string, unknown>)?.name, 120),
+          offer: clip((context.business as Record<string, unknown>)?.offer, 180),
+          geo: clip((context.business as Record<string, unknown>)?.geo, 120),
+          positioning: clip((context.business as Record<string, unknown>)?.positioning, 220),
+        },
+        topGeo: topGeo.slice(0, 8).map((x) => ({
+          name: clip((x as Record<string, unknown>).name, 120),
+          level: clip((x as Record<string, unknown>).level, 40),
+          leads: n((x as Record<string, unknown>).leads),
+          opportunities: n((x as Record<string, unknown>).opportunities),
+          revenue: n((x as Record<string, unknown>).revenue),
+        })),
+        attribution: attribution.slice(0, 8).map((x) => ({
+          source: clip((x as Record<string, unknown>).source, 80),
+          leads: n((x as Record<string, unknown>).leads),
+          revenue: n((x as Record<string, unknown>).revenue),
+        })),
+        gscTopQueries: gscTopQueries.slice(0, 12).map((q) => clip(q, 100)),
+      },
+    };
 
     const schema = {
       type: "object",
@@ -102,7 +172,7 @@ export async function POST(req: Request) {
         },
         {
           role: "user",
-          content: JSON.stringify(payload),
+          content: JSON.stringify(compactPayload),
         },
       ],
       text: {
@@ -112,7 +182,6 @@ export async function POST(req: Request) {
           schema,
         },
       },
-      temperature: 0.25,
     });
 
     const out = resp as ResponseOutputText;

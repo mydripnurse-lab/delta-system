@@ -79,6 +79,15 @@ function toUrlMaybe(domainOrUrl: string) {
   return `https://${d}`;
 }
 
+function formatStateLabel(raw: string) {
+  const cleaned = s(raw).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+  return cleaned
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 async function safeJson(res: Response) {
   const text = await res.text();
   if (!text) return null;
@@ -189,6 +198,43 @@ type SitemapVerifyResponse = {
   error?: string;
 };
 
+type IndexSubmitResponse = {
+  ok: boolean;
+  target: "google";
+  domainUrl?: string;
+  host?: string;
+  google?: {
+    ok: boolean;
+    mode?: "inspection";
+    status?: number;
+    siteUrl?: string;
+    siteProperty?: string;
+    fetch?: {
+      status?: number;
+      finalUrl?: string;
+      contentType?: string;
+      error?: string;
+    };
+    inspection?: {
+      verdict?: string;
+      coverageState?: string;
+      indexingState?: string;
+      lastCrawlTime?: string;
+      robotsTxtState?: string;
+    };
+    discovery?: {
+      attempted: boolean;
+      sitemapUrl: string;
+      submitted: boolean;
+      submittedBy?: string;
+      submitError?: string;
+    };
+    bodyPreview?: string;
+    error?: string;
+  };
+  error?: string;
+};
+
 /** ---- Progress / Runner UX (client-only) ---- */
 type RunnerTotals = {
   allTotal: number;
@@ -276,6 +322,8 @@ export default function Home() {
   const [actSitemapUrl, setActSitemapUrl] = useState("");
   const [actSitemapChecking, setActSitemapChecking] = useState(false);
   const [actSitemapVerify, setActSitemapVerify] = useState<SitemapVerifyResponse | null>(null);
+  const [actIndexing, setActIndexing] = useState<boolean>(false);
+  const [actIndexResult, setActIndexResult] = useState<IndexSubmitResponse | null>(null);
   const [actChecklistTab, setActChecklistTab] =
     useState<ChecklistTabKey>("domain");
   const [robotsCopied, setRobotsCopied] = useState(false);
@@ -934,6 +982,8 @@ export default function Home() {
     setActSitemapUrl(s(opts.sitemapUrl));
     setActSitemapVerify(null);
     setActSitemapChecking(false);
+    setActIndexing(false);
+    setActIndexResult(null);
     setActChecklistTab("domain");
 
     setActWebsiteUrl(toUrlMaybe(opts.domainToPaste));
@@ -996,6 +1046,48 @@ export default function Home() {
       });
     } finally {
       setActSitemapChecking(false);
+    }
+  }
+
+  async function submitGoogleIndex() {
+    const domainUrl = s(toUrlMaybe(s(actWebsiteUrl) || s(actDomainToPaste)));
+    if (!domainUrl) {
+      setActIndexResult({
+        ok: false,
+        target: "google",
+        error: "Missing domain URL.",
+      });
+      return;
+    }
+    setActIndexing(true);
+    setActIndexResult(null);
+    try {
+      const res = await fetch("/api/tools/index-submit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          target: "google",
+          domainUrl,
+        }),
+      });
+      const data = (await safeJson(res)) as IndexSubmitResponse | null;
+      if (!data || !res.ok || !data.ok) {
+        setActIndexResult({
+          ok: false,
+          target: "google",
+          error: data?.error || `HTTP ${res.status}`,
+        });
+        return;
+      }
+      setActIndexResult(data);
+    } catch (e: any) {
+      setActIndexResult({
+        ok: false,
+        target: "google",
+        error: e?.message || "Index submit failed.",
+      });
+    } finally {
+      setActIndexing(false);
     }
   }
 
@@ -1174,7 +1266,7 @@ export default function Home() {
                   <option value="all">ALL</option>
                   {statesOut.map((s0) => (
                     <option key={s0} value={s0}>
-                      {s0}
+                      {formatStateLabel(s0)}
                     </option>
                   ))}
                 </select>
@@ -1265,7 +1357,7 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    • State: <b>{stateOut}</b>
+                    • State: <b>{stateOut === "all" ? "ALL" : formatStateLabel(stateOut)}</b>
                   </>
                 )}{" "}
                 • Mode: <b>{mode}</b>
@@ -1396,6 +1488,22 @@ export default function Home() {
                 <div className="kpi">
                   <p className="n">{totals.citiesDomainsActive}</p>
                   <p className="l">City domains active</p>
+                </div>
+                <div className="kpi">
+                  <p className="n">
+                    {totals.countiesTotal
+                      ? `${Math.round((totals.countiesDomainsActive / totals.countiesTotal) * 100)}%`
+                      : "0%"}
+                  </p>
+                  <p className="l">County activation %</p>
+                </div>
+                <div className="kpi">
+                  <p className="n">
+                    {totals.citiesTotal
+                      ? `${Math.round((totals.citiesDomainsActive / totals.citiesTotal) * 100)}%`
+                      : "0%"}
+                  </p>
+                  <p className="l">City activation %</p>
                 </div>
               </div>
             )}
@@ -1622,6 +1730,32 @@ export default function Home() {
                     <div className="kpi">
                       <p className="n">{detail.cities.stats.eligible}</p>
                       <p className="l">Eligible cities</p>
+                    </div>
+                    <div className="kpi">
+                      <p className="n">
+                        {(() => {
+                          const eligible = detail.counties.stats.eligible || 0;
+                          const active = (detail.counties.rows || []).filter(
+                            (r) => !!r.__eligible && isTrue(r["Domain Created"]),
+                          ).length;
+                          if (!eligible) return "0%";
+                          return `${Math.round((active / eligible) * 100)}%`;
+                        })()}
+                      </p>
+                      <p className="l">County domains activated %</p>
+                    </div>
+                    <div className="kpi">
+                      <p className="n">
+                        {(() => {
+                          const eligible = detail.cities.stats.eligible || 0;
+                          const active = (detail.cities.rows || []).filter(
+                            (r) => !!r.__eligible && isTrue(r["Domain Created"]),
+                          ).length;
+                          if (!eligible) return "0%";
+                          return `${Math.round((active / eligible) * 100)}%`;
+                        })()}
+                      </p>
+                      <p className="l">City domains activated %</p>
                     </div>
                   </div>
 
@@ -1865,6 +1999,7 @@ export default function Home() {
                     ❌ {actMarkErr}
                   </div>
                 ) : null}
+
               </div>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -2117,7 +2252,7 @@ export default function Home() {
                           </div>
 
                           <div className="miniCard miniCardAction">
-                            <div style={{ display: "flex", gap: 8 }}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                               <a
                                 className="smallBtn"
                                 href={actSitemapUrl || "#"}

@@ -1,0 +1,432 @@
+import fs from "fs/promises";
+import path from "path";
+
+export const runtime = "nodejs";
+
+type RangePreset =
+  | "last_7_days"
+  | "last_28_days"
+  | "last_month"
+  | "last_quarter"
+  | "last_6_months"
+  | "last_year"
+  | "custom";
+
+type BingApiRow = Record<string, unknown>;
+
+function s(v: unknown) {
+  return String(v ?? "").trim();
+}
+
+function toNum(v: unknown) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isoDateOnly(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function toUsDate(iso: string) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (!Number.isFinite(d.getTime())) return iso;
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const yyyy = String(d.getUTCFullYear());
+  return `${mm}/${dd}/${yyyy}`;
+}
+
+function rangeFromPreset(preset: RangePreset, startRaw: string, endRaw: string) {
+  const now = new Date();
+  const end = new Date(now);
+  const start = new Date(now);
+
+  if (preset === "custom") {
+    const cs = new Date(startRaw || now);
+    const ce = new Date(endRaw || now);
+    return {
+      startDate: isoDateOnly(new Date(cs.getFullYear(), cs.getMonth(), cs.getDate())),
+      endDate: isoDateOnly(new Date(ce.getFullYear(), ce.getMonth(), ce.getDate())),
+    };
+  }
+
+  if (preset === "last_7_days") start.setDate(start.getDate() - 7);
+  else if (preset === "last_28_days") start.setDate(start.getDate() - 28);
+  else if (preset === "last_month") start.setMonth(start.getMonth() - 1);
+  else if (preset === "last_quarter") start.setMonth(start.getMonth() - 3);
+  else if (preset === "last_6_months") start.setMonth(start.getMonth() - 6);
+  else if (preset === "last_year") start.setFullYear(start.getFullYear() - 1);
+
+  return {
+    startDate: isoDateOnly(new Date(start.getFullYear(), start.getMonth(), start.getDate())),
+    endDate: isoDateOnly(new Date(end.getFullYear(), end.getMonth(), end.getDate())),
+  };
+}
+
+function parseDateFromRow(row: BingApiRow) {
+  const keys = ["Date", "date", "Day", "day", "Timestamp", "timestamp"];
+  for (const k of keys) {
+    const raw = s(row[k]);
+    if (!raw) continue;
+    const m = raw.match(/\/Date\((\d+)(?:[+-]\d+)?\)\//);
+    if (m) {
+      const ms = Number(m[1]);
+      if (Number.isFinite(ms)) return isoDateOnly(new Date(ms));
+    }
+    const d = new Date(raw);
+    if (Number.isFinite(d.getTime())) return isoDateOnly(d);
+  }
+  return "";
+}
+
+function pickQuery(row: BingApiRow) {
+  return s(row.Query ?? row.query ?? row.Keyword ?? row.keyword ?? row.SearchQuery ?? row.searchQuery);
+}
+
+function pickPage(row: BingApiRow) {
+  return s(
+    row.Page ??
+      row.page ??
+      row.Url ??
+      row.url ??
+      row.LandingPage ??
+      row.landingPage ??
+      row.PageUrl ??
+      row.pageUrl ??
+      row.Query ??
+      row.query,
+  );
+}
+
+function pickImpressions(row: BingApiRow) {
+  return toNum(row.Impressions ?? row.impressions ?? row.Views ?? row.views);
+}
+
+function pickClicks(row: BingApiRow) {
+  return toNum(row.Clicks ?? row.clicks);
+}
+
+function pickCtr(row: BingApiRow) {
+  const direct = toNum(row.Ctr ?? row.ctr ?? row.CTR);
+  if (direct > 0) return direct;
+  const i = pickImpressions(row);
+  const c = pickClicks(row);
+  return i > 0 ? c / i : 0;
+}
+
+function pickPosition(row: BingApiRow) {
+  return toNum(
+    row.Position ??
+      row.position ??
+      row.AveragePosition ??
+      row.averagePosition ??
+      row.AvgPosition ??
+      row.avgPosition ??
+      row.AvgImpressionPosition ??
+      row.avgImpressionPosition ??
+      row.AvgClickPosition ??
+      row.avgClickPosition,
+  );
+}
+
+function isLikelyUrl(v: string) {
+  const x = s(v).toLowerCase();
+  if (!x) return false;
+  return x.startsWith("http://") || x.startsWith("https://") || x.includes(".mydripnurse.");
+}
+
+function deepCollectRows(node: unknown, out: BingApiRow[]) {
+  if (!node) return;
+  if (Array.isArray(node)) {
+    for (const x of node) deepCollectRows(x, out);
+    return;
+  }
+  if (typeof node !== "object") return;
+
+  const rec = node as Record<string, unknown>;
+  const hasMetrics =
+    rec.Impressions !== undefined ||
+    rec.impressions !== undefined ||
+    rec.Clicks !== undefined ||
+    rec.clicks !== undefined;
+
+  if (hasMetrics) out.push(rec);
+
+  for (const v of Object.values(rec)) {
+    if (Array.isArray(v) || (v && typeof v === "object")) deepCollectRows(v, out);
+  }
+}
+
+async function callBingMethod(opts: {
+  endpoint: string;
+  apiKey: string;
+  siteUrl: string;
+  method: string;
+  startDate: string;
+  endDate: string;
+}) {
+  const startIso = opts.startDate;
+  const endIso = opts.endDate;
+  const startUs = toUsDate(startIso);
+  const endUs = toUsDate(endIso);
+
+  const variants: Array<Record<string, string>> = [
+    { siteUrl: opts.siteUrl, startDate: startIso, endDate: endIso, apikey: opts.apiKey },
+    { siteurl: opts.siteUrl, startDate: startIso, endDate: endIso, apikey: opts.apiKey },
+    { siteUrl: opts.siteUrl, start: startIso, end: endIso, apikey: opts.apiKey },
+    { siteurl: opts.siteUrl, start: startIso, end: endIso, apikey: opts.apiKey },
+    { siteUrl: opts.siteUrl, fromDate: startIso, toDate: endIso, apikey: opts.apiKey },
+    { siteUrl: opts.siteUrl, startDate: startUs, endDate: endUs, apikey: opts.apiKey },
+    { siteurl: opts.siteUrl, startDate: startUs, endDate: endUs, apikey: opts.apiKey },
+    { siteUrl: opts.siteUrl, start: startUs, end: endUs, apikey: opts.apiKey },
+    { siteurl: opts.siteUrl, start: startUs, end: endUs, apikey: opts.apiKey },
+    { siteUrl: opts.siteUrl, fromDate: startUs, toDate: endUs, apikey: opts.apiKey },
+  ];
+
+  let lastErr = "";
+  for (const q of variants) {
+    const url = new URL(`${opts.endpoint.replace(/\/+$/, "")}/${opts.method}`);
+    for (const [k, v] of Object.entries(q)) {
+      if (s(v)) url.searchParams.set(k, v);
+    }
+
+    const res = await fetch(url.toString(), { cache: "no-store" });
+    const txt = await res.text();
+    if (!res.ok) {
+      lastErr = `HTTP ${res.status} ${opts.method}`;
+      continue;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(txt);
+    } catch {
+      lastErr = `Invalid JSON in ${opts.method}`;
+      continue;
+    }
+
+    const rows: BingApiRow[] = [];
+    deepCollectRows(parsed, rows);
+    if (rows.length) return { ok: true, rows, raw: parsed };
+    lastErr = `No metric rows in ${opts.method}`;
+  }
+
+  return { ok: false, rows: [] as BingApiRow[], error: lastErr || `No data from ${opts.method}` };
+}
+
+function aggregateTrendRows(queryRows: BingApiRow[]) {
+  const byDate = new Map<string, { impressions: number; clicks: number; ctrAcc: number; ctrW: number; posAcc: number; posW: number }>();
+  for (const r of queryRows) {
+    const d = parseDateFromRow(r);
+    if (!d) continue;
+    const impressions = pickImpressions(r);
+    const clicks = pickClicks(r);
+    const ctr = pickCtr(r);
+    const position = pickPosition(r);
+    const prev = byDate.get(d) || { impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0 };
+    prev.impressions += impressions;
+    prev.clicks += clicks;
+    prev.ctrAcc += ctr * Math.max(impressions, 1);
+    prev.ctrW += Math.max(impressions, 1);
+    if (position > 0) {
+      prev.posAcc += position * Math.max(impressions, 1);
+      prev.posW += Math.max(impressions, 1);
+    }
+    byDate.set(d, prev);
+  }
+
+  return Array.from(byDate.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, x]) => ({
+      date,
+      impressions: x.impressions,
+      clicks: x.clicks,
+      ctr: x.ctrW > 0 ? x.ctrAcc / x.ctrW : 0,
+      position: x.posW > 0 ? x.posAcc / x.posW : 0,
+    }));
+}
+
+function aggregateTrendFromNormalizedRows(
+  rows: Array<{ date: string; impressions: number; clicks: number; ctr: number; position: number }>,
+) {
+  const byDate = new Map<string, { impressions: number; clicks: number; ctrAcc: number; ctrW: number; posAcc: number; posW: number }>();
+  for (const r of rows) {
+    const d = s(r.date);
+    if (!d) continue;
+    const impressions = toNum(r.impressions);
+    const clicks = toNum(r.clicks);
+    const ctr = toNum(r.ctr);
+    const position = toNum(r.position);
+    const prev = byDate.get(d) || { impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0 };
+    prev.impressions += impressions;
+    prev.clicks += clicks;
+    prev.ctrAcc += ctr * Math.max(impressions, 1);
+    prev.ctrW += Math.max(impressions, 1);
+    if (position > 0) {
+      prev.posAcc += position * Math.max(impressions, 1);
+      prev.posW += Math.max(impressions, 1);
+    }
+    byDate.set(d, prev);
+  }
+
+  return Array.from(byDate.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, x]) => ({
+      date,
+      impressions: x.impressions,
+      clicks: x.clicks,
+      ctr: x.ctrW > 0 ? x.ctrAcc / x.ctrW : 0,
+      position: x.posW > 0 ? x.posAcc / x.posW : 0,
+    }));
+}
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const preset = (s(searchParams.get("range")) || "last_28_days") as RangePreset;
+    const start = s(searchParams.get("start"));
+    const end = s(searchParams.get("end"));
+    const force = s(searchParams.get("force")) === "1";
+
+    const apiKey = s(process.env.BING_WEBMASTER_API_KEY);
+    const siteUrl = s(process.env.BING_WEBMASTER_SITE_URL);
+    const endpoint = s(process.env.BING_WEBMASTER_API_ENDPOINT) || "https://ssl.bing.com/webmaster/api.svc/json";
+
+    if (!apiKey || !siteUrl) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Missing BING_WEBMASTER_API_KEY or BING_WEBMASTER_SITE_URL",
+          requiredEnv: ["BING_WEBMASTER_API_KEY", "BING_WEBMASTER_SITE_URL"],
+        },
+        { status: 400 },
+      );
+    }
+
+    const range = rangeFromPreset(preset, start, end);
+    const cacheDir = path.join(process.cwd(), "data", "cache", "bing");
+    const metaPath = path.join(cacheDir, "meta.json");
+    const freshnessMs = Math.max(60_000, Number(process.env.BING_SYNC_MAX_AGE_MS || 10 * 60_000));
+
+    if (!force) {
+      try {
+        const st = await fs.stat(metaPath);
+        const age = Date.now() - st.mtimeMs;
+        const prevMetaRaw = await fs.readFile(metaPath, "utf8");
+        const prevMeta = JSON.parse(prevMetaRaw) as {
+          range?: string;
+          startDate?: string;
+          endDate?: string;
+        };
+        const sameWindow =
+          s(prevMeta?.range) === preset &&
+          s(prevMeta?.startDate) === range.startDate &&
+          s(prevMeta?.endDate) === range.endDate;
+        if (age <= freshnessMs && sameWindow) {
+          return Response.json({ ok: true, cached: true, ageMs: age, range, message: "Bing cache is fresh" });
+        }
+      } catch {
+        // no cache yet
+      }
+    }
+
+    const [queriesRes, pagesRes] = await Promise.all([
+      callBingMethod({ endpoint, apiKey, siteUrl, method: "GetQueryStats", startDate: range.startDate, endDate: range.endDate }),
+      callBingMethod({ endpoint, apiKey, siteUrl, method: "GetPageStats", startDate: range.startDate, endDate: range.endDate }),
+    ]);
+
+    if (!queriesRes.ok && !pagesRes.ok) {
+      return Response.json(
+        {
+          ok: false,
+          error: `Unable to fetch Bing data. Query error: ${queriesRes.error || "unknown"}. Page error: ${pagesRes.error || "unknown"}`,
+        },
+        { status: 502 },
+      );
+    }
+
+    const queryRows = queriesRes.rows
+      .map((r) => ({
+        query: pickQuery(r),
+        date: parseDateFromRow(r),
+        impressions: pickImpressions(r),
+        clicks: pickClicks(r),
+        ctr: pickCtr(r),
+        position: pickPosition(r),
+        raw: r,
+      }))
+      .filter((r) => !!s(r.query) && !isLikelyUrl(r.query));
+
+    let pageRows = pagesRes.rows
+      .map((r) => ({
+        page: pickPage(r),
+        date: parseDateFromRow(r),
+        impressions: pickImpressions(r),
+        clicks: pickClicks(r),
+        ctr: pickCtr(r),
+        position: pickPosition(r),
+        raw: r,
+      }))
+      .filter((r) => !!s(r.page) && isLikelyUrl(r.page));
+
+    // Some Bing responses return URL-like rows only in query payload.
+    if (!pageRows.length) {
+      pageRows = queriesRes.rows
+        .map((r) => ({
+          page: pickPage(r),
+          date: parseDateFromRow(r),
+          impressions: pickImpressions(r),
+          clicks: pickClicks(r),
+          ctr: pickCtr(r),
+          position: pickPosition(r),
+          raw: r,
+        }))
+        .filter((r) => !!s(r.page) && isLikelyUrl(r.page));
+    }
+
+    const trendRowsFromQueries = aggregateTrendFromNormalizedRows(queryRows);
+    const trendRowsFromPages = aggregateTrendFromNormalizedRows(pageRows);
+    const trendRows =
+      trendRowsFromPages.length >= trendRowsFromQueries.length
+        ? trendRowsFromPages
+        : trendRowsFromQueries.length > 0
+          ? trendRowsFromQueries
+          : aggregateTrendRows(queriesRes.rows);
+
+    const meta = {
+      ok: true,
+      source: "bing_webmaster",
+      siteUrl,
+      range: preset,
+      startDate: range.startDate,
+      endDate: range.endDate,
+      fetchedAt: new Date().toISOString(),
+      endpoint,
+    };
+
+    await fs.mkdir(cacheDir, { recursive: true });
+    await fs.writeFile(path.join(cacheDir, "meta.json"), JSON.stringify(meta, null, 2), "utf8");
+    await fs.writeFile(path.join(cacheDir, "queries.json"), JSON.stringify({ rows: queryRows }, null, 2), "utf8");
+    await fs.writeFile(path.join(cacheDir, "pages.json"), JSON.stringify({ rows: pageRows }, null, 2), "utf8");
+    await fs.writeFile(path.join(cacheDir, "trend.json"), JSON.stringify({ rows: trendRows }, null, 2), "utf8");
+
+    return Response.json({
+      ok: true,
+      cached: false,
+      range,
+      counts: {
+        queries: queryRows.length,
+        pages: pageRows.length,
+        trend: trendRows.length,
+      },
+      debug: {
+        queryMethodOk: queriesRes.ok,
+        pageMethodOk: pagesRes.ok,
+        queryError: queriesRes.ok ? null : queriesRes.error,
+        pageError: pagesRes.ok ? null : pagesRes.error,
+      },
+    });
+  } catch (e: unknown) {
+    return Response.json({ ok: false, error: e instanceof Error ? e.message : "bing sync failed" }, { status: 500 });
+  }
+}

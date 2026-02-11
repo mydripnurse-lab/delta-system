@@ -202,6 +202,22 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function dayIso(v: string) {
+    const raw = s(v);
+    if (!raw) return "";
+    return raw.slice(0, 10);
+}
+
+function searchRangeFromPreset(preset: string) {
+    if (preset === "7d") return "last_7_days";
+    if (preset === "28d") return "last_28_days";
+    if (preset === "1m") return "last_month";
+    if (preset === "3m") return "last_quarter";
+    if (preset === "6m") return "last_6_months";
+    if (preset === "1y") return "last_year";
+    return "last_28_days";
+}
+
 function rate(num: number, den: number) {
     if (!Number.isFinite(num) || !Number.isFinite(den) || den <= 0) return null;
     return num / den;
@@ -236,6 +252,23 @@ export async function GET(req: Request) {
         const convBust = force ? "&bust=1" : "";
         const contactsBust = force ? "&bust=1" : "";
         const forceQ = force ? "&force=1" : "";
+        const startDay = dayIso(start);
+        const endDay = dayIso(end);
+        const syncParams = new URLSearchParams();
+        if (preset === "custom") {
+            syncParams.set("range", "custom");
+            syncParams.set("start", startDay);
+            syncParams.set("end", endDay);
+        } else {
+            syncParams.set("range", searchRangeFromPreset(preset));
+        }
+        syncParams.set("compare", "1");
+        if (force) syncParams.set("force", "1");
+
+        await Promise.all([
+            fetchJson(`${origin}/api/dashboard/gsc/sync?${syncParams.toString()}`),
+            fetchJson(`${origin}/api/dashboard/bing/sync?${syncParams.toString()}`),
+        ]);
 
         const [
             callsCur,
@@ -243,6 +276,7 @@ export async function GET(req: Request) {
             contactsCur,
             contactsPrev,
             gscAgg,
+            searchJoinInitial,
             gaJoin,
             adsJoin,
         ] = await Promise.all([
@@ -261,9 +295,24 @@ export async function GET(req: Request) {
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(`${origin}/api/dashboard/gsc/aggregate?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${forceQ}`),
+            fetchJson(
+                `${origin}/api/dashboard/search-performance/join?compare=1&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${forceQ}`,
+            ),
             fetchJson(`${origin}/api/dashboard/ga/join?compare=1${forceQ}`),
             fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${forceQ}`),
         ]);
+
+        let searchJoin = searchJoinInitial;
+        const searchMeta = (searchJoin.ok ? (searchJoin.data.meta as JsonObject) : {}) || {};
+        const searchStartDay = dayIso(s(searchMeta.startDate));
+        const searchEndDay = dayIso(s(searchMeta.endDate));
+        const searchRangeMismatch = !!startDay && !!endDay && (searchStartDay !== startDay || searchEndDay !== endDay);
+
+        if (searchRangeMismatch) {
+            searchJoin = await fetchJson(
+                `${origin}/api/dashboard/search-performance/join?compare=1&start=${encodeURIComponent(startDay)}&end=${encodeURIComponent(endDay)}${forceQ}`,
+            );
+        }
 
         // Conversations are fetched sequentially to reduce GHL rate-limit pressure (429).
         const conversationsCur = await fetchJson(
@@ -335,6 +384,21 @@ export async function GET(req: Request) {
 
         const gscTotals = (gscAgg.ok ? (gscAgg.data.totals as JsonObject) : {}) || {};
         const gscDeltas = (gscAgg.ok ? (gscAgg.data.deltas as JsonObject) : {}) || {};
+        const gscPrevTotals = (gscAgg.ok ? (gscAgg.data.prevTotals as JsonObject) : {}) || {};
+        const searchSummary = (() => {
+            if (!searchJoin.ok) return {};
+            const overall = (searchJoin.data.summaryOverall as JsonObject) || null;
+            if (overall && Object.keys(overall).length) return overall;
+            return (searchJoin.data.summaryOverall as JsonObject) || {};
+        })();
+        const searchCompare = (searchJoin.ok ? (searchJoin.data.compare as JsonObject) : {}) || {};
+
+        const searchImpressionsNow = n(searchSummary.impressions);
+        const searchImpressionsBefore = n((searchCompare.previous as JsonObject)?.impressions);
+        const searchImpressionsDeltaPct = percentChange(searchImpressionsNow, searchImpressionsBefore);
+        const searchClicksNow = n(searchSummary.clicks);
+        const searchClicksBefore = n((searchCompare.previous as JsonObject)?.clicks);
+        const searchClicksDeltaPct = percentChange(searchClicksNow, searchClicksBefore);
 
         const gaSummary = (gaJoin.ok ? (gaJoin.data.summaryOverall as JsonObject) : {}) || {};
         const gaCompare = (gaJoin.ok ? (gaJoin.data.compare as JsonObject) : {}) || {};
@@ -658,7 +722,6 @@ export async function GET(req: Request) {
             revenueGap: Math.round((forecast30.revenue - targetMonthly.revenue) * 100) / 100,
         };
 
-        const gscPrevTotals = (gscAgg.ok ? (gscAgg.data.prevTotals as JsonObject) : {}) || {};
         const adsImpressionsNow = Math.max(0, n(adsSummary.impressions));
         const adsImpressionsBefore = Math.max(
             0,
@@ -1199,6 +1262,10 @@ export async function GET(req: Request) {
                     leadToCall !== null && leadToCallPrev !== null
                         ? percentChange(leadToCall, leadToCallPrev)
                         : null,
+                searchImpressionsNow,
+                searchImpressionsBefore,
+                searchImpressionsDeltaPct,
+                searchClicksNow,
                 gscClicks: n(gscTotals.clicks),
                 gscImpressions: n(gscTotals.impressions),
                 gaSessions: n(gaSummary.sessions),
@@ -1421,6 +1488,18 @@ export async function GET(req: Request) {
                     ok: adsJoin.ok,
                     summary: adsSummary,
                     error: adsJoin.ok ? null : s(adsJoin.data.error || `HTTP ${adsJoin.status}`),
+                },
+                searchPerformance: {
+                    ok: searchJoin.ok,
+                    totals: {
+                        clicks: searchClicksNow,
+                        impressions: searchImpressionsNow,
+                    },
+                    deltas: {
+                        clicksPct: searchClicksDeltaPct,
+                        impressionsPct: searchImpressionsDeltaPct,
+                    },
+                    error: searchJoin.ok ? null : s(searchJoin.data.error || `HTTP ${searchJoin.status}`),
                 },
             },
         };

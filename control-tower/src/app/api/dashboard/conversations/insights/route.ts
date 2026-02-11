@@ -104,7 +104,6 @@ export async function POST(req: Request) {
                     schema,
                 },
             },
-            temperature: 0.3,
         });
 
         let outText = (resp as any).output_text as string | undefined;

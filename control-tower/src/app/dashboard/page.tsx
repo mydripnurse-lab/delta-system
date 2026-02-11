@@ -4,6 +4,31 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 
+declare global {
+  interface Window {
+    html2canvas?: (
+      element: HTMLElement,
+      options?: Record<string, unknown>,
+    ) => Promise<HTMLCanvasElement>;
+    jspdf?: {
+      jsPDF: new (options?: Record<string, unknown>) => {
+        internal: { pageSize: { getWidth: () => number; getHeight: () => number } };
+        addImage: (
+          imageData: string,
+          format: string,
+          x: number,
+          y: number,
+          width: number,
+          height: number,
+        ) => void;
+        addPage: () => void;
+        save: (fileName: string) => void;
+      };
+    };
+    __extScriptPromises?: Record<string, Promise<void>>;
+  }
+}
+
 type RangePreset = "1d" | "7d" | "28d" | "1m" | "3m" | "6m" | "1y" | "custom";
 
 type OverviewResponse = {
@@ -47,6 +72,10 @@ type OverviewResponse = {
     appointmentsLostValueDeltaPct: number | null;
     leadToCall: number | null;
     leadToCallDeltaPct: number | null;
+    searchImpressionsNow: number;
+    searchImpressionsBefore: number;
+    searchImpressionsDeltaPct: number | null;
+    searchClicksNow: number;
     gscClicks: number;
     gscImpressions: number;
     gaSessions: number;
@@ -426,6 +455,32 @@ type CampaignGuide = {
   launch_checklist: string[];
 };
 
+type PlannedCampaign = CampaignBlueprint & {
+  adjustedBudgetDailyUsd: number;
+  budgetSharePct: number;
+  estimatedMonthlySpendUsd: number;
+};
+
+type ActionCenterPlaybookDoc = {
+  document_title: string;
+  audience_note: string;
+  executive_summary: string;
+  decisions_this_week: string[];
+  playbooks: Array<{
+    title: string;
+    priority: "P1" | "P2" | "P3";
+    owner: string;
+    module: string;
+    business_signal: string;
+    expected_impact: string;
+    plain_language_goal: string;
+    setup_steps: string[];
+    success_check: string;
+  }>;
+  meeting_agenda: string[];
+  risks_if_not_executed: string[];
+};
+
 type CampaignFactoryContext = {
   business: {
     businessName: string;
@@ -466,6 +521,118 @@ type CampaignFactoryContext = {
     impressions: number;
   }>;
   defaultBaseUrl: string;
+};
+
+type SectionHelp = {
+  title: string;
+  summary: string;
+  kpis: string[];
+  why: string;
+};
+
+const SECTION_HELP: Record<string, SectionHelp> = {
+  executive_filters: {
+    title: "Executive Filters",
+    summary: "Controla el rango global que afecta comparaciones y módulos en todo el dashboard.",
+    kpis: ["Range activo", "Ventana previa de comparación", "Fresh vs Hard Refresh"],
+    why: "Un rango consistente evita decisiones con períodos mezclados y te da comparaciones confiables.",
+  },
+  ceo_kpi_board: {
+    title: "CEO KPI Board",
+    summary: "Panel consolidado de volumen, revenue, calidad y eficiencia comercial.",
+    kpis: ["Leads", "Calls", "Conversations", "Transactions Revenue", "Appointments", "Lost Bookings"],
+    why: "Te da una lectura ejecutiva rápida para decidir foco semanal del negocio.",
+  },
+  forecast_targets: {
+    title: "Forecast & Targets",
+    summary: "Proyección de 30 días con gap contra objetivo para leads, citas y revenue.",
+    kpis: ["Forecast 30d", "Daily pace", "Gap vs target"],
+    why: "Permite actuar antes de cerrar el período si el ritmo no alcanza la meta.",
+  },
+  geo_business_score: {
+    title: "Geo Business Score",
+    summary: "Ranking de estados por salud de negocio y pérdida de oportunidad.",
+    kpis: ["Score por estado", "Revenue por estado", "Lost value por estado"],
+    why: "Prioriza dónde invertir y dónde corregir operación por impacto real.",
+  },
+  pipeline_sla: {
+    title: "Pipeline SLA",
+    summary: "Mide velocidad de respuesta y envejecimiento de oportunidades abiertas.",
+    kpis: ["SLA 15m", "SLA 60m", "Median first response", "Open aging >14d"],
+    why: "Reducir tiempos de respuesta suele subir booking rate y cierre.",
+  },
+  data_quality: {
+    title: "Data Quality Center",
+    summary: "Evalúa cobertura y consistencia de datos críticos para análisis.",
+    kpis: ["Quality score", "Unknown mapping", "Missing phone/email/source"],
+    why: "Sin datos limpios, el AI y los KPI pueden recomendar acciones equivocadas.",
+  },
+  top_geo_ops: {
+    title: "Top Oportunidades Por Geografía",
+    summary: "Lista las geografías con mayor oportunidad perdida y valor potencial.",
+    kpis: ["Opportunities", "Potential value", "Unique contacts"],
+    why: "Define en qué state/county/city lanzar acciones de captación primero.",
+  },
+  executive_funnel: {
+    title: "Executive Funnel",
+    summary: "Embudo ejecutivo de demanda a ingresos con comparación vs período previo.",
+    kpis: ["Impressions", "Clicks", "Leads", "Conversations", "Appointments", "Revenue"],
+    why: "Muestra en qué etapa exacta se rompe el crecimiento.",
+  },
+  executive_alerts: {
+    title: "Executive Alerts",
+    summary: "Alertas automáticas con severidad y acción sugerida.",
+    kpis: ["Critical", "Warning", "Info", "Action suggestions"],
+    why: "Acelera respuesta operativa y evita pérdidas por reacción tardía.",
+  },
+  action_center: {
+    title: "Action Center",
+    summary: "Playbooks accionables priorizados por impacto estimado.",
+    kpis: ["Playbooks ready", "Expected impact", "P1/P2/P3 mix"],
+    why: "Convierte insights en ejecución con responsables y pasos claros.",
+  },
+  cohorts_retention: {
+    title: "Cohorts & Retention",
+    summary: "Retención y repetición por cohortes para estabilidad de ingresos.",
+    kpis: ["Repeat contacts", "Repeat buyers", "Rebooking 30/60/90d", "Cohort LTV"],
+    why: "Mejor retención reduce CAC efectivo y fortalece margen.",
+  },
+  unified_attribution: {
+    title: "Unified Attribution",
+    summary: "Consolida fuentes/canales con performance del embudo e ingresos.",
+    kpis: ["Revenue by source", "Lead to appointment rate", "Revenue per lead"],
+    why: "Permite reasignar presupuesto hacia fuentes con mejor retorno.",
+  },
+  business_health_score: {
+    title: "Business Health Score",
+    summary: "Score compuesto del negocio y tendencia temporal.",
+    kpis: ["Current score", "Delta vs previous", "Volume/Revenue/Quality/Coverage/Loss components"],
+    why: "Resume salud total del negocio en una métrica comparable en el tiempo.",
+  },
+  module_dashboards: {
+    title: "Module Dashboards",
+    summary: "Tarjetas de acceso rápido con KPIs críticos por módulo.",
+    kpis: ["Calls", "Leads", "Conversations", "Transactions", "Appointments", "Search/GA/Ads"],
+    why: "Te lleva directo al dashboard donde debes ejecutar acciones.",
+  },
+  growth_ops_readiness: {
+    title: "Growth Ops Readiness",
+    summary: "Estado de integraciones y preparación para escalar marketing.",
+    kpis: ["GSC status", "Facebook integration", "Keyword Planner readiness"],
+    why: "Aclara qué habilitadores técnicos faltan para optimización avanzada.",
+  },
+  campaign_factory: {
+    title: "Phase 1 Campaign Factory",
+    summary: "Generador de campañas multi-canal basado en señales del negocio y geografía.",
+    kpis: ["Priority score", "Budget/day", "ROAS targets", "Landing/Form/Booking URLs"],
+    why: "Traduce datos del dashboard en planes de campañas accionables.",
+  },
+  ai_ceo_swarm: {
+    title: "AI CEO Swarm",
+    summary: "Agente ejecutivo para coordinar decisiones entre todos los agentes de módulos.",
+    kpis: ["CEO summary", "Board scorecard", "Execute plan", "Swarm coordination"],
+    why: "Centraliza estrategia y priorización cross-dashboard en una sola capa ejecutiva.",
+  },
 };
 
 function safeToIso(d: Date) {
@@ -528,6 +695,26 @@ function priorityColor(p: "P1" | "P2" | "P3") {
   if (p === "P1") return "var(--danger)";
   if (p === "P2") return "var(--warn)";
   return "var(--info)";
+}
+
+function humanizeTriggerMetric(triggerMetric: string) {
+  const key = String(triggerMetric || "").trim();
+  const direct: Record<string, string> = {
+    "forecast.forecastVsTarget.revenueGap": "Revenue proyectado está por debajo de la meta del período.",
+    "dataQuality.score": "La calidad de datos está por debajo del nivel recomendado para decisiones confiables.",
+    "pipelineSla.leadResponse.sla15Rate": "El tiempo de primera respuesta no está cumpliendo el SLA de 15 minutos.",
+    "pipelineSla.leadResponse.sla60Rate": "El tiempo de primera respuesta está incumpliendo el SLA de 60 minutos.",
+    "appointments.lostQualified": "Hay crecimiento en citas calificadas perdidas.",
+    "transactions.revenueDeltaPct": "El revenue está cayendo frente al período anterior.",
+  };
+  if (direct[key]) return direct[key];
+  if (!key) return "Se detectó una señal operativa relevante.";
+  return key
+    .replace(/\./g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function adsRangeFromPreset(preset: RangePreset) {
@@ -593,6 +780,132 @@ function openPrintWindowFromHtml(html: string, fallbackName: string) {
   win.addEventListener("load", triggerPrint, { once: true });
 }
 
+function loadExternalScript(src: string) {
+  if (typeof window === "undefined") return Promise.resolve();
+  window.__extScriptPromises = window.__extScriptPromises || {};
+  if (window.__extScriptPromises[src]) return window.__extScriptPromises[src];
+  const p = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+    if (existing) {
+      if (existing.dataset.loaded === "1") {
+        resolve();
+      } else {
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener("error", () => reject(new Error(`Failed loading ${src}`)), { once: true });
+      }
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.onload = () => {
+      script.dataset.loaded = "1";
+      resolve();
+    };
+    script.onerror = () => reject(new Error(`Failed loading ${src}`));
+    document.head.appendChild(script);
+  });
+  window.__extScriptPromises[src] = p;
+  return p;
+}
+
+async function downloadPdfFromHtml(html: string, fileNameNoExt: string) {
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "-10000px";
+  iframe.style.bottom = "-10000px";
+  iframe.style.width = "1280px";
+  iframe.style.height = "720px";
+  iframe.setAttribute("aria-hidden", "true");
+  document.body.appendChild(iframe);
+
+  try {
+    iframe.srcdoc = html;
+    await new Promise<void>((resolve, reject) => {
+      iframe.onload = () => resolve();
+      iframe.onerror = () => reject(new Error("Failed to render PDF document"));
+    });
+
+    await Promise.all([
+      loadExternalScript("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"),
+      loadExternalScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"),
+    ]);
+
+    if (!window.html2canvas || !window.jspdf?.jsPDF) {
+      throw new Error("PDF libraries are unavailable in browser.");
+    }
+
+    const docRef = iframe.contentDocument;
+    if (!docRef?.body) throw new Error("PDF document is not available.");
+
+    // Wait for fonts/images/layout stabilization before capture.
+    try {
+      const images = Array.from(docRef.images || []);
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete) return Promise.resolve();
+          return new Promise<void>((resolve) => {
+            img.addEventListener("load", () => resolve(), { once: true });
+            img.addEventListener("error", () => resolve(), { once: true });
+            setTimeout(() => resolve(), 1500);
+          });
+        }),
+      );
+      if ((docRef as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready) {
+        await (docRef as Document & { fonts?: { ready?: Promise<unknown> } }).fonts!.ready;
+      }
+    } catch {
+      // Continue even if assets signal fails.
+    }
+    await new Promise((r) => setTimeout(r, 250));
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const slideNodes = Array.from(docRef.querySelectorAll(".slide")) as HTMLElement[];
+    const targets = slideNodes.length ? slideNodes : [docRef.documentElement as HTMLElement];
+
+    for (let i = 0; i < targets.length; i += 1) {
+      const target = targets[i];
+      const rect = target.getBoundingClientRect();
+      const width = Math.max(1, Math.ceil(target.scrollWidth || rect.width));
+      const height = Math.max(1, Math.ceil(target.scrollHeight || rect.height));
+
+      const canvas = await window.html2canvas(target, {
+        backgroundColor: "#0e1523",
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        width,
+        height,
+        windowWidth: width,
+        windowHeight: height,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      const pageImg = canvas.toDataURL("image/jpeg", 0.96);
+      const widthScale = pageWidth / canvas.width;
+      const heightScale = pageHeight / canvas.height;
+      const fitScale = Math.min(widthScale, heightScale);
+      const renderWidthPt = canvas.width * fitScale;
+      const renderHeightPt = canvas.height * fitScale;
+      const offsetX = (pageWidth - renderWidthPt) / 2;
+      const offsetY = (pageHeight - renderHeightPt) / 2;
+
+      if (i > 0) pdf.addPage();
+      pdf.addImage(pageImg, "JPEG", offsetX, offsetY, renderWidthPt, renderHeightPt);
+    }
+
+    pdf.save(`${fileNameNoExt}.pdf`);
+  } finally {
+    document.body.removeChild(iframe);
+  }
+}
+
 export default function DashboardHome() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -615,6 +928,15 @@ export default function DashboardHome() {
   const [guideData, setGuideData] = useState<CampaignGuide | null>(null);
   const [guideCache, setGuideCache] = useState<Record<string, CampaignGuide>>({});
   const [campaignCtx, setCampaignCtx] = useState<CampaignFactoryContext | null>(null);
+  const [campaignFactoryReady, setCampaignFactoryReady] = useState(false);
+  const [campaignFactoryGenerating, setCampaignFactoryGenerating] = useState(false);
+  const [marketingBudgetRule, setMarketingBudgetRule] = useState<15 | 20 | 25>(20);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpSectionKey, setHelpSectionKey] = useState("");
+  const [actionPdfLoading, setActionPdfLoading] = useState(false);
+  const [actionPdfErr, setActionPdfErr] = useState("");
+  const [campaignPdfLoading, setCampaignPdfLoading] = useState(false);
+  const [campaignPdfErr, setCampaignPdfErr] = useState("");
 
   const computedRange = useMemo(() => {
     const now = new Date();
@@ -721,6 +1043,21 @@ export default function DashboardHome() {
       if (res.ok && json?.ok && json.context) setCampaignCtx(json.context);
     } catch {
       // Keep campaign factory running with internal fallback logic.
+    }
+  }
+
+  function openSectionHelp(sectionKey: string) {
+    setHelpSectionKey(sectionKey);
+    setHelpOpen(true);
+  }
+
+  async function generateCampaignFactory() {
+    setCampaignFactoryGenerating(true);
+    try {
+      await loadCampaignContext(true);
+      setCampaignFactoryReady(true);
+    } finally {
+      setCampaignFactoryGenerating(false);
     }
   }
 
@@ -1020,7 +1357,53 @@ export default function DashboardHome() {
     campaignCtx,
   ]);
 
+  const phase1CampaignsActive = campaignFactoryReady ? phase1Campaigns : [];
+  const phase1CampaignsPlanned = useMemo<PlannedCampaign[]>(() => {
+    if (!phase1CampaignsActive.length) return [];
+    const maxPotential = Math.max(1, ...phase1CampaignsActive.map((c) => Math.max(0, c.potentialRevenueUsd)));
+    const rangeDays = data?.range
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(data.range.end).getTime() - new Date(data.range.start).getTime()) / (1000 * 60 * 60 * 24),
+          ) + 1,
+        )
+      : 28;
+    const currentRevenue = Math.max(0, ex?.transactionsRevenueNow || 0);
+    const monthlyRevenueRunRate = rangeDays > 0 ? (currentRevenue / rangeDays) * 30 : currentRevenue;
+    const marketingInvestmentRatio = marketingBudgetRule / 100;
+    const recommendedMonthlyBudget = Math.max(0, Math.round(monthlyRevenueRunRate * marketingInvestmentRatio));
+    const recommendedDailyBudget = recommendedMonthlyBudget / 30;
+
+    const weighted = phase1CampaignsActive.map((c) => {
+      const priorityNorm = Math.min(1, Math.max(0.05, c.priorityScore / 100));
+      const geoRevenueNorm = Math.min(1, Math.max(0.05, c.potentialRevenueUsd / maxPotential));
+      const objectiveBoost =
+        c.objective === "Bookings" ? 1 : c.objective === "Recovery" ? 0.95 : 0.9;
+      const weight = (priorityNorm * 0.5 + geoRevenueNorm * 0.5) * objectiveBoost;
+      return { c, weight };
+    });
+    const weightSum = weighted.reduce((acc, row) => acc + row.weight, 0) || 1;
+    const planned = weighted.map(({ c, weight }) => {
+      const share = weight / weightSum;
+      const adjustedDaily = Number(Math.max(0, recommendedDailyBudget * share).toFixed(2));
+      return {
+        ...c,
+        adjustedBudgetDailyUsd: adjustedDaily,
+        estimatedMonthlySpendUsd: Number((adjustedDaily * 30).toFixed(2)),
+        budgetSharePct: Number((share * 100).toFixed(1)),
+      };
+    });
+    return planned.sort((a, b) => b.priorityScore - a.priorityScore);
+  }, [phase1CampaignsActive, ex?.transactionsRevenueNow, data?.range, marketingBudgetRule]);
+  const campaignBudgetTotals = useMemo(() => {
+    const totalDaily = phase1CampaignsPlanned.reduce((acc, c) => acc + c.adjustedBudgetDailyUsd, 0);
+    return { totalDaily, totalMonthly: totalDaily * 30 };
+  }, [phase1CampaignsPlanned]);
+  const activeSectionHelp = helpSectionKey ? SECTION_HELP[helpSectionKey] : null;
+
   function exportPhase1CampaignsCsv() {
+    if (!phase1CampaignsPlanned.length) return;
     const headers = [
       "channel",
       "region",
@@ -1030,7 +1413,10 @@ export default function DashboardHome() {
       "service_line",
       "priority_score",
       "potential_revenue_usd",
-      "budget_daily_usd",
+      "budget_daily_usd_base",
+      "budget_daily_usd_recommended",
+      "budget_share_pct",
+      "estimated_monthly_spend_usd",
       "campaign_name",
       "adset_or_adgroup",
       "service_id",
@@ -1050,7 +1436,7 @@ export default function DashboardHome() {
       "payback_window_days",
       "target_confidence",
     ];
-    const rows = phase1Campaigns.map((r) => [
+    const rows = phase1CampaignsPlanned.map((r) => [
       r.channel,
       r.region,
       r.geoTier,
@@ -1060,6 +1446,9 @@ export default function DashboardHome() {
       r.priorityScore,
       r.potentialRevenueUsd,
       r.budgetDailyUsd,
+      r.adjustedBudgetDailyUsd,
+      r.budgetSharePct,
+      r.estimatedMonthlySpendUsd,
       r.campaignName,
       r.adSetOrAdGroup,
       r.serviceId,
@@ -1091,42 +1480,46 @@ export default function DashboardHome() {
     URL.revokeObjectURL(url);
   }
 
-  function exportExecutivePdf() {
+  async function fetchCampaignGuideData(campaign: CampaignBlueprint): Promise<CampaignGuide> {
+    const key = campaignKey(campaign);
+    if (guideCache[key]) return guideCache[key];
+    const payload = {
+      campaign,
+      range: data?.range,
+      executive: data?.executive,
+      context: {
+        business: campaignCtx?.business || null,
+        landingMap: campaignCtx?.landingMap || null,
+        domains: campaignCtx?.domains || null,
+        gscTopQueries: campaignCtx?.gscTopQueries || [],
+        topGeo,
+        attribution,
+      },
+    };
+    const res = await fetch("/api/dashboard/campaign-factory/guide", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok || !json?.ok) {
+      throw new Error(json?.error || "Failed to generate setup guide");
+    }
+    const insights = json.insights as CampaignGuide;
+    setGuideCache((prev) => ({ ...prev, [key]: insights }));
+    return insights;
+  }
+
+  async function exportExecutivePdf() {
+    if (!phase1CampaignsPlanned.length) return;
+    setCampaignPdfErr("");
+    setCampaignPdfLoading(true);
+    try {
     const now = new Date().toLocaleString();
     const rangeTxt = data?.range
       ? `${new Date(data.range.start).toLocaleDateString()} - ${new Date(data.range.end).toLocaleDateString()}`
       : "N/A";
-    const topRows = phase1Campaigns.slice(0, 12);
-
-    const cards = topRows
-      .map(
-        (c, idx) => `
-        <section class="card">
-          <h3>${idx + 1}. ${escHtml(c.channel)} - ${escHtml(c.region)} (${escHtml(c.geoTier)})</h3>
-          <p><b>Objective:</b> ${escHtml(c.objective)} | <b>Intent:</b> ${escHtml(c.intentCluster)}</p>
-          <p><b>Service:</b> ${escHtml(c.serviceLine)} | <b>Priority Score:</b> ${escHtml(c.priorityScore)}</p>
-          <p><b>Budget/day:</b> ${escHtml(fmtMoney(c.budgetDailyUsd))} | <b>Potential Revenue:</b> ${escHtml(
-            fmtMoney(c.potentialRevenueUsd),
-          )}</p>
-          <p><b>ROAS:</b> Floor ${escHtml(c.roasFloor.toFixed(1))}x | Target ${escHtml(
-            c.roasTarget.toFixed(1),
-          )}x | Stretch ${escHtml(c.roasStretch.toFixed(1))}x</p>
-          <p><b>Payback:</b> ${escHtml(c.paybackWindowDays)} days | <b>Confidence:</b> ${escHtml(c.targetConfidence)}</p>
-          <p><b>Campaign:</b> ${escHtml(c.campaignName)}</p>
-          <p><b>Ad Group / Set:</b> ${escHtml(c.adSetOrAdGroup)}</p>
-          <p><b>Audience:</b> ${escHtml(c.audience)}</p>
-          <p><b>Headline:</b> ${escHtml(c.copyHeadline)}</p>
-          <p><b>Primary Copy:</b> ${escHtml(c.copyPrimary)}</p>
-          <p><b>CTA:</b> ${escHtml(c.cta)}</p>
-          <p><b>Funnel:</b> ${escHtml(c.funnel)}</p>
-          <p><b>Landing URL:</b> ${escHtml(c.landingUrl)}</p>
-          <p><b>Form URL:</b> ${escHtml(c.formUrl || "-")}</p>
-          <p><b>Booking URL:</b> ${escHtml(c.bookingUrl || "-")}</p>
-          <p><b>Data Signals:</b> ${escHtml(c.dataSignals)}</p>
-          <p><b>KPI Target:</b> ${escHtml(c.kpiTarget)}</p>
-        </section>`,
-      )
-      .join("");
+    const topRows = phase1CampaignsPlanned.slice(0, 12);
 
     const html = `<!doctype html>
 <html>
@@ -1134,48 +1527,107 @@ export default function DashboardHome() {
     <meta charset="utf-8" />
     <title>Executive Campaign Playbook</title>
     <style>
-      @page { size: A4; margin: 16mm; }
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color:#101827; line-height:1.35; }
-      h1 { font-size: 22px; margin: 0 0 8px; }
-      h2 { font-size: 16px; margin: 18px 0 10px; }
-      h3 { font-size: 14px; margin: 0 0 8px; }
-      .meta { font-size: 12px; color:#475467; margin-bottom: 12px; }
-      .kpis { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:10px; margin: 10px 0 16px; }
-      .kpi { border:1px solid #d0d5dd; border-radius:10px; padding:10px; }
-      .kpi .label { font-size:12px; color:#475467; }
-      .kpi .val { font-size:20px; font-weight:700; margin-top:4px; }
-      .card { border:1px solid #d0d5dd; border-radius:12px; padding:12px; margin:0 0 12px; break-inside: avoid; }
-      p { margin: 4px 0; font-size: 12.5px; }
-      .footer { margin-top: 18px; font-size:11px; color:#667085; }
+      @page { size: A4 landscape; margin: 10mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Arial, sans-serif; color: #e7ebf6; background: radial-gradient(1200px 500px at 20% -5%, #324561 0%, #1b2537 45%, #0e1523 100%); }
+      .slide { min-height: calc(100vh - 20mm); padding: 12mm; }
+      .page-break { page-break-before: always; }
+      .heroLogo { width: 64px; height: 64px; margin: 0 auto 10px; background-image: url("https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png"); background-size: contain; background-position: center; background-repeat: no-repeat; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      h1 { margin: 0; font-size: 24px; letter-spacing: 0.2px; }
+      .meta { color: #9daccc; font-size: 11.5px; line-height: 1.35; text-align: right; }
+      .surface { border: 1px solid rgba(163, 178, 215, 0.22); border-radius: 14px; background: linear-gradient(180deg, rgba(43, 54, 78, 0.76), rgba(26, 35, 52, 0.8)); box-shadow: 0 16px 32px rgba(4, 8, 16, 0.35); }
+      .summary { padding: 12px 14px; margin-bottom: 12px; }
+      .summary p { margin: 0; font-size: 13px; line-height: 1.45; }
+      .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+      .kpi { padding: 10px 12px; }
+      .kpi .label { color: #9daccc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+      .kpi .val { margin-top: 6px; font-size: 24px; font-weight: 700; }
+      .playbook-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .card { padding: 12px; break-inside: avoid; }
+      h2 { margin: 0 0 10px; font-size: 14px; letter-spacing: 0.3px; text-transform: uppercase; color: #b9c6e6; }
+      h3 { margin: 0; font-size: 16px; line-height: 1.2; }
+      .row { margin: 5px 0; font-size: 12.5px; color: #dce4f8; }
+      .row b { color: #f3f7ff; }
+      .pill { white-space: nowrap; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; border: 1px solid rgba(115, 204, 255, 0.45); color: #87d8ff; background: rgba(41, 111, 156, 0.22); }
+      .cardHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+      .footer { margin-top: 10px; font-size: 11px; color: #95a4c6; }
+      .accent { display: inline-block; padding: 2px 8px; border-radius: 999px; background: rgba(88, 232, 169, 0.16); color: #6cefb7; font-size: 11px; font-weight: 600; }
     </style>
   </head>
   <body>
-    <h1>Executive Campaign Playbook</h1>
-    <div class="meta">Generated: ${escHtml(now)} | Range: ${escHtml(rangeTxt)} | Preset: ${escHtml(preset)}</div>
-    <div class="kpis">
-      <div class="kpi"><div class="label">Leads</div><div class="val">${escHtml(fmtInt(ex?.leadsNow))}</div></div>
-      <div class="kpi"><div class="label">Appointments</div><div class="val">${escHtml(fmtInt(ex?.appointmentsNow))}</div></div>
-      <div class="kpi"><div class="label">Revenue</div><div class="val">${escHtml(fmtMoney(ex?.transactionsRevenueNow))}</div></div>
-      <div class="kpi"><div class="label">Lost Bookings</div><div class="val">${escHtml(fmtInt(ex?.appointmentsLostNow))}</div></div>
-      <div class="kpi"><div class="label">Lost Value</div><div class="val">${escHtml(fmtMoney(ex?.appointmentsLostValueNow))}</div></div>
-      <div class="kpi"><div class="label">Campaign Blueprints</div><div class="val">${escHtml(fmtInt(phase1Campaigns.length))}</div></div>
-    </div>
-    <h2>Top Campaign Blueprints (Phase 1)</h2>
-    ${cards}
-    <div class="footer">Board Meeting Edition - Multi-channel playbook based on live dashboards (state/county/city).</div>
+    <section class="slide">
+      <div class="heroLogo" aria-hidden="true"></div>
+      <div class="topbar">
+        <div class="brand"><h1>Executive Campaign Playbook</h1></div>
+        <div class="meta">Generated: ${escHtml(now)}<br/>Range: ${escHtml(rangeTxt)}<br/>Preset: ${escHtml(preset)}</div>
+      </div>
+      <div class="surface summary">
+        <p><span class="accent">Executive Summary</span><br/>Campaign playbook multi-canal basado en ingresos, oportunidades y rendimiento por state/county/city. Presupuesto recomendado con regla de inversión de marketing ${escHtml(marketingBudgetRule)} del run-rate mensual.</p>
+      </div>
+      <div class="kpi-grid">
+        <div class="surface kpi"><div class="label">Leads</div><div class="val">${escHtml(fmtInt(ex?.leadsNow))}</div></div>
+        <div class="surface kpi"><div class="label">Appointments</div><div class="val">${escHtml(fmtInt(ex?.appointmentsNow))}</div></div>
+        <div class="surface kpi"><div class="label">Revenue</div><div class="val">${escHtml(fmtMoney(ex?.transactionsRevenueNow))}</div></div>
+        <div class="surface kpi"><div class="label">Campaigns</div><div class="val">${escHtml(fmtInt(phase1CampaignsPlanned.length))}</div></div>
+        <div class="surface kpi"><div class="label">Investment Rule</div><div class="val">${escHtml(marketingBudgetRule)}%</div></div>
+        <div class="surface kpi"><div class="label">Total Planned Invest</div><div class="val">${escHtml(fmtMoney(campaignBudgetTotals.totalMonthly))}</div></div>
+        <div class="surface kpi"><div class="label">Invest/day</div><div class="val">${escHtml(fmtMoney(campaignBudgetTotals.totalDaily))}</div></div>
+        <div class="surface kpi"><div class="label">Invest/30d</div><div class="val">${escHtml(fmtMoney(campaignBudgetTotals.totalMonthly))}</div></div>
+      </div>
+    </section>
+    <section class="slide page-break">
+      <h2>Top Campaign Blueprints (Phase 1)</h2>
+      <div class="playbook-grid">
+        ${topRows
+          .map(
+            (c, idx) => `
+          <article class="surface card">
+            <div class="cardHead">
+              <h3>${idx + 1}. ${escHtml(c.channel)} - ${escHtml(c.region)} (${escHtml(c.geoTier)})</h3>
+              <span class="pill">${escHtml(c.objective)}</span>
+            </div>
+            <div class="row"><b>Intent:</b> ${escHtml(c.intentCluster)}</div>
+            <div class="row"><b>Service:</b> ${escHtml(c.serviceLine)} | <b>Priority:</b> ${escHtml(c.priorityScore)}</div>
+            <div class="row"><b>Budget/day:</b> ${escHtml(fmtMoney(c.adjustedBudgetDailyUsd))} | <b>30d Spend:</b> ${escHtml(fmtMoney(c.estimatedMonthlySpendUsd))} | <b>Potential Revenue:</b> ${escHtml(fmtMoney(c.potentialRevenueUsd))}</div>
+            <div class="row"><b>ROAS:</b> Floor ${escHtml(c.roasFloor.toFixed(1))}x · Target ${escHtml(c.roasTarget.toFixed(1))}x · Stretch ${escHtml(c.roasStretch.toFixed(1))}x</div>
+            <div class="row"><b>Campaign:</b> ${escHtml(c.campaignName)}</div>
+            <div class="row"><b>Ad Group / Set:</b> ${escHtml(c.adSetOrAdGroup)}</div>
+            <div class="row"><b>Landing URL:</b> ${escHtml(c.landingUrl)}</div>
+            <div class="row"><b>Setup Guide:</b> Use the in-app "Setup Guide (AI)" button for this campaign.</div>
+          </article>`,
+          )
+          .join("")}
+      </div>
+      <div class="footer">Board-ready format: clear, concise, and action-oriented for executive meetings.</div>
+    </section>
   </body>
 </html>`;
 
-    openPrintWindowFromHtml(html, "executive-campaign-playbook");
+    try {
+      await downloadPdfFromHtml(html, "executive-campaign-playbook");
+    } catch {
+      openPrintWindowFromHtml(html, "executive-campaign-playbook");
+    }
+    } catch (e: unknown) {
+      setCampaignPdfErr(e instanceof Error ? e.message : "No se pudo generar el PDF ejecutivo.");
+    } finally {
+      setCampaignPdfLoading(false);
+    }
   }
 
-  function exportBoardMeetingDeck() {
+  async function exportBoardMeetingDeck() {
+    if (!phase1CampaignsPlanned.length) return;
+    setCampaignPdfErr("");
+    setCampaignPdfLoading(true);
+    try {
     const now = new Date().toLocaleString();
     const rangeTxt = data?.range
       ? `${new Date(data.range.start).toLocaleDateString()} - ${new Date(data.range.end).toLocaleDateString()}`
       : "N/A";
 
-    const grouped = phase1Campaigns.reduce<Record<ChannelName, CampaignBlueprint[]>>(
+    const grouped = phase1CampaignsPlanned.reduce<Record<ChannelName, PlannedCampaign[]>>(
       (acc, row) => {
         if (!acc[row.channel]) acc[row.channel] = [];
         acc[row.channel].push(row);
@@ -1189,38 +1641,7 @@ export default function DashboardHome() {
         "Bing Ads": [],
       },
     );
-
-    const channelSections = (Object.keys(grouped) as ChannelName[])
-      .map((channel) => {
-        const rows = grouped[channel].slice(0, 6);
-        if (!rows.length) return "";
-        const cards = rows
-          .map(
-            (c, idx) => `
-              <div class="deck-card">
-                <h4>${idx + 1}. ${escHtml(c.region)} (${escHtml(c.geoTier)})</h4>
-                <p><b>Objective:</b> ${escHtml(c.objective)} | <b>Intent:</b> ${escHtml(c.intentCluster)} | <b>Service:</b> ${escHtml(c.serviceLine)}</p>
-                <p><b>Budget/day:</b> ${escHtml(fmtMoney(c.budgetDailyUsd))} | <b>ROAS Target:</b> ${escHtml(c.roasTarget.toFixed(1))}x</p>
-                <p><b>Headline:</b> ${escHtml(c.copyHeadline)}</p>
-                <p><b>Primary Copy:</b> ${escHtml(c.copyPrimary)}</p>
-                <p><b>Audience:</b> ${escHtml(c.audience)}</p>
-                <p><b>Funnel:</b> ${escHtml(c.funnel)}</p>
-                <p><b>Landing:</b> ${escHtml(c.landingUrl)}</p>
-              </div>`,
-          )
-          .join("");
-
-        return `
-          <section class="slide page-break">
-            <h2>${escHtml(channel)} Strategy</h2>
-            <p class="muted">Targeting by state/county/city with revenue-first prioritization.</p>
-            <div class="deck-grid">${cards}</div>
-          </section>
-        `;
-      })
-      .join("");
-
-    const priorities = phase1Campaigns
+    const priorities = phase1CampaignsPlanned
       .slice(0, 8)
       .map(
         (c, idx) => `<li>#${idx + 1} ${escHtml(c.channel)} | ${escHtml(c.region)} | Score ${escHtml(
@@ -1235,48 +1656,55 @@ export default function DashboardHome() {
     <meta charset="utf-8" />
     <title>Board Meeting Campaign Deck</title>
     <style>
-      @page { size: A4 landscape; margin: 12mm; }
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color:#0b1220; margin:0; }
-      .slide { min-height: calc(100vh - 24mm); padding: 6mm; box-sizing:border-box; }
+      @page { size: A4 landscape; margin: 10mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Arial, sans-serif; color: #e7ebf6; background: radial-gradient(1200px 500px at 20% -5%, #324561 0%, #1b2537 45%, #0e1523 100%); }
+      .slide { min-height: calc(100vh - 20mm); padding: 12mm; }
       .page-break { page-break-before: always; }
-      h1 { font-size: 34px; margin: 0 0 10px; }
-      h2 { font-size: 24px; margin: 0 0 8px; }
-      h3 { font-size: 18px; margin: 0 0 8px; }
-      h4 { font-size: 14px; margin: 0 0 6px; }
-      p, li { font-size: 12px; line-height: 1.35; margin: 4px 0; }
-      .muted { color:#475467; }
-      .title-wrap { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1px solid #d0d5dd; padding-bottom:10px; margin-bottom:14px; }
-      .kpi-grid { display:grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap:10px; margin-top:12px; }
-      .kpi { border:1px solid #d0d5dd; border-radius:10px; padding:10px; }
-      .kpi .label { color:#475467; font-size:11px; }
-      .kpi .val { font-size:20px; font-weight:700; margin-top:4px; }
-      .deck-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-      .deck-card { border:1px solid #d0d5dd; border-radius:10px; padding:10px; break-inside: avoid; }
-      .agenda { display:grid; grid-template-columns: 1.2fr 1fr; gap:14px; margin-top:12px; }
-      .box { border:1px solid #d0d5dd; border-radius:10px; padding:10px; }
-      ul { margin: 8px 0 0 16px; padding: 0; }
+      .heroLogo { width: 64px; height: 64px; margin: 0 auto 10px; background-image: url("https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png"); background-size: contain; background-position: center; background-repeat: no-repeat; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+      .brand { display: flex; align-items: center; gap: 10px; }
+      h1 { margin: 0; font-size: 24px; letter-spacing: 0.2px; }
+      h2 { margin: 0 0 10px; font-size: 14px; letter-spacing: 0.3px; text-transform: uppercase; color: #b9c6e6; }
+      h3 { margin: 0 0 8px; font-size: 16px; line-height: 1.2; }
+      .meta { color: #9daccc; font-size: 11.5px; line-height: 1.35; text-align: right; }
+      .surface { border: 1px solid rgba(163, 178, 215, 0.22); border-radius: 14px; background: linear-gradient(180deg, rgba(43, 54, 78, 0.76), rgba(26, 35, 52, 0.8)); box-shadow: 0 16px 32px rgba(4, 8, 16, 0.35); }
+      .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+      .kpi { padding: 10px 12px; }
+      .kpi .label { color: #9daccc; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+      .kpi .val { margin-top: 6px; font-size: 24px; font-weight: 700; }
+      .two-col { display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; margin-bottom: 12px; }
+      .box { padding: 10px 12px; }
+      ul { margin: 0; padding-left: 18px; }
+      li { margin: 4px 0; font-size: 12.5px; line-height: 1.4; }
+      .deck-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .deck-card { padding: 12px; break-inside: avoid; }
+      .row { margin: 5px 0; font-size: 12.5px; color: #dce4f8; }
+      .row b { color: #f3f7ff; }
+      .footer { margin-top: 10px; font-size: 11px; color: #95a4c6; }
+      .accent { display: inline-block; padding: 2px 8px; border-radius: 999px; background: rgba(88, 232, 169, 0.16); color: #6cefb7; font-size: 11px; font-weight: 600; }
     </style>
   </head>
   <body>
     <section class="slide">
-      <div class="title-wrap">
-        <div>
-          <h1>Board Meeting Campaign Deck</h1>
-          <p class="muted">Executive Campaign Planning - Multi-Channel Growth</p>
-        </div>
-        <div class="muted">Generated: ${escHtml(now)}<br/>Range: ${escHtml(rangeTxt)}<br/>Preset: ${escHtml(preset)}</div>
+      <div class="heroLogo" aria-hidden="true"></div>
+      <div class="topbar">
+        <div class="brand"><h1>Board Meeting Campaign Deck</h1></div>
+        <div class="meta">Generated: ${escHtml(now)}<br/>Range: ${escHtml(rangeTxt)}<br/>Preset: ${escHtml(preset)}</div>
       </div>
       <div class="kpi-grid">
-        <div class="kpi"><div class="label">Leads</div><div class="val">${escHtml(fmtInt(ex?.leadsNow))}</div></div>
-        <div class="kpi"><div class="label">Calls</div><div class="val">${escHtml(fmtInt(ex?.callsNow))}</div></div>
-        <div class="kpi"><div class="label">Conversations</div><div class="val">${escHtml(fmtInt(ex?.conversationsNow))}</div></div>
-        <div class="kpi"><div class="label">Appointments</div><div class="val">${escHtml(fmtInt(ex?.appointmentsNow))}</div></div>
-        <div class="kpi"><div class="label">Revenue</div><div class="val">${escHtml(fmtMoney(ex?.transactionsRevenueNow))}</div></div>
-        <div class="kpi"><div class="label">Lost Value</div><div class="val">${escHtml(fmtMoney(ex?.appointmentsLostValueNow))}</div></div>
+        <div class="surface kpi"><div class="label">Leads</div><div class="val">${escHtml(fmtInt(ex?.leadsNow))}</div></div>
+        <div class="surface kpi"><div class="label">Calls</div><div class="val">${escHtml(fmtInt(ex?.callsNow))}</div></div>
+        <div class="surface kpi"><div class="label">Conversations</div><div class="val">${escHtml(fmtInt(ex?.conversationsNow))}</div></div>
+        <div class="surface kpi"><div class="label">Appointments</div><div class="val">${escHtml(fmtInt(ex?.appointmentsNow))}</div></div>
+        <div class="surface kpi"><div class="label">Revenue</div><div class="val">${escHtml(fmtMoney(ex?.transactionsRevenueNow))}</div></div>
+        <div class="surface kpi"><div class="label">Lost Value</div><div class="val">${escHtml(fmtMoney(ex?.appointmentsLostValueNow))}</div></div>
+        <div class="surface kpi"><div class="label">Investment Rule</div><div class="val">${escHtml(marketingBudgetRule)}%</div></div>
+        <div class="surface kpi"><div class="label">Total Planned Invest (30d)</div><div class="val">${escHtml(fmtMoney(campaignBudgetTotals.totalMonthly))}</div></div>
       </div>
-      <div class="agenda">
-        <div class="box">
-          <h3>Meeting Agenda</h3>
+      <div class="two-col">
+        <div class="surface box">
+          <h2>Meeting Agenda</h2>
           <ul>
             <li>Business performance snapshot</li>
             <li>Top geo opportunities (state/county/city)</li>
@@ -1285,26 +1713,353 @@ export default function DashboardHome() {
             <li>Launch checklist and next 30-day plan</li>
           </ul>
         </div>
-        <div class="box">
-          <h3>Priority Queue</h3>
+        <div class="surface box">
+          <h2>Priority Queue</h2>
           <ul>${priorities}</ul>
         </div>
       </div>
     </section>
-    ${channelSections}
+    ${(Object.keys(grouped) as ChannelName[])
+      .map((channel) => {
+        const rows = grouped[channel].slice(0, 6);
+        if (!rows.length) return "";
+        return `
+        <section class="slide page-break">
+          <h2>${escHtml(channel)} Strategy</h2>
+          <div class="deck-grid">
+            ${rows
+              .map(
+                (c, idx) => `
+              <article class="surface deck-card">
+                <h3>${idx + 1}. ${escHtml(c.region)} (${escHtml(c.geoTier)})</h3>
+                <div class="row"><b>Objective:</b> ${escHtml(c.objective)} | <b>Intent:</b> ${escHtml(c.intentCluster)}</div>
+                <div class="row"><b>Service:</b> ${escHtml(c.serviceLine)}</div>
+                <div class="row"><b>Budget/day:</b> ${escHtml(fmtMoney(c.adjustedBudgetDailyUsd))} | <b>30d Spend:</b> ${escHtml(fmtMoney(c.estimatedMonthlySpendUsd))} | <b>ROAS target:</b> ${escHtml(c.roasTarget.toFixed(1))}x</div>
+                <div class="row"><b>Headline:</b> ${escHtml(c.copyHeadline)}</div>
+                <div class="row"><b>Primary copy:</b> ${escHtml(c.copyPrimary)}</div>
+                <div class="row"><b>Audience:</b> ${escHtml(c.audience)}</div>
+                <div class="row"><b>Landing:</b> ${escHtml(c.landingUrl)}</div>
+                <div class="row"><b>Setup Guide:</b> Use the in-app "Setup Guide (AI)" button for implementation steps.</div>
+              </article>`,
+              )
+              .join("")}
+          </div>
+        </section>`;
+      })
+      .join("")}
     <section class="slide page-break">
-      <h2>Execution Notes</h2>
-      <div class="box">
-        <p><b>Geo Routing Rule:</b> Always send traffic to the matching geo landing path (state/county/city) for relevance and conversion lift.</p>
-        <p><b>ROAS Governance:</b> Use floor/target/stretch. Pause under floor after validation window, scale when above target with stable CPL/booking rate.</p>
-        <p><b>Ops SLA:</b> Follow-up in &lt;15 minutes for new leads and &lt;10 minutes for retargeted high-intent prospects.</p>
-        <p><b>Next Upgrade:</b> Integrate Google Keyword Planner + platform APIs for automated bid/keyword tuning and real conversion-value optimization.</p>
+      <div class="surface box">
+        <h2>Execution Notes</h2>
+        <p class="row"><span class="accent">Geo Routing Rule</span><br/>Always send traffic to the matching geo landing path (state/county/city) for relevance and conversion lift.</p>
+        <p class="row"><span class="accent">ROAS Governance</span><br/>Use floor/target/stretch. Pause under floor after validation window, scale when above target with stable CPL/booking rate.</p>
+        <p class="row"><span class="accent">Investment Plan</span><br/>Recommended total budget: <b>${escHtml(fmtMoney(campaignBudgetTotals.totalDaily))}/day</b> and <b>${escHtml(fmtMoney(campaignBudgetTotals.totalMonthly))}/30d</b>, using the marketing investment rule ${escHtml(marketingBudgetRule)} from monthly revenue run-rate and distributed by priority + geo revenue signal.</p>
+        <p class="row"><span class="accent">Ops SLA</span><br/>Follow-up in &lt;15 minutes for new leads and &lt;10 minutes for retargeted high-intent prospects.</p>
       </div>
+      <div class="footer">Board-ready format: clear, concise, and action-oriented for executive meetings.</div>
     </section>
   </body>
 </html>`;
 
-    openPrintWindowFromHtml(html, "board-meeting-campaign-deck");
+    try {
+      await downloadPdfFromHtml(html, "board-meeting-campaign-deck");
+    } catch {
+      openPrintWindowFromHtml(html, "board-meeting-campaign-deck");
+    }
+    } catch (e: unknown) {
+      setCampaignPdfErr(e instanceof Error ? e.message : "No se pudo generar el board deck.");
+    } finally {
+      setCampaignPdfLoading(false);
+    }
+  }
+
+  async function exportActionCenterMeetingPdf() {
+    setActionPdfErr("");
+    try {
+      const playbooks = actionCenter?.playbooks || [];
+      if (!playbooks.length) {
+        setActionPdfErr("No hay playbooks disponibles para exportar.");
+        return;
+      }
+      setActionPdfLoading(true);
+
+      const payload = {
+        range: data?.range || null,
+        executive: ex || null,
+        actionCenter: actionCenter || null,
+        alerts: alerts || null,
+        businessScore: bs || null,
+      };
+
+      const res = await fetch("/api/dashboard/overview/action-center-playbook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        document?: ActionCenterPlaybookDoc;
+      };
+      if (!res.ok || !json?.ok || !json.document) {
+        throw new Error(json?.error || "No se pudo generar el playbook AI.");
+      }
+
+      const doc = json.document;
+      const now = new Date().toLocaleString();
+      const rangeTxt = data?.range
+        ? `${new Date(data.range.start).toLocaleDateString()} - ${new Date(data.range.end).toLocaleDateString()}`
+        : "N/A";
+
+      const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${escHtml(doc.document_title || "Action Center Playbook")}</title>
+    <style>
+      @page { size: A4 landscape; margin: 10mm; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Arial, sans-serif;
+        color: #e7ebf6;
+        background: radial-gradient(1200px 500px at 20% -5%, #324561 0%, #1b2537 45%, #0e1523 100%);
+      }
+      .slide {
+        min-height: calc(100vh - 20mm);
+        padding: 12mm;
+      }
+      .heroLogo {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto 10px;
+        background-image: url("https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png");
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
+      .page-break { page-break-before: always; }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo {
+        width: 20px;
+        height: 20px;
+        background-image: url("https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png");
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-color: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+      h1 { margin: 0; font-size: 24px; letter-spacing: 0.2px; }
+      .meta {
+        color: #9daccc;
+        font-size: 11.5px;
+        line-height: 1.35;
+        text-align: right;
+      }
+      .surface {
+        border: 1px solid rgba(163, 178, 215, 0.22);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(43, 54, 78, 0.76), rgba(26, 35, 52, 0.8));
+        box-shadow: 0 16px 32px rgba(4, 8, 16, 0.35);
+      }
+      .summary {
+        padding: 12px 14px;
+        margin-bottom: 12px;
+      }
+      .summary p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .kpi {
+        padding: 10px 12px;
+      }
+      .kpi .label {
+        color: #9daccc;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .kpi .val {
+        margin-top: 6px;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .box {
+        padding: 10px 12px;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: #b9c6e6;
+      }
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      li {
+        margin: 4px 0;
+        font-size: 12.5px;
+        line-height: 1.4;
+      }
+      .playbook-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .card {
+        padding: 12px;
+        break-inside: avoid;
+      }
+      .cardHead {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      h3 {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.2;
+      }
+      .pill {
+        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(115, 204, 255, 0.45);
+        color: #87d8ff;
+        background: rgba(41, 111, 156, 0.22);
+      }
+      .row { margin: 5px 0; font-size: 12.5px; color: #dce4f8; }
+      .row b { color: #f3f7ff; }
+      .label { color: #95a4c6; }
+      .small-list { margin-top: 8px; }
+      .small-list li { font-size: 12px; margin: 3px 0; }
+      .footer {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #95a4c6;
+      }
+      .accent {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(88, 232, 169, 0.16);
+        color: #6cefb7;
+        font-size: 11px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="slide">
+      <div class="heroLogo" aria-hidden="true"></div>
+      <div class="topbar">
+        <div class="brand">
+          <h1>${escHtml(doc.document_title || "Action Center Playbook")}</h1>
+        </div>
+        <div class="meta">
+          Generated: ${escHtml(now)}<br/>
+          Range: ${escHtml(rangeTxt)}<br/>
+          Audience: ${escHtml(doc.audience_note || "Business meeting")}
+        </div>
+      </div>
+
+      <div class="surface summary">
+        <p><span class="accent">Executive Summary</span><br/>${escHtml(doc.executive_summary || "")}</p>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="surface kpi"><div class="label">Playbooks Ready</div><div class="val">${escHtml(fmtInt(actionCenter?.total || 0))}</div></div>
+        <div class="surface kpi"><div class="label">Expected Impact</div><div class="val">${escHtml(fmtMoney(actionCenter?.expectedImpactUsd || 0))}</div></div>
+        <div class="surface kpi"><div class="label">Leads</div><div class="val">${escHtml(fmtInt(ex?.leadsNow || 0))}</div></div>
+        <div class="surface kpi"><div class="label">Revenue</div><div class="val">${escHtml(fmtMoney(ex?.transactionsRevenueNow || 0))}</div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="surface box">
+          <h2>Decisions This Week</h2>
+          <ul>${(doc.decisions_this_week || []).map((x) => `<li>${escHtml(x)}</li>`).join("")}</ul>
+        </div>
+        <div class="surface box">
+          <h2>Meeting Agenda</h2>
+          <ul>${(doc.meeting_agenda || []).map((x) => `<li>${escHtml(x)}</li>`).join("")}</ul>
+        </div>
+      </div>
+
+      <div class="surface box">
+        <h2>Risk Radar</h2>
+        <ul>${(doc.risks_if_not_executed || []).map((x) => `<li>${escHtml(x)}</li>`).join("")}</ul>
+      </div>
+    </section>
+
+    <section class="slide page-break">
+      <h2 style="margin-bottom:10px;">Action Playbooks</h2>
+      <div class="playbook-grid">
+        ${doc.playbooks
+          .map(
+            (p, idx) => `
+          <article class="surface card">
+            <div class="cardHead">
+              <h3>${idx + 1}. ${escHtml(p.title)}</h3>
+              <span class="pill">${escHtml(p.priority)}</span>
+            </div>
+            <div class="row"><span class="label">Owner:</span> <b>${escHtml(p.owner)}</b> | <span class="label">Module:</span> <b>${escHtml(p.module)}</b></div>
+            <div class="row"><span class="label">Business signal:</span> ${escHtml(p.business_signal)}</div>
+            <div class="row"><span class="label">Goal (plain language):</span> ${escHtml(p.plain_language_goal)}</div>
+            <div class="row"><span class="label">Estimated impact:</span> <b>${escHtml(p.expected_impact)}</b></div>
+            <div class="row"><span class="label">Execution checklist:</span></div>
+            <ul class="small-list">${(p.setup_steps || []).map((x) => `<li>${escHtml(x)}</li>`).join("")}</ul>
+            <div class="row"><span class="label">Success check:</span> ${escHtml(p.success_check)}</div>
+          </article>`,
+          )
+          .join("")}
+      </div>
+      <div class="footer">Board-ready format: clear, concise, and action-oriented for executive meetings.</div>
+    </section>
+  </body>
+</html>`;
+
+      try {
+        await downloadPdfFromHtml(html, "action-center-meeting-playbook");
+      } catch {
+        openPrintWindowFromHtml(html, "action-center-meeting-playbook");
+      }
+    } catch (e: unknown) {
+      setActionPdfErr(e instanceof Error ? e.message : "No se pudo generar el PDF.");
+    } finally {
+      setActionPdfLoading(false);
+    }
   }
 
   async function openCampaignGuide(campaign: CampaignBlueprint) {
@@ -1320,31 +2075,8 @@ export default function DashboardHome() {
     setGuideLoading(true);
     setGuideData(null);
     try {
-      const payload = {
-        campaign,
-        range: data?.range,
-        executive: data?.executive,
-        context: {
-          business: campaignCtx?.business || null,
-          landingMap: campaignCtx?.landingMap || null,
-          domains: campaignCtx?.domains || null,
-          gscTopQueries: campaignCtx?.gscTopQueries || [],
-          topGeo,
-          attribution,
-        },
-      };
-      const res = await fetch("/api/dashboard/campaign-factory/guide", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (!res.ok || !json?.ok) {
-        throw new Error(json?.error || "Failed to generate setup guide");
-      }
-      const insights = json.insights as CampaignGuide;
+      const insights = await fetchCampaignGuideData(campaign);
       setGuideData(insights);
-      setGuideCache((prev) => ({ ...prev, [key]: insights }));
     } catch (e: unknown) {
       setGuideErr(e instanceof Error ? e.message : "Failed to generate setup guide");
     } finally {
@@ -1358,7 +2090,7 @@ export default function DashboardHome() {
     if (dashboard === "conversations") return "/dashboard/conversations#ai-playbook";
     if (dashboard === "transactions") return "/dashboard/transactions#ai-playbook";
     if (dashboard === "appointments") return "/dashboard/appointments#ai-playbook";
-    if (dashboard === "gsc") return "/dashboard/gsc#ai-playbook";
+    if (dashboard === "gsc") return "/dashboard/search-performance#ai-playbook";
     if (dashboard === "ga") return "/dashboard/ga#ai-playbook";
     if (dashboard === "ads") return "/dashboard/ads#ai-playbook";
     if (dashboard === "facebook_ads") return "/dashboard/facebook-ads#ai-playbook";
@@ -1410,9 +2142,14 @@ export default function DashboardHome() {
               Rango global para comparar negocio entre dashboards y período previo.
             </div>
           </div>
-          <Link className="smallBtn" href="/">
-            Back to Control Tower
-          </Link>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("executive_filters")} title="Section helper">
+              ?
+            </button>
+            <Link className="smallBtn" href="/">
+              Back to Control Tower
+            </Link>
+          </div>
         </div>
 
         <div className="cardBody">
@@ -1507,7 +2244,12 @@ export default function DashboardHome() {
               Vista consolidada del negocio para decisiones ejecutivas.
             </div>
           </div>
-          <div className="badge">{loading ? "loading..." : "ready"}</div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("ceo_kpi_board")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">{loading ? "loading..." : "ready"}</div>
+          </div>
         </div>
 
         <div className="cardBody">
@@ -1581,9 +2323,12 @@ export default function DashboardHome() {
             </div>
 
             <div className="kpi">
-              <p className="n">{fmtInt(ex?.gscClicks)}</p>
-              <p className="l">GSC Clicks</p>
-              <div className="mini">Impr: {fmtInt(ex?.gscImpressions)}</div>
+              <p className="n">{fmtInt(ex?.searchImpressionsNow)}</p>
+              <p className="l">Impressions (GSC + Bing)</p>
+              <div className={`mini ${deltaClass(ex?.searchImpressionsDeltaPct ?? null)}`}>
+                {fmtPct(ex?.searchImpressionsDeltaPct ?? null)} vs prev period
+              </div>
+              <div className="mini">Clicks: {fmtInt(ex?.searchClicksNow)}</div>
             </div>
 
             <div className="kpi">
@@ -1595,8 +2340,6 @@ export default function DashboardHome() {
         </div>
       </section>
 
-
-
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -1605,7 +2348,12 @@ export default function DashboardHome() {
               Proyección a 30 días basada en ritmo actual vs metas mensuales.
             </div>
           </div>
-          <div className="badge">{fmtInt(forecast?.rangeDays)} days selected</div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("forecast_targets")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">{fmtInt(forecast?.rangeDays)} days selected</div>
+          </div>
         </div>
         <div className="cardBody">
           <div className="kpiRow kpiRowWide">
@@ -1649,393 +2397,17 @@ export default function DashboardHome() {
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
-            <h2 className="cardTitle">Geo Business Score</h2>
-            <div className="cardSubtitle">
-              Score de salud del negocio por estado para priorizar inversión y ejecución.
-            </div>
-          </div>
-          <div className="badge">{fmtInt((geoScore?.states || []).length)} states scored</div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            <div className="moduleCard">
-              <div className="moduleTop"><p className="l moduleTitle">Top states</p></div>
-              {(geoScore?.states || []).slice(0, 6).map((s, idx) => (
-                <div key={`geo-top-${s.state}-${idx}`} className="moduleStat" style={{ marginTop: 8 }}>
-                  <div className="mini moduleStatLabel">#{idx + 1} {s.state}</div>
-                  <div className="moduleStatValue">{fmtInt(s.score)}</div>
-                  <div className="mini">Rev {fmtMoney(s.successfulRevenue)} · Lost {fmtMoney(s.lostValue)}</div>
-                </div>
-              ))}
-            </div>
-            <div className="moduleCard">
-              <div className="moduleTop"><p className="l moduleTitle">Lagging states</p></div>
-              {(geoScore?.laggingStates || []).slice(0, 5).map((s, idx) => (
-                <div key={`geo-low-${s.state}-${idx}`} className="moduleStat" style={{ marginTop: 8 }}>
-                  <div className="mini moduleStatLabel">#{idx + 1} {s.state}</div>
-                  <div className="moduleStatValue">{fmtInt(s.score)}</div>
-                  <div className="mini">Lost opps {fmtInt(s.opportunitiesLost)} · Lost value {fmtMoney(s.lostValue)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Pipeline SLA</h2>
-            <div className="cardSubtitle">
-              Tiempo de primera respuesta y envejecimiento de oportunidades abiertas.
-            </div>
-          </div>
-          <div className="badge">SLA 15m/60m</div>
-        </div>
-        <div className="cardBody">
-          <div className="kpiRow kpiRowWide">
-            <div className="kpi">
-              <p className="n">{fmtInt(pipelineSla?.leadResponse?.sla15Rate)}%</p>
-              <p className="l">SLA 15m hit rate</p>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(pipelineSla?.leadResponse?.sla60Rate)}%</p>
-              <p className="l">SLA 60m hit rate</p>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(pipelineSla?.leadResponse?.medianMinutes)}</p>
-              <p className="l">Median first response (min)</p>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(pipelineSla?.leadResponse?.noTouchYet)}</p>
-              <p className="l">No touch yet</p>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(pipelineSla?.lostOpenAging?.totalOpen)}</p>
-              <p className="l">Open lost opportunities</p>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(pipelineSla?.lostOpenAging?.over14d)}</p>
-              <p className="l">Aging over 14d</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Data Quality Center</h2>
-            <div className="cardSubtitle">
-              Cobertura de datos críticos para decisiones confiables.
-            </div>
-          </div>
-          <div className="badge">Quality Score {fmtInt(dataQuality?.score)}</div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            <div className="moduleCard">
-              <p className="l moduleTitle">Unknown mapping</p>
-              <p className="mini moduleLine">Contacts state unknown: {fmtInt(dataQuality?.unknownMapping?.contactsStateUnknown)}</p>
-              <p className="mini moduleLine">Conversations state unknown: {fmtInt(dataQuality?.unknownMapping?.conversationsStateUnknown)}</p>
-              <p className="mini moduleLine">Appointments state unknown: {fmtInt(dataQuality?.unknownMapping?.appointmentsStateUnknown)}</p>
-              <p className="mini moduleLine">Transactions state unknown: {fmtInt(dataQuality?.unknownMapping?.transactionsStateUnknown)}</p>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Missing critical fields</p>
-              <p className="mini moduleLine">Missing phone: {fmtInt(dataQuality?.missingCritical?.contactsMissingPhone)}</p>
-              <p className="mini moduleLine">Missing email: {fmtInt(dataQuality?.missingCritical?.contactsMissingEmail)}</p>
-              <p className="mini moduleLine">Missing source: {fmtInt(dataQuality?.missingCritical?.contactsMissingSource)}</p>
-              <p className="mini moduleLine">Unknown channel: {fmtInt(dataQuality?.missingCritical?.conversationsUnknownChannel)}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Top Oportunidades Por Geografía</h2>
-            <div className="cardSubtitle">
-              Ranking por valor potencial y volumen (lost qualified bookings).
-            </div>
-          </div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            {([
-              ["Estados", topGeo?.states || []],
-              ["Counties", topGeo?.counties || []],
-              ["Ciudades", topGeo?.cities || []],
-            ] as Array<[string, Array<{ name: string; opportunities: number; value: number; uniqueContacts: number }>]>).map(
-              ([label, rows]) => (
-                <div className="moduleCard" key={label}>
-                  <div className="moduleTop">
-                    <p className="l moduleTitle">{label}</p>
-                    <span className="mini moduleDelta">{fmtInt(rows.length)} items</span>
-                  </div>
-                  {rows.slice(0, 6).map((r, idx) => (
-                    <div key={`${label}-${r.name}-${idx}`} className="moduleStat" style={{ marginTop: 8 }}>
-                      <div className="mini moduleStatLabel">#{idx + 1} {geoName(r.name)}</div>
-                      <div className="moduleStatValue">{fmtMoney(r.value)}</div>
-                      <div className="mini">{fmtInt(r.opportunities)} opps · {fmtInt(r.uniqueContacts)} contacts</div>
-                    </div>
-                  ))}
-                </div>
-              ),
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Executive Funnel</h2>
-            <div className="cardSubtitle">
-              Impressions → Clicks → Leads → Conversations → Appointments → Revenue.
-            </div>
-          </div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            {(funnel?.stages || []).map((s) => (
-              <div className="moduleCard" key={s.key}>
-                <div className="moduleTop">
-                  <p className="l moduleTitle">{s.label}</p>
-                  <span className={`mini moduleDelta ${deltaClass(s.deltaPct ?? null)}`}>{fmtPct(s.deltaPct ?? null)}</span>
-                </div>
-                <div className="moduleStats">
-                  <div className="moduleStat">
-                    <div className="mini moduleStatLabel">Current</div>
-                    <div className="moduleStatValue">{s.key === "revenue" ? fmtMoney(s.valueNow) : fmtInt(s.valueNow)}</div>
-                  </div>
-                  <div className="moduleStat">
-                    <div className="mini moduleStatLabel">Previous</div>
-                    <div className="moduleStatValue">{s.key === "revenue" ? fmtMoney(s.valuePrev) : fmtInt(s.valuePrev)}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Executive Alerts</h2>
-            <div className="cardSubtitle">Riesgos detectados automáticamente y acción sugerida.</div>
-          </div>
-          <div className="badge">C:{fmtInt(alerts?.critical)} · W:{fmtInt(alerts?.warning)} · I:{fmtInt(alerts?.info)}</div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            {(alerts?.rows || []).slice(0, 8).map((a) => (
-              <div className="moduleCard" key={a.id}>
-                <div className="moduleTop">
-                  <p className="l moduleTitle">{a.title}</p>
-                  <span className="badge" style={{ borderColor: severityColor(a.severity), color: severityColor(a.severity) }}>
-                    {a.severity.toUpperCase()}
-                  </span>
-                </div>
-                <p className="mini moduleLine">{a.message}</p>
-                <p className="mini moduleLine"><b>Action:</b> {a.action}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Action Center</h2>
-            <div className="cardSubtitle">
-              Playbooks accionables para ejecutar decisiones CEO con impacto estimado.
-            </div>
-          </div>
-          <div className="badge">
-            P1:{fmtInt(actionCenter?.p1)} · P2:{fmtInt(actionCenter?.p2)} · P3:{fmtInt(actionCenter?.p3)}
-          </div>
-        </div>
-        <div className="cardBody">
-          <div className="kpiRow kpiRowWide">
-            <div className="kpi">
-              <p className="n">{fmtInt(actionCenter?.total)}</p>
-              <p className="l">Playbooks ready</p>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtMoney(actionCenter?.expectedImpactUsd)}</p>
-              <p className="l">Expected impact (est.)</p>
-            </div>
-          </div>
-          <div className="moduleGrid" style={{ marginTop: 12 }}>
-            {(actionCenter?.playbooks || []).map((pb) => (
-              <div className="moduleCard" key={pb.id}>
-                <div className="moduleTop">
-                  <p className="l moduleTitle">{pb.title}</p>
-                  <span className="badge" style={{ borderColor: priorityColor(pb.priority), color: priorityColor(pb.priority) }}>
-                    {pb.priority}
-                  </span>
-                </div>
-                <p className="mini moduleLine">{pb.why}</p>
-                <p className="mini moduleLine"><b>Owner:</b> {pb.owner} · <b>Module:</b> {pb.module}</p>
-                <p className="mini moduleLine"><b>Trigger:</b> {pb.triggerMetric}</p>
-                <p className="mini moduleLine"><b>Impact:</b> {fmtMoney(pb.expectedImpactUsd)}</p>
-                <ul className="aiList">
-                  {pb.steps.slice(0, 3).map((st, i) => <li key={i}>{st}</li>)}
-                </ul>
-                <div className="moduleActions" style={{ marginTop: 10 }}>
-                  <Link className="btn btnPrimary moduleBtn" href={pb.ctaDashboard || "/dashboard"}>
-                    Execute Playbook
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Cohorts & Retention</h2>
-            <div className="cardSubtitle">
-              Retención operativa 30/60/90 y performance de cohortes por mes.
-            </div>
-          </div>
-          <div className="badge">{fmtInt(cohorts?.rows?.length || 0)} cohorts</div>
-        </div>
-        <div className="cardBody">
-          <div className="kpiRow kpiRowWide">
-            <div className="kpi"><p className="n">{fmtInt(cohorts?.activeContacts)}</p><p className="l">Active contacts</p></div>
-            <div className="kpi"><p className="n">{fmtInt(cohorts?.repeatContacts)}</p><p className="l">Repeat contacts</p></div>
-            <div className="kpi"><p className="n">{fmtInt(cohorts?.repeatBuyers)}</p><p className="l">Repeat buyers</p></div>
-            <div className="kpi"><p className="n">{fmtInt(cohorts?.rebookingRate30d)}%</p><p className="l">Rebooking 30d</p></div>
-            <div className="kpi"><p className="n">{fmtInt(cohorts?.rebookingRate60d)}%</p><p className="l">Rebooking 60d</p></div>
-            <div className="kpi"><p className="n">{fmtInt(cohorts?.rebookingRate90d)}%</p><p className="l">Rebooking 90d</p></div>
-          </div>
-          <div className="moduleGrid" style={{ marginTop: 12 }}>
-            {(cohorts?.rows || []).map((r) => (
-              <div className="moduleCard" key={r.cohort}>
-                <div className="moduleTop">
-                  <p className="l moduleTitle">{r.cohort}</p>
-                  <span className="mini moduleDelta">{fmtInt(r.buyerRate)}% buyer rate</span>
-                </div>
-                <p className="mini moduleLine">Contacts: {fmtInt(r.contacts)} · Buyers: {fmtInt(r.buyers)}</p>
-                <p className="mini moduleLine">Revenue: {fmtMoney(r.revenue)} · LTV: {fmtMoney(r.ltv)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Unified Attribution</h2>
-            <div className="cardSubtitle">
-              Source unificado con embudo y revenue para decidir inversión por canal/fuente.
-            </div>
-          </div>
-          <div className="badge">{fmtInt(attribution?.topSources?.length || 0)} sources</div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            {(attribution?.topSources || []).slice(0, 10).map((src, idx) => (
-              <div className="moduleCard" key={`${src.source}-${idx}`}>
-                <div className="moduleTop">
-                  <p className="l moduleTitle">{src.source || "unknown"}</p>
-                  <span className="mini moduleDelta">{fmtMoney(src.revenue)}</span>
-                </div>
-                <p className="mini moduleLine">
-                  Leads {fmtInt(src.leads)} · Calls {fmtInt(src.calls)} · Conv {fmtInt(src.conversations)}
-                </p>
-                <p className="mini moduleLine">
-                  Appointments {fmtInt(src.appointments)} · L→A {fmtInt(src.leadToAppointmentRate)}%
-                </p>
-                <p className="mini moduleLine">Revenue/Lead {fmtMoney(src.leadToRevenue)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-
-
-      {/* <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Open Dashboards</h2>
-            <div className="cardSubtitle">
-              Acceso rápido a los módulos más importantes.
-            </div>
-          </div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            <div className="moduleCard">
-              <p className="l moduleTitle">Calls</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/calls#ai-playbook">Open Calls Dashboard</Link>
-              </div>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Contacts / Leads</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/contacts#ai-playbook">Open Leads Dashboard</Link>
-              </div>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Conversations / CRM</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/conversations#ai-playbook">Open Conversations Dashboard</Link>
-              </div>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Appointments</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/appointments">Open Appointments Dashboard</Link>
-              </div>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Transactions</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/transactions#ai-playbook">Open Transactions Dashboard</Link>
-              </div>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Google Search Console</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/gsc">Open GSC Dashboard</Link>
-              </div>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Google Analytics</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ga">Open GA Dashboard</Link>
-              </div>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Google Ads</p>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ads">Open Ads Dashboard</Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section> */}
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
             <h2 className="cardTitle">Business Health Score</h2>
             <div className="cardSubtitle">
               Score compuesto (0-100) y tendencia por {bs?.granularity || "period"}.
             </div>
           </div>
-          <div className="badge">{bs?.grade ? `Grade ${bs.grade}` : "-"}</div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("business_health_score")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">{bs?.grade ? `Grade ${bs.grade}` : "-"}</div>
+          </div>
         </div>
         <div className="cardBody">
           <div className="kpiRow kpiRowWide">
@@ -2110,12 +2482,454 @@ export default function DashboardHome() {
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
+            <h2 className="cardTitle">Geo Business Score</h2>
+            <div className="cardSubtitle">
+              Score de salud del negocio por estado para priorizar inversión y ejecución.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("geo_business_score")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">{fmtInt((geoScore?.states || []).length)} states scored</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid">
+            <div className="moduleCard">
+              <div className="moduleTop"><p className="l moduleTitle">Top states</p></div>
+              {(geoScore?.states || []).slice(0, 6).map((s, idx) => (
+                <div key={`geo-top-${s.state}-${idx}`} className="moduleStat" style={{ marginTop: 8 }}>
+                  <div className="mini moduleStatLabel">#{idx + 1} {s.state}</div>
+                  <div className="moduleStatValue">{fmtInt(s.score)}</div>
+                  <div className="mini">Rev {fmtMoney(s.successfulRevenue)} · Lost {fmtMoney(s.lostValue)}</div>
+                </div>
+              ))}
+            </div>
+            <div className="moduleCard">
+              <div className="moduleTop"><p className="l moduleTitle">Lagging states</p></div>
+              {(geoScore?.laggingStates || []).slice(0, 5).map((s, idx) => (
+                <div key={`geo-low-${s.state}-${idx}`} className="moduleStat" style={{ marginTop: 8 }}>
+                  <div className="mini moduleStatLabel">#{idx + 1} {s.state}</div>
+                  <div className="moduleStatValue">{fmtInt(s.score)}</div>
+                  <div className="mini">Lost opps {fmtInt(s.opportunitiesLost)} · Lost value {fmtMoney(s.lostValue)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Pipeline SLA</h2>
+            <div className="cardSubtitle">
+              Tiempo de primera respuesta y envejecimiento de oportunidades abiertas.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("pipeline_sla")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">SLA 15m/60m</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="kpiRow kpiRowWide">
+            <div className="kpi">
+              <p className="n">{fmtInt(pipelineSla?.leadResponse?.sla15Rate)}%</p>
+              <p className="l">SLA 15m hit rate</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtInt(pipelineSla?.leadResponse?.sla60Rate)}%</p>
+              <p className="l">SLA 60m hit rate</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtInt(pipelineSla?.leadResponse?.medianMinutes)}</p>
+              <p className="l">Median first response (min)</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtInt(pipelineSla?.leadResponse?.noTouchYet)}</p>
+              <p className="l">No touch yet</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtInt(pipelineSla?.lostOpenAging?.totalOpen)}</p>
+              <p className="l">Open lost opportunities</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtInt(pipelineSla?.lostOpenAging?.over14d)}</p>
+              <p className="l">Aging over 14d</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Data Quality Center</h2>
+            <div className="cardSubtitle">
+              Cobertura de datos críticos para decisiones confiables.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("data_quality")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">Quality Score {fmtInt(dataQuality?.score)}</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid">
+            <div className="moduleCard">
+              <p className="l moduleTitle">Unknown mapping</p>
+              <p className="mini moduleLine">Contacts state unknown: {fmtInt(dataQuality?.unknownMapping?.contactsStateUnknown)}</p>
+              <p className="mini moduleLine">Conversations state unknown: {fmtInt(dataQuality?.unknownMapping?.conversationsStateUnknown)}</p>
+              <p className="mini moduleLine">Appointments state unknown: {fmtInt(dataQuality?.unknownMapping?.appointmentsStateUnknown)}</p>
+              <p className="mini moduleLine">Transactions state unknown: {fmtInt(dataQuality?.unknownMapping?.transactionsStateUnknown)}</p>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Missing critical fields</p>
+              <p className="mini moduleLine">Missing phone: {fmtInt(dataQuality?.missingCritical?.contactsMissingPhone)}</p>
+              <p className="mini moduleLine">Missing email: {fmtInt(dataQuality?.missingCritical?.contactsMissingEmail)}</p>
+              <p className="mini moduleLine">Missing source: {fmtInt(dataQuality?.missingCritical?.contactsMissingSource)}</p>
+              <p className="mini moduleLine">Unknown channel: {fmtInt(dataQuality?.missingCritical?.conversationsUnknownChannel)}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Top Oportunidades Por Geografía</h2>
+            <div className="cardSubtitle">
+              Ranking por valor potencial y volumen (lost qualified bookings).
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("top_geo_ops")} title="Section helper">
+              ?
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid">
+            {([
+              ["Estados", topGeo?.states || []],
+              ["Counties", topGeo?.counties || []],
+              ["Ciudades", topGeo?.cities || []],
+            ] as Array<[string, Array<{ name: string; opportunities: number; value: number; uniqueContacts: number }>]>).map(
+              ([label, rows]) => (
+                <div className="moduleCard" key={label}>
+                  <div className="moduleTop">
+                    <p className="l moduleTitle">{label}</p>
+                    <span className="mini moduleDelta">{fmtInt(rows.length)} items</span>
+                  </div>
+                  {rows.slice(0, 6).map((r, idx) => (
+                    <div key={`${label}-${r.name}-${idx}`} className="moduleStat" style={{ marginTop: 8 }}>
+                      <div className="mini moduleStatLabel">#{idx + 1} {geoName(r.name)}</div>
+                      <div className="moduleStatValue">{fmtMoney(r.value)}</div>
+                      <div className="mini">{fmtInt(r.opportunities)} opps · {fmtInt(r.uniqueContacts)} contacts</div>
+                    </div>
+                  ))}
+                </div>
+              ),
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Executive Funnel</h2>
+            <div className="cardSubtitle">
+              Impressions → Clicks → Leads → Conversations → Appointments → Revenue.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("executive_funnel")} title="Section helper">
+              ?
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid">
+            {(funnel?.stages || []).map((s) => (
+              <div className="moduleCard" key={s.key}>
+                <div className="moduleTop">
+                  <p className="l moduleTitle">{s.label}</p>
+                  <span className={`mini moduleDelta ${deltaClass(s.deltaPct ?? null)}`}>{fmtPct(s.deltaPct ?? null)}</span>
+                </div>
+                <div className="moduleStats">
+                  <div className="moduleStat">
+                    <div className="mini moduleStatLabel">Current</div>
+                    <div className="moduleStatValue">{s.key === "revenue" ? fmtMoney(s.valueNow) : fmtInt(s.valueNow)}</div>
+                  </div>
+                  <div className="moduleStat">
+                    <div className="mini moduleStatLabel">Previous</div>
+                    <div className="moduleStatValue">{s.key === "revenue" ? fmtMoney(s.valuePrev) : fmtInt(s.valuePrev)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Executive Alerts</h2>
+            <div className="cardSubtitle">Riesgos detectados automáticamente y acción sugerida.</div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("executive_alerts")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">C:{fmtInt(alerts?.critical)} · W:{fmtInt(alerts?.warning)} · I:{fmtInt(alerts?.info)}</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid">
+            {(alerts?.rows || []).slice(0, 8).map((a) => (
+              <div className="moduleCard" key={a.id}>
+                <div className="moduleTop">
+                  <p className="l moduleTitle">{a.title}</p>
+                  <span className="badge" style={{ borderColor: severityColor(a.severity), color: severityColor(a.severity) }}>
+                    {a.severity.toUpperCase()}
+                  </span>
+                </div>
+                <p className="mini moduleLine">{a.message}</p>
+                <p className="mini moduleLine"><b>Action:</b> {a.action}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Action Center</h2>
+            <div className="cardSubtitle">
+              Playbooks accionables para ejecutar decisiones CEO con impacto estimado.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("action_center")} title="Section helper">
+              ?
+            </button>
+            <button
+              className="smallBtn btnPrimary"
+              type="button"
+              onClick={exportActionCenterMeetingPdf}
+              disabled={actionPdfLoading || !(actionCenter?.playbooks || []).length}
+            >
+              {actionPdfLoading ? "Generating PDF..." : "Download Meeting Playbook PDF"}
+            </button>
+            <div className="badge">
+              Critical {fmtInt(actionCenter?.p1)} · Important {fmtInt(actionCenter?.p2)} · Monitor {fmtInt(actionCenter?.p3)}
+            </div>
+          </div>
+        </div>
+        <div className="cardBody">
+          {actionPdfErr ? (
+            <div className="mini" style={{ color: "var(--danger)", marginBottom: 10 }}>
+              X {actionPdfErr}
+            </div>
+          ) : null}
+          <div className="kpiRow kpiRowWide">
+            <div className="kpi">
+              <p className="n">{fmtInt(actionCenter?.total)}</p>
+              <p className="l">Playbooks ready</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtMoney(actionCenter?.expectedImpactUsd)}</p>
+              <p className="l">Expected impact (est.)</p>
+            </div>
+          </div>
+          <div className="moduleGrid" style={{ marginTop: 12 }}>
+            {(actionCenter?.playbooks || []).map((pb) => (
+              <div className="moduleCard" key={pb.id}>
+                <div className="moduleTop">
+                  <p className="l moduleTitle">{pb.title}</p>
+                  <span className="badge" style={{ borderColor: priorityColor(pb.priority), color: priorityColor(pb.priority) }}>
+                    {pb.priority}
+                  </span>
+                </div>
+                <p className="mini moduleLine">{pb.why}</p>
+                <p className="mini moduleLine"><b>Owner:</b> {pb.owner} · <b>Module:</b> {pb.module}</p>
+                <p className="mini moduleLine"><b>Business signal:</b> {humanizeTriggerMetric(pb.triggerMetric)}</p>
+                <p className="mini moduleLine"><b>Estimated impact:</b> {fmtMoney(pb.expectedImpactUsd)}</p>
+                <ul className="aiList">
+                  {pb.steps.slice(0, 3).map((st, i) => <li key={i}>{st}</li>)}
+                </ul>
+                {/* <div className="moduleActions" style={{ marginTop: 10 }}>
+                  <Link className="btn btnPrimary moduleBtn" href={pb.ctaDashboard || "/dashboard"}>
+                    Execute Playbook
+                  </Link>
+                </div> */}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Cohorts & Retention</h2>
+            <div className="cardSubtitle">
+              Retención operativa 30/60/90 y performance de cohortes por mes.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("cohorts_retention")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">{fmtInt(cohorts?.rows?.length || 0)} cohorts</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="kpiRow kpiRowWide">
+            <div className="kpi"><p className="n">{fmtInt(cohorts?.activeContacts)}</p><p className="l">Active contacts</p></div>
+            <div className="kpi"><p className="n">{fmtInt(cohorts?.repeatContacts)}</p><p className="l">Repeat contacts</p></div>
+            <div className="kpi"><p className="n">{fmtInt(cohorts?.repeatBuyers)}</p><p className="l">Repeat buyers</p></div>
+            <div className="kpi"><p className="n">{fmtInt(cohorts?.rebookingRate30d)}%</p><p className="l">Rebooking 30d</p></div>
+            <div className="kpi"><p className="n">{fmtInt(cohorts?.rebookingRate60d)}%</p><p className="l">Rebooking 60d</p></div>
+            <div className="kpi"><p className="n">{fmtInt(cohorts?.rebookingRate90d)}%</p><p className="l">Rebooking 90d</p></div>
+          </div>
+          <div className="moduleGrid" style={{ marginTop: 12 }}>
+            {(cohorts?.rows || []).map((r) => (
+              <div className="moduleCard" key={r.cohort}>
+                <div className="moduleTop">
+                  <p className="l moduleTitle">{r.cohort}</p>
+                  <span className="mini moduleDelta">{fmtInt(r.buyerRate)}% buyer rate</span>
+                </div>
+                <p className="mini moduleLine">Contacts: {fmtInt(r.contacts)} · Buyers: {fmtInt(r.buyers)}</p>
+                <p className="mini moduleLine">Revenue: {fmtMoney(r.revenue)} · LTV: {fmtMoney(r.ltv)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Unified Attribution</h2>
+            <div className="cardSubtitle">
+              Source unificado con embudo y revenue para decidir inversión por canal/fuente.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("unified_attribution")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">{fmtInt(attribution?.topSources?.length || 0)} sources</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid">
+            {(attribution?.topSources || []).slice(0, 10).map((src, idx) => (
+              <div className="moduleCard" key={`${src.source}-${idx}`}>
+                <div className="moduleTop">
+                  <p className="l moduleTitle">{src.source || "unknown"}</p>
+                  <span className="mini moduleDelta">{fmtMoney(src.revenue)}</span>
+                </div>
+                <p className="mini moduleLine">
+                  Leads {fmtInt(src.leads)} · Calls {fmtInt(src.calls)} · Conv {fmtInt(src.conversations)}
+                </p>
+                <p className="mini moduleLine">
+                  Appointments {fmtInt(src.appointments)} · L→A {fmtInt(src.leadToAppointmentRate)}%
+                </p>
+                <p className="mini moduleLine">Revenue/Lead {fmtMoney(src.leadToRevenue)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+
+      {/* <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Open Dashboards</h2>
+            <div className="cardSubtitle">
+              Acceso rápido a los módulos más importantes.
+            </div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid">
+            <div className="moduleCard">
+              <p className="l moduleTitle">Calls</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/calls#ai-playbook">Open Calls Dashboard</Link>
+              </div>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Contacts / Leads</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/contacts#ai-playbook">Open Leads Dashboard</Link>
+              </div>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Conversations / CRM</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/conversations#ai-playbook">Open Conversations Dashboard</Link>
+              </div>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Appointments</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/appointments">Open Appointments Dashboard</Link>
+              </div>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Transactions</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/transactions#ai-playbook">Open Transactions Dashboard</Link>
+              </div>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Search Performance</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/search-performance">Open Search Performance</Link>
+              </div>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Google Analytics</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ga">Open GA Dashboard</Link>
+              </div>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Google Ads</p>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ads">Open Ads Dashboard</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section> */}
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
             <h2 className="cardTitle">Module Dashboards</h2>
             <div className="cardSubtitle">
               KPIs críticos por módulo con acceso directo a cada dashboard.
             </div>
           </div>
           <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("module_dashboards")} title="Section helper">
+              ?
+            </button>
             <button
               className={`smallBtn ${boardMeetingMode ? "smallBtnOn" : ""}`}
               onClick={() => setBoardMeetingMode((x) => !x)}
@@ -2142,7 +2956,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/calls#ai-playbook">Open Calls Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/calls">Open Calls Dashboard</Link>
               </div>
             </div>
 
@@ -2164,7 +2978,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/contacts#ai-playbook">Open Leads Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/contacts">Open Leads Dashboard</Link>
               </div>
             </div>
 
@@ -2190,7 +3004,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/conversations#ai-playbook">Open Conversations Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/conversations">Open Conversations Dashboard</Link>
               </div>
               {m?.conversations?.error ? (
                 <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
@@ -2225,7 +3039,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/transactions#ai-playbook">Open Transactions Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/transactions">Open Transactions Dashboard</Link>
               </div>
               {m?.transactions?.error ? (
                 <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
@@ -2268,7 +3082,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/appointments#ai-playbook">Open Appointments Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/appointments">Open Appointments Dashboard</Link>
               </div>
               {m?.appointments?.error ? (
                 <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
@@ -2279,24 +3093,29 @@ export default function DashboardHome() {
 
             <div className="moduleCard">
               <div className="moduleTop">
-                <p className="l moduleTitle">Google Search Console</p>
-                <span className={`mini moduleDelta ${deltaClass((m?.gsc?.deltas?.clicksPct as number) || null)}`}>
-                  {fmtPct((m?.gsc?.deltas?.clicksPct as number) || null)}
+                <p className="l moduleTitle">Search Performance</p>
+                <span className={`mini moduleDelta ${deltaClass((m?.searchPerformance?.deltas?.clicksPct as number) || null)}`}>
+                  {fmtPct((m?.searchPerformance?.deltas?.clicksPct as number) || null)}
                 </span>
               </div>
               <div className="moduleStats">
                 <div className="moduleStat">
                   <div className="mini moduleStatLabel">Clicks</div>
-                  <div className="moduleStatValue">{fmtInt((m?.gsc?.totals?.clicks as number) || 0)}</div>
+                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.clicks as number) || 0)}</div>
                 </div>
                 <div className="moduleStat">
                   <div className="mini moduleStatLabel">Impressions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.gsc?.totals?.impressions as number) || 0)}</div>
+                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.impressions as number) || 0)}</div>
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/gsc#ai-playbook">Open GSC Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/search-performance">Open Search Performance</Link>
               </div>
+              {m?.searchPerformance?.error ? (
+                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
+                  X {m.searchPerformance.error}
+                </div>
+              ) : null}
             </div>
 
             <div className="moduleCard">
@@ -2333,7 +3152,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ads#ai-playbook">Open Ads Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ads">Open Ads Dashboard</Link>
               </div>
             </div>
 
@@ -2352,7 +3171,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/facebook-ads#ai-playbook">Open Facebook Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/facebook-ads">Open Facebook Dashboard</Link>
               </div>
             </div>
           </div>
@@ -2366,6 +3185,11 @@ export default function DashboardHome() {
             <div className="cardSubtitle">
               Estado operativo para escalar a Facebook Ads + recomendaciones automáticas con Keyword Planner.
             </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("growth_ops_readiness")} title="Section helper">
+              ?
+            </button>
           </div>
         </div>
         <div className="cardBody">
@@ -2398,36 +3222,95 @@ export default function DashboardHome() {
             </div>
           </div>
           <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("campaign_factory")} title="Section helper">
+              ?
+            </button>
+            <div className="smallBtn" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <span className="mini" style={{ opacity: 0.9 }}>Rule</span>
+              {[15, 20, 25].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`smallBtn ${marketingBudgetRule === v ? "smallBtnOn" : ""}`}
+                  onClick={() => setMarketingBudgetRule(v as 15 | 20 | 25)}
+                  disabled={campaignFactoryGenerating || campaignPdfLoading}
+                  style={{ minWidth: 36, padding: "6px 10px" }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+            <button
+              className="smallBtn btnPrimary"
+              type="button"
+              onClick={generateCampaignFactory}
+              disabled={campaignFactoryGenerating}
+            >
+              {campaignFactoryGenerating ? "Generating..." : campaignFactoryReady ? "Regenerate Campaigns" : "Generate Campaigns"}
+            </button>
+            <button
+              className="smallBtn"
+              type="button"
+              onClick={() => setCampaignFactoryReady(false)}
+              disabled={!campaignFactoryReady || campaignFactoryGenerating}
+            >
+              Clear
+            </button>
             <button
               className="smallBtn"
               type="button"
               onClick={exportBoardMeetingDeck}
-              disabled={!phase1Campaigns.length}
+              disabled={!phase1CampaignsPlanned.length || campaignPdfLoading}
             >
-              Export Board Deck PDF
+              {campaignPdfLoading ? "Preparing PDF..." : "Download Board Deck PDF"}
             </button>
             <button
               className="smallBtn"
               type="button"
               onClick={exportExecutivePdf}
-              disabled={!phase1Campaigns.length}
+              disabled={!phase1CampaignsPlanned.length || campaignPdfLoading}
             >
-              Export Executive PDF
+              {campaignPdfLoading ? "Preparing PDF..." : "Download Executive PDF"}
             </button>
             <button
               className="smallBtn"
               type="button"
               onClick={exportPhase1CampaignsCsv}
-              disabled={!phase1Campaigns.length}
+              disabled={!phase1CampaignsPlanned.length || campaignPdfLoading}
             >
               Export CSV
             </button>
-            <div className="badge">{fmtInt(phase1Campaigns.length)} campaigns</div>
+            <div className="badge">
+              {campaignFactoryReady ? `${fmtInt(phase1CampaignsPlanned.length)} campaigns` : "Not generated"}
+            </div>
           </div>
         </div>
         <div className="cardBody">
+          {campaignPdfErr ? <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {campaignPdfErr}</div> : null}
+          {phase1CampaignsPlanned.length ? (
+            <div className="moduleCard" style={{ marginBottom: 12 }}>
+              <p className="l moduleTitle">Recommended Investment Plan</p>
+              <p className="mini moduleLine">
+                <b>Total daily budget:</b> {fmtMoney(campaignBudgetTotals.totalDaily)} · <b>Total 30-day budget:</b> {fmtMoney(campaignBudgetTotals.totalMonthly)}
+              </p>
+              <p className="mini moduleLine">
+                Regla aplicada: <b>{marketingBudgetRule}</b> del ingreso mensual estimado (run-rate). Distribución automática por prioridad + ingresos por geografía (state/county/city).
+              </p>
+            </div>
+          ) : null}
+          {!campaignFactoryReady ? (
+            <div className="moduleCard" style={{ borderStyle: "dashed" }}>
+              <p className="l moduleTitle">Campaign Factory is idle</p>
+              <p className="mini moduleLine">
+                Activa <b>Generate Campaigns</b> para crear propuestas multi-canal con datos del rango actual.
+              </p>
+              <p className="mini moduleLine">
+                Los botones de exportación se habilitan únicamente cuando existan campañas generadas.
+              </p>
+            </div>
+          ) : null}
           <div className="moduleGrid">
-            {phase1Campaigns.map((c, idx) => (
+            {phase1CampaignsPlanned.map((c, idx) => (
               <div className="moduleCard" key={`${c.channel}-${c.region}-${idx}`}>
                 <div className="moduleTop">
                   <p className="l moduleTitle">{c.channel}</p>
@@ -2440,7 +3323,8 @@ export default function DashboardHome() {
                 <p className="mini moduleLine"><b>Intent:</b> {c.intentCluster}</p>
                 <p className="mini moduleLine"><b>Service:</b> {c.serviceLine}</p>
                 <p className="mini moduleLine"><b>Revenue signal:</b> {fmtMoney(c.potentialRevenueUsd)}</p>
-                <p className="mini moduleLine"><b>Budget/day:</b> {fmtMoney(c.budgetDailyUsd)}</p>
+                <p className="mini moduleLine"><b>Budget/day (recommended):</b> {fmtMoney(c.adjustedBudgetDailyUsd)}</p>
+                <p className="mini moduleLine"><b>Budget/day (base):</b> {fmtMoney(c.budgetDailyUsd)} · <b>Share:</b> {c.budgetSharePct}%</p>
                 <p className="mini moduleLine"><b>Campaign:</b> {c.campaignName}</p>
                 <p className="mini moduleLine"><b>AdSet/AdGroup:</b> {c.adSetOrAdGroup}</p>
                 <p className="mini moduleLine"><b>Landing URL:</b> {c.landingUrl}</p>
@@ -2482,6 +3366,9 @@ export default function DashboardHome() {
             </div>
           </div>
           <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("ai_ceo_swarm")} title="Section helper">
+              ?
+            </button>
             <button
               className="smallBtn"
               onClick={runCeoInsights}
@@ -2620,6 +3507,64 @@ export default function DashboardHome() {
           </div>
         </div>
       </section>
+
+      {helpOpen && activeSectionHelp ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Section helper"
+          onClick={() => setHelpOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(7, 12, 22, 0.72)",
+            backdropFilter: "blur(6px)",
+            zIndex: 1200,
+            display: "grid",
+            placeItems: "center",
+            padding: 18,
+          }}
+        >
+          <div
+            className="card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(760px, 95vw)",
+              maxHeight: "82vh",
+              overflow: "auto",
+              borderRadius: 16,
+              border: "1px solid rgba(120,165,255,.35)",
+              boxShadow: "0 30px 60px rgba(0,0,0,.4)",
+            }}
+          >
+            <div className="cardHeader">
+              <div>
+                <h2 className="cardTitle">{activeSectionHelp.title}</h2>
+                <div className="cardSubtitle">{activeSectionHelp.summary}</div>
+              </div>
+              <div className="cardHeaderActions">
+                <button className="smallBtn" type="button" onClick={() => setHelpOpen(false)}>
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="cardBody">
+              <div className="moduleCard">
+                <p className="l moduleTitle">Key KPIs in this section</p>
+                <ul className="aiList">
+                  {activeSectionHelp.kpis.map((kpi) => (
+                    <li key={kpi}>{kpi}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="moduleCard" style={{ marginTop: 12 }}>
+                <p className="l moduleTitle">Why this matters</p>
+                <p className="mini moduleLine">{activeSectionHelp.why}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {guideOpen ? (
         <div

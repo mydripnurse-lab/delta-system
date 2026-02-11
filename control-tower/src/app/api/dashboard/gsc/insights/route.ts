@@ -125,7 +125,6 @@ export async function POST(req: Request) {
                     schema,
                 },
             },
-            temperature: 0.25,
         });
 
         // ✅ output_text (SDK) + fallback robusto

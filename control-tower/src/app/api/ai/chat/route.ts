@@ -86,7 +86,6 @@ export async function POST(req: Request) {
                     }),
                 },
             ],
-            temperature: 0.3,
         });
 
         const outText = s((response as any)?.output_text || "");
