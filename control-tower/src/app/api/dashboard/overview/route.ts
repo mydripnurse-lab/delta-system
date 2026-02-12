@@ -77,7 +77,7 @@ type GeoBusinessAgg = BucketAgg & {
 };
 
 function chooseGranularity(preset: string, startIso: string, endIso: string) {
-    if (preset === "1d" || preset === "7d" || preset === "28d") return "day" as const;
+    if (preset === "today" || preset === "24h" || preset === "1d" || preset === "7d" || preset === "28d") return "day" as const;
     if (preset === "1m" || preset === "3m") return "week" as const;
     if (preset === "6m" || preset === "1y") return "month" as const;
     const start = new Date(startIso).getTime();
@@ -188,6 +188,7 @@ async function fetchJson(url: string) {
 }
 
 function adsRangeFromPreset(preset: string) {
+    if (preset === "today" || preset === "24h" || preset === "1d") return "last_7_days";
     if (preset === "7d") return "last_7_days";
     if (preset === "28d") return "last_28_days";
     if (preset === "1m") return "last_month";
@@ -209,6 +210,7 @@ function dayIso(v: string) {
 }
 
 function searchRangeFromPreset(preset: string) {
+    if (preset === "today" || preset === "24h" || preset === "1d") return "last_7_days";
     if (preset === "7d") return "last_7_days";
     if (preset === "28d") return "last_28_days";
     if (preset === "1m") return "last_month";

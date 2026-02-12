@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
 declare global {
   interface Window {
@@ -29,7 +30,7 @@ declare global {
   }
 }
 
-type RangePreset = "1d" | "7d" | "28d" | "1m" | "3m" | "6m" | "1y" | "custom";
+type RangePreset = DashboardRangePreset;
 
 type OverviewResponse = {
   ok: boolean;
@@ -635,26 +636,6 @@ const SECTION_HELP: Record<string, SectionHelp> = {
   },
 };
 
-function safeToIso(d: Date) {
-  const t = d.getTime();
-  if (!Number.isFinite(t)) return "";
-  return d.toISOString();
-}
-
-function isoStartOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(0, 0, 0, 0);
-  return safeToIso(x);
-}
-
-function isoEndOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(23, 59, 59, 999);
-  return safeToIso(x);
-}
-
 function fmtInt(v: unknown) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "0";
@@ -718,6 +699,7 @@ function humanizeTriggerMetric(triggerMetric: string) {
 }
 
 function adsRangeFromPreset(preset: RangePreset) {
+  if (preset === "today" || preset === "24h" || preset === "1d") return "last_7_days";
   if (preset === "7d") return "last_7_days";
   if (preset === "28d") return "last_28_days";
   if (preset === "1m") return "last_month";
@@ -938,51 +920,10 @@ export default function DashboardHome() {
   const [campaignPdfLoading, setCampaignPdfLoading] = useState(false);
   const [campaignPdfErr, setCampaignPdfErr] = useState("");
 
-  const computedRange = useMemo(() => {
-    const now = new Date();
-    const end = isoEndOfDay(now);
-
-    const startFromDays = (days: number) => {
-      const startD = new Date(now);
-      startD.setDate(startD.getDate() - days);
-      return { start: isoStartOfDay(startD), end };
-    };
-
-    if (preset === "1d") return startFromDays(1);
-    if (preset === "7d") return startFromDays(7);
-    if (preset === "28d") return startFromDays(28);
-
-    if (preset === "1m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "3m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 3);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "6m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 6);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "1y") {
-      const startD = new Date(now);
-      startD.setFullYear(startD.getFullYear() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-
-    if (preset === "custom") {
-      const startD = customStart ? new Date(`${customStart}T00:00:00`) : null;
-      const endD = customEnd ? new Date(`${customEnd}T00:00:00`) : null;
-      const start = startD ? isoStartOfDay(startD) : "";
-      const end2 = endD ? isoEndOfDay(endD) : "";
-      return { start, end: end2 };
-    }
-
-    return { start: "", end: "" };
-  }, [preset, customStart, customEnd]);
+  const computedRange = useMemo(
+    () => computeDashboardRange(preset, customStart, customEnd),
+    [preset, customStart, customEnd],
+  );
 
   async function load(force = false) {
     setErr("");
@@ -2158,7 +2099,8 @@ export default function DashboardHome() {
               <div className="filtersLabel">Range</div>
               <div className="rangePills">
                 {([
-                  ["1d", "1 day"],
+                  ["today", "Today"],
+                  ["24h", "24hr"],
                   ["7d", "7 days"],
                   ["28d", "28 days"],
                   ["1m", "Last month"],
@@ -2335,6 +2277,266 @@ export default function DashboardHome() {
               <p className="n">{fmtMoney(ex?.adsCost)}</p>
               <p className="l">Ads Spend</p>
               <div className="mini">Conv: {fmtInt(ex?.adsConversions)}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Module Dashboards</h2>
+            <div className="cardSubtitle">
+              KPIs críticos por módulo con acceso directo a cada dashboard.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("module_dashboards")} title="Section helper">
+              ?
+            </button>
+            <button
+              className={`smallBtn ${boardMeetingMode ? "smallBtnOn" : ""}`}
+              onClick={() => setBoardMeetingMode((x) => !x)}
+              type="button"
+            >
+              {boardMeetingMode ? "Board Meeting: ON" : "Board Meeting: OFF"}
+            </button>
+          </div>
+        </div>
+
+        <div className="cardBody">
+          <div className="moduleGrid">
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Calls</p>
+                <span className={`mini moduleDelta ${deltaClass(m?.calls?.deltaPct ?? null)}`}>
+                  {fmtPct(m?.calls?.deltaPct ?? null)}
+                </span>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Total calls</div>
+                  <div className="moduleStatValue">{fmtInt(m?.calls?.total)}</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/calls">Open Calls Dashboard</Link>
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Contacts / Leads</p>
+                <span className={`mini moduleDelta ${deltaClass(m?.contacts?.deltaPct ?? null)}`}>
+                  {fmtPct(m?.contacts?.deltaPct ?? null)}
+                </span>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Total leads</div>
+                  <div className="moduleStatValue">{fmtInt(m?.contacts?.total)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Inferred from opportunity</div>
+                  <div className="moduleStatValue">{fmtInt(m?.contacts?.inferredFromOpportunity)}</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/contacts">Open Leads Dashboard</Link>
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Conversations / CRM</p>
+                <span className={`mini moduleDelta ${deltaClass(m?.conversations?.deltaPct ?? null)}`}>
+                  {fmtPct(m?.conversations?.deltaPct ?? null)}
+                </span>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Total conversations</div>
+                  <div className="moduleStatValue">{fmtInt(m?.conversations?.total)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">State mapping rate</div>
+                  <div className="moduleStatValue">{fmtInt(m?.conversations?.mappedStateRate)}%</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Top channel</div>
+                  <div className="moduleStatValue">{String(m?.conversations?.topChannel || "unknown")}</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/conversations">Open Conversations Dashboard</Link>
+              </div>
+              {m?.conversations?.error ? (
+                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
+                  X {m.conversations.error}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Transactions / Revenue</p>
+                <span className={`mini moduleDelta ${deltaClass(m?.transactions?.deltaPct ?? null)}`}>
+                  {fmtPct(m?.transactions?.deltaPct ?? null)}
+                </span>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Transactions</div>
+                  <div className="moduleStatValue">{fmtInt(m?.transactions?.total)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Revenue (succeeded)</div>
+                  <div className="moduleStatValue">{fmtMoney(m?.transactions?.grossAmount)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Avg Lifetime Order Value</div>
+                  <div className="moduleStatValue">{fmtMoney(m?.transactions?.avgLifetimeOrderValue)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">State mapping rate</div>
+                  <div className="moduleStatValue">{fmtInt(m?.transactions?.mappedStateRate)}%</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/transactions">Open Transactions Dashboard</Link>
+              </div>
+              {m?.transactions?.error ? (
+                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
+                  X {m.transactions.error}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Appointments</p>
+                <span className={`mini moduleDelta ${deltaClass(m?.appointments?.deltaPct ?? null)}`}>
+                  {fmtPct(m?.appointments?.deltaPct ?? null)}
+                </span>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Total appointments</div>
+                  <div className="moduleStatValue">{fmtInt(m?.appointments?.total)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Show rate</div>
+                  <div className="moduleStatValue">{fmtInt(m?.appointments?.showRate)}%</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Cancel rate</div>
+                  <div className="moduleStatValue">{fmtInt(m?.appointments?.cancellationRate)}%</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">No-show rate</div>
+                  <div className="moduleStatValue">{fmtInt(m?.appointments?.noShowRate)}%</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Lost qualified bookings</div>
+                  <div className="moduleStatValue">{fmtInt(m?.appointments?.lostQualified)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Potential lost value</div>
+                  <div className="moduleStatValue">{fmtMoney(m?.appointments?.potentialLostValue)}</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/appointments">Open Appointments Dashboard</Link>
+              </div>
+              {m?.appointments?.error ? (
+                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
+                  X {m.appointments.error}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Search Performance</p>
+                <span className={`mini moduleDelta ${deltaClass((m?.searchPerformance?.deltas?.clicksPct as number) || null)}`}>
+                  {fmtPct((m?.searchPerformance?.deltas?.clicksPct as number) || null)}
+                </span>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Clicks</div>
+                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.clicks as number) || 0)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Impressions</div>
+                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.impressions as number) || 0)}</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/search-performance">Open Search Performance</Link>
+              </div>
+              {m?.searchPerformance?.error ? (
+                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
+                  X {m.searchPerformance.error}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Google Analytics</p>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Sessions</div>
+                  <div className="moduleStatValue">{fmtInt((m?.ga?.summaryOverall?.sessions as number) || 0)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Conversions</div>
+                  <div className="moduleStatValue">{fmtInt((m?.ga?.summaryOverall?.conversions as number) || 0)}</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ga#ai-playbook">Open GA Dashboard</Link>
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Google Ads</p>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Cost</div>
+                  <div className="moduleStatValue">{fmtMoney((m?.ads?.summary?.cost as number) || 0)}</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Conversions</div>
+                  <div className="moduleStatValue">{fmtInt((m?.ads?.summary?.conversions as number) || 0)}</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ads">Open Ads Dashboard</Link>
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Facebook Ads</p>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Status</div>
+                  <div className="moduleStatValue">Planner Live</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Source</div>
+                  <div className="moduleStatValue">Overview + Geo</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href="/dashboard/facebook-ads">Open Facebook Dashboard</Link>
+              </div>
             </div>
           </div>
         </div>
@@ -2917,266 +3119,6 @@ export default function DashboardHome() {
           </div>
         </div>
       </section> */}
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Module Dashboards</h2>
-            <div className="cardSubtitle">
-              KPIs críticos por módulo con acceso directo a cada dashboard.
-            </div>
-          </div>
-          <div className="cardHeaderActions">
-            <button className="smallBtn" type="button" onClick={() => openSectionHelp("module_dashboards")} title="Section helper">
-              ?
-            </button>
-            <button
-              className={`smallBtn ${boardMeetingMode ? "smallBtnOn" : ""}`}
-              onClick={() => setBoardMeetingMode((x) => !x)}
-              type="button"
-            >
-              {boardMeetingMode ? "Board Meeting: ON" : "Board Meeting: OFF"}
-            </button>
-          </div>
-        </div>
-
-        <div className="cardBody">
-          <div className="moduleGrid">
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Calls</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.calls?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.calls?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total calls</div>
-                  <div className="moduleStatValue">{fmtInt(m?.calls?.total)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/calls">Open Calls Dashboard</Link>
-              </div>
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Contacts / Leads</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.contacts?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.contacts?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total leads</div>
-                  <div className="moduleStatValue">{fmtInt(m?.contacts?.total)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Inferred from opportunity</div>
-                  <div className="moduleStatValue">{fmtInt(m?.contacts?.inferredFromOpportunity)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/contacts">Open Leads Dashboard</Link>
-              </div>
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Conversations / CRM</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.conversations?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.conversations?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total conversations</div>
-                  <div className="moduleStatValue">{fmtInt(m?.conversations?.total)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">State mapping rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.conversations?.mappedStateRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Top channel</div>
-                  <div className="moduleStatValue">{String(m?.conversations?.topChannel || "unknown")}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/conversations">Open Conversations Dashboard</Link>
-              </div>
-              {m?.conversations?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.conversations.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Transactions / Revenue</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.transactions?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.transactions?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Transactions</div>
-                  <div className="moduleStatValue">{fmtInt(m?.transactions?.total)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Revenue (succeeded)</div>
-                  <div className="moduleStatValue">{fmtMoney(m?.transactions?.grossAmount)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Avg Lifetime Order Value</div>
-                  <div className="moduleStatValue">{fmtMoney(m?.transactions?.avgLifetimeOrderValue)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">State mapping rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.transactions?.mappedStateRate)}%</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/transactions">Open Transactions Dashboard</Link>
-              </div>
-              {m?.transactions?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.transactions.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Appointments</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.appointments?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.appointments?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total appointments</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.total)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Show rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.showRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Cancel rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.cancellationRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">No-show rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.noShowRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Lost qualified bookings</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.lostQualified)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Potential lost value</div>
-                  <div className="moduleStatValue">{fmtMoney(m?.appointments?.potentialLostValue)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/appointments">Open Appointments Dashboard</Link>
-              </div>
-              {m?.appointments?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.appointments.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Search Performance</p>
-                <span className={`mini moduleDelta ${deltaClass((m?.searchPerformance?.deltas?.clicksPct as number) || null)}`}>
-                  {fmtPct((m?.searchPerformance?.deltas?.clicksPct as number) || null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Clicks</div>
-                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.clicks as number) || 0)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Impressions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.impressions as number) || 0)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/search-performance">Open Search Performance</Link>
-              </div>
-              {m?.searchPerformance?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.searchPerformance.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Google Analytics</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Sessions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.ga?.summaryOverall?.sessions as number) || 0)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Conversions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.ga?.summaryOverall?.conversions as number) || 0)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ga#ai-playbook">Open GA Dashboard</Link>
-              </div>
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Google Ads</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Cost</div>
-                  <div className="moduleStatValue">{fmtMoney((m?.ads?.summary?.cost as number) || 0)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Conversions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.ads?.summary?.conversions as number) || 0)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ads">Open Ads Dashboard</Link>
-              </div>
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Facebook Ads</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Status</div>
-                  <div className="moduleStatValue">Planner Live</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Source</div>
-                  <div className="moduleStatValue">Overview + Geo</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/facebook-ads">Open Facebook Dashboard</Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">

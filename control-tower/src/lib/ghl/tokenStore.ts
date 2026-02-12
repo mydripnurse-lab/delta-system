@@ -34,23 +34,15 @@ export async function readTokensFile(): Promise<TokenState> {
     const now = Date.now();
     if (cached.tokens && now - cached.at < FILE_CACHE_MS) return cached.tokens;
 
-    const raw = await fs.readFile(TOKENS_PATH, "utf-8").catch((e) => {
-        const err = new Error(
-            `tokens.json not found at ${TOKENS_PATH}. (Read-only mode).`
-        ) as any;
-        err.cause = e;
-        throw err;
+    const raw = await fs.readFile(TOKENS_PATH, "utf-8").catch(() => {
+        throw new Error(`tokens.json not found at ${TOKENS_PATH}.`);
     });
 
-    let parsed: any = {};
+    let parsed: Record<string, unknown> = {};
     try {
-        parsed = JSON.parse(raw || "{}");
-    } catch (e) {
-        const err = new Error(
-            `tokens.json is not valid JSON at ${TOKENS_PATH}.`
-        ) as any;
-        err.cause = e;
-        throw err;
+        parsed = JSON.parse(raw || "{}") as Record<string, unknown>;
+    } catch {
+        throw new Error(`tokens.json is not valid JSON at ${TOKENS_PATH}.`);
     }
 
     const t: TokenState = {
@@ -69,4 +61,18 @@ export async function readTokensFile(): Promise<TokenState> {
 
     cached = { at: now, tokens: t };
     return t;
+}
+
+export async function saveTokensFile(next: Partial<TokenState>): Promise<TokenState> {
+    const current = await readTokensFile().catch(() => ({} as TokenState));
+    const merged: TokenState = {
+        ...current,
+        ...next,
+    };
+
+    await fs.mkdir(path.dirname(TOKENS_PATH), { recursive: true });
+    await fs.writeFile(TOKENS_PATH, JSON.stringify(merged, null, 2), "utf-8");
+
+    cached = { at: Date.now(), tokens: merged };
+    return merged;
 }

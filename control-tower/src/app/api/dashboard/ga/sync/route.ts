@@ -28,6 +28,10 @@ function monthsAgoISO(months: number) {
 
 function parseRange(preset: string, start?: string, end?: string) {
     const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const prevYear = now.getFullYear() - 1;
+    const prevYearStart = `${prevYear}-01-01`;
+    const prevYearEnd = `${prevYear}-12-31`;
 
     if (preset === "custom") {
         return {
@@ -49,7 +53,7 @@ function parseRange(preset: string, start?: string, end?: string) {
         case "last_6_months":
             return { startDate: monthsAgoISO(6), endDate: today, range: "last_6_months" };
         case "last_year":
-            return { startDate: monthsAgoISO(12), endDate: today, range: "last_year" };
+            return { startDate: prevYearStart, endDate: prevYearEnd, range: "last_year" };
         default:
             return { startDate: daysAgoISO(28), endDate: today, range: "last_28_days" };
     }

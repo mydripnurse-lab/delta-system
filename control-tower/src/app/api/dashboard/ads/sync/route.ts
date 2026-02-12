@@ -40,12 +40,16 @@ function prevPeriodRange(start: string, end: string) {
 
 function resolveRange(range: string) {
     const end = todayISO();
+    const now = new Date();
+    const prevYear = now.getFullYear() - 1;
+    const prevYearStart = `${prevYear}-01-01`;
+    const prevYearEnd = `${prevYear}-12-31`;
     if (range === "last_7_days") return { start: addDays(end, -6), end };
     if (range === "last_28_days") return { start: addDays(end, -27), end };
     if (range === "last_month") return { start: addDays(end, -30), end };
     if (range === "last_quarter") return { start: addDays(end, -90), end };
     if (range === "last_6_months") return { start: addDays(end, -180), end };
-    if (range === "last_year") return { start: addDays(end, -365), end };
+    if (range === "last_year") return { start: prevYearStart, end: prevYearEnd };
     return { start: addDays(end, -27), end };
 }
 

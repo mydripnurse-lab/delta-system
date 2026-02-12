@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
 const UsaChoroplethProgressMap = dynamic(
   () => import("@/components/UsaChoroplethProgressMap"),
   { ssr: false },
 );
 
-type RangePreset = "1d" | "7d" | "28d" | "1m" | "3m" | "6m" | "1y" | "custom";
+type RangePreset = DashboardRangePreset;
 type TrendGrain = "day" | "week" | "month";
 
 type ConvRow = {
@@ -77,26 +78,6 @@ type AiInsights = {
 };
 
 type TrendPoint = { key: string; label: string; value: number };
-
-function safeToIso(d: Date) {
-  const t = d.getTime();
-  if (!Number.isFinite(t)) return "";
-  return d.toISOString();
-}
-
-function isoStartOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(0, 0, 0, 0);
-  return safeToIso(x);
-}
-
-function isoEndOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(23, 59, 59, 999);
-  return safeToIso(x);
-}
 
 function fmtDateLocal(iso?: string) {
   if (!iso) return "-";
@@ -292,7 +273,7 @@ export default function ConversationsDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  const [preset, setPreset] = useState<RangePreset>("7d");
+  const [preset, setPreset] = useState<RangePreset>("today");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [grain, setGrain] = useState<TrendGrain>("day");
@@ -306,47 +287,10 @@ export default function ConversationsDashboardPage() {
   const [aiErr, setAiErr] = useState("");
   const [aiInsights, setAiInsights] = useState<AiInsights | null>(null);
 
-  const computedRange = useMemo(() => {
-    const now = new Date();
-    const end = isoEndOfDay(now);
-    const startFromDays = (days: number) => {
-      const startD = new Date(now);
-      startD.setDate(startD.getDate() - days);
-      return { start: isoStartOfDay(startD), end };
-    };
-    if (preset === "1d") return startFromDays(1);
-    if (preset === "7d") return startFromDays(7);
-    if (preset === "28d") return startFromDays(28);
-    if (preset === "1m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "3m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 3);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "6m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 6);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "1y") {
-      const startD = new Date(now);
-      startD.setFullYear(startD.getFullYear() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "custom") {
-      const startD = customStart ? new Date(`${customStart}T00:00:00`) : null;
-      const endD = customEnd ? new Date(`${customEnd}T00:00:00`) : null;
-      return {
-        start: startD ? isoStartOfDay(startD) : "",
-        end: endD ? isoEndOfDay(endD) : "",
-      };
-    }
-    return { start: "", end: "" };
-  }, [preset, customStart, customEnd]);
+  const computedRange = useMemo(
+    () => computeDashboardRange(preset, customStart, customEnd),
+    [preset, customStart, customEnd],
+  );
 
   async function load(force = false) {
     setErr("");
@@ -600,7 +544,8 @@ export default function ConversationsDashboardPage() {
               <div className="filtersLabel">Range</div>
               <div className="rangePills">
                 {([
-                  ["1d", "1 day"],
+                  ["today", "Today"],
+                  ["24h", "24hr"],
                   ["7d", "7 days"],
                   ["28d", "28 days"],
                   ["1m", "Last month"],

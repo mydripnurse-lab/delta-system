@@ -5,6 +5,7 @@ import Link from "next/link";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
 type ApiRow = Record<string, any> & {
   __startIso?: string;
@@ -21,7 +22,7 @@ type CallsApiResponse = {
   error?: string;
 };
 
-type RangePreset = "1d" | "7d" | "28d" | "1m" | "3m" | "6m" | "1y" | "custom";
+type RangePreset = DashboardRangePreset;
 type TrendGrain = "day" | "week" | "month";
 type StatusFilter = "all" | "missed" | "completed";
 type DirFilter = "all" | "inbound" | "outbound";
@@ -35,26 +36,6 @@ function fmtDateLocal(iso?: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString();
-}
-
-/** ✅ SAFE ISO helpers (avoid "Invalid time value") */
-function safeToIso(d: Date) {
-  const t = d.getTime();
-  if (!Number.isFinite(t)) return "";
-  return d.toISOString();
-}
-
-function isoStartOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(0, 0, 0, 0);
-  return safeToIso(x);
-}
-function isoEndOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(23, 59, 59, 999);
-  return safeToIso(x);
 }
 
 function msToHuman(sec: number) {
@@ -412,7 +393,7 @@ export default function CallsDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const [preset, setPreset] = useState<RangePreset>("7d");
+  const [preset, setPreset] = useState<RangePreset>("today");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
@@ -438,53 +419,10 @@ export default function CallsDashboardPage() {
   const [aiErr, setAiErr] = useState("");
   const [aiInsights, setAiInsights] = useState<any>(null);
 
-  const computedRange = useMemo(() => {
-    const now = new Date();
-    const end = isoEndOfDay(now);
-
-    const startFromDays = (days: number) => {
-      const startD = new Date(now);
-      startD.setDate(startD.getDate() - days);
-      return { start: isoStartOfDay(startD), end };
-    };
-
-    if (preset === "1d") return startFromDays(1);
-    if (preset === "7d") return startFromDays(7);
-    if (preset === "28d") return startFromDays(28);
-
-    if (preset === "1m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "3m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 3);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "6m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 6);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "1y") {
-      const startD = new Date(now);
-      startD.setFullYear(startD.getFullYear() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-
-    if (preset === "custom") {
-      // ✅ Safe parsing (avoid Invalid Date in some browsers)
-      const startD = customStart ? new Date(`${customStart}T00:00:00`) : null;
-      const endD = customEnd ? new Date(`${customEnd}T00:00:00`) : null;
-
-      const start = startD ? isoStartOfDay(startD) : "";
-      const end2 = endD ? isoEndOfDay(endD) : "";
-      return { start, end: end2 };
-    }
-
-    return { start: "", end: "" };
-  }, [preset, customStart, customEnd]);
+  const computedRange = useMemo(
+    () => computeDashboardRange(preset, customStart, customEnd),
+    [preset, customStart, customEnd],
+  );
 
   function clearSelection() {
     setMapSelected("");
@@ -714,7 +652,8 @@ export default function CallsDashboardPage() {
   /** ========= Range label ========= */
   const rangeLabel = useMemo(() => {
     if (preset === "custom") return "Custom range";
-    if (preset === "1d") return "Last 1 day";
+    if (preset === "today") return "Today";
+    if (preset === "24h" || preset === "1d") return "Last 24hr";
     if (preset === "7d") return "Last 7 days";
     if (preset === "28d") return "Last 28 days";
     if (preset === "1m") return "Last month";
@@ -952,11 +891,18 @@ export default function CallsDashboardPage() {
 
               <div className="rangePills">
                 <button
-                  className={`smallBtn ${preset === "1d" ? "smallBtnOn" : ""}`}
-                  onClick={() => setPresetSafe("1d")}
+                  className={`smallBtn ${preset === "today" ? "smallBtnOn" : ""}`}
+                  onClick={() => setPresetSafe("today")}
                   type="button"
                 >
-                  1 day
+                  Today
+                </button>
+                <button
+                  className={`smallBtn ${preset === "24h" ? "smallBtnOn" : ""}`}
+                  onClick={() => setPresetSafe("24h")}
+                  type="button"
+                >
+                  24hr
                 </button>
                 <button
                   className={`smallBtn ${preset === "7d" ? "smallBtnOn" : ""}`}

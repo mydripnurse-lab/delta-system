@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
 const UsaChoroplethProgressMap = dynamic(
   () => import("@/components/UsaChoroplethProgressMap"),
   { ssr: false },
 );
 
-type RangePreset = "1d" | "7d" | "28d" | "1m" | "3m" | "6m" | "1y" | "custom";
+type RangePreset = DashboardRangePreset;
 type TrendGrain = "day" | "week" | "month";
 type TrendMetric = "count" | "amount";
 
@@ -28,6 +29,7 @@ type TxRow = {
   state: string;
   city: string;
   stateFrom: "transaction" | "contact.state" | "unknown";
+  liveMode?: boolean | null;
   contactLifetimeNet?: number;
   contactLifetimeOrders?: number;
 };
@@ -61,6 +63,8 @@ type TransactionsApiResponse = {
     snapshotUpdatedAt?: string;
     snapshotCoverage?: { newestCreatedAt: string; oldestCreatedAt: string };
     fetchedPages?: number;
+    hitPageCap?: boolean;
+    snapshotComplete?: boolean;
     usedIncremental?: boolean;
     refreshReason?: string;
   };
@@ -88,26 +92,6 @@ type AiInsights = {
 };
 
 type TrendPoint = { key: string; label: string; value: number };
-
-function safeToIso(d: Date) {
-  const t = d.getTime();
-  if (!Number.isFinite(t)) return "";
-  return d.toISOString();
-}
-
-function isoStartOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(0, 0, 0, 0);
-  return safeToIso(x);
-}
-
-function isoEndOfDay(d: Date) {
-  const x = new Date(d);
-  if (!Number.isFinite(x.getTime())) return "";
-  x.setHours(23, 59, 59, 999);
-  return safeToIso(x);
-}
 
 function fmtDateLocal(iso?: string) {
   if (!iso) return "-";
@@ -139,6 +123,15 @@ function isSucceededRevenueStatus(statusRaw: string) {
     s.includes("captured") ||
     s.includes("settled")
   );
+}
+
+function isLiveModeEligible(row: TxRow) {
+  // If API does not send explicit liveMode on a row, keep it eligible.
+  return row.liveMode !== false;
+}
+
+function isSucceededLiveRevenue(row: TxRow) {
+  return isSucceededRevenueStatus(row.status) && isLiveModeEligible(row);
 }
 
 function safeMethodLabel(raw: unknown) {
@@ -216,12 +209,7 @@ function buildTrend(rows: TxRow[], grain: TrendGrain, metric: TrendMetric) {
     const ms = Number(r.__createdMs ?? NaN);
     if (!Number.isFinite(ms)) continue;
     const k = keyForGrain(ms, grain);
-    const add =
-      metric === "amount"
-        ? isSucceededRevenueStatus(r.status)
-          ? Number(r.amount || 0)
-          : 0
-        : 1;
+    const add = metric === "amount" ? (isSucceededLiveRevenue(r) ? Number(r.amount || 0) : 0) : 1;
     m.set(k, Number((m.get(k) || 0) + add));
   }
   const keys = Array.from(m.keys()).sort((a, b) => a.localeCompare(b));
@@ -347,7 +335,7 @@ export default function TransactionsDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  const [preset, setPreset] = useState<RangePreset>("7d");
+  const [preset, setPreset] = useState<RangePreset>("today");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [grain, setGrain] = useState<TrendGrain>("day");
@@ -363,49 +351,12 @@ export default function TransactionsDashboardPage() {
   const [aiErr, setAiErr] = useState("");
   const [aiInsights, setAiInsights] = useState<AiInsights | null>(null);
 
-  const computedRange = useMemo(() => {
-    const now = new Date();
-    const end = isoEndOfDay(now);
-    const startFromDays = (days: number) => {
-      const startD = new Date(now);
-      startD.setDate(startD.getDate() - days);
-      return { start: isoStartOfDay(startD), end };
-    };
-    if (preset === "1d") return startFromDays(1);
-    if (preset === "7d") return startFromDays(7);
-    if (preset === "28d") return startFromDays(28);
-    if (preset === "1m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "3m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 3);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "6m") {
-      const startD = new Date(now);
-      startD.setMonth(startD.getMonth() - 6);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "1y") {
-      const startD = new Date(now);
-      startD.setFullYear(startD.getFullYear() - 1);
-      return { start: isoStartOfDay(startD), end };
-    }
-    if (preset === "custom") {
-      const startD = customStart ? new Date(`${customStart}T00:00:00`) : null;
-      const endD = customEnd ? new Date(`${customEnd}T00:00:00`) : null;
-      return {
-        start: startD ? isoStartOfDay(startD) : "",
-        end: endD ? isoEndOfDay(endD) : "",
-      };
-    }
-    return { start: "", end: "" };
-  }, [preset, customStart, customEnd]);
+  const computedRange = useMemo(
+    () => computeDashboardRange(preset, customStart, customEnd),
+    [preset, customStart, customEnd],
+  );
 
-  async function load(force = false) {
+  async function load(force = false, hard = false) {
     setErr("");
     setLoading(true);
     setAiErr("");
@@ -418,6 +369,7 @@ export default function TransactionsDashboardPage() {
       qs.set("start", computedRange.start);
       qs.set("end", computedRange.end);
       if (force) qs.set("bust", "1");
+      if (hard) qs.set("hard", "1");
 
       const currRes = await fetch(`/api/dashboard/transactions?${qs.toString()}`, { cache: "no-store" });
       const curr = (await currRes.json()) as TransactionsApiResponse;
@@ -432,6 +384,7 @@ export default function TransactionsDashboardPage() {
         pQs.set("start", prev.prevStart);
         pQs.set("end", prev.prevEnd);
         if (force) pQs.set("bust", "1");
+        if (hard) pQs.set("hard", "1");
         const prevRes = await fetch(`/api/dashboard/transactions?${pQs.toString()}`, { cache: "no-store" });
         const prevJson = (await prevRes.json()) as TransactionsApiResponse;
         if (prevRes.ok && prevJson?.ok) setPrevData(prevJson);
@@ -471,7 +424,7 @@ export default function TransactionsDashboardPage() {
   const kpis = useMemo(() => {
     const total = filteredRows.length;
     const contactMap = new Map<string, { tx: number; lifetimeNet: number; lifetimeOrders: number }>();
-    const successfulRows = filteredRows.filter((r) => isSucceededRevenueStatus(r.status));
+    const successfulRows = filteredRows.filter((r) => isSucceededLiveRevenue(r));
     const gross = successfulRows.reduce((a, r) => a + Number(r.amount || 0), 0);
     const refundedRows = filteredRows.filter((r) => {
       return isRefundLike(r.status);
@@ -519,7 +472,7 @@ export default function TransactionsDashboardPage() {
   const prevKpis = useMemo(() => {
     const total = prevFilteredRows.length;
     const contactMap = new Map<string, { tx: number; lifetimeNet: number }>();
-    const successfulRows = prevFilteredRows.filter((r) => isSucceededRevenueStatus(r.status));
+    const successfulRows = prevFilteredRows.filter((r) => isSucceededLiveRevenue(r));
     const gross = successfulRows.reduce((a, r) => a + Number(r.amount || 0), 0);
     const refundedRows = prevFilteredRows.filter((r) => {
       return isRefundLike(r.status);
@@ -583,7 +536,7 @@ export default function TransactionsDashboardPage() {
   const byStateAmount = useMemo(() => {
     const m: Record<string, number> = {};
     for (const r of filteredRows) {
-      if (!isSucceededRevenueStatus(r.status)) continue;
+      if (!isSucceededLiveRevenue(r)) continue;
       const st = norm(r.state);
       if (!st) m.__unknown = Number(((m.__unknown || 0) + Number(r.amount || 0)).toFixed(2));
       else m[st] = Number(((m[st] || 0) + Number(r.amount || 0)).toFixed(2));
@@ -705,9 +658,14 @@ export default function TransactionsDashboardPage() {
               Rango afecta KPIs, revenue trend, mapa y tabla de transacciones.
             </div>
           </div>
-          <button className="smallBtn" onClick={() => load(true)} type="button" disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="smallBtn" onClick={() => load(true)} type="button" disabled={loading}>
+              {loading ? "Refreshing..." : "Refresh"}
+            </button>
+            <button className="smallBtn" onClick={() => load(true, true)} type="button" disabled={loading}>
+              {loading ? "Syncing..." : "Hard refresh"}
+            </button>
+          </div>
         </div>
         <div className="cardBody">
           <div className="filtersBar">
@@ -715,7 +673,8 @@ export default function TransactionsDashboardPage() {
               <div className="filtersLabel">Range</div>
               <div className="rangePills">
                 {([
-                  ["1d", "1 day"],
+                  ["today", "Today"],
+                  ["24h", "24hr"],
                   ["7d", "7 days"],
                   ["28d", "28 days"],
                   ["1m", "Last month"],
@@ -780,6 +739,16 @@ export default function TransactionsDashboardPage() {
                 : ""}
               {Number(data.cache.fetchedPages || 0) > 0 ? ` • pages fetched: ${data.cache.fetchedPages}` : ""}
               {data.cache.usedIncremental ? " • incremental refresh" : ""}
+              {typeof data.cache.snapshotComplete === "boolean"
+                ? data.cache.snapshotComplete
+                  ? " • snapshot complete"
+                  : " • snapshot partial"
+                : ""}
+            </div>
+          ) : null}
+          {!err && data?.cache?.hitPageCap ? (
+            <div className="mini" style={{ marginTop: 6, color: "var(--danger)" }}>
+              X Reached page cap while syncing. Use Hard refresh again or increase TRANSACTIONS_MAX_PAGES in env.
             </div>
           ) : null}
         </div>
@@ -804,7 +773,7 @@ export default function TransactionsDashboardPage() {
             </div>
             <div className="kpi">
               <p className="n">{fmtInt(kpis.successfulTransactions)}</p>
-              <p className="l">Succeeded transactions</p>
+              <p className="l">Succeeded live-mode transactions</p>
               <div className="mini">Only these count as revenue</div>
             </div>
             <div className="kpi">

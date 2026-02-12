@@ -88,6 +88,15 @@ function formatStateLabel(raw: string) {
     .join(" ");
 }
 
+function fmtInt(value: number) {
+  const n = Number(value || 0);
+  return Number.isFinite(n) ? n.toLocaleString("en-US") : "0";
+}
+
+function fmtPair(a: number, b: number) {
+  return `${fmtInt(a)}/${fmtInt(b)}`;
+}
+
 async function safeJson(res: Response) {
   const text = await res.text();
   if (!text) return null;
@@ -276,6 +285,19 @@ function normalizePct(raw: any): number | null {
 }
 
 export default function Home() {
+  type CelebrateParticle = {
+    kind: "rocket" | "spark";
+    originX: number;
+    tx: number;
+    ty: number;
+    size: number;
+    delay: number;
+    duration: number;
+    spin: number;
+    hue: number;
+    alpha: number;
+  };
+
   const [statesOut, setStatesOut] = useState<string[]>([]);
   const [job, setJob] = useState(JOBS[0].key);
   const [stateOut, setStateOut] = useState<string>("all");
@@ -303,6 +325,7 @@ export default function Home() {
   const [detailErr, setDetailErr] = useState("");
   const [detailTab, setDetailTab] = useState<"counties" | "cities">("counties");
   const [countyFilter, setCountyFilter] = useState<string>("all");
+  const [detailSearch, setDetailSearch] = useState("");
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -370,7 +393,7 @@ export default function Home() {
   const [mapSelected, setMapSelected] = useState<string>("");
   const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const celebrationParticles = useMemo(() => {
+  const celebrationParticles = useMemo<CelebrateParticle[]>(() => {
     const palette = [198, 160, 46, 278, 332, 118, 24, 214];
 
     const rockets = Array.from({ length: 58 }, (_, i) => {
@@ -1011,6 +1034,7 @@ export default function Home() {
     setDetail(null);
     setDetailErr("");
     setCountyFilter("all");
+    setDetailSearch("");
     setDetailTab("counties");
     setDetailLoading(true);
 
@@ -1504,7 +1528,7 @@ export default function Home() {
         </section>
 
         {/* Sheet Overview */}
-        <aside className="card">
+        <aside className="card sheetOverviewCard">
           <div className="cardHeader">
             <div>
               <h2 className="cardTitle">Sheet overview</h2>
@@ -1543,33 +1567,36 @@ export default function Home() {
                 ❌ {sheetErr}
               </div>
             ) : (
-              <div className="kpiRow kpiRowCompact">
+              <div className="kpiRow sheetOverviewGrid">
+                <div className="kpi kpiHero">
+                  <p className="n">
+                    {fmtInt((totals.countiesTotal || 0) + (totals.citiesTotal || 0))}
+                  </p>
+                  <p className="l">Total counties + cities</p>
+                </div>
+
                 <div className="kpi">
-                  <p className="n">{sheet?.states?.length ?? 0}</p>
+                  <p className="n">{fmtInt(sheet?.states?.length ?? 0)}</p>
                   <p className="l">States in sheet</p>
                 </div>
 
                 <div className="kpi">
-                  <p className="n">
-                    {totals.countiesReady}/{totals.countiesTotal}
-                  </p>
+                  <p className="n nPair">{fmtPair(totals.countiesReady, totals.countiesTotal)}</p>
                   <p className="l">Counties ready</p>
                 </div>
 
                 <div className="kpi">
-                  <p className="n">
-                    {totals.citiesReady}/{totals.citiesTotal}
-                  </p>
+                  <p className="n nPair">{fmtPair(totals.citiesReady, totals.citiesTotal)}</p>
                   <p className="l">Cities ready</p>
                 </div>
 
                 <div className="kpi">
-                  <p className="n">{totals.countiesDomainsActive}</p>
+                  <p className="n">{fmtInt(totals.countiesDomainsActive)}</p>
                   <p className="l">County domains active</p>
                 </div>
 
                 <div className="kpi">
-                  <p className="n">{totals.citiesDomainsActive}</p>
+                  <p className="n">{fmtInt(totals.citiesDomainsActive)}</p>
                   <p className="l">City domains active</p>
                 </div>
                 <div className="kpi">
@@ -1595,7 +1622,7 @@ export default function Home() {
       </div>
 
       {/* Sheet Explorer */}
-      <section className="card" style={{ marginTop: 14 }}>
+      <section className="card sheetExplorerCard" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Sheet Explorer</h2>
@@ -1604,13 +1631,12 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div className="sheetExplorerHeadTools">
             <input
-              className="input"
+              className="input sheetExplorerSearch"
               placeholder="Search state (e.g., Alabama, Florida...)"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              style={{ width: 340 }}
             />
             <div className="badge">{filteredSheetStates.length} shown</div>
           </div>
@@ -1622,8 +1648,8 @@ export default function Home() {
               {sheetLoading ? "Loading sheet overview..." : "No data loaded."}
             </div>
           ) : (
-            <div className="tableWrap">
-              <table className="table">
+            <div className="tableWrap tableWrapTall sheetExplorerTableWrap">
+              <table className="table sheetExplorerTable">
                 <thead>
                   <tr>
                     <th className="th">State</th>
@@ -1655,14 +1681,25 @@ export default function Home() {
                       : 0;
 
                     const pillClass =
-                      overall >= 0.9
-                        ? "pillOk"
-                        : overall >= 0.4
-                          ? "pillWarn"
-                          : "pillOff";
+                      domainDone === 0
+                        ? "pillOff"
+                        : overall >= 0.85
+                          ? "pillOk"
+                          : overall >= 0.55
+                            ? "pillWarn"
+                            : "pillOff";
+
+                    const rowClass =
+                      domainDone === 0
+                        ? "stateRow stateRowPending"
+                        : overall >= 0.9
+                          ? "stateRow stateRowActive"
+                          : overall >= 0.4
+                            ? "stateRow stateRowProgress"
+                            : "stateRow stateRowPending";
 
                     return (
-                      <tr key={r.state} className="tr">
+                      <tr key={r.state} className={`tr ${rowClass}`}>
                         <td className="td">
                           <b>{r.state}</b>
                         </td>
@@ -1843,12 +1880,8 @@ export default function Home() {
                   </div>
 
                   <div
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      alignItems: "center",
-                      marginTop: 14,
-                    }}
+                    className="detailFiltersRow"
+                    style={{ marginTop: 14 }}
                   >
                     <div className="mini" style={{ minWidth: 110 }}>
                       Filter county
@@ -1869,15 +1902,25 @@ export default function Home() {
                           {c}
                         </option>
                       ))}
-                    </select>
+                      </select>
+                    <input
+                      className="input detailSearchInput"
+                      placeholder={
+                        detailTab === "cities"
+                          ? "Search county, city, location id..."
+                          : "Search county, location id..."
+                      }
+                      value={detailSearch}
+                      onChange={(e) => setDetailSearch(e.target.value)}
+                    />
                   </div>
 
                   <div
-                    className="tableWrap tableScrollX"
+                    className="tableWrap tableScrollX detailTableWrap"
                     style={{ marginTop: 12 }}
                   >
                     <table
-                      className={`table ${detailTab === "cities" ? "tableWideCities" : ""}`}
+                      className={`table detailDataTable ${detailTab === "cities" ? "tableWideCities" : ""}`}
                     >
                       <thead>
                         <tr>
@@ -1888,9 +1931,7 @@ export default function Home() {
                           {detailTab === "cities" && (
                             <th className="th">City</th>
                           )}
-                          <th className="th">Domain</th>
-                          <th className="th">Sitemap</th>
-                          <th className="th">Activation</th>
+                          <th className="th">Setup</th>
                         </tr>
                       </thead>
 
@@ -1905,6 +1946,18 @@ export default function Home() {
                               : String(r["County"] || "").trim() ===
                                 countyFilter,
                           )
+                          .filter((r) => {
+                            const q0 = detailSearch.trim().toLowerCase();
+                            if (!q0) return true;
+                            const locId = s(r["Location Id"]).toLowerCase();
+                            const county = s(r["County"]).toLowerCase();
+                            const city = s(r["City"]).toLowerCase();
+                            return (
+                              locId.includes(q0) ||
+                              county.includes(q0) ||
+                              city.includes(q0)
+                            );
+                          })
                           .map((r, i) => {
                             const eligible = !!r.__eligible;
                             const locId = s(r["Location Id"]);
@@ -1920,15 +1973,7 @@ export default function Home() {
                                 ? s(r["City Domain"]) || s(r["city domain"])
                                 : s(r["Domain"]) || s(r["County Domain"]);
 
-                            const domainForOpen =
-                              detailTab === "counties"
-                                ? s(r["Domain"]) || s(r["County Domain"]) || ""
-                                : s(r["City Domain"]) ||
-                                  s(r["County Domain"]) ||
-                                  "";
-
                             const sitemap = s(r["Sitemap"]);
-                            const domainUrl = toUrlMaybe(domainForOpen);
 
                             const title =
                               detailTab === "cities"
@@ -1938,10 +1983,16 @@ export default function Home() {
                             const accountName = s(r["Account Name"]);
                             const timezone = s(r["Timezone"]);
 
+                            const rowTone = domainCreated
+                              ? "rowDomainActive"
+                              : eligible
+                                ? "rowDomainPending"
+                                : "rowDomainIdle";
+
                             return (
                               <tr
                                 key={i}
-                                className={`tr ${eligible ? "rowEligible" : ""}`}
+                                className={`tr ${eligible ? "rowEligible" : ""} ${rowTone}`}
                               >
                                 <td className="td">{eligible ? "✅" : "—"}</td>
 
@@ -1964,36 +2015,6 @@ export default function Home() {
                                 )}
 
                                 <td className="td">
-                                  {hasLocId && domainUrl ? (
-                                    <a
-                                      className="link"
-                                      href={domainUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                    >
-                                      Open
-                                    </a>
-                                  ) : (
-                                    <span className="mini">—</span>
-                                  )}
-                                </td>
-
-                                <td className="td">
-                                  {hasLocId && sitemap ? (
-                                    <a
-                                      className="link"
-                                      href={sitemap}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                    >
-                                      Open
-                                    </a>
-                                  ) : (
-                                    <span className="mini">—</span>
-                                  )}
-                                </td>
-
-                                <td className="td">
                                   {hasLocId ? (
                                     <div className="rowActions">
                                       <button
@@ -2012,7 +2033,7 @@ export default function Home() {
                                           })
                                         }
                                       >
-                                        Activate
+                                        View
                                       </button>
                                     </div>
                                   ) : (

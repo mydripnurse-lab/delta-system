@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import type { DashboardRangePreset } from "@/lib/dateRangePresets";
 
-type RangePreset = "1d" | "7d" | "28d" | "1m" | "3m" | "6m" | "1y" | "custom";
+type RangePreset = DashboardRangePreset;
 
 type OverviewResponse = {
   ok: boolean;
@@ -272,9 +273,23 @@ export default function FacebookAdsDashboardPage() {
         <div className="cardBody">
           <div className="filtersBar">
             <div className="rangePills">
-              {(["7d", "28d", "1m", "3m", "6m", "1y"] as RangePreset[]).map((p) => (
+              {(["today", "24h", "7d", "28d", "1m", "3m", "6m", "1y"] as RangePreset[]).map((p) => (
                 <button key={p} className={`smallBtn ${preset === p ? "smallBtnOn" : ""}`} type="button" onClick={() => setPreset(p)}>
-                  {p}
+                  {p === "today"
+                    ? "Today"
+                    : p === "24h"
+                      ? "24hr"
+                      : p === "7d"
+                        ? "7 days"
+                        : p === "28d"
+                          ? "28 days"
+                          : p === "1m"
+                            ? "Last month"
+                            : p === "3m"
+                              ? "Last quarter"
+                              : p === "6m"
+                                ? "Last 6 months"
+                                : "Last year"}
                 </button>
               ))}
               <button className={`smallBtn ${preset === "custom" ? "smallBtnOn" : ""}`} type="button" onClick={() => setPreset("custom")}>Custom</button>

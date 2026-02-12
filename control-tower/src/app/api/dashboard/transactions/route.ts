@@ -11,6 +11,7 @@ type TxRow = {
     contactId: string;
     customerName: string;
     amount: number;
+    amountRefunded: number;
     currency: string;
     status: string;
     paymentMethod: string;
@@ -20,6 +21,7 @@ type TxRow = {
     state: string;
     city: string;
     stateFrom: "transaction" | "contact.state" | "unknown";
+    liveMode?: boolean | null;
     contactLifetimeNet?: number;
     contactLifetimeOrders?: number;
 };
@@ -31,6 +33,7 @@ type ApiResponse = {
     kpis?: {
         totalTransactions: number;
         successfulTransactions: number;
+        successfulLiveModeTransactions: number;
         nonRevenueTransactions: number;
         grossAmount: number;
         avgTicket: number;
@@ -53,6 +56,8 @@ type ApiResponse = {
         snapshotUpdatedAt?: string;
         snapshotCoverage?: { newestCreatedAt: string; oldestCreatedAt: string };
         fetchedPages?: number;
+        hitPageCap?: boolean;
+        snapshotComplete?: boolean;
         usedIncremental?: boolean;
         refreshReason?: string;
     };
@@ -66,6 +71,7 @@ type TxSnapshot = {
     updatedAtMs: number;
     newestCreatedAt: string;
     oldestCreatedAt: string;
+    complete?: boolean;
     rows: TxRow[];
 };
 
@@ -77,9 +83,9 @@ type CacheEntry = {
 
 const RANGE_CACHE = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 45_000;
-const MAX_PAGES = 60;
+const MAX_PAGES = Math.max(80, Number(process.env.TRANSACTIONS_MAX_PAGES || 800));
 const PAGE_LIMIT = 100;
-const PAGE_DELAY_MS = 250;
+const PAGE_DELAY_MS = Math.max(0, Number(process.env.TRANSACTIONS_PAGE_DELAY_MS || 40));
 const RETRY_BASE_MS = 1200;
 const MAX_RETRIES_429 = 5;
 const SNAPSHOT_TTL_MS = Number(process.env.TRANSACTIONS_SNAPSHOT_TTL_SEC || 900) * 1000;
@@ -279,6 +285,11 @@ function pickAmount(x: any) {
     return Number(raw.toFixed(2));
 }
 
+function pickAmountRefunded(x: any) {
+    const raw = toNum(x.amountRefunded ?? x.amount_refunded ?? x.refundedAmount ?? x.refunded_amount ?? 0);
+    return Number(raw.toFixed(2));
+}
+
 function pickStateFromTx(x: any) {
     const s0 = normalizeStateName(
         norm(
@@ -357,6 +368,17 @@ function pickMethod(x: any) {
     return raw;
 }
 
+function pickLiveMode(x: any): boolean | null {
+    const raw = x?.liveMode ?? x?.live_mode ?? x?.livemode ?? x?.mode;
+    if (typeof raw === "boolean") return raw;
+    if (typeof raw === "number") return raw === 1 ? true : raw === 0 ? false : null;
+    const s0 = norm(raw).toLowerCase();
+    if (!s0) return null;
+    if (s0 === "true" || s0 === "1" || s0 === "live") return true;
+    if (s0 === "false" || s0 === "0" || s0 === "test" || s0 === "sandbox") return false;
+    return null;
+}
+
 function isRefundLike(statusRaw: string) {
     const s = norm(statusRaw).toLowerCase();
     return s.includes("refund") || s.includes("chargeback") || s.includes("reversal") || s.includes("reversed");
@@ -389,6 +411,62 @@ function extractTransactionsArray(res: unknown) {
     return [];
 }
 
+function pageMeta(res: any) {
+    const root = res || {};
+    const data = root?.data || {};
+    const pagination = root?.pagination || data?.pagination || {};
+    const meta = root?.meta || data?.meta || {};
+
+    const hasMoreRaw =
+        pagination?.hasMore ??
+        pagination?.has_more ??
+        meta?.hasMore ??
+        meta?.has_more ??
+        root?.hasMore ??
+        root?.has_more;
+
+    const nextPageRaw =
+        pagination?.nextPage ??
+        pagination?.next_page ??
+        meta?.nextPage ??
+        meta?.next_page ??
+        root?.nextPage ??
+        root?.next_page;
+
+    const nextCursorRaw =
+        pagination?.nextCursor ??
+        pagination?.next_cursor ??
+        data?.nextCursor ??
+        data?.next_cursor ??
+        root?.nextCursor ??
+        root?.next_cursor ??
+        "";
+
+    const totalCountRaw =
+        root?.totalCount ??
+        root?.total_count ??
+        data?.totalCount ??
+        data?.total_count ??
+        pagination?.totalCount ??
+        pagination?.total_count ??
+        meta?.totalCount ??
+        meta?.total_count ??
+        0;
+
+    let hasMore: boolean | null = null;
+    if (typeof hasMoreRaw === "boolean") hasMore = hasMoreRaw;
+    else if (norm(hasMoreRaw)) hasMore = norm(hasMoreRaw).toLowerCase() === "true";
+    const nextPage = Number(nextPageRaw);
+    const nextCursor = norm(nextCursorRaw);
+    const totalCount = Number(totalCountRaw);
+    return {
+        hasMore,
+        nextPage: Number.isFinite(nextPage) ? nextPage : 0,
+        nextCursor,
+        totalCount: Number.isFinite(totalCount) && totalCount > 0 ? Math.floor(totalCount) : 0,
+    };
+}
+
 function toRow(x: any): TxRow {
     const createdAt = pickCreatedIso(x);
     const createdMs = Number.isFinite(new Date(createdAt).getTime()) ? new Date(createdAt).getTime() : null;
@@ -403,6 +481,7 @@ function toRow(x: any): TxRow {
                 `${norm(x.customer?.firstName)} ${norm(x.customer?.lastName)}`.trim(),
         ),
         amount: pickAmount(x),
+        amountRefunded: pickAmountRefunded(x),
         currency: norm(x.currency || x.currencyCode || "USD").toUpperCase() || "USD",
         status: pickStatus(x),
         paymentMethod: pickMethod(x),
@@ -412,7 +491,14 @@ function toRow(x: any): TxRow {
         state: state || "",
         city: pickCityFromTx(x),
         stateFrom: state ? "transaction" : "unknown",
+        liveMode: pickLiveMode(x),
     };
+}
+
+function toYmd(iso: string) {
+    const t = toMs(iso);
+    if (!Number.isFinite(t)) return "";
+    return new Date(t).toISOString().slice(0, 10);
 }
 
 async function fetchTransactions(
@@ -443,53 +529,174 @@ async function fetchTransactions(
         return Number.isFinite(oldest) && oldest <= stopWhenOlderThanMs;
     };
 
+    const runOffsetVariant = async (opts: {
+        includeLocationId?: boolean;
+        useAlt?: boolean;
+        authToken?: string;
+    }) => {
+        const all: any[] = [];
+        const seenPageSigs = new Set<string>();
+        let pagesFetched = 0;
+        let hitPageCap = false;
+        let expectedTotal = 0;
+        const startAt = toYmd(startIso);
+        const endAt = toYmd(endIso);
+        for (let pageIdx = 0; pageIdx < maxPages; pageIdx++) {
+            const offset = pageIdx * PAGE_LIMIT;
+            const qs = new URLSearchParams();
+            qs.set("limit", String(PAGE_LIMIT));
+            qs.set("offset", String(offset));
+            if (startAt) qs.set("startAt", startAt);
+            if (endAt) qs.set("endAt", endAt);
+            // We only report real revenue from live mode; fetch scope aligned to live.
+            qs.set("paymentMode", "live");
+            if (opts.includeLocationId) qs.set("locationId", locationId);
+            if (opts.useAlt) {
+                qs.set("altId", locationId);
+                qs.set("altType", "location");
+            }
+            const res = await with429Retry(() =>
+                ghlFetchJson(`/payments/transactions?${qs.toString()}`, {
+                    method: "GET",
+                    authToken: opts.authToken,
+                }),
+            );
+            const rows = extractTransactionsArray(res);
+            pagesFetched++;
+            const meta = pageMeta(res);
+            if (!expectedTotal && meta.totalCount > 0) expectedTotal = meta.totalCount;
+            if (!rows.length) break;
+            all.push(...rows);
+            if (shouldStopByOldest(rows)) break;
+            if (expectedTotal > 0 && all.length >= expectedTotal) break;
+
+            const sig = `${rows.length}|${norm((rows[0] || {})?._id || (rows[0] || {})?.id)}|${norm(
+                (rows[rows.length - 1] || {})?._id || (rows[rows.length - 1] || {})?.id,
+            )}|${offset}`;
+            if (seenPageSigs.has(sig)) break;
+            seenPageSigs.add(sig);
+
+            if (pageIdx === maxPages - 1) hitPageCap = true;
+            await sleep(PAGE_DELAY_MS);
+            if (rows.length < PAGE_LIMIT && expectedTotal <= 0) break;
+        }
+        return { rows: all, pagesFetched, hitPageCap };
+    };
+
     const attempts = [
+        // Documented contract: altId + altType + paymentMode + startAt/endAt + limit/offset
+        async () => runOffsetVariant({ includeLocationId: false, useAlt: true }),
+        // alt + locationId together (some accounts require explicit locationId)
+        async () => runOffsetVariant({ includeLocationId: true, useAlt: true }),
+        // locationId + offset pagination
+        async () => runOffsetVariant({ includeLocationId: true, useAlt: false }),
+        // Agency token fallbacks with documented offset pagination
+        async () => {
+            if (!agencyToken) throw new Error("Agency token unavailable");
+            return runOffsetVariant({ includeLocationId: false, useAlt: true, authToken: agencyToken });
+        },
+        async () => {
+            if (!agencyToken) throw new Error("Agency token unavailable");
+            return runOffsetVariant({ includeLocationId: true, useAlt: true, authToken: agencyToken });
+        },
         // Documented endpoint (location token + explicit locationId)
         async () => {
             const all: any[] = [];
+            let cursor = "";
+            const seenPageSigs = new Set<string>();
+            let pagesFetched = 0;
+            let hitPageCap = false;
+            let expectedTotal = 0;
             for (let page = 1; page <= maxPages; page++) {
                 const qs = new URLSearchParams();
                 qs.set("locationId", locationId);
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
+                if (cursor) qs.set("cursor", cursor);
                 const res = await with429Retry(() =>
                     ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET" }),
                 );
                 const rows = extractTransactionsArray(res);
+                pagesFetched++;
                 all.push(...rows);
-                if (rows.length < PAGE_LIMIT) break;
+                const meta = pageMeta(res);
+                if (!expectedTotal && meta.totalCount > 0) expectedTotal = meta.totalCount;
+                if (!rows.length) break;
                 if (shouldStopByOldest(rows)) break;
+                if (expectedTotal > 0 && all.length >= expectedTotal) break;
+
+                const sig = `${rows.length}|${norm((rows[0] || {})?.id)}|${norm((rows[rows.length - 1] || {})?.id)}|${cursor}`;
+                if (seenPageSigs.has(sig)) break;
+                seenPageSigs.add(sig);
+
+                if (meta.nextCursor && meta.nextCursor !== cursor) {
+                    cursor = meta.nextCursor;
+                } else if (meta.nextPage > page) {
+                    page = meta.nextPage - 1;
+                } else if (meta.hasMore === false && !meta.nextCursor && !meta.nextPage) {
+                    break;
+                }
                 await sleep(PAGE_DELAY_MS);
+                if (page === maxPages) hitPageCap = true;
             }
-            return all;
+            return { rows: all, pagesFetched, hitPageCap };
         },
         // Same endpoint without locationId; some accounts infer from token context.
         async () => {
             const all: any[] = [];
+            let cursor = "";
+            const seenPageSigs = new Set<string>();
+            let pagesFetched = 0;
+            let hitPageCap = false;
+            let expectedTotal = 0;
             for (let page = 1; page <= maxPages; page++) {
                 const qs = new URLSearchParams();
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
+                if (cursor) qs.set("cursor", cursor);
                 const res = await with429Retry(() =>
                     ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET" }),
                 );
                 const rows = extractTransactionsArray(res);
+                pagesFetched++;
                 all.push(...rows);
-                if (rows.length < PAGE_LIMIT) break;
+                const meta = pageMeta(res);
+                if (!expectedTotal && meta.totalCount > 0) expectedTotal = meta.totalCount;
+                if (!rows.length) break;
                 if (shouldStopByOldest(rows)) break;
+                if (expectedTotal > 0 && all.length >= expectedTotal) break;
+
+                const sig = `${rows.length}|${norm((rows[0] || {})?.id)}|${norm((rows[rows.length - 1] || {})?.id)}|${cursor}`;
+                if (seenPageSigs.has(sig)) break;
+                seenPageSigs.add(sig);
+
+                if (meta.nextCursor && meta.nextCursor !== cursor) {
+                    cursor = meta.nextCursor;
+                } else if (meta.nextPage > page) {
+                    page = meta.nextPage - 1;
+                } else if (meta.hasMore === false && !meta.nextCursor && !meta.nextPage) {
+                    break;
+                }
                 await sleep(PAGE_DELAY_MS);
+                if (page === maxPages) hitPageCap = true;
             }
-            return all;
+            return { rows: all, pagesFetched, hitPageCap };
         },
         // Agency token fallback + explicit locationId.
         async () => {
             if (!agencyToken) throw new Error("Agency token unavailable");
             const all: any[] = [];
+            let cursor = "";
+            const seenPageSigs = new Set<string>();
+            let pagesFetched = 0;
+            let hitPageCap = false;
+            let expectedTotal = 0;
             for (let page = 1; page <= maxPages; page++) {
                 const qs = new URLSearchParams();
                 qs.set("locationId", locationId);
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
+                if (cursor) qs.set("cursor", cursor);
                 const res = await with429Retry(() =>
                     ghlFetchJson(`/payments/transactions?${qs.toString()}`, {
                         method: "GET",
@@ -497,23 +704,46 @@ async function fetchTransactions(
                     }),
                 );
                 const rows = extractTransactionsArray(res);
+                pagesFetched++;
                 all.push(...rows);
-                if (rows.length < PAGE_LIMIT) break;
+                const meta = pageMeta(res);
+                if (!expectedTotal && meta.totalCount > 0) expectedTotal = meta.totalCount;
+                if (!rows.length) break;
                 if (shouldStopByOldest(rows)) break;
+                if (expectedTotal > 0 && all.length >= expectedTotal) break;
+
+                const sig = `${rows.length}|${norm((rows[0] || {})?.id)}|${norm((rows[rows.length - 1] || {})?.id)}|${cursor}`;
+                if (seenPageSigs.has(sig)) break;
+                seenPageSigs.add(sig);
+
+                if (meta.nextCursor && meta.nextCursor !== cursor) {
+                    cursor = meta.nextCursor;
+                } else if (meta.nextPage > page) {
+                    page = meta.nextPage - 1;
+                } else if (meta.hasMore === false && !meta.nextCursor && !meta.nextPage) {
+                    break;
+                }
                 await sleep(PAGE_DELAY_MS);
+                if (page === maxPages) hitPageCap = true;
             }
-            return all;
+            return { rows: all, pagesFetched, hitPageCap };
         },
         // Agency token + altId/altType fallback.
         async () => {
             if (!agencyToken) throw new Error("Agency token unavailable");
             const all: any[] = [];
+            let cursor = "";
+            const seenPageSigs = new Set<string>();
+            let pagesFetched = 0;
+            let hitPageCap = false;
+            let expectedTotal = 0;
             for (let page = 1; page <= maxPages; page++) {
                 const qs = new URLSearchParams();
                 qs.set("altType", "location");
                 qs.set("altId", locationId);
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
+                if (cursor) qs.set("cursor", cursor);
                 const res = await with429Retry(() =>
                     ghlFetchJson(`/payments/transactions?${qs.toString()}`, {
                         method: "GET",
@@ -521,12 +751,72 @@ async function fetchTransactions(
                     }),
                 );
                 const rows = extractTransactionsArray(res);
+                pagesFetched++;
                 all.push(...rows);
-                if (rows.length < PAGE_LIMIT) break;
+                const meta = pageMeta(res);
+                if (!expectedTotal && meta.totalCount > 0) expectedTotal = meta.totalCount;
+                if (!rows.length) break;
                 if (shouldStopByOldest(rows)) break;
+                if (expectedTotal > 0 && all.length >= expectedTotal) break;
+
+                const sig = `${rows.length}|${norm((rows[0] || {})?.id)}|${norm((rows[rows.length - 1] || {})?.id)}|${cursor}`;
+                if (seenPageSigs.has(sig)) break;
+                seenPageSigs.add(sig);
+
+                if (meta.nextCursor && meta.nextCursor !== cursor) {
+                    cursor = meta.nextCursor;
+                } else if (meta.nextPage > page) {
+                    page = meta.nextPage - 1;
+                } else if (meta.hasMore === false && !meta.nextCursor && !meta.nextPage) {
+                    break;
+                }
                 await sleep(PAGE_DELAY_MS);
+                if (page === maxPages) hitPageCap = true;
             }
-            return all;
+            return { rows: all, pagesFetched, hitPageCap };
+        },
+        // Location token + altId/altType (some accounts only paginate well with this pair)
+        async () => {
+            const all: any[] = [];
+            let cursor = "";
+            const seenPageSigs = new Set<string>();
+            let pagesFetched = 0;
+            let hitPageCap = false;
+            let expectedTotal = 0;
+            for (let page = 1; page <= maxPages; page++) {
+                const qs = new URLSearchParams();
+                qs.set("altType", "location");
+                qs.set("altId", locationId);
+                qs.set("page", String(page));
+                qs.set("limit", String(PAGE_LIMIT));
+                if (cursor) qs.set("cursor", cursor);
+                const res = await with429Retry(() =>
+                    ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET" }),
+                );
+                const rows = extractTransactionsArray(res);
+                pagesFetched++;
+                all.push(...rows);
+                const meta = pageMeta(res);
+                if (!expectedTotal && meta.totalCount > 0) expectedTotal = meta.totalCount;
+                if (!rows.length) break;
+                if (shouldStopByOldest(rows)) break;
+                if (expectedTotal > 0 && all.length >= expectedTotal) break;
+
+                const sig = `${rows.length}|${norm((rows[0] || {})?.id)}|${norm((rows[rows.length - 1] || {})?.id)}|${cursor}`;
+                if (seenPageSigs.has(sig)) break;
+                seenPageSigs.add(sig);
+
+                if (meta.nextCursor && meta.nextCursor !== cursor) {
+                    cursor = meta.nextCursor;
+                } else if (meta.nextPage > page) {
+                    page = meta.nextPage - 1;
+                } else if (meta.hasMore === false && !meta.nextCursor && !meta.nextPage) {
+                    break;
+                }
+                await sleep(PAGE_DELAY_MS);
+                if (page === maxPages) hitPageCap = true;
+            }
+            return { rows: all, pagesFetched, hitPageCap };
         },
     ];
 
@@ -534,12 +824,15 @@ async function fetchTransactions(
     const attemptErrs: string[] = [];
     for (let i = 0; i < attempts.length; i++) {
         try {
-            const raw = await attempts[i]();
+            const fetchedRaw = await attempts[i]();
+            const raw = fetchedRaw.rows;
             const mapped = raw.map(toRow);
             return {
                 rawCount: raw.length,
                 mappedCount: mapped.length,
                 rows: mapped,
+                pagesFetched: Number(fetchedRaw.pagesFetched || 0),
+                hitPageCap: Boolean(fetchedRaw.hitPageCap),
                 startMs,
                 endMs,
                 usedMaxPages: maxPages,
@@ -579,6 +872,7 @@ export async function GET(req: Request) {
     const start = url.searchParams.get("start") || "";
     const end = url.searchParams.get("end") || "";
     const bust = url.searchParams.get("bust") === "1";
+    const hard = url.searchParams.get("hard") === "1";
     const debug = url.searchParams.get("debug") === "1";
 
     try {
@@ -602,21 +896,36 @@ export async function GET(req: Request) {
 
         const locationId = await getEffectiveLocationIdOrThrow();
         const snapshot = await readTxSnapshot(locationId);
+        const startMs = toMs(start);
+        const endMs = toMs(end);
+        const snapshotCov = snapshot ? rowsCoverage(snapshot.rows || []) : { newestMs: 0, oldestMs: 0, newestIso: "", oldestIso: "" };
+        const needsHistoricBackfill =
+            !!snapshot &&
+            Number.isFinite(startMs) &&
+            !!snapshotCov.oldestMs &&
+            startMs < snapshotCov.oldestMs;
         const snapshotFresh = !!snapshot && Date.now() - Number(snapshot.updatedAtMs || 0) <= SNAPSHOT_TTL_MS;
 
         let allRowsSource: TxRow[] = [];
         let cacheSource: "memory" | "snapshot" | "ghl_refresh" = "ghl_refresh";
         let fetchedPages = 0;
+        let hitPageCap = false;
         let usedIncremental = false;
         let refreshReason = "";
         let snapshotUpdatedAtIso = snapshot?.updatedAtMs ? new Date(snapshot.updatedAtMs).toISOString() : "";
 
-        if (snapshotFresh && snapshot && !bust) {
+        if (snapshotFresh && snapshot && !bust && !hard && !needsHistoricBackfill) {
             allRowsSource = snapshot.rows || [];
             cacheSource = "snapshot";
             refreshReason = "snapshot_fresh";
         } else {
-            refreshReason = snapshot ? "snapshot_stale_refresh" : "snapshot_missing_full_fetch";
+            if (needsHistoricBackfill) {
+                refreshReason = "snapshot_missing_requested_range_full_backfill";
+            } else if (hard) {
+                refreshReason = "hard_full_refresh";
+            } else {
+                refreshReason = snapshot ? "snapshot_stale_refresh" : "snapshot_missing_full_fetch";
+            }
             const snapshotNewestMs = snapshot?.newestCreatedAt ? toMs(snapshot.newestCreatedAt) : 0;
             const stopWhenOlderThanMs = snapshotNewestMs
                 ? Math.max(0, snapshotNewestMs - SNAPSHOT_OVERLAP_MS)
@@ -627,7 +936,7 @@ export async function GET(req: Request) {
                 start,
                 end,
                 debug,
-                snapshot
+                snapshot && !hard && !needsHistoricBackfill
                     ? {
                         stopWhenOlderThanMs,
                         maxPages: SNAPSHOT_MAX_NEW_PAGES,
@@ -637,7 +946,9 @@ export async function GET(req: Request) {
                     },
             );
             fetchedPages = Math.ceil((fetched.rawCount || 0) / PAGE_LIMIT);
-            usedIncremental = !!snapshot;
+            if (fetched.pagesFetched) fetchedPages = fetched.pagesFetched;
+            hitPageCap = Boolean(fetched.hitPageCap);
+            usedIncremental = !!snapshot && !needsHistoricBackfill;
             cacheSource = "ghl_refresh";
 
             const baseRows = snapshot?.rows || [];
@@ -666,6 +977,7 @@ export async function GET(req: Request) {
                 updatedAtMs: Date.now(),
                 newestCreatedAt: cov.newestIso,
                 oldestCreatedAt: cov.oldestIso,
+                complete: !hitPageCap,
                 rows: allRowsSource,
             });
             snapshotUpdatedAtIso = new Date().toISOString();
@@ -687,8 +999,6 @@ export async function GET(req: Request) {
         }
         const allRows = Array.from(dedupe.values());
         const covNow = rowsCoverage(allRows);
-        const startMs = toMs(start);
-        const endMs = toMs(end);
         const rows = allRows.filter((r) => {
             const ms = Number(r.__createdMs ?? NaN);
             if (!Number.isFinite(ms)) return true;
@@ -719,8 +1029,9 @@ export async function GET(req: Request) {
         let grossAmount = 0;
         let refundedAmount = 0;
         let refundedTransactions = 0;
-        let successfulTransactions = 0;
+        let allSucceededTransactions = 0;
         let nonRevenueTransactions = 0;
+        let successfulLiveModeTransactions = 0;
         let withState = 0;
         const byContactInScope = new Map<string, { count: number; gross: number; refunded: number }>();
 
@@ -728,12 +1039,18 @@ export async function GET(req: Request) {
             const status = norm(r.status).toLowerCase();
             const refundLike = isRefundLike(status);
             const succeededRevenue = isSucceededRevenueStatus(status);
-            if (refundLike) {
+            const liveModeEligible = r.liveMode !== false;
+            const succeededRevenueLive = succeededRevenue && liveModeEligible;
+            const refundedThisRow = Math.max(0, Number(r.amountRefunded || 0));
+            if (refundLike || refundedThisRow > 0) {
                 refundedTransactions++;
-                refundedAmount += r.amount;
+                refundedAmount += refundedThisRow > 0 ? refundedThisRow : Math.abs(Number(r.amount || 0));
             }
             if (succeededRevenue) {
-                successfulTransactions++;
+                allSucceededTransactions++;
+            }
+            if (succeededRevenueLive) {
+                successfulLiveModeTransactions++;
                 grossAmount += r.amount;
             } else {
                 nonRevenueTransactions++;
@@ -743,7 +1060,7 @@ export async function GET(req: Request) {
             if (cid) {
                 const prev = byContactInScope.get(cid) || { count: 0, gross: 0, refunded: 0 };
                 prev.count += 1;
-                if (succeededRevenue) prev.gross += r.amount;
+                if (succeededRevenueLive) prev.gross += r.amount;
                 if (refundLike) prev.refunded += r.amount;
                 byContactInScope.set(cid, prev);
             }
@@ -751,7 +1068,7 @@ export async function GET(req: Request) {
             const st = normalizeStateName(r.state);
             if (!st) {
                 byStateCount.__unknown = (byStateCount.__unknown || 0) + 1;
-                if (succeededRevenue) {
+                if (succeededRevenueLive) {
                     byStateAmount.__unknown = Number(((byStateAmount.__unknown || 0) + r.amount).toFixed(2));
                 }
                 continue;
@@ -759,7 +1076,7 @@ export async function GET(req: Request) {
 
             withState++;
             byStateCount[st] = (byStateCount[st] || 0) + 1;
-            if (succeededRevenue) {
+            if (succeededRevenueLive) {
                 byStateAmount[st] = Number(((byStateAmount[st] || 0) + r.amount).toFixed(2));
             }
         }
@@ -771,10 +1088,11 @@ export async function GET(req: Request) {
             const status = norm(r.status).toLowerCase();
             const isRefund = isRefundLike(status);
             const isSucceeded = isSucceededRevenueStatus(status);
+            const liveModeEligible = r.liveMode !== false;
             const prev = lifetimeByContact.get(cid) || { gross: 0, net: 0, orders: 0 };
-            if (isSucceeded) prev.gross += r.amount;
+            if (isSucceeded && liveModeEligible) prev.gross += r.amount;
             if (isRefund) prev.net += -Math.abs(r.amount);
-            else if (isSucceeded) prev.net += r.amount;
+            else if (isSucceeded && liveModeEligible) prev.net += r.amount;
             prev.orders += 1;
             lifetimeByContact.set(cid, prev);
         }
@@ -805,10 +1123,13 @@ export async function GET(req: Request) {
         const netAmount = Number((grossAmount - refundedAmount).toFixed(2));
         const kpis = {
             totalTransactions: total,
-            successfulTransactions,
+            successfulTransactions: successfulLiveModeTransactions,
+            successfulLiveModeTransactions,
             nonRevenueTransactions,
             grossAmount: Number(grossAmount.toFixed(2)),
-            avgTicket: successfulTransactions ? Number((grossAmount / successfulTransactions).toFixed(2)) : 0,
+            avgTicket: successfulLiveModeTransactions
+                ? Number((grossAmount / successfulLiveModeTransactions).toFixed(2))
+                : 0,
             refundedTransactions,
             refundedAmount: Number(refundedAmount.toFixed(2)),
             netAmount,
@@ -837,6 +1158,13 @@ export async function GET(req: Request) {
                         ? { newestCreatedAt: covNow.newestIso, oldestCreatedAt: covNow.oldestIso }
                         : undefined,
                 fetchedPages: fetchedPages || undefined,
+                hitPageCap: hitPageCap || undefined,
+                snapshotComplete:
+                    cacheSource === "snapshot"
+                        ? typeof snapshot?.complete === "boolean"
+                            ? snapshot.complete
+                            : undefined
+                        : !hitPageCap,
                 usedIncremental: usedIncremental || undefined,
                 refreshReason: refreshReason || undefined,
             },
@@ -847,6 +1175,8 @@ export async function GET(req: Request) {
                         dedupedSnapshotTransactions: allRows.length,
                         scopedTransactions: rows.length,
                         sampleRow: rows[0] || null,
+                        allSucceededTransactions,
+                        successfulLiveModeTransactions,
                         scopedUniqueCustomers: uniqueCustomers,
                         scopedRepeatCustomers: repeatCustomers,
                     },

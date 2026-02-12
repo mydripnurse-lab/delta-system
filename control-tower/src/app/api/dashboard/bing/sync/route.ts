@@ -55,7 +55,13 @@ function rangeFromPreset(preset: RangePreset, startRaw: string, endRaw: string) 
   else if (preset === "last_month") start.setMonth(start.getMonth() - 1);
   else if (preset === "last_quarter") start.setMonth(start.getMonth() - 3);
   else if (preset === "last_6_months") start.setMonth(start.getMonth() - 6);
-  else if (preset === "last_year") start.setFullYear(start.getFullYear() - 1);
+  else if (preset === "last_year") {
+    const prevYear = now.getFullYear() - 1;
+    return {
+      startDate: `${prevYear}-01-01`,
+      endDate: `${prevYear}-12-31`,
+    };
+  }
 
   return {
     startDate: isoDateOnly(new Date(start.getFullYear(), start.getMonth(), start.getDate())),

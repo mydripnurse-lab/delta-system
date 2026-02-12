@@ -47,13 +47,19 @@ function computeRange(preset: string) {
     const endDate = yyyyMmDd(end);
 
     const start = new Date(now);
+    const prevYear = now.getFullYear() - 1;
 
     if (preset === "last_7_days") start.setDate(start.getDate() - 7);
     else if (preset === "last_28_days") start.setDate(start.getDate() - 28);
     else if (preset === "last_month") start.setMonth(start.getMonth() - 1);
     else if (preset === "last_quarter") start.setMonth(start.getMonth() - 3);
     else if (preset === "last_6_months") start.setMonth(start.getMonth() - 6);
-    else if (preset === "last_year") start.setFullYear(start.getFullYear() - 1);
+    else if (preset === "last_year") {
+        return {
+            startDate: `${prevYear}-01-01`,
+            endDate: `${prevYear}-12-31`,
+        };
+    }
     else start.setDate(start.getDate() - 28);
 
     return { startDate: yyyyMmDd(start), endDate };
