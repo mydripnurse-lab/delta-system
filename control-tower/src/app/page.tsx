@@ -341,6 +341,8 @@ export default function Home() {
   const [actMarkErr, setActMarkErr] = useState("");
   const [actMarkDone, setActMarkDone] = useState(false);
   const [actKind, setActKind] = useState<"" | "counties" | "cities">("");
+  const [actCelebrateOn, setActCelebrateOn] = useState(false);
+  const [actCelebrateKey, setActCelebrateKey] = useState(0);
 
   // ✅ Runner UX: running + progress
   const [isRunning, setIsRunning] = useState(false);
@@ -366,6 +368,67 @@ export default function Home() {
   type MapMetric = "ready" | "domains";
   const [mapMetric, setMapMetric] = useState<MapMetric>("ready");
   const [mapSelected, setMapSelected] = useState<string>("");
+  const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const celebrationParticles = useMemo(() => {
+    const palette = [198, 160, 46, 278, 332, 118, 24, 214];
+
+    const rockets = Array.from({ length: 58 }, (_, i) => {
+      const lane = i % 9;
+      const wave = Math.floor(i / 9);
+      const hue = palette[i % palette.length];
+      const originX = 6 + lane * 10.6 + (wave % 2 ? 1.9 : 0);
+      const dir = lane % 2 === 0 ? -1 : 1;
+      const tx = dir * (36 + (i % 6) * 13);
+      const ty = -(360 + (wave % 5) * 105 + (i % 4) * 34);
+      const size = 4 + (i % 4);
+      const delay = wave * 0.055 + (i % 3) * 0.014;
+      const duration = 1.15 + (i % 6) * 0.1;
+      const spin = -34 + (i % 9) * 8;
+      const alpha = 0.74 + (i % 4) * 0.06;
+      return {
+        kind: "rocket" as const,
+        originX,
+        tx,
+        ty,
+        size,
+        delay,
+        duration,
+        spin,
+        hue,
+        alpha,
+      };
+    });
+
+    const sparks = Array.from({ length: 86 }, (_, i) => {
+      const lane = i % 11;
+      const wave = Math.floor(i / 11);
+      const hue = palette[(i + 3) % palette.length];
+      const originX = 4 + lane * 9 + (wave % 2 ? 3.1 : 0.4);
+      const dir = lane % 2 === 0 ? -1 : 1;
+      const tx = dir * (65 + (i % 8) * 14);
+      const ty = -(240 + (wave % 4) * 72 + (i % 5) * 20);
+      const size = 2 + (i % 3);
+      const delay = 0.08 + wave * 0.05 + (i % 4) * 0.012;
+      const duration = 0.88 + (i % 5) * 0.08;
+      const spin = -58 + (i % 12) * 10;
+      const alpha = 0.62 + (i % 5) * 0.05;
+      return {
+        kind: "spark" as const,
+        originX,
+        tx,
+        ty,
+        size,
+        delay,
+        duration,
+        spin,
+        hue,
+        alpha,
+      };
+    });
+
+    return rockets.concat(sparks);
+  }, []);
 
   function openMap() {
     setMapOpen(true);
@@ -645,6 +708,7 @@ export default function Home() {
 
     if (actIsActive) {
       setActMarkDone(true);
+      triggerActivationCelebrate();
       setTimeout(() => setActMarkDone(false), 900);
       return;
     }
@@ -669,6 +733,7 @@ export default function Home() {
 
       setActIsActive(true);
       setActMarkDone(true);
+      triggerActivationCelebrate();
 
       const keepTab = detailTab;
       await loadOverview();
@@ -683,6 +748,19 @@ export default function Home() {
     } finally {
       setActMarking(false);
     }
+  }
+
+  function triggerActivationCelebrate() {
+    if (celebrateTimerRef.current) {
+      clearTimeout(celebrateTimerRef.current);
+      celebrateTimerRef.current = null;
+    }
+    setActCelebrateKey((n) => n + 1);
+    setActCelebrateOn(true);
+    celebrateTimerRef.current = setTimeout(() => {
+      setActCelebrateOn(false);
+      celebrateTimerRef.current = null;
+    }, 1550);
   }
 
   // ✅ Unified runner (supports optional locId/kind)
@@ -1096,6 +1174,11 @@ export default function Home() {
     setActCopied(false);
     setRobotsCopied(false);
     setActHeadersCopied(false);
+    setActCelebrateOn(false);
+    if (celebrateTimerRef.current) {
+      clearTimeout(celebrateTimerRef.current);
+      celebrateTimerRef.current = null;
+    }
 
     setActLocId("");
     setActKind("counties");
@@ -2624,6 +2707,33 @@ export default function Home() {
           </div>
         </>
       )}
+
+      <div
+        key={actCelebrateKey}
+        className={`modalCelebrate ${actCelebrateOn ? "isOn" : ""}`}
+        aria-hidden="true"
+      >
+        <div className="modalCelebrateGlow" />
+        {celebrationParticles.map((p, idx) => (
+          <span
+            key={idx}
+            className={`modalCelebrateParticle ${p.kind === "spark" ? "isSpark" : "isRocket"}`}
+            style={
+              {
+                "--ox": `${p.originX}%`,
+                "--tx": `${p.tx}px`,
+                "--ty": `${p.ty}px`,
+                "--sz": `${p.size}px`,
+                "--delay": `${p.delay}s`,
+                "--dur": `${p.duration}s`,
+                "--h": `${p.hue}`,
+                "--a": `${p.alpha}`,
+                "--spin": `${p.spin}deg`,
+              } as any
+            }
+          />
+        ))}
+      </div>
     </div>
   );
 }
