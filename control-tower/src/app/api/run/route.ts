@@ -25,7 +25,20 @@ function exists(p: string) {
 }
 
 function findRepoRoot(startDir: string) {
+    // Prefer the nearest ancestor that actually contains scripts/src/builds.
+    // This avoids picking /control-tower as repoRoot on machines where that
+    // folder also has package/resources but not build scripts.
     let dir = startDir;
+    for (let i = 0; i < 10; i++) {
+        const hasBuilds = exists(path.join(dir, "scripts", "src", "builds"));
+        if (hasBuilds) return dir;
+        const parent = path.dirname(dir);
+        if (parent === dir) break;
+        dir = parent;
+    }
+
+    // Fallback heuristic (legacy)
+    dir = startDir;
     for (let i = 0; i < 10; i++) {
         const hasResources = exists(path.join(dir, "resources"));
         const hasBuilds = exists(path.join(dir, "scripts", "src", "builds"));
