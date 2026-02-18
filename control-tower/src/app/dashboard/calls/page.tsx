@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
@@ -390,7 +390,7 @@ function computeByState(rows: ApiRow[]) {
   return out;
 }
 
-export default function CallsDashboardPage() {
+function CallsDashboardPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -1972,5 +1972,13 @@ export default function CallsDashboardPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function CallsDashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading dashboard...</div>}>
+      <CallsDashboardPageContent />
+    </Suspense>
   );
 }

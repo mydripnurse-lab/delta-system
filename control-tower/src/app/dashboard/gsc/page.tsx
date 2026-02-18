@@ -1,7 +1,7 @@
 // control-tower/src/app/dashboard/gsc/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
@@ -58,7 +58,7 @@ function deltaClass(pct: any, opts?: { invert?: boolean }) {
   return n > 0 ? "deltaDown" : "deltaUp";
 }
 
-export default function GscDashboardPage() {
+function GscDashboardPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
@@ -1511,5 +1511,13 @@ export default function GscDashboardPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function GscDashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading dashboard...</div>}>
+      <GscDashboardPageContent />
+    </Suspense>
   );
 }

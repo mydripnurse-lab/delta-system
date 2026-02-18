@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -318,7 +318,7 @@ function LineTrend({
   );
 }
 
-export default function AppointmentsDashboardPage() {
+function AppointmentsDashboardPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -1233,5 +1233,13 @@ export default function AppointmentsDashboardPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function AppointmentsDashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading dashboard...</div>}>
+      <AppointmentsDashboardPageContent />
+    </Suspense>
   );
 }

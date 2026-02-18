@@ -1,7 +1,7 @@
 // control-tower/src/app/dashboard/contacts/page.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
@@ -323,7 +323,7 @@ function LineTrend({
   );
 }
 
-export default function ContactsDashboardPage() {
+function ContactsDashboardPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -1264,5 +1264,13 @@ export default function ContactsDashboardPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function ContactsDashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading dashboard...</div>}>
+      <ContactsDashboardPageContent />
+    </Suspense>
   );
 }

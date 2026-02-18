@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
@@ -49,7 +49,7 @@ function norm(s: any) {
   return String(s ?? "").trim();
 }
 
-export default function GaDashboardPage() {
+function GaDashboardPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
@@ -1268,5 +1268,13 @@ export default function GaDashboardPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function GaDashboardPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading dashboard...</div>}>
+      <GaDashboardPageContent />
+    </Suspense>
   );
 }

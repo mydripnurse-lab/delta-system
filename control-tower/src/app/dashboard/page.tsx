@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
@@ -896,7 +896,7 @@ async function downloadPdfFromHtml(html: string, fileNameNoExt: string) {
   }
 }
 
-export default function DashboardHome() {
+function DashboardHomeContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -3631,5 +3631,13 @@ export default function DashboardHome() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function DashboardHome() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading dashboard...</div>}>
+      <DashboardHomeContent />
+    </Suspense>
   );
 }
