@@ -62,6 +62,7 @@ export async function GET(req: Request) {
         const snap = await loadDashboardSnapshot(tenantId, "gsc");
         const payload = (snap?.payload || {}) as Record<string, unknown>;
         const meta = (payload.meta || {}) as Record<string, unknown>;
+        const metaRange = ((meta.range as Record<string, unknown> | undefined) || {}) as Record<string, unknown>;
         const pages = (payload.pages || {}) as Record<string, unknown>;
         const trend = (payload.trend || {}) as Record<string, unknown>;
 
@@ -106,7 +107,7 @@ export async function GET(req: Request) {
 
         byState.sort((a, b) => (b.impressions || 0) - (a.impressions || 0));
 
-        const { prevStart, prevEnd } = prevPeriodRange(start || meta?.range?.startDate, end || meta?.range?.endDate);
+        const { prevStart, prevEnd } = prevPeriodRange(start || s(metaRange.startDate), end || s(metaRange.endDate));
         const prevTrendRows = prevStart && prevEnd ? sliceByDate(trendRowsAll, prevStart, prevEnd) : [];
 
         const prevImpressions = prevTrendRows.reduce((a, r) => a + num(r.impressions), 0);
@@ -142,8 +143,8 @@ export async function GET(req: Request) {
             meta: {
                 ...meta,
                 range: {
-                    startDate: start || meta?.range?.startDate || "",
-                    endDate: end || meta?.range?.endDate || "",
+                    startDate: start || s(metaRange.startDate) || "",
+                    endDate: end || s(metaRange.endDate) || "",
                     prevStart,
                     prevEnd,
                 },
