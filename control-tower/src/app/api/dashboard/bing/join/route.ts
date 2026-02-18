@@ -187,16 +187,30 @@ function summarizeTrend(rows: TrendRow[]) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+    const tenantId = s(searchParams.get("tenantId"));
     const state = s(searchParams.get("state"));
     const compareEnabled = s(searchParams.get("compare")) === "1";
     const startParam = s(searchParams.get("start"));
     const endParam = s(searchParams.get("end"));
 
-    const cacheDir = path.join(process.cwd(), "data", "cache", "bing");
+    const cacheDir = tenantId
+      ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "bing")
+      : path.join(process.cwd(), "data", "cache", "bing");
     const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
     const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
     const queriesRaw = await readJsonRaw(path.join(cacheDir, "queries.json"));
     const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+    if (!metaRaw || !pagesRaw || !queriesRaw || !trendRaw) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            `Bing cache not found for tenant ${tenantId || "_default"}. ` +
+            "Run Refresh (force sync) and verify Bing credentials.",
+        },
+        { status: 412 },
+      );
+    }
 
     const meta = metaRaw as JsonObj;
     const startDate = startParam || s(meta.startDate);
@@ -210,8 +224,8 @@ export async function GET(req: Request) {
     const queries = allQueries.filter((r) => inDateRange(s(r.date), startDate, endDate));
     const trend = allTrend.filter((r) => inDateRange(s(r.date), startDate, endDate));
 
-    const catalog = await loadGscCatalogIndex({ force: false });
-    const stateCatalog = await loadStateCatalog();
+    const catalog = await loadGscCatalogIndex({ force: false, tenantId });
+    const stateCatalog = await loadStateCatalog({ tenantId });
     const stateRowsMap = new Map<string, { state: string; impressions: number; clicks: number; ctrAcc: number; ctrW: number; posAcc: number; posW: number; pagesCounted: number; keywordsCount: number }>();
 
     const siteHost = normalizeHost(hostnameFromPage(s(meta.siteUrl)));

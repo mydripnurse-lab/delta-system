@@ -7,6 +7,13 @@ import { tokensDebugInfo } from "@/lib/ghlTokens";
 export const runtime = "nodejs";
 
 type Contact = Record<string, any>;
+type GhlCtx = { tenantId?: string; integrationKey?: string };
+
+function ghlCtxOpts(ctx?: GhlCtx) {
+    const tenantId = norm(ctx?.tenantId);
+    if (!tenantId) return {};
+    return { tenantId, integrationKey: norm(ctx?.integrationKey) || "owner" };
+}
 
 type ContactsRow = {
     id: string;
@@ -95,6 +102,7 @@ async function fetchContactsSearch(
     startIso: string,
     endIso: string,
     debug = false,
+    ctx?: GhlCtx,
 ) {
     const startMs = toMs(startIso);
     const endMs = toMs(endIso);
@@ -141,6 +149,7 @@ async function fetchContactsSearch(
 
             const res = await ghlFetchJson("/contacts/search", {
                 method: "POST",
+                ...ghlCtxOpts(ctx),
                 body,
             });
 
@@ -228,9 +237,10 @@ async function fetchContactsSearch(
     throw lastErr || new Error("contacts/search failed");
 }
 
-async function fetchOpportunity(opportunityId: string) {
+async function fetchOpportunity(opportunityId: string, ctx?: GhlCtx) {
     return await ghlFetchJson(`/opportunities/${encodeURIComponent(opportunityId)}`, {
         method: "GET",
+        ...ghlCtxOpts(ctx),
     });
 }
 
@@ -297,6 +307,12 @@ export async function GET(req: Request) {
     const end = url.searchParams.get("end") || "";
     const bust = url.searchParams.get("bust") === "1";
     const debug = url.searchParams.get("debug") === "1";
+    const tenantId = norm(url.searchParams.get("tenantId"));
+    const integrationKey = norm(url.searchParams.get("integrationKey")) || "owner";
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const ghlCtx: GhlCtx = { tenantId, integrationKey };
 
     try {
         if (!start || !end) {
@@ -308,9 +324,9 @@ export async function GET(req: Request) {
             if (cached) return NextResponse.json(cached);
         }
 
-        const locationId = await getEffectiveLocationIdOrThrow();
+        const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
 
-        const contacts = await fetchContactsSearch(locationId, start, end, debug);
+        const contacts = await fetchContactsSearch(locationId, start, end, debug, ghlCtx);
 
         const rows: ContactsRow[] = contacts.map(toRow);
 
@@ -330,7 +346,7 @@ export async function GET(req: Request) {
                 try {
                     let opp = opportunityCache.get(oppId);
                     if (opp === undefined) {
-                        opp = await fetchOpportunity(oppId);
+                        opp = await fetchOpportunity(oppId, ghlCtx);
                         opportunityCache.set(oppId, opp);
                     }
                     if (!opp) continue;

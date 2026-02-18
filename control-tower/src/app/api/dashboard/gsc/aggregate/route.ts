@@ -21,10 +21,8 @@ function weightedAvgPosition(rows: any[]) {
     return w / imp;
 }
 
-const CACHE_DIR = path.join(process.cwd(), "data", "cache", "gsc");
-
-async function readJson(name: string) {
-    const p = path.join(CACHE_DIR, name);
+async function readJson(cacheDir: string, name: string) {
+    const p = path.join(cacheDir, name);
     const txt = await fs.readFile(p, "utf8");
     return JSON.parse(txt);
 }
@@ -64,10 +62,14 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const start = s(searchParams.get("start"));
         const end = s(searchParams.get("end"));
+        const tenantId = s(searchParams.get("tenantId"));
+        const cacheDir = tenantId
+            ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "gsc")
+            : path.join(process.cwd(), "data", "cache", "gsc");
 
-        const meta = await readJson("meta.json");
-        const pages = await readJson("pages.json");
-        const trend = await readJson("trend.json");
+        const meta = await readJson(cacheDir, "meta.json");
+        const pages = await readJson(cacheDir, "pages.json");
+        const trend = await readJson(cacheDir, "trend.json");
 
         const trendRowsAll = Array.isArray(trend?.rows) ? trend.rows : [];
         const trendRows = sliceByDate(trendRowsAll, start, end);

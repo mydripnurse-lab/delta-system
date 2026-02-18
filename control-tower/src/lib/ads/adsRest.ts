@@ -1,4 +1,9 @@
 import { getAdsOAuth2 } from "./adsAuth";
+import {
+    refreshGoogleAccessToken,
+    resolveTenantOAuthConnection,
+    saveTenantOAuthTokens,
+} from "@/lib/tenantOAuth";
 
 function s(v: any) {
     return String(v ?? "").trim();
@@ -15,9 +20,45 @@ async function getAccessToken() {
     return accessToken;
 }
 
-function headersBase(loginCustomerId?: string) {
-    const developerToken = s(process.env.GOOGLE_ADS_DEVELOPER_TOKEN);
-    if (!developerToken) throw new Error("Missing env GOOGLE_ADS_DEVELOPER_TOKEN");
+async function getTenantAccess(input: { tenantId: string; integrationKey?: string }) {
+    const conn = await resolveTenantOAuthConnection({
+        tenantId: input.tenantId,
+        provider: "google_ads",
+        integrationKey: input.integrationKey || "default",
+    });
+    const cfg = (conn.config || {}) as Record<string, unknown>;
+    const refreshed = await refreshGoogleAccessToken({
+        clientId: conn.client.clientId,
+        clientSecret: conn.client.clientSecret,
+        refreshToken: conn.refreshToken,
+    });
+    const accessToken = s(refreshed.accessToken);
+    if (!accessToken) throw new Error("Failed to refresh tenant Google Ads access token");
+
+    await saveTenantOAuthTokens({
+        tenantId: input.tenantId,
+        provider: "google_ads",
+        integrationKey: input.integrationKey || "default",
+        accessToken,
+        refreshToken: s(refreshed.refreshToken),
+        scopes: s(refreshed.scope).split(" ").map((x) => s(x)).filter(Boolean),
+        tokenExpiresAt: refreshed.expiresAtIso,
+        markConnected: true,
+    });
+
+    return {
+        accessToken,
+        customerId: s(conn.externalAccountId) || s(cfg.customerId) || s(cfg.googleAdsCustomerId),
+        loginCustomerId: s(cfg.loginCustomerId) || s(cfg.googleAdsLoginCustomerId),
+        developerToken: s(cfg.developerToken) || s(cfg.googleAdsDeveloperToken),
+    };
+}
+
+function headersBase(developerTokenInput?: string, loginCustomerId?: string, allowEnvFallback = true) {
+    const developerToken = allowEnvFallback
+        ? s(developerTokenInput) || s(process.env.GOOGLE_ADS_DEVELOPER_TOKEN)
+        : s(developerTokenInput);
+    if (!developerToken) throw new Error("Missing Google Ads developer token.");
 
     const loginCid = cleanCid(loginCustomerId || s(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID));
 
@@ -45,22 +86,39 @@ export async function googleAdsSearch(opts: {
     customerId?: string;
     loginCustomerId?: string;
     version?: string;
+    tenantId?: string;
+    integrationKey?: string;
 }) {
-    const customerId = cleanCid(opts.customerId || s(process.env.GOOGLE_ADS_CUSTOMER_ID));
-    if (!customerId) throw new Error("Missing GOOGLE_ADS_CUSTOMER_ID");
+    const tenantId = s(opts.tenantId);
+    const tenantAccess = tenantId
+        ? await getTenantAccess({ tenantId, integrationKey: opts.integrationKey })
+        : null;
+
+    const customerId = tenantAccess
+        ? cleanCid(opts.customerId || tenantAccess.customerId)
+        : cleanCid(opts.customerId || s(process.env.GOOGLE_ADS_CUSTOMER_ID));
+    if (!customerId) throw new Error("Missing Google Ads customerId.");
 
     const endpoint = buildSearchStreamUrl({ version: opts.version, customerId });
 
     // ✅ Safe logging (endpoint exists)
     console.log("[ADS] POST", endpoint);
 
-    const accessToken = await getAccessToken();
+    const accessToken = tenantAccess?.accessToken || (await getAccessToken());
 
     const res = await fetch(endpoint, {
         method: "POST",
         headers: {
             Authorization: `Bearer ${accessToken}`,
-            ...headersBase(opts.loginCustomerId),
+            ...headersBase(
+                tenantAccess
+                    ? tenantAccess.developerToken
+                    : undefined,
+                tenantAccess
+                    ? (opts.loginCustomerId || tenantAccess.loginCustomerId)
+                    : opts.loginCustomerId,
+                !tenantAccess,
+            ),
         },
         body: JSON.stringify({ query: opts.query }),
     });

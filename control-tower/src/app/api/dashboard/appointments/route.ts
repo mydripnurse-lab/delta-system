@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loadSheetTabIndex } from "../../../../../../services/sheetsClient.js";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 import {
   getAgencyAccessTokenOrThrow,
   getEffectiveCompanyIdOrThrow,
@@ -152,6 +152,11 @@ type LocationDirectoryCache = {
   citiesByState: Map<string, Set<string>>;
   accountNamesByLocation: Map<string, string>;
   countiesByAccountToken: Map<string, { county: string; state: string; city: string; accountName: string }>;
+};
+
+type GhlCtx = {
+  tenantId?: string;
+  integrationKey?: string;
 };
 
 const RANGE_CACHE = new Map<string, RangeCacheEntry>();
@@ -474,13 +479,13 @@ type LostStageRefreshResult = {
 
 const locationTokenCache = new Map<string, { token: string; expiresAtMs: number }>();
 
-async function getLocationTokenFor(locationId: string) {
+async function getLocationTokenFor(locationId: string, ctx?: GhlCtx) {
   const now = Date.now();
   const hit = locationTokenCache.get(locationId);
   if (hit && hit.expiresAtMs - 30_000 > now) return hit.token;
 
-  const agencyToken = await getAgencyAccessTokenOrThrow();
-  const companyId = await getEffectiveCompanyIdOrThrow();
+  const agencyToken = await getAgencyAccessTokenOrThrow(ctx);
+  const companyId = await getEffectiveCompanyIdOrThrow(ctx);
 
   const res = await fetch(`${API_BASE}/oauth/locationToken`, {
     method: "POST",
@@ -599,7 +604,7 @@ function pickContactCity(raw: any) {
   );
 }
 
-async function getLocationDirectory() {
+async function getLocationDirectory(ctx?: GhlCtx) {
   const now = Date.now();
   if (
     LOCATION_DIRECTORY_CACHE &&
@@ -610,13 +615,11 @@ async function getLocationDirectory() {
     return LOCATION_DIRECTORY_CACHE;
   }
 
-  const spreadsheetId =
-    process.env.GOOGLE_SHEETS_SPREADSHEET_ID ||
-    process.env.GOOGLE_SHEET_ID ||
-    process.env.SPREADSHEET_ID ||
-    "";
-  const countyTab = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
-  const cityTab = process.env.GOOGLE_SHEET_CITY_TAB || "Cities";
+  const tenantId = norm(ctx?.tenantId);
+  const sheetCfg = tenantId ? await getTenantSheetConfig(tenantId).catch(() => null) : null;
+  const spreadsheetId = norm(sheetCfg?.spreadsheetId);
+  const countyTab = norm(sheetCfg?.countyTab) || "Counties";
+  const cityTab = norm(sheetCfg?.cityTab) || "Cities";
 
   const ids = new Set<string>();
   const byLocationId = new Map<string, LocationDirectoryItem>();
@@ -625,17 +628,18 @@ async function getLocationDirectory() {
   const accountNamesByLocation = new Map<string, string>();
   const countiesByAccountToken = new Map<string, { county: string; state: string; city: string; accountName: string }>();
 
-  const envLoc = await getEffectiveLocationIdOrThrow().catch(() => "");
+  const envLoc = await getEffectiveLocationIdOrThrow(ctx).catch(() => "");
   if (envLoc) ids.add(envLoc);
 
   if (spreadsheetId) {
-    const countiesIdx = await loadSheetTabIndex({
-      spreadsheetId,
-      sheetName: countyTab,
-      range: "A:AZ",
-      keyHeaders: ["State", "County"],
-      logScope: "appointments-dashboard",
-    }).catch(() => null);
+    const countiesIdx = tenantId
+      ? await loadTenantSheetTabIndex({
+          tenantId,
+          spreadsheetId,
+          sheetName: countyTab,
+          range: "A:AZ",
+        }).catch(() => null)
+      : null;
 
     if (countiesIdx) {
       const iStatus = countiesIdx.headerMap.get("Status");
@@ -676,13 +680,14 @@ async function getLocationDirectory() {
       }
     }
 
-    const citiesIdx = await loadSheetTabIndex({
-      spreadsheetId,
-      sheetName: cityTab,
-      range: "A:AZ",
-      keyHeaders: ["State", "County", "City"],
-      logScope: "appointments-dashboard",
-    }).catch(() => null);
+    const citiesIdx = tenantId
+      ? await loadTenantSheetTabIndex({
+          tenantId,
+          spreadsheetId,
+          sheetName: cityTab,
+          range: "A:AZ",
+        }).catch(() => null)
+      : null;
 
     if (citiesIdx) {
       const cStatus = citiesIdx.headerMap.get("Status");
@@ -1374,8 +1379,9 @@ async function refreshLocationRows(
   startIso: string,
   endIso: string,
   deadlineAtMs?: number,
+  ctx?: GhlCtx,
 ) {
-  const authToken = await getLocationTokenFor(locationId);
+  const authToken = await getLocationTokenFor(locationId, ctx);
   const incremental = !!snapshot && !forceFull;
   const stopBeforeMs = snapshot?.updatedAtMs
     ? Math.max(0, Number(snapshot.updatedAtMs) - SNAPSHOT_CONTACT_OVERLAP_MS)
@@ -1922,9 +1928,10 @@ async function refreshLostRowsStageOnly(
   endIso: string,
   prevRows: LostBookingRow[],
   deadlineAtMs?: number,
+  ctx?: GhlCtx,
 ): Promise<LostStageRefreshResult> {
   const errors: string[] = [];
-  const authToken = await getLocationTokenFor(locationId);
+  const authToken = await getLocationTokenFor(locationId, ctx);
   let discovery = await discoverLostIdsFromPipelineCatalog(authToken, locationId);
   if (!discovery.pipelineIds.length && LOST_BOOKINGS_PIPELINE_ID) {
     discovery = {
@@ -2032,6 +2039,12 @@ export async function GET(req: Request) {
   const end = url.searchParams.get("end") || "";
   const bust = url.searchParams.get("bust") === "1";
   const debug = url.searchParams.get("debug") === "1";
+  const tenantId = norm(url.searchParams.get("tenantId"));
+  const integrationKey = norm(url.searchParams.get("integrationKey")) || "owner";
+  if (!tenantId) {
+    return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+  }
+  const ghlCtx: GhlCtx = { tenantId, integrationKey };
   const reqStartedAt = Date.now();
   const deadlineAtMs = reqStartedAt + REQUEST_MAX_MS;
 
@@ -2059,7 +2072,7 @@ export async function GET(req: Request) {
       }
     }
 
-    const locationIds = (await getLocationDirectory()).ids;
+    const locationIds = (await getLocationDirectory(ghlCtx)).ids;
     console.info(
       `[appointments] request start bust=${bust ? "1" : "0"} debug=${debug ? "1" : "0"} locs=${locationIds.length} maxMs=${REQUEST_MAX_MS}`,
     );
@@ -2129,7 +2142,7 @@ export async function GET(req: Request) {
       }
 
       try {
-        const next = await refreshLocationRows(locationId, snapshot, bust, start, end, deadlineAtMs);
+        const next = await refreshLocationRows(locationId, snapshot, bust, start, end, deadlineAtMs, ghlCtx);
         refreshedLocations++;
         if (snapshot) usedIncremental = true;
         byLocationRows.set(locationId, next.rows || []);
@@ -2148,7 +2161,7 @@ export async function GET(req: Request) {
           byLocationRows.set(locationId, snapshot.rows);
           let fallbackLostRows = snapshot.lostRows || [];
           try {
-            const stageOnly = await refreshLostRowsStageOnly(locationId, start, end, fallbackLostRows, deadlineAtMs);
+            const stageOnly = await refreshLostRowsStageOnly(locationId, start, end, fallbackLostRows, deadlineAtMs, ghlCtx);
             fallbackLostRows = stageOnly.rows;
             for (const id of stageOnly.discovery.pipelineIds) if (id) discoveredPipelineIds.add(id);
             for (const id of stageOnly.discovery.stageIds) if (id) discoveredStageIds.add(id);
@@ -2173,7 +2186,7 @@ export async function GET(req: Request) {
         }
         byLocationRows.set(locationId, []);
         try {
-          const stageOnly = await refreshLostRowsStageOnly(locationId, start, end, [], deadlineAtMs);
+          const stageOnly = await refreshLostRowsStageOnly(locationId, start, end, [], deadlineAtMs, ghlCtx);
           byLocationLostRows.set(locationId, stageOnly.rows || []);
           for (const id of stageOnly.discovery.pipelineIds) if (id) discoveredPipelineIds.add(id);
           for (const id of stageOnly.discovery.stageIds) if (id) discoveredStageIds.add(id);

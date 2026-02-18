@@ -122,7 +122,6 @@ async function resolveKeyFileAbsolute(keyFileRaw) {
     } else {
         candidates.push(path.join(cwd, keyFileRaw));
         candidates.push(path.join(repoRoot, keyFileRaw));
-        candidates.push(path.join(cwd, "..", keyFileRaw));
         candidates.push(path.normalize(path.join(repoRoot, keyFileRaw)));
     }
 
@@ -264,6 +263,28 @@ async function withRetries(fn, { label = "sheets-op", scope = "sheets" } = {}) {
 // Google Client
 // =====================
 async function getSheetsClient({ scope = "sheets" } = {}) {
+    const jsonB64 = String(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64 || "").trim();
+    const jsonRaw = String(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "").trim();
+    if (jsonB64 || jsonRaw) {
+        let credentials = null;
+        try {
+            const decoded = jsonB64 ? Buffer.from(jsonB64, "base64").toString("utf8") : jsonRaw;
+            credentials = JSON.parse(decoded);
+        } catch (error) {
+            throw new Error(
+                `Invalid GOOGLE_SERVICE_ACCOUNT_JSON payload: ${
+                    error?.message ? String(error.message) : String(error)
+                }`,
+            );
+        }
+
+        const auth = new google.auth.GoogleAuth({
+            credentials,
+            scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+        });
+        return google.sheets({ version: "v4", auth });
+    }
+
     const keyFile =
         process.env.GOOGLE_SERVICE_ACCOUNT_KEYFILE ||
         process.env.GOOGLE_APPLICATION_CREDENTIALS ||

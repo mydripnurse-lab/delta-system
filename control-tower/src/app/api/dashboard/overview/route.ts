@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -237,6 +238,53 @@ function percentile(values: number[], p: number) {
     return sorted[idx] || 0;
 }
 
+async function saveOverviewSnapshot(
+    tenantId: string,
+    payload: JsonObject,
+) {
+    const id = s(tenantId);
+    if (!id) return;
+    const pool = getDbPool();
+    await pool.query(
+        `
+          insert into app.organization_snapshots (
+            organization_id, module, snapshot_key, source, payload, captured_at
+          )
+          values ($1, 'overview', 'latest', 'dashboard_overview_api', $2::jsonb, now())
+          on conflict (organization_id, module, snapshot_key)
+          do update set
+            source = excluded.source,
+            payload = excluded.payload,
+            captured_at = excluded.captured_at,
+            updated_at = now()
+        `,
+        [id, JSON.stringify(payload)],
+    );
+}
+
+async function loadOverviewSnapshot(tenantId: string): Promise<{ payload: JsonObject; capturedAt: string } | null> {
+    const id = s(tenantId);
+    if (!id) return null;
+    const pool = getDbPool();
+    const q = await pool.query<{ payload: JsonObject; captured_at: string | null }>(
+        `
+          select payload, captured_at
+          from app.organization_snapshots
+          where organization_id = $1
+            and module = 'overview'
+            and snapshot_key = 'latest'
+          limit 1
+        `,
+        [id],
+    );
+    const row = q.rows[0];
+    if (!row?.payload) return null;
+    return {
+        payload: row.payload,
+        capturedAt: s(row.captured_at),
+    };
+}
+
 export async function GET(req: Request) {
     try {
         const url = new URL(req.url);
@@ -245,6 +293,9 @@ export async function GET(req: Request) {
         const preset = s(url.searchParams.get("preset")) || "28d";
         const adsRange = s(url.searchParams.get("adsRange")) || adsRangeFromPreset(preset);
         const force = s(url.searchParams.get("force")) === "1";
+        const tenantId = s(url.searchParams.get("tenantId"));
+        const integrationKey = s(url.searchParams.get("integrationKey")) || "owner";
+        const searchIntegrationKey = s(url.searchParams.get("searchIntegrationKey")) || "default";
 
         if (!start || !end) {
             return NextResponse.json(
@@ -252,13 +303,45 @@ export async function GET(req: Request) {
                 { status: 400 },
             );
         }
+        if (!tenantId) {
+            return NextResponse.json(
+                { ok: false, error: "Missing tenantId query param." },
+                { status: 400 },
+            );
+        }
+
+        const snapshot = await loadOverviewSnapshot(tenantId);
+        const snapshotPayload = (snapshot?.payload || {}) as JsonObject;
+        const snapshotRange = (snapshotPayload.range as JsonObject) || {};
+        const snapshotExecutive = (snapshotPayload.executive as JsonObject) || {};
+        const snapshotStart = s(snapshotRange.start);
+        const snapshotEnd = s(snapshotRange.end);
+        const snapshotPreset = s(snapshotRange.preset);
+        const snapshotCapturedMs = snapshot?.capturedAt ? new Date(snapshot.capturedAt).getTime() : 0;
+        const snapshotAgeMs = Number.isFinite(snapshotCapturedMs) ? Math.max(0, Date.now() - snapshotCapturedMs) : Number.POSITIVE_INFINITY;
+        const snapshotMatchesRange = snapshotStart === start && snapshotEnd === end && snapshotPreset === preset;
+        const SNAPSHOT_FAST_TTL_MS = 120_000;
+
+        if (!force && snapshot && snapshotMatchesRange && snapshotAgeMs <= SNAPSHOT_FAST_TTL_MS) {
+            return NextResponse.json({
+                ...(snapshotPayload as JsonObject),
+                cache: {
+                    source: "db_snapshot",
+                    fastHit: true,
+                    ageSec: Math.round(snapshotAgeMs / 1000),
+                },
+            });
+        }
 
         const origin = `${url.protocol}//${url.host}`;
         const { prevStart, prevEnd } = prevPeriodRange(start, end);
 
+        const tenantQ = `tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`;
+        const tenantSearchQ = `tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(searchIntegrationKey)}`;
         const convBust = force ? "&bust=1" : "";
         const contactsBust = force ? "&bust=1" : "";
         const forceQ = force ? "&force=1" : "";
+        const tenantSearchForceQ = `${forceQ}&${tenantSearchQ}`;
         const startDay = dayIso(start);
         const endDay = dayIso(end);
         const syncParams = new URLSearchParams();
@@ -271,6 +354,8 @@ export async function GET(req: Request) {
         }
         syncParams.set("compare", "1");
         if (force) syncParams.set("force", "1");
+        syncParams.set("tenantId", tenantId);
+        syncParams.set("integrationKey", searchIntegrationKey);
 
         await Promise.all([
             fetchJson(`${origin}/api/dashboard/gsc/sync?${syncParams.toString()}`),
@@ -287,24 +372,24 @@ export async function GET(req: Request) {
             gaJoin,
             adsJoin,
         ] = await Promise.all([
-            fetchJson(`${origin}/api/dashboard/calls?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
+            fetchJson(`${origin}/api/dashboard/calls?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&${tenantQ}`),
             prevStart && prevEnd
                 ? fetchJson(
-                    `${origin}/api/dashboard/calls?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}`,
+                    `${origin}/api/dashboard/calls?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&${tenantQ}`,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
-                `${origin}/api/dashboard/contacts?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${contactsBust}`,
+                `${origin}/api/dashboard/contacts?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${contactsBust}&${tenantQ}`,
             ),
             prevStart && prevEnd
                 ? fetchJson(
-                    `${origin}/api/dashboard/contacts?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${contactsBust}`,
+                    `${origin}/api/dashboard/contacts?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${contactsBust}&${tenantQ}`,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
-            fetchJson(`${origin}/api/dashboard/gsc/aggregate?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${forceQ}`),
+            fetchJson(`${origin}/api/dashboard/gsc/aggregate?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${tenantSearchForceQ}`),
             fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`),
-            fetchJson(`${origin}/api/dashboard/ga/join?compare=1${forceQ}`),
-            fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${forceQ}`),
+            fetchJson(`${origin}/api/dashboard/ga/join?compare=1${tenantSearchForceQ}`),
+            fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${tenantSearchForceQ}`),
         ]);
 
         let searchJoin = searchJoinInitial;
@@ -314,64 +399,64 @@ export async function GET(req: Request) {
 
         // Conversations are fetched sequentially to reduce GHL rate-limit pressure (429).
         const conversationsCur = await fetchJson(
-            `${origin}/api/dashboard/conversations?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}`,
+            `${origin}/api/dashboard/conversations?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
         );
-        await sleep(500);
+        await sleep(120);
         const conversationsPrev =
             prevStart && prevEnd
                 ? await fetchJson(
-                    `${origin}/api/dashboard/conversations?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}`,
+                    `${origin}/api/dashboard/conversations?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
                 )
                 : { ok: false, status: 0, data: {} as JsonObject };
-        await sleep(500);
+        await sleep(120);
         const transactionsCur = await fetchJson(
-            `${origin}/api/dashboard/transactions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}`,
+            `${origin}/api/dashboard/transactions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
         );
-        await sleep(500);
+        await sleep(120);
         const transactionsPrev =
             prevStart && prevEnd
                 ? await fetchJson(
-                    `${origin}/api/dashboard/transactions?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}`,
+                    `${origin}/api/dashboard/transactions?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
                 )
                 : { ok: false, status: 0, data: {} as JsonObject };
-        await sleep(500);
+        await sleep(120);
         const appointmentsCur = await fetchJson(
-            `${origin}/api/dashboard/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}`,
+            `${origin}/api/dashboard/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
         );
-        await sleep(500);
+        await sleep(120);
         const appointmentsPrev =
             prevStart && prevEnd
                 ? await fetchJson(
-                    `${origin}/api/dashboard/appointments?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}`,
+                    `${origin}/api/dashboard/appointments?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
                 )
                 : { ok: false, status: 0, data: {} as JsonObject };
 
-        const callsNow = callsCur.ok ? n(callsCur.data.total) : 0;
-        const callsBefore = callsPrev.ok ? n(callsPrev.data.total) : 0;
+        const callsNow = callsCur.ok ? n(callsCur.data.total) : n(snapshotExecutive.callsNow);
+        const callsBefore = callsPrev.ok ? n(callsPrev.data.total) : n(snapshotExecutive.callsBefore);
         const callsMissedNow = callsCur.ok
             ? (((callsCur.data.rows as unknown[]) || []) as Array<Record<string, unknown>>).filter((r) =>
                 isMissedCallStatus(r["Phone Call Status"]),
             ).length
             : 0;
 
-        const leadsNow = contactsCur.ok ? n(contactsCur.data.total) : 0;
-        const leadsBefore = contactsPrev.ok ? n(contactsPrev.data.total) : 0;
+        const leadsNow = contactsCur.ok ? n(contactsCur.data.total) : n(snapshotExecutive.leadsNow);
+        const leadsBefore = contactsPrev.ok ? n(contactsPrev.data.total) : n(snapshotExecutive.leadsBefore);
 
-        const convNow = conversationsCur.ok ? n(conversationsCur.data.total) : 0;
-        const convBefore = conversationsPrev.ok ? n(conversationsPrev.data.total) : 0;
-        const txNow = transactionsCur.ok ? n(transactionsCur.data.total) : 0;
-        const txBefore = transactionsPrev.ok ? n(transactionsPrev.data.total) : 0;
+        const convNow = conversationsCur.ok ? n(conversationsCur.data.total) : n(snapshotExecutive.conversationsNow);
+        const convBefore = conversationsPrev.ok ? n(conversationsPrev.data.total) : n(snapshotExecutive.conversationsBefore);
+        const txNow = transactionsCur.ok ? n(transactionsCur.data.total) : n(snapshotExecutive.transactionsNow);
+        const txBefore = transactionsPrev.ok ? n(transactionsPrev.data.total) : n(snapshotExecutive.transactionsBefore);
         const txGrossNow = transactionsCur.ok
             ? n((transactionsCur.data.kpis as JsonObject)?.grossAmount)
-            : 0;
+            : n(snapshotExecutive.transactionsRevenueNow);
         const txGrossBefore = transactionsPrev.ok
             ? n((transactionsPrev.data.kpis as JsonObject)?.grossAmount)
-            : 0;
+            : n(snapshotExecutive.transactionsRevenueBefore);
         const txLtvNow = transactionsCur.ok
             ? n((transactionsCur.data.kpis as JsonObject)?.avgLifetimeOrderValue)
-            : 0;
-        const apptNow = appointmentsCur.ok ? n(appointmentsCur.data.total) : 0;
-        const apptBefore = appointmentsPrev.ok ? n(appointmentsPrev.data.total) : 0;
+            : n(snapshotExecutive.transactionsAvgLtvNow);
+        const apptNow = appointmentsCur.ok ? n(appointmentsCur.data.total) : n(snapshotExecutive.appointmentsNow);
+        const apptBefore = appointmentsPrev.ok ? n(appointmentsPrev.data.total) : n(snapshotExecutive.appointmentsBefore);
         const apptLostNow = appointmentsCur.ok
             ? n((appointmentsCur.data.lostBookings as JsonObject)?.total)
             : 0;
@@ -733,10 +818,16 @@ export async function GET(req: Request) {
         const adsClicksNow = n(adsSummary.clicks);
         const adsClicksBefore = n(adsPrevSummary.clicks) || n(adsCompare.prevClicks);
 
-        const totalImpressionsNow = Math.max(0, n(gscTotals.impressions) + adsImpressionsNow);
-        const totalImpressionsBefore = Math.max(0, n(gscPrevTotals.impressions) + adsImpressionsBefore);
-        const clicksNow = n(gscTotals.clicks) + adsClicksNow;
-        const clicksBefore = n(gscPrevTotals.clicks) + adsClicksBefore;
+        const totalImpressionsNow = Math.max(
+            0,
+            searchImpressionsNow || (n(gscTotals.impressions) + adsImpressionsNow),
+        );
+        const totalImpressionsBefore = Math.max(
+            0,
+            searchImpressionsBefore || (n(gscPrevTotals.impressions) + adsImpressionsBefore),
+        );
+        const clicksNow = Math.max(0, searchClicksNow || (n(gscTotals.clicks) + adsClicksNow));
+        const clicksBefore = Math.max(0, searchClicksBefore || (n(gscPrevTotals.clicks) + adsClicksBefore));
 
         const funnelCurrent = {
             impressions: totalImpressionsNow,
@@ -1507,6 +1598,12 @@ export async function GET(req: Request) {
                 },
             },
         };
+
+        try {
+            await saveOverviewSnapshot(tenantId, out as JsonObject);
+        } catch {
+            // non-blocking: dashboard response should still return even if snapshot persistence fails
+        }
 
         return NextResponse.json(out);
     } catch (e: unknown) {

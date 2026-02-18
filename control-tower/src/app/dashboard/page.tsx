@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
@@ -365,6 +366,12 @@ type OverviewResponse = {
     ads?: {
       ok: boolean;
       summary?: Record<string, unknown>;
+      error: string | null;
+    };
+    searchPerformance?: {
+      ok: boolean;
+      totals?: Record<string, unknown>;
+      deltas?: Record<string, unknown>;
       error: string | null;
     };
   };
@@ -890,6 +897,7 @@ async function downloadPdfFromHtml(html: string, fileNameNoExt: string) {
 }
 
 export default function DashboardHome() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -925,6 +933,23 @@ export default function DashboardHome() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
+  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+
+  function appendTenantParams(qs: URLSearchParams) {
+    if (!tenantId) return;
+    qs.set("tenantId", tenantId);
+    qs.set("integrationKey", integrationKey);
+  }
+
+  function withTenantHref(baseHref: string, opts?: { integrationKey?: string }) {
+    if (!tenantId) return baseHref;
+    const [basePath, hash = ""] = baseHref.split("#");
+    const joiner = basePath.includes("?") ? "&" : "?";
+    const key = String(opts?.integrationKey ?? integrationKey).trim() || integrationKey;
+    const scoped = `${basePath}${joiner}tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(key)}`;
+    return hash ? `${scoped}#${hash}` : scoped;
+  }
 
   async function load(force = false) {
     setErr("");
@@ -944,6 +969,7 @@ export default function DashboardHome() {
       qs.set("preset", preset);
       qs.set("adsRange", adsRangeFromPreset(preset));
       if (force) qs.set("force", "1");
+      appendTenantParams(qs);
 
       const res = await fetch(`/api/dashboard/overview?${qs.toString()}`, {
         cache: "no-store",
@@ -978,6 +1004,7 @@ export default function DashboardHome() {
       if (computedRange.end) qs.set("end", computedRange.end);
       if (force) qs.set("force", "1");
       qs.set("keywordLimit", "40");
+      appendTenantParams(qs);
       const res = await fetch(`/api/dashboard/campaign-factory/context?${qs.toString()}`, {
         cache: "no-store",
       });
@@ -2027,15 +2054,15 @@ export default function DashboardHome() {
   }
 
   function dashboardHref(dashboard: string) {
-    if (dashboard === "calls") return "/dashboard/calls#ai-playbook";
-    if (dashboard === "leads") return "/dashboard/contacts#ai-playbook";
-    if (dashboard === "conversations") return "/dashboard/conversations#ai-playbook";
-    if (dashboard === "transactions") return "/dashboard/transactions#ai-playbook";
-    if (dashboard === "appointments") return "/dashboard/appointments#ai-playbook";
-    if (dashboard === "gsc") return "/dashboard/search-performance#ai-playbook";
-    if (dashboard === "ga") return "/dashboard/ga#ai-playbook";
-    if (dashboard === "ads") return "/dashboard/ads#ai-playbook";
-    if (dashboard === "facebook_ads") return "/dashboard/facebook-ads#ai-playbook";
+    if (dashboard === "calls") return withTenantHref("/dashboard/calls#ai-playbook");
+    if (dashboard === "leads") return withTenantHref("/dashboard/contacts#ai-playbook");
+    if (dashboard === "conversations") return withTenantHref("/dashboard/conversations#ai-playbook");
+    if (dashboard === "transactions") return withTenantHref("/dashboard/transactions#ai-playbook");
+    if (dashboard === "appointments") return withTenantHref("/dashboard/appointments#ai-playbook");
+    if (dashboard === "gsc") return withTenantHref("/dashboard/search-performance#ai-playbook", { integrationKey: "default" });
+    if (dashboard === "ga") return withTenantHref("/dashboard/ga#ai-playbook", { integrationKey: "default" });
+    if (dashboard === "ads") return withTenantHref("/dashboard/ads#ai-playbook", { integrationKey: "default" });
+    if (dashboard === "facebook_ads") return withTenantHref("/dashboard/facebook-ads#ai-playbook");
     return "";
   }
 
@@ -2325,7 +2352,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/calls">Open Calls Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/calls")}>Open Calls Dashboard</Link>
               </div>
             </div>
 
@@ -2347,7 +2374,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/contacts">Open Leads Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/contacts")}>Open Leads Dashboard</Link>
               </div>
             </div>
 
@@ -2373,7 +2400,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/conversations">Open Conversations Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/conversations")}>Open Conversations Dashboard</Link>
               </div>
               {m?.conversations?.error ? (
                 <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
@@ -2408,7 +2435,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/transactions">Open Transactions Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/transactions")}>Open Transactions Dashboard</Link>
               </div>
               {m?.transactions?.error ? (
                 <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
@@ -2451,7 +2478,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/appointments">Open Appointments Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/appointments")}>Open Appointments Dashboard</Link>
               </div>
               {m?.appointments?.error ? (
                 <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
@@ -2478,7 +2505,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/search-performance">Open Search Performance</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/search-performance", { integrationKey: "default" })}>Open Search Performance</Link>
               </div>
               {m?.searchPerformance?.error ? (
                 <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
@@ -2502,7 +2529,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ga#ai-playbook">Open GA Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/ga#ai-playbook", { integrationKey: "default" })}>Open GA Dashboard</Link>
               </div>
             </div>
 
@@ -2521,7 +2548,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ads">Open Ads Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/ads", { integrationKey: "default" })}>Open Ads Dashboard</Link>
               </div>
             </div>
 
@@ -2540,7 +2567,7 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/facebook-ads">Open Facebook Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/facebook-ads")}>Open Facebook Dashboard</Link>
               </div>
             </div>
           </div>
@@ -3112,7 +3139,7 @@ export default function DashboardHome() {
             <div className="moduleCard">
               <p className="l moduleTitle">Google Analytics</p>
               <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href="/dashboard/ga">Open GA Dashboard</Link>
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/ga#ai-playbook", { integrationKey: "default" })}>Open GA Dashboard</Link>
               </div>
             </div>
             <div className="moduleCard">

@@ -67,7 +67,9 @@ function extractOpportunityIdsFromContact(contact: Record<string, unknown>) {
   return Array.from(ids);
 }
 
-async function fetchOpportunityById(opportunityId: string) {
+type GhlCtx = { tenantId: string; integrationKey: string };
+
+async function fetchOpportunityById(opportunityId: string, ctx: GhlCtx) {
   const id = s(opportunityId);
   if (!id) return null;
 
@@ -79,7 +81,7 @@ async function fetchOpportunityById(opportunityId: string) {
   let lastErr: string | null = null;
   for (const path of variants) {
     try {
-      const res = await ghlFetchJson(path, { method: "GET" });
+      const res = await ghlFetchJson(path, { method: "GET", ...ctx });
       const obj = asObj(res);
       const opp = asObj(obj.opportunity || obj.data || obj);
       if (Object.keys(opp).length) return { ok: true, path, opportunity: opp };
@@ -91,7 +93,7 @@ async function fetchOpportunityById(opportunityId: string) {
   return { ok: false, error: lastErr || "not found" };
 }
 
-async function fetchContactsSample(locationId: string, limit: number) {
+async function fetchContactsSample(locationId: string, limit: number, ctx: GhlCtx) {
   const attempts: Array<{
     method: "POST" | "GET";
     path: string;
@@ -141,6 +143,7 @@ async function fetchContactsSample(locationId: string, limit: number) {
       const res = await ghlFetchJson(a.path, {
         method: a.method,
         body: a.body,
+        ...ctx,
       });
       const contacts = extractArray(res, ["contacts", "data", "items"]).map((c) => asObj(c)).slice(0, limit);
       debugAttempts.push({
@@ -171,10 +174,16 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const limit = Math.max(1, Math.min(25, n(url.searchParams.get("limit"), 5)));
   const includeOppDetails = s(url.searchParams.get("includeOppDetails")) === "1";
+  const tenantId = s(url.searchParams.get("tenantId"));
+  const integrationKey = s(url.searchParams.get("integrationKey")) || "owner";
 
   try {
-    const locationId = await getEffectiveLocationIdOrThrow();
-    const fetched = await fetchContactsSample(locationId, limit);
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const ghlCtx: GhlCtx = { tenantId, integrationKey };
+    const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
+    const fetched = await fetchContactsSample(locationId, limit, ghlCtx);
     const contacts = fetched.contacts;
     if (!fetched.ok) {
       return NextResponse.json(
@@ -217,7 +226,7 @@ export async function GET(req: Request) {
         ),
       ).slice(0, 30);
 
-      const rows = await Promise.all(ids.map((id) => fetchOpportunityById(id)));
+      const rows = await Promise.all(ids.map((id) => fetchOpportunityById(id, ghlCtx)));
       opportunityDetails = rows.map((r, idx) => ({
         opportunityId: ids[idx],
         ...(r || { ok: false, error: "unknown" }),

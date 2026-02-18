@@ -21,7 +21,13 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const COUNTY_TAB = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
 const CITY_TAB = process.env.GOOGLE_SHEET_CITY_TAB || "Cities";
 
-const RESOURCES_DIR = path.join(process.cwd(), "resources", "statesFiles");
+const TENANT_ID = String(process.env.TENANT_ID || "").trim();
+const LEGACY_RESOURCES_DIR = path.join(process.cwd(), "resources", "statesFiles");
+const TENANT_RESOURCES_DIR = TENANT_ID
+    ? path.join(process.cwd(), "resources", "tenants", TENANT_ID, "statesFiles")
+    : "";
+const RESOURCES_DIR =
+    String(process.env.STATE_FILES_DIR || "").trim() || TENANT_RESOURCES_DIR || LEGACY_RESOURCES_DIR;
 
 // Defaults
 const DEFAULT_PHONE =
@@ -113,11 +119,32 @@ function ensureHeaders(actualHeaders, expectedHeaders, tabName) {
 }
 
 async function listStateSlugs() {
-    const files = await fs.readdir(RESOURCES_DIR);
+    let dirToRead = RESOURCES_DIR;
+    try {
+        await fs.access(dirToRead);
+    } catch {
+        if (TENANT_ID && dirToRead !== LEGACY_RESOURCES_DIR) {
+            dirToRead = LEGACY_RESOURCES_DIR;
+        }
+    }
+
+    const files = await fs.readdir(dirToRead);
     return files
         .filter((f) => f.toLowerCase().endsWith(".json"))
         .map((f) => f.replace(/\.json$/i, ""))
         .sort((a, b) => a.localeCompare(b));
+}
+
+async function resolveStatesDir() {
+    let dirToRead = RESOURCES_DIR;
+    try {
+        await fs.access(dirToRead);
+    } catch {
+        if (TENANT_ID && dirToRead !== LEGACY_RESOURCES_DIR) {
+            dirToRead = LEGACY_RESOURCES_DIR;
+        }
+    }
+    return dirToRead;
 }
 
 // ----------------- Naming helpers -----------------
@@ -207,7 +234,7 @@ async function promptStateChoice(stateSlugs) {
     return null;
 }
 
-async function resolveTargetsFromArgOrEnv({ requested, stateSlugs }) {
+async function resolveTargetsFromArgOrEnv({ requested, stateSlugs, statesDir }) {
     const req = String(requested || "").trim();
     if (!req) return null;
 
@@ -224,7 +251,7 @@ async function resolveTargetsFromArgOrEnv({ requested, stateSlugs }) {
 
     for (const slug of stateSlugs) {
         try {
-            const filePath = path.join(RESOURCES_DIR, `${slug}.json`);
+            const filePath = path.join(statesDir, `${slug}.json`);
             const raw = await fs.readFile(filePath, "utf8");
             const stateJson = JSON.parse(raw);
             const stateName = String(stateJson?.stateName || stateJson?.name || "").trim();
@@ -388,8 +415,8 @@ function emitProgressEnd(payload) {
 }
 
 // ----------------- State processor -----------------
-async function processState({ slug, spreadsheetId, countyTabIndex, cityTabIndex }) {
-    const filePath = path.join(RESOURCES_DIR, `${slug}.json`);
+async function processState({ slug, spreadsheetId, countyTabIndex, cityTabIndex, statesDir }) {
+    const filePath = path.join(statesDir, `${slug}.json`);
     const raw = await fs.readFile(filePath, "utf8");
     const stateJson = JSON.parse(raw);
 
@@ -622,11 +649,12 @@ async function processState({ slug, spreadsheetId, countyTabIndex, cityTabIndex 
 async function main() {
     if (!SPREADSHEET_ID) throw new Error("Missing GOOGLE_SHEET_ID in .env");
 
+    const statesDir = await resolveStatesDir();
     const stateSlugs = await listStateSlugs();
-    if (!stateSlugs.length) throw new Error(`No state JSON found in: ${RESOURCES_DIR}`);
+    if (!stateSlugs.length) throw new Error(`No state JSON found in: ${statesDir}`);
 
     const requested = getRequestedState();
-    const resolved = await resolveTargetsFromArgOrEnv({ requested, stateSlugs });
+    const resolved = await resolveTargetsFromArgOrEnv({ requested, stateSlugs, statesDir });
 
     let targetsInfo = resolved;
     if (!targetsInfo) {
@@ -676,6 +704,7 @@ async function main() {
             spreadsheetId: SPREADSHEET_ID,
             countyTabIndex,
             cityTabIndex,
+            statesDir,
         });
 
         console.log(

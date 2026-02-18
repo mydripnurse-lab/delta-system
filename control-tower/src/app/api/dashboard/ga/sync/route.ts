@@ -2,6 +2,11 @@
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import {
+    refreshGoogleAccessToken,
+    resolveTenantOAuthConnection,
+    saveTenantOAuthTokens,
+} from "@/lib/tenantOAuth";
 
 export const runtime = "nodejs";
 
@@ -13,6 +18,14 @@ function s(v: any) {
 function num(v: any) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeGaPropertyId(v: unknown): string {
+    const raw = s(v);
+    if (!raw) return "";
+    // Accept both "123456789" and "properties/123456789"
+    const match = raw.match(/(?:^|\/)(\d{5,})$/);
+    return match ? match[1] : "";
 }
 
 function daysAgoISO(days: number) {
@@ -101,45 +114,56 @@ function isStale(meta: any, staleMinutes: number) {
     return ageMs > staleMinutes * 60 * 1000;
 }
 
-/** Reads refresh token from your existing gsc_tokens.json */
-async function loadRefreshTokenFromSecrets() {
-    const filePath = path.join(process.cwd(), "data", "secrets", "gsc_tokens.json");
-    const raw = await fs.readFile(filePath, "utf8");
-    const json = JSON.parse(raw);
-
-    const refresh_token = s(json?.tokens?.refresh_token);
-    const scopes = s(json?.tokens?.scope);
-
-    if (!refresh_token) throw new Error("Missing refresh_token in data/secrets/gsc_tokens.json");
-    return { refresh_token, scopes };
+async function loadRefreshToken(tenantId: string, integrationKey: string) {
+    if (!tenantId) throw new Error("Missing tenantId for GA sync.");
+    try {
+        const gaConn = await resolveTenantOAuthConnection({
+            tenantId,
+            provider: "google_analytics",
+            integrationKey,
+        });
+        return {
+            refresh_token: gaConn.refreshToken,
+            scopes: gaConn.scopes.join(" "),
+            oauthClientId: gaConn.client.clientId,
+            oauthClientSecret: gaConn.client.clientSecret,
+            externalPropertyId: gaConn.externalPropertyId,
+            config: gaConn.config,
+            providerUsed: "google_analytics",
+        };
+    } catch {
+        const gscConn = await resolveTenantOAuthConnection({
+            tenantId,
+            provider: "google_search_console",
+            integrationKey,
+        });
+        return {
+            refresh_token: gscConn.refreshToken,
+            scopes: gscConn.scopes.join(" "),
+            oauthClientId: gscConn.client.clientId,
+            oauthClientSecret: gscConn.client.clientSecret,
+            externalPropertyId: gscConn.externalPropertyId,
+            config: gscConn.config,
+            providerUsed: "google_search_console",
+        };
+    }
 }
 
-async function refreshAccessToken(refreshToken: string) {
-    const clientId = s(process.env.GSC_CLIENT_ID);
-    const clientSecret = s(process.env.GSC_CLIENT_SECRET);
-
-    if (!clientId || !clientSecret) {
-        throw new Error("Missing GSC_CLIENT_ID / GSC_CLIENT_SECRET in env.");
+async function refreshAccessToken(refreshToken: string, oauthClientId?: string, oauthClientSecret?: string) {
+    if (!oauthClientId || !oauthClientSecret) {
+        throw new Error("Missing OAuth client config in tenant integration.");
     }
-
-    const body = new URLSearchParams();
-    body.set("client_id", clientId);
-    body.set("client_secret", clientSecret);
-    body.set("refresh_token", refreshToken);
-    body.set("grant_type", "refresh_token");
-
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body,
+    const refreshed = await refreshGoogleAccessToken({
+        clientId: oauthClientId,
+        clientSecret: oauthClientSecret,
+        refreshToken,
     });
 
-    const json = await res.json();
-    if (!res.ok) throw new Error(json?.error_description || json?.error || `OAuth HTTP ${res.status}`);
-
     return {
-        access_token: s(json.access_token),
-        expires_in: num(json.expires_in),
+        access_token: refreshed.accessToken,
+        refresh_token: refreshed.refreshToken,
+        expires_in: refreshed.expiresIn,
+        scope: refreshed.scope,
     };
 }
 
@@ -193,13 +217,37 @@ export async function GET(req: Request) {
         const end = s(u.searchParams.get("end"));
         const force = s(u.searchParams.get("force")) === "1";
         const compare = s(u.searchParams.get("compare")) === "1";
+        const tenantId = s(u.searchParams.get("tenantId"));
+        const integrationKey = s(u.searchParams.get("integrationKey")) || "default";
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
 
-        const propertyId = s(process.env.GA4_PROPERTY_ID);
-        if (!propertyId) throw new Error("Missing env: GA4_PROPERTY_ID");
+        const tok = await loadRefreshToken(tenantId, integrationKey);
+        const cfg = (tok.config || {}) as Record<string, unknown>;
+        const propertyId =
+            normalizeGaPropertyId(u.searchParams.get("propertyId")) ||
+            normalizeGaPropertyId(cfg.ga4PropertyId) ||
+            normalizeGaPropertyId(cfg.ga4_property_id) ||
+            normalizeGaPropertyId(cfg.ga_property_id) ||
+            normalizeGaPropertyId(tok.externalPropertyId) ||
+            normalizeGaPropertyId(cfg.propertyId);
+        if (!propertyId) {
+            throw new Error(
+                "Missing/invalid GA4 property ID in tenant integration config. Set 'GA4 Property ID' with a numeric value.",
+            );
+        }
 
         const { startDate, endDate, range } = parseRange(preset, start, end);
 
-        const cacheDir = path.join(process.cwd(), "data", "cache", "ga");
+        const cacheDir = path.join(
+            process.cwd(),
+            "data",
+            "cache",
+            "tenants",
+            tenantId || "_default",
+            "ga",
+        );
         const metaPath = path.join(cacheDir, "meta.json");
         await ensureDir(cacheDir);
 
@@ -220,15 +268,35 @@ export async function GET(req: Request) {
             return NextResponse.json({ ok: true, meta: metaPrev, cache: { refreshed: false, reason: "fresh" } });
         }
 
-        const { refresh_token, scopes } = await loadRefreshTokenFromSecrets();
+        const { refresh_token, scopes } = tok;
 
         // sanity: if GA scope missing, you’ll get 403 later – make it obvious
         if (!scopes.includes("analytics")) {
             // still proceed, but warn in meta
         }
 
-        const { access_token } = await refreshAccessToken(refresh_token);
+        const refreshed = await refreshAccessToken(
+            refresh_token,
+            tok.oauthClientId,
+            tok.oauthClientSecret,
+        );
+        const access_token = s(refreshed.access_token);
         if (!access_token) throw new Error("Could not refresh access token");
+        if (tenantId) {
+            await saveTenantOAuthTokens({
+                tenantId,
+                provider: tok.providerUsed === "google_analytics" ? "google_analytics" : "google_search_console",
+                integrationKey,
+                accessToken: access_token,
+                refreshToken: s(refreshed.refresh_token),
+                scopes: s(refreshed.scope).split(" ").map((x) => s(x)).filter(Boolean),
+                tokenExpiresAt:
+                    Number.isFinite(Number(refreshed.expires_in)) && Number(refreshed.expires_in) > 0
+                        ? new Date(Date.now() + Number(refreshed.expires_in) * 1000).toISOString()
+                        : null,
+                markConnected: true,
+            });
+        }
 
         // 1) Trend (date)
         const trend = await gaRunReport({

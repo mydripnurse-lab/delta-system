@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { loadSheetTabIndex } from "../../../../../../services/sheetsClient.js";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 
 function s(v: any) {
     return String(v ?? "").trim();
@@ -149,30 +149,23 @@ function normalizeState(raw: any) {
 export async function GET(req: Request) {
     try {
         const url = new URL(req.url);
+        const tenantId = s(url.searchParams.get("tenantId"));
         const start = s(url.searchParams.get("start"));
         const end = s(url.searchParams.get("end"));
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
 
         const startMs = start ? new Date(start).getTime() : null;
         const endMs = end ? new Date(end).getTime() : null;
 
-        const spreadsheetId =
-            process.env.GOOGLE_SHEETS_SPREADSHEET_ID ||
-            process.env.GOOGLE_SHEET_ID ||
-            process.env.SPREADSHEET_ID ||
-            "";
+        const cfg = await getTenantSheetConfig(tenantId);
 
-        if (!spreadsheetId) {
-            return NextResponse.json(
-                { ok: false, error: "Missing spreadsheetId env (GOOGLE_SHEETS_SPREADSHEET_ID)" },
-                { status: 500 },
-            );
-        }
-
-        const idx = await loadSheetTabIndex({
-            spreadsheetId,
-            sheetName: "Call Report",
+        const idx = await loadTenantSheetTabIndex({
+            tenantId,
+            spreadsheetId: cfg.spreadsheetId,
+            sheetName: cfg.callReportTab,
             range: "A:ZZ",
-            logScope: "calls-dashboard",
         });
 
         const headers = (idx.headers || []).map((h: any) => String(h || "").trim());

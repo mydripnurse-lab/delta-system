@@ -58,13 +58,18 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const range = s(url.searchParams.get("range")) || "last_28_days";
         const force = s(url.searchParams.get("force")) === "1";
+        const tenantId = s(url.searchParams.get("tenantId"));
+        const integrationKey = s(url.searchParams.get("integrationKey")) || "default";
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
 
         const ttl = Number(process.env.ADS_CACHE_TTL_SECONDS || 600);
 
         const { start, end } = resolveRange(range);
         const prev = prevPeriodRange(start, end);
 
-        const cacheKey = `ads_${range}`;
+        const cacheKey = `ads_${tenantId}_${integrationKey}_${range}`;
         const cached = await readCache(cacheKey);
 
         if (!force && cached && cacheFresh(cached, ttl)) {
@@ -76,25 +81,33 @@ export async function GET(req: Request) {
         const prevMeta = { range: `${range}_prev`, startDate: prev.start, endDate: prev.end, generatedAt };
 
         // KPIs (customer)
-        const kpis = await googleAdsSearch({ query: qKpis(start, end), pageSize: 1000, version: "v17" });
+        const kpis = await googleAdsSearch({
+            query: qKpis(start, end),
+            version: "v17",
+            tenantId,
+            integrationKey,
+        });
         const prevKpis = await googleAdsSearch({
             query: qKpis(prev.start, prev.end),
-            pageSize: 1000,
             version: "v17",
+            tenantId,
+            integrationKey,
         });
 
         // Trend daily
         const trend = await googleAdsSearch({
             query: qTrendDaily(start, end),
-            pageSize: 10000,
             version: "v17",
+            tenantId,
+            integrationKey,
         });
 
         // Campaigns top
         const campaigns = await googleAdsSearch({
             query: qCampaigns(start, end),
-            pageSize: 2000,
             version: "v17",
+            tenantId,
+            integrationKey,
         });
 
         const envelope = { meta, prevMeta, kpis, prevKpis, trend, campaigns, generatedAt };

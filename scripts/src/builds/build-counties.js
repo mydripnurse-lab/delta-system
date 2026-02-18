@@ -4,8 +4,17 @@ import "dotenv/config";
 import fs from "fs/promises";
 import path from "path";
 
-const STATES_DIR = path.join(process.cwd(), "resources", "statesFiles");
-const OUT_ROOT = path.join(process.cwd(), "scripts", "out");
+const TENANT_ID = String(process.env.TENANT_ID || "").trim();
+const LEGACY_STATES_DIR = path.join(process.cwd(), "resources", "statesFiles");
+const TENANT_STATES_DIR = TENANT_ID
+    ? path.join(process.cwd(), "resources", "tenants", TENANT_ID, "statesFiles")
+    : "";
+const STATES_DIR = String(process.env.STATE_FILES_DIR || "").trim() || TENANT_STATES_DIR || LEGACY_STATES_DIR;
+const OUT_ROOT =
+    String(process.env.OUT_ROOT_DIR || "").trim() ||
+    (TENANT_ID
+        ? path.join(process.cwd(), "scripts", "out", "tenants", TENANT_ID)
+        : path.join(process.cwd(), "scripts", "out"));
 
 // ====== ENV (required) ======
 const COMPANY_ID = process.env.COMPANY_ID || process.env.COMPANYID || "";
@@ -255,13 +264,22 @@ function buildCityBody({
 
 // ====== Main builder ======
 async function listStateFiles() {
-    const files = await fs.readdir(STATES_DIR);
+    let dirToRead = STATES_DIR;
+    try {
+        await fs.access(dirToRead);
+    } catch {
+        if (TENANT_ID && dirToRead !== LEGACY_STATES_DIR) {
+            dirToRead = LEGACY_STATES_DIR;
+        }
+    }
+
+    const files = await fs.readdir(dirToRead);
     return files
         .filter((f) => f.toLowerCase().endsWith(".json"))
         .map((f) => ({
             file: f,
             slug: f.replace(/\.json$/i, ""),
-            fullPath: path.join(STATES_DIR, f),
+            fullPath: path.join(dirToRead, f),
         }))
         .sort((a, b) => a.slug.localeCompare(b.slug));
 }

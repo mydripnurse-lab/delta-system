@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 
 import UsaChoroplethGaMap from "@/components/UsaChoroplethGaMap";
 import GaInsightsPanel from "@/components/GaInsightsPanel";
@@ -49,6 +50,7 @@ function norm(s: any) {
 }
 
 export default function GaDashboardPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
   const [err, setErr] = useState("");
@@ -72,6 +74,21 @@ export default function GaDashboardPage() {
 
   const [data, setData] = useState<any>(null);
 
+  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const integrationKeyRaw =
+    String(searchParams?.get("integrationKey") || "").trim() || "default";
+  const integrationKey =
+    integrationKeyRaw.toLowerCase() === "owner" ? "default" : integrationKeyRaw;
+  const backHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard";
+
+  function attachTenantScope(p: URLSearchParams) {
+    if (!tenantId) return;
+    p.set("tenantId", tenantId);
+    p.set("integrationKey", integrationKey);
+  }
+
   function buildSyncParams(force: boolean) {
     const p = new URLSearchParams();
     p.set("range", preset);
@@ -81,6 +98,7 @@ export default function GaDashboardPage() {
     }
     if (force) p.set("force", "1");
     if (compareOn) p.set("compare", "1");
+    attachTenantScope(p);
     p.set("v", String(Date.now()));
     return p.toString();
   }
@@ -94,6 +112,7 @@ export default function GaDashboardPage() {
     }
     if (compareOn) p.set("compare", "1");
     if (force) p.set("force", "1");
+    attachTenantScope(p);
     p.set("v", String(Date.now()));
     return p.toString();
   }
@@ -419,7 +438,7 @@ export default function GaDashboardPage() {
         <div className="pills">
           <Link
             className="pill"
-            href="/dashboard"
+            href={backHref}
             style={{ textDecoration: "none" }}
           >
             ← Back

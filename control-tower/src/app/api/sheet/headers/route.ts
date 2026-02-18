@@ -1,20 +1,11 @@
 // src/app/api/sheet/headers/route.ts
 import { NextResponse } from "next/server";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 
 export const runtime = "nodejs";
 
 function s(v: any) {
     return String(v ?? "").trim();
-}
-
-function getSpreadsheetId() {
-    // soporta ambos nombres para que no te vuelva a romper
-    return (
-        s(process.env.GOOGLE_SHEETS_SPREADSHEET_ID) ||
-        s(process.env.GOOGLE_SHEET_ID) ||
-        s(process.env.SPREADSHEET_ID) ||
-        s(process.env.SHEET_ID)
-    );
 }
 
 function maskId(id: string) {
@@ -36,55 +27,27 @@ function pickHeader(headers: string[], candidates: string[], envOverride?: strin
     return "";
 }
 
-async function getSheetsClient() {
-    // usa TU sheetsClient.js (mismo que ya funciona en /api/sheet/state)
-    const mod = await import("../../../../../../services/sheetsClient.js");
-    return mod as any;
-}
-
 export async function GET(req: Request) {
     const url = new URL(req.url);
     const locId = s(url.searchParams.get("locId")); // opcional ahora
+    const tenantId = s(url.searchParams.get("tenantId"));
 
-    const spreadsheetId = getSpreadsheetId();
-    if (!spreadsheetId) {
+    if (!tenantId) {
         return NextResponse.json(
             {
-                error:
-                    "Missing spreadsheetId env. Set GOOGLE_SHEET_ID (recommended) or GOOGLE_SHEETS_SPREADSHEET_ID.",
+                error: "Missing tenantId",
             },
-            { status: 500 }
+            { status: 400 }
         );
     }
 
-    // defaults
-    const sheetName = s(process.env.GOOGLE_SHEET_HEADERS_TAB) || "Headers";
-    const range = s(process.env.GOOGLE_SHEET_HEADERS_RANGE) || "A:ZZ";
-
     try {
-        const sc = await getSheetsClient();
-        const { loadSheetTabIndex } = sc;
-
-        if (typeof loadSheetTabIndex !== "function") {
-            return NextResponse.json(
-                {
-                    error: "sheetsClient.loadSheetTabIndex is not a function",
-                    debug: {
-                        spreadsheetId: maskId(spreadsheetId),
-                        sheetName,
-                        range,
-                        exports: Object.keys(sc || {}),
-                    },
-                },
-                { status: 500 }
-            );
-        }
-
-        const idx = await loadSheetTabIndex({
-            spreadsheetId,
-            sheetName,
-            range,
-            logScope: "headers",
+        const cfg = await getTenantSheetConfig(tenantId);
+        const idx = await loadTenantSheetTabIndex({
+            tenantId,
+            spreadsheetId: cfg.spreadsheetId,
+            sheetName: cfg.headersTab,
+            range: cfg.headersRange,
         });
 
         const headers: string[] = Array.isArray(idx?.headers) ? idx.headers : [];
@@ -129,9 +92,9 @@ export async function GET(req: Request) {
                     {
                         error: "Headers tab: Location Id column exists but headerMap didn’t map it.",
                         debug: {
-                            spreadsheetId: maskId(spreadsheetId),
-                            sheetName,
-                            range,
+                            spreadsheetId: maskId(cfg.spreadsheetId),
+                            sheetName: cfg.headersTab,
+                            range: cfg.headersRange,
                             COL_LOCID,
                             headerMapKeys: Array.from(headerMap.keys()),
                         },
@@ -144,7 +107,7 @@ export async function GET(req: Request) {
                 return NextResponse.json(
                     {
                         error: "Missing locId (Headers tab is per-location because it has Location Id column).",
-                        debug: { sheetName, spreadsheetId: maskId(spreadsheetId) },
+                        debug: { sheetName: cfg.headersTab, spreadsheetId: maskId(cfg.spreadsheetId) },
                     },
                     { status: 400 }
                 );
@@ -208,8 +171,8 @@ export async function GET(req: Request) {
                 debug: {
                     note:
                         "Global headers mode: tab has no Location Id column. Using first data row as global config.",
-                    sheetName,
-                    spreadsheetId: maskId(spreadsheetId),
+                    sheetName: cfg.headersTab,
+                    spreadsheetId: maskId(cfg.spreadsheetId),
                 },
             },
             { status: 200 }
@@ -219,9 +182,7 @@ export async function GET(req: Request) {
             {
                 error: e?.message || "Failed to read Headers tab",
                 debug: {
-                    spreadsheetId: maskId(spreadsheetId),
-                    sheetName,
-                    range,
+                    tenantId,
                     locId,
                     stack: process.env.NODE_ENV !== "production" ? String(e?.stack || "") : undefined,
                 },

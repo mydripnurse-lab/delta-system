@@ -32,9 +32,15 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const includeLocation = s(url.searchParams.get("includeLocation")) !== "0";
   const pipelineName = s(url.searchParams.get("name")) || "Lead Generator Bookings";
+  const tenantId = s(url.searchParams.get("tenantId"));
+  const integrationKey = s(url.searchParams.get("integrationKey")) || "owner";
 
   try {
-    const locationId = await getEffectiveLocationIdOrThrow();
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const ghlCtx = { tenantId, integrationKey };
+    const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
 
     const variants = [
       { label: "exact", method: "GET" as const, path: "/opportunities/pipelines" },
@@ -55,7 +61,7 @@ export async function GET(req: Request) {
 
     for (const v of toRun) {
       try {
-        const data = await ghlFetchJson(v.path, { method: v.method });
+        const data = await ghlFetchJson(v.path, { method: v.method, ...ghlCtx });
         const pipelines = extractArray(data, ["pipelines", "data", "items"]).map((x) => asObj(x));
         const targetLower = pipelineName.toLowerCase();
         const exact = pipelines.find((p) => s(p.name || p.pipelineName || p.title).toLowerCase() === targetLower) || null;

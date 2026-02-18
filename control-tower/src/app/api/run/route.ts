@@ -2,8 +2,14 @@
 import { NextResponse } from "next/server";
 import path from "path";
 import fs from "fs";
+import fsp from "fs/promises";
+import os from "os";
 import { spawn } from "child_process";
 import readline from "readline";
+import { getDbPool } from "@/lib/db";
+import { getTenantIntegration, upsertTenantIntegration } from "@/lib/tenantIntegrations";
+import { getAgencyAccessTokenOrThrow } from "@/lib/ghlHttp";
+import { getTenantSheetConfig } from "@/lib/tenantSheets";
 
 import {
     createRun,
@@ -128,6 +134,60 @@ function loadRepoEnv(repoRoot: string) {
     return merged;
 }
 
+function s(v: unknown) {
+    return String(v ?? "").trim();
+}
+
+function asObj(v: unknown) {
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
+function pickOauthClient(cfg: Record<string, unknown>) {
+    const oauthClient = asObj(cfg.oauthClient);
+    const oauth = asObj(cfg.oauth);
+    return {
+        clientId: s(oauthClient.clientId ?? oauthClient.client_id ?? oauth.clientId ?? oauth.client_id ?? cfg.clientId ?? cfg.client_id),
+        clientSecret: s(
+            oauthClient.clientSecret ??
+                oauthClient.client_secret ??
+                oauth.clientSecret ??
+                oauth.client_secret ??
+                cfg.clientSecret ??
+                cfg.client_secret,
+        ),
+    };
+}
+
+function parseTokenUpdateLine(line: string) {
+    const prefix = "__GHL_TOKEN_UPDATE__ ";
+    if (!line.startsWith(prefix)) return null;
+    try {
+        return JSON.parse(line.slice(prefix.length)) as {
+            access_token?: string;
+            refresh_token?: string;
+            expires_at?: number;
+            scope?: string;
+            companyId?: string;
+            locationId?: string;
+        };
+    } catch {
+        return null;
+    }
+}
+
+function jobNeedsSheet(job: string) {
+    return (
+        job === "run-delta-system" ||
+        job === "update-custom-values" ||
+        job === "update-custom-values-one" ||
+        job === "build-sheet-rows"
+    );
+}
+
+function jobNeedsGhl(job: string) {
+    return job === "run-delta-system" || job === "update-custom-values" || job === "update-custom-values-one";
+}
+
 function isOneLocJob(job: string) {
     return job === "update-custom-values-one";
 }
@@ -144,6 +204,196 @@ function jobUsesState(job: string) {
     );
 }
 
+async function materializeTenantStateFilesFromDb(tenantId: string) {
+    const pool = getDbPool();
+    const q = await pool.query<{ state_slug: string; payload: Record<string, unknown> }>(
+        `
+          select state_slug, payload
+          from app.organization_state_files
+          where organization_id = $1
+          order by state_slug asc
+        `,
+        [tenantId],
+    );
+    if (!q.rows.length) {
+        throw new Error(`No state files found in DB for tenant ${tenantId}. Seed tenant state files first.`);
+    }
+    const dir = path.join(os.tmpdir(), `ct-state-files-${tenantId}-${Date.now()}`);
+    await fsp.mkdir(dir, { recursive: true });
+    for (const row of q.rows) {
+        const slug = String(row.state_slug || "").trim().toLowerCase();
+        if (!slug) continue;
+        const filePath = path.join(dir, `${slug}.json`);
+        await fsp.writeFile(filePath, JSON.stringify(row.payload || {}, null, 2), "utf8");
+    }
+    return { dir, count: q.rows.length };
+}
+
+type TenantRunEnvResult = {
+    env: Record<string, string>;
+    ghlProvider: "ghl" | "custom" | "";
+    ghlIntegrationKey: string;
+};
+
+async function loadTenantRunEnv(tenantId: string, opts: { requireSheet: boolean; requireGhl: boolean }): Promise<TenantRunEnvResult> {
+    const pool = getDbPool();
+    const settingsQ = await pool.query<{
+        ghl_company_id: string | null;
+        snapshot_id: string | null;
+        owner_first_name: string | null;
+        owner_last_name: string | null;
+        owner_email: string | null;
+        owner_phone: string | null;
+        google_service_account_json: Record<string, unknown> | null;
+    }>(
+        `
+          select ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, google_service_account_json
+          from app.organization_settings
+          where organization_id = $1
+          limit 1
+        `,
+        [tenantId],
+    );
+    const settings = settingsQ.rows[0] || {
+        ghl_company_id: null,
+        snapshot_id: null,
+        owner_first_name: null,
+        owner_last_name: null,
+        owner_email: null,
+        owner_phone: null,
+        google_service_account_json: null,
+    };
+
+    const ownerGhl = await getTenantIntegration(tenantId, "ghl", "owner");
+    const ownerCustom = ownerGhl ? null : await getTenantIntegration(tenantId, "custom", "owner");
+    const owner = ownerGhl || ownerCustom;
+    const ghlProvider: "ghl" | "custom" | "" = ownerGhl ? "ghl" : ownerCustom ? "custom" : "";
+    const cfg = asObj(owner?.config);
+    const ownerMeta = asObj(owner?.metadata);
+    const twilio = asObj(cfg.twilio);
+    const mailgun = asObj(cfg.mailgun);
+    const oauthScopes = Array.isArray(cfg.oauthScopes) ? cfg.oauthScopes.map((x) => s(x)).filter(Boolean) : [];
+    const oauthUserType = s(cfg.oauthUserType) || "Location";
+
+    const env: Record<string, string> = {
+        COMPANY_ID: s(cfg.companyId) || s(settings.ghl_company_id),
+        GHL_COMPANY_ID: s(cfg.companyId) || s(settings.ghl_company_id),
+        SNAPSHOT_ID: s(settings.snapshot_id),
+        OWNER_FIRST_NAME: s(settings.owner_first_name),
+        OWNER_LAST_NAME: s(settings.owner_last_name),
+        OWNER_EMAIL: s(settings.owner_email),
+        OWNER_PHONE: s(settings.owner_phone),
+        DEFAULT_PHONE: s(settings.owner_phone) || "1 (833) 381-0071",
+        TWILIO_SID: s(twilio.sid),
+        TWILIO_AUTH_TOKEN: s(twilio.authToken),
+        MAILGUN_API_KEY: s(mailgun.apiKey),
+        MAILGUN_DOMAIN: s(mailgun.domain),
+        BUSINESS_EMAIL: s(settings.owner_email),
+        GHL_LOCATION_ID: s(owner?.externalAccountId) || s(cfg.locationId),
+        GHL_SCOPES: oauthScopes.join(" "),
+        GHL_USER_TYPE: oauthUserType,
+        FACEBOOK_PIXEL: s(asObj(cfg.marketing).facebookPixel),
+        FACEBOOK_ACCESS_TOKEN: s(asObj(cfg.marketing).facebookAccessToken),
+    };
+    if (settings.google_service_account_json) {
+        env.GOOGLE_SERVICE_ACCOUNT_JSON_B64 = Buffer.from(
+            JSON.stringify(settings.google_service_account_json),
+            "utf8",
+        ).toString("base64");
+    }
+
+    if (opts.requireSheet) {
+        try {
+            const sheet = await getTenantSheetConfig(tenantId);
+            env.GOOGLE_SHEET_ID = s(sheet.spreadsheetId);
+            env.GOOGLE_SHEET_COUNTY_TAB = s(sheet.countyTab);
+            env.GOOGLE_SHEET_CITY_TAB = s(sheet.cityTab);
+            env.GOOGLE_SHEET_HEADERS_TAB = s(sheet.headersTab);
+            env.GOOGLE_SHEET_HEADERS_RANGE = s(sheet.headersRange);
+            env.GOOGLE_SHEET_CALL_REPORT_TAB = s(sheet.callReportTab);
+        } catch (error: unknown) {
+            if (opts.requireSheet) {
+                throw new Error(
+                    `Tenant ${tenantId} missing sheet config in DB: ${error instanceof Error ? error.message : String(error)}`,
+                );
+            }
+        }
+    }
+
+    if (opts.requireGhl) {
+        if (!owner || !ghlProvider) {
+            throw new Error(`Tenant ${tenantId} missing owner integration (provider ghl/custom, key owner).`);
+        }
+        const oauthClient = pickOauthClient(cfg);
+        if (!oauthClient.clientId || !oauthClient.clientSecret) {
+            throw new Error(
+                `Tenant ${tenantId} owner integration missing OAuth client credentials (config.oauthClient.clientId/clientSecret).`,
+            );
+        }
+
+        const accessToken = await getAgencyAccessTokenOrThrow({ tenantId, integrationKey: "owner" });
+        const refreshed = await getTenantIntegration(tenantId, ghlProvider, "owner");
+        const refreshToken = s(refreshed?.refreshTokenEnc || owner.refreshTokenEnc);
+        const expiresAtMs = refreshed?.tokenExpiresAt ? new Date(refreshed.tokenExpiresAt).getTime() : 0;
+
+        env.GHL_CLIENT_ID = oauthClient.clientId;
+        env.GHL_CLIENT_SECRET = oauthClient.clientSecret;
+        env.GHL_ACCESS_TOKEN = accessToken;
+        env.GHL_REFRESH_TOKEN = refreshToken;
+        env.GHL_EXPIRES_AT = expiresAtMs > 0 ? String(expiresAtMs) : "";
+        env.GHL_COMPANY_ID = env.GHL_COMPANY_ID || s(ownerMeta.companyId);
+        env.COMPANY_ID = env.COMPANY_ID || env.GHL_COMPANY_ID;
+    }
+
+    return { env, ghlProvider, ghlIntegrationKey: "owner" };
+}
+
+async function persistTenantGhlTokenUpdate(input: {
+    tenantId: string;
+    provider: "ghl" | "custom";
+    integrationKey: string;
+    linePayload: {
+        access_token?: string;
+        refresh_token?: string;
+        expires_at?: number;
+        scope?: string;
+        companyId?: string;
+        locationId?: string;
+    };
+}) {
+    const existing = await getTenantIntegration(input.tenantId, input.provider, input.integrationKey);
+    if (!existing) return false;
+
+    const accessToken = s(input.linePayload.access_token);
+    const refreshToken = s(input.linePayload.refresh_token) || s(existing.refreshTokenEnc);
+    if (!accessToken) return false;
+
+    const expMs = Number(input.linePayload.expires_at || 0);
+    const tokenExpiresAt = Number.isFinite(expMs) && expMs > 0 ? new Date(expMs).toISOString() : existing.tokenExpiresAt;
+    const scopeList = s(input.linePayload.scope).split(" ").map((x) => s(x)).filter(Boolean);
+    const metadata = { ...(existing.metadata || {}) };
+    if (s(input.linePayload.companyId)) metadata.companyId = s(input.linePayload.companyId);
+    if (s(input.linePayload.locationId)) metadata.locationId = s(input.linePayload.locationId);
+
+    await upsertTenantIntegration({
+        organizationId: input.tenantId,
+        provider: input.provider,
+        integrationKey: input.integrationKey,
+        status: "connected",
+        authType: "oauth",
+        accessTokenEnc: accessToken,
+        refreshTokenEnc: refreshToken || null,
+        tokenExpiresAt: tokenExpiresAt || null,
+        scopes: scopeList.length ? scopeList : existing.scopes,
+        externalAccountId: s(input.linePayload.locationId) || existing.externalAccountId || null,
+        externalPropertyId: existing.externalPropertyId || null,
+        config: existing.config || {},
+        metadata,
+        lastError: null,
+    });
+    return true;
+}
+
 export async function POST(req: Request) {
     const body = await req.json().catch(() => null);
 
@@ -152,6 +402,7 @@ export async function POST(req: Request) {
 
     const mode = normalizeMode(body?.mode);
     const debug = !!body?.debug;
+    const tenantId = String(body?.tenantId || "").trim();
 
     const locId = String(body?.locId || "").trim();
     const kind = String(body?.kind || "").trim(); // "counties" | "cities" | ""
@@ -181,7 +432,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Missing locId for update-custom-values-one" }, { status: 400 });
     }
 
-    const run = createRun({ job, state: metaState, mode, debug });
+    const run = createRun({ job, state: metaState, mode, debug, tenantId });
 
     let closed = false;
 
@@ -189,6 +440,7 @@ export async function POST(req: Request) {
         appendLine(run.id, `🟢 created runId=${run.id}`);
         appendLine(run.id, `job=${job} state=${metaState} mode=${mode} debug=${debug}`);
         if (locId) appendLine(run.id, `locId=${locId} kind=${kind || "auto"}`);
+        if (tenantId) appendLine(run.id, `tenantId=${tenantId}`);
 
         // ✅ Build args properly per job
         const args: string[] = [scriptPath];
@@ -212,15 +464,33 @@ export async function POST(req: Request) {
         setRunMetaCmd(run.id, cmd);
 
         const repoEnv = loadRepoEnv(repoRoot);
+        let tenantRunEnv: TenantRunEnvResult | null = null;
+        if (tenantId) {
+            tenantRunEnv = await loadTenantRunEnv(tenantId, {
+                requireSheet: jobNeedsSheet(job),
+                requireGhl: jobNeedsGhl(job),
+            });
+            appendLine(run.id, "tenant-config source=db (owner/settings/integrations)");
+        }
 
-        const envMerged: Record<string, string> = {
+        const envMerged: NodeJS.ProcessEnv = {
             ...process.env,
             ...repoEnv,
+            ...(tenantRunEnv?.env || {}),
             MODE: mode,
             DEBUG: debug ? "1" : "0",
             LOC_ID: locId || "",
             KIND: kind || "",
+            TENANT_ID: tenantId || "",
         };
+
+        let tempStateFilesDir = "";
+        if (tenantId && jobUsesState(job)) {
+            const seeded = await materializeTenantStateFilesFromDb(tenantId);
+            tempStateFilesDir = seeded.dir;
+            envMerged.STATE_FILES_DIR = tempStateFilesDir;
+            appendLine(run.id, `state-files source=db materialized=${seeded.count} dir=${tempStateFilesDir}`);
+        }
 
         // ✅ state env solo cuando aplica
         if (!isOneLocJob(job) && jobUsesState(job)) {
@@ -239,7 +509,27 @@ export async function POST(req: Request) {
         const rlOut = readline.createInterface({ input: child.stdout });
         const rlErr = readline.createInterface({ input: child.stderr });
 
-        rlOut.on("line", (line) => appendLine(run.id, line));
+        rlOut.on("line", (line) => {
+            const tokenUpdate = parseTokenUpdateLine(line);
+            if (tokenUpdate && tenantId && tenantRunEnv?.ghlProvider) {
+                appendLine(run.id, "token-refresh detected (ghl) -> persisting to DB...");
+                void persistTenantGhlTokenUpdate({
+                    tenantId,
+                    provider: tenantRunEnv.ghlProvider,
+                    integrationKey: tenantRunEnv.ghlIntegrationKey,
+                    linePayload: tokenUpdate,
+                })
+                    .then((ok) => appendLine(run.id, ok ? "token-refresh persisted in DB." : "token-refresh skipped (empty/invalid)."))
+                    .catch((e: unknown) =>
+                        appendLine(
+                            run.id,
+                            `token-refresh persist error: ${e instanceof Error ? e.message : String(e)}`,
+                        ),
+                    );
+                return;
+            }
+            appendLine(run.id, line);
+        });
         rlErr.on("line", (line) => appendLine(run.id, line));
 
         child.on("error", (err) => {
@@ -250,6 +540,9 @@ export async function POST(req: Request) {
                     rlOut.close();
                     rlErr.close();
                 } catch { }
+                if (tempStateFilesDir) {
+                    void fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
+                }
                 endRun(run.id, 1);
             }
         });
@@ -262,6 +555,9 @@ export async function POST(req: Request) {
                 rlOut.close();
                 rlErr.close();
             } catch { }
+            if (tempStateFilesDir) {
+                void fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
+            }
 
             endRun(run.id, code ?? 0);
         });

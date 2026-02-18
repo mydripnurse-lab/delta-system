@@ -1,5 +1,5 @@
 // services/ghlClient.js
-import { getTokens, isExpiredSoon, saveTokens } from "./tokenStore.js";
+import { loadTokens, getTokens, isExpiredSoon, saveTokens } from "./tokenStore.js";
 
 const TOKEN_URL = "https://services.leadconnectorhq.com/oauth/token";
 const API_BASE = "https://services.leadconnectorhq.com";
@@ -56,6 +56,7 @@ async function refreshAccessToken() {
 }
 
 export async function getValidAccessToken() {
+    await loadTokens();
     const t = getTokens();
 
     if (!t.access_token) throw new Error("No access_token yet. Run /connect/ghl first.");

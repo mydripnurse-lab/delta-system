@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
@@ -390,6 +391,7 @@ function computeByState(rows: ApiRow[]) {
 }
 
 export default function CallsDashboardPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -423,6 +425,11 @@ export default function CallsDashboardPage() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
+  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+  const backHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard";
 
   function clearSelection() {
     setMapSelected("");
@@ -433,11 +440,16 @@ export default function CallsDashboardPage() {
   }
 
   async function fetchCalls(start: string, end: string) {
-    const qs =
-      start && end
-        ? `?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
-        : "";
-    const res = await fetch(`/api/dashboard/calls${qs}`, { cache: "no-store" });
+    const qs = new URLSearchParams();
+    if (start && end) {
+      qs.set("start", start);
+      qs.set("end", end);
+    }
+    if (tenantId) {
+      qs.set("tenantId", tenantId);
+      qs.set("integrationKey", integrationKey);
+    }
+    const res = await fetch(`/api/dashboard/calls?${qs.toString()}`, { cache: "no-store" });
 
     const ct = res.headers.get("content-type") || "";
     if (!ct.includes("application/json")) {
@@ -841,7 +853,7 @@ export default function CallsDashboardPage() {
         <div className="pills">
           <Link
             className="pill"
-            href="/dashboard"
+            href={backHref}
             style={{ textDecoration: "none" }}
           >
             ← Back

@@ -59,6 +59,14 @@ type ConvSnapshot = {
     rows: ConvRow[];
 };
 
+type GhlCtx = { tenantId?: string; integrationKey?: string };
+
+function ghlCtxOpts(ctx?: GhlCtx) {
+    const tenantId = norm(ctx?.tenantId);
+    if (!tenantId) return {};
+    return { tenantId, integrationKey: norm(ctx?.integrationKey) || "owner" };
+}
+
 type CacheEntry = {
     atMs: number;
     ttlMs: number;
@@ -466,6 +474,7 @@ async function fetchConversations(
     endIso: string,
     debug = false,
     opts?: { stopWhenOlderThanMs?: number; maxPages?: number },
+    ctx?: GhlCtx,
 ) {
     const startMs = toMs(startIso);
     const endMs = toMs(endIso);
@@ -502,6 +511,7 @@ async function fetchConversations(
 
                 const res = await ghlFetchJson("/conversations/search", {
                     method: "POST",
+                    ...ghlCtxOpts(ctx),
                     body,
                 });
                 const rows = extractConversationArray(res);
@@ -521,6 +531,7 @@ async function fetchConversations(
                 };
                 const res = await ghlFetchJson(`/locations/${encodeURIComponent(locationId)}/conversations/search`, {
                     method: "POST",
+                    ...ghlCtxOpts(ctx),
                     body,
                 });
                 const rows = extractConversationArray(res);
@@ -540,6 +551,7 @@ async function fetchConversations(
                 };
                 const res = await ghlFetchJson("/conversations/search", {
                     method: "POST",
+                    ...ghlCtxOpts(ctx),
                     body,
                 });
                 const rows = extractConversationArray(res);
@@ -558,6 +570,7 @@ async function fetchConversations(
                 qs.set("limit", String(PAGE_LIMIT));
                 const res = await ghlFetchJson(`/locations/${encodeURIComponent(locationId)}/conversations/search?${qs.toString()}`, {
                     method: "GET",
+                    ...ghlCtxOpts(ctx),
                 });
                 const rows = extractConversationArray(res);
                 all.push(...rows);
@@ -573,7 +586,7 @@ async function fetchConversations(
                 qs.set("locationId", locationId);
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
-                const res = await ghlFetchJson(`/conversations/search?${qs.toString()}`, { method: "GET" });
+                const res = await ghlFetchJson(`/conversations/search?${qs.toString()}`, { method: "GET", ...ghlCtxOpts(ctx) });
                 const rows = extractConversationArray(res);
                 all.push(...rows);
                 if (rows.length < PAGE_LIMIT) break;
@@ -587,7 +600,7 @@ async function fetchConversations(
                 const qs = new URLSearchParams();
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
-                const res = await ghlFetchJson(`/conversations/search?${qs.toString()}`, { method: "GET" });
+                const res = await ghlFetchJson(`/conversations/search?${qs.toString()}`, { method: "GET", ...ghlCtxOpts(ctx) });
                 const rows = extractConversationArray(res);
                 all.push(...rows);
                 if (rows.length < PAGE_LIMIT) break;
@@ -602,7 +615,7 @@ async function fetchConversations(
                 qs.set("locationId", locationId);
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
-                const res = await ghlFetchJson(`/conversations/?${qs.toString()}`, { method: "GET" });
+                const res = await ghlFetchJson(`/conversations/?${qs.toString()}`, { method: "GET", ...ghlCtxOpts(ctx) });
                 const rows = extractConversationArray(res);
                 all.push(...rows);
                 if (rows.length < PAGE_LIMIT) break;
@@ -616,7 +629,7 @@ async function fetchConversations(
                 const qs = new URLSearchParams();
                 qs.set("page", String(page));
                 qs.set("limit", String(PAGE_LIMIT));
-                const res = await ghlFetchJson(`/conversations?${qs.toString()}`, { method: "GET" });
+                const res = await ghlFetchJson(`/conversations?${qs.toString()}`, { method: "GET", ...ghlCtxOpts(ctx) });
                 const rows = extractConversationArray(res);
                 all.push(...rows);
                 if (rows.length < PAGE_LIMIT) break;
@@ -633,6 +646,7 @@ async function fetchConversations(
                 qs.set("limit", String(PAGE_LIMIT));
                 const res = await ghlFetchJson(`/locations/${encodeURIComponent(locationId)}/conversations?${qs.toString()}`, {
                     method: "GET",
+                    ...ghlCtxOpts(ctx),
                 });
                 const rows = extractConversationArray(res);
                 all.push(...rows);
@@ -662,7 +676,7 @@ async function fetchConversations(
         : new Error("Unable to fetch conversations from GHL.");
 }
 
-async function fetchContactsAsConversationFallback(locationId: string, startIso: string, endIso: string) {
+async function fetchContactsAsConversationFallback(locationId: string, startIso: string, endIso: string, ctx?: GhlCtx) {
     const startMs = toMs(startIso);
     const endMs = toMs(endIso);
 
@@ -690,6 +704,7 @@ async function fetchContactsAsConversationFallback(locationId: string, startIso:
             res = await with429Retry(() =>
                 ghlFetchJson("/contacts/search", {
                     method: "POST",
+                    ...ghlCtxOpts(ctx),
                     body,
                 }),
             );
@@ -796,11 +811,12 @@ function pickOpportunityIds(contact: any) {
     return [...new Set(ids)];
 }
 
-async function resolveContactState(contactId: string, oppCache: Map<string, string | null>) {
+async function resolveContactState(contactId: string, oppCache: Map<string, string | null>, ctx?: GhlCtx) {
     if (!contactId) return { state: "", city: "", from: "unknown" as const };
 
     const contact = (await ghlFetchJson(`/contacts/${encodeURIComponent(contactId)}`, {
         method: "GET",
+        ...ghlCtxOpts(ctx),
     })) as Record<string, any>;
 
     const contactState = normalizeStateName(
@@ -824,6 +840,7 @@ async function resolveContactState(contactId: string, oppCache: Map<string, stri
         try {
             const opp = (await ghlFetchJson(`/opportunities/${encodeURIComponent(oppId)}`, {
                 method: "GET",
+                ...ghlCtxOpts(ctx),
             })) as Record<string, any>;
             const src = norm(opp?.source || opp?.opportunity?.source);
             const inferred = normalizeStateName(inferStateFromOppSourceSafe(src));
@@ -843,6 +860,12 @@ export async function GET(req: Request) {
     const end = url.searchParams.get("end") || "";
     const bust = url.searchParams.get("bust") === "1";
     const debug = url.searchParams.get("debug") === "1";
+    const tenantId = norm(url.searchParams.get("tenantId"));
+    const integrationKey = norm(url.searchParams.get("integrationKey")) || "owner";
+    if (!tenantId) {
+        return NextResponse.json({ ok: false, error: "Missing tenantId" } satisfies ApiResponse, { status: 400 });
+    }
+    const ghlCtx: GhlCtx = { tenantId, integrationKey };
 
     try {
         if (!start || !end) {
@@ -863,7 +886,7 @@ export async function GET(req: Request) {
             }
         }
 
-        const locationId = await getEffectiveLocationIdOrThrow();
+        const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
         const snapshot = await readConvSnapshot(locationId);
         const snapshotFresh = !!snapshot && Date.now() - Number(snapshot.updatedAtMs || 0) <= SNAPSHOT_TTL_MS;
 
@@ -895,6 +918,7 @@ export async function GET(req: Request) {
                     snapshot
                         ? { stopWhenOlderThanMs, maxPages: SNAPSHOT_MAX_NEW_PAGES }
                         : { maxPages: MAX_PAGES },
+                    ghlCtx,
                 );
                 fetchedMeta = {
                     rawCount: fetched.rawCount,
@@ -945,7 +969,7 @@ export async function GET(req: Request) {
                 } else {
                     rowsSource = "contacts_search_fallback";
                     try {
-                        rawRows = await fetchContactsAsConversationFallback(locationId, start, end);
+                        rawRows = await fetchContactsAsConversationFallback(locationId, start, end, ghlCtx);
                         fetchedMeta = {
                             rawCount: rawRows.length,
                             mappedCount: rawRows.length,
@@ -995,7 +1019,7 @@ export async function GET(req: Request) {
         for (const r of withMissing) {
             if (contactStateCache.has(r.contactId)) continue;
             try {
-                const resolved = await resolveContactState(r.contactId, oppCache);
+                const resolved = await resolveContactState(r.contactId, oppCache, ghlCtx);
                 contactStateCache.set(r.contactId, resolved);
             } catch {
                 contactStateCache.set(r.contactId, { state: "", city: "", from: "unknown" });

@@ -2,13 +2,27 @@
 import fs from "fs/promises";
 import path from "path";
 
+const TENANT_ID = String(process.env.TENANT_ID || "").trim();
+
 // -------------------- Paths --------------------
-const STATES_FILES_DIR = path.join(process.cwd(), "resources", "statesFiles");
-const OUT_DIR = path.join(process.cwd(), "public", "json");
+const LEGACY_STATES_FILES_DIR = path.join(process.cwd(), "resources", "statesFiles");
+const TENANT_STATES_FILES_DIR = TENANT_ID
+    ? path.join(process.cwd(), "resources", "tenants", TENANT_ID, "statesFiles")
+    : "";
+const STATES_FILES_DIR =
+    String(process.env.STATE_FILES_DIR || "").trim() ||
+    TENANT_STATES_FILES_DIR ||
+    LEGACY_STATES_FILES_DIR;
+
+const OUT_DIR = TENANT_ID
+    ? path.join(process.cwd(), "public", "json", "tenants", TENANT_ID)
+    : path.join(process.cwd(), "public", "json");
 const OUT_FILE = path.join(OUT_DIR, "states-index.json");
 
 // ✅ Folder que contiene los estados generados (alaska, puerto-rico, etc.)
-const GENERATED_STATES_DIR = path.join(process.cwd(), "scripts", "out");
+const GENERATED_STATES_DIR = TENANT_ID
+    ? path.join(process.cwd(), "scripts", "out", "tenants", TENANT_ID)
+    : path.join(process.cwd(), "scripts", "out");
 
 // Si lo vas a servir desde Netlify, pon el BASE URL público.
 const BASE_URL = process.env.SITEMAPS_BASE_URL || "https://sitemaps.mydripnurse.com";
@@ -153,6 +167,24 @@ async function listGeneratedStateSlugs(dirPath) {
     }
 }
 
+async function resolveStatesFilesDir() {
+    let dirToUse = STATES_FILES_DIR;
+    try {
+        await fs.access(dirToUse);
+        return dirToUse;
+    } catch {
+        if (TENANT_ID && dirToUse !== LEGACY_STATES_FILES_DIR) {
+            try {
+                await fs.access(LEGACY_STATES_FILES_DIR);
+                return LEGACY_STATES_FILES_DIR;
+            } catch {
+                return dirToUse;
+            }
+        }
+        return dirToUse;
+    }
+}
+
 // -------------------- Main --------------------
 async function main() {
     const debug = argBool("debug", false);
@@ -193,9 +225,10 @@ async function main() {
     await fs.mkdir(OUT_DIR, { recursive: true });
 
     const generatedSlugs = await listGeneratedStateSlugs(GENERATED_STATES_DIR);
+    const statesFilesDir = await resolveStatesFilesDir();
 
     // Load files list
-    const files = await fs.readdir(STATES_FILES_DIR);
+    const files = await fs.readdir(statesFilesDir);
     const jsonFiles = files.filter((f) => f.toLowerCase().endsWith(".json"));
 
     // Compute scope for progress totals: number of candidate files after filters (soft)
@@ -219,7 +252,7 @@ async function main() {
     // Init banner logs
     log("------------------------------------------------");
     log(`BUILD STATES INDEX • state="${stateArgRaw}" slug="${slugArgRaw}" file="${fileArgRaw}"`);
-    log(`• resourcesDir: ${STATES_FILES_DIR}`);
+    log(`• resourcesDir: ${statesFilesDir}`);
     log(`• generatedDir: ${GENERATED_STATES_DIR}`);
     log(`• outFile: ${OUT_FILE}`);
     log(`• baseUrl: ${BASE_URL}`);
@@ -253,7 +286,7 @@ async function main() {
             continue;
         }
 
-        const full = path.join(STATES_FILES_DIR, file);
+        const full = path.join(statesFilesDir, file);
 
         try {
             const raw = await fs.readFile(full, "utf8");
@@ -285,7 +318,10 @@ async function main() {
                 continue;
             }
 
-            const stateJsonUrl = `${BASE_URL}/resources/statesFiles/${file}`;
+            const stateJsonPath = TENANT_ID
+                ? `/resources/tenants/${TENANT_ID}/statesFiles/${file}`
+                : `/resources/statesFiles/${file}`;
+            const stateJsonUrl = `${BASE_URL}${stateJsonPath}`;
 
             states.push({
                 stateName,

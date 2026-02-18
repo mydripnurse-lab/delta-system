@@ -1,71 +1,77 @@
 import { google } from "googleapis";
-import fs from "fs/promises";
-import path from "path";
+import { getTenantOAuthClientConfig, saveTenantOAuthTokens } from "@/lib/tenantOAuth";
+import { getTenantIntegration } from "@/lib/tenantIntegrations";
 
 export const runtime = "nodejs";
 
-function s(v: any) {
+function s(v: unknown) {
     return String(v ?? "").trim();
 }
 
-async function writeJson(filePath: string, data: any) {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+function decodeState(raw: string) {
+    if (!raw) return null;
+    try {
+        const json = Buffer.from(raw, "base64url").toString("utf8");
+        return JSON.parse(json) as Record<string, unknown>;
+    } catch {
+        return null;
+    }
 }
 
 export async function GET(req: Request) {
     const url = new URL(req.url);
     const code = s(url.searchParams.get("code"));
     const err = s(url.searchParams.get("error"));
+    const state = decodeState(s(url.searchParams.get("state")));
+    const tenantId = s(state?.tenantId || url.searchParams.get("tenantId"));
+    const integrationKey = s(state?.integrationKey || url.searchParams.get("integrationKey")) || "default";
+    const returnTo = s(state?.returnTo) || `/projects/${tenantId}`;
 
     if (err) return new Response(`OAuth error: ${err}`, { status: 400 });
     if (!code) return new Response("Missing ?code=", { status: 400 });
+    if (!tenantId) return new Response("Missing tenantId (state/query).", { status: 400 });
 
-    // ✅ Reusamos el mismo OAuth client (Cloud Project)
-    const clientId = s(process.env.GSC_CLIENT_ID);
-    const clientSecret = s(process.env.GSC_CLIENT_SECRET);
-
-    // ✅ Redirect propio para Ads
-    const redirectUri = s(process.env.ADS_REDIRECT_URI);
-
-    if (!clientId || !clientSecret || !redirectUri) {
-        return new Response(
-            "Missing env: GSC_CLIENT_ID / GSC_CLIENT_SECRET / ADS_REDIRECT_URI",
-            { status: 500 },
-        );
-    }
+    const { clientId, clientSecret, redirectUri } = await getTenantOAuthClientConfig({
+        tenantId,
+        provider: "google_ads",
+        integrationKey,
+    });
 
     const oauth2 = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
     // Exchange code -> tokens
     const { tokens } = await oauth2.getToken(code);
 
-    const out = {
-        createdAt: new Date().toISOString(),
-        tokens: {
-            access_token: tokens.access_token || "",
-            refresh_token: tokens.refresh_token || "",
-            scope: tokens.scope || "",
-            token_type: tokens.token_type || "",
-            expiry_date: tokens.expiry_date || null,
-        },
-    };
+    const accessToken = s(tokens.access_token);
+    const refreshToken = s(tokens.refresh_token);
+    const existing = await getTenantIntegration(tenantId, "google_ads", integrationKey);
+    if (!refreshToken && !s(existing?.refreshTokenEnc)) {
+        return new Response(
+            "Google Ads no devolvio refresh_token. Repite la conexion OAuth con prompt=consent y selecciona la cuenta correcta.",
+            { status: 400 },
+        );
+    }
+    const tokenExpiresAt =
+        Number.isFinite(Number(tokens.expiry_date)) && Number(tokens.expiry_date) > 0
+            ? new Date(Number(tokens.expiry_date)).toISOString()
+            : null;
+    const scopeList = s(tokens.scope).split(" ").map((x) => s(x)).filter(Boolean);
 
-    const filePath = path.join(process.cwd(), "data", "secrets", "ads_tokens.json");
-    await writeJson(filePath, out);
+    await saveTenantOAuthTokens({
+        tenantId,
+        provider: "google_ads",
+        integrationKey,
+        accessToken,
+        refreshToken,
+        scopes: scopeList,
+        tokenExpiresAt,
+        markConnected: true,
+    });
 
-    const hasRefresh = !!out.tokens.refresh_token;
-
-    return new Response(
-        [
-            "✅ Google Ads OAuth connected.",
-            `Saved: ${filePath}`,
-            `Has refresh_token: ${hasRefresh ? "YES" : "NO"}`,
-            "",
-            hasRefresh
-                ? "Next: build /api/dashboard/ads/summary to fetch GAQL metrics."
-                : "If refresh_token is NO: revoke access in Google Account permissions, then retry /api/auth/ads/start.",
-        ].join("\n"),
-        { status: 200, headers: { "content-type": "text/plain; charset=utf-8" } },
-    );
+    const okUrl = new URL(returnTo || "/", url.origin);
+    okUrl.searchParams.set("oauth", "ads_ok");
+    okUrl.searchParams.set("tenantId", tenantId);
+    okUrl.searchParams.set("integrationKey", integrationKey);
+    okUrl.searchParams.set("hasRefresh", refreshToken ? "1" : "0");
+    return Response.redirect(okUrl.toString(), 302);
 }

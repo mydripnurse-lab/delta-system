@@ -1,72 +1,65 @@
 // control-tower/src/app/api/dashboard/ads/ping/route.ts
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
-import { google } from "googleapis";
+import {
+    refreshGoogleAccessToken,
+    resolveTenantOAuthConnection,
+    saveTenantOAuthTokens,
+} from "@/lib/tenantOAuth";
 
 export const runtime = "nodejs";
 
 function s(v: any) {
     return String(v ?? "").trim();
 }
-function absFromCwd(p: string) {
-    return path.isAbsolute(p) ? p : path.join(process.cwd(), p);
+function cleanCid(v: string) {
+    return s(v).replace(/-/g, "");
 }
 
-async function readJson(filePath: string) {
-    const raw = await fs.readFile(filePath, "utf8");
-    return JSON.parse(raw);
-}
+async function googleAdsSearch(input: {
+    tenantId: string;
+    integrationKey: string;
+    customerId: string;
+    query: string;
+}) {
+    const conn = await resolveTenantOAuthConnection({
+        tenantId: input.tenantId,
+        provider: "google_ads",
+        integrationKey: input.integrationKey,
+    });
+    const cfg = (conn.config || {}) as Record<string, unknown>;
+    const refreshed = await refreshGoogleAccessToken({
+        clientId: conn.client.clientId,
+        clientSecret: conn.client.clientSecret,
+        refreshToken: conn.refreshToken,
+    });
+    const accessToken = s(refreshed.accessToken);
+    if (!accessToken) throw new Error("Failed to refresh Google Ads OAuth access token.");
 
-async function getAccessTokenFromRefreshToken() {
-    const clientId = s(process.env.ADS_CLIENT_ID);
-    const clientSecret = s(process.env.ADS_CLIENT_SECRET);
-    const redirectUri = s(process.env.ADS_REDIRECT_URI);
-    const tokensFile = s(process.env.ADS_TOKENS_FILE);
+    await saveTenantOAuthTokens({
+        tenantId: input.tenantId,
+        provider: "google_ads",
+        integrationKey: input.integrationKey,
+        accessToken,
+        scopes: s(refreshed.scope).split(" ").map((x) => s(x)).filter(Boolean),
+        tokenExpiresAt: refreshed.expiresAtIso,
+        markConnected: true,
+    });
 
-    if (!clientId || !clientSecret || !redirectUri) {
-        throw new Error("Missing env: ADS_CLIENT_ID / ADS_CLIENT_SECRET / ADS_REDIRECT_URI");
-    }
-    if (!tokensFile) throw new Error("Missing env: ADS_TOKENS_FILE");
+    const developerToken =
+        s(cfg.developerToken) ||
+        s(cfg.googleAdsDeveloperToken);
+    const loginCustomerId = cleanCid(
+        s(cfg.loginCustomerId) ||
+        s(cfg.googleAdsLoginCustomerId),
+    );
 
-    const tokensPath = absFromCwd(tokensFile);
-    const tokenJson = await readJson(tokensPath);
-
-    // soporta formatos:
-    // { tokens: {...} } o {...}
-    const tokens = tokenJson?.tokens || tokenJson;
-    const refreshToken = s(tokens?.refresh_token);
-
-    if (!refreshToken) {
-        throw new Error(
-            `ads_tokens.json missing refresh_token. Re-run /api/auth/ads/start and confirm refresh_token saved.`,
-        );
-    }
-
-    const oauth2 = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
-    oauth2.setCredentials({ refresh_token: refreshToken });
-
-    const r = await oauth2.getAccessToken();
-    const accessToken = s((r as any)?.token || r);
-
-    if (!accessToken) throw new Error("Failed to obtain Google OAuth access token (empty).");
-
-    return accessToken;
-}
-
-async function googleAdsSearch(customerId: string, query: string) {
-    const accessToken = await getAccessTokenFromRefreshToken();
-
-    const developerToken = s(process.env.GOOGLE_ADS_DEVELOPER_TOKEN);
-    const loginCustomerId = s(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID);
-
-    if (!developerToken) throw new Error("Missing env: GOOGLE_ADS_DEVELOPER_TOKEN");
-    if (!customerId) throw new Error("Missing customerId");
+    if (!developerToken) throw new Error("Missing Google Ads developer token in tenant integration config.");
+    if (!input.customerId) throw new Error("Missing customerId");
 
     // ✅ Docs indican base URL con versión (hoy v23) y método search
     // https://googleads.googleapis.com/v23/customers/CUSTOMER_ID/googleAds:search
     // :contentReference[oaicite:2]{index=2}
-    const url = `https://googleads.googleapis.com/v23/customers/${customerId}/googleAds:search`;
+    const url = `https://googleads.googleapis.com/v23/customers/${input.customerId}/googleAds:search`;
 
     const headers: Record<string, string> = {
         Authorization: `Bearer ${accessToken}`,
@@ -80,7 +73,7 @@ async function googleAdsSearch(customerId: string, query: string) {
     const res = await fetch(url, {
         method: "POST",
         headers,
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: input.query }),
         cache: "no-store",
     });
 
@@ -98,10 +91,26 @@ async function googleAdsSearch(customerId: string, query: string) {
     }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const customerId = s(process.env.GOOGLE_ADS_CUSTOMER_ID).replace(/-/g, "");
-        if (!customerId) throw new Error("Missing env: GOOGLE_ADS_CUSTOMER_ID");
+        const u = new URL(req.url);
+        const tenantId = s(u.searchParams.get("tenantId"));
+        const integrationKey = s(u.searchParams.get("integrationKey")) || "default";
+        if (!tenantId) throw new Error("Missing tenantId");
+
+        const conn = await resolveTenantOAuthConnection({
+            tenantId,
+            provider: "google_ads",
+            integrationKey,
+        });
+        const cfg = (conn.config || {}) as Record<string, unknown>;
+        const customerId = cleanCid(
+            s(u.searchParams.get("customerId")) ||
+            s(conn.externalAccountId) ||
+            s(cfg.customerId) ||
+            s(cfg.googleAdsCustomerId),
+        );
+        if (!customerId) throw new Error("Missing customerId in tenant integration");
 
         // query mínima para confirmar que responde
         const query = `
@@ -114,10 +123,17 @@ export async function GET() {
       LIMIT 1
     `.trim();
 
-        const out = await googleAdsSearch(customerId, query);
+        const out = await googleAdsSearch({
+            tenantId,
+            integrationKey,
+            customerId,
+            query,
+        });
 
         return NextResponse.json({
             ok: true,
+            tenantId,
+            integrationKey,
             customerId,
             out,
         });

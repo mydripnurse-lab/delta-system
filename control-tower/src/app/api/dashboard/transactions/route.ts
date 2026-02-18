@@ -75,6 +75,14 @@ type TxSnapshot = {
     rows: TxRow[];
 };
 
+type GhlCtx = { tenantId?: string; integrationKey?: string };
+
+function ghlCtxOpts(ctx?: GhlCtx) {
+    const tenantId = norm(ctx?.tenantId);
+    if (!tenantId) return {};
+    return { tenantId, integrationKey: norm(ctx?.integrationKey) || "owner" };
+}
+
 type CacheEntry = {
     atMs: number;
     ttlMs: number;
@@ -507,6 +515,7 @@ async function fetchTransactions(
     endIso: string,
     debug = false,
     opts?: { stopWhenOlderThanMs?: number; maxPages?: number },
+    ctx?: GhlCtx,
 ) {
     const startMs = toMs(startIso);
     const endMs = toMs(endIso);
@@ -514,7 +523,7 @@ async function fetchTransactions(
         throw new Error(`Invalid range. start=${startIso} end=${endIso}`);
     }
 
-    const agencyToken = await getAgencyAccessTokenOrThrow().catch(() => "");
+    const agencyToken = await getAgencyAccessTokenOrThrow(ctx).catch(() => "");
     const stopWhenOlderThanMs = Number(opts?.stopWhenOlderThanMs || 0);
     const maxPages = Math.max(1, Number(opts?.maxPages || MAX_PAGES));
 
@@ -559,6 +568,7 @@ async function fetchTransactions(
                 ghlFetchJson(`/payments/transactions?${qs.toString()}`, {
                     method: "GET",
                     authToken: opts.authToken,
+                    ...ghlCtxOpts(ctx),
                 }),
             );
             const rows = extractTransactionsArray(res);
@@ -614,7 +624,7 @@ async function fetchTransactions(
                 qs.set("limit", String(PAGE_LIMIT));
                 if (cursor) qs.set("cursor", cursor);
                 const res = await with429Retry(() =>
-                    ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET" }),
+                    ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET", ...ghlCtxOpts(ctx) }),
                 );
                 const rows = extractTransactionsArray(res);
                 pagesFetched++;
@@ -655,7 +665,7 @@ async function fetchTransactions(
                 qs.set("limit", String(PAGE_LIMIT));
                 if (cursor) qs.set("cursor", cursor);
                 const res = await with429Retry(() =>
-                    ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET" }),
+                    ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET", ...ghlCtxOpts(ctx) }),
                 );
                 const rows = extractTransactionsArray(res);
                 pagesFetched++;
@@ -701,6 +711,7 @@ async function fetchTransactions(
                     ghlFetchJson(`/payments/transactions?${qs.toString()}`, {
                         method: "GET",
                         authToken: agencyToken,
+                        ...ghlCtxOpts(ctx),
                     }),
                 );
                 const rows = extractTransactionsArray(res);
@@ -748,6 +759,7 @@ async function fetchTransactions(
                     ghlFetchJson(`/payments/transactions?${qs.toString()}`, {
                         method: "GET",
                         authToken: agencyToken,
+                        ...ghlCtxOpts(ctx),
                     }),
                 );
                 const rows = extractTransactionsArray(res);
@@ -791,7 +803,7 @@ async function fetchTransactions(
                 qs.set("limit", String(PAGE_LIMIT));
                 if (cursor) qs.set("cursor", cursor);
                 const res = await with429Retry(() =>
-                    ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET" }),
+                    ghlFetchJson(`/payments/transactions?${qs.toString()}`, { method: "GET", ...ghlCtxOpts(ctx) }),
                 );
                 const rows = extractTransactionsArray(res);
                 pagesFetched++;
@@ -852,11 +864,11 @@ async function fetchTransactions(
         : new Error("Unable to fetch transactions.");
 }
 
-async function resolveContactState(contactId: string) {
+async function resolveContactState(contactId: string, ctx?: GhlCtx) {
     if (!contactId) return { state: "", city: "", from: "unknown" as const };
     try {
         const c = (await with429Retry(() =>
-            ghlFetchJson(`/contacts/${encodeURIComponent(contactId)}`, { method: "GET" }),
+            ghlFetchJson(`/contacts/${encodeURIComponent(contactId)}`, { method: "GET", ...ghlCtxOpts(ctx) }),
         )) as any;
         const state = normalizeStateName(norm(c?.state || c?.address?.state || c?.contact?.state));
         const city = norm(c?.city || c?.address?.city || c?.contact?.city);
@@ -874,6 +886,12 @@ export async function GET(req: Request) {
     const bust = url.searchParams.get("bust") === "1";
     const hard = url.searchParams.get("hard") === "1";
     const debug = url.searchParams.get("debug") === "1";
+    const tenantId = norm(url.searchParams.get("tenantId"));
+    const integrationKey = norm(url.searchParams.get("integrationKey")) || "owner";
+    if (!tenantId) {
+        return NextResponse.json({ ok: false, error: "Missing tenantId" } satisfies ApiResponse, { status: 400 });
+    }
+    const ghlCtx: GhlCtx = { tenantId, integrationKey };
 
     try {
         if (!start || !end) {
@@ -894,7 +912,7 @@ export async function GET(req: Request) {
             }
         }
 
-        const locationId = await getEffectiveLocationIdOrThrow();
+        const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
         const snapshot = await readTxSnapshot(locationId);
         const startMs = toMs(start);
         const endMs = toMs(end);
@@ -944,6 +962,7 @@ export async function GET(req: Request) {
                     : {
                         maxPages: MAX_PAGES,
                     },
+                ghlCtx,
             );
             fetchedPages = Math.ceil((fetched.rawCount || 0) / PAGE_LIMIT);
             if (fetched.pagesFetched) fetchedPages = fetched.pagesFetched;

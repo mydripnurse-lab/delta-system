@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { loadSheetTabIndex } from "../../../../../../services/sheetsClient.js";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 
 export const runtime = "nodejs";
-
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID!;
-const COUNTY_TAB = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
-const CITY_TAB = process.env.GOOGLE_SHEET_CITY_TAB || "Cities";
 
 function s(v: any) {
     return String(v ?? "").trim();
@@ -79,26 +75,25 @@ function buildStatePayload(tab: any, stateName: string) {
 
 export async function GET(req: Request) {
     try {
-        if (!SPREADSHEET_ID) {
-            return NextResponse.json({ error: "Missing GOOGLE_SHEET_ID" }, { status: 500 });
-        }
-
         const { searchParams } = new URL(req.url);
+        const tenantId = s(searchParams.get("tenantId"));
         const state = s(searchParams.get("name"));
+        if (!tenantId) return NextResponse.json({ error: "Missing query param '?tenantId=...'" }, { status: 400 });
         if (!state) return NextResponse.json({ error: 'Missing query param "?name=StateName"' }, { status: 400 });
 
+        const cfg = await getTenantSheetConfig(tenantId);
         const [countiesTab, citiesTab] = await Promise.all([
-            loadSheetTabIndex({
-                spreadsheetId: SPREADSHEET_ID,
-                sheetName: COUNTY_TAB,
+            loadTenantSheetTabIndex({
+                tenantId,
+                spreadsheetId: cfg.spreadsheetId,
+                sheetName: cfg.countyTab,
                 range: "A:AZ",
-                keyHeaders: ["State", "County"],
             }),
-            loadSheetTabIndex({
-                spreadsheetId: SPREADSHEET_ID,
-                sheetName: CITY_TAB,
+            loadTenantSheetTabIndex({
+                tenantId,
+                spreadsheetId: cfg.spreadsheetId,
+                sheetName: cfg.cityTab,
                 range: "A:AZ",
-                keyHeaders: ["State", "County", "City"],
             }),
         ]);
 
@@ -107,7 +102,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             state,
-            tabs: { counties: COUNTY_TAB, cities: CITY_TAB },
+            tabs: { counties: cfg.countyTab, cities: cfg.cityTab },
             counties,
             cities,
         });

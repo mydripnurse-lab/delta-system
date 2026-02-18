@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 
 const UsaChoroplethProgressMap = dynamic(
@@ -58,6 +59,7 @@ function deltaClass(pct: any, opts?: { invert?: boolean }) {
 }
 
 export default function GscDashboardPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
   const [err, setErr] = useState("");
@@ -83,6 +85,21 @@ export default function GscDashboardPage() {
   const [showTopKeywords, setShowTopKeywords] = useState(true);
   const [searchTab, setSearchTab] = useState<SearchTab>("all");
 
+  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const integrationKeyRaw =
+    String(searchParams?.get("integrationKey") || "").trim() || "default";
+  const integrationKey =
+    integrationKeyRaw.toLowerCase() === "owner" ? "default" : integrationKeyRaw;
+  const backHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard";
+
+  function attachTenantScope(p: URLSearchParams) {
+    if (!tenantId) return;
+    p.set("tenantId", tenantId);
+    p.set("integrationKey", integrationKey);
+  }
+
   function qs() {
     const p = new URLSearchParams();
     p.set("range", preset);
@@ -92,6 +109,7 @@ export default function GscDashboardPage() {
     }
     if (mapSelected) p.set("state", mapSelected);
     if (compareOn) p.set("compare", "1");
+    attachTenantScope(p);
     return p.toString();
   }
 
@@ -108,6 +126,7 @@ export default function GscDashboardPage() {
     if (compareOn) p.set("compare", "1");
 
     p.set("v", String(Date.now()));
+    attachTenantScope(p);
     return p.toString();
   }
 
@@ -311,7 +330,7 @@ export default function GscDashboardPage() {
         states: stateRows.slice(0, 20),
         searchPerformance: {
           note:
-            "__unknown = páginas fuera del patrón Delta o sin match en catálogo scripts/out.",
+            "__unknown = páginas fuera del patrón Delta o sin match en catálogo del tenant.",
         },
         debug: data?.debug || null,
       };
@@ -323,7 +342,13 @@ export default function GscDashboardPage() {
             ? "/api/dashboard/search-performance/insights"
             : "/api/dashboard/gsc/insights";
 
-      const res = await fetch(insightsEndpoint, {
+      const endpointQs = new URLSearchParams();
+      attachTenantScope(endpointQs);
+      const endpointUrl = endpointQs.toString()
+        ? `${insightsEndpoint}?${endpointQs.toString()}`
+        : insightsEndpoint;
+
+      const res = await fetch(endpointUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -353,7 +378,7 @@ export default function GscDashboardPage() {
         <div className="pills">
           <Link
             className="pill"
-            href="/dashboard"
+            href={backHref}
             style={{ textDecoration: "none" }}
           >
             ← Back
@@ -407,7 +432,7 @@ export default function GscDashboardPage() {
               }}
               disabled={loading}
               type="button"
-              title="Forza sync con Google + fuerza reload del catálogo scripts/out"
+              title="Forza sync con Google + fuerza reload del catálogo tenant (DB-first)"
             >
               {loading && hardRefreshing ? "Hard refresh..." : "Refresh"}
             </button>
@@ -1241,7 +1266,7 @@ export default function GscDashboardPage() {
 
               <div className="mini" style={{ marginTop: 10, opacity: 0.75 }}>
                 Roadmap: query+page join → cluster por estado/county/city + gap
-                analysis contra scripts/out (Delta coverage).
+                analysis contra catálogo tenant (DB-first).
               </div>
             </div>
           </div>

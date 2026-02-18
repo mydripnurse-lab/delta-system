@@ -2,11 +2,32 @@
 export const API_BASE = "https://services.leadconnectorhq.com";
 export const VERSION = "2021-07-28";
 
+async function resolveBearerLike(input: unknown): Promise<string> {
+    let cur: unknown = input;
+    let hops = 0;
+    while (typeof cur === "function" && hops < 3) {
+        cur = await (cur as () => unknown)();
+        hops++;
+    }
+    if (cur && typeof (cur as Promise<unknown>).then === "function") {
+        cur = await (cur as Promise<unknown>);
+    }
+    return String(cur ?? "").trim();
+}
+
+function looksLikeInvalidBearerToken(token: string): boolean {
+    if (!token) return true;
+    if (/\s/.test(token)) return true;
+    const low = token.toLowerCase();
+    if (low.includes("=>") || low.includes("function") || low.startsWith("async")) return true;
+    return false;
+}
+
 export async function ghlFetchJson(
     pathOrUrl: string,
     opts: {
         method: string;
-        bearer: string;
+        bearer: string | (() => Promise<string> | string);
         body?: any;
         headers?: Record<string, string>;
     },
@@ -15,8 +36,14 @@ export async function ghlFetchJson(
         ? pathOrUrl
         : `${API_BASE}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
 
+    const resolved = await resolveBearerLike(opts.bearer);
+    const token = looksLikeInvalidBearerToken(resolved) ? "" : resolved;
+    if (!token) {
+        throw new Error(`Missing GHL bearer token for ${url}`);
+    }
+
     const headers: Record<string, string> = {
-        Authorization: `Bearer ${opts.bearer}`,
+        Authorization: `Bearer ${token}`,
         Version: VERSION,
         Accept: "application/json",
         ...(opts.headers || {}),

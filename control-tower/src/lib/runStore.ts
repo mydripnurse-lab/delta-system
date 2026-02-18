@@ -7,6 +7,7 @@ export type RunMeta = {
     state?: string;
     mode?: string;
     debug?: boolean;
+    tenantId?: string;
     cmd?: string;
 };
 

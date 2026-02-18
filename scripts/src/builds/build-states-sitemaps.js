@@ -5,10 +5,21 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const TENANT_ID = String(process.env.TENANT_ID || "").trim();
 
 // ---- paths
-const RESOURCES_DIR = path.join(process.cwd(), "resources", "statesFiles");
-const STATES_OUT_DIR = path.join(process.cwd(), "states");
+const LEGACY_RESOURCES_DIR = path.join(process.cwd(), "resources", "statesFiles");
+const RESOURCES_DIR = String(process.env.STATE_FILES_DIR || "").trim() || (TENANT_ID
+    ? path.join(process.cwd(), "resources", "tenants", TENANT_ID, "statesFiles")
+    : LEGACY_RESOURCES_DIR);
+const STATES_OUT_DIR =
+    String(process.env.STATES_OUT_DIR || "").trim() ||
+    (TENANT_ID
+        ? path.join(process.cwd(), "states", "tenants", TENANT_ID)
+        : path.join(process.cwd(), "states"));
+const DEFAULT_PUBLIC_STATES_PATH = TENANT_ID
+    ? `/states/tenants/${TENANT_ID}`
+    : "/states";
 
 // Host central donde se sirven estos sitemaps
 const DEFAULT_SITEMAPS_HOST = "https://sitemaps.mydripnurse.com";
@@ -131,13 +142,22 @@ function pickDivisionFolder(stateSlug) {
 }
 
 async function listStateFiles() {
-    const files = await fs.readdir(RESOURCES_DIR);
+    let dirToRead = RESOURCES_DIR;
+    try {
+        await fs.access(dirToRead);
+    } catch {
+        if (TENANT_ID && dirToRead !== LEGACY_RESOURCES_DIR) {
+            dirToRead = LEGACY_RESOURCES_DIR;
+        }
+    }
+
+    const files = await fs.readdir(dirToRead);
     return files
         .filter((f) => f.toLowerCase().endsWith(".json"))
         .map((f) => ({
             file: f,
             slug: f.replace(/\.json$/i, ""),
-            fullPath: path.join(RESOURCES_DIR, f),
+            fullPath: path.join(dirToRead, f),
         }))
         .sort((a, b) => a.slug.localeCompare(b.slug));
 }
@@ -153,15 +173,18 @@ async function writeFileEnsureDir(filePath, content) {
 
 /** Loc builders (host central) */
 function locStateDivisionRoot(host, stateSlug, divisionFolder) {
-    return `${host}/states/${stateSlug}/${divisionFolder}/sitemap.xml`;
+    const base = String(process.env.PUBLIC_STATES_PATH || DEFAULT_PUBLIC_STATES_PATH).replace(/\/$/, "");
+    return `${host}${base}/${stateSlug}/${divisionFolder}/sitemap.xml`;
 }
 
 function locDivisionIndexChild(host, stateSlug, divisionFolder, divisionSlug) {
-    return `${host}/states/${stateSlug}/${divisionFolder}/${divisionSlug}/sitemap.xml`;
+    const base = String(process.env.PUBLIC_STATES_PATH || DEFAULT_PUBLIC_STATES_PATH).replace(/\/$/, "");
+    return `${host}${base}/${stateSlug}/${divisionFolder}/${divisionSlug}/sitemap.xml`;
 }
 
 function locNestedCity(host, stateSlug, divisionFolder, countySlug, citySlug) {
-    return `${host}/states/${stateSlug}/${divisionFolder}/${countySlug}/${citySlug}/sitemap.xml`;
+    const base = String(process.env.PUBLIC_STATES_PATH || DEFAULT_PUBLIC_STATES_PATH).replace(/\/$/, "");
+    return `${host}${base}/${stateSlug}/${divisionFolder}/${countySlug}/${citySlug}/sitemap.xml`;
 }
 
 async function buildOneState(chosen, lastmod, host, debug) {
@@ -351,6 +374,7 @@ async function main() {
     log(`BUILD STATE SITEMAPS • state="${state}" • host="${host}"`);
     log(`• resourcesDir: ${RESOURCES_DIR}`);
     log(`• outDir: ${STATES_OUT_DIR}`);
+    log(`• publicStatesPath: ${String(process.env.PUBLIC_STATES_PATH || DEFAULT_PUBLIC_STATES_PATH)}`);
     log(`• lastmod: ${lastmod}`);
     log(`• debug: ${debug}`);
     log("------------------------------------------------");

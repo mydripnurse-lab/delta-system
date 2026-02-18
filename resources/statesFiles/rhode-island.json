@@ -5,23 +5,23 @@
             "cities": [
                 {
                     "cityName": "Barrington",
-                    "cityDomain": "https://barrington-city-ri.mydripnurse.com",
-                    "citySitemap": "https://barrington-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://barrington-city-ri.mynewbrand.com",
+                    "citySitemap": "https://barrington-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Bristol",
-                    "cityDomain": "https://bristol-city-ri.mydripnurse.com",
-                    "citySitemap": "https://bristol-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://bristol-city-ri.mynewbrand.com",
+                    "citySitemap": "https://bristol-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Prudence Island",
-                    "cityDomain": "https://prudence-island-city-ri.mydripnurse.com",
-                    "citySitemap": "https://prudence-island-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://prudence-island-city-ri.mynewbrand.com",
+                    "citySitemap": "https://prudence-island-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Warren",
-                    "cityDomain": "https://warren-city-ri.mydripnurse.com",
-                    "citySitemap": "https://warren-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://warren-city-ri.mynewbrand.com",
+                    "citySitemap": "https://warren-city-ri.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -29,42 +29,42 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://bristol-county-ri.mydripnurse.com",
-            "countySitemap": "https://bristol-county-ri.mydripnurse.com/sitemap.xml",
-            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://bristol-county-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://barrington-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bristol-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://prudence-island-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://warren-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+            "countyDomain": "https://bristol-county-ri.mynewbrand.com",
+            "countySitemap": "https://bristol-county-ri.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://bristol-county-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://barrington-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bristol-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://prudence-island-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://warren-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
             "countyName": "Kent",
             "cities": [
                 {
                     "cityName": "Coventry",
-                    "cityDomain": "https://coventry-city-ri.mydripnurse.com",
-                    "citySitemap": "https://coventry-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://coventry-city-ri.mynewbrand.com",
+                    "citySitemap": "https://coventry-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "East Greenwich",
-                    "cityDomain": "https://east-greenwich-city-ri.mydripnurse.com",
-                    "citySitemap": "https://east-greenwich-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://east-greenwich-city-ri.mynewbrand.com",
+                    "citySitemap": "https://east-greenwich-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Greene",
-                    "cityDomain": "https://greene-city-ri.mydripnurse.com",
-                    "citySitemap": "https://greene-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://greene-city-ri.mynewbrand.com",
+                    "citySitemap": "https://greene-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Warwick",
-                    "cityDomain": "https://warwick-city-ri.mydripnurse.com",
-                    "citySitemap": "https://warwick-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://warwick-city-ri.mynewbrand.com",
+                    "citySitemap": "https://warwick-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "West Greenwich",
-                    "cityDomain": "https://west-greenwich-city-ri.mydripnurse.com",
-                    "citySitemap": "https://west-greenwich-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://west-greenwich-city-ri.mynewbrand.com",
+                    "citySitemap": "https://west-greenwich-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "West Warwick",
-                    "cityDomain": "https://west-warwick-city-ri.mydripnurse.com",
-                    "citySitemap": "https://west-warwick-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://west-warwick-city-ri.mynewbrand.com",
+                    "citySitemap": "https://west-warwick-city-ri.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -72,52 +72,52 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://kent-county-ri.mydripnurse.com",
-            "countySitemap": "https://kent-county-ri.mydripnurse.com/sitemap.xml",
-            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://kent-county-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://coventry-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-greenwich-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://greene-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://warwick-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-greenwich-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-warwick-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+            "countyDomain": "https://kent-county-ri.mynewbrand.com",
+            "countySitemap": "https://kent-county-ri.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://kent-county-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://coventry-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-greenwich-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://greene-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://warwick-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-greenwich-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-warwick-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
             "countyName": "Newport",
             "cities": [
                 {
                     "cityName": "Adamsville",
-                    "cityDomain": "https://adamsville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://adamsville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://adamsville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://adamsville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Jamestown",
-                    "cityDomain": "https://jamestown-city-ri.mydripnurse.com",
-                    "citySitemap": "https://jamestown-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://jamestown-city-ri.mynewbrand.com",
+                    "citySitemap": "https://jamestown-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Little Compton",
-                    "cityDomain": "https://little-compton-city-ri.mydripnurse.com",
-                    "citySitemap": "https://little-compton-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://little-compton-city-ri.mynewbrand.com",
+                    "citySitemap": "https://little-compton-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Middletown",
-                    "cityDomain": "https://middletown-city-ri.mydripnurse.com",
-                    "citySitemap": "https://middletown-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://middletown-city-ri.mynewbrand.com",
+                    "citySitemap": "https://middletown-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Netc",
-                    "cityDomain": "https://netc-city-ri.mydripnurse.com",
-                    "citySitemap": "https://netc-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://netc-city-ri.mynewbrand.com",
+                    "citySitemap": "https://netc-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Newport",
-                    "cityDomain": "https://newport-city-ri.mydripnurse.com",
-                    "citySitemap": "https://newport-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://newport-city-ri.mynewbrand.com",
+                    "citySitemap": "https://newport-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Portsmouth",
-                    "cityDomain": "https://portsmouth-city-ri.mydripnurse.com",
-                    "citySitemap": "https://portsmouth-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://portsmouth-city-ri.mynewbrand.com",
+                    "citySitemap": "https://portsmouth-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Tiverton",
-                    "cityDomain": "https://tiverton-city-ri.mydripnurse.com",
-                    "citySitemap": "https://tiverton-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://tiverton-city-ri.mynewbrand.com",
+                    "citySitemap": "https://tiverton-city-ri.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -125,167 +125,167 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://newport-county-ri.mydripnurse.com",
-            "countySitemap": "https://newport-county-ri.mydripnurse.com/sitemap.xml",
-            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://newport-county-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://adamsville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://jamestown-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://little-compton-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://middletown-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://netc-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newport-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://portsmouth-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tiverton-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+            "countyDomain": "https://newport-county-ri.mynewbrand.com",
+            "countySitemap": "https://newport-county-ri.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://newport-county-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://adamsville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://jamestown-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://little-compton-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://middletown-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://netc-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newport-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://portsmouth-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tiverton-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
             "countyName": "Providence",
             "cities": [
                 {
                     "cityName": "Albion",
-                    "cityDomain": "https://albion-city-ri.mydripnurse.com",
-                    "citySitemap": "https://albion-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://albion-city-ri.mynewbrand.com",
+                    "citySitemap": "https://albion-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Central Falls",
-                    "cityDomain": "https://central-falls-city-ri.mydripnurse.com",
-                    "citySitemap": "https://central-falls-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://central-falls-city-ri.mynewbrand.com",
+                    "citySitemap": "https://central-falls-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Chepachet",
-                    "cityDomain": "https://chepachet-city-ri.mydripnurse.com",
-                    "citySitemap": "https://chepachet-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://chepachet-city-ri.mynewbrand.com",
+                    "citySitemap": "https://chepachet-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Clayville",
-                    "cityDomain": "https://clayville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://clayville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://clayville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://clayville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Cranston",
-                    "cityDomain": "https://cranston-city-ri.mydripnurse.com",
-                    "citySitemap": "https://cranston-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://cranston-city-ri.mynewbrand.com",
+                    "citySitemap": "https://cranston-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Cumberland",
-                    "cityDomain": "https://cumberland-city-ri.mydripnurse.com",
-                    "citySitemap": "https://cumberland-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://cumberland-city-ri.mynewbrand.com",
+                    "citySitemap": "https://cumberland-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "East Providence",
-                    "cityDomain": "https://east-providence-city-ri.mydripnurse.com",
-                    "citySitemap": "https://east-providence-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://east-providence-city-ri.mynewbrand.com",
+                    "citySitemap": "https://east-providence-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Fiskeville",
-                    "cityDomain": "https://fiskeville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://fiskeville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://fiskeville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://fiskeville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Forestdale",
-                    "cityDomain": "https://forestdale-city-ri.mydripnurse.com",
-                    "citySitemap": "https://forestdale-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://forestdale-city-ri.mynewbrand.com",
+                    "citySitemap": "https://forestdale-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Foster",
-                    "cityDomain": "https://foster-city-ri.mydripnurse.com",
-                    "citySitemap": "https://foster-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://foster-city-ri.mynewbrand.com",
+                    "citySitemap": "https://foster-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Glendale",
-                    "cityDomain": "https://glendale-city-ri.mydripnurse.com",
-                    "citySitemap": "https://glendale-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://glendale-city-ri.mynewbrand.com",
+                    "citySitemap": "https://glendale-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Greenville",
-                    "cityDomain": "https://greenville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://greenville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://greenville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://greenville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Harmony",
-                    "cityDomain": "https://harmony-city-ri.mydripnurse.com",
-                    "citySitemap": "https://harmony-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://harmony-city-ri.mynewbrand.com",
+                    "citySitemap": "https://harmony-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Harrisville",
-                    "cityDomain": "https://harrisville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://harrisville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://harrisville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://harrisville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Hope",
-                    "cityDomain": "https://hope-city-ri.mydripnurse.com",
-                    "citySitemap": "https://hope-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://hope-city-ri.mynewbrand.com",
+                    "citySitemap": "https://hope-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Johnston",
-                    "cityDomain": "https://johnston-city-ri.mydripnurse.com",
-                    "citySitemap": "https://johnston-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://johnston-city-ri.mynewbrand.com",
+                    "citySitemap": "https://johnston-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Lincoln",
-                    "cityDomain": "https://lincoln-city-ri.mydripnurse.com",
-                    "citySitemap": "https://lincoln-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://lincoln-city-ri.mynewbrand.com",
+                    "citySitemap": "https://lincoln-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Manville",
-                    "cityDomain": "https://manville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://manville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://manville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://manville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Mapleville",
-                    "cityDomain": "https://mapleville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://mapleville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://mapleville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://mapleville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "North Providence",
-                    "cityDomain": "https://north-providence-city-ri.mydripnurse.com",
-                    "citySitemap": "https://north-providence-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://north-providence-city-ri.mynewbrand.com",
+                    "citySitemap": "https://north-providence-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "North Scituate",
-                    "cityDomain": "https://north-scituate-city-ri.mydripnurse.com",
-                    "citySitemap": "https://north-scituate-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://north-scituate-city-ri.mynewbrand.com",
+                    "citySitemap": "https://north-scituate-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "North Smithfield",
-                    "cityDomain": "https://north-smithfield-city-ri.mydripnurse.com",
-                    "citySitemap": "https://north-smithfield-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://north-smithfield-city-ri.mynewbrand.com",
+                    "citySitemap": "https://north-smithfield-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Oakland",
-                    "cityDomain": "https://oakland-city-ri.mydripnurse.com",
-                    "citySitemap": "https://oakland-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://oakland-city-ri.mynewbrand.com",
+                    "citySitemap": "https://oakland-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Pascoag",
-                    "cityDomain": "https://pascoag-city-ri.mydripnurse.com",
-                    "citySitemap": "https://pascoag-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://pascoag-city-ri.mynewbrand.com",
+                    "citySitemap": "https://pascoag-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Pawtucket",
-                    "cityDomain": "https://pawtucket-city-ri.mydripnurse.com",
-                    "citySitemap": "https://pawtucket-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://pawtucket-city-ri.mynewbrand.com",
+                    "citySitemap": "https://pawtucket-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Providence",
-                    "cityDomain": "https://providence-city-ri.mydripnurse.com",
-                    "citySitemap": "https://providence-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://providence-city-ri.mynewbrand.com",
+                    "citySitemap": "https://providence-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Riverside",
-                    "cityDomain": "https://riverside-city-ri.mydripnurse.com",
-                    "citySitemap": "https://riverside-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://riverside-city-ri.mynewbrand.com",
+                    "citySitemap": "https://riverside-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Rumford",
-                    "cityDomain": "https://rumford-city-ri.mydripnurse.com",
-                    "citySitemap": "https://rumford-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://rumford-city-ri.mynewbrand.com",
+                    "citySitemap": "https://rumford-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Slatersville",
-                    "cityDomain": "https://slatersville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://slatersville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://slatersville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://slatersville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Smithfield",
-                    "cityDomain": "https://smithfield-city-ri.mydripnurse.com",
-                    "citySitemap": "https://smithfield-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://smithfield-city-ri.mynewbrand.com",
+                    "citySitemap": "https://smithfield-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Woonsocket",
-                    "cityDomain": "https://woonsocket-city-ri.mydripnurse.com",
-                    "citySitemap": "https://woonsocket-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://woonsocket-city-ri.mynewbrand.com",
+                    "citySitemap": "https://woonsocket-city-ri.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -293,122 +293,122 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://providence-county-ri.mydripnurse.com",
-            "countySitemap": "https://providence-county-ri.mydripnurse.com/sitemap.xml",
-            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://providence-county-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://albion-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://central-falls-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chepachet-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://clayville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cranston-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cumberland-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-providence-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fiskeville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://forestdale-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://foster-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://glendale-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://greenville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://harmony-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://harrisville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hope-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://johnston-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lincoln-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://manville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mapleville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-providence-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-scituate-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-smithfield-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://oakland-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pascoag-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pawtucket-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://providence-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://riverside-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rumford-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://slatersville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://smithfield-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://woonsocket-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+            "countyDomain": "https://providence-county-ri.mynewbrand.com",
+            "countySitemap": "https://providence-county-ri.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://providence-county-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://albion-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://central-falls-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chepachet-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://clayville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cranston-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cumberland-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-providence-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fiskeville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://forestdale-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://foster-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://glendale-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://greenville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://harmony-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://harrisville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hope-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://johnston-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lincoln-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://manville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mapleville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-providence-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-scituate-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-smithfield-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://oakland-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pascoag-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pawtucket-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://providence-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://riverside-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rumford-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://slatersville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://smithfield-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://woonsocket-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
             "countyName": "Washington",
             "cities": [
                 {
                     "cityName": "Ashaway",
-                    "cityDomain": "https://ashaway-city-ri.mydripnurse.com",
-                    "citySitemap": "https://ashaway-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://ashaway-city-ri.mynewbrand.com",
+                    "citySitemap": "https://ashaway-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Block Island",
-                    "cityDomain": "https://block-island-city-ri.mydripnurse.com",
-                    "citySitemap": "https://block-island-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://block-island-city-ri.mynewbrand.com",
+                    "citySitemap": "https://block-island-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Bradford",
-                    "cityDomain": "https://bradford-city-ri.mydripnurse.com",
-                    "citySitemap": "https://bradford-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://bradford-city-ri.mynewbrand.com",
+                    "citySitemap": "https://bradford-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Carolina",
-                    "cityDomain": "https://carolina-city-ri.mydripnurse.com",
-                    "citySitemap": "https://carolina-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://carolina-city-ri.mynewbrand.com",
+                    "citySitemap": "https://carolina-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Charlestown",
-                    "cityDomain": "https://charlestown-city-ri.mydripnurse.com",
-                    "citySitemap": "https://charlestown-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://charlestown-city-ri.mynewbrand.com",
+                    "citySitemap": "https://charlestown-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Exeter",
-                    "cityDomain": "https://exeter-city-ri.mydripnurse.com",
-                    "citySitemap": "https://exeter-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://exeter-city-ri.mynewbrand.com",
+                    "citySitemap": "https://exeter-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Hope Valley",
-                    "cityDomain": "https://hope-valley-city-ri.mydripnurse.com",
-                    "citySitemap": "https://hope-valley-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://hope-valley-city-ri.mynewbrand.com",
+                    "citySitemap": "https://hope-valley-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Hopkinton",
-                    "cityDomain": "https://hopkinton-city-ri.mydripnurse.com",
-                    "citySitemap": "https://hopkinton-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://hopkinton-city-ri.mynewbrand.com",
+                    "citySitemap": "https://hopkinton-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Kenyon",
-                    "cityDomain": "https://kenyon-city-ri.mydripnurse.com",
-                    "citySitemap": "https://kenyon-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://kenyon-city-ri.mynewbrand.com",
+                    "citySitemap": "https://kenyon-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Kingston",
-                    "cityDomain": "https://kingston-city-ri.mydripnurse.com",
-                    "citySitemap": "https://kingston-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://kingston-city-ri.mynewbrand.com",
+                    "citySitemap": "https://kingston-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Narragansett",
-                    "cityDomain": "https://narragansett-city-ri.mydripnurse.com",
-                    "citySitemap": "https://narragansett-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://narragansett-city-ri.mynewbrand.com",
+                    "citySitemap": "https://narragansett-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "North Kingstown",
-                    "cityDomain": "https://north-kingstown-city-ri.mydripnurse.com",
-                    "citySitemap": "https://north-kingstown-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://north-kingstown-city-ri.mynewbrand.com",
+                    "citySitemap": "https://north-kingstown-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Peace Dale",
-                    "cityDomain": "https://peace-dale-city-ri.mydripnurse.com",
-                    "citySitemap": "https://peace-dale-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://peace-dale-city-ri.mynewbrand.com",
+                    "citySitemap": "https://peace-dale-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Rockville",
-                    "cityDomain": "https://rockville-city-ri.mydripnurse.com",
-                    "citySitemap": "https://rockville-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://rockville-city-ri.mynewbrand.com",
+                    "citySitemap": "https://rockville-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Saunderstown",
-                    "cityDomain": "https://saunderstown-city-ri.mydripnurse.com",
-                    "citySitemap": "https://saunderstown-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://saunderstown-city-ri.mynewbrand.com",
+                    "citySitemap": "https://saunderstown-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Shannock",
-                    "cityDomain": "https://shannock-city-ri.mydripnurse.com",
-                    "citySitemap": "https://shannock-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://shannock-city-ri.mynewbrand.com",
+                    "citySitemap": "https://shannock-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Slocum",
-                    "cityDomain": "https://slocum-city-ri.mydripnurse.com",
-                    "citySitemap": "https://slocum-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://slocum-city-ri.mynewbrand.com",
+                    "citySitemap": "https://slocum-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Wakefield",
-                    "cityDomain": "https://wakefield-city-ri.mydripnurse.com",
-                    "citySitemap": "https://wakefield-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://wakefield-city-ri.mynewbrand.com",
+                    "citySitemap": "https://wakefield-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "West Kingston",
-                    "cityDomain": "https://west-kingston-city-ri.mydripnurse.com",
-                    "citySitemap": "https://west-kingston-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://west-kingston-city-ri.mynewbrand.com",
+                    "citySitemap": "https://west-kingston-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Westerly",
-                    "cityDomain": "https://westerly-city-ri.mydripnurse.com",
-                    "citySitemap": "https://westerly-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://westerly-city-ri.mynewbrand.com",
+                    "citySitemap": "https://westerly-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Wood River Junction",
-                    "cityDomain": "https://wood-river-junction-city-ri.mydripnurse.com",
-                    "citySitemap": "https://wood-river-junction-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://wood-river-junction-city-ri.mynewbrand.com",
+                    "citySitemap": "https://wood-river-junction-city-ri.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Wyoming",
-                    "cityDomain": "https://wyoming-city-ri.mydripnurse.com",
-                    "citySitemap": "https://wyoming-city-ri.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://wyoming-city-ri.mynewbrand.com",
+                    "citySitemap": "https://wyoming-city-ri.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -416,66 +416,10 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://washington-county-ri.mydripnurse.com",
-            "countySitemap": "https://washington-county-ri.mydripnurse.com/sitemap.xml",
-            "sitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://washington-county-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ashaway-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://block-island-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bradford-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://carolina-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://charlestown-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://exeter-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hope-valley-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hopkinton-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kenyon-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kingston-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://narragansett-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-kingstown-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://peace-dale-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rockville-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://saunderstown-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://shannock-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://slocum-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wakefield-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-kingston-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://westerly-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wood-river-junction-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wyoming-city-ri.mydripnurse.com/sitemap.xml</loc>\\n    <lastmod>2026-02-10</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+            "countyDomain": "https://washington-county-ri.mynewbrand.com",
+            "countySitemap": "https://washington-county-ri.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://washington-county-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ashaway-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://block-island-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bradford-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://carolina-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://charlestown-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://exeter-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hope-valley-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hopkinton-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kenyon-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kingston-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://narragansett-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-kingstown-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://peace-dale-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rockville-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://saunderstown-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://shannock-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://slocum-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wakefield-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-kingston-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://westerly-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wood-river-junction-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wyoming-city-ri.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         }
     ],
-    "stateName": "Rhode Island",
-    "companyName": "My Drip Nurse",
-    "website": "https://www.mydripnurse.com",
-    "ownerName": "Keishla",
-    "ownerLastName": "Caraballo",
-    "phone": "9392749203",
-    "email": "keyla03@live.com",
-    "twilio": {
-        "sid": "secret",
-        "authToken": "secret"
-    },
-    "mailgun": {
-        "apiKey": "secret",
-        "domain": "secret"
-    },
-    "customValues": {
-        "businessInformation": {
-            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
-            "businessPhone": ""
-        },
-        "ivTherapyPrice": {
-            "myersCocktailPrice": "299",
-            "alleviatePrice": "219",
-            "brainStormPrice": "199",
-            "getLeanPrice": "179",
-            "immunityDefensePrice": "279",
-            "immunityDefenseAndGlutathionePrice": "299",
-            "hangoverPrice": "219",
-            "hydratePrice": "219",
-            "nadPrice": "599",
-            "nadBoostPrice": "797",
-            "recoveryPerformancePrice": "219",
-            "theGlowPrice": "199"
-        },
-        "vitaminPrice": {
-            "vitaminD3": "100",
-            "bComplex": "70",
-            "biotin": "75",
-            "vitaminC": "70",
-            "aminoBlend": "80",
-            "glutathione": "90",
-            "lipoMino": "120",
-            "triImmuneBoost": "120",
-            "vitaminB12": "70",
-            "ondansetron": "70"
-        },
-        "facebook": {
-            "accessToken": "secret",
-            "facebookPixel": "secret",
-            "instagramUrl": "https://www.instagram.com/mydripnurse/",
-            "facebookUrl": "https://www.facebook.com/MyDripNurse"
-        }
-    },
-    "businessInformation": {
-        "snapshotId": "secret",
-        "companyId": "secret"
-    }
+    "stateName": "Rhode Island"
 }

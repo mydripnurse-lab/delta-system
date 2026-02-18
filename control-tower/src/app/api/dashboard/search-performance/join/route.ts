@@ -48,7 +48,7 @@ function mergeTop(rowsA: AnyObj[], rowsB: AnyObj[], keyField: "query" | "page") 
   const ingest = (r: AnyObj) => {
     const key = s(r[keyField]);
     if (!key) return;
-    const prev = by.get(key) || { [keyField]: key, impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0 };
+    const prev: any = by.get(key) || { [keyField]: key, impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0 };
     const impressions = n(r.impressions);
     const clicks = n(r.clicks);
     const ctr = n(r.ctr);
@@ -83,7 +83,7 @@ function mergeStateRows(aRows: AnyObj[], bRows: AnyObj[]) {
   const by = new Map<string, AnyObj>();
   const ingest = (r: AnyObj) => {
     const st = s(r.state) || "__unknown";
-    const prev = by.get(st) || { state: st, impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0, pagesCounted: 0, keywordsCount: 0 };
+    const prev: any = by.get(st) || { state: st, impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0, pagesCounted: 0, keywordsCount: 0 };
     const impressions = n(r.impressions);
     prev.impressions += impressions;
     prev.clicks += n(r.clicks);
@@ -119,7 +119,7 @@ function mergeTrendRows(aRows: AnyObj[], bRows: AnyObj[]) {
   const ingest = (r: AnyObj) => {
     const d = s(r.date);
     if (!d) return;
-    const prev = by.get(d) || { date: d, impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0 };
+    const prev: any = by.get(d) || { date: d, impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0 };
     const impressions = n(r.impressions);
     prev.impressions += impressions;
     prev.clicks += n(r.clicks);
@@ -247,11 +247,12 @@ export async function GET(req: Request) {
 
     // Fallback: when merged trend does not include previous-window rows,
     // compose compare from child compares (GSC/Bing) if available.
+    const compareObj: any = compare;
     const compareMissing =
       !compare ||
       (compare &&
-        n((compare as AnyObj)?.previous?.impressions) === 0 &&
-        n((compare as AnyObj)?.previous?.clicks) === 0);
+        n(compareObj?.previous?.impressions) === 0 &&
+        n(compareObj?.previous?.clicks) === 0);
 
     if (compareEnabled && compareMissing) {
       const gc = (g?.compare || {}) as AnyObj;

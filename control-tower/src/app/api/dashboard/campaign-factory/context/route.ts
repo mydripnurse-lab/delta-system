@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
-import { loadSheetTabIndex } from "../../../../../../../services/sheetsClient.js";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
+import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -161,11 +162,10 @@ async function loadLandingMap() {
   };
 }
 
-async function loadSheetDomains() {
-  const spreadsheetId =
-    s(process.env.GOOGLE_SHEETS_SPREADSHEET_ID) ||
-    s(process.env.GOOGLE_SHEET_ID) ||
-    s(process.env.SPREADSHEET_ID);
+async function loadSheetDomains(tenantId?: string) {
+  const id = s(tenantId);
+  const cfg = id ? await getTenantSheetConfig(id).catch(() => null) : null;
+  const spreadsheetId = s(cfg?.spreadsheetId);
 
   const out = {
     spreadsheetEnabled: Boolean(spreadsheetId),
@@ -181,14 +181,16 @@ async function loadSheetDomains() {
 
   if (!spreadsheetId) return out;
 
-  const stateTab = s(process.env.GOOGLE_SHEET_STATE_TAB) || "States";
-  const countyTab = s(process.env.GOOGLE_SHEET_COUNTY_TAB) || "Counties";
-  const cityTab = s(process.env.GOOGLE_SHEET_CITY_TAB) || "Cities";
+  if (!id) return out;
+
+  const stateTab = "States";
+  const countyTab = s(cfg?.countyTab) || "Counties";
+  const cityTab = s(cfg?.cityTab) || "Cities";
 
   const [statesIdx, countiesIdx, citiesIdx] = await Promise.all([
-    loadSheetTabIndex({ spreadsheetId, sheetName: stateTab, range: "A:AZ", logScope: "campaign-factory-context" }).catch(() => null),
-    loadSheetTabIndex({ spreadsheetId, sheetName: countyTab, range: "A:AZ", logScope: "campaign-factory-context" }).catch(() => null),
-    loadSheetTabIndex({ spreadsheetId, sheetName: cityTab, range: "A:AZ", logScope: "campaign-factory-context" }).catch(() => null),
+    loadTenantSheetTabIndex({ tenantId: id, spreadsheetId, sheetName: stateTab, range: "A:AZ" }).catch(() => null),
+    loadTenantSheetTabIndex({ tenantId: id, spreadsheetId, sheetName: countyTab, range: "A:AZ" }).catch(() => null),
+    loadTenantSheetTabIndex({ tenantId: id, spreadsheetId, sheetName: cityTab, range: "A:AZ" }).catch(() => null),
   ]);
 
   if (statesIdx) {
@@ -264,8 +266,16 @@ async function loadSheetDomains() {
   return out;
 }
 
-async function loadGscTopQueries(limit: number) {
-  const filePath = path.resolve(process.cwd(), "data/cache/gsc/queries.json");
+async function loadGscTopQueries(limit: number, tenantId?: string) {
+  const filePath = path.resolve(
+    process.cwd(),
+    "data",
+    "cache",
+    "tenants",
+    s(tenantId) || "_default",
+    "gsc",
+    "queries.json",
+  );
   const raw = await readJsonIfExists<GscCacheFile>(filePath);
   const rows = Array.isArray(raw?.rows) ? raw.rows : [];
 
@@ -290,20 +300,40 @@ async function loadGscTopQueries(limit: number) {
   };
 }
 
+async function loadTenantDefaultBaseUrl(tenantId?: string) {
+  const id = s(tenantId);
+  if (!id) return "";
+  const pool = getDbPool();
+  const q = await pool.query<{ root_domain: string | null }>(
+    `
+      select root_domain
+      from app.organization_settings
+      where organization_id = $1
+      limit 1
+    `,
+    [id],
+  );
+  const rootDomain = s(q.rows[0]?.root_domain);
+  if (!rootDomain) return "";
+  return /^https?:\/\//i.test(rootDomain) ? rootDomain : `https://${rootDomain}`;
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const keywordLimit = Math.max(5, Math.min(100, Number(searchParams.get("keywordLimit") || 30)));
+    const tenantId = s(searchParams.get("tenantId"));
 
-    const [business, landingMap, domains, gsc] = await Promise.all([
+    const [business, landingMap, domains, gsc, tenantBaseUrl] = await Promise.all([
       loadBusinessProfile(),
       loadLandingMap(),
-      loadSheetDomains(),
-      loadGscTopQueries(keywordLimit),
+      loadSheetDomains(tenantId),
+      loadGscTopQueries(keywordLimit, tenantId),
+      loadTenantDefaultBaseUrl(tenantId),
     ]);
 
     const defaultBaseUrl =
-      safeUrl(s(process.env.NEXT_PUBLIC_DEFAULT_BASE_URL) || s(process.env.BUSINESS_DEFAULT_BASE_URL) || "https://mydripnurse.com");
+      safeUrl(tenantBaseUrl || s(process.env.NEXT_PUBLIC_DEFAULT_BASE_URL) || s(process.env.BUSINESS_DEFAULT_BASE_URL) || "https://mydripnurse.com");
 
     return Response.json({
       ok: true,
@@ -315,6 +345,7 @@ export async function GET(req: Request) {
         defaultBaseUrl,
       },
       debug: {
+        tenantId: tenantId || null,
         keywordLimit,
         landingServices: landingMap.services.length,
         domains: domains.stats,

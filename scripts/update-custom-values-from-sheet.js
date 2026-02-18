@@ -15,7 +15,12 @@ import { loadSheetTabIndex, makeCompositeKey } from "../services/sheetsClient.js
 // =====================
 // PATHS / CONFIG
 // =====================
-const OUT_ROOT = path.join(process.cwd(), "scripts", "out");
+const TENANT_ID = String(process.env.TENANT_ID || "").trim();
+const OUT_ROOT =
+    String(process.env.OUT_ROOT_DIR || "").trim() ||
+    (TENANT_ID
+        ? path.join(process.cwd(), "scripts", "out", "tenants", TENANT_ID)
+        : path.join(process.cwd(), "scripts", "out"));
 
 const CUSTOM_VALUES_SERVICES_FILE = path.join(
     process.cwd(),

@@ -1,10 +1,26 @@
 import { NextResponse } from "next/server";
-import { loadSheetTabIndex } from "../../../../../../services/sheetsClient.js";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 
 export const runtime = "nodejs";
 
-function s(v: any) {
+function s(v: unknown) {
     return String(v ?? "").trim();
+}
+
+function toRangeBoundaryMs(raw: string, boundary: "start" | "end") {
+    const t = s(raw);
+    if (!t) return null;
+    const isDayOnly = /^\d{4}-\d{2}-\d{2}$/.test(t);
+    if (isDayOnly) {
+        const d = new Date(`${t}T00:00:00`);
+        if (Number.isNaN(d.getTime())) return null;
+        if (boundary === "end") d.setHours(23, 59, 59, 999);
+        else d.setHours(0, 0, 0, 0);
+        return d.getTime();
+    }
+    const d = new Date(t);
+    const ms = d.getTime();
+    return Number.isFinite(ms) ? ms : null;
 }
 
 // Google Sheets serial date -> JS Date (days since 1899-12-30)
@@ -14,7 +30,7 @@ function sheetSerialToDate(serial: number): Date {
     return new Date(ms);
 }
 
-function parseDateLoose(v: any): Date | null {
+function parseDateLoose(v: unknown): Date | null {
     if (v === null || v === undefined || v === "") return null;
 
     if (typeof v === "number" && Number.isFinite(v)) {
@@ -52,9 +68,9 @@ function parseDateLoose(v: any): Date | null {
     return null;
 }
 
-function rowsToObjects(headers: string[], rows: any[][]) {
+function rowsToObjects(headers: string[], rows: unknown[][]) {
     return rows.map((arr) => {
-        const obj: Record<string, any> = {};
+        const obj: Record<string, unknown> = {};
         for (let i = 0; i < headers.length; i++) {
             const key = headers[i] || `col_${i}`;
             obj[key] = arr?.[i] ?? "";
@@ -119,7 +135,7 @@ const STATE_CODE_TO_NAME: Record<string, string> = {
     PR: "Puerto Rico",
 };
 
-function normalizeState(raw: any) {
+function normalizeState(raw: unknown) {
     const t = s(raw);
     if (!t) return "";
 
@@ -141,35 +157,32 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const start = s(url.searchParams.get("start"));
         const end = s(url.searchParams.get("end"));
+        const tenantId = s(url.searchParams.get("tenantId"));
 
-        const startMs = start ? new Date(start).getTime() : null;
-        const endMs = end ? new Date(end).getTime() : null;
+        const startMs = start ? toRangeBoundaryMs(start, "start") : null;
+        const endMs = end ? toRangeBoundaryMs(end, "end") : null;
 
-        const spreadsheetId =
-            process.env.GOOGLE_SHEETS_SPREADSHEET_ID ||
-            process.env.GOOGLE_SHEET_ID ||
-            process.env.SPREADSHEET_ID ||
-            "";
-
-        if (!spreadsheetId) {
+        if (!tenantId) {
             return NextResponse.json(
-                { ok: false, error: "Missing spreadsheetId env (GOOGLE_SHEETS_SPREADSHEET_ID / GOOGLE_SHEET_ID)" },
-                { status: 500 },
+                { ok: false, error: "Missing tenantId" },
+                { status: 400 },
             );
         }
 
+        const cfg = await getTenantSheetConfig(tenantId);
+
         // ✅ Tab correcto: "Call Report"
-        const idx = await loadSheetTabIndex({
-            spreadsheetId,
-            sheetName: "Call Report",
+        const idx = await loadTenantSheetTabIndex({
+            tenantId,
+            spreadsheetId: cfg.spreadsheetId,
+            sheetName: cfg.callReportTab,
             range: "A:ZZ",
-            logScope: "calls-dashboard",
         });
 
-        const headers = (idx.headers || []).map((h: any) => String(h || "").trim());
-        const rows = idx.rows || [];
+        const headers = (idx.headers || []).map((h: unknown) => String(h || "").trim());
+        const rows = (idx.rows || []) as unknown[][];
 
-        let objects = rowsToObjects(headers, rows).map((r: any) => {
+        let objects = rowsToObjects(headers, rows).map((r: Record<string, unknown>) => {
             const d = parseDateLoose(r["Phone Call Start Time"]);
             return {
                 ...r,
@@ -180,9 +193,11 @@ export async function GET(req: Request) {
         });
 
         if (startMs !== null && endMs !== null) {
-            objects = objects.filter((r: any) => {
+            objects = objects.filter((r: Record<string, unknown>) => {
                 if (!r.__startMs) return false;
-                return r.__startMs >= startMs && r.__startMs <= endMs;
+                const rowMs = Number(r.__startMs);
+                if (!Number.isFinite(rowMs)) return false;
+                return rowMs >= startMs && rowMs <= endMs;
             });
         }
 
@@ -199,9 +214,9 @@ export async function GET(req: Request) {
             byState,
             rows: objects,
         });
-    } catch (e: any) {
+    } catch (e: unknown) {
         return NextResponse.json(
-            { ok: false, error: e?.message || "Failed to load Calls Dashboard" },
+            { ok: false, error: e instanceof Error ? e.message : "Failed to load Calls Dashboard" },
             { status: 500 },
         );
     }

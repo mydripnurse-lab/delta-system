@@ -2,6 +2,11 @@
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import {
+    refreshGoogleAccessToken,
+    resolveTenantOAuthConnection,
+    saveTenantOAuthTokens,
+} from "@/lib/tenantOAuth";
 
 export const runtime = "nodejs";
 
@@ -87,54 +92,52 @@ function parseRange(preset: string, start?: string, end?: string) {
 /**
  * Lee tu token JSON (OAuth tokens).
  */
-async function loadTokens() {
-    const envPath = s(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-    if (!envPath) throw new Error("Missing GOOGLE_APPLICATION_CREDENTIALS env var");
+async function loadTokens(tenantId: string, integrationKey: string) {
+    if (!tenantId) throw new Error("Missing tenantId for GSC sync.");
+    const conn = await resolveTenantOAuthConnection({
+        tenantId,
+        provider: "google_search_console",
+        integrationKey,
+    });
+    const cfg = (conn.config || {}) as Record<string, unknown>;
+    const siteUrl =
+        s(conn.externalPropertyId) ||
+        s(cfg.siteUrl) ||
+        s(cfg.gscSiteUrl);
+    if (!siteUrl) {
+        throw new Error(
+            "Missing GSC property for tenant integration. Set externalPropertyId or config.siteUrl.",
+        );
+    }
 
-    const abs = path.isAbsolute(envPath) ? envPath : path.join(process.cwd(), envPath);
-    const raw = await fs.readFile(abs, "utf8");
-    const json = JSON.parse(raw);
-
-    const access_token = json?.tokens?.access_token;
-    const refresh_token = json?.tokens?.refresh_token;
-    const expiry_date = num(json?.tokens?.expiry_date);
-
-    const siteUrl = s(json?.siteUrl);
-    if (!siteUrl) throw new Error("Token JSON missing siteUrl");
-    if (!refresh_token) throw new Error("Token JSON missing refresh_token");
-
-    return { siteUrl, access_token, refresh_token, expiry_date };
+    return {
+        siteUrl,
+        access_token: conn.accessToken,
+        refresh_token: conn.refreshToken,
+        expiry_date: conn.tokenExpiresAt ? new Date(conn.tokenExpiresAt).getTime() : 0,
+        oauthClientId: conn.client.clientId,
+        oauthClientSecret: conn.client.clientSecret,
+    };
 }
 
 /**
  * Refresca access token usando refresh_token (OAuth).
  */
-async function refreshAccessToken(refreshToken: string) {
-    const clientId = s(process.env.GSC_CLIENT_ID);
-    const clientSecret = s(process.env.GSC_CLIENT_SECRET);
-
-    if (!clientId || !clientSecret) {
-        throw new Error("Missing GSC_CLIENT_ID / GSC_CLIENT_SECRET in env. Required to refresh token.");
+async function refreshAccessToken(refreshToken: string, oauthClientId?: string, oauthClientSecret?: string) {
+    if (!oauthClientId || !oauthClientSecret) {
+        throw new Error("Missing OAuth client config in tenant integration.");
     }
-
-    const body = new URLSearchParams();
-    body.set("client_id", clientId);
-    body.set("client_secret", clientSecret);
-    body.set("refresh_token", refreshToken);
-    body.set("grant_type", "refresh_token");
-
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body,
+    const refreshed = await refreshGoogleAccessToken({
+        clientId: oauthClientId,
+        clientSecret: oauthClientSecret,
+        refreshToken,
     });
 
-    const json = await res.json();
-    if (!res.ok) throw new Error(json?.error_description || json?.error || `OAuth HTTP ${res.status}`);
-
     return {
-        access_token: s(json.access_token),
-        expires_in: num(json.expires_in),
+        access_token: refreshed.accessToken,
+        refresh_token: refreshed.refreshToken,
+        expires_in: refreshed.expiresIn,
+        scope: refreshed.scope,
     };
 }
 
@@ -217,13 +220,25 @@ export async function GET(req: Request) {
         const start = s(u.searchParams.get("start"));
         const end = s(u.searchParams.get("end"));
         const force = s(u.searchParams.get("force")) === "1";
+        const tenantId = s(u.searchParams.get("tenantId"));
+        const integrationKey = s(u.searchParams.get("integrationKey")) || "default";
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
 
         // ✅ compare=1 => trend trae también la ventana previa (para %)
         const compare = s(u.searchParams.get("compare")) === "1";
 
         const { startDate, endDate, range } = parseRange(preset, start, end);
 
-        const cacheDir = path.join(process.cwd(), "data", "cache", "gsc");
+        const cacheDir = path.join(
+            process.cwd(),
+            "data",
+            "cache",
+            "tenants",
+            tenantId || "_default",
+            "gsc",
+        );
         const metaPath = path.join(cacheDir, "meta.json");
 
         await ensureDir(cacheDir);
@@ -250,10 +265,30 @@ export async function GET(req: Request) {
             });
         }
 
-        const tok = await loadTokens();
+        const tok = await loadTokens(tenantId, integrationKey);
 
-        const { access_token } = await refreshAccessToken(tok.refresh_token);
+        const refreshed = await refreshAccessToken(
+            tok.refresh_token,
+            tok.oauthClientId,
+            tok.oauthClientSecret,
+        );
+        const access_token = s(refreshed.access_token);
         if (!access_token) throw new Error("Could not refresh access token");
+        if (tenantId) {
+            await saveTenantOAuthTokens({
+                tenantId,
+                provider: "google_search_console",
+                integrationKey,
+                accessToken: access_token,
+                refreshToken: s(refreshed.refresh_token),
+                scopes: s(refreshed.scope).split(" ").map((x) => s(x)).filter(Boolean),
+                tokenExpiresAt:
+                    Number.isFinite(Number(refreshed.expires_in)) && Number(refreshed.expires_in) > 0
+                        ? new Date(Date.now() + Number(refreshed.expires_in) * 1000).toISOString()
+                        : null,
+                markConnected: true,
+            });
+        }
 
         // 1) pages (page)
         const pagesRows = await gscQueryAll({

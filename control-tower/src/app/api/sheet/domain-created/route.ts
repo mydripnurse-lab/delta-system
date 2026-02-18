@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
-import fs from "fs";
-import path from "path";
+import { getTenantGoogleAuth } from "@/lib/tenantGoogleAuth";
+import { getTenantSheetConfig } from "@/lib/tenantSheets";
 
 export const runtime = "nodejs";
-
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID!;
-const COUNTY_TAB = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
-const CITY_TAB = process.env.GOOGLE_SHEET_CITY_TAB || "Cities";
 
 function s(v: any) {
     return String(v ?? "").trim();
@@ -24,97 +20,10 @@ function colToLetter(colIndex0: number) {
     return out;
 }
 
-/**
- * Resolve a relative keyfile path robustly, regardless of where Next.js is running from.
- * - Accepts absolute paths directly.
- * - For relative paths, tries multiple candidate bases.
- */
-function resolveKeyfilePathSmart(relOrAbs: string) {
-    const raw = s(relOrAbs);
-    if (!raw) return "";
-
-    // If absolute, return as-is.
-    if (path.isAbsolute(raw)) return raw;
-
-    const cwd = process.cwd();
-
-    // Candidate bases we will try:
-    const bases: string[] = [
-        cwd,
-        path.join(cwd, ".."),
-        path.join(cwd, "..", ".."),
-    ];
-
-    // If you're inside ".../control-tower", also try repo-root heuristics
-    // e.g. /mydripnurse-sitemaps/control-tower -> /mydripnurse-sitemaps
-    const parts = cwd.split(path.sep);
-    const idx = parts.lastIndexOf("control-tower");
-    if (idx >= 0) {
-        const repoRoot = parts.slice(0, idx).join(path.sep);
-        if (repoRoot) {
-            bases.unshift(repoRoot);
-            bases.unshift(path.join(repoRoot, "control-tower")); // just in case
-        }
-    }
-
-    for (const base of bases) {
-        const candidate = path.normalize(path.join(base, raw));
-        if (fs.existsSync(candidate)) return candidate;
-    }
-
-    // Fallback: default join with cwd (keeps error message predictable)
-    return path.normalize(path.join(cwd, raw));
-}
-
-async function getSheetsClient() {
-    // 1) GOOGLE_SERVICE_ACCOUNT_JSON (stringified json)
-    const jsonRaw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-    if (jsonRaw) {
-        const creds = JSON.parse(jsonRaw);
-        const auth = new google.auth.GoogleAuth({
-            credentials: creds,
-            scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-        });
-        return google.sheets({ version: "v4", auth });
-    }
-
-    // 2) EMAIL + PRIVATE_KEY (env)
-    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-    const privateKeyRaw = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-    if (clientEmail && privateKeyRaw) {
-        const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
-        const auth = new google.auth.JWT({
-            email: clientEmail,
-            key: privateKey,
-            scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-        });
-        return google.sheets({ version: "v4", auth });
-    }
-
-    // 3) KEYFILE path (your .env.local uses this)
-    const keyfileEnv = process.env.GOOGLE_SERVICE_ACCOUNT_KEYFILE;
-    if (keyfileEnv) {
-        const keyFile = resolveKeyfilePathSmart(keyfileEnv);
-
-        // Make the error explicit if missing
-        if (!fs.existsSync(keyFile)) {
-            throw new Error(
-                `GOOGLE_SERVICE_ACCOUNT_KEYFILE not found. Tried: "${keyFile}". ` +
-                `Tip: Use an absolute path, or adjust the relative path based on where you run "npm run dev".`,
-            );
-        }
-
-        const auth = new google.auth.GoogleAuth({
-            keyFile,
-            scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-        });
-        return google.sheets({ version: "v4", auth });
-    }
-
-    // 4) Fallback ADC (only if you did gcloud auth application-default login)
-    const auth = new google.auth.GoogleAuth({
-        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
+async function getSheetsClient(tenantId: string) {
+    const auth = await getTenantGoogleAuth(tenantId, [
+        "https://www.googleapis.com/auth/spreadsheets",
+    ]);
     return google.sheets({ version: "v4", auth });
 }
 
@@ -170,35 +79,39 @@ async function findAndUpdateDomainCreated(opts: {
 
 export async function POST(req: Request) {
     try {
-        if (!SPREADSHEET_ID) {
-            return NextResponse.json({ error: "Missing GOOGLE_SHEET_ID" }, { status: 500 });
-        }
-
         const body = await req.json().catch(() => ({} as any));
         const locId = s(body?.locId);
         const kind = s(body?.kind); // "counties" | "cities" | ""
+        const tenantId = s(body?.tenantId);
         const valueBool = body?.value;
 
         if (!locId) {
             return NextResponse.json({ error: "Missing locId" }, { status: 400 });
         }
+        if (!tenantId) {
+            return NextResponse.json(
+                { error: "Missing tenantId (Google auth is tenant-scoped)." },
+                { status: 400 },
+            );
+        }
 
         const value =
             typeof valueBool === "boolean" ? (valueBool ? "TRUE" : "FALSE") : "TRUE";
 
-        const sheets = await getSheetsClient();
+        const sheets = await getSheetsClient(tenantId);
+        const cfg = await getTenantSheetConfig(tenantId);
 
         const targets =
             kind === "counties"
-                ? [COUNTY_TAB]
+                ? [cfg.countyTab]
                 : kind === "cities"
-                    ? [CITY_TAB]
-                    : [COUNTY_TAB, CITY_TAB];
+                    ? [cfg.cityTab]
+                    : [cfg.countyTab, cfg.cityTab];
 
         for (const sheetName of targets) {
             const updated = await findAndUpdateDomainCreated({
                 sheets,
-                spreadsheetId: SPREADSHEET_ID,
+                spreadsheetId: cfg.spreadsheetId,
                 sheetName,
                 locId,
                 value,

@@ -114,8 +114,12 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const range = s(url.searchParams.get("range"));
         const compareEnabled = url.searchParams.get("compare") === "1";
+        const tenantId = s(url.searchParams.get("tenantId"));
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
 
-        const cacheDir = path.join(process.cwd(), "data", "cache", "ga");
+        const cacheDir = path.join(process.cwd(), "data", "cache", "tenants", tenantId, "ga");
 
         const meta = (await readJson(path.join(cacheDir, "meta.json"))) || {};
         const trendRaw = (await readJson(path.join(cacheDir, "trend.json"))) || {};

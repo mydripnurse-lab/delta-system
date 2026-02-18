@@ -4114,3 +4114,1472 @@ button, input, select { font-family: inherit; }
   resize: vertical;
   min-height: 84px;
 }
+
+/* Tenant Hub (Netflix + Apple inspired) */
+.tenantHubCard{
+  background:
+    radial-gradient(1200px 320px at 20% -20%, rgba(96,165,250,.08), transparent 56%),
+    radial-gradient(700px 240px at 90% 0%, rgba(16,185,129,.08), transparent 64%),
+    var(--card);
+}
+
+.tenantHubActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.tenantAppMenu{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+
+.tenantHubTop{
+  display:grid;
+  grid-template-columns: 1fr 360px;
+  gap:10px;
+  margin-bottom: 12px;
+}
+
+.tenantGrid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:10px;
+}
+
+@media (max-width: 1400px){
+  .tenantGrid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1100px){
+  .tenantHubTop{ grid-template-columns: 1fr; }
+  .tenantGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px){
+  .tenantGrid{ grid-template-columns: 1fr; }
+}
+
+.tenantPoster{
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius: 16px;
+  background:
+    linear-gradient(160deg, rgba(9,16,34,.9), rgba(17,24,39,.98));
+  color: var(--text);
+  text-align:left;
+  padding: 12px;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.tenantPoster:hover{
+  transform: translateY(-2px);
+  border-color: rgba(98,156,248,.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+}
+
+.tenantPoster.active{
+  border-color: rgba(62,217,157,.62);
+  box-shadow: 0 10px 26px rgba(20,184,166,.2);
+}
+
+.tenantPosterGlow{
+  position:absolute;
+  inset:auto -32% -50% -30%;
+  height:180px;
+  background: radial-gradient(closest-side, rgba(96,165,250,.2), transparent 72%);
+  pointer-events:none;
+}
+
+.tenantPosterHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom: 10px;
+}
+
+.tenantPosterIndex{
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: rgba(203,213,225,.76);
+}
+
+.tenantPosterTitle{
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.tenantPosterMeta{
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.tenantListWrap{
+  max-height: 360px;
+}
+
+/* ===== Agency Home (Projects only) ===== */
+.agencyRoot {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px;
+}
+
+.agencySidebar {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+    var(--card);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: calc(100vh - 36px);
+  position: sticky;
+  top: 18px;
+}
+
+.agencyBrandMini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+
+.agencyBrandLogo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(255,255,255,0.9) 1px, transparent 8px),
+    linear-gradient(145deg, #4ab4ff, #25d39a);
+}
+
+.agencyBrandText {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+}
+
+.agencyNav {
+  display: grid;
+  gap: 8px;
+}
+
+.agencyNavItem {
+  width: 100%;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.agencyNavItem:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.agencyNavItemActive {
+  background: rgba(96,165,250,0.16);
+  border-color: rgba(96,165,250,0.36);
+}
+
+.agencyMain {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.agencyTopbar {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(1200px 320px at 15% -20%, rgba(96,165,250,.09), transparent 62%),
+    radial-gradient(760px 220px at 85% 0%, rgba(16,185,129,.09), transparent 66%),
+    var(--card);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agencyTopLeft h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.agencyTopLeft p {
+  margin: 4px 0 0 0;
+  color: var(--muted);
+}
+
+.agencyTopActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agencyTopActionsMinimal {
+  padding: 6px;
+  border: 1px solid rgba(148,163,184,0.22);
+  border-radius: 999px;
+  background: rgba(2,6,23,0.26);
+}
+
+.btnGhost {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.btnGhost:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.agencyMenuPanel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.22);
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agencyMenuLink {
+  color: rgba(191,219,254,0.95);
+  text-decoration: none;
+  border: 1px solid rgba(148,163,184,0.3);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.agencyMenuLink:hover {
+  border-color: rgba(96,165,250,0.45);
+}
+
+.agencySubnav {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 8px;
+  background: rgba(255,255,255,0.02);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agencySubnavItem {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.02);
+  color: rgba(226,232,240,0.9);
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.agencySubnavItem:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.agencySubnavItemActive {
+  border-color: rgba(96,165,250,0.42);
+  background: rgba(96,165,250,0.16);
+  color: rgba(191,219,254,0.98);
+}
+
+.agencyProjectsCard {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background:
+    radial-gradient(1200px 360px at 30% -30%, rgba(96,165,250,.08), transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
+    var(--card);
+  padding: 14px;
+}
+
+.agencyProjectsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agencyProjectsHeader h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.agencyProjectsHeader p {
+  margin: 4px 0 0 0;
+  color: var(--muted);
+}
+
+.agencyPill {
+  border: 1px solid rgba(148,163,184,0.35);
+  color: rgba(226,232,240,0.95);
+  background: rgba(255,255,255,0.03);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.agencyProjectStats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agencyProjectsHeaderRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.agencySearchRow {
+  margin-top: 12px;
+}
+
+.agencyCreateForm {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agencyCreateActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+}
+
+.agencyCreateActionsSpaced {
+  margin-top: 20px;
+  padding-top: 2px;
+}
+
+.errorText {
+  color: #ff6b6b;
+  margin-top: 6px;
+}
+
+.okText {
+  color: #4ade80;
+  margin-top: 8px;
+}
+
+.mutedText {
+  color: var(--muted);
+  margin-top: 10px;
+}
+
+.agencyTenantGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.agencyTenantCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(96,165,250,0.22);
+  padding: 18px;
+  background:
+    radial-gradient(980px 260px at 84% 16%, rgba(96,165,250,0.08), transparent 60%),
+    linear-gradient(168deg, rgba(4,10,24,0.98), rgba(12,22,40,0.97));
+  min-height: 0;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+  cursor: pointer;
+}
+
+.agencyTenantCardLink {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+  outline: none;
+}
+
+.agencyTenantCardLink:hover .agencyTenantCard,
+.agencyTenantCardLink:focus-visible .agencyTenantCard {
+  transform: translateY(-3px);
+  border-color: rgba(96,165,250,0.52);
+  box-shadow:
+    0 14px 34px rgba(2,6,23,0.42),
+    0 0 0 1px rgba(96,165,250,0.25) inset;
+}
+
+.agencyTenantCardLink:hover .agencyTenantPosterGlow,
+.agencyTenantCardLink:focus-visible .agencyTenantPosterGlow {
+  opacity: 1;
+  transform: translateY(-6px);
+}
+
+.agencyTenantPosterGlow {
+  position: absolute;
+  inset: auto -30% -50% -30%;
+  height: 140px;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(96,165,250,0.16), transparent 74%);
+  opacity: 0.62;
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+.agencyTenantTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.agencyTenantTopMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 2px;
+  flex-wrap: wrap;
+}
+
+.agencyTenantBadge {
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-transform: lowercase;
+  line-height: 1.1;
+  color: rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.04);
+}
+
+.agencyTenantBadge--success {
+  border-color: rgba(34,197,94,0.45);
+  background: rgba(34,197,94,0.14);
+  color: rgba(134,239,172,0.98);
+}
+
+.agencyTenantBadge--warning {
+  border-color: rgba(245,158,11,0.45);
+  background: rgba(245,158,11,0.14);
+  color: rgba(253,224,71,0.98);
+}
+
+.agencyTenantBadge--danger {
+  border-color: rgba(239,68,68,0.45);
+  background: rgba(239,68,68,0.14);
+  color: rgba(254,202,202,0.98);
+}
+
+.agencyTenantBadge--neutral {
+  border-color: rgba(148,163,184,0.35);
+  background: rgba(148,163,184,0.14);
+  color: rgba(226,232,240,0.95);
+}
+
+.agencyTenantManageBtn {
+  border: 1px solid rgba(148,163,184,0.35);
+  background: rgba(255,255,255,0.04);
+  color: rgba(226,232,240,0.95);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.agencyTenantManageBtn:hover {
+  border-color: rgba(96,165,250,0.45);
+  background: rgba(96,165,250,0.15);
+  color: rgba(219,234,254,0.98);
+}
+
+.agencyTenantIdx {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(226,232,240,0.75);
+}
+
+.agencyTenantCard h3 {
+  margin: 8px 0 8px 0;
+  font-size: clamp(24px, 2.4vw, 38px);
+  line-height: 1.03;
+  letter-spacing: -0.02em;
+}
+
+.agencyTenantCard p {
+  margin: 0 0 3px 0;
+  color: rgba(226,232,240,0.84);
+}
+
+.agencyTenantWide {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.05fr) minmax(0, 1.95fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.agencyTenantIdentity {
+  min-width: 0;
+}
+
+.agencyTenantBrandRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agencyTenantLogoWrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid rgba(148,163,184,0.35);
+  background: linear-gradient(160deg, rgba(96,165,250,0.2), rgba(34,197,94,0.14));
+  flex: 0 0 38px;
+}
+
+.agencyTenantLogoFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: rgba(248,250,252,0.95);
+  text-transform: uppercase;
+}
+
+.agencyTenantLogoImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.agencyTenantIdentity p {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.agencyTenantKpiGrid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agencyTenantKpiItem {
+  border: 1px solid rgba(148,163,184,0.20);
+  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02));
+  border-radius: 12px;
+  padding: 11px 12px;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.agencyTenantKpiItem span {
+  font-size: 11px;
+  color: rgba(203,213,225,0.84);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agencyTenantKpiItem strong {
+  font-size: clamp(20px, 2.2vw, 30px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: rgba(248,250,252,0.98);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agencyKpiDelta {
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.agencyKpiDeltaNeutral { color: rgba(148,163,184,0.95); }
+.agencyKpiDeltaUp { color: rgba(52,211,153,0.95); }
+.agencyKpiDeltaDown { color: rgba(251,113,133,0.95); }
+
+.agencyTenantCardOpenGlyph {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.28);
+  background: rgba(255,255,255,0.03);
+  color: rgba(191,219,254,0.94);
+  font-size: 14px;
+  font-weight: 800;
+  transform: translate(-3px, 3px);
+  opacity: 0;
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.agencyTenantCardLink:hover .agencyTenantCardOpenGlyph,
+.agencyTenantCardLink:focus-visible .agencyTenantCardOpenGlyph {
+  opacity: 1;
+  transform: translate(0, 0);
+  border-color: rgba(96,165,250,0.42);
+  background: rgba(96,165,250,0.14);
+}
+
+.agencyTenantTableWrap {
+  margin-top: 12px;
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+}
+
+.agencyTenantTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.agencyTenantTable th,
+.agencyTenantTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
+}
+
+.agencyTenantTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(20,30,50,0.95);
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.statusPill.success {
+  border-color: rgba(16,185,129,0.42);
+  background: rgba(16,185,129,0.14);
+  color: #6ee7b7;
+}
+
+@media (max-width: 1200px) {
+  .agencyRoot {
+    grid-template-columns: 1fr;
+  }
+
+  .agencySidebar {
+    position: static;
+    min-height: 0;
+  }
+
+  .agencyCreateForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .agencyTenantWide {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .agencyTenantKpiGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .agencyCreateForm {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .agencyTenantKpiGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agencyTenantCard h3 {
+    font-size: 34px;
+  }
+}
+
+/* ===== Agency top shell + wizard overrides ===== */
+.agencyShell {
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.agencyGlobalTopbar {
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: var(--surface-shadow);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.agencyGlobalBrand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agencyGlobalBrand h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.1px;
+}
+
+.agencyGlobalBrand p {
+  margin: 2px 0 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.agencyBrandLogoDelta {
+  background-image: url("https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.agencyGlobalNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agencyGlobalNavRight {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.agencyGlobalNavItem {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: rgba(241,245,249,0.95);
+  background: rgba(255,255,255,0.03);
+}
+
+.agencyGlobalNavItemActive {
+  border-color: rgba(148,163,184,0.32);
+  background: rgba(255,255,255,0.05);
+}
+
+.agencyLivePill,
+.agencyByPill {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: rgba(241,245,249,0.95);
+  background: rgba(255,255,255,0.03);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agencyLiveDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34,197,94,0.15);
+}
+
+.agencyCreateProjectBtn {
+  background: rgba(59,130,246,0.12);
+  border-color: rgba(96,165,250,0.56);
+  border-radius: 999px;
+  padding-inline: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agencyCreateProjectBtn:hover {
+  background: rgba(96,165,250,0.2);
+  border-color: rgba(147,197,253,0.8);
+}
+
+.agencyAccountWrap {
+  position: relative;
+}
+
+.agencyAccountTrigger {
+  border: 1px solid rgba(148,163,184,0.32);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.03);
+  color: rgba(241,245,249,0.96);
+  padding: 8px 12px 8px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.agencyAccountTrigger:hover {
+  border-color: rgba(96,165,250,0.48);
+  background: rgba(96,165,250,0.1);
+}
+
+.agencyProfileAvatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #dbeafe;
+  border: 1px solid rgba(96,165,250,0.45);
+  background: linear-gradient(180deg, rgba(37,99,235,0.42), rgba(29,78,216,0.25));
+}
+
+.agencyAccountIdentity {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+}
+
+.agencyAccountIdentity strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.agencyAccountIdentity small {
+  font-size: 11px;
+  color: rgba(191,219,254,0.85);
+}
+
+.agencyAccountCaret {
+  font-size: 12px;
+  color: rgba(191,219,254,0.8);
+  margin-left: 2px;
+}
+
+.agencyAccountMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 30;
+  min-width: 170px;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,0.28);
+  background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(17,24,39,0.96));
+  box-shadow: 0 18px 34px rgba(2,6,23,0.48);
+  padding: 6px;
+}
+
+.agencyAccountMenuItem {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: rgba(241,245,249,0.92);
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.agencyAccountMenuItem:hover {
+  background: rgba(96,165,250,0.14);
+}
+
+.agencyModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(2, 8, 20, 0.86);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.agencyModalCard {
+  width: min(920px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(148,163,184,0.28);
+  background:
+    radial-gradient(900px 280px at 10% -24%, rgba(96,165,250,0.13), transparent 64%),
+    linear-gradient(180deg, rgba(15,23,42,1), rgba(8,14,30,1));
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.58),
+    0 0 0 1px rgba(96,165,250,0.15) inset;
+  overflow: hidden;
+}
+
+.agencyModalCardEnhanced {
+  backdrop-filter: saturate(120%) blur(1px);
+}
+
+.agencyModalCardManage {
+  width: min(1080px, 100%);
+}
+
+.agencyModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.agencyModalHeader h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.agencyModalHeader p {
+  margin: 6px 0 0;
+  color: rgba(203,213,225,0.86);
+  font-size: 14px;
+}
+
+.agencyWizardTop {
+  padding: 14px 16px 0;
+}
+
+.agencyWizardProgressTrack {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.24);
+  background: rgba(255,255,255,0.03);
+  overflow: hidden;
+}
+
+.agencyWizardProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(96,165,250,0.85), rgba(34,197,94,0.75));
+  transition: width .2s ease;
+}
+
+.agencyWizardSteps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  flex-wrap: wrap;
+}
+
+.agencyWizardStep {
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.03);
+  color: rgba(226,232,240,0.9);
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.agencyWizardStepActive {
+  border-color: rgba(96,165,250,0.42);
+  background: rgba(96,165,250,0.16);
+  color: rgba(191,219,254,0.98);
+}
+
+.agencyCreateFormModal {
+  padding: 18px 18px 22px;
+  background: linear-gradient(180deg, rgba(2,6,23,0.18), rgba(2,6,23,0.08));
+}
+
+.agencyManageForm {
+  padding-top: 12px;
+}
+
+.agencySubTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.agencySubTab {
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.3);
+  background: rgba(15,23,42,0.55);
+  color: rgba(203,213,225,0.95);
+  padding: 8px 13px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.agencySubTab:hover {
+  border-color: rgba(96,165,250,0.45);
+  color: rgba(224,242,254,0.98);
+}
+
+.agencySubTabActive {
+  border-color: rgba(96,165,250,0.56);
+  background: rgba(59,130,246,0.2);
+  color: rgba(191,219,254,0.98);
+}
+
+.agencySubTabPanel {
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,0.22);
+  background:
+    radial-gradient(480px 130px at 0% 0%, rgba(59,130,246,0.12), transparent 72%),
+    linear-gradient(180deg, rgba(15,23,42,0.6), rgba(2,6,23,0.3));
+  padding: 12px;
+}
+
+.agencyWizardLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 14px;
+}
+
+.agencyWizardMain {
+  min-width: 0;
+}
+
+.agencyWizardPreview {
+  border-radius: 14px;
+  border: 1px solid rgba(148,163,184,0.22);
+  background:
+    radial-gradient(220px 120px at 15% 5%, rgba(59,130,246,0.16), transparent 70%),
+    linear-gradient(180deg, rgba(15,23,42,0.7), rgba(2,6,23,0.46));
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.32) inset;
+}
+
+.agencyWizardPreviewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.agencyWizardPreviewLabel {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148,163,184,0.92);
+  font-weight: 700;
+}
+
+.agencyWizardPreviewStep {
+  border: 1px solid rgba(96,165,250,0.32);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(191,219,254,0.92);
+  background: rgba(59,130,246,0.12);
+}
+
+.agencyWizardPreviewBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.agencyWizardPreviewLogoWrap {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(96,165,250,0.35);
+  background: linear-gradient(180deg, rgba(37,99,235,0.26), rgba(14,116,144,0.2));
+  display: grid;
+  place-items: center;
+}
+
+.agencyWizardPreviewLogo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.agencyWizardPreviewLogoFallback {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: rgba(224,242,254,0.95);
+}
+
+.agencyWizardPreviewTitles {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.agencyWizardPreviewTitles strong {
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(248,250,252,0.98);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agencyWizardPreviewTitles span {
+  font-size: 12px;
+  color: rgba(191,219,254,0.95);
+}
+
+.agencyWizardPreviewTitles small {
+  font-size: 12px;
+  color: rgba(148,163,184,0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agencyWizardPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.agencyWizardPreviewItem {
+  border-radius: 10px;
+  border: 1px solid rgba(148,163,184,0.18);
+  background: rgba(15,23,42,0.42);
+  padding: 8px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.agencyWizardPreviewItem span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(148,163,184,0.9);
+  font-weight: 700;
+}
+
+.agencyWizardPreviewItem strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(241,245,249,0.96);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agencyWizardStepHeader {
+  margin-bottom: 10px;
+}
+
+.agencyWizardStepMeta {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(96,165,250,0.35);
+  background: rgba(59,130,246,0.12);
+  color: rgba(191,219,254,0.96);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.agencyWizardHint {
+  margin: 0;
+  color: rgba(203,213,225,0.85);
+  font-size: 14px;
+}
+
+.agencyWizardSectionCard {
+  border: 1px solid rgba(148,163,184,0.22);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(15,23,42,0.54), rgba(2,6,23,0.3));
+  padding: 12px;
+}
+
+.agencyWizardSectionHead {
+  margin-bottom: 10px;
+}
+
+.agencyWizardSectionHead h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: rgba(248,250,252,0.96);
+}
+
+.agencyWizardSectionHead p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: rgba(148,163,184,0.92);
+}
+
+.agencyField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.agencyFieldLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(191, 219, 254, 0.9);
+}
+
+.agencyFieldRequired {
+  color: #93c5fd;
+  font-weight: 800;
+}
+
+.agencyFieldHint {
+  font-size: 11px;
+  color: rgba(148,163,184,0.86);
+}
+
+.agencyWizardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agencyWizardGridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.agencyWizardGridFour {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.agencyModalActionBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148,163,184,0.14);
+}
+
+.agencyModalActionMeta {
+  color: rgba(148,163,184,0.9);
+  font-size: 12px;
+}
+
+.agencyModalActionRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.agencyModalBtn {
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.3);
+  padding: 11px 18px;
+  min-width: 120px;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  transition: all .2s ease;
+  cursor: pointer;
+}
+
+.agencyModalBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.agencyModalBtnPrimary {
+  color: #eff6ff;
+  border-color: rgba(96,165,250,0.7);
+  background: linear-gradient(180deg, rgba(59,130,246,0.78), rgba(30,64,175,0.66));
+  box-shadow: 0 12px 28px rgba(37,99,235,0.26);
+}
+
+.agencyModalBtnPrimary:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.01);
+  border-color: rgba(125,211,252,0.8);
+  background: linear-gradient(180deg, rgba(96,165,250,0.84), rgba(37,99,235,0.72));
+}
+
+.agencyModalBtnSecondary {
+  color: rgba(226,232,240,0.95);
+  border-color: rgba(148,163,184,0.35);
+  background: rgba(15,23,42,0.62);
+}
+
+.agencyModalBtnSecondary:hover:not(:disabled) {
+  border-color: rgba(96,165,250,0.48);
+  background: rgba(30,41,59,0.78);
+}
+
+.agencyModalErrorInline {
+  margin-top: 12px;
+  border: 1px solid rgba(248,113,113,0.34);
+  background: rgba(127,29,29,0.26);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.agencyInlineActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agencyStaffCreateBox {
+  border-color: rgba(96,165,250,0.3);
+  background: rgba(30,64,175,0.12);
+}
+
+.agencyDangerBox {
+  border: 1px solid rgba(239,68,68,0.35);
+  background: rgba(239,68,68,0.08);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.agencyDangerBox h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.agencyDangerBox p {
+  margin: 0;
+  color: rgba(248,250,252,0.86);
+}
+
+.agencyDangerBox .input {
+  margin-top: 10px;
+}
+
+.agencyDangerBoxHardDelete {
+  border-color: rgba(239,68,68,0.5);
+  background: rgba(127,29,29,0.24);
+}
+
+@media (max-width: 980px) {
+  .agencyWizardLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .agencyWizardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agencyWizardGridFour {
+    grid-template-columns: 1fr;
+  }
+
+  .agencyWizardPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agencyModalActionBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .agencyModalActionRight {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 1200px) {
+  .agencyGlobalTopbar {
+    margin-bottom: 12px;
+  }
+
+  .agencyProjectsHeaderRight {
+    width: 100%;
+    align-items: flex-start;
+  }
+}

@@ -1,322 +1,87 @@
 {
     "counties": [
         {
-            "countyName": "Hillsborough",
-            "cities": [
-                {
-                    "cityName": "Manchester",
-                    "cityDomain": "https://manchester-city-nh.mydripnurse.com",
-                    "citySitemap": "https://manchester-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Nashua",
-                    "cityDomain": "https://nashua-city-nh.mydripnurse.com",
-                    "citySitemap": "https://nashua-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Merrimack",
-                    "cityDomain": "https://merrimack-city-nh.mydripnurse.com",
-                    "citySitemap": "https://merrimack-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Bedford",
-                    "cityDomain": "https://bedford-city-nh.mydripnurse.com",
-                    "citySitemap": "https://bedford-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Hudson",
-                    "cityDomain": "https://hudson-city-nh.mydripnurse.com",
-                    "citySitemap": "https://hudson-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Milford",
-                    "cityDomain": "https://milford-city-nh.mydripnurse.com",
-                    "citySitemap": "https://milford-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Amherst",
-                    "cityDomain": "https://amherst-city-nh.mydripnurse.com",
-                    "citySitemap": "https://amherst-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Goffstown",
-                    "cityDomain": "https://goffstown-city-nh.mydripnurse.com",
-                    "citySitemap": "https://goffstown-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Litchfield",
-                    "cityDomain": "https://litchfield-city-nh.mydripnurse.com",
-                    "citySitemap": "https://litchfield-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Wilton",
-                    "cityDomain": "https://wilton-city-nh.mydripnurse.com",
-                    "citySitemap": "https://wilton-city-nh.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Eastern",
-                "Zone": "US/Eastern",
-                "UTC_Offset": "-05:00"
-            },
-            "countyDomain": "https://hillsborough-county-nh.mydripnurse.com",
-            "countySitemap": "https://hillsborough-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://hillsborough-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://manchester-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://nashua-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://merrimack-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bedford-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hudson-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://milford-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://amherst-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://goffstown-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://litchfield-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wilton-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
-            "countyName": "Rockingham",
-            "cities": [
-                {
-                    "cityName": "Salem",
-                    "cityDomain": "https://salem-city-nh.mydripnurse.com",
-                    "citySitemap": "https://salem-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Derry",
-                    "cityDomain": "https://derry-city-nh.mydripnurse.com",
-                    "citySitemap": "https://derry-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Londonderry",
-                    "cityDomain": "https://londonderry-city-nh.mydripnurse.com",
-                    "citySitemap": "https://londonderry-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Portsmouth",
-                    "cityDomain": "https://portsmouth-city-nh.mydripnurse.com",
-                    "citySitemap": "https://portsmouth-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Exeter",
-                    "cityDomain": "https://exeter-city-nh.mydripnurse.com",
-                    "citySitemap": "https://exeter-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Hampton",
-                    "cityDomain": "https://hampton-city-nh.mydripnurse.com",
-                    "citySitemap": "https://hampton-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Windham",
-                    "cityDomain": "https://windham-city-nh.mydripnurse.com",
-                    "citySitemap": "https://windham-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Plaistow",
-                    "cityDomain": "https://plaistow-city-nh.mydripnurse.com",
-                    "citySitemap": "https://plaistow-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Raymond",
-                    "cityDomain": "https://raymond-city-nh.mydripnurse.com",
-                    "citySitemap": "https://raymond-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Newmarket",
-                    "cityDomain": "https://newmarket-city-nh.mydripnurse.com",
-                    "citySitemap": "https://newmarket-city-nh.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Eastern",
-                "Zone": "US/Eastern",
-                "UTC_Offset": "-05:00"
-            },
-            "countyDomain": "https://rockingham-county-nh.mydripnurse.com",
-            "countySitemap": "https://rockingham-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://rockingham-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://salem-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://derry-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://londonderry-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://portsmouth-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://exeter-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hampton-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://windham-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://plaistow-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://raymond-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://newmarket-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
-            "countyName": "Merrimack",
-            "cities": [
-                {
-                    "cityName": "Concord",
-                    "cityDomain": "https://concord-city-nh.mydripnurse.com",
-                    "citySitemap": "https://concord-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Franklin",
-                    "cityDomain": "https://franklin-city-nh.mydripnurse.com",
-                    "citySitemap": "https://franklin-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Hooksett",
-                    "cityDomain": "https://hooksett-city-nh.mydripnurse.com",
-                    "citySitemap": "https://hooksett-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Pembroke",
-                    "cityDomain": "https://pembroke-city-nh.mydripnurse.com",
-                    "citySitemap": "https://pembroke-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Allenstown",
-                    "cityDomain": "https://allenstown-city-nh.mydripnurse.com",
-                    "citySitemap": "https://allenstown-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Boscawen",
-                    "cityDomain": "https://boscawen-city-nh.mydripnurse.com",
-                    "citySitemap": "https://boscawen-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Canterbury",
-                    "cityDomain": "https://canterbury-city-nh.mydripnurse.com",
-                    "citySitemap": "https://canterbury-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Chichester",
-                    "cityDomain": "https://chichester-city-nh.mydripnurse.com",
-                    "citySitemap": "https://chichester-city-nh.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Eastern",
-                "Zone": "US/Eastern",
-                "UTC_Offset": "-05:00"
-            },
-            "countyDomain": "https://merrimack-county-nh.mydripnurse.com",
-            "countySitemap": "https://merrimack-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://merrimack-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://concord-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://franklin-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hooksett-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://pembroke-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://allenstown-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://boscawen-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://canterbury-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://chichester-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
-            "countyName": "Strafford",
-            "cities": [
-                {
-                    "cityName": "Dover",
-                    "cityDomain": "https://dover-city-nh.mydripnurse.com",
-                    "citySitemap": "https://dover-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Rochester",
-                    "cityDomain": "https://rochester-city-nh.mydripnurse.com",
-                    "citySitemap": "https://rochester-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Somersworth",
-                    "cityDomain": "https://somersworth-city-nh.mydripnurse.com",
-                    "citySitemap": "https://somersworth-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Durham",
-                    "cityDomain": "https://durham-city-nh.mydripnurse.com",
-                    "citySitemap": "https://durham-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Farmington",
-                    "cityDomain": "https://farmington-city-nh.mydripnurse.com",
-                    "citySitemap": "https://farmington-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Milton",
-                    "cityDomain": "https://milton-city-nh.mydripnurse.com",
-                    "citySitemap": "https://milton-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Barrington",
-                    "cityDomain": "https://barrington-city-nh.mydripnurse.com",
-                    "citySitemap": "https://barrington-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Madbury",
-                    "cityDomain": "https://madbury-city-nh.mydripnurse.com",
-                    "citySitemap": "https://madbury-city-nh.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Eastern",
-                "Zone": "US/Eastern",
-                "UTC_Offset": "-05:00"
-            },
-            "countyDomain": "https://strafford-county-nh.mydripnurse.com",
-            "countySitemap": "https://strafford-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://strafford-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://dover-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://rochester-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://somersworth-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://durham-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://farmington-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://milton-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://barrington-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://madbury-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
-            "countyName": "Cheshire",
-            "cities": [
-                {
-                    "cityName": "Keene",
-                    "cityDomain": "https://keene-city-nh.mydripnurse.com",
-                    "citySitemap": "https://keene-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Swanzey",
-                    "cityDomain": "https://swanzey-city-nh.mydripnurse.com",
-                    "citySitemap": "https://swanzey-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Winchester",
-                    "cityDomain": "https://winchester-city-nh.mydripnurse.com",
-                    "citySitemap": "https://winchester-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Jaffrey",
-                    "cityDomain": "https://jaffrey-city-nh.mydripnurse.com",
-                    "citySitemap": "https://jaffrey-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Troy",
-                    "cityDomain": "https://troy-city-nh.mydripnurse.com",
-                    "citySitemap": "https://troy-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Marlborough",
-                    "cityDomain": "https://marlborough-city-nh.mydripnurse.com",
-                    "citySitemap": "https://marlborough-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Hinsdale",
-                    "cityDomain": "https://hinsdale-city-nh.mydripnurse.com",
-                    "citySitemap": "https://hinsdale-city-nh.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Eastern",
-                "Zone": "US/Eastern",
-                "UTC_Offset": "-05:00"
-            },
-            "countyDomain": "https://cheshire-county-nh.mydripnurse.com",
-            "countySitemap": "https://cheshire-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://cheshire-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://keene-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://swanzey-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://winchester-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://jaffrey-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://troy-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://marlborough-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hinsdale-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
             "countyName": "Belknap",
             "cities": [
                 {
-                    "cityName": "Laconia",
-                    "cityDomain": "https://laconia-city-nh.mydripnurse.com",
-                    "citySitemap": "https://laconia-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Alton",
+                    "cityDomain": "https://alton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://alton-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Gilford",
-                    "cityDomain": "https://gilford-city-nh.mydripnurse.com",
-                    "citySitemap": "https://gilford-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Alton Bay",
+                    "cityDomain": "https://alton-bay-city-nh.mynewbrand.com",
+                    "citySitemap": "https://alton-bay-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Meredith",
-                    "cityDomain": "https://meredith-city-nh.mydripnurse.com",
-                    "citySitemap": "https://meredith-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Barnstead",
+                    "cityDomain": "https://barnstead-city-nh.mynewbrand.com",
+                    "citySitemap": "https://barnstead-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Belmont",
-                    "cityDomain": "https://belmont-city-nh.mydripnurse.com",
-                    "citySitemap": "https://belmont-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://belmont-city-nh.mynewbrand.com",
+                    "citySitemap": "https://belmont-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Alton",
-                    "cityDomain": "https://alton-city-nh.mydripnurse.com",
-                    "citySitemap": "https://alton-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Center Barnstead",
+                    "cityDomain": "https://center-barnstead-city-nh.mynewbrand.com",
+                    "citySitemap": "https://center-barnstead-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Center Harbor",
-                    "cityDomain": "https://center-harbor-city-nh.mydripnurse.com",
-                    "citySitemap": "https://center-harbor-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://center-harbor-city-nh.mynewbrand.com",
+                    "citySitemap": "https://center-harbor-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gilford",
+                    "cityDomain": "https://gilford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://gilford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gilmanton",
+                    "cityDomain": "https://gilmanton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://gilmanton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gilmanton Iron Works",
+                    "cityDomain": "https://gilmanton-iron-works-city-nh.mynewbrand.com",
+                    "citySitemap": "https://gilmanton-iron-works-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Laconia",
+                    "cityDomain": "https://laconia-city-nh.mynewbrand.com",
+                    "citySitemap": "https://laconia-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lochmere",
+                    "cityDomain": "https://lochmere-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lochmere-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Meredith",
+                    "cityDomain": "https://meredith-city-nh.mynewbrand.com",
+                    "citySitemap": "https://meredith-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New Hampton",
+                    "cityDomain": "https://new-hampton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://new-hampton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sanbornton",
+                    "cityDomain": "https://sanbornton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://sanbornton-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Tilton",
-                    "cityDomain": "https://tilton-city-nh.mydripnurse.com",
-                    "citySitemap": "https://tilton-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://tilton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://tilton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Winnisquam",
+                    "cityDomain": "https://winnisquam-city-nh.mynewbrand.com",
+                    "citySitemap": "https://winnisquam-city-nh.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -324,100 +89,172 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://belknap-county-nh.mydripnurse.com",
-            "countySitemap": "https://belknap-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://belknap-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://laconia-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gilford-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://meredith-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://belmont-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://alton-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://center-harbor-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tilton-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
-            "countyName": "Grafton",
-            "cities": [
-                {
-                    "cityName": "Lebanon",
-                    "cityDomain": "https://lebanon-city-nh.mydripnurse.com",
-                    "citySitemap": "https://lebanon-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Hanover",
-                    "cityDomain": "https://hanover-city-nh.mydripnurse.com",
-                    "citySitemap": "https://hanover-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Littleton",
-                    "cityDomain": "https://littleton-city-nh.mydripnurse.com",
-                    "citySitemap": "https://littleton-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Plymouth",
-                    "cityDomain": "https://plymouth-city-nh.mydripnurse.com",
-                    "citySitemap": "https://plymouth-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Haverhill",
-                    "cityDomain": "https://haverhill-city-nh.mydripnurse.com",
-                    "citySitemap": "https://haverhill-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Lincoln",
-                    "cityDomain": "https://lincoln-city-nh.mydripnurse.com",
-                    "citySitemap": "https://lincoln-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Woodstock",
-                    "cityDomain": "https://woodstock-city-nh.mydripnurse.com",
-                    "citySitemap": "https://woodstock-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Franconia",
-                    "cityDomain": "https://franconia-city-nh.mydripnurse.com",
-                    "citySitemap": "https://franconia-city-nh.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Eastern",
-                "Zone": "US/Eastern",
-                "UTC_Offset": "-05:00"
-            },
-            "countyDomain": "https://grafton-county-nh.mydripnurse.com",
-            "countySitemap": "https://grafton-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://grafton-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lebanon-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://hanover-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://littleton-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://plymouth-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://haverhill-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lincoln-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://woodstock-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://franconia-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://belknap-county-nh.mynewbrand.com",
+            "countySitemap": "https://belknap-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://belknap-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://alton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://alton-bay-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://barnstead-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://belmont-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://center-barnstead-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://center-harbor-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gilford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gilmanton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gilmanton-iron-works-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://laconia-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lochmere-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://meredith-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://new-hampton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sanbornton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tilton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://winnisquam-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
             "countyName": "Carroll",
             "cities": [
                 {
+                    "cityName": "Bartlett",
+                    "cityDomain": "https://bartlett-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bartlett-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Center Conway",
+                    "cityDomain": "https://center-conway-city-nh.mynewbrand.com",
+                    "citySitemap": "https://center-conway-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Center Ossipee",
+                    "cityDomain": "https://center-ossipee-city-nh.mynewbrand.com",
+                    "citySitemap": "https://center-ossipee-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Center Sandwich",
+                    "cityDomain": "https://center-sandwich-city-nh.mynewbrand.com",
+                    "citySitemap": "https://center-sandwich-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Center Tuftonboro",
+                    "cityDomain": "https://center-tuftonboro-city-nh.mynewbrand.com",
+                    "citySitemap": "https://center-tuftonboro-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chatham",
+                    "cityDomain": "https://chatham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://chatham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chocorua",
+                    "cityDomain": "https://chocorua-city-nh.mynewbrand.com",
+                    "citySitemap": "https://chocorua-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
                     "cityName": "Conway",
-                    "cityDomain": "https://conway-city-nh.mydripnurse.com",
-                    "citySitemap": "https://conway-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://conway-city-nh.mynewbrand.com",
+                    "citySitemap": "https://conway-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Wolfeboro",
-                    "cityDomain": "https://wolfeboro-city-nh.mydripnurse.com",
-                    "citySitemap": "https://wolfeboro-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "East Wakefield",
+                    "cityDomain": "https://east-wakefield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://east-wakefield-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Ossipee",
-                    "cityDomain": "https://ossipee-city-nh.mydripnurse.com",
-                    "citySitemap": "https://ossipee-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Eaton Center",
+                    "cityDomain": "https://eaton-center-city-nh.mynewbrand.com",
+                    "citySitemap": "https://eaton-center-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Tamworth",
-                    "cityDomain": "https://tamworth-city-nh.mydripnurse.com",
-                    "citySitemap": "https://tamworth-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Wakefield",
-                    "cityDomain": "https://wakefield-city-nh.mydripnurse.com",
-                    "citySitemap": "https://wakefield-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Effingham",
+                    "cityDomain": "https://effingham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://effingham-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Freedom",
-                    "cityDomain": "https://freedom-city-nh.mydripnurse.com",
-                    "citySitemap": "https://freedom-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://freedom-city-nh.mynewbrand.com",
+                    "citySitemap": "https://freedom-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glen",
+                    "cityDomain": "https://glen-city-nh.mynewbrand.com",
+                    "citySitemap": "https://glen-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Intervale",
+                    "cityDomain": "https://intervale-city-nh.mynewbrand.com",
+                    "citySitemap": "https://intervale-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jackson",
+                    "cityDomain": "https://jackson-city-nh.mynewbrand.com",
+                    "citySitemap": "https://jackson-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kearsarge",
+                    "cityDomain": "https://kearsarge-city-nh.mynewbrand.com",
+                    "citySitemap": "https://kearsarge-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Madison",
+                    "cityDomain": "https://madison-city-nh.mynewbrand.com",
+                    "citySitemap": "https://madison-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Melvin Village",
+                    "cityDomain": "https://melvin-village-city-nh.mynewbrand.com",
+                    "citySitemap": "https://melvin-village-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mirror Lake",
+                    "cityDomain": "https://mirror-lake-city-nh.mynewbrand.com",
+                    "citySitemap": "https://mirror-lake-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Moultonborough",
-                    "cityDomain": "https://moultonborough-city-nh.mydripnurse.com",
-                    "citySitemap": "https://moultonborough-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://moultonborough-city-nh.mynewbrand.com",
+                    "citySitemap": "https://moultonborough-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Conway",
+                    "cityDomain": "https://north-conway-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-conway-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Sandwich",
+                    "cityDomain": "https://north-sandwich-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-sandwich-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ossipee",
+                    "cityDomain": "https://ossipee-city-nh.mynewbrand.com",
+                    "citySitemap": "https://ossipee-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sanbornville",
+                    "cityDomain": "https://sanbornville-city-nh.mynewbrand.com",
+                    "citySitemap": "https://sanbornville-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Silver Lake",
+                    "cityDomain": "https://silver-lake-city-nh.mynewbrand.com",
+                    "citySitemap": "https://silver-lake-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Tamworth",
+                    "cityDomain": "https://south-tamworth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://south-tamworth-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tamworth",
+                    "cityDomain": "https://tamworth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://tamworth-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Union",
+                    "cityDomain": "https://union-city-nh.mynewbrand.com",
+                    "citySitemap": "https://union-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Ossipee",
+                    "cityDomain": "https://west-ossipee-city-nh.mynewbrand.com",
+                    "citySitemap": "https://west-ossipee-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wolfeboro",
+                    "cityDomain": "https://wolfeboro-city-nh.mynewbrand.com",
+                    "citySitemap": "https://wolfeboro-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wolfeboro Falls",
+                    "cityDomain": "https://wolfeboro-falls-city-nh.mynewbrand.com",
+                    "citySitemap": "https://wolfeboro-falls-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wonalancet",
+                    "cityDomain": "https://wonalancet-city-nh.mynewbrand.com",
+                    "citySitemap": "https://wonalancet-city-nh.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -425,42 +262,240 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://carroll-county-nh.mydripnurse.com",
-            "countySitemap": "https://carroll-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://carroll-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://conway-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wolfeboro-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ossipee-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://tamworth-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wakefield-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://freedom-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://moultonborough-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://carroll-county-nh.mynewbrand.com",
+            "countySitemap": "https://carroll-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://carroll-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bartlett-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://center-conway-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://center-ossipee-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://center-sandwich-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://center-tuftonboro-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chatham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chocorua-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://conway-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-wakefield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://eaton-center-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://effingham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://freedom-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://glen-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://intervale-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://jackson-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kearsarge-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://madison-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://melvin-village-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mirror-lake-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://moultonborough-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-conway-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-sandwich-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ossipee-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sanbornville-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://silver-lake-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://south-tamworth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tamworth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://union-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-ossipee-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wolfeboro-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wolfeboro-falls-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wonalancet-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Cheshire",
+            "cities": [
+                {
+                    "cityName": "Alstead",
+                    "cityDomain": "https://alstead-city-nh.mynewbrand.com",
+                    "citySitemap": "https://alstead-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ashuelot",
+                    "cityDomain": "https://ashuelot-city-nh.mynewbrand.com",
+                    "citySitemap": "https://ashuelot-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chesterfield",
+                    "cityDomain": "https://chesterfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://chesterfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Drewsville",
+                    "cityDomain": "https://drewsville-city-nh.mynewbrand.com",
+                    "citySitemap": "https://drewsville-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dublin",
+                    "cityDomain": "https://dublin-city-nh.mynewbrand.com",
+                    "citySitemap": "https://dublin-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fitzwilliam",
+                    "cityDomain": "https://fitzwilliam-city-nh.mynewbrand.com",
+                    "citySitemap": "https://fitzwilliam-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gilsum",
+                    "cityDomain": "https://gilsum-city-nh.mynewbrand.com",
+                    "citySitemap": "https://gilsum-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Harrisville",
+                    "cityDomain": "https://harrisville-city-nh.mynewbrand.com",
+                    "citySitemap": "https://harrisville-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hinsdale",
+                    "cityDomain": "https://hinsdale-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hinsdale-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jaffrey",
+                    "cityDomain": "https://jaffrey-city-nh.mynewbrand.com",
+                    "citySitemap": "https://jaffrey-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Keene",
+                    "cityDomain": "https://keene-city-nh.mynewbrand.com",
+                    "citySitemap": "https://keene-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Marlborough",
+                    "cityDomain": "https://marlborough-city-nh.mynewbrand.com",
+                    "citySitemap": "https://marlborough-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Marlow",
+                    "cityDomain": "https://marlow-city-nh.mynewbrand.com",
+                    "citySitemap": "https://marlow-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nelson",
+                    "cityDomain": "https://nelson-city-nh.mynewbrand.com",
+                    "citySitemap": "https://nelson-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Walpole",
+                    "cityDomain": "https://north-walpole-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-walpole-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rindge",
+                    "cityDomain": "https://rindge-city-nh.mynewbrand.com",
+                    "citySitemap": "https://rindge-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Spofford",
+                    "cityDomain": "https://spofford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://spofford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stoddard",
+                    "cityDomain": "https://stoddard-city-nh.mynewbrand.com",
+                    "citySitemap": "https://stoddard-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sullivan",
+                    "cityDomain": "https://sullivan-city-nh.mynewbrand.com",
+                    "citySitemap": "https://sullivan-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Swanzey",
+                    "cityDomain": "https://swanzey-city-nh.mynewbrand.com",
+                    "citySitemap": "https://swanzey-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Troy",
+                    "cityDomain": "https://troy-city-nh.mynewbrand.com",
+                    "citySitemap": "https://troy-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Walpole",
+                    "cityDomain": "https://walpole-city-nh.mynewbrand.com",
+                    "citySitemap": "https://walpole-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Chesterfield",
+                    "cityDomain": "https://west-chesterfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://west-chesterfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Swanzey",
+                    "cityDomain": "https://west-swanzey-city-nh.mynewbrand.com",
+                    "citySitemap": "https://west-swanzey-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Westmoreland",
+                    "cityDomain": "https://westmoreland-city-nh.mynewbrand.com",
+                    "citySitemap": "https://westmoreland-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Winchester",
+                    "cityDomain": "https://winchester-city-nh.mynewbrand.com",
+                    "citySitemap": "https://winchester-city-nh.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            },
+            "countyDomain": "https://cheshire-county-nh.mynewbrand.com",
+            "countySitemap": "https://cheshire-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://cheshire-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://alstead-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ashuelot-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chesterfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://drewsville-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://dublin-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fitzwilliam-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gilsum-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://harrisville-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hinsdale-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://jaffrey-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://keene-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://marlborough-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://marlow-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nelson-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-walpole-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rindge-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://spofford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://stoddard-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sullivan-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://swanzey-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://troy-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://walpole-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-chesterfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-swanzey-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://westmoreland-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://winchester-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
             "countyName": "Coos",
             "cities": [
                 {
                     "cityName": "Berlin",
-                    "cityDomain": "https://berlin-city-nh.mydripnurse.com",
-                    "citySitemap": "https://berlin-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://berlin-city-nh.mynewbrand.com",
+                    "citySitemap": "https://berlin-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Gorham",
-                    "cityDomain": "https://gorham-city-nh.mydripnurse.com",
-                    "citySitemap": "https://gorham-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Lancaster",
-                    "cityDomain": "https://lancaster-city-nh.mydripnurse.com",
-                    "citySitemap": "https://lancaster-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Bretton Woods",
+                    "cityDomain": "https://bretton-woods-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bretton-woods-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Colebrook",
-                    "cityDomain": "https://colebrook-city-nh.mydripnurse.com",
-                    "citySitemap": "https://colebrook-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://colebrook-city-nh.mynewbrand.com",
+                    "citySitemap": "https://colebrook-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Whitefield",
-                    "cityDomain": "https://whitefield-city-nh.mydripnurse.com",
-                    "citySitemap": "https://whitefield-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Errol",
+                    "cityDomain": "https://errol-city-nh.mynewbrand.com",
+                    "citySitemap": "https://errol-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gorham",
+                    "cityDomain": "https://gorham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://gorham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Groveton",
+                    "cityDomain": "https://groveton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://groveton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jefferson",
+                    "cityDomain": "https://jefferson-city-nh.mynewbrand.com",
+                    "citySitemap": "https://jefferson-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lancaster",
+                    "cityDomain": "https://lancaster-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lancaster-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Milan",
+                    "cityDomain": "https://milan-city-nh.mynewbrand.com",
+                    "citySitemap": "https://milan-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mount Washington",
+                    "cityDomain": "https://mount-washington-city-nh.mynewbrand.com",
+                    "citySitemap": "https://mount-washington-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Stratford",
+                    "cityDomain": "https://north-stratford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-stratford-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Northumberland",
-                    "cityDomain": "https://northumberland-city-nh.mydripnurse.com",
-                    "citySitemap": "https://northumberland-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://northumberland-city-nh.mynewbrand.com",
+                    "citySitemap": "https://northumberland-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pittsburg",
+                    "cityDomain": "https://pittsburg-city-nh.mynewbrand.com",
+                    "citySitemap": "https://pittsburg-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Randolph",
+                    "cityDomain": "https://randolph-city-nh.mynewbrand.com",
+                    "citySitemap": "https://randolph-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Twin Mountain",
+                    "cityDomain": "https://twin-mountain-city-nh.mynewbrand.com",
+                    "citySitemap": "https://twin-mountain-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Stewartstown",
+                    "cityDomain": "https://west-stewartstown-city-nh.mynewbrand.com",
+                    "citySitemap": "https://west-stewartstown-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Whitefield",
+                    "cityDomain": "https://whitefield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://whitefield-city-nh.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -468,42 +503,912 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://coos-county-nh.mydripnurse.com",
-            "countySitemap": "https://coos-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://coos-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://berlin-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://gorham-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://lancaster-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://colebrook-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://whitefield-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://northumberland-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://coos-county-nh.mynewbrand.com",
+            "countySitemap": "https://coos-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://coos-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://berlin-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bretton-woods-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://colebrook-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://errol-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gorham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://groveton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://jefferson-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lancaster-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://milan-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mount-washington-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-stratford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://northumberland-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pittsburg-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://randolph-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://twin-mountain-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-stewartstown-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://whitefield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Grafton",
+            "cities": [
+                {
+                    "cityName": "Ashland",
+                    "cityDomain": "https://ashland-city-nh.mynewbrand.com",
+                    "citySitemap": "https://ashland-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bath",
+                    "cityDomain": "https://bath-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bath-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bethlehem",
+                    "cityDomain": "https://bethlehem-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bethlehem-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bristol",
+                    "cityDomain": "https://bristol-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bristol-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Campton",
+                    "cityDomain": "https://campton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://campton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Canaan",
+                    "cityDomain": "https://canaan-city-nh.mynewbrand.com",
+                    "citySitemap": "https://canaan-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Enfield",
+                    "cityDomain": "https://enfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://enfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Enfield Center",
+                    "cityDomain": "https://enfield-center-city-nh.mynewbrand.com",
+                    "citySitemap": "https://enfield-center-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Etna",
+                    "cityDomain": "https://etna-city-nh.mynewbrand.com",
+                    "citySitemap": "https://etna-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Franconia",
+                    "cityDomain": "https://franconia-city-nh.mynewbrand.com",
+                    "citySitemap": "https://franconia-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glencliff",
+                    "cityDomain": "https://glencliff-city-nh.mynewbrand.com",
+                    "citySitemap": "https://glencliff-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Grafton",
+                    "cityDomain": "https://grafton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://grafton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hanover",
+                    "cityDomain": "https://hanover-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hanover-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Haverhill",
+                    "cityDomain": "https://haverhill-city-nh.mynewbrand.com",
+                    "citySitemap": "https://haverhill-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hebron",
+                    "cityDomain": "https://hebron-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hebron-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Holderness",
+                    "cityDomain": "https://holderness-city-nh.mynewbrand.com",
+                    "citySitemap": "https://holderness-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lebanon",
+                    "cityDomain": "https://lebanon-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lebanon-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lincoln",
+                    "cityDomain": "https://lincoln-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lincoln-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lisbon",
+                    "cityDomain": "https://lisbon-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lisbon-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Littleton",
+                    "cityDomain": "https://littleton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://littleton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lyme",
+                    "cityDomain": "https://lyme-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lyme-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lyme Center",
+                    "cityDomain": "https://lyme-center-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lyme-center-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Monroe",
+                    "cityDomain": "https://monroe-city-nh.mynewbrand.com",
+                    "citySitemap": "https://monroe-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Haverhill",
+                    "cityDomain": "https://north-haverhill-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-haverhill-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Woodstock",
+                    "cityDomain": "https://north-woodstock-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-woodstock-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Orford",
+                    "cityDomain": "https://orford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://orford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Piermont",
+                    "cityDomain": "https://piermont-city-nh.mynewbrand.com",
+                    "citySitemap": "https://piermont-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pike",
+                    "cityDomain": "https://pike-city-nh.mynewbrand.com",
+                    "citySitemap": "https://pike-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Plymouth",
+                    "cityDomain": "https://plymouth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://plymouth-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rumney",
+                    "cityDomain": "https://rumney-city-nh.mynewbrand.com",
+                    "citySitemap": "https://rumney-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stinson Lake",
+                    "cityDomain": "https://stinson-lake-city-nh.mynewbrand.com",
+                    "citySitemap": "https://stinson-lake-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sugar Hill",
+                    "cityDomain": "https://sugar-hill-city-nh.mynewbrand.com",
+                    "citySitemap": "https://sugar-hill-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Thornton",
+                    "cityDomain": "https://thornton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://thornton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Warren",
+                    "cityDomain": "https://warren-city-nh.mynewbrand.com",
+                    "citySitemap": "https://warren-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Waterville Valley",
+                    "cityDomain": "https://waterville-valley-city-nh.mynewbrand.com",
+                    "citySitemap": "https://waterville-valley-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wentworth",
+                    "cityDomain": "https://wentworth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://wentworth-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Lebanon",
+                    "cityDomain": "https://west-lebanon-city-nh.mynewbrand.com",
+                    "citySitemap": "https://west-lebanon-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Woodstock",
+                    "cityDomain": "https://woodstock-city-nh.mynewbrand.com",
+                    "citySitemap": "https://woodstock-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Woodsville",
+                    "cityDomain": "https://woodsville-city-nh.mynewbrand.com",
+                    "citySitemap": "https://woodsville-city-nh.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            },
+            "countyDomain": "https://grafton-county-nh.mynewbrand.com",
+            "countySitemap": "https://grafton-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://grafton-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ashland-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bath-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bethlehem-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bristol-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://campton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://canaan-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://enfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://enfield-center-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://etna-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://franconia-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://glencliff-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://grafton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hanover-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://haverhill-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hebron-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://holderness-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lebanon-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lincoln-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lisbon-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://littleton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lyme-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lyme-center-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://monroe-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-haverhill-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-woodstock-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://orford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://piermont-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pike-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://plymouth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rumney-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://stinson-lake-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sugar-hill-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://thornton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://warren-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://waterville-valley-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wentworth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-lebanon-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://woodstock-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://woodsville-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Hillsborough",
+            "cities": [
+                {
+                    "cityName": "Amherst",
+                    "cityDomain": "https://amherst-city-nh.mynewbrand.com",
+                    "citySitemap": "https://amherst-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Antrim",
+                    "cityDomain": "https://antrim-city-nh.mynewbrand.com",
+                    "citySitemap": "https://antrim-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bedford",
+                    "cityDomain": "https://bedford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bedford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bennington",
+                    "cityDomain": "https://bennington-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bennington-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Brookline",
+                    "cityDomain": "https://brookline-city-nh.mynewbrand.com",
+                    "citySitemap": "https://brookline-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Francestown",
+                    "cityDomain": "https://francestown-city-nh.mynewbrand.com",
+                    "citySitemap": "https://francestown-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Goffstown",
+                    "cityDomain": "https://goffstown-city-nh.mynewbrand.com",
+                    "citySitemap": "https://goffstown-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenfield",
+                    "cityDomain": "https://greenfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://greenfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenville",
+                    "cityDomain": "https://greenville-city-nh.mynewbrand.com",
+                    "citySitemap": "https://greenville-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hancock",
+                    "cityDomain": "https://hancock-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hancock-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hillsborough",
+                    "cityDomain": "https://hillsborough-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hillsborough-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hollis",
+                    "cityDomain": "https://hollis-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hollis-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hudson",
+                    "cityDomain": "https://hudson-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hudson-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Litchfield",
+                    "cityDomain": "https://litchfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://litchfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lyndeborough",
+                    "cityDomain": "https://lyndeborough-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lyndeborough-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manchester",
+                    "cityDomain": "https://manchester-city-nh.mynewbrand.com",
+                    "citySitemap": "https://manchester-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Merrimack",
+                    "cityDomain": "https://merrimack-city-nh.mynewbrand.com",
+                    "citySitemap": "https://merrimack-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Milford",
+                    "cityDomain": "https://milford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://milford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mont Vernon",
+                    "cityDomain": "https://mont-vernon-city-nh.mynewbrand.com",
+                    "citySitemap": "https://mont-vernon-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nashua",
+                    "cityDomain": "https://nashua-city-nh.mynewbrand.com",
+                    "citySitemap": "https://nashua-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New Boston",
+                    "cityDomain": "https://new-boston-city-nh.mynewbrand.com",
+                    "citySitemap": "https://new-boston-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New Ipswich",
+                    "cityDomain": "https://new-ipswich-city-nh.mynewbrand.com",
+                    "citySitemap": "https://new-ipswich-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pelham",
+                    "cityDomain": "https://pelham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://pelham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Peterborough",
+                    "cityDomain": "https://peterborough-city-nh.mynewbrand.com",
+                    "citySitemap": "https://peterborough-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Temple",
+                    "cityDomain": "https://temple-city-nh.mynewbrand.com",
+                    "citySitemap": "https://temple-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Weare",
+                    "cityDomain": "https://weare-city-nh.mynewbrand.com",
+                    "citySitemap": "https://weare-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Peterborough",
+                    "cityDomain": "https://west-peterborough-city-nh.mynewbrand.com",
+                    "citySitemap": "https://west-peterborough-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wilton",
+                    "cityDomain": "https://wilton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://wilton-city-nh.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            },
+            "countyDomain": "https://hillsborough-county-nh.mynewbrand.com",
+            "countySitemap": "https://hillsborough-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://hillsborough-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://amherst-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://antrim-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bedford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bennington-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://brookline-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://francestown-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://goffstown-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://greenfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://greenville-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hancock-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hillsborough-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hollis-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hudson-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://litchfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lyndeborough-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://manchester-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://merrimack-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://milford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mont-vernon-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nashua-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://new-boston-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://new-ipswich-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pelham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://peterborough-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://temple-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://weare-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-peterborough-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wilton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Merrimack",
+            "cities": [
+                {
+                    "cityName": "Andover",
+                    "cityDomain": "https://andover-city-nh.mynewbrand.com",
+                    "citySitemap": "https://andover-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bow",
+                    "cityDomain": "https://bow-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bow-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bradford",
+                    "cityDomain": "https://bradford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://bradford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Canterbury",
+                    "cityDomain": "https://canterbury-city-nh.mynewbrand.com",
+                    "citySitemap": "https://canterbury-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chichester",
+                    "cityDomain": "https://chichester-city-nh.mynewbrand.com",
+                    "citySitemap": "https://chichester-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Concord",
+                    "cityDomain": "https://concord-city-nh.mynewbrand.com",
+                    "citySitemap": "https://concord-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Contoocook",
+                    "cityDomain": "https://contoocook-city-nh.mynewbrand.com",
+                    "citySitemap": "https://contoocook-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Danbury",
+                    "cityDomain": "https://danbury-city-nh.mynewbrand.com",
+                    "citySitemap": "https://danbury-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dunbarton",
+                    "cityDomain": "https://dunbarton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://dunbarton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Andover",
+                    "cityDomain": "https://east-andover-city-nh.mynewbrand.com",
+                    "citySitemap": "https://east-andover-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Elkins",
+                    "cityDomain": "https://elkins-city-nh.mynewbrand.com",
+                    "citySitemap": "https://elkins-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Epsom",
+                    "cityDomain": "https://epsom-city-nh.mynewbrand.com",
+                    "citySitemap": "https://epsom-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Franklin",
+                    "cityDomain": "https://franklin-city-nh.mynewbrand.com",
+                    "citySitemap": "https://franklin-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Henniker",
+                    "cityDomain": "https://henniker-city-nh.mynewbrand.com",
+                    "citySitemap": "https://henniker-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hill",
+                    "cityDomain": "https://hill-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hill-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hooksett",
+                    "cityDomain": "https://hooksett-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hooksett-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Loudon",
+                    "cityDomain": "https://loudon-city-nh.mynewbrand.com",
+                    "citySitemap": "https://loudon-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New London",
+                    "cityDomain": "https://new-london-city-nh.mynewbrand.com",
+                    "citySitemap": "https://new-london-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newbury",
+                    "cityDomain": "https://newbury-city-nh.mynewbrand.com",
+                    "citySitemap": "https://newbury-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Sutton",
+                    "cityDomain": "https://north-sutton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-sutton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pittsfield",
+                    "cityDomain": "https://pittsfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://pittsfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Salisbury",
+                    "cityDomain": "https://salisbury-city-nh.mynewbrand.com",
+                    "citySitemap": "https://salisbury-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Newbury",
+                    "cityDomain": "https://south-newbury-city-nh.mynewbrand.com",
+                    "citySitemap": "https://south-newbury-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Sutton",
+                    "cityDomain": "https://south-sutton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://south-sutton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Suncook",
+                    "cityDomain": "https://suncook-city-nh.mynewbrand.com",
+                    "citySitemap": "https://suncook-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Warner",
+                    "cityDomain": "https://warner-city-nh.mynewbrand.com",
+                    "citySitemap": "https://warner-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wilmot",
+                    "cityDomain": "https://wilmot-city-nh.mynewbrand.com",
+                    "citySitemap": "https://wilmot-city-nh.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            },
+            "countyDomain": "https://merrimack-county-nh.mynewbrand.com",
+            "countySitemap": "https://merrimack-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://merrimack-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://andover-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bow-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bradford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://canterbury-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chichester-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://concord-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://contoocook-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://danbury-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://dunbarton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-andover-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://elkins-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://epsom-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://franklin-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://henniker-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hill-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hooksett-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://loudon-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://new-london-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newbury-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-sutton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pittsfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://salisbury-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://south-newbury-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://south-sutton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://suncook-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://warner-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wilmot-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Rockingham",
+            "cities": [
+                {
+                    "cityName": "Atkinson",
+                    "cityDomain": "https://atkinson-city-nh.mynewbrand.com",
+                    "citySitemap": "https://atkinson-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Auburn",
+                    "cityDomain": "https://auburn-city-nh.mynewbrand.com",
+                    "citySitemap": "https://auburn-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Candia",
+                    "cityDomain": "https://candia-city-nh.mynewbrand.com",
+                    "citySitemap": "https://candia-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chester",
+                    "cityDomain": "https://chester-city-nh.mynewbrand.com",
+                    "citySitemap": "https://chester-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Danville",
+                    "cityDomain": "https://danville-city-nh.mynewbrand.com",
+                    "citySitemap": "https://danville-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Deerfield",
+                    "cityDomain": "https://deerfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://deerfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Derry",
+                    "cityDomain": "https://derry-city-nh.mynewbrand.com",
+                    "citySitemap": "https://derry-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Candia",
+                    "cityDomain": "https://east-candia-city-nh.mynewbrand.com",
+                    "citySitemap": "https://east-candia-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Derry",
+                    "cityDomain": "https://east-derry-city-nh.mynewbrand.com",
+                    "citySitemap": "https://east-derry-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Hampstead",
+                    "cityDomain": "https://east-hampstead-city-nh.mynewbrand.com",
+                    "citySitemap": "https://east-hampstead-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "East Kingston",
+                    "cityDomain": "https://east-kingston-city-nh.mynewbrand.com",
+                    "citySitemap": "https://east-kingston-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Epping",
+                    "cityDomain": "https://epping-city-nh.mynewbrand.com",
+                    "citySitemap": "https://epping-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Exeter",
+                    "cityDomain": "https://exeter-city-nh.mynewbrand.com",
+                    "citySitemap": "https://exeter-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fremont",
+                    "cityDomain": "https://fremont-city-nh.mynewbrand.com",
+                    "citySitemap": "https://fremont-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Greenland",
+                    "cityDomain": "https://greenland-city-nh.mynewbrand.com",
+                    "citySitemap": "https://greenland-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hampstead",
+                    "cityDomain": "https://hampstead-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hampstead-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hampton",
+                    "cityDomain": "https://hampton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hampton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hampton Falls",
+                    "cityDomain": "https://hampton-falls-city-nh.mynewbrand.com",
+                    "citySitemap": "https://hampton-falls-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kingston",
+                    "cityDomain": "https://kingston-city-nh.mynewbrand.com",
+                    "citySitemap": "https://kingston-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Londonderry",
+                    "cityDomain": "https://londonderry-city-nh.mynewbrand.com",
+                    "citySitemap": "https://londonderry-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New Castle",
+                    "cityDomain": "https://new-castle-city-nh.mynewbrand.com",
+                    "citySitemap": "https://new-castle-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newfields",
+                    "cityDomain": "https://newfields-city-nh.mynewbrand.com",
+                    "citySitemap": "https://newfields-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newmarket",
+                    "cityDomain": "https://newmarket-city-nh.mynewbrand.com",
+                    "citySitemap": "https://newmarket-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newton",
+                    "cityDomain": "https://newton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://newton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newton Junction",
+                    "cityDomain": "https://newton-junction-city-nh.mynewbrand.com",
+                    "citySitemap": "https://newton-junction-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Hampton",
+                    "cityDomain": "https://north-hampton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-hampton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "North Salem",
+                    "cityDomain": "https://north-salem-city-nh.mynewbrand.com",
+                    "citySitemap": "https://north-salem-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Northwood",
+                    "cityDomain": "https://northwood-city-nh.mynewbrand.com",
+                    "citySitemap": "https://northwood-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nottingham",
+                    "cityDomain": "https://nottingham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://nottingham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Plaistow",
+                    "cityDomain": "https://plaistow-city-nh.mynewbrand.com",
+                    "citySitemap": "https://plaistow-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Portsmouth",
+                    "cityDomain": "https://portsmouth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://portsmouth-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Raymond",
+                    "cityDomain": "https://raymond-city-nh.mynewbrand.com",
+                    "citySitemap": "https://raymond-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rye",
+                    "cityDomain": "https://rye-city-nh.mynewbrand.com",
+                    "citySitemap": "https://rye-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rye Beach",
+                    "cityDomain": "https://rye-beach-city-nh.mynewbrand.com",
+                    "citySitemap": "https://rye-beach-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Salem",
+                    "cityDomain": "https://salem-city-nh.mynewbrand.com",
+                    "citySitemap": "https://salem-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sandown",
+                    "cityDomain": "https://sandown-city-nh.mynewbrand.com",
+                    "citySitemap": "https://sandown-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Seabrook",
+                    "cityDomain": "https://seabrook-city-nh.mynewbrand.com",
+                    "citySitemap": "https://seabrook-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Hampton",
+                    "cityDomain": "https://south-hampton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://south-hampton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stratham",
+                    "cityDomain": "https://stratham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://stratham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "West Nottingham",
+                    "cityDomain": "https://west-nottingham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://west-nottingham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Windham",
+                    "cityDomain": "https://windham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://windham-city-nh.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            },
+            "countyDomain": "https://rockingham-county-nh.mynewbrand.com",
+            "countySitemap": "https://rockingham-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://rockingham-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://atkinson-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://auburn-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://candia-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chester-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://danville-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://deerfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://derry-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-candia-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-derry-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-hampstead-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://east-kingston-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://epping-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://exeter-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fremont-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://greenland-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hampstead-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hampton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hampton-falls-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kingston-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://londonderry-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://new-castle-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newfields-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newmarket-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newton-junction-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-hampton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-salem-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://northwood-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nottingham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://plaistow-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://portsmouth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://raymond-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rye-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rye-beach-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://salem-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sandown-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://seabrook-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://south-hampton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://stratham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://west-nottingham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://windham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Strafford",
+            "cities": [
+                {
+                    "cityName": "Barrington",
+                    "cityDomain": "https://barrington-city-nh.mynewbrand.com",
+                    "citySitemap": "https://barrington-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Center Strafford",
+                    "cityDomain": "https://center-strafford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://center-strafford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dover",
+                    "cityDomain": "https://dover-city-nh.mynewbrand.com",
+                    "citySitemap": "https://dover-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Durham",
+                    "cityDomain": "https://durham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://durham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Farmington",
+                    "cityDomain": "https://farmington-city-nh.mynewbrand.com",
+                    "citySitemap": "https://farmington-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lee",
+                    "cityDomain": "https://lee-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lee-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Madbury",
+                    "cityDomain": "https://madbury-city-nh.mynewbrand.com",
+                    "citySitemap": "https://madbury-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Milton",
+                    "cityDomain": "https://milton-city-nh.mynewbrand.com",
+                    "citySitemap": "https://milton-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Milton Mills",
+                    "cityDomain": "https://milton-mills-city-nh.mynewbrand.com",
+                    "citySitemap": "https://milton-mills-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New Durham",
+                    "cityDomain": "https://new-durham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://new-durham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newington",
+                    "cityDomain": "https://newington-city-nh.mynewbrand.com",
+                    "citySitemap": "https://newington-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rochester",
+                    "cityDomain": "https://rochester-city-nh.mynewbrand.com",
+                    "citySitemap": "https://rochester-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rollinsford",
+                    "cityDomain": "https://rollinsford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://rollinsford-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Somersworth",
+                    "cityDomain": "https://somersworth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://somersworth-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Strafford",
+                    "cityDomain": "https://strafford-city-nh.mynewbrand.com",
+                    "citySitemap": "https://strafford-city-nh.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Eastern",
+                "Zone": "US/Eastern",
+                "UTC_Offset": "-05:00"
+            },
+            "countyDomain": "https://strafford-county-nh.mynewbrand.com",
+            "countySitemap": "https://strafford-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://strafford-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://barrington-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://center-strafford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://dover-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://durham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://farmington-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lee-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://madbury-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://milton-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://milton-mills-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://new-durham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newington-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rochester-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rollinsford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://somersworth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://strafford-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
             "countyName": "Sullivan",
             "cities": [
                 {
-                    "cityName": "Claremont",
-                    "cityDomain": "https://claremont-city-nh.mydripnurse.com",
-                    "citySitemap": "https://claremont-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Newport",
-                    "cityDomain": "https://newport-city-nh.mydripnurse.com",
-                    "citySitemap": "https://newport-city-nh.mydripnurse.com/sitemap.xml"
-                },
-                {
-                    "cityName": "Sunapee",
-                    "cityDomain": "https://sunapee-city-nh.mydripnurse.com",
-                    "citySitemap": "https://sunapee-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Acworth",
+                    "cityDomain": "https://acworth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://acworth-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Charlestown",
-                    "cityDomain": "https://charlestown-city-nh.mydripnurse.com",
-                    "citySitemap": "https://charlestown-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://charlestown-city-nh.mynewbrand.com",
+                    "citySitemap": "https://charlestown-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Unity",
-                    "cityDomain": "https://unity-city-nh.mydripnurse.com",
-                    "citySitemap": "https://unity-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Claremont",
+                    "cityDomain": "https://claremont-city-nh.mynewbrand.com",
+                    "citySitemap": "https://claremont-city-nh.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Croydon",
-                    "cityDomain": "https://croydon-city-nh.mydripnurse.com",
-                    "citySitemap": "https://croydon-city-nh.mydripnurse.com/sitemap.xml"
+                    "cityName": "Cornish",
+                    "cityDomain": "https://cornish-city-nh.mynewbrand.com",
+                    "citySitemap": "https://cornish-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cornish Flat",
+                    "cityDomain": "https://cornish-flat-city-nh.mynewbrand.com",
+                    "citySitemap": "https://cornish-flat-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Georges Mills",
+                    "cityDomain": "https://georges-mills-city-nh.mynewbrand.com",
+                    "citySitemap": "https://georges-mills-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Goshen",
+                    "cityDomain": "https://goshen-city-nh.mynewbrand.com",
+                    "citySitemap": "https://goshen-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Grantham",
+                    "cityDomain": "https://grantham-city-nh.mynewbrand.com",
+                    "citySitemap": "https://grantham-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Guild",
+                    "cityDomain": "https://guild-city-nh.mynewbrand.com",
+                    "citySitemap": "https://guild-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lempster",
+                    "cityDomain": "https://lempster-city-nh.mynewbrand.com",
+                    "citySitemap": "https://lempster-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Meriden",
+                    "cityDomain": "https://meriden-city-nh.mynewbrand.com",
+                    "citySitemap": "https://meriden-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Newport",
+                    "cityDomain": "https://newport-city-nh.mynewbrand.com",
+                    "citySitemap": "https://newport-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Plainfield",
+                    "cityDomain": "https://plainfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://plainfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Acworth",
+                    "cityDomain": "https://south-acworth-city-nh.mynewbrand.com",
+                    "citySitemap": "https://south-acworth-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Springfield",
+                    "cityDomain": "https://springfield-city-nh.mynewbrand.com",
+                    "citySitemap": "https://springfield-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sunapee",
+                    "cityDomain": "https://sunapee-city-nh.mynewbrand.com",
+                    "citySitemap": "https://sunapee-city-nh.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Washington",
+                    "cityDomain": "https://washington-city-nh.mynewbrand.com",
+                    "citySitemap": "https://washington-city-nh.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
@@ -511,66 +1416,10 @@
                 "Zone": "US/Eastern",
                 "UTC_Offset": "-05:00"
             },
-            "countyDomain": "https://sullivan-county-nh.mydripnurse.com",
-            "countySitemap": "https://sullivan-county-nh.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://sullivan-county-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://claremont-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://newport-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sunapee-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://charlestown-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://unity-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://croydon-city-nh.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://sullivan-county-nh.mynewbrand.com",
+            "countySitemap": "https://sullivan-county-nh.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://sullivan-county-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://acworth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://charlestown-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://claremont-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cornish-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cornish-flat-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://georges-mills-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://goshen-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://grantham-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://guild-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lempster-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://meriden-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://newport-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://plainfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://south-acworth-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://springfield-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sunapee-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://washington-city-nh.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         }
     ],
-    "stateName": "New Hampshire",
-    "companyName": "My Drip Nurse",
-    "website": "https://www.mydripnurse.com",
-    "ownerName": "Keishla",
-    "ownerLastName": "Caraballo",
-    "phone": "9392749203",
-    "email": "keyla03@live.com",
-    "twilio": {
-        "sid": "secret",
-        "authToken": "secret"
-    },
-    "mailgun": {
-        "apiKey": "secret",
-        "domain": "secret"
-    },
-    "customValues": {
-        "businessInformation": {
-            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
-            "businessPhone": ""
-        },
-        "ivTherapyPrice": {
-            "myersCocktailPrice": "299",
-            "alleviatePrice": "219",
-            "brainStormPrice": "199",
-            "getLeanPrice": "179",
-            "immunityDefensePrice": "279",
-            "immunityDefenseAndGlutathionePrice": "299",
-            "hangoverPrice": "219",
-            "hydratePrice": "219",
-            "nadPrice": "599",
-            "nadBoostPrice": "797",
-            "recoveryPerformancePrice": "219",
-            "theGlowPrice": "199"
-        },
-        "vitaminPrice": {
-            "vitaminD3": "100",
-            "bComplex": "70",
-            "biotin": "75",
-            "vitaminC": "70",
-            "aminoBlend": "80",
-            "glutathione": "90",
-            "lipoMino": "120",
-            "triImmuneBoost": "120",
-            "vitaminB12": "70",
-            "ondansetron": "70"
-        },
-        "facebook": {
-            "accessToken": "secret",
-            "facebookPixel": "secret",
-            "instagramUrl": "https://www.instagram.com/mydripnurse/",
-            "facebookUrl": "https://www.facebook.com/MyDripNurse"
-        }
-    },
-    "businessInformation": {
-        "snapshotId": "secret",
-        "companyId": "secret"
-    }
+    "stateName": "New Hampshire"
 }

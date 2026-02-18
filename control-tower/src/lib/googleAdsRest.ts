@@ -1,3 +1,13 @@
+import { getAdsOAuth2 } from "./ads/adsAuth";
+
+function s(v: unknown) {
+    return String(v ?? "").trim();
+}
+
+function cleanCid(v: string) {
+    return s(v).replace(/-/g, "");
+}
+
 export async function googleAdsSearch(opts: {
     customerId?: string;
     loginCustomerId?: string;

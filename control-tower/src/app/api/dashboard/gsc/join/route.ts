@@ -124,9 +124,10 @@ function fallbackExtractStateFromUrl(urlLike: any): string {
         const u = new URL(raw);
 
         const left = (u.hostname.split(".")[0] || "").toLowerCase();
-        const mHost = left.match(/[-_](?<abbr>[a-z]{2})$/i);
-        if (mHost?.groups?.abbr && isStateAbbr(mHost.groups.abbr)) {
-            return normalizeState(mHost.groups.abbr);
+        const mHost = left.match(/[-_]([a-z]{2})$/i);
+        const hostAbbr = s(mHost?.[1]).toLowerCase();
+        if (hostAbbr && isStateAbbr(hostAbbr)) {
+            return normalizeState(hostAbbr);
         }
 
         const parts = left.split("-").filter(Boolean);
@@ -199,8 +200,9 @@ function looksLikeDeltaSubdomain(leftLabel: string) {
     if (x.includes("-city-")) return true;
     if (x.includes("-county-")) return true;
 
-    const m = x.match(/[-_](?<abbr>[a-z]{2})$/i);
-    if (m?.groups?.abbr && isStateAbbr(m.groups.abbr)) return true;
+    const m = x.match(/[-_]([a-z]{2})$/i);
+    const abbr = s(m?.[1]).toLowerCase();
+    if (abbr && isStateAbbr(abbr)) return true;
 
     if (x.length === 2 && isStateAbbr(x)) return true;
 
@@ -710,13 +712,16 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const range = url.searchParams.get("range") || "";
         const state = url.searchParams.get("state") || "";
+        const tenantId = s(url.searchParams.get("tenantId"));
         const compareEnabled = url.searchParams.get("compare") === "1";
 
         const forceCatalog =
             url.searchParams.get("forceCatalog") === "1" ||
             url.searchParams.get("force") === "1";
 
-        const cacheDir = path.join(process.cwd(), "data", "cache", "gsc");
+        const cacheDir = tenantId
+            ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "gsc")
+            : path.join(process.cwd(), "data", "cache", "gsc");
 
         const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
         const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
@@ -728,6 +733,17 @@ export async function GET(req: Request) {
         const qpRaw = qpRawPrimary || qpRawFallback;
 
         const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+        if (!metaRaw || !pagesRaw || !queriesRaw || !trendRaw) {
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error:
+                        `GSC cache not found for tenant ${tenantId || "_default"}. ` +
+                        "Run Refresh (force sync) and verify OAuth/property setup.",
+                },
+                { status: 412 },
+            );
+        }
 
         const meta: MetaFile = (metaRaw || {}) as MetaFile;
 
@@ -736,7 +752,7 @@ export async function GET(req: Request) {
         const qpRows = coerceQpRows(qpRaw);
         const trend = unwrapArray(trendRaw);
 
-        const catalog = await loadGscCatalogIndex({ force: forceCatalog });
+        const catalog = await loadGscCatalogIndex({ force: forceCatalog, tenantId });
         const catalogByHostname = catalog.byHostname || {};
 
         const rootHost = inferRootHost(meta?.siteUrl);

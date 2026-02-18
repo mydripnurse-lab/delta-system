@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
@@ -323,6 +324,7 @@ function LineTrend({
 }
 
 export default function ContactsDashboardPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -364,16 +366,24 @@ export default function ContactsDashboardPage() {
     if (preset === "1y") return "Last year";
     return preset;
   }, [preset]);
+  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+  const backHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard";
 
   async function fetchContacts(start: string, end: string, force = false) {
-    const qs =
-      start && end
-        ? `?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${
-            force ? "&bust=1" : ""
-          }`
-        : "";
-
-    const res = await fetch(`/api/dashboard/contacts${qs}`, {
+    const qs = new URLSearchParams();
+    if (start && end) {
+      qs.set("start", start);
+      qs.set("end", end);
+    }
+    if (force) qs.set("bust", "1");
+    if (tenantId) {
+      qs.set("tenantId", tenantId);
+      qs.set("integrationKey", integrationKey);
+    }
+    const res = await fetch(`/api/dashboard/contacts?${qs.toString()}`, {
       cache: "no-store",
     });
 
@@ -391,12 +401,16 @@ export default function ContactsDashboardPage() {
   }
 
   async function fetchCalls(start: string, end: string) {
-    const qs =
-      start && end
-        ? `?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
-        : "";
-
-    const res = await fetch(`/api/dashboard/calls${qs}`, { cache: "no-store" });
+    const qs = new URLSearchParams();
+    if (start && end) {
+      qs.set("start", start);
+      qs.set("end", end);
+    }
+    if (tenantId) {
+      qs.set("tenantId", tenantId);
+      qs.set("integrationKey", integrationKey);
+    }
+    const res = await fetch(`/api/dashboard/calls?${qs.toString()}`, { cache: "no-store" });
     const ct = res.headers.get("content-type") || "";
     if (!ct.includes("application/json")) {
       const txt = await res.text();
@@ -665,7 +679,7 @@ export default function ContactsDashboardPage() {
         </div>
 
         <div className="pills">
-          <Link className="pill" href="/dashboard" style={{ textDecoration: "none" }}>
+          <Link className="pill" href={backHref} style={{ textDecoration: "none" }}>
             ← Back
           </Link>
           <div className="pill">
@@ -1180,7 +1194,7 @@ export default function ContactsDashboardPage() {
                           callsPrev,
                           leadsToCalls,
                           leadsToCallsPrev,
-                          leadsToCallsDelta,
+                          leadsToCallsDeltaPct,
                         },
                       }}
                     />

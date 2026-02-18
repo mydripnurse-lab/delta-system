@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { getTenantIntegration } from "@/lib/tenantIntegrations";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,50 @@ function parseSiteUrls(singleSite: string, multiRaw: string) {
     .map((x) => s(x))
     .filter(Boolean);
   return uniqueStrings([...fromMulti, s(singleSite)]);
+}
+
+type TenantBingConfig = {
+  apiKey: string;
+  endpoint: string;
+  siteUrls: string[];
+};
+
+async function loadTenantBingConfig(tenantId: string, integrationKey: string): Promise<TenantBingConfig> {
+  if (!tenantId) throw new Error("Missing tenantId for Bing sync.");
+  const row = await getTenantIntegration(tenantId, "bing_webmaster", integrationKey);
+  if (!row) {
+    throw new Error(
+      `Missing integration bing_webmaster:${integrationKey} for tenant ${tenantId}. ` +
+      "Create it in tenant integrations with API key and site URL(s).",
+    );
+  }
+
+  const cfg = row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {};
+  const apiKey =
+    s(cfg.apiKey) ||
+    s(cfg.api_key) ||
+    s((cfg.auth as Record<string, unknown> | undefined)?.apiKey) ||
+    s((cfg.auth as Record<string, unknown> | undefined)?.api_key);
+  const singleSite =
+    s(row.externalPropertyId) ||
+    s(cfg.siteUrl) ||
+    s(cfg.site_url);
+  const multiRaw =
+    s(cfg.siteUrls) ||
+    s(cfg.site_urls);
+  const endpoint =
+    s(cfg.endpoint) ||
+    "https://ssl.bing.com/webmaster/api.svc/json";
+  const siteUrls = parseSiteUrls(singleSite, multiRaw);
+
+  if (!apiKey) {
+    throw new Error(`Missing Bing API key in config for tenant ${tenantId} (${integrationKey}).`);
+  }
+  if (!siteUrls.length) {
+    throw new Error(`Missing Bing site URL(s) in config for tenant ${tenantId} (${integrationKey}).`);
+  }
+
+  return { apiKey, endpoint, siteUrls };
 }
 
 function toNum(v: unknown) {
@@ -310,31 +355,26 @@ function aggregateTrendFromNormalizedRows(
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+    const tenantId = s(searchParams.get("tenantId"));
+    const integrationKey = s(searchParams.get("integrationKey")) || "default";
     const preset = (s(searchParams.get("range")) || "last_28_days") as RangePreset;
     const start = s(searchParams.get("start"));
     const end = s(searchParams.get("end"));
     const force = s(searchParams.get("force")) === "1";
 
-    const apiKey = s(process.env.BING_WEBMASTER_API_KEY);
-    const siteUrl = s(process.env.BING_WEBMASTER_SITE_URL);
-    const siteUrlsRaw = s(process.env.BING_WEBMASTER_SITE_URLS);
-    const endpoint = s(process.env.BING_WEBMASTER_API_ENDPOINT) || "https://ssl.bing.com/webmaster/api.svc/json";
-    const siteUrls = parseSiteUrls(siteUrl, siteUrlsRaw);
+    if (!tenantId) {
+      return Response.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const tenantBing = await loadTenantBingConfig(tenantId, integrationKey);
+    const apiKey = tenantBing.apiKey;
+    const endpoint = tenantBing.endpoint;
+    const siteUrls = tenantBing.siteUrls;
     const siteUrlsKey = siteUrls.join("|");
 
-    if (!apiKey || !siteUrls.length) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Missing BING_WEBMASTER_API_KEY and/or BING_WEBMASTER_SITE_URL(S)",
-          requiredEnv: ["BING_WEBMASTER_API_KEY", "BING_WEBMASTER_SITE_URL or BING_WEBMASTER_SITE_URLS"],
-        },
-        { status: 400 },
-      );
-    }
-
     const range = rangeFromPreset(preset, start, end);
-    const cacheDir = path.join(process.cwd(), "data", "cache", "bing");
+    const cacheDir = tenantId
+      ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "bing")
+      : path.join(process.cwd(), "data", "cache", "bing");
     const metaPath = path.join(cacheDir, "meta.json");
     const freshnessMs = Math.max(60_000, Number(process.env.BING_SYNC_MAX_AGE_MS || 10 * 60_000));
 
@@ -436,11 +476,13 @@ export async function GET(req: Request) {
         ? trendRowsFromPages
         : trendRowsFromQueries.length > 0
           ? trendRowsFromQueries
-          : aggregateTrendRows(queriesRes.rows);
+          : aggregateTrendRows(rawQueryRows);
 
     const meta = {
       ok: true,
       source: "bing_webmaster",
+      tenantId,
+      integrationKey,
       siteUrl: siteUrls[0] || "",
       siteUrls,
       siteUrlsKey,

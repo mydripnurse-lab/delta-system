@@ -1,307 +1,1522 @@
 {
     "counties": [
         {
-            "countyName": "Anchorage Municipality",
+            "countyName": "Aleutians East",
+            "cities": [
+                {
+                    "cityName": "Akutan",
+                    "cityDomain": "https://akutan-city-ak.mynewbrand.com",
+                    "citySitemap": "https://akutan-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cold Bay",
+                    "cityDomain": "https://cold-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://cold-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "False Pass",
+                    "cityDomain": "https://false-pass-city-ak.mynewbrand.com",
+                    "citySitemap": "https://false-pass-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "King Cove",
+                    "cityDomain": "https://king-cove-city-ak.mynewbrand.com",
+                    "citySitemap": "https://king-cove-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sand Point",
+                    "cityDomain": "https://sand-point-city-ak.mynewbrand.com",
+                    "citySitemap": "https://sand-point-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://aleutians-east-county-ak.mynewbrand.com",
+            "countySitemap": "https://aleutians-east-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://aleutians-east-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://akutan-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cold-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://false-pass-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://king-cove-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sand-point-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Aleutians West",
+            "cities": [
+                {
+                    "cityName": "Adak",
+                    "cityDomain": "https://adak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://adak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Atka",
+                    "cityDomain": "https://atka-city-ak.mynewbrand.com",
+                    "citySitemap": "https://atka-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dutch Harbor",
+                    "cityDomain": "https://dutch-harbor-city-ak.mynewbrand.com",
+                    "citySitemap": "https://dutch-harbor-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nikolski",
+                    "cityDomain": "https://nikolski-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nikolski-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Saint George Island",
+                    "cityDomain": "https://saint-george-island-city-ak.mynewbrand.com",
+                    "citySitemap": "https://saint-george-island-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Saint Paul Island",
+                    "cityDomain": "https://saint-paul-island-city-ak.mynewbrand.com",
+                    "citySitemap": "https://saint-paul-island-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Unalaska",
+                    "cityDomain": "https://unalaska-city-ak.mynewbrand.com",
+                    "citySitemap": "https://unalaska-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://aleutians-west-county-ak.mynewbrand.com",
+            "countySitemap": "https://aleutians-west-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://aleutians-west-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://adak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://atka-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://dutch-harbor-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nikolski-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://saint-george-island-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://saint-paul-island-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://unalaska-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Anchorage",
             "cities": [
                 {
                     "cityName": "Anchorage",
-                    "cityDomain": "https://anchorage-city-ak.mydripnurse.com",
-                    "citySitemap": "https://anchorage-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://anchorage-city-ak.mynewbrand.com",
+                    "citySitemap": "https://anchorage-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chugiak",
+                    "cityDomain": "https://chugiak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chugiak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eagle River",
+                    "cityDomain": "https://eagle-river-city-ak.mynewbrand.com",
+                    "citySitemap": "https://eagle-river-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Girdwood",
+                    "cityDomain": "https://girdwood-city-ak.mynewbrand.com",
+                    "citySitemap": "https://girdwood-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Indian",
+                    "cityDomain": "https://indian-city-ak.mynewbrand.com",
+                    "citySitemap": "https://indian-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Jber",
+                    "cityDomain": "https://jber-city-ak.mynewbrand.com",
+                    "citySitemap": "https://jber-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Anchorage",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://anchorage-municipality-county-ak.mydripnurse.com",
-            "countySitemap": "https://anchorage-municipality-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://anchorage-municipality-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://anchorage-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://anchorage-county-ak.mynewbrand.com",
+            "countySitemap": "https://anchorage-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://anchorage-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://anchorage-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chugiak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://eagle-river-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://girdwood-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://indian-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://jber-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Matanuska-Susitna Borough",
+            "countyName": "Bethel",
             "cities": [
                 {
-                    "cityName": "Wasilla",
-                    "cityDomain": "https://wasilla-city-ak.mydripnurse.com",
-                    "citySitemap": "https://wasilla-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Akiachak",
+                    "cityDomain": "https://akiachak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://akiachak-city-ak.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Palmer",
-                    "cityDomain": "https://palmer-city-ak.mydripnurse.com",
-                    "citySitemap": "https://palmer-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Akiak",
+                    "cityDomain": "https://akiak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://akiak-city-ak.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Houston",
-                    "cityDomain": "https://houston-city-ak.mydripnurse.com",
-                    "citySitemap": "https://houston-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Aniak",
+                    "cityDomain": "https://aniak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://aniak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bethel",
+                    "cityDomain": "https://bethel-city-ak.mynewbrand.com",
+                    "citySitemap": "https://bethel-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chefornak",
+                    "cityDomain": "https://chefornak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chefornak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Crooked Creek",
+                    "cityDomain": "https://crooked-creek-city-ak.mynewbrand.com",
+                    "citySitemap": "https://crooked-creek-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eek",
+                    "cityDomain": "https://eek-city-ak.mynewbrand.com",
+                    "citySitemap": "https://eek-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Goodnews Bay",
+                    "cityDomain": "https://goodnews-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://goodnews-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kalskag",
+                    "cityDomain": "https://kalskag-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kalskag-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kasigluk",
+                    "cityDomain": "https://kasigluk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kasigluk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kipnuk",
+                    "cityDomain": "https://kipnuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kipnuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kongiganak",
+                    "cityDomain": "https://kongiganak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kongiganak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kwethluk",
+                    "cityDomain": "https://kwethluk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kwethluk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kwigillingok",
+                    "cityDomain": "https://kwigillingok-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kwigillingok-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lower Kalskag",
+                    "cityDomain": "https://lower-kalskag-city-ak.mynewbrand.com",
+                    "citySitemap": "https://lower-kalskag-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mekoryuk",
+                    "cityDomain": "https://mekoryuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://mekoryuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Napakiak",
+                    "cityDomain": "https://napakiak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://napakiak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nightmute",
+                    "cityDomain": "https://nightmute-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nightmute-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nunapitchuk",
+                    "cityDomain": "https://nunapitchuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nunapitchuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Platinum",
+                    "cityDomain": "https://platinum-city-ak.mynewbrand.com",
+                    "citySitemap": "https://platinum-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Quinhagak",
+                    "cityDomain": "https://quinhagak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://quinhagak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Red Devil",
+                    "cityDomain": "https://red-devil-city-ak.mynewbrand.com",
+                    "citySitemap": "https://red-devil-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sleetmute",
+                    "cityDomain": "https://sleetmute-city-ak.mynewbrand.com",
+                    "citySitemap": "https://sleetmute-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Toksook Bay",
+                    "cityDomain": "https://toksook-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://toksook-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tuluksak",
+                    "cityDomain": "https://tuluksak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tuluksak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tuntutuliak",
+                    "cityDomain": "https://tuntutuliak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tuntutuliak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tununak",
+                    "cityDomain": "https://tununak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tununak-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Anchorage",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://matanuska-susitna-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://matanuska-susitna-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://matanuska-susitna-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://wasilla-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://palmer-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://houston-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://bethel-county-ak.mynewbrand.com",
+            "countySitemap": "https://bethel-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://bethel-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://akiachak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://akiak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://aniak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bethel-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chefornak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://crooked-creek-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://eek-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://goodnews-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kalskag-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kasigluk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kipnuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kongiganak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kwethluk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kwigillingok-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lower-kalskag-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mekoryuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://napakiak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nightmute-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nunapitchuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://platinum-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://quinhagak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://red-devil-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sleetmute-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://toksook-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tuluksak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tuntutuliak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tununak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Fairbanks North Star Borough",
+            "countyName": "Bristol Bay",
             "cities": [
+                {
+                    "cityName": "King Salmon",
+                    "cityDomain": "https://king-salmon-city-ak.mynewbrand.com",
+                    "citySitemap": "https://king-salmon-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Naknek",
+                    "cityDomain": "https://naknek-city-ak.mynewbrand.com",
+                    "citySitemap": "https://naknek-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "South Naknek",
+                    "cityDomain": "https://south-naknek-city-ak.mynewbrand.com",
+                    "citySitemap": "https://south-naknek-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://bristol-bay-county-ak.mynewbrand.com",
+            "countySitemap": "https://bristol-bay-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://bristol-bay-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://king-salmon-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://naknek-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://south-naknek-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Denali",
+            "cities": [
+                {
+                    "cityName": "Anderson",
+                    "cityDomain": "https://anderson-city-ak.mynewbrand.com",
+                    "citySitemap": "https://anderson-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cantwell",
+                    "cityDomain": "https://cantwell-city-ak.mynewbrand.com",
+                    "citySitemap": "https://cantwell-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Clear",
+                    "cityDomain": "https://clear-city-ak.mynewbrand.com",
+                    "citySitemap": "https://clear-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Denali National Park",
+                    "cityDomain": "https://denali-national-park-city-ak.mynewbrand.com",
+                    "citySitemap": "https://denali-national-park-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Healy",
+                    "cityDomain": "https://healy-city-ak.mynewbrand.com",
+                    "citySitemap": "https://healy-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://denali-county-ak.mynewbrand.com",
+            "countySitemap": "https://denali-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://denali-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://anderson-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cantwell-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://clear-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://denali-national-park-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://healy-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Dillingham",
+            "cities": [
+                {
+                    "cityName": "Aleknagik",
+                    "cityDomain": "https://aleknagik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://aleknagik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Clarks Point",
+                    "cityDomain": "https://clarks-point-city-ak.mynewbrand.com",
+                    "citySitemap": "https://clarks-point-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Dillingham",
+                    "cityDomain": "https://dillingham-city-ak.mynewbrand.com",
+                    "citySitemap": "https://dillingham-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ekwok",
+                    "cityDomain": "https://ekwok-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ekwok-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manokotak",
+                    "cityDomain": "https://manokotak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://manokotak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "New Stuyahok",
+                    "cityDomain": "https://new-stuyahok-city-ak.mynewbrand.com",
+                    "citySitemap": "https://new-stuyahok-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Togiak",
+                    "cityDomain": "https://togiak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://togiak-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://dillingham-county-ak.mynewbrand.com",
+            "countySitemap": "https://dillingham-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://dillingham-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://aleknagik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://clarks-point-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://dillingham-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ekwok-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://manokotak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://new-stuyahok-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://togiak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Fairbanks North Star",
+            "cities": [
+                {
+                    "cityName": "Eielson Afb",
+                    "cityDomain": "https://eielson-afb-city-ak.mynewbrand.com",
+                    "citySitemap": "https://eielson-afb-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ester",
+                    "cityDomain": "https://ester-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ester-city-ak.mynewbrand.com/sitemap.xml"
+                },
                 {
                     "cityName": "Fairbanks",
-                    "cityDomain": "https://fairbanks-city-ak.mydripnurse.com",
-                    "citySitemap": "https://fairbanks-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://fairbanks-city-ak.mynewbrand.com",
+                    "citySitemap": "https://fairbanks-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Wainwright",
+                    "cityDomain": "https://fort-wainwright-city-ak.mynewbrand.com",
+                    "citySitemap": "https://fort-wainwright-city-ak.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "North Pole",
-                    "cityDomain": "https://north-pole-city-ak.mydripnurse.com",
-                    "citySitemap": "https://north-pole-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://north-pole-city-ak.mynewbrand.com",
+                    "citySitemap": "https://north-pole-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Salcha",
+                    "cityDomain": "https://salcha-city-ak.mynewbrand.com",
+                    "citySitemap": "https://salcha-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Two Rivers",
+                    "cityDomain": "https://two-rivers-city-ak.mynewbrand.com",
+                    "citySitemap": "https://two-rivers-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Anchorage",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://fairbanks-north-star-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://fairbanks-north-star-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://fairbanks-north-star-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://fairbanks-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://north-pole-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://fairbanks-north-star-county-ak.mynewbrand.com",
+            "countySitemap": "https://fairbanks-north-star-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://fairbanks-north-star-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://eielson-afb-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ester-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fairbanks-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fort-wainwright-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://north-pole-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://salcha-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://two-rivers-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Kenai Peninsula Borough",
+            "countyName": "Haines",
             "cities": [
                 {
-                    "cityName": "Kenai",
-                    "cityDomain": "https://kenai-city-ak.mydripnurse.com",
-                    "citySitemap": "https://kenai-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Haines",
+                    "cityDomain": "https://haines-city-ak.mynewbrand.com",
+                    "citySitemap": "https://haines-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://haines-county-ak.mynewbrand.com",
+            "countySitemap": "https://haines-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://haines-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://haines-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Hoonah Angoon",
+            "cities": [
+                {
+                    "cityName": "Angoon",
+                    "cityDomain": "https://angoon-city-ak.mynewbrand.com",
+                    "citySitemap": "https://angoon-city-ak.mynewbrand.com/sitemap.xml"
                 },
                 {
-                    "cityName": "Soldotna",
-                    "cityDomain": "https://soldotna-city-ak.mydripnurse.com",
-                    "citySitemap": "https://soldotna-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Elfin Cove",
+                    "cityDomain": "https://elfin-cove-city-ak.mynewbrand.com",
+                    "citySitemap": "https://elfin-cove-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gustavus",
+                    "cityDomain": "https://gustavus-city-ak.mynewbrand.com",
+                    "citySitemap": "https://gustavus-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hoonah",
+                    "cityDomain": "https://hoonah-city-ak.mynewbrand.com",
+                    "citySitemap": "https://hoonah-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pelican",
+                    "cityDomain": "https://pelican-city-ak.mynewbrand.com",
+                    "citySitemap": "https://pelican-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tenakee Springs",
+                    "cityDomain": "https://tenakee-springs-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tenakee-springs-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://hoonah-angoon-county-ak.mynewbrand.com",
+            "countySitemap": "https://hoonah-angoon-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://hoonah-angoon-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://angoon-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://elfin-cove-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gustavus-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hoonah-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pelican-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tenakee-springs-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Juneau",
+            "cities": [
+                {
+                    "cityName": "Auke Bay",
+                    "cityDomain": "https://auke-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://auke-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Douglas",
+                    "cityDomain": "https://douglas-city-ak.mynewbrand.com",
+                    "citySitemap": "https://douglas-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Juneau",
+                    "cityDomain": "https://juneau-city-ak.mynewbrand.com",
+                    "citySitemap": "https://juneau-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://juneau-county-ak.mynewbrand.com",
+            "countySitemap": "https://juneau-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://juneau-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://auke-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://douglas-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://juneau-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Kenai Peninsula",
+            "cities": [
+                {
+                    "cityName": "Anchor Point",
+                    "cityDomain": "https://anchor-point-city-ak.mynewbrand.com",
+                    "citySitemap": "https://anchor-point-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Clam Gulch",
+                    "cityDomain": "https://clam-gulch-city-ak.mynewbrand.com",
+                    "citySitemap": "https://clam-gulch-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cooper Landing",
+                    "cityDomain": "https://cooper-landing-city-ak.mynewbrand.com",
+                    "citySitemap": "https://cooper-landing-city-ak.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Homer",
-                    "cityDomain": "https://homer-city-ak.mydripnurse.com",
-                    "citySitemap": "https://homer-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://homer-city-ak.mynewbrand.com",
+                    "citySitemap": "https://homer-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hope",
+                    "cityDomain": "https://hope-city-ak.mynewbrand.com",
+                    "citySitemap": "https://hope-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kasilof",
+                    "cityDomain": "https://kasilof-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kasilof-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kenai",
+                    "cityDomain": "https://kenai-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kenai-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Moose Pass",
+                    "cityDomain": "https://moose-pass-city-ak.mynewbrand.com",
+                    "citySitemap": "https://moose-pass-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nikiski",
+                    "cityDomain": "https://nikiski-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nikiski-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ninilchik",
+                    "cityDomain": "https://ninilchik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ninilchik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Seldovia",
+                    "cityDomain": "https://seldovia-city-ak.mynewbrand.com",
+                    "citySitemap": "https://seldovia-city-ak.mynewbrand.com/sitemap.xml"
                 },
                 {
                     "cityName": "Seward",
-                    "cityDomain": "https://seward-city-ak.mydripnurse.com",
-                    "citySitemap": "https://seward-city-ak.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Anchorage",
-                "UTC_Offset": "-09:00"
-            },
-            "countyDomain": "https://kenai-peninsula-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://kenai-peninsula-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://kenai-peninsula-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kenai-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://soldotna-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://homer-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://seward-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
-            "countyName": "Juneau City and Borough",
-            "cities": [
+                    "cityDomain": "https://seward-city-ak.mynewbrand.com",
+                    "citySitemap": "https://seward-city-ak.mynewbrand.com/sitemap.xml"
+                },
                 {
-                    "cityName": "Juneau",
-                    "cityDomain": "https://juneau-city-ak.mydripnurse.com",
-                    "citySitemap": "https://juneau-city-ak.mydripnurse.com/sitemap.xml"
-                }
-            ],
-            "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Juneau",
-                "UTC_Offset": "-09:00"
-            },
-            "countyDomain": "https://juneau-city-and-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://juneau-city-and-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://juneau-city-and-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://juneau-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
-        },
-        {
-            "countyName": "Sitka City and Borough",
-            "cities": [
+                    "cityName": "Soldotna",
+                    "cityDomain": "https://soldotna-city-ak.mynewbrand.com",
+                    "citySitemap": "https://soldotna-city-ak.mynewbrand.com/sitemap.xml"
+                },
                 {
-                    "cityName": "Sitka",
-                    "cityDomain": "https://sitka-city-ak.mydripnurse.com",
-                    "citySitemap": "https://sitka-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Sterling",
+                    "cityDomain": "https://sterling-city-ak.mynewbrand.com",
+                    "citySitemap": "https://sterling-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tyonek",
+                    "cityDomain": "https://tyonek-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tyonek-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Sitka",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://sitka-city-and-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://sitka-city-and-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://sitka-city-and-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://sitka-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://kenai-peninsula-county-ak.mynewbrand.com",
+            "countySitemap": "https://kenai-peninsula-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://kenai-peninsula-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://anchor-point-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://clam-gulch-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cooper-landing-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://homer-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hope-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kasilof-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kenai-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://moose-pass-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nikiski-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ninilchik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://seldovia-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://seward-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://soldotna-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sterling-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tyonek-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Ketchikan Gateway Borough",
+            "countyName": "Ketchikan Gateway",
             "cities": [
                 {
                     "cityName": "Ketchikan",
-                    "cityDomain": "https://ketchikan-city-ak.mydripnurse.com",
-                    "citySitemap": "https://ketchikan-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://ketchikan-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ketchikan-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Meyers Chuck",
+                    "cityDomain": "https://meyers-chuck-city-ak.mynewbrand.com",
+                    "citySitemap": "https://meyers-chuck-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ward Cove",
+                    "cityDomain": "https://ward-cove-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ward-cove-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Metlakatla",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://ketchikan-gateway-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://ketchikan-gateway-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://ketchikan-gateway-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://ketchikan-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://ketchikan-gateway-county-ak.mynewbrand.com",
+            "countySitemap": "https://ketchikan-gateway-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://ketchikan-gateway-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ketchikan-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://meyers-chuck-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ward-cove-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Kodiak Island Borough",
+            "countyName": "Kodiak Island",
             "cities": [
+                {
+                    "cityName": "Karluk",
+                    "cityDomain": "https://karluk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://karluk-city-ak.mynewbrand.com/sitemap.xml"
+                },
                 {
                     "cityName": "Kodiak",
-                    "cityDomain": "https://kodiak-city-ak.mydripnurse.com",
-                    "citySitemap": "https://kodiak-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://kodiak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kodiak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Larsen Bay",
+                    "cityDomain": "https://larsen-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://larsen-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Old Harbor",
+                    "cityDomain": "https://old-harbor-city-ak.mynewbrand.com",
+                    "citySitemap": "https://old-harbor-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ouzinkie",
+                    "cityDomain": "https://ouzinkie-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ouzinkie-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Port Lions",
+                    "cityDomain": "https://port-lions-city-ak.mynewbrand.com",
+                    "citySitemap": "https://port-lions-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Anchorage",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://kodiak-island-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://kodiak-island-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://kodiak-island-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://kodiak-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://kodiak-island-county-ak.mynewbrand.com",
+            "countySitemap": "https://kodiak-island-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://kodiak-island-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://karluk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kodiak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://larsen-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://old-harbor-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ouzinkie-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://port-lions-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Bethel Census Area",
+            "countyName": "Lake And Peninsula",
             "cities": [
                 {
-                    "cityName": "Bethel",
-                    "cityDomain": "https://bethel-city-ak.mydripnurse.com",
-                    "citySitemap": "https://bethel-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Chignik",
+                    "cityDomain": "https://chignik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chignik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chignik Lagoon",
+                    "cityDomain": "https://chignik-lagoon-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chignik-lagoon-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chignik Lake",
+                    "cityDomain": "https://chignik-lake-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chignik-lake-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Egegik",
+                    "cityDomain": "https://egegik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://egegik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Iliamna",
+                    "cityDomain": "https://iliamna-city-ak.mynewbrand.com",
+                    "citySitemap": "https://iliamna-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Levelock",
+                    "cityDomain": "https://levelock-city-ak.mynewbrand.com",
+                    "citySitemap": "https://levelock-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nondalton",
+                    "cityDomain": "https://nondalton-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nondalton-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pedro Bay",
+                    "cityDomain": "https://pedro-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://pedro-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Perryville",
+                    "cityDomain": "https://perryville-city-ak.mynewbrand.com",
+                    "citySitemap": "https://perryville-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pilot Point",
+                    "cityDomain": "https://pilot-point-city-ak.mynewbrand.com",
+                    "citySitemap": "https://pilot-point-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Port Alsworth",
+                    "cityDomain": "https://port-alsworth-city-ak.mynewbrand.com",
+                    "citySitemap": "https://port-alsworth-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Port Heiden",
+                    "cityDomain": "https://port-heiden-city-ak.mynewbrand.com",
+                    "citySitemap": "https://port-heiden-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Anchorage",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://bethel-census-area-county-ak.mydripnurse.com",
-            "countySitemap": "https://bethel-census-area-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://bethel-census-area-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://bethel-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://lake-and-peninsula-county-ak.mynewbrand.com",
+            "countySitemap": "https://lake-and-peninsula-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://lake-and-peninsula-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chignik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chignik-lagoon-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chignik-lake-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://egegik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://iliamna-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://levelock-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nondalton-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pedro-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://perryville-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pilot-point-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://port-alsworth-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://port-heiden-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Nome Census Area",
+            "countyName": "Matanuska Susitna",
             "cities": [
+                {
+                    "cityName": "Big Lake",
+                    "cityDomain": "https://big-lake-city-ak.mynewbrand.com",
+                    "citySitemap": "https://big-lake-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Houston",
+                    "cityDomain": "https://houston-city-ak.mynewbrand.com",
+                    "citySitemap": "https://houston-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Palmer",
+                    "cityDomain": "https://palmer-city-ak.mynewbrand.com",
+                    "citySitemap": "https://palmer-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Skwentna",
+                    "cityDomain": "https://skwentna-city-ak.mynewbrand.com",
+                    "citySitemap": "https://skwentna-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sutton",
+                    "cityDomain": "https://sutton-city-ak.mynewbrand.com",
+                    "citySitemap": "https://sutton-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Talkeetna",
+                    "cityDomain": "https://talkeetna-city-ak.mynewbrand.com",
+                    "citySitemap": "https://talkeetna-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Trapper Creek",
+                    "cityDomain": "https://trapper-creek-city-ak.mynewbrand.com",
+                    "citySitemap": "https://trapper-creek-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wasilla",
+                    "cityDomain": "https://wasilla-city-ak.mynewbrand.com",
+                    "citySitemap": "https://wasilla-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Willow",
+                    "cityDomain": "https://willow-city-ak.mynewbrand.com",
+                    "citySitemap": "https://willow-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://matanuska-susitna-county-ak.mynewbrand.com",
+            "countySitemap": "https://matanuska-susitna-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://matanuska-susitna-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://big-lake-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://houston-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://palmer-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://skwentna-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sutton-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://talkeetna-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://trapper-creek-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wasilla-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://willow-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Nome",
+            "cities": [
+                {
+                    "cityName": "Brevig Mission",
+                    "cityDomain": "https://brevig-mission-city-ak.mynewbrand.com",
+                    "citySitemap": "https://brevig-mission-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Elim",
+                    "cityDomain": "https://elim-city-ak.mynewbrand.com",
+                    "citySitemap": "https://elim-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gambell",
+                    "cityDomain": "https://gambell-city-ak.mynewbrand.com",
+                    "citySitemap": "https://gambell-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Koyuk",
+                    "cityDomain": "https://koyuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://koyuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
                 {
                     "cityName": "Nome",
-                    "cityDomain": "https://nome-city-ak.mydripnurse.com",
-                    "citySitemap": "https://nome-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityDomain": "https://nome-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nome-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Saint Michael",
+                    "cityDomain": "https://saint-michael-city-ak.mynewbrand.com",
+                    "citySitemap": "https://saint-michael-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Savoonga",
+                    "cityDomain": "https://savoonga-city-ak.mynewbrand.com",
+                    "citySitemap": "https://savoonga-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Shaktoolik",
+                    "cityDomain": "https://shaktoolik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://shaktoolik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Shishmaref",
+                    "cityDomain": "https://shishmaref-city-ak.mynewbrand.com",
+                    "citySitemap": "https://shishmaref-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stebbins",
+                    "cityDomain": "https://stebbins-city-ak.mynewbrand.com",
+                    "citySitemap": "https://stebbins-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Teller",
+                    "cityDomain": "https://teller-city-ak.mynewbrand.com",
+                    "citySitemap": "https://teller-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Unalakleet",
+                    "cityDomain": "https://unalakleet-city-ak.mynewbrand.com",
+                    "citySitemap": "https://unalakleet-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wales",
+                    "cityDomain": "https://wales-city-ak.mynewbrand.com",
+                    "citySitemap": "https://wales-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "White Mountain",
+                    "cityDomain": "https://white-mountain-city-ak.mynewbrand.com",
+                    "citySitemap": "https://white-mountain-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Nome",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://nome-census-area-county-ak.mydripnurse.com",
-            "countySitemap": "https://nome-census-area-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://nome-census-area-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://nome-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://nome-county-ak.mynewbrand.com",
+            "countySitemap": "https://nome-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://nome-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://brevig-mission-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://elim-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gambell-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://koyuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nome-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://saint-michael-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://savoonga-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://shaktoolik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://shishmaref-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://stebbins-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://teller-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://unalakleet-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wales-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://white-mountain-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "North Slope Borough",
+            "countyName": "North Slope",
             "cities": [
                 {
-                    "cityName": "Utqiaġvik",
-                    "cityDomain": "https://utqiagvik-city-ak.mydripnurse.com",
-                    "citySitemap": "https://utqiagvik-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Anaktuvuk Pass",
+                    "cityDomain": "https://anaktuvuk-pass-city-ak.mynewbrand.com",
+                    "citySitemap": "https://anaktuvuk-pass-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Atqasuk",
+                    "cityDomain": "https://atqasuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://atqasuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Barrow",
+                    "cityDomain": "https://barrow-city-ak.mynewbrand.com",
+                    "citySitemap": "https://barrow-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kaktovik",
+                    "cityDomain": "https://kaktovik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kaktovik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nuiqsut",
+                    "cityDomain": "https://nuiqsut-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nuiqsut-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Point Hope",
+                    "cityDomain": "https://point-hope-city-ak.mynewbrand.com",
+                    "citySitemap": "https://point-hope-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Point Lay",
+                    "cityDomain": "https://point-lay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://point-lay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Prudhoe Bay",
+                    "cityDomain": "https://prudhoe-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://prudhoe-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Wainwright",
+                    "cityDomain": "https://wainwright-city-ak.mynewbrand.com",
+                    "citySitemap": "https://wainwright-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Alaska Time",
-                "Zone": "America/Anchorage",
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
                 "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://north-slope-borough-county-ak.mydripnurse.com",
-            "countySitemap": "https://north-slope-borough-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://north-slope-borough-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://utqiagvik-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://north-slope-county-ak.mynewbrand.com",
+            "countySitemap": "https://north-slope-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://north-slope-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://anaktuvuk-pass-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://atqasuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://barrow-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kaktovik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nuiqsut-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://point-hope-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://point-lay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://prudhoe-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wainwright-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         },
         {
-            "countyName": "Aleutians West Census Area",
+            "countyName": "Northwest Arctic",
             "cities": [
                 {
-                    "cityName": "Unalaska",
-                    "cityDomain": "https://unalaska-city-ak.mydripnurse.com",
-                    "citySitemap": "https://unalaska-city-ak.mydripnurse.com/sitemap.xml"
+                    "cityName": "Ambler",
+                    "cityDomain": "https://ambler-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ambler-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Buckland",
+                    "cityDomain": "https://buckland-city-ak.mynewbrand.com",
+                    "citySitemap": "https://buckland-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Deering",
+                    "cityDomain": "https://deering-city-ak.mynewbrand.com",
+                    "citySitemap": "https://deering-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kiana",
+                    "cityDomain": "https://kiana-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kiana-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kivalina",
+                    "cityDomain": "https://kivalina-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kivalina-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kobuk",
+                    "cityDomain": "https://kobuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kobuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kotzebue",
+                    "cityDomain": "https://kotzebue-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kotzebue-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Noatak",
+                    "cityDomain": "https://noatak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://noatak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Noorvik",
+                    "cityDomain": "https://noorvik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://noorvik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Selawik",
+                    "cityDomain": "https://selawik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://selawik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Shungnak",
+                    "cityDomain": "https://shungnak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://shungnak-city-ak.mynewbrand.com/sitemap.xml"
                 }
             ],
             "Timezone": {
-                "Name": "Aleutian Time",
-                "Zone": "America/Adak",
-                "UTC_Offset": "-10:00"
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
             },
-            "countyDomain": "https://aleutians-west-census-area-county-ak.mydripnurse.com",
-            "countySitemap": "https://aleutians-west-census-area-county-ak.mydripnurse.com/sitemap.xml",
-            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://aleutians-west-census-area-county-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://unalaska-city-ak.mydripnurse.com/sitemap.xml</loc>\n    <lastmod>2026-01-18</lastmod>\n  </sitemap>\n</sitemapindex>"
+            "countyDomain": "https://northwest-arctic-county-ak.mynewbrand.com",
+            "countySitemap": "https://northwest-arctic-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://northwest-arctic-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ambler-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://buckland-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://deering-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kiana-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kivalina-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kobuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kotzebue-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://noatak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://noorvik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://selawik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://shungnak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Petersburg",
+            "cities": [
+                {
+                    "cityName": "Kake",
+                    "cityDomain": "https://kake-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kake-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Petersburg",
+                    "cityDomain": "https://petersburg-city-ak.mynewbrand.com",
+                    "citySitemap": "https://petersburg-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://petersburg-county-ak.mynewbrand.com",
+            "countySitemap": "https://petersburg-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://petersburg-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kake-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://petersburg-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Prince Of Wales Hyder",
+            "cities": [
+                {
+                    "cityName": "Coffman Cove",
+                    "cityDomain": "https://coffman-cove-city-ak.mynewbrand.com",
+                    "citySitemap": "https://coffman-cove-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Craig",
+                    "cityDomain": "https://craig-city-ak.mynewbrand.com",
+                    "citySitemap": "https://craig-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hydaburg",
+                    "cityDomain": "https://hydaburg-city-ak.mynewbrand.com",
+                    "citySitemap": "https://hydaburg-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hyder",
+                    "cityDomain": "https://hyder-city-ak.mynewbrand.com",
+                    "citySitemap": "https://hyder-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Klawock",
+                    "cityDomain": "https://klawock-city-ak.mynewbrand.com",
+                    "citySitemap": "https://klawock-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Metlakatla",
+                    "cityDomain": "https://metlakatla-city-ak.mynewbrand.com",
+                    "citySitemap": "https://metlakatla-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Point Baker",
+                    "cityDomain": "https://point-baker-city-ak.mynewbrand.com",
+                    "citySitemap": "https://point-baker-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Thorne Bay",
+                    "cityDomain": "https://thorne-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://thorne-bay-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://prince-of-wales-hyder-county-ak.mynewbrand.com",
+            "countySitemap": "https://prince-of-wales-hyder-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://prince-of-wales-hyder-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://coffman-cove-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://craig-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hydaburg-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hyder-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://klawock-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://metlakatla-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://point-baker-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://thorne-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Sitka",
+            "cities": [
+                {
+                    "cityName": "Port Alexander",
+                    "cityDomain": "https://port-alexander-city-ak.mynewbrand.com",
+                    "citySitemap": "https://port-alexander-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Sitka",
+                    "cityDomain": "https://sitka-city-ak.mynewbrand.com",
+                    "citySitemap": "https://sitka-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://sitka-county-ak.mynewbrand.com",
+            "countySitemap": "https://sitka-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://sitka-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://port-alexander-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://sitka-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Skagway",
+            "cities": [
+                {
+                    "cityName": "Skagway",
+                    "cityDomain": "https://skagway-city-ak.mynewbrand.com",
+                    "citySitemap": "https://skagway-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://skagway-county-ak.mynewbrand.com",
+            "countySitemap": "https://skagway-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://skagway-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://skagway-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Southeast Fairbanks",
+            "cities": [
+                {
+                    "cityName": "Chicken",
+                    "cityDomain": "https://chicken-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chicken-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Delta Junction",
+                    "cityDomain": "https://delta-junction-city-ak.mynewbrand.com",
+                    "citySitemap": "https://delta-junction-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Eagle",
+                    "cityDomain": "https://eagle-city-ak.mynewbrand.com",
+                    "citySitemap": "https://eagle-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Greely",
+                    "cityDomain": "https://fort-greely-city-ak.mynewbrand.com",
+                    "citySitemap": "https://fort-greely-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Northway",
+                    "cityDomain": "https://northway-city-ak.mynewbrand.com",
+                    "citySitemap": "https://northway-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tanacross",
+                    "cityDomain": "https://tanacross-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tanacross-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tok",
+                    "cityDomain": "https://tok-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tok-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://southeast-fairbanks-county-ak.mynewbrand.com",
+            "countySitemap": "https://southeast-fairbanks-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://southeast-fairbanks-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chicken-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://delta-junction-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://eagle-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fort-greely-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://northway-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tanacross-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tok-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Valdez Cordova",
+            "cities": [
+                {
+                    "cityName": "Chitina",
+                    "cityDomain": "https://chitina-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chitina-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Copper Center",
+                    "cityDomain": "https://copper-center-city-ak.mynewbrand.com",
+                    "citySitemap": "https://copper-center-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Cordova",
+                    "cityDomain": "https://cordova-city-ak.mynewbrand.com",
+                    "citySitemap": "https://cordova-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Gakona",
+                    "cityDomain": "https://gakona-city-ak.mynewbrand.com",
+                    "citySitemap": "https://gakona-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Glennallen",
+                    "cityDomain": "https://glennallen-city-ak.mynewbrand.com",
+                    "citySitemap": "https://glennallen-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tatitlek",
+                    "cityDomain": "https://tatitlek-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tatitlek-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Valdez",
+                    "cityDomain": "https://valdez-city-ak.mynewbrand.com",
+                    "citySitemap": "https://valdez-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Whittier",
+                    "cityDomain": "https://whittier-city-ak.mynewbrand.com",
+                    "citySitemap": "https://whittier-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://valdez-cordova-county-ak.mynewbrand.com",
+            "countySitemap": "https://valdez-cordova-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://valdez-cordova-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chitina-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://copper-center-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://cordova-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://gakona-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://glennallen-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tatitlek-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://valdez-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://whittier-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Wade Hampton",
+            "cities": [
+                {
+                    "cityName": "Alakanuk",
+                    "cityDomain": "https://alakanuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://alakanuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chevak",
+                    "cityDomain": "https://chevak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chevak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Emmonak",
+                    "cityDomain": "https://emmonak-city-ak.mynewbrand.com",
+                    "citySitemap": "https://emmonak-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hooper Bay",
+                    "cityDomain": "https://hooper-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://hooper-bay-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kotlik",
+                    "cityDomain": "https://kotlik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kotlik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Marshall",
+                    "cityDomain": "https://marshall-city-ak.mynewbrand.com",
+                    "citySitemap": "https://marshall-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mountain Village",
+                    "cityDomain": "https://mountain-village-city-ak.mynewbrand.com",
+                    "citySitemap": "https://mountain-village-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nunam Iqua",
+                    "cityDomain": "https://nunam-iqua-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nunam-iqua-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Pilot Station",
+                    "cityDomain": "https://pilot-station-city-ak.mynewbrand.com",
+                    "citySitemap": "https://pilot-station-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Russian Mission",
+                    "cityDomain": "https://russian-mission-city-ak.mynewbrand.com",
+                    "citySitemap": "https://russian-mission-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Saint Marys",
+                    "cityDomain": "https://saint-marys-city-ak.mynewbrand.com",
+                    "citySitemap": "https://saint-marys-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Scammon Bay",
+                    "cityDomain": "https://scammon-bay-city-ak.mynewbrand.com",
+                    "citySitemap": "https://scammon-bay-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://wade-hampton-county-ak.mynewbrand.com",
+            "countySitemap": "https://wade-hampton-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://wade-hampton-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://alakanuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chevak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://emmonak-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hooper-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kotlik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://marshall-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mountain-village-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nunam-iqua-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://pilot-station-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://russian-mission-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://saint-marys-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://scammon-bay-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Wrangell",
+            "cities": [
+                {
+                    "cityName": "Wrangell",
+                    "cityDomain": "https://wrangell-city-ak.mynewbrand.com",
+                    "citySitemap": "https://wrangell-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://wrangell-county-ak.mynewbrand.com",
+            "countySitemap": "https://wrangell-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://wrangell-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://wrangell-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Yakutat",
+            "cities": [
+                {
+                    "cityName": "Yakutat",
+                    "cityDomain": "https://yakutat-city-ak.mynewbrand.com",
+                    "citySitemap": "https://yakutat-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://yakutat-county-ak.mynewbrand.com",
+            "countySitemap": "https://yakutat-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://yakutat-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://yakutat-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
+        },
+        {
+            "countyName": "Yukon Koyukuk",
+            "cities": [
+                {
+                    "cityName": "Allakaket",
+                    "cityDomain": "https://allakaket-city-ak.mynewbrand.com",
+                    "citySitemap": "https://allakaket-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Anvik",
+                    "cityDomain": "https://anvik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://anvik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Arctic Village",
+                    "cityDomain": "https://arctic-village-city-ak.mynewbrand.com",
+                    "citySitemap": "https://arctic-village-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Beaver",
+                    "cityDomain": "https://beaver-city-ak.mynewbrand.com",
+                    "citySitemap": "https://beaver-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Bettles Field",
+                    "cityDomain": "https://bettles-field-city-ak.mynewbrand.com",
+                    "citySitemap": "https://bettles-field-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Central",
+                    "cityDomain": "https://central-city-ak.mynewbrand.com",
+                    "citySitemap": "https://central-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Chalkyitsik",
+                    "cityDomain": "https://chalkyitsik-city-ak.mynewbrand.com",
+                    "citySitemap": "https://chalkyitsik-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Circle",
+                    "cityDomain": "https://circle-city-ak.mynewbrand.com",
+                    "citySitemap": "https://circle-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Fort Yukon",
+                    "cityDomain": "https://fort-yukon-city-ak.mynewbrand.com",
+                    "citySitemap": "https://fort-yukon-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Galena",
+                    "cityDomain": "https://galena-city-ak.mynewbrand.com",
+                    "citySitemap": "https://galena-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Grayling",
+                    "cityDomain": "https://grayling-city-ak.mynewbrand.com",
+                    "citySitemap": "https://grayling-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Holy Cross",
+                    "cityDomain": "https://holy-cross-city-ak.mynewbrand.com",
+                    "citySitemap": "https://holy-cross-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Hughes",
+                    "cityDomain": "https://hughes-city-ak.mynewbrand.com",
+                    "citySitemap": "https://hughes-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Huslia",
+                    "cityDomain": "https://huslia-city-ak.mynewbrand.com",
+                    "citySitemap": "https://huslia-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Kaltag",
+                    "cityDomain": "https://kaltag-city-ak.mynewbrand.com",
+                    "citySitemap": "https://kaltag-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Koyukuk",
+                    "cityDomain": "https://koyukuk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://koyukuk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Lake Minchumina",
+                    "cityDomain": "https://lake-minchumina-city-ak.mynewbrand.com",
+                    "citySitemap": "https://lake-minchumina-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Manley Hot Springs",
+                    "cityDomain": "https://manley-hot-springs-city-ak.mynewbrand.com",
+                    "citySitemap": "https://manley-hot-springs-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Mc Grath",
+                    "cityDomain": "https://mc-grath-city-ak.mynewbrand.com",
+                    "citySitemap": "https://mc-grath-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Minto",
+                    "cityDomain": "https://minto-city-ak.mynewbrand.com",
+                    "citySitemap": "https://minto-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nenana",
+                    "cityDomain": "https://nenana-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nenana-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nikolai",
+                    "cityDomain": "https://nikolai-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nikolai-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Nulato",
+                    "cityDomain": "https://nulato-city-ak.mynewbrand.com",
+                    "citySitemap": "https://nulato-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Rampart",
+                    "cityDomain": "https://rampart-city-ak.mynewbrand.com",
+                    "citySitemap": "https://rampart-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Ruby",
+                    "cityDomain": "https://ruby-city-ak.mynewbrand.com",
+                    "citySitemap": "https://ruby-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Shageluk",
+                    "cityDomain": "https://shageluk-city-ak.mynewbrand.com",
+                    "citySitemap": "https://shageluk-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Stevens Village",
+                    "cityDomain": "https://stevens-village-city-ak.mynewbrand.com",
+                    "citySitemap": "https://stevens-village-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Takotna",
+                    "cityDomain": "https://takotna-city-ak.mynewbrand.com",
+                    "citySitemap": "https://takotna-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Tanana",
+                    "cityDomain": "https://tanana-city-ak.mynewbrand.com",
+                    "citySitemap": "https://tanana-city-ak.mynewbrand.com/sitemap.xml"
+                },
+                {
+                    "cityName": "Venetie",
+                    "cityDomain": "https://venetie-city-ak.mynewbrand.com",
+                    "citySitemap": "https://venetie-city-ak.mynewbrand.com/sitemap.xml"
+                }
+            ],
+            "Timezone": {
+                "Name": "Alaska",
+                "Zone": "US/Alaska",
+                "UTC_Offset": "-09:00"
+            },
+            "countyDomain": "https://yukon-koyukuk-county-ak.mynewbrand.com",
+            "countySitemap": "https://yukon-koyukuk-county-ak.mynewbrand.com/sitemap.xml",
+            "embeddedSitemap": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\\n  <sitemap>\\n    <loc>https://yukon-koyukuk-county-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://allakaket-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://anvik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://arctic-village-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://beaver-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://bettles-field-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://central-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://chalkyitsik-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://circle-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://fort-yukon-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://galena-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://grayling-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://holy-cross-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://hughes-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://huslia-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://kaltag-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://koyukuk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://lake-minchumina-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://manley-hot-springs-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://mc-grath-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://minto-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nenana-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nikolai-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://nulato-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://rampart-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://ruby-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://shageluk-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://stevens-village-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://takotna-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://tanana-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n  <sitemap>\\n    <loc>https://venetie-city-ak.mynewbrand.com/sitemap.xml</loc>\\n    <lastmod>2026-02-14</lastmod>\\n  </sitemap>\\n</sitemapindex>"
         }
     ],
-    "stateName": "Alaska",
-    "companyName": "My Drip Nurse",
-    "website": "https://www.mydripnurse.com",
-    "ownerName": "Keishla",
-    "ownerLastName": "Caraballo",
-    "phone": "9392749203",
-    "email": "keyla03@live.com",
-    "twilio": {
-        "sid": "secret",
-        "authToken": "secret"
-    },
-    "mailgun": {
-        "apiKey": "secret",
-        "domain": "secret"
-    },
-    "customValues": {
-        "businessInformation": {
-            "favicon": "https://storage.googleapis.com/msgsndr/vMfl1L5xb2wJfNFNW5fb/media/656c2a9fe33f7c575831e093.png",
-            "businessPhone": ""
-        },
-        "ivTherapyPrice": {
-            "myersCocktailPrice": "299",
-            "alleviatePrice": "219",
-            "brainStormPrice": "199",
-            "getLeanPrice": "179",
-            "immunityDefensePrice": "279",
-            "immunityDefenseAndGlutathionePrice": "299",
-            "hangoverPrice": "219",
-            "hydratePrice": "219",
-            "nadPrice": "599",
-            "nadBoostPrice": "797",
-            "recoveryPerformancePrice": "219",
-            "theGlowPrice": "199"
-        },
-        "vitaminPrice": {
-            "vitaminD3": "100",
-            "bComplex": "70",
-            "biotin": "75",
-            "vitaminC": "70",
-            "aminoBlend": "80",
-            "glutathione": "90",
-            "lipoMino": "120",
-            "triImmuneBoost": "120",
-            "vitaminB12": "70",
-            "ondansetron": "70"
-        },
-        "facebook": {
-            "accessToken": "secret",
-            "facebookPixel": "secret",
-            "instagramUrl": "https://www.instagram.com/mydripnurse/",
-            "facebookUrl": "https://www.facebook.com/MyDripNurse"
-        }
-    },
-    "businessInformation": {
-        "snapshotId": "secret",
-        "companyId": "secret"
-    }
+    "stateName": "Alaska"
 }

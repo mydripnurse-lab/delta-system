@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
-import { loadSheetTabIndex } from "../../../../../../services/sheetsClient.js";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 
 export const runtime = "nodejs";
-
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
-const COUNTY_TAB = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
-const CITY_TAB = process.env.GOOGLE_SHEET_CITY_TAB || "Cities";
 
 function norm(v: any) {
     return String(v ?? "").trim();
@@ -35,40 +31,35 @@ function ensureStateAgg(agg: any, state: string) {
     return agg[state];
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const tenantId = norm(searchParams.get("tenantId"));
+        if (!tenantId) {
+            return NextResponse.json({ error: "Missing tenantId" }, { status: 400 });
+        }
+
+        const cfg = await getTenantSheetConfig(tenantId);
         const debugEnv = {
-            GOOGLE_SHEET_ID: SPREADSHEET_ID ? `${String(SPREADSHEET_ID).slice(0, 4)}***${String(SPREADSHEET_ID).slice(-4)}` : null,
-            GOOGLE_SHEET_COUNTY_TAB: COUNTY_TAB,
-            GOOGLE_SHEET_CITY_TAB: CITY_TAB,
-            hasLoadSheetTabIndex: typeof loadSheetTabIndex === "function",
-            SHEETS_LOG: process.env.SHEETS_LOG || null,
-            SHEETS_LOG_SCOPE: process.env.SHEETS_LOG_SCOPE || null,
+            tenantId,
+            GOOGLE_SHEET_ID: `${String(cfg.spreadsheetId).slice(0, 4)}***${String(cfg.spreadsheetId).slice(-4)}`,
+            GOOGLE_SHEET_COUNTY_TAB: cfg.countyTab,
+            GOOGLE_SHEET_CITY_TAB: cfg.cityTab,
             cwd: process.cwd(),
         };
 
-        if (!SPREADSHEET_ID) {
-            return NextResponse.json({ error: "Missing GOOGLE_SHEET_ID", debugEnv }, { status: 400 });
-        }
-        if (typeof loadSheetTabIndex !== "function") {
-            return NextResponse.json(
-                { error: "loadSheetTabIndex import is not a function", debugEnv },
-                { status: 500 }
-            );
-        }
-
-        const counties = await loadSheetTabIndex({
-            spreadsheetId: SPREADSHEET_ID,
-            sheetName: COUNTY_TAB,
+        const counties = await loadTenantSheetTabIndex({
+            tenantId,
+            spreadsheetId: cfg.spreadsheetId,
+            sheetName: cfg.countyTab,
             range: "A:Z",
-            logScope: "overview",
         });
 
-        const cities = await loadSheetTabIndex({
-            spreadsheetId: SPREADSHEET_ID,
-            sheetName: CITY_TAB,
+        const cities = await loadTenantSheetTabIndex({
+            tenantId,
+            spreadsheetId: cfg.spreadsheetId,
+            sheetName: cfg.cityTab,
             range: "A:Z",
-            logScope: "overview",
         });
 
         const agg: Record<string, any> = {};
@@ -110,7 +101,7 @@ export async function GET() {
         );
 
         return NextResponse.json({
-            tabs: { counties: COUNTY_TAB, cities: CITY_TAB },
+            tabs: { counties: cfg.countyTab, cities: cfg.cityTab },
             states,
             debugEnv,
         });
@@ -119,9 +110,6 @@ export async function GET() {
             {
                 error: err?.message || "Unknown error",
                 debug: {
-                    GOOGLE_SHEET_ID: SPREADSHEET_ID ? `${String(SPREADSHEET_ID).slice(0, 4)}***${String(SPREADSHEET_ID).slice(-4)}` : null,
-                    COUNTY_TAB,
-                    CITY_TAB,
                     cwd: process.cwd(),
                 },
             },

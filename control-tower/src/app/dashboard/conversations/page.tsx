@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
@@ -270,6 +271,7 @@ function LineTrend({
 }
 
 export default function ConversationsDashboardPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -291,6 +293,11 @@ export default function ConversationsDashboardPage() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
+  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+  const backHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard";
 
   async function load(force = false) {
     setErr("");
@@ -305,6 +312,10 @@ export default function ConversationsDashboardPage() {
       qs.set("start", computedRange.start);
       qs.set("end", computedRange.end);
       if (force) qs.set("bust", "1");
+      if (tenantId) {
+        qs.set("tenantId", tenantId);
+        qs.set("integrationKey", integrationKey);
+      }
 
       const currRes = await fetch(`/api/dashboard/conversations?${qs.toString()}`, { cache: "no-store" });
       const curr = (await currRes.json()) as ConversationsApiResponse;
@@ -319,6 +330,10 @@ export default function ConversationsDashboardPage() {
         pQs.set("start", prev.prevStart);
         pQs.set("end", prev.prevEnd);
         if (force) pQs.set("bust", "1");
+        if (tenantId) {
+          pQs.set("tenantId", tenantId);
+          pQs.set("integrationKey", integrationKey);
+        }
         const prevRes = await fetch(`/api/dashboard/conversations?${pQs.toString()}`, { cache: "no-store" });
         const prevJson = (await prevRes.json()) as ConversationsApiResponse;
         if (prevRes.ok && prevJson?.ok) setPrevData(prevJson);
@@ -516,7 +531,7 @@ export default function ConversationsDashboardPage() {
           </div>
         </div>
         <div className="pills">
-          <Link className="smallBtn" href="/dashboard">
+          <Link className="smallBtn" href={backHref}>
             Back to Dashboard
           </Link>
           <div className="pill">

@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
-import path from "path";
-import fs from "fs";
-import fsp from "fs/promises";
-import { getGscOAuthClient } from "@/lib/gscAuth";
+import { getTenantGoogleAuth } from "@/lib/tenantGoogleAuth";
 
 export const runtime = "nodejs";
 
@@ -47,29 +44,6 @@ function googleErr(e: unknown) {
   return { msg, status };
 }
 
-function resolveKeyfilePathSmart(relOrAbs: string) {
-  const raw = s(relOrAbs);
-  if (!raw) return "";
-  if (path.isAbsolute(raw)) return raw;
-
-  const cwd = process.cwd();
-  const bases: string[] = [cwd, path.join(cwd, ".."), path.join(cwd, "..", "..")];
-  const parts = cwd.split(path.sep);
-  const idx = parts.lastIndexOf("control-tower");
-  if (idx >= 0) {
-    const repoRoot = parts.slice(0, idx).join(path.sep);
-    if (repoRoot) {
-      bases.unshift(repoRoot);
-      bases.unshift(path.join(repoRoot, "control-tower"));
-    }
-  }
-  for (const base of bases) {
-    const candidate = path.normalize(path.join(base, raw));
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return path.normalize(path.join(cwd, raw));
-}
-
 type AuthCandidate = {
   name: string;
   auth: any;
@@ -83,74 +57,13 @@ type InspectSnapshot = {
   robotsTxtState?: string;
 };
 
-async function getLegacyOAuthFromGoogleApplicationCredentials() {
-  const tokenPathRaw = s(process.env.GOOGLE_APPLICATION_CREDENTIALS);
-  const clientId = s(process.env.GSC_CLIENT_ID);
-  const clientSecret = s(process.env.GSC_CLIENT_SECRET);
-  if (!tokenPathRaw || !clientId || !clientSecret) return null;
-
-  const tokenPath = resolveKeyfilePathSmart(tokenPathRaw);
-  if (!fs.existsSync(tokenPath)) return null;
-
-  try {
-    const raw = await fsp.readFile(tokenPath, "utf8");
-    const parsed = JSON.parse(raw || "{}");
-    const tokens = parsed?.tokens || parsed;
-    const refreshToken = s(tokens?.refresh_token);
-    if (!refreshToken) return null;
-
-    const oauth2 = new google.auth.OAuth2(clientId, clientSecret, "http://localhost");
-    oauth2.setCredentials({
-      refresh_token: refreshToken,
-      access_token: s(tokens?.access_token) || undefined,
-      expiry_date: Number(tokens?.expiry_date) || undefined,
-    });
-    await oauth2.getAccessToken();
-    return oauth2;
-  } catch {
-    return null;
-  }
-}
-
-async function getGoogleAuthCandidates(): Promise<AuthCandidate[]> {
+async function getGoogleAuthCandidates(tenantId: string): Promise<AuthCandidate[]> {
   const out: AuthCandidate[] = [];
 
-  const useOauth = s(process.env.GSC_TOKENS_FILE) && s(process.env.GSC_OAUTH_CLIENT_FILE);
-  if (useOauth) {
-    try {
-      const { oauth2 } = await getGscOAuthClient();
-      out.push({ name: "gsc_oauth_files", auth: oauth2 });
-    } catch {}
-  }
-
-  const legacyOAuth = await getLegacyOAuthFromGoogleApplicationCredentials();
-  if (legacyOAuth) {
-    out.push({ name: "legacy_google_application_credentials_oauth", auth: legacyOAuth });
-  }
-
-  const clientEmail = s(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL);
-  const privateKeyRaw = s(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY);
-  if (clientEmail && privateKeyRaw) {
-    const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
-    const jwt = new google.auth.JWT({
-      email: clientEmail,
-      key: privateKey,
-      scopes: ["https://www.googleapis.com/auth/webmasters"],
-    });
-    out.push({ name: "service_account_inline", auth: jwt });
-  }
-
-  const keyfileEnv = s(process.env.GOOGLE_SERVICE_ACCOUNT_KEYFILE);
-  if (keyfileEnv) {
-    const keyFile = resolveKeyfilePathSmart(keyfileEnv);
-    if (fs.existsSync(keyFile)) {
-      const ga = new google.auth.GoogleAuth({
-        keyFile,
-        scopes: ["https://www.googleapis.com/auth/webmasters"],
-      });
-      out.push({ name: "service_account_keyfile", auth: ga });
-    }
-  }
+  const tenantJwt = await getTenantGoogleAuth(tenantId, [
+    "https://www.googleapis.com/auth/webmasters",
+  ]);
+  out.push({ name: "tenant_service_account_db", auth: tenantJwt });
 
   return out;
 }
@@ -254,7 +167,11 @@ async function requestDiscoveryForUnknown(
 
 type GoogleSubmitMode = "inspect" | "discovery" | "auto";
 
-async function inspectGoogleDomain(domainUrl: string, mode: GoogleSubmitMode = "auto") {
+async function inspectGoogleDomain(
+  domainUrl: string,
+  tenantId: string,
+  mode: GoogleSubmitMode = "auto",
+) {
   const enabled = s(process.env.INDEX_GOOGLE_ENABLED || "true").toLowerCase();
   if (enabled === "false" || enabled === "0" || enabled === "no") {
     return { ok: false, error: "Google indexing disabled by env (INDEX_GOOGLE_ENABLED=false)." };
@@ -286,7 +203,7 @@ async function inspectGoogleDomain(domainUrl: string, mode: GoogleSubmitMode = "
     fetchError = s(e?.message) || "Fetch failed";
   }
 
-  const authCandidates = await getGoogleAuthCandidates();
+  const authCandidates = await getGoogleAuthCandidates(tenantId);
   if (!authCandidates.length) {
     return {
       ok: false,
@@ -301,7 +218,7 @@ async function inspectGoogleDomain(domainUrl: string, mode: GoogleSubmitMode = "
       },
       inspection: {},
       error:
-        "No Google auth available. Configure GSC OAuth (GSC_*) or legacy OAuth (GOOGLE_APPLICATION_CREDENTIALS + GSC_CLIENT_ID/GSC_CLIENT_SECRET) or service account (GOOGLE_SERVICE_ACCOUNT_*).",
+        "No Google auth available for tenant. Set google_service_account_json in tenant settings.",
     };
   }
 
@@ -439,6 +356,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({} as any));
     const target = s(body?.target || "google").toLowerCase();
+    const tenantId = s(body?.tenantId);
     const domainUrl = toOriginUrlMaybe(s(body?.domainUrl));
     const modeRaw = s(body?.mode || "auto").toLowerCase();
     const mode: GoogleSubmitMode =
@@ -452,6 +370,12 @@ export async function POST(req: Request) {
 
     if (!domainUrl) {
       return NextResponse.json({ ok: false, error: "Missing domainUrl" }, { status: 400 });
+    }
+    if (!tenantId) {
+      return NextResponse.json(
+        { ok: false, error: "Missing tenantId (Google auth is tenant-scoped)." },
+        { status: 400 },
+      );
     }
 
     const out: {
@@ -497,7 +421,7 @@ export async function POST(req: Request) {
     };
 
     try {
-      out.google = await inspectGoogleDomain(domainUrl, mode);
+      out.google = await inspectGoogleDomain(domainUrl, tenantId, mode);
     } catch (e: any) {
       out.google = { ok: false, error: s(e?.message) || "Google index submit failed." };
     }
