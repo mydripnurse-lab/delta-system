@@ -5,6 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
+import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 
 const UsaChoroplethProgressMap = dynamic(
@@ -85,7 +86,7 @@ function GscDashboardPageContent() {
   const [showTopKeywords, setShowTopKeywords] = useState(true);
   const [searchTab, setSearchTab] = useState<SearchTab>("all");
 
-  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKeyRaw =
     String(searchParams?.get("integrationKey") || "").trim() || "default";
   const integrationKey =
@@ -143,6 +144,7 @@ function GscDashboardPageContent() {
 
   async function load(opts?: { force?: boolean }) {
     const force = !!opts?.force || preset === "custom";
+    if (!tenantReady) return;
 
     setErr("");
     setLoading(true);
@@ -150,6 +152,9 @@ function GscDashboardPageContent() {
     setAiInsights(null);
 
     try {
+      if (!tenantId) {
+        throw new Error("Missing tenant context. Open from Control Tower or use a mapped project domain.");
+      }
       const syncTargets =
         searchTab === "all"
           ? ["/api/dashboard/gsc/sync", "/api/dashboard/bing/sync"]
@@ -184,15 +189,20 @@ function GscDashboardPageContent() {
   }
 
   useEffect(() => {
+    if (!tenantReady) return;
+    if (!tenantId) {
+      setErr("Missing tenant context. Open from Control Tower or use a mapped project domain.");
+      return;
+    }
     if (preset !== "custom") load();
     else if (customStart && customEnd) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, customStart, customEnd, compareOn, searchTab]);
+  }, [preset, customStart, customEnd, compareOn, searchTab, tenantReady, tenantId]);
 
   useEffect(() => {
-    if (data) load();
+    if (data && tenantReady && tenantId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapSelected]);
+  }, [mapSelected, tenantReady, tenantId]);
 
   function clearSelection() {
     setMapSelected("");

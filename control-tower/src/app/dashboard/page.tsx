@@ -933,8 +933,47 @@ function DashboardHomeContent() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
-  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const tenantIdFromQuery = String(searchParams?.get("tenantId") || "").trim();
+  const [tenantIdResolved, setTenantIdResolved] = useState(tenantIdFromQuery);
+  const [tenantResolveDone, setTenantResolveDone] = useState(Boolean(tenantIdFromQuery));
+  const tenantId = tenantIdResolved;
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+
+  useEffect(() => {
+    let cancelled = false;
+    async function resolveTenantFromHost() {
+      if (tenantIdFromQuery) {
+        setTenantIdResolved(tenantIdFromQuery);
+        setTenantResolveDone(true);
+        return;
+      }
+      try {
+        const host = String(window.location.hostname || "").toLowerCase().replace(/^www\./, "");
+        const res = await fetch("/api/tenants", { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; rows?: Array<{ id?: string; root_domain?: string | null }> }
+          | null;
+        const rows = Array.isArray(json?.rows) ? json.rows : [];
+        const match = rows.find((r) => {
+          const d = String(r?.root_domain || "")
+            .toLowerCase()
+            .replace(/^https?:\/\//, "")
+            .replace(/\/+$/, "")
+            .replace(/^www\./, "");
+          return !!d && d === host;
+        });
+        if (!cancelled && match?.id) {
+          setTenantIdResolved(String(match.id));
+        }
+      } finally {
+        if (!cancelled) setTenantResolveDone(true);
+      }
+    }
+    void resolveTenantFromHost();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantIdFromQuery]);
 
   function appendTenantParams(qs: URLSearchParams) {
     if (!tenantId) return;
@@ -959,6 +998,9 @@ function DashboardHomeContent() {
     setAiErr("");
 
     try {
+      if (!tenantId) {
+        throw new Error("Missing tenant context. Open from Control Tower or match project domain.");
+      }
       if (!computedRange.start || !computedRange.end) {
         throw new Error("Missing start/end range");
       }
@@ -1031,10 +1073,11 @@ function DashboardHomeContent() {
   }
 
   useEffect(() => {
+    if (!tenantResolveDone) return;
     if (preset !== "custom") load(false);
     else if (customStart && customEnd) load(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, customStart, customEnd]);
+  }, [preset, customStart, customEnd, tenantResolveDone, tenantId]);
 
   async function runCeoInsights() {
     setAiErr("");

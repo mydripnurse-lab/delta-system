@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
+import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
@@ -357,18 +358,22 @@ function TransactionsDashboardPageContent() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
-  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
   const backHref = tenantId
     ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
     : "/dashboard";
 
   async function load(force = false, hard = false) {
+    if (!tenantReady) return;
     setErr("");
     setLoading(true);
     setAiErr("");
     setAiInsights(null);
     try {
+      if (!tenantId) {
+        throw new Error("Missing tenant context. Open from Control Tower or use a mapped project domain.");
+      }
       if (!computedRange.start || !computedRange.end) {
         throw new Error("Missing start/end range");
       }
@@ -417,10 +422,15 @@ function TransactionsDashboardPageContent() {
   }
 
   useEffect(() => {
+    if (!tenantReady) return;
+    if (!tenantId) {
+      setErr("Missing tenant context. Open from Control Tower or use a mapped project domain.");
+      return;
+    }
     if (preset !== "custom") load(false);
     else if (customStart && customEnd) load(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, customStart, customEnd]);
+  }, [preset, customStart, customEnd, tenantReady, tenantId]);
 
   const rows = useMemo(() => (data?.rows || []) as TxRow[], [data]);
   const filteredRows = useMemo(() => {

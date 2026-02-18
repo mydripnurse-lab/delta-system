@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
+import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 
 import UsaChoroplethGaMap from "@/components/UsaChoroplethGaMap";
 import GaInsightsPanel from "@/components/GaInsightsPanel";
@@ -74,7 +75,7 @@ function GaDashboardPageContent() {
 
   const [data, setData] = useState<any>(null);
 
-  const tenantId = String(searchParams?.get("tenantId") || "").trim();
+  const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKeyRaw =
     String(searchParams?.get("integrationKey") || "").trim() || "default";
   const integrationKey =
@@ -119,10 +120,14 @@ function GaDashboardPageContent() {
 
   async function load(opts?: { force?: boolean }) {
     const force = !!opts?.force;
+    if (!tenantReady) return;
     setErr("");
     setLoading(true);
 
     try {
+      if (!tenantId) {
+        throw new Error("Missing tenant context. Open from Control Tower or use a mapped project domain.");
+      }
       const syncRes = await fetch(
         `/api/dashboard/ga/sync?${buildSyncParams(force)}`,
         { cache: "no-store" },
@@ -161,10 +166,15 @@ function GaDashboardPageContent() {
   }
 
   useEffect(() => {
+    if (!tenantReady) return;
+    if (!tenantId) {
+      setErr("Missing tenant context. Open from Control Tower or use a mapped project domain.");
+      return;
+    }
     if (preset !== "custom") load();
     else if (customStart && customEnd) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, customStart, customEnd, compareOn]);
+  }, [preset, customStart, customEnd, compareOn, tenantReady, tenantId]);
 
   const summary = data?.summaryOverall || {
     sessions: 0,
