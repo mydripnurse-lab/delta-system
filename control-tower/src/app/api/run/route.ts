@@ -30,64 +30,95 @@ function exists(p: string) {
     }
 }
 
-function findRepoRoot(startDir: string) {
-    // Prefer the nearest ancestor that actually contains scripts/src/builds.
-    // This avoids picking /control-tower as repoRoot on machines where that
-    // folder also has package/resources but not build scripts.
+function findRepoRoots(startDir: string) {
+    const out: string[] = [];
+    const add = (p: string) => {
+        const n = path.normalize(p);
+        if (!out.includes(n)) out.push(n);
+    };
+    add(startDir);
+    add(path.join(startDir, ".."));
     let dir = startDir;
     for (let i = 0; i < 10; i++) {
-        const hasBuilds = exists(path.join(dir, "scripts", "src", "builds"));
-        if (hasBuilds) return dir;
+        add(dir);
         const parent = path.dirname(dir);
         if (parent === dir) break;
         dir = parent;
     }
-
-    // Fallback heuristic (legacy)
-    dir = startDir;
-    for (let i = 0; i < 10; i++) {
-        const hasResources = exists(path.join(dir, "resources"));
-        const hasBuilds = exists(path.join(dir, "scripts", "src", "builds"));
-        const hasPkg = exists(path.join(dir, "package.json"));
-        const score = (hasResources ? 1 : 0) + (hasBuilds ? 1 : 0) + (hasPkg ? 1 : 0);
-        if (score >= 2) return dir;
-
-        const parent = path.dirname(dir);
-        if (parent === dir) break;
-        dir = parent;
-    }
-    return startDir;
+    return out;
 }
 
-function resolveScriptPath(repoRoot: string, jobKey: string) {
-    const buildsDir = path.join(repoRoot, "scripts", "src", "builds");
-
-    const candidatesByJob: Record<string, string[]> = {
-        "run-delta-system": [path.join(repoRoot, "scripts", "run-delta-system.js")],
-        "update-custom-values": [path.join(repoRoot, "scripts", "update-custom-values-from-sheet.js")],
-        "update-custom-values-one": [path.join(repoRoot, "scripts", "update-custom-values-one.js")],
-        "build-sheet-rows": [
-            path.join(buildsDir, "build-sheets-counties-cities.js"),
-            path.join(buildsDir, "build-sheet-rows.js"),
-        ],
-        "build-state-index": [
-            path.join(buildsDir, "build-states-index.js"),
-            path.join(buildsDir, "build-state-index.js"),
-        ],
-        "build-state-sitemaps": [
-            path.join(buildsDir, "build-states-sitemaps.js"),
-            path.join(buildsDir, "build-state-sitemaps.js"),
-        ],
-        "build-counties": [path.join(buildsDir, "build-counties.js")],
+function resolveScriptPath(repoRoots: string[], jobKey: string) {
+    const checked: string[] = [];
+    const pushIfExists = (candidates: string[]) => {
+        for (const c of candidates) {
+            const p = path.normalize(c);
+            checked.push(p);
+            if (exists(p)) return p;
+        }
+        return null;
     };
 
-    const candidates = candidatesByJob[jobKey] || [];
-    for (const c of candidates) if (exists(c)) return c;
+    for (const root of repoRoots) {
+        const buildsDir = path.join(root, "scripts", "src", "builds");
+        const siblingBuildsDir = path.join(root, "..", "scripts", "src", "builds");
 
-    const direct = path.join(buildsDir, `${jobKey}.js`);
-    if (exists(direct)) return direct;
+        const candidatesByJob: Record<string, string[]> = {
+            "run-delta-system": [
+                path.join(root, "scripts", "run-delta-system.js"),
+                path.join(root, "..", "scripts", "run-delta-system.js"),
+            ],
+            "update-custom-values": [
+                path.join(root, "scripts", "update-custom-values-from-sheet.js"),
+                path.join(root, "..", "scripts", "update-custom-values-from-sheet.js"),
+            ],
+            "update-custom-values-one": [
+                path.join(root, "scripts", "update-custom-values-one.js"),
+                path.join(root, "..", "scripts", "update-custom-values-one.js"),
+            ],
+            "build-sheet-rows": [
+                path.join(buildsDir, "build-sheets-counties-cities.js"),
+                path.join(siblingBuildsDir, "build-sheets-counties-cities.js"),
+                path.join(buildsDir, "build-sheet-rows.js"),
+                path.join(siblingBuildsDir, "build-sheet-rows.js"),
+            ],
+            "build-state-index": [
+                path.join(buildsDir, "build-states-index.js"),
+                path.join(siblingBuildsDir, "build-states-index.js"),
+                path.join(buildsDir, "build-state-index.js"),
+                path.join(siblingBuildsDir, "build-state-index.js"),
+            ],
+            "build-state-sitemaps": [
+                path.join(buildsDir, "build-states-sitemaps.js"),
+                path.join(siblingBuildsDir, "build-states-sitemaps.js"),
+                path.join(buildsDir, "build-state-sitemaps.js"),
+                path.join(siblingBuildsDir, "build-state-sitemaps.js"),
+            ],
+            "build-counties": [
+                path.join(buildsDir, "build-counties.js"),
+                path.join(siblingBuildsDir, "build-counties.js"),
+            ],
+        };
 
-    return null;
+        const hit = pushIfExists(candidatesByJob[jobKey] || []);
+        if (hit) return { scriptPath: hit, checked };
+
+        const directHit = pushIfExists([
+            path.join(buildsDir, `${jobKey}.js`),
+            path.join(siblingBuildsDir, `${jobKey}.js`),
+        ]);
+        if (directHit) return { scriptPath: directHit, checked };
+    }
+
+    return { scriptPath: null, checked };
+}
+
+function inferRepoRootFromScript(scriptPath: string) {
+    const normalized = path.normalize(scriptPath);
+    const marker = `${path.sep}scripts${path.sep}`;
+    const idx = normalized.lastIndexOf(marker);
+    if (idx > 0) return normalized.slice(0, idx);
+    return path.dirname(scriptPath);
 }
 
 function normalizeMode(raw: unknown) {
@@ -417,12 +448,19 @@ export async function POST(req: Request) {
             : "one"
         : rawState;
 
-    const repoRoot = findRepoRoot(process.cwd());
-    const scriptPath = resolveScriptPath(repoRoot, job);
+    const repoRoots = findRepoRoots(process.cwd());
+    const resolved = resolveScriptPath(repoRoots, job);
+    const scriptPath = resolved.scriptPath;
+    const repoRoot = scriptPath ? inferRepoRootFromScript(scriptPath) : repoRoots[0];
 
     if (!scriptPath) {
         return NextResponse.json(
-            { error: `Script not found for job="${job}". (repoRoot=${repoRoot})` },
+            {
+                error: `Script not found for job="${job}".`,
+                repoRootsTried: repoRoots,
+                checkedPaths: resolved.checked,
+                cwd: process.cwd(),
+            },
             { status: 400 }
         );
     }
