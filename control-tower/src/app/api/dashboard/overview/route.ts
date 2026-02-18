@@ -181,16 +181,35 @@ function prevPeriodRange(startIso: string, endIso: string) {
     return { prevStart: prevStart.toISOString(), prevEnd: prevEnd.toISOString() };
 }
 
-async function fetchJson(url: string) {
-    const r = await fetch(url, { cache: "no-store" });
-    const txt = await r.text();
-    let data: JsonObject = {};
+async function fetchJson(url: string, timeoutMs = 6000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Math.max(1000, timeoutMs));
     try {
-        data = JSON.parse(txt) as JsonObject;
-    } catch {
-        data = { raw: txt };
+        const r = await fetch(url, { cache: "no-store", signal: controller.signal });
+        const txt = await r.text();
+        let data: JsonObject = {};
+        try {
+            data = JSON.parse(txt) as JsonObject;
+        } catch {
+            data = { raw: txt };
+        }
+        return { ok: r.ok, status: r.status, data };
+    } catch (error: unknown) {
+        return {
+            ok: false,
+            status: 504,
+            data: {
+                error:
+                    error instanceof Error
+                        ? error.name === "AbortError"
+                            ? "Request timeout"
+                            : error.message
+                        : "Request timeout",
+            } as JsonObject,
+        };
+    } finally {
+        clearTimeout(timer);
     }
-    return { ok: r.ok, status: r.status, data };
 }
 
 function adsRangeFromPreset(preset: string) {
@@ -203,10 +222,6 @@ function adsRangeFromPreset(preset: string) {
     if (preset === "1y") return "last_year";
     if (preset === "custom") return "last_28_days";
     return "last_7_days";
-}
-
-function sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function dayIso(v: string) {
@@ -320,14 +335,12 @@ export async function GET(req: Request) {
         const snapshotCapturedMs = snapshot?.capturedAt ? new Date(snapshot.capturedAt).getTime() : 0;
         const snapshotAgeMs = Number.isFinite(snapshotCapturedMs) ? Math.max(0, Date.now() - snapshotCapturedMs) : Number.POSITIVE_INFINITY;
         const snapshotMatchesRange = snapshotStart === start && snapshotEnd === end && snapshotPreset === preset;
-        const SNAPSHOT_FAST_TTL_MS = 120_000;
-
-        if (!force && snapshot && snapshotMatchesRange && snapshotAgeMs <= SNAPSHOT_FAST_TTL_MS) {
+        if (!force && snapshot && snapshotMatchesRange) {
             return NextResponse.json({
                 ...(snapshotPayload as JsonObject),
                 cache: {
                     source: "db_snapshot",
-                    fastHit: true,
+                    fastHit: snapshotAgeMs <= 120_000,
                     ageSec: Math.round(snapshotAgeMs / 1000),
                 },
             });
@@ -357,79 +370,84 @@ export async function GET(req: Request) {
         syncParams.set("tenantId", tenantId);
         syncParams.set("integrationKey", searchIntegrationKey);
 
-        await Promise.all([
-            fetchJson(`${origin}/api/dashboard/gsc/sync?${syncParams.toString()}`),
-            fetchJson(`${origin}/api/dashboard/bing/sync?${syncParams.toString()}`),
-        ]);
+        if (force) {
+            await Promise.all([
+                fetchJson(`${origin}/api/dashboard/gsc/sync?${syncParams.toString()}`),
+                fetchJson(`${origin}/api/dashboard/bing/sync?${syncParams.toString()}`),
+            ]);
+        }
 
         const [
             callsCur,
             callsPrev,
             contactsCur,
             contactsPrev,
-            gscAgg,
             searchJoinInitial,
             gaJoin,
             adsJoin,
+            conversationsCur,
+            conversationsPrev,
+            transactionsCur,
+            transactionsPrev,
+            appointmentsCur,
+            appointmentsPrev,
         ] = await Promise.all([
-            fetchJson(`${origin}/api/dashboard/calls?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&${tenantQ}`),
+            fetchJson(`${origin}/api/dashboard/calls?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&${tenantQ}`, 2500),
             prevStart && prevEnd
                 ? fetchJson(
                     `${origin}/api/dashboard/calls?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&${tenantQ}`,
+                    2500,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
                 `${origin}/api/dashboard/contacts?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${contactsBust}&${tenantQ}`,
+                2500,
             ),
             prevStart && prevEnd
                 ? fetchJson(
                     `${origin}/api/dashboard/contacts?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${contactsBust}&${tenantQ}`,
+                    2500,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
-            fetchJson(`${origin}/api/dashboard/gsc/aggregate?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${tenantSearchForceQ}`),
-            fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`),
-            fetchJson(`${origin}/api/dashboard/ga/join?compare=1${tenantSearchForceQ}`),
-            fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${tenantSearchForceQ}`),
+            fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`, 2500),
+            fetchJson(`${origin}/api/dashboard/ga/join?compare=1${tenantSearchForceQ}`, 2500),
+            fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${tenantSearchForceQ}`, 2500),
+            fetchJson(
+                `${origin}/api/dashboard/conversations?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
+                2200,
+            ),
+            prevStart && prevEnd
+                ? fetchJson(
+                    `${origin}/api/dashboard/conversations?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
+                    2200,
+                )
+                : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
+            fetchJson(
+                `${origin}/api/dashboard/transactions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
+                2200,
+            ),
+            prevStart && prevEnd
+                ? fetchJson(
+                    `${origin}/api/dashboard/transactions?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
+                    2200,
+                )
+                : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
+            fetchJson(
+                `${origin}/api/dashboard/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
+                2200,
+            ),
+            prevStart && prevEnd
+                ? fetchJson(
+                    `${origin}/api/dashboard/appointments?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
+                    2200,
+                )
+                : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
         ]);
 
         let searchJoin = searchJoinInitial;
         if (!searchJoin.ok) {
             searchJoin = await fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`);
         }
-
-        // Conversations are fetched sequentially to reduce GHL rate-limit pressure (429).
-        const conversationsCur = await fetchJson(
-            `${origin}/api/dashboard/conversations?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
-        );
-        await sleep(120);
-        const conversationsPrev =
-            prevStart && prevEnd
-                ? await fetchJson(
-                    `${origin}/api/dashboard/conversations?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
-                )
-                : { ok: false, status: 0, data: {} as JsonObject };
-        await sleep(120);
-        const transactionsCur = await fetchJson(
-            `${origin}/api/dashboard/transactions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
-        );
-        await sleep(120);
-        const transactionsPrev =
-            prevStart && prevEnd
-                ? await fetchJson(
-                    `${origin}/api/dashboard/transactions?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
-                )
-                : { ok: false, status: 0, data: {} as JsonObject };
-        await sleep(120);
-        const appointmentsCur = await fetchJson(
-            `${origin}/api/dashboard/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
-        );
-        await sleep(120);
-        const appointmentsPrev =
-            prevStart && prevEnd
-                ? await fetchJson(
-                    `${origin}/api/dashboard/appointments?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
-                )
-                : { ok: false, status: 0, data: {} as JsonObject };
 
         const callsNow = callsCur.ok ? n(callsCur.data.total) : n(snapshotExecutive.callsNow);
         const callsBefore = callsPrev.ok ? n(callsPrev.data.total) : n(snapshotExecutive.callsBefore);
@@ -470,9 +488,9 @@ export async function GET(req: Request) {
             ? n((appointmentsPrev.data.lostBookings as JsonObject)?.valueTotal)
             : 0;
 
-        const gscTotals = (gscAgg.ok ? (gscAgg.data.totals as JsonObject) : {}) || {};
-        const gscDeltas = (gscAgg.ok ? (gscAgg.data.deltas as JsonObject) : {}) || {};
-        const gscPrevTotals = (gscAgg.ok ? (gscAgg.data.prevTotals as JsonObject) : {}) || {};
+        const gscTotals = (searchJoin.ok ? (searchJoin.data.summaryOverall as JsonObject) : {}) || {};
+        const gscDeltas = (searchJoin.ok ? (searchJoin.data.compare as JsonObject) : {}) || {};
+        const gscPrevTotals = ((searchJoin.ok ? (searchJoin.data.compare as JsonObject) : {})?.previous as JsonObject) || {};
         const searchSummary = (() => {
             if (!searchJoin.ok) return {};
             const overall = (searchJoin.data.summaryOverall as JsonObject) || null;
@@ -818,16 +836,13 @@ export async function GET(req: Request) {
         const adsClicksNow = n(adsSummary.clicks);
         const adsClicksBefore = n(adsPrevSummary.clicks) || n(adsCompare.prevClicks);
 
-        const totalImpressionsNow = Math.max(
-            0,
-            searchImpressionsNow || (n(gscTotals.impressions) + adsImpressionsNow),
-        );
+        const totalImpressionsNow = Math.max(0, searchImpressionsNow || n(gscTotals.impressions));
         const totalImpressionsBefore = Math.max(
             0,
-            searchImpressionsBefore || (n(gscPrevTotals.impressions) + adsImpressionsBefore),
+            searchImpressionsBefore || n(gscPrevTotals.impressions),
         );
-        const clicksNow = Math.max(0, searchClicksNow || (n(gscTotals.clicks) + adsClicksNow));
-        const clicksBefore = Math.max(0, searchClicksBefore || (n(gscPrevTotals.clicks) + adsClicksBefore));
+        const clicksNow = Math.max(0, searchClicksNow || n(gscTotals.clicks));
+        const clicksBefore = Math.max(0, searchClicksBefore || n(gscPrevTotals.clicks));
 
         const funnelCurrent = {
             impressions: totalImpressionsNow,
@@ -1568,10 +1583,10 @@ export async function GET(req: Request) {
                         : s(appointmentsCur.data.error || `HTTP ${appointmentsCur.status}`),
                 },
                 gsc: {
-                    ok: gscAgg.ok,
+                    ok: searchJoin.ok,
                     totals: gscTotals,
                     deltas: gscDeltas,
-                    error: gscAgg.ok ? null : s(gscAgg.data.error || `HTTP ${gscAgg.status}`),
+                    error: searchJoin.ok ? null : s(searchJoin.data.error || `HTTP ${searchJoin.status}`),
                 },
                 ga: {
                     ok: gaJoin.ok,

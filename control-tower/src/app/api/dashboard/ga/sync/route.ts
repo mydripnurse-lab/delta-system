@@ -1,12 +1,11 @@
 // control-tower/src/app/api/dashboard/ga/sync/route.ts
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import {
     refreshGoogleAccessToken,
     resolveTenantOAuthConnection,
     saveTenantOAuthTokens,
 } from "@/lib/tenantOAuth";
+import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -92,19 +91,6 @@ function addDays(dateStr: string, delta: number) {
     const m = String(d.getUTCMonth() + 1).padStart(2, "0");
     const da = String(d.getUTCDate()).padStart(2, "0");
     return `${y}-${m}-${da}`;
-}
-
-async function ensureDir(dir: string) {
-    await fs.mkdir(dir, { recursive: true });
-}
-
-async function readMeta(metaPath: string) {
-    try {
-        const raw = await fs.readFile(metaPath, "utf8");
-        return JSON.parse(raw);
-    } catch {
-        return null;
-    }
 }
 
 function isStale(meta: any, staleMinutes: number) {
@@ -240,18 +226,9 @@ export async function GET(req: Request) {
 
         const { startDate, endDate, range } = parseRange(preset, start, end);
 
-        const cacheDir = path.join(
-            process.cwd(),
-            "data",
-            "cache",
-            "tenants",
-            tenantId || "_default",
-            "ga",
-        );
-        const metaPath = path.join(cacheDir, "meta.json");
-        await ensureDir(cacheDir);
-
-        const metaPrev = await readMeta(metaPath);
+        const snap = await loadDashboardSnapshot(tenantId, "ga");
+        const snapPayload = (snap?.payload || {}) as AnyObj;
+        const metaPrev = (snapPayload.meta || null) as AnyObj | null;
         const stale = isStale(metaPrev, 10);
 
         const windowDays = daysBetweenInclusive(startDate, endDate);
@@ -372,12 +349,19 @@ export async function GET(req: Request) {
                 : "Refresh token scope does NOT include analytics.readonly. Re-run /api/auth/gsc/start and consent again.",
         };
 
-        await fs.writeFile(path.join(cacheDir, "meta.json"), JSON.stringify(meta, null, 2), "utf8");
-        await fs.writeFile(path.join(cacheDir, "trend.json"), JSON.stringify(trend, null, 2), "utf8");
-        await fs.writeFile(path.join(cacheDir, "by_region.json"), JSON.stringify(byRegion, null, 2), "utf8");
-        await fs.writeFile(path.join(cacheDir, "by_city.json"), JSON.stringify(byCity, null, 2), "utf8");
-        await fs.writeFile(path.join(cacheDir, "landing.json"), JSON.stringify(landing, null, 2), "utf8");
-        await fs.writeFile(path.join(cacheDir, "source_medium.json"), JSON.stringify(sourceMedium, null, 2), "utf8");
+        await saveDashboardSnapshot(
+            tenantId,
+            "ga",
+            {
+                meta,
+                trend,
+                by_region: byRegion,
+                by_city: byCity,
+                landing,
+                source_medium: sourceMedium,
+            },
+            { source: "dashboard_ga_sync" },
+        );
 
         return NextResponse.json({
             ok: true,

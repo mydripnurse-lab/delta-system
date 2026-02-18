@@ -1,7 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
 import { getTenantIntegration } from "@/lib/tenantIntegrations";
-import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
+import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -373,31 +371,26 @@ export async function GET(req: Request) {
     const siteUrlsKey = siteUrls.join("|");
 
     const range = rangeFromPreset(preset, start, end);
-    const cacheDir = resolveTenantModuleCacheDir(tenantId, "bing");
-    const metaPath = path.join(cacheDir, "meta.json");
     const freshnessMs = Math.max(60_000, Number(process.env.BING_SYNC_MAX_AGE_MS || 10 * 60_000));
 
     if (!force) {
-      try {
-        const st = await fs.stat(metaPath);
-        const age = Date.now() - st.mtimeMs;
-        const prevMetaRaw = await fs.readFile(metaPath, "utf8");
-        const prevMeta = JSON.parse(prevMetaRaw) as {
-          range?: string;
-          startDate?: string;
-          endDate?: string;
-          siteUrlsKey?: string;
-        };
-        const sameWindow =
-          s(prevMeta?.range) === preset &&
-          s(prevMeta?.startDate) === range.startDate &&
-          s(prevMeta?.endDate) === range.endDate &&
-          s(prevMeta?.siteUrlsKey) === siteUrlsKey;
-        if (age <= freshnessMs && sameWindow) {
-          return Response.json({ ok: true, cached: true, ageMs: age, range, message: "Bing cache is fresh" });
-        }
-      } catch {
-        // no cache yet
+      const snap = await loadDashboardSnapshot(tenantId, "bing");
+      const prevMeta = ((snap?.payload || {}) as Record<string, unknown>).meta as {
+        range?: string;
+        startDate?: string;
+        endDate?: string;
+        siteUrlsKey?: string;
+        fetchedAt?: string;
+      } | undefined;
+      const fetchedMs = prevMeta?.fetchedAt ? new Date(prevMeta.fetchedAt).getTime() : NaN;
+      const age = Number.isFinite(fetchedMs) ? Math.max(0, Date.now() - fetchedMs) : Number.POSITIVE_INFINITY;
+      const sameWindow =
+        s(prevMeta?.range) === preset &&
+        s(prevMeta?.startDate) === range.startDate &&
+        s(prevMeta?.endDate) === range.endDate &&
+        s(prevMeta?.siteUrlsKey) === siteUrlsKey;
+      if (sameWindow && age <= freshnessMs) {
+        return Response.json({ ok: true, cached: true, ageMs: age, range, message: "Bing cache is fresh (db)" });
       }
     }
 
@@ -492,11 +485,17 @@ export async function GET(req: Request) {
       endpoint,
     };
 
-    await fs.mkdir(cacheDir, { recursive: true });
-    await fs.writeFile(path.join(cacheDir, "meta.json"), JSON.stringify(meta, null, 2), "utf8");
-    await fs.writeFile(path.join(cacheDir, "queries.json"), JSON.stringify({ rows: queryRows }, null, 2), "utf8");
-    await fs.writeFile(path.join(cacheDir, "pages.json"), JSON.stringify({ rows: pageRows }, null, 2), "utf8");
-    await fs.writeFile(path.join(cacheDir, "trend.json"), JSON.stringify({ rows: trendRows }, null, 2), "utf8");
+    await saveDashboardSnapshot(
+      tenantId,
+      "bing",
+      {
+        meta,
+        queries: { rows: queryRows },
+        pages: { rows: pageRows },
+        trend: { rows: trendRows },
+      },
+      { source: "dashboard_bing_sync" },
+    );
 
     return Response.json({
       ok: true,

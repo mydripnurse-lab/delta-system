@@ -1,9 +1,7 @@
 // control-tower/src/app/api/dashboard/gsc/join/route.ts
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import { loadGscCatalogIndex } from "@/lib/gscCatalogIndex";
-import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -269,15 +267,6 @@ function classifyPageBucket(
 }
 
 /** ======= JSON reading + normalization ======= */
-
-async function readJsonRaw(absPath: string): Promise<any> {
-    try {
-        const txt = await fs.readFile(absPath, "utf8");
-        return JSON.parse(txt);
-    } catch {
-        return null;
-    }
-}
 
 /**
  * Accepts:
@@ -722,16 +711,14 @@ export async function GET(req: Request) {
             url.searchParams.get("forceCatalog") === "1" ||
             url.searchParams.get("force") === "1";
 
-        const cacheDir = resolveTenantModuleCacheDir(tenantId, "gsc");
-
         const readSnapshot = async () => {
-            const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
-            const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
-            const queriesRaw = await readJsonRaw(path.join(cacheDir, "queries.json"));
-            const qpRawPrimary = await readJsonRaw(path.join(cacheDir, "qp.json"));
-            const qpRawFallback = qpRawPrimary ? null : await readJsonRaw(path.join(cacheDir, "query_pages.json"));
-            const qpRaw = qpRawPrimary || qpRawFallback;
-            const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+            const snap = tenantId ? await loadDashboardSnapshot(tenantId, "gsc") : null;
+            const payload = (snap?.payload || {}) as AnyObj;
+            const metaRaw = payload.meta || null;
+            const pagesRaw = payload.pages || null;
+            const queriesRaw = payload.queries || null;
+            const qpRaw = payload.qp || payload.query_pages || null;
+            const trendRaw = payload.trend || null;
             return { metaRaw, pagesRaw, queriesRaw, qpRaw, trendRaw };
         };
 
@@ -760,7 +747,7 @@ export async function GET(req: Request) {
                 {
                     ok: false,
                     error:
-                        `GSC cache not found for tenant ${tenantId || "_default"}. ` +
+                        `GSC DB snapshot not found for tenant ${tenantId || "_default"}. ` +
                         "Run Refresh (force sync) and verify OAuth/property setup.",
                 },
                 { status: 412 },
@@ -947,7 +934,7 @@ export async function GET(req: Request) {
             compare,
 
             debug: {
-                cacheDir,
+                snapshotSource: "db",
                 catalogBaseDir: catalog.baseDir,
                 catalogFingerprint: catalog.fingerprint,
                 rootHost,

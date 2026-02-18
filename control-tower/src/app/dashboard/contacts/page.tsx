@@ -3,7 +3,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
@@ -324,7 +324,7 @@ function LineTrend({
 }
 
 function ContactsDashboardPageContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 

@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -19,12 +18,6 @@ function weightedAvgPosition(rows: any[]) {
     if (!imp) return 0;
     const w = rows.reduce((a, r) => a + num(r.position) * num(r.impressions), 0);
     return w / imp;
-}
-
-async function readJson(cacheDir: string, name: string) {
-    const p = path.join(cacheDir, name);
-    const txt = await fs.readFile(p, "utf8");
-    return JSON.parse(txt);
 }
 
 function sliceByDate(rows: any[], start: string, end: string) {
@@ -63,13 +56,14 @@ export async function GET(req: Request) {
         const start = s(searchParams.get("start"));
         const end = s(searchParams.get("end"));
         const tenantId = s(searchParams.get("tenantId"));
-        const cacheDir = tenantId
-            ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "gsc")
-            : path.join(process.cwd(), "data", "cache", "gsc");
-
-        const meta = await readJson(cacheDir, "meta.json");
-        const pages = await readJson(cacheDir, "pages.json");
-        const trend = await readJson(cacheDir, "trend.json");
+        if (!tenantId) {
+            return Response.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
+        const snap = await loadDashboardSnapshot(tenantId, "gsc");
+        const payload = (snap?.payload || {}) as Record<string, unknown>;
+        const meta = (payload.meta || {}) as Record<string, unknown>;
+        const pages = (payload.pages || {}) as Record<string, unknown>;
+        const trend = (payload.trend || {}) as Record<string, unknown>;
 
         const trendRowsAll = Array.isArray(trend?.rows) ? trend.rows : [];
         const trendRows = sliceByDate(trendRowsAll, start, end);

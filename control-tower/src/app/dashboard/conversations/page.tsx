@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
@@ -271,7 +271,7 @@ function LineTrend({
 }
 
 function ConversationsDashboardPageContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 

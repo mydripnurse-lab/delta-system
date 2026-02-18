@@ -1,9 +1,7 @@
-import fs from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { loadGscCatalogIndex } from "@/lib/gscCatalogIndex";
 import { loadStateCatalog } from "@/lib/stateCatalog";
-import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -36,15 +34,6 @@ function inDateRange(dateIso: string, startIso: string, endIso: string) {
   const bm = new Date(`${b}T00:00:00Z`).getTime();
   if (!Number.isFinite(dm) || !Number.isFinite(am) || !Number.isFinite(bm)) return true;
   return dm >= am && dm <= bm;
-}
-
-async function readJsonRaw(p: string) {
-  try {
-    const txt = await fs.readFile(p, "utf8");
-    return JSON.parse(txt) as JsonObj;
-  } catch {
-    return null;
-  }
 }
 
 function hostnameFromPage(page: string) {
@@ -200,12 +189,13 @@ export async function GET(req: Request) {
     const endParam = s(searchParams.get("end"));
     const range = s(searchParams.get("range"));
 
-    const cacheDir = resolveTenantModuleCacheDir(tenantId, "bing");
     const readSnapshot = async () => {
-      const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
-      const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
-      const queriesRaw = await readJsonRaw(path.join(cacheDir, "queries.json"));
-      const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+      const snap = tenantId ? await loadDashboardSnapshot(tenantId, "bing") : null;
+      const payload = (snap?.payload || {}) as JsonObj;
+      const metaRaw = (payload.meta as JsonObj) || null;
+      const pagesRaw = (payload.pages as JsonObj) || null;
+      const queriesRaw = (payload.queries as JsonObj) || null;
+      const trendRaw = (payload.trend as JsonObj) || null;
       return { metaRaw, pagesRaw, queriesRaw, trendRaw };
     };
 
@@ -230,7 +220,7 @@ export async function GET(req: Request) {
         {
           ok: false,
           error:
-            `Bing cache not found for tenant ${tenantId || "_default"}. ` +
+            `Bing DB snapshot not found for tenant ${tenantId || "_default"}. ` +
             "Run Refresh (force sync) and verify Bing credentials.",
         },
         { status: 412 },
@@ -404,7 +394,7 @@ export async function GET(req: Request) {
       compareEnabled,
       compare,
       debug: {
-        cacheDir,
+        snapshotSource: "db",
         mappedHosts: Object.keys(catalog.byHostname || {}).length,
         mappedHostsFromStateCatalog: Object.keys(stateCatalog.hostToState || {}).length,
       },

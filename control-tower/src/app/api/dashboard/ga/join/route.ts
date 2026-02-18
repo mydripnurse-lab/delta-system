@@ -1,7 +1,6 @@
 // control-tower/src/app/api/dashboard/ga/join/route.ts
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -13,15 +12,6 @@ function s(v: any) {
 function num(v: any) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
-}
-
-async function readJson(absPath: string) {
-    try {
-        const txt = await fs.readFile(absPath, "utf8");
-        return JSON.parse(txt);
-    } catch {
-        return null;
-    }
 }
 
 function pickDim(row: AnyObj, idx: number) {
@@ -119,20 +109,48 @@ export async function GET(req: Request) {
             return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
         }
 
-        const cacheDir = path.join(process.cwd(), "data", "cache", "tenants", tenantId, "ga");
+        const readSnapshot = async () => {
+            const payload = ((await loadDashboardSnapshot(tenantId, "ga"))?.payload || {}) as AnyObj;
+            return {
+                meta: (payload.meta || {}) as AnyObj,
+                trendRaw: (payload.trend || {}) as AnyObj,
+                byRegionRaw: (payload.by_region || {}) as AnyObj,
+                byCityRaw: (payload.by_city || {}) as AnyObj,
+                landingRaw: (payload.landing || {}) as AnyObj,
+                sourceMediumRaw: (payload.source_medium || {}) as AnyObj,
+            };
+        };
 
-        const meta = (await readJson(path.join(cacheDir, "meta.json"))) || {};
-        const trendRaw = (await readJson(path.join(cacheDir, "trend.json"))) || {};
-        const byRegionRaw = (await readJson(path.join(cacheDir, "by_region.json"))) || {};
-        const byCityRaw = (await readJson(path.join(cacheDir, "by_city.json"))) || {};
-        const landingRaw = (await readJson(path.join(cacheDir, "landing.json"))) || {};
-        const sourceMediumRaw = (await readJson(path.join(cacheDir, "source_medium.json"))) || {};
+        let { meta, trendRaw, byRegionRaw, byCityRaw, landingRaw, sourceMediumRaw } = await readSnapshot();
+        const missingCore = !Object.keys(meta || {}).length || !Array.isArray((trendRaw as AnyObj)?.rows);
+        if (missingCore) {
+            const syncUrl = new URL("/api/dashboard/ga/sync", url.origin);
+            syncUrl.searchParams.set("tenantId", tenantId);
+            syncUrl.searchParams.set("integrationKey", s(url.searchParams.get("integrationKey")) || "default");
+            if (range) syncUrl.searchParams.set("range", range);
+            const startQ = s(url.searchParams.get("start"));
+            const endQ = s(url.searchParams.get("end"));
+            if (startQ) syncUrl.searchParams.set("start", startQ);
+            if (endQ) syncUrl.searchParams.set("end", endQ);
+            if (compareEnabled) syncUrl.searchParams.set("compare", "1");
+            syncUrl.searchParams.set("force", "1");
+            const syncRes = await fetch(syncUrl.toString(), { method: "GET", cache: "no-store" });
+            if (syncRes.ok) {
+                ({ meta, trendRaw, byRegionRaw, byCityRaw, landingRaw, sourceMediumRaw } = await readSnapshot());
+            }
+        }
 
         const trendRows = Array.isArray(trendRaw?.rows) ? trendRaw.rows : [];
         const byRegionRows = Array.isArray(byRegionRaw?.rows) ? byRegionRaw.rows : [];
         const byCityRows = Array.isArray(byCityRaw?.rows) ? byCityRaw.rows : [];
         const landingRows = Array.isArray(landingRaw?.rows) ? landingRaw.rows : [];
         const sourceMediumRows = Array.isArray(sourceMediumRaw?.rows) ? sourceMediumRaw.rows : [];
+        if (!trendRows.length && !Object.keys(meta || {}).length) {
+            return NextResponse.json(
+                { ok: false, error: `GA DB snapshot not found for tenant ${tenantId}. Run Refresh (force sync).` },
+                { status: 412 },
+            );
+        }
 
         const startDate = s(meta?.startDate) || null;
         const endDate = s(meta?.endDate) || null;

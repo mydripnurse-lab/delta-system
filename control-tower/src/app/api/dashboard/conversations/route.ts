@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getEffectiveLocationIdOrThrow, ghlFetchJson } from "@/lib/ghlHttp";
 import { normalizeStateName, norm } from "@/lib/ghlState";
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -90,31 +89,19 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function convCacheDir() {
-    const root = process.env.DASH_CACHE_DIR || path.join("data", "cache");
-    return path.join(process.cwd(), root, "conversations");
+async function readConvSnapshot(tenantId: string, locationId: string): Promise<ConvSnapshot | null> {
+    const snap = await loadDashboardSnapshot(tenantId, "conversations", locationId);
+    const parsed = (snap?.payload || null) as ConvSnapshot | null;
+    if (!parsed || !Array.isArray(parsed.rows)) return null;
+    if (String(parsed.locationId || "") !== String(locationId || "")) return null;
+    return parsed;
 }
 
-function convSnapshotPath(locationId: string) {
-    const safeId = String(locationId || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
-    return path.join(convCacheDir(), `${safeId}.json`);
-}
-
-async function readConvSnapshot(locationId: string): Promise<ConvSnapshot | null> {
-    try {
-        const raw = await fs.readFile(convSnapshotPath(locationId), "utf8");
-        const parsed = JSON.parse(raw) as ConvSnapshot;
-        if (!parsed || !Array.isArray(parsed.rows)) return null;
-        if (String(parsed.locationId || "") !== String(locationId || "")) return null;
-        return parsed;
-    } catch {
-        return null;
-    }
-}
-
-async function writeConvSnapshot(snapshot: ConvSnapshot) {
-    await fs.mkdir(convCacheDir(), { recursive: true });
-    await fs.writeFile(convSnapshotPath(snapshot.locationId), JSON.stringify(snapshot, null, 2), "utf8");
+async function writeConvSnapshot(tenantId: string, snapshot: ConvSnapshot) {
+    await saveDashboardSnapshot(tenantId, "conversations", snapshot as unknown as Record<string, unknown>, {
+        snapshotKey: snapshot.locationId,
+        source: "dashboard_conversations_sync",
+    });
 }
 
 function convRowsCoverage(rows: ConvRow[]) {
@@ -887,7 +874,7 @@ export async function GET(req: Request) {
         }
 
         const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
-        const snapshot = await readConvSnapshot(locationId);
+        const snapshot = await readConvSnapshot(tenantId, locationId);
         const snapshotFresh = !!snapshot && Date.now() - Number(snapshot.updatedAtMs || 0) <= SNAPSHOT_TTL_MS;
 
         let rowsSource = "ghl_conversations_api";
@@ -947,7 +934,7 @@ export async function GET(req: Request) {
                 rawRows = Array.from(mergedMap.values());
 
                 const cov = convRowsCoverage(rawRows);
-                await writeConvSnapshot({
+                await writeConvSnapshot(tenantId, {
                     version: 1,
                     locationId,
                     updatedAtMs: Date.now(),

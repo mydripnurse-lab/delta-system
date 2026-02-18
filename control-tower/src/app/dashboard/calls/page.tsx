@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
@@ -391,7 +391,7 @@ function computeByState(rows: ApiRow[]) {
 }
 
 function CallsDashboardPageContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 

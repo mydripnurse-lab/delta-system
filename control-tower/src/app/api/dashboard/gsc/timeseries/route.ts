@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -9,14 +8,6 @@ function s(v: any) {
 function num(v: any) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
-}
-
-const CACHE_DIR = path.join(process.cwd(), "data", "cache", "gsc");
-
-async function readJson(name: string) {
-    const p = path.join(CACHE_DIR, name);
-    const txt = await fs.readFile(p, "utf8");
-    return JSON.parse(txt);
 }
 
 function sliceByDate(rows: any[], start: string, end: string) {
@@ -34,10 +25,19 @@ function sliceByDate(rows: any[], start: string, end: string) {
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
+        const tenantId = s(searchParams.get("tenantId"));
+        if (!tenantId) return Response.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
         const start = s(searchParams.get("start"));
         const end = s(searchParams.get("end"));
 
-        const trend = await readJson("trend.json");
+        const payload = ((await loadDashboardSnapshot(tenantId, "gsc"))?.payload || {}) as Record<string, unknown>;
+        const trend = (payload.trend || null) as Record<string, unknown> | null;
+        if (!trend) {
+            return Response.json(
+                { ok: false, error: `GSC DB snapshot not found for tenant ${tenantId}. Run sync first.` },
+                { status: 412 },
+            );
+        }
         const rowsAll = Array.isArray(trend?.rows) ? trend.rows : [];
         const rows = sliceByDate(rowsAll, start, end)
             .map((r) => ({

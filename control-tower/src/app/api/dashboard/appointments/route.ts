@@ -7,8 +7,7 @@ import {
   ghlFetchJson,
 } from "@/lib/ghlHttp";
 import { inferStateFromText, normalizeStateName, norm } from "@/lib/ghlState";
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -297,32 +296,20 @@ function setRangeCache(start: string, end: string, value: ApiResponse) {
   });
 }
 
-function apptCacheDir() {
-  const root = process.env.DASH_CACHE_DIR || path.join("data", "cache");
-  return path.join(process.cwd(), root, "appointments");
+async function readLocationSnapshot(tenantId: string, locationId: string): Promise<LocationSnapshot | null> {
+  const snap = await loadDashboardSnapshot(tenantId, "appointments", locationId);
+  const parsed = (snap?.payload || null) as LocationSnapshot | null;
+  if (!parsed || !Array.isArray(parsed.rows)) return null;
+  if (String(parsed.locationId || "") !== String(locationId || "")) return null;
+  if (!Array.isArray(parsed.lostRows)) parsed.lostRows = [];
+  return parsed;
 }
 
-function apptSnapshotPath(locationId: string) {
-  const safeId = String(locationId || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
-  return path.join(apptCacheDir(), `${safeId}.json`);
-}
-
-async function readLocationSnapshot(locationId: string): Promise<LocationSnapshot | null> {
-  try {
-    const raw = await fs.readFile(apptSnapshotPath(locationId), "utf8");
-    const parsed = JSON.parse(raw) as LocationSnapshot;
-    if (!parsed || !Array.isArray(parsed.rows)) return null;
-    if (String(parsed.locationId || "") !== String(locationId || "")) return null;
-    if (!Array.isArray(parsed.lostRows)) parsed.lostRows = [];
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-async function writeLocationSnapshot(snapshot: LocationSnapshot) {
-  await fs.mkdir(apptCacheDir(), { recursive: true });
-  await fs.writeFile(apptSnapshotPath(snapshot.locationId), JSON.stringify(snapshot, null, 2), "utf8");
+async function writeLocationSnapshot(tenantId: string, snapshot: LocationSnapshot) {
+  await saveDashboardSnapshot(tenantId, "appointments", snapshot as unknown as Record<string, unknown>, {
+    snapshotKey: snapshot.locationId,
+    source: "dashboard_appointments_sync",
+  });
 }
 
 function rowsCoverage(rows: ApptRow[]) {
@@ -1542,7 +1529,8 @@ async function refreshLocationRows(
     },
   };
 
-  await writeLocationSnapshot(next);
+  const tenantId = norm(ctx?.tenantId);
+  if (tenantId) await writeLocationSnapshot(tenantId, next);
   return next;
 }
 
@@ -2096,7 +2084,7 @@ export async function GET(req: Request) {
       if (isPastDeadline(deadlineAtMs)) {
         refreshReason = refreshReason || "request_timeout_using_partial_data";
         refreshErrors.push(`request_timeout_before_location:${locationId}`);
-        const snapshot = await readLocationSnapshot(locationId);
+        const snapshot = await readLocationSnapshot(tenantId, locationId);
         if (snapshot?.rows?.length) {
           byLocationRows.set(locationId, snapshot.rows);
           byLocationLostRows.set(locationId, snapshot.lostRows || []);
@@ -2106,7 +2094,7 @@ export async function GET(req: Request) {
         }
         continue;
       }
-      const snapshot = await readLocationSnapshot(locationId);
+      const snapshot = await readLocationSnapshot(tenantId, locationId);
       const fresh =
         !!snapshot &&
         Array.isArray(snapshot.lostRows) &&

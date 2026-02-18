@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAgencyAccessTokenOrThrow, getEffectiveLocationIdOrThrow, ghlFetchJson } from "@/lib/ghlHttp";
 import { normalizeStateName, norm } from "@/lib/ghlState";
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -104,33 +103,19 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function txCacheDir() {
-    const root = process.env.DASH_CACHE_DIR || path.join("data", "cache");
-    return path.join(process.cwd(), root, "transactions");
+async function readTxSnapshot(tenantId: string, locationId: string): Promise<TxSnapshot | null> {
+    const snap = await loadDashboardSnapshot(tenantId, "transactions", locationId);
+    const parsed = (snap?.payload || null) as TxSnapshot | null;
+    if (!parsed || !Array.isArray(parsed.rows)) return null;
+    if (String(parsed.locationId || "") !== String(locationId || "")) return null;
+    return parsed;
 }
 
-function txSnapshotPath(locationId: string) {
-    const safeId = String(locationId || "unknown").replace(/[^a-zA-Z0-9_-]/g, "_");
-    return path.join(txCacheDir(), `${safeId}.json`);
-}
-
-async function readTxSnapshot(locationId: string): Promise<TxSnapshot | null> {
-    try {
-        const p = txSnapshotPath(locationId);
-        const raw = await fs.readFile(p, "utf8");
-        const parsed = JSON.parse(raw) as TxSnapshot;
-        if (!parsed || !Array.isArray(parsed.rows)) return null;
-        if (String(parsed.locationId || "") !== String(locationId || "")) return null;
-        return parsed;
-    } catch {
-        return null;
-    }
-}
-
-async function writeTxSnapshot(snapshot: TxSnapshot) {
-    const dir = txCacheDir();
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(txSnapshotPath(snapshot.locationId), JSON.stringify(snapshot, null, 2), "utf8");
+async function writeTxSnapshot(tenantId: string, snapshot: TxSnapshot) {
+    await saveDashboardSnapshot(tenantId, "transactions", snapshot as unknown as Record<string, unknown>, {
+        snapshotKey: snapshot.locationId,
+        source: "dashboard_transactions_sync",
+    });
 }
 
 function rowsCoverage(rows: TxRow[]) {
@@ -913,7 +898,7 @@ export async function GET(req: Request) {
         }
 
         const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
-        const snapshot = await readTxSnapshot(locationId);
+        const snapshot = await readTxSnapshot(tenantId, locationId);
         const startMs = toMs(start);
         const endMs = toMs(end);
         const snapshotCov = snapshot ? rowsCoverage(snapshot.rows || []) : { newestMs: 0, oldestMs: 0, newestIso: "", oldestIso: "" };
@@ -990,7 +975,7 @@ export async function GET(req: Request) {
             allRowsSource = Array.from(dedupeAll.values());
 
             const cov = rowsCoverage(allRowsSource);
-            await writeTxSnapshot({
+            await writeTxSnapshot(tenantId, {
                 version: 1,
                 locationId,
                 updatedAtMs: Date.now(),

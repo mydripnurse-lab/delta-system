@@ -1,20 +1,35 @@
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
-async function readJson(rel: string) {
-    const p = path.join(process.cwd(), rel);
-    const raw = await fs.readFile(p, "utf8");
-    return JSON.parse(raw);
+function s(v: unknown) {
+    return String(v ?? "").trim();
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const meta = await readJson("data/gsc/meta.json");
-        const queries = await readJson("data/gsc/queries.json");
-        const pages = await readJson("data/gsc/pages.json");
-        const trend = await readJson("data/gsc/trend.json");
+        const url = new URL(req.url);
+        const tenantId = s(url.searchParams.get("tenantId"));
+        if (!tenantId) {
+            return new Response(JSON.stringify({ ok: false, error: "Missing tenantId" }), {
+                status: 400,
+                headers: { "content-type": "application/json" },
+            });
+        }
+        const payload = ((await loadDashboardSnapshot(tenantId, "gsc"))?.payload || {}) as Record<string, unknown>;
+        const meta = (payload.meta || null) as Record<string, unknown> | null;
+        const queries = (payload.queries || null) as Record<string, unknown> | null;
+        const pages = (payload.pages || null) as Record<string, unknown> | null;
+        const trend = (payload.trend || null) as Record<string, unknown> | null;
+        if (!meta || !queries || !pages || !trend) {
+            return new Response(
+                JSON.stringify({
+                    ok: false,
+                    error: `GSC DB snapshot not found for tenant ${tenantId}. Run sync first.`,
+                }),
+                { status: 412, headers: { "content-type": "application/json" } },
+            );
+        }
 
         return new Response(
             JSON.stringify({ ok: true, meta, queries, pages, trend }),

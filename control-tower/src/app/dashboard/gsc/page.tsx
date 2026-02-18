@@ -4,7 +4,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useSearchParams } from "next/navigation";
+import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 
 const UsaChoroplethProgressMap = dynamic(
@@ -59,7 +59,7 @@ function deltaClass(pct: any, opts?: { invert?: boolean }) {
 }
 
 function GscDashboardPageContent() {
-  const searchParams = useSearchParams();
+  const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
   const [err, setErr] = useState("");

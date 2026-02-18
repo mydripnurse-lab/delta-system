@@ -1,5 +1,4 @@
-import fs from "fs/promises";
-import path from "path";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -11,23 +10,24 @@ function num(v: any) {
     return Number.isFinite(n) ? n : 0;
 }
 
-const CACHE_DIR = path.join(process.cwd(), "data", "cache", "gsc");
-
-async function readJson(name: string) {
-    const p = path.join(CACHE_DIR, name);
-    const txt = await fs.readFile(p, "utf8");
-    return JSON.parse(txt);
-}
-
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
+        const tenantId = s(searchParams.get("tenantId"));
+        if (!tenantId) return Response.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
         const type = s(searchParams.get("type")) || "queries";
         const q = s(searchParams.get("q")).toLowerCase();
         const limit = Math.max(1, Math.min(500, Number(searchParams.get("limit") || 100)));
 
-        const file = type === "pages" ? "pages.json" : "queries.json";
-        const json = await readJson(file);
+        const snap = await loadDashboardSnapshot(tenantId, "gsc");
+        const payload = (snap?.payload || {}) as Record<string, unknown>;
+        const json = (type === "pages" ? payload.pages : payload.queries) as Record<string, unknown> | null;
+        if (!json) {
+            return Response.json(
+                { ok: false, error: `GSC DB snapshot not found for tenant ${tenantId}. Run sync first.` },
+                { status: 412 },
+            );
+        }
         const rowsAll = Array.isArray(json?.rows) ? json.rows : [];
 
         let rows = rowsAll.map((r) => ({

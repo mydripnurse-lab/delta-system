@@ -1,13 +1,11 @@
 // control-tower/src/app/api/dashboard/gsc/sync/route.ts
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import {
     refreshGoogleAccessToken,
     resolveTenantOAuthConnection,
     saveTenantOAuthTokens,
 } from "@/lib/tenantOAuth";
-import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
+import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
 
 export const runtime = "nodejs";
 
@@ -194,19 +192,6 @@ async function gscQueryAll(params: {
     return allRows;
 }
 
-async function ensureDir(dir: string) {
-    await fs.mkdir(dir, { recursive: true });
-}
-
-async function readMeta(metaPath: string) {
-    try {
-        const raw = await fs.readFile(metaPath, "utf8");
-        return JSON.parse(raw);
-    } catch {
-        return null;
-    }
-}
-
 function isStale(meta: any, staleMinutes: number) {
     const fetchedAt = meta?.fetchedAt ? new Date(meta.fetchedAt).getTime() : 0;
     if (!fetchedAt) return true;
@@ -232,12 +217,9 @@ export async function GET(req: Request) {
 
         const { startDate, endDate, range } = parseRange(preset, start, end);
 
-        const cacheDir = resolveTenantModuleCacheDir(tenantId, "gsc");
-        const metaPath = path.join(cacheDir, "meta.json");
-
-        await ensureDir(cacheDir);
-
-        const metaPrev = await readMeta(metaPath);
+        const snap = await loadDashboardSnapshot(tenantId, "gsc");
+        const snapPayload = (snap?.payload || {}) as AnyObj;
+        const metaPrev = (snapPayload.meta || null) as AnyObj | null;
         const stale = isStale(metaPrev, 10);
 
         const wantTrendCompare = compare ? true : false;
@@ -343,21 +325,18 @@ export async function GET(req: Request) {
             qpIncluded: true,
         };
 
-        await fs.writeFile(path.join(cacheDir, "meta.json"), JSON.stringify(meta, null, 2), "utf8");
-        await fs.writeFile(path.join(cacheDir, "pages.json"), JSON.stringify({ rows: pagesRows }, null, 2), "utf8");
-        await fs.writeFile(path.join(cacheDir, "queries.json"), JSON.stringify({ rows: queriesRows }, null, 2), "utf8");
-
-        // ✅ FIX: write qp.json (the join reads qp.json)
-        await fs.writeFile(path.join(cacheDir, "qp.json"), JSON.stringify({ rows: queryPageRows }, null, 2), "utf8");
-
-        // ✅ optional: keep your previous filename too (backwards compatibility)
-        await fs.writeFile(
-            path.join(cacheDir, "query_pages.json"),
-            JSON.stringify({ rows: queryPageRows }, null, 2),
-            "utf8",
+        await saveDashboardSnapshot(
+            tenantId,
+            "gsc",
+            {
+                meta,
+                pages: { rows: pagesRows },
+                queries: { rows: queriesRows },
+                qp: { rows: queryPageRows },
+                trend: { rows: trendRows },
+            },
+            { source: "dashboard_gsc_sync" },
         );
-
-        await fs.writeFile(path.join(cacheDir, "trend.json"), JSON.stringify({ rows: trendRows }, null, 2), "utf8");
 
         return NextResponse.json({
             ok: true,
