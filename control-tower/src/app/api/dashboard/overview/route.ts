@@ -309,8 +309,11 @@ export async function GET(req: Request) {
         const adsRange = s(url.searchParams.get("adsRange")) || adsRangeFromPreset(preset);
         const force = s(url.searchParams.get("force")) === "1";
         const tenantId = s(url.searchParams.get("tenantId"));
-        const integrationKey = s(url.searchParams.get("integrationKey")) || "owner";
-        const searchIntegrationKey = s(url.searchParams.get("searchIntegrationKey")) || "default";
+        const integrationKeyRaw = s(url.searchParams.get("integrationKey")) || "owner";
+        const integrationKey = integrationKeyRaw.toLowerCase() === "default" ? "owner" : integrationKeyRaw;
+        const searchIntegrationKey =
+            s(url.searchParams.get("searchIntegrationKey")) ||
+            (integrationKeyRaw.toLowerCase() === "owner" ? "default" : integrationKeyRaw);
 
         if (!start || !end) {
             return NextResponse.json(
@@ -335,6 +338,7 @@ export async function GET(req: Request) {
         const snapshotCapturedMs = snapshot?.capturedAt ? new Date(snapshot.capturedAt).getTime() : 0;
         const snapshotAgeMs = Number.isFinite(snapshotCapturedMs) ? Math.max(0, Date.now() - snapshotCapturedMs) : Number.POSITIVE_INFINITY;
         const snapshotMatchesRange = snapshotStart === start && snapshotEnd === end && snapshotPreset === preset;
+        const useSnapshotFallback = snapshotMatchesRange;
         if (!force && snapshot && snapshotMatchesRange) {
             return NextResponse.json({
                 ...(snapshotPayload as JsonObject),
@@ -449,32 +453,32 @@ export async function GET(req: Request) {
             searchJoin = await fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`);
         }
 
-        const callsNow = callsCur.ok ? n(callsCur.data.total) : n(snapshotExecutive.callsNow);
-        const callsBefore = callsPrev.ok ? n(callsPrev.data.total) : n(snapshotExecutive.callsBefore);
+        const callsNow = callsCur.ok ? n(callsCur.data.total) : (useSnapshotFallback ? n(snapshotExecutive.callsNow) : 0);
+        const callsBefore = callsPrev.ok ? n(callsPrev.data.total) : (useSnapshotFallback ? n(snapshotExecutive.callsBefore) : 0);
         const callsMissedNow = callsCur.ok
             ? (((callsCur.data.rows as unknown[]) || []) as Array<Record<string, unknown>>).filter((r) =>
                 isMissedCallStatus(r["Phone Call Status"]),
             ).length
             : 0;
 
-        const leadsNow = contactsCur.ok ? n(contactsCur.data.total) : n(snapshotExecutive.leadsNow);
-        const leadsBefore = contactsPrev.ok ? n(contactsPrev.data.total) : n(snapshotExecutive.leadsBefore);
+        const leadsNow = contactsCur.ok ? n(contactsCur.data.total) : (useSnapshotFallback ? n(snapshotExecutive.leadsNow) : 0);
+        const leadsBefore = contactsPrev.ok ? n(contactsPrev.data.total) : (useSnapshotFallback ? n(snapshotExecutive.leadsBefore) : 0);
 
-        const convNow = conversationsCur.ok ? n(conversationsCur.data.total) : n(snapshotExecutive.conversationsNow);
-        const convBefore = conversationsPrev.ok ? n(conversationsPrev.data.total) : n(snapshotExecutive.conversationsBefore);
-        const txNow = transactionsCur.ok ? n(transactionsCur.data.total) : n(snapshotExecutive.transactionsNow);
-        const txBefore = transactionsPrev.ok ? n(transactionsPrev.data.total) : n(snapshotExecutive.transactionsBefore);
+        const convNow = conversationsCur.ok ? n(conversationsCur.data.total) : (useSnapshotFallback ? n(snapshotExecutive.conversationsNow) : 0);
+        const convBefore = conversationsPrev.ok ? n(conversationsPrev.data.total) : (useSnapshotFallback ? n(snapshotExecutive.conversationsBefore) : 0);
+        const txNow = transactionsCur.ok ? n(transactionsCur.data.total) : (useSnapshotFallback ? n(snapshotExecutive.transactionsNow) : 0);
+        const txBefore = transactionsPrev.ok ? n(transactionsPrev.data.total) : (useSnapshotFallback ? n(snapshotExecutive.transactionsBefore) : 0);
         const txGrossNow = transactionsCur.ok
             ? n((transactionsCur.data.kpis as JsonObject)?.grossAmount)
-            : n(snapshotExecutive.transactionsRevenueNow);
+            : (useSnapshotFallback ? n(snapshotExecutive.transactionsRevenueNow) : 0);
         const txGrossBefore = transactionsPrev.ok
             ? n((transactionsPrev.data.kpis as JsonObject)?.grossAmount)
-            : n(snapshotExecutive.transactionsRevenueBefore);
+            : (useSnapshotFallback ? n(snapshotExecutive.transactionsRevenueBefore) : 0);
         const txLtvNow = transactionsCur.ok
             ? n((transactionsCur.data.kpis as JsonObject)?.avgLifetimeOrderValue)
-            : n(snapshotExecutive.transactionsAvgLtvNow);
-        const apptNow = appointmentsCur.ok ? n(appointmentsCur.data.total) : n(snapshotExecutive.appointmentsNow);
-        const apptBefore = appointmentsPrev.ok ? n(appointmentsPrev.data.total) : n(snapshotExecutive.appointmentsBefore);
+            : (useSnapshotFallback ? n(snapshotExecutive.transactionsAvgLtvNow) : 0);
+        const apptNow = appointmentsCur.ok ? n(appointmentsCur.data.total) : (useSnapshotFallback ? n(snapshotExecutive.appointmentsNow) : 0);
+        const apptBefore = appointmentsPrev.ok ? n(appointmentsPrev.data.total) : (useSnapshotFallback ? n(snapshotExecutive.appointmentsBefore) : 0);
         const apptLostNow = appointmentsCur.ok
             ? n((appointmentsCur.data.lostBookings as JsonObject)?.total)
             : 0;

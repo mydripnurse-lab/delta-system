@@ -92,7 +92,7 @@ function GscDashboardPageContent() {
   const integrationKey =
     integrationKeyRaw.toLowerCase() === "owner" ? "default" : integrationKeyRaw;
   const backHref = tenantId
-    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}`
     : "/dashboard";
 
   function attachTenantScope(p: URLSearchParams) {

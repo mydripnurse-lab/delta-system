@@ -937,7 +937,8 @@ function DashboardHomeContent() {
   const [tenantIdResolved, setTenantIdResolved] = useState(tenantIdFromQuery);
   const [tenantResolveDone, setTenantResolveDone] = useState(Boolean(tenantIdFromQuery));
   const tenantId = tenantIdResolved;
-  const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+  const integrationKeyRaw = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+  const integrationKey = integrationKeyRaw.toLowerCase() === "default" ? "owner" : integrationKeyRaw;
 
   useEffect(() => {
     let cancelled = false;
