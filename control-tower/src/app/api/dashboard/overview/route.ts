@@ -392,54 +392,54 @@ export async function GET(req: Request) {
             appointmentsCur,
             appointmentsPrev,
         ] = await Promise.all([
-            fetchJson(`${origin}/api/dashboard/calls?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&${tenantQ}`, 2500),
+            fetchJson(`${origin}/api/dashboard/calls?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&${tenantQ}`, 5000),
             prevStart && prevEnd
                 ? fetchJson(
                     `${origin}/api/dashboard/calls?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&${tenantQ}`,
-                    2500,
+                    5000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
                 `${origin}/api/dashboard/contacts?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${contactsBust}&${tenantQ}`,
-                2500,
+                7000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
                     `${origin}/api/dashboard/contacts?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${contactsBust}&${tenantQ}`,
-                    2500,
+                    7000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
-            fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`, 2500),
-            fetchJson(`${origin}/api/dashboard/ga/join?compare=1${tenantSearchForceQ}`, 2500),
-            fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${tenantSearchForceQ}`, 2500),
+            fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`, 7000),
+            fetchJson(`${origin}/api/dashboard/ga/join?compare=1${tenantSearchForceQ}`, 7000),
+            fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${tenantSearchForceQ}`, 7000),
             fetchJson(
                 `${origin}/api/dashboard/conversations?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
-                2200,
+                7000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
                     `${origin}/api/dashboard/conversations?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
-                    2200,
+                    7000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
                 `${origin}/api/dashboard/transactions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
-                2200,
+                7000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
                     `${origin}/api/dashboard/transactions?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
-                    2200,
+                    7000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
                 `${origin}/api/dashboard/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
-                2200,
+                12000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
                     `${origin}/api/dashboard/appointments?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
-                    2200,
+                    12000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
         ]);

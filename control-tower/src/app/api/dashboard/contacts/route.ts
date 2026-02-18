@@ -77,12 +77,12 @@ const CACHE_TTL_MS = 60_000; // 60s
 const MAX_PAGES = 50;
 const PAGE_LIMIT = 200;
 
-function cacheKey(start: string, end: string) {
-    return `${start}__${end}`;
+function cacheKey(start: string, end: string, tenantId: string, integrationKey: string) {
+    return `${tenantId}__${integrationKey}__${start}__${end}`;
 }
 
-function getCache(start: string, end: string) {
-    const k = cacheKey(start, end);
+function getCache(start: string, end: string, tenantId: string, integrationKey: string) {
+    const k = cacheKey(start, end, tenantId, integrationKey);
     const hit = RANGE_CACHE.get(k);
     if (!hit) return null;
     if (Date.now() - hit.atMs > hit.ttlMs) {
@@ -92,8 +92,8 @@ function getCache(start: string, end: string) {
     return hit.value;
 }
 
-function setCache(start: string, end: string, value: ApiResponse) {
-    const k = cacheKey(start, end);
+function setCache(start: string, end: string, tenantId: string, integrationKey: string, value: ApiResponse) {
+    const k = cacheKey(start, end, tenantId, integrationKey);
     RANGE_CACHE.set(k, { atMs: Date.now(), ttlMs: CACHE_TTL_MS, value });
 }
 
@@ -320,7 +320,7 @@ export async function GET(req: Request) {
         }
 
         if (!bust) {
-            const cached = getCache(start, end);
+            const cached = getCache(start, end, tenantId, integrationKey);
             if (cached) return NextResponse.json(cached);
         }
 
@@ -414,7 +414,7 @@ export async function GET(req: Request) {
                 : {}),
         };
 
-        setCache(start, end, resp);
+        setCache(start, end, tenantId, integrationKey, resp);
         return NextResponse.json(resp);
     } catch (e: any) {
         const msg = e?.message || "Unknown error";

@@ -130,11 +130,6 @@ type RangeCacheEntry = {
   value: ApiResponse;
 };
 
-type LocationIdsCache = {
-  atMs: number;
-  ids: string[];
-};
-
 type LocationDirectoryItem = {
   locationId: string;
   state: string;
@@ -160,10 +155,8 @@ type GhlCtx = {
 
 const RANGE_CACHE = new Map<string, RangeCacheEntry>();
 const RANGE_CACHE_TTL_MS = 45_000;
-
-let LOCATION_IDS_CACHE: LocationIdsCache | null = null;
 const LOCATION_IDS_CACHE_TTL_MS = 5 * 60 * 1000;
-let LOCATION_DIRECTORY_CACHE: LocationDirectoryCache | null = null;
+const LOCATION_DIRECTORY_CACHE_BY_SCOPE = new Map<string, LocationDirectoryCache>();
 
 const API_BASE = "https://services.leadconnectorhq.com";
 const API_VERSION = "2021-07-28";
@@ -274,22 +267,22 @@ async function with429Retry<T>(fn: () => Promise<T>) {
   throw lastErr;
 }
 
-function rangeCacheKey(start: string, end: string) {
-  return `${start}__${end}`;
+function rangeCacheKey(start: string, end: string, tenantId: string, integrationKey: string) {
+  return `${tenantId}__${integrationKey}__${start}__${end}`;
 }
 
-function getRangeCache(start: string, end: string) {
-  const hit = RANGE_CACHE.get(rangeCacheKey(start, end));
+function getRangeCache(start: string, end: string, tenantId: string, integrationKey: string) {
+  const hit = RANGE_CACHE.get(rangeCacheKey(start, end, tenantId, integrationKey));
   if (!hit) return null;
   if (Date.now() - hit.atMs > hit.ttlMs) {
-    RANGE_CACHE.delete(rangeCacheKey(start, end));
+    RANGE_CACHE.delete(rangeCacheKey(start, end, tenantId, integrationKey));
     return null;
   }
   return hit.value;
 }
 
-function setRangeCache(start: string, end: string, value: ApiResponse) {
-  RANGE_CACHE.set(rangeCacheKey(start, end), {
+function setRangeCache(start: string, end: string, tenantId: string, integrationKey: string, value: ApiResponse) {
+  RANGE_CACHE.set(rangeCacheKey(start, end, tenantId, integrationKey), {
     atMs: Date.now(),
     ttlMs: RANGE_CACHE_TTL_MS,
     value,
@@ -592,14 +585,11 @@ function pickContactCity(raw: any) {
 }
 
 async function getLocationDirectory(ctx?: GhlCtx) {
+  const scopeKey = `${norm(ctx?.tenantId)}__${norm(ctx?.integrationKey) || "owner"}`;
   const now = Date.now();
-  if (
-    LOCATION_DIRECTORY_CACHE &&
-    LOCATION_IDS_CACHE &&
-    now - LOCATION_DIRECTORY_CACHE.atMs <= LOCATION_IDS_CACHE_TTL_MS &&
-    now - LOCATION_IDS_CACHE.atMs <= LOCATION_IDS_CACHE_TTL_MS
-  ) {
-    return LOCATION_DIRECTORY_CACHE;
+  const cachedScope = LOCATION_DIRECTORY_CACHE_BY_SCOPE.get(scopeKey);
+  if (cachedScope && now - cachedScope.atMs <= LOCATION_IDS_CACHE_TTL_MS) {
+    return cachedScope;
   }
 
   const tenantId = norm(ctx?.tenantId);
@@ -703,8 +693,7 @@ async function getLocationDirectory(ctx?: GhlCtx) {
   }
 
   const out = Array.from(ids).slice(0, MAX_LOCATIONS);
-  LOCATION_IDS_CACHE = { atMs: now, ids: out };
-  LOCATION_DIRECTORY_CACHE = {
+  const scopedCache: LocationDirectoryCache = {
     atMs: now,
     ids: out,
     byLocationId,
@@ -713,7 +702,8 @@ async function getLocationDirectory(ctx?: GhlCtx) {
     accountNamesByLocation,
     countiesByAccountToken,
   };
-  return LOCATION_DIRECTORY_CACHE;
+  LOCATION_DIRECTORY_CACHE_BY_SCOPE.set(scopeKey, scopedCache);
+  return scopedCache;
 }
 
 async function fetchContactsForLocation(
@@ -1368,6 +1358,7 @@ async function refreshLocationRows(
   deadlineAtMs?: number,
   ctx?: GhlCtx,
 ) {
+  const directory = await getLocationDirectory(ctx).catch(() => null);
   const authToken = await getLocationTokenFor(locationId, ctx);
   const incremental = !!snapshot && !forceFull;
   const stopBeforeMs = snapshot?.updatedAtMs
@@ -1452,8 +1443,9 @@ async function refreshLocationRows(
           ],
           snapshot?.lostRows || [],
           discovered,
+          directory,
         )
-      : deriveLostRowsFromContacts(locationId, contactsForLost, snapshot?.lostRows || [], discovered);
+      : deriveLostRowsFromContacts(locationId, contactsForLost, snapshot?.lostRows || [], discovered, directory);
   if (!newLostRows.length && contactsForLost.length) {
     contactsForLost = await hydrateContactsForOpportunities(authToken, locationId, contactsForLost);
     discovered = discoverLostPipelineStageIdsFromContacts(contactsForLost);
@@ -1491,8 +1483,9 @@ async function refreshLocationRows(
             ],
             snapshot?.lostRows || [],
             discovered,
+            directory,
           )
-        : deriveLostRowsFromContacts(locationId, contactsForLost, snapshot?.lostRows || [], discovered);
+        : deriveLostRowsFromContacts(locationId, contactsForLost, snapshot?.lostRows || [], discovered, directory);
   }
   const merged = [...newRows, ...(snapshot?.rows || [])];
 
@@ -1798,9 +1791,9 @@ function deriveLostRowsFromContacts(
   contacts: ContactLite[],
   prevRows: LostBookingRow[],
   discovered: LostDiscovery,
+  directory?: LocationDirectoryCache | null,
 ) {
   const merged = [...prevRows];
-  const directory = LOCATION_DIRECTORY_CACHE;
   for (const c of contacts) {
     for (const o of c.opportunities || []) {
       if (!isLostQualifiedOpportunityWithDiscovery(o, discovered)) continue;
@@ -1857,9 +1850,9 @@ function deriveLostRowsFromOpportunityRows(
   opportunities: any[],
   prevRows: LostBookingRow[],
   discovered: LostDiscovery,
+  directory?: LocationDirectoryCache | null,
 ) {
   const merged = [...prevRows];
-  const directory = LOCATION_DIRECTORY_CACHE;
   for (const o of opportunities || []) {
     if (!isLostQualifiedOpportunityWithDiscovery(o, discovered)) continue;
     const source = getOpportunitySource(o);
@@ -1918,6 +1911,7 @@ async function refreshLostRowsStageOnly(
   deadlineAtMs?: number,
   ctx?: GhlCtx,
 ): Promise<LostStageRefreshResult> {
+  const directory = await getLocationDirectory(ctx).catch(() => null);
   const errors: string[] = [];
   const authToken = await getLocationTokenFor(locationId, ctx);
   let discovery = await discoverLostIdsFromPipelineCatalog(authToken, locationId);
@@ -1945,7 +1939,7 @@ async function refreshLostRowsStageOnly(
   );
   if (rowsFromStageApi.length) {
     return {
-      rows: deriveLostRowsFromOpportunityRows(locationId, rowsFromStageApi, prevRows, discovery),
+      rows: deriveLostRowsFromOpportunityRows(locationId, rowsFromStageApi, prevRows, discovery, directory),
       discovery,
       stageApiRows: rowsFromStageApi.length,
       errors,
@@ -1963,7 +1957,7 @@ async function refreshLostRowsStageOnly(
   );
   if (rowsFromPipelineWide.length) {
     return {
-      rows: deriveLostRowsFromOpportunityRows(locationId, rowsFromPipelineWide, prevRows, discovery),
+      rows: deriveLostRowsFromOpportunityRows(locationId, rowsFromPipelineWide, prevRows, discovery, directory),
       discovery,
       stageApiRows: 0,
       errors,
@@ -2011,7 +2005,7 @@ async function refreshLostRowsStageOnly(
     stageIds: Array.from(new Set([...discovery.stageIds, ...discoveryFromContacts.stageIds])),
   };
 
-  const derivedRows = deriveLostRowsFromContacts(locationId, contactsWithOpps, prevRows, discovery);
+  const derivedRows = deriveLostRowsFromContacts(locationId, contactsWithOpps, prevRows, discovery, directory);
 
   return {
     rows: derivedRows,
@@ -2048,7 +2042,7 @@ export async function GET(req: Request) {
     }
 
     if (!bust) {
-      const cached = getRangeCache(start, end);
+      const cached = getRangeCache(start, end, tenantId, integrationKey);
       if (cached) {
         return NextResponse.json({
           ...cached,
@@ -2378,7 +2372,7 @@ export async function GET(req: Request) {
         : {}),
     };
 
-    setRangeCache(start, end, resp);
+    setRangeCache(start, end, tenantId, integrationKey, resp);
     console.info(
       `[appointments] request done inMs=${Date.now() - reqStartedAt} total=${resp.total || 0} lost=${resp.lostBookings?.total || 0} refreshReason=${resp.cache?.refreshReason || "none"}`,
     );
