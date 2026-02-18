@@ -5,6 +5,11 @@ const nextConfig = {
   experimental: {
     externalDir: true, // permite importar ../services/*
   },
+  turbopack: {
+    resolveAlias: {
+      "@": path.resolve(__dirname, "src"),
+    },
+  },
   webpack: (config) => {
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};
