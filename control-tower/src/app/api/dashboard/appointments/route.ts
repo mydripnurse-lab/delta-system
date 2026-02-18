@@ -2021,6 +2021,7 @@ export async function GET(req: Request) {
   const end = url.searchParams.get("end") || "";
   const bust = url.searchParams.get("bust") === "1";
   const debug = url.searchParams.get("debug") === "1";
+  const preferSnapshot = url.searchParams.get("preferSnapshot") === "1";
   const tenantId = norm(url.searchParams.get("tenantId"));
   const integrationKey = norm(url.searchParams.get("integrationKey")) || "owner";
   if (!tenantId) {
@@ -2094,7 +2095,7 @@ export async function GET(req: Request) {
         Array.isArray(snapshot.lostRows) &&
         Date.now() - Number(snapshot.updatedAtMs || 0) <= SNAPSHOT_TTL_MS;
 
-      if (fresh && snapshot && !bust) {
+      if (snapshot && !bust && (fresh || preferSnapshot)) {
         byLocationRows.set(locationId, snapshot.rows || []);
         byLocationLostRows.set(locationId, snapshot.lostRows || []);
         for (const id of snapshot.lostDiscovery?.pipelineIds || []) if (id) discoveredPipelineIds.add(id);
@@ -2105,6 +2106,9 @@ export async function GET(req: Request) {
           newest: snapshot.newestStartAt || "",
           oldest: snapshot.oldestStartAt || "",
         });
+        if (preferSnapshot && !fresh) {
+          refreshReason = refreshReason || "snapshot_preferred";
+        }
         continue;
       }
 

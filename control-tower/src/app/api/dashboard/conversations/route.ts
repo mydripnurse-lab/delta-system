@@ -847,6 +847,7 @@ export async function GET(req: Request) {
     const end = url.searchParams.get("end") || "";
     const bust = url.searchParams.get("bust") === "1";
     const debug = url.searchParams.get("debug") === "1";
+    const preferSnapshot = url.searchParams.get("preferSnapshot") === "1";
     const tenantId = norm(url.searchParams.get("tenantId"));
     const integrationKey = norm(url.searchParams.get("integrationKey")) || "owner";
     if (!tenantId) {
@@ -887,11 +888,11 @@ export async function GET(req: Request) {
         let refreshReason = "";
         let snapshotUpdatedAtIso = snapshot?.updatedAtMs ? new Date(snapshot.updatedAtMs).toISOString() : "";
 
-        if (snapshotFresh && snapshot && !bust) {
+        if (snapshot && !bust && (snapshotFresh || preferSnapshot)) {
             rawRows = snapshot.rows || [];
             rowsSource = "snapshot";
             cacheSource = "snapshot";
-            refreshReason = "snapshot_fresh";
+            refreshReason = snapshotFresh ? "snapshot_fresh" : "snapshot_preferred";
         } else {
             try {
                 refreshReason = snapshot ? "snapshot_stale_refresh" : "snapshot_missing_full_fetch";
