@@ -31,6 +31,8 @@ resources/config/google-cloud.json
 !resources/statesFiles/*.json
 !control-tower/package.json
 !control-tower/package-lock.json
+!control-tower/tsconfig.json
+!control-tower/jsconfig.json
 !resources/config/business-profile.json
 !resources/config/campaign-factory.config.json
 !resources/config/campaign-landing-map.json
