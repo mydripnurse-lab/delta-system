@@ -223,6 +223,10 @@ function isOneLocJob(job: string) {
     return job === "update-custom-values-one";
 }
 
+function jobNeedsGeneratedOut(job: string) {
+    return job === "run-delta-system" || job === "update-custom-values" || job === "update-custom-values-one";
+}
+
 function jobUsesState(job: string) {
     // jobs que realmente consumen state (args/env) para iterar / seleccionar archivos
     return (
@@ -379,6 +383,53 @@ async function loadTenantRunEnv(tenantId: string, opts: { requireSheet: boolean;
     return { env, ghlProvider, ghlIntegrationKey: "owner" };
 }
 
+async function runPrebuildCounties(args: {
+    repoRoot: string;
+    runId: string;
+    tenantId: string;
+    mode: "live" | "dry";
+    debug: boolean;
+    state: string;
+    env: NodeJS.ProcessEnv;
+}) {
+    const prebuildScript = resolveScriptPath(findRepoRoots(args.repoRoot), "build-counties").scriptPath;
+    if (!prebuildScript) {
+        throw new Error("Prebuild failed: build-counties script not found.");
+    }
+
+    appendLine(args.runId, "prebuild: generating state output json (build-counties)...");
+    const preArgs = [prebuildScript, `--mode=${args.mode}`, `--debug=${args.debug ? "1" : "0"}`];
+    if (args.state) {
+        preArgs.push(`--state=${args.state}`);
+        preArgs.push(args.state);
+    }
+
+    const child = spawn(process.execPath, preArgs, {
+        cwd: args.repoRoot,
+        env: args.env,
+        stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    const rlOut = readline.createInterface({ input: child.stdout });
+    const rlErr = readline.createInterface({ input: child.stderr });
+    rlOut.on("line", (line) => appendLine(args.runId, `[prebuild] ${line}`));
+    rlErr.on("line", (line) => appendLine(args.runId, `[prebuild] ${line}`));
+
+    const exitCode = await new Promise<number>((resolve) => {
+        child.on("error", () => resolve(1));
+        child.on("close", (code) => resolve(code ?? 1));
+    });
+    try {
+        rlOut.close();
+        rlErr.close();
+    } catch {}
+
+    if (exitCode !== 0) {
+        throw new Error(`Prebuild build-counties failed with exit code ${exitCode}.`);
+    }
+    appendLine(args.runId, "prebuild: build-counties done.");
+}
+
 async function persistTenantGhlTokenUpdate(input: {
     tenantId: string;
     provider: "ghl" | "custom";
@@ -526,17 +577,38 @@ export async function POST(req: Request) {
         };
 
         let tempStateFilesDir = "";
+        const tempOutRoot = path.join(
+            os.tmpdir(),
+            "ct-out",
+            tenantId || "global",
+            `${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+        );
         if (tenantId && jobUsesState(job)) {
             const seeded = await materializeTenantStateFilesFromDb(tenantId);
             tempStateFilesDir = seeded.dir;
             envMerged.STATE_FILES_DIR = tempStateFilesDir;
             appendLine(run.id, `state-files source=db materialized=${seeded.count} dir=${tempStateFilesDir}`);
         }
+        await fsp.mkdir(tempOutRoot, { recursive: true });
+        envMerged.OUT_ROOT_DIR = tempOutRoot;
+        appendLine(run.id, `out-root dir=${tempOutRoot}`);
 
         // ✅ state env solo cuando aplica
         if (!isOneLocJob(job) && jobUsesState(job)) {
             envMerged.DELTA_STATE = rawState;
             envMerged.STATE = rawState;
+        }
+
+        if (jobNeedsGeneratedOut(job)) {
+            await runPrebuildCounties({
+                repoRoot,
+                runId: run.id,
+                tenantId,
+                mode,
+                debug,
+                state: rawState,
+                env: envMerged,
+            });
         }
 
         const child = spawn(process.execPath, args, {
@@ -609,6 +681,9 @@ export async function POST(req: Request) {
             if (tempStateFilesDir) {
                 await fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
             }
+            if (tempOutRoot) {
+                await fsp.rm(tempOutRoot, { recursive: true, force: true }).catch(() => {});
+            }
             return NextResponse.json({
                 runId: run.id,
                 sync: true,
@@ -641,6 +716,9 @@ export async function POST(req: Request) {
             }
             if (tempStateFilesDir) {
                 void fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
+            }
+            if (tempOutRoot) {
+                void fsp.rm(tempOutRoot, { recursive: true, force: true }).catch(() => {});
             }
         });
 
