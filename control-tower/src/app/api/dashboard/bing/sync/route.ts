@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { getTenantIntegration } from "@/lib/tenantIntegrations";
+import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
 
 export const runtime = "nodejs";
 
@@ -372,9 +373,7 @@ export async function GET(req: Request) {
     const siteUrlsKey = siteUrls.join("|");
 
     const range = rangeFromPreset(preset, start, end);
-    const cacheDir = tenantId
-      ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "bing")
-      : path.join(process.cwd(), "data", "cache", "bing");
+    const cacheDir = resolveTenantModuleCacheDir(tenantId, "bing");
     const metaPath = path.join(cacheDir, "meta.json");
     const freshnessMs = Math.max(60_000, Number(process.env.BING_SYNC_MAX_AGE_MS || 10 * 60_000));
 

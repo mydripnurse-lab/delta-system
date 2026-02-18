@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { loadGscCatalogIndex } from "@/lib/gscCatalogIndex";
+import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
 
 export const runtime = "nodejs";
 
@@ -710,29 +711,50 @@ function buildKeywordAnalytics(args: {
 export async function GET(req: Request) {
     try {
         const url = new URL(req.url);
+        const origin = url.origin;
         const range = url.searchParams.get("range") || "";
         const state = url.searchParams.get("state") || "";
         const tenantId = s(url.searchParams.get("tenantId"));
+        const integrationKey = s(url.searchParams.get("integrationKey")) || "default";
         const compareEnabled = url.searchParams.get("compare") === "1";
 
         const forceCatalog =
             url.searchParams.get("forceCatalog") === "1" ||
             url.searchParams.get("force") === "1";
 
-        const cacheDir = tenantId
-            ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "gsc")
-            : path.join(process.cwd(), "data", "cache", "gsc");
+        const cacheDir = resolveTenantModuleCacheDir(tenantId, "gsc");
 
-        const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
-        const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
-        const queriesRaw = await readJsonRaw(path.join(cacheDir, "queries.json"));
+        const readSnapshot = async () => {
+            const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
+            const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
+            const queriesRaw = await readJsonRaw(path.join(cacheDir, "queries.json"));
+            const qpRawPrimary = await readJsonRaw(path.join(cacheDir, "qp.json"));
+            const qpRawFallback = qpRawPrimary ? null : await readJsonRaw(path.join(cacheDir, "query_pages.json"));
+            const qpRaw = qpRawPrimary || qpRawFallback;
+            const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+            return { metaRaw, pagesRaw, queriesRaw, qpRaw, trendRaw };
+        };
 
-        // ✅ FIX: read qp.json first; fallback to query_pages.json if needed
-        const qpRawPrimary = await readJsonRaw(path.join(cacheDir, "qp.json"));
-        const qpRawFallback = qpRawPrimary ? null : await readJsonRaw(path.join(cacheDir, "query_pages.json"));
-        const qpRaw = qpRawPrimary || qpRawFallback;
+        let { metaRaw, pagesRaw, queriesRaw, qpRaw, trendRaw } = await readSnapshot();
+        const missingCore = !metaRaw || !pagesRaw || !queriesRaw || !trendRaw;
+        if (missingCore && tenantId) {
+            const syncUrl = new URL("/api/dashboard/gsc/sync", origin);
+            syncUrl.searchParams.set("tenantId", tenantId);
+            syncUrl.searchParams.set("integrationKey", integrationKey);
+            syncUrl.searchParams.set("force", "1");
+            if (range) syncUrl.searchParams.set("range", range);
+            const start = s(url.searchParams.get("start"));
+            const end = s(url.searchParams.get("end"));
+            if (start) syncUrl.searchParams.set("start", start);
+            if (end) syncUrl.searchParams.set("end", end);
+            if (compareEnabled) syncUrl.searchParams.set("compare", "1");
 
-        const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+            const syncRes = await fetch(syncUrl.toString(), { method: "GET", cache: "no-store" });
+            if (syncRes.ok) {
+                ({ metaRaw, pagesRaw, queriesRaw, qpRaw, trendRaw } = await readSnapshot());
+            }
+        }
+
         if (!metaRaw || !pagesRaw || !queriesRaw || !trendRaw) {
             return NextResponse.json(
                 {

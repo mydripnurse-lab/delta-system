@@ -3,6 +3,7 @@ import path from "path";
 import { NextResponse } from "next/server";
 import { loadGscCatalogIndex } from "@/lib/gscCatalogIndex";
 import { loadStateCatalog } from "@/lib/stateCatalog";
+import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
 
 export const runtime = "nodejs";
 
@@ -38,8 +39,12 @@ function inDateRange(dateIso: string, startIso: string, endIso: string) {
 }
 
 async function readJsonRaw(p: string) {
-  const txt = await fs.readFile(p, "utf8");
-  return JSON.parse(txt) as JsonObj;
+  try {
+    const txt = await fs.readFile(p, "utf8");
+    return JSON.parse(txt) as JsonObj;
+  } catch {
+    return null;
+  }
 }
 
 function hostnameFromPage(page: string) {
@@ -186,20 +191,40 @@ function summarizeTrend(rows: TrendRow[]) {
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams, origin } = new URL(req.url);
     const tenantId = s(searchParams.get("tenantId"));
+    const integrationKey = s(searchParams.get("integrationKey")) || "default";
     const state = s(searchParams.get("state"));
     const compareEnabled = s(searchParams.get("compare")) === "1";
     const startParam = s(searchParams.get("start"));
     const endParam = s(searchParams.get("end"));
+    const range = s(searchParams.get("range"));
 
-    const cacheDir = tenantId
-      ? path.join(process.cwd(), "data", "cache", "tenants", tenantId, "bing")
-      : path.join(process.cwd(), "data", "cache", "bing");
-    const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
-    const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
-    const queriesRaw = await readJsonRaw(path.join(cacheDir, "queries.json"));
-    const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+    const cacheDir = resolveTenantModuleCacheDir(tenantId, "bing");
+    const readSnapshot = async () => {
+      const metaRaw = await readJsonRaw(path.join(cacheDir, "meta.json"));
+      const pagesRaw = await readJsonRaw(path.join(cacheDir, "pages.json"));
+      const queriesRaw = await readJsonRaw(path.join(cacheDir, "queries.json"));
+      const trendRaw = await readJsonRaw(path.join(cacheDir, "trend.json"));
+      return { metaRaw, pagesRaw, queriesRaw, trendRaw };
+    };
+
+    let { metaRaw, pagesRaw, queriesRaw, trendRaw } = await readSnapshot();
+    const missingCore = !metaRaw || !pagesRaw || !queriesRaw || !trendRaw;
+    if (missingCore && tenantId) {
+      const syncUrl = new URL("/api/dashboard/bing/sync", origin);
+      syncUrl.searchParams.set("tenantId", tenantId);
+      syncUrl.searchParams.set("integrationKey", integrationKey);
+      syncUrl.searchParams.set("force", "1");
+      if (range) syncUrl.searchParams.set("range", range);
+      if (startParam) syncUrl.searchParams.set("start", startParam);
+      if (endParam) syncUrl.searchParams.set("end", endParam);
+      const syncRes = await fetch(syncUrl.toString(), { method: "GET", cache: "no-store" });
+      if (syncRes.ok) {
+        ({ metaRaw, pagesRaw, queriesRaw, trendRaw } = await readSnapshot());
+      }
+    }
+
     if (!metaRaw || !pagesRaw || !queriesRaw || !trendRaw) {
       return NextResponse.json(
         {

@@ -7,6 +7,7 @@ import {
     resolveTenantOAuthConnection,
     saveTenantOAuthTokens,
 } from "@/lib/tenantOAuth";
+import { resolveTenantModuleCacheDir } from "@/lib/runtimeCache";
 
 export const runtime = "nodejs";
 
@@ -231,14 +232,7 @@ export async function GET(req: Request) {
 
         const { startDate, endDate, range } = parseRange(preset, start, end);
 
-        const cacheDir = path.join(
-            process.cwd(),
-            "data",
-            "cache",
-            "tenants",
-            tenantId || "_default",
-            "gsc",
-        );
+        const cacheDir = resolveTenantModuleCacheDir(tenantId, "gsc");
         const metaPath = path.join(cacheDir, "meta.json");
 
         await ensureDir(cacheDir);
