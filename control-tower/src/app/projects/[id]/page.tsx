@@ -1605,7 +1605,13 @@ export default function Home() {
         }...`,
       );
 
-      const res = await fetch("/api/run", {
+      const isLocalHost =
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1");
+      const useSyncRun = !isLocalHost;
+
+      const res = await fetch(useSyncRun ? "/api/run?sync=1" : "/api/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1634,6 +1640,39 @@ export default function Home() {
       if (!id) throw new Error("Missing runId");
 
       setRunId(id);
+      if (payload?.sync) {
+        pushLog(`✅ runId=${id} (sync mode)`);
+        const syncLines = Array.isArray(payload?.logs) ? payload.logs : [];
+        for (const line of syncLines) {
+          pushLog(String(line || ""));
+        }
+        const ms = runStartedAtRef.current
+          ? Date.now() - runStartedAtRef.current
+          : null;
+        const msTxt =
+          ms === null ? "" : ` • duration=${(ms / 1000).toFixed(2)}s`;
+        pushLog(
+          `🏁 END ${JSON.stringify({
+            runId: id,
+            ok: !!payload?.ok,
+            exitCode: payload?.exitCode ?? null,
+          })}${msTxt}`,
+        );
+        setIsRunning(false);
+        setProgress((p) => ({
+          ...p,
+          pct: 1,
+          etaSec: 0,
+          message: payload?.ok ? "Done" : "Error",
+          status: payload?.ok ? "done" : "error",
+        }));
+        setTimeout(() => {
+          loadOverview();
+          if (openState) openDetail(openState);
+        }, 350);
+        return;
+      }
+
       pushLog(`✅ runId=${id} (connecting SSE...)`);
 
       const es = new EventSource(`/api/stream/${id}`);

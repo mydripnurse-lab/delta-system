@@ -427,6 +427,9 @@ async function persistTenantGhlTokenUpdate(input: {
 
 export async function POST(req: Request) {
     const body = await req.json().catch(() => null);
+    const url = new URL(req.url);
+    const syncParam = String(url.searchParams.get("sync") || body?.sync || "").trim().toLowerCase();
+    const syncRequested = syncParam === "1" || syncParam === "true" || syncParam === "yes";
 
     const job = String(body?.job || "").trim();
     if (!job) return NextResponse.json({ error: "Missing job" }, { status: 400 });
@@ -546,8 +549,9 @@ export async function POST(req: Request) {
 
         const rlOut = readline.createInterface({ input: child.stdout });
         const rlErr = readline.createInterface({ input: child.stderr });
+        const syncLogs: string[] = [];
 
-        rlOut.on("line", (line) => {
+        const onLine = (line: string) => {
             const tokenUpdate = parseTokenUpdateLine(line);
             if (tokenUpdate && tenantId && tenantRunEnv?.ghlProvider) {
                 appendLine(run.id, "token-refresh detected (ghl) -> persisting to DB...");
@@ -567,8 +571,52 @@ export async function POST(req: Request) {
                 return;
             }
             appendLine(run.id, line);
-        });
-        rlErr.on("line", (line) => appendLine(run.id, line));
+            if (syncRequested) syncLogs.push(line);
+        };
+
+        rlOut.on("line", onLine);
+        rlErr.on("line", onLine);
+
+        const waitChild = () =>
+            new Promise<number>((resolve) => {
+                child.on("error", (err) => {
+                    errorRun(run.id, err);
+                    if (!closed) {
+                        closed = true;
+                        try {
+                            rlOut.close();
+                            rlErr.close();
+                        } catch {}
+                        endRun(run.id, 1);
+                    }
+                    resolve(1);
+                });
+                child.on("close", (code) => {
+                    if (!closed) {
+                        closed = true;
+                        try {
+                            rlOut.close();
+                            rlErr.close();
+                        } catch {}
+                        endRun(run.id, code ?? 0);
+                    }
+                    resolve(code ?? 0);
+                });
+            });
+
+        if (syncRequested) {
+            const exitCode = await waitChild();
+            if (tempStateFilesDir) {
+                await fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
+            }
+            return NextResponse.json({
+                runId: run.id,
+                sync: true,
+                ok: exitCode === 0,
+                exitCode,
+                logs: syncLogs,
+            });
+        }
 
         child.on("error", (err) => {
             errorRun(run.id, err);
@@ -577,30 +625,26 @@ export async function POST(req: Request) {
                 try {
                     rlOut.close();
                     rlErr.close();
-                } catch { }
-                if (tempStateFilesDir) {
-                    void fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
-                }
+                } catch {}
                 endRun(run.id, 1);
             }
         });
 
-        child.on("close", (code) => {
-            if (closed) return;
-            closed = true;
-
-            try {
-                rlOut.close();
-                rlErr.close();
-            } catch { }
+        child.on("close", () => {
+            if (!closed) {
+                closed = true;
+                try {
+                    rlOut.close();
+                    rlErr.close();
+                } catch {}
+                endRun(run.id, child.exitCode ?? 0);
+            }
             if (tempStateFilesDir) {
                 void fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
             }
-
-            endRun(run.id, code ?? 0);
         });
 
-        return NextResponse.json({ runId: run.id });
+        return NextResponse.json({ runId: run.id, sync: false });
     } catch (err) {
         errorRun(run.id, err);
         if (!closed) {
