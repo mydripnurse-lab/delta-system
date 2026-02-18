@@ -1,4 +1,6 @@
-import "dotenv/config";
+try {
+    await import("dotenv/config");
+} catch {}
 import inquirer from "inquirer";
 import path from "node:path";
 import { ensureDirs, listStateJsonFiles, readJson, writeJson, PATHS } from "./io.js";

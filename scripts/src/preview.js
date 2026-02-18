@@ -1,4 +1,6 @@
-import "dotenv/config";
+try {
+    await import("dotenv/config");
+} catch {}
 import fs from "node:fs";
 import path from "node:path";
 

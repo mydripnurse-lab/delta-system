@@ -1,5 +1,7 @@
 // scripts/src/builds/build-counties.js
-import "dotenv/config";
+try {
+    await import("dotenv/config");
+} catch {}
 
 import fs from "fs/promises";
 import path from "path";
