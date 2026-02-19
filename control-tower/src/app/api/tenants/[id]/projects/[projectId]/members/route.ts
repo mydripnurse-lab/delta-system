@@ -40,7 +40,7 @@ export async function GET(req: Request, ctx: Ctx) {
   }
 
   const auth = await requireTenantPermission(req, tenantId, "project.read");
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const pool = getDbPool();
   const project = await resolveProject(pool, tenantId, pid);
@@ -83,7 +83,7 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   const auth = await requireTenantPermission(req, tenantId, "project.manage");
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const body = (await req.json().catch(() => null)) as AssignMemberBody | null;
   if (!body) return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });

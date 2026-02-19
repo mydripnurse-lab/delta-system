@@ -17,7 +17,7 @@ export async function GET(req: Request, ctx: Ctx) {
     return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
   }
   const auth = await requireTenantPermission(req, tenantId, "audit.read");
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(200, Math.max(1, Number(searchParams.get("limit") || 50)));

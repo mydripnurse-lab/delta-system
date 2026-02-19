@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
+import { getSessionSecret, readCookieFromHeader, SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
 export type AppRole =
   | "platform_admin"
@@ -112,9 +113,21 @@ function forbidden(error: string) {
 
 async function resolveOrCreateUser(req: Request): Promise<AuthResult> {
   const pool = getDbPool();
-  const rawUserId = s(req.headers.get("x-user-id"));
-  const rawEmail = s(req.headers.get("x-user-email")).toLowerCase();
-  const rawName = s(req.headers.get("x-user-name"));
+  let rawUserId = s(req.headers.get("x-user-id"));
+  let rawEmail = s(req.headers.get("x-user-email")).toLowerCase();
+  let rawName = s(req.headers.get("x-user-name"));
+  if (!rawUserId && !rawEmail) {
+    const secret = getSessionSecret();
+    const token = readCookieFromHeader(req.headers.get("cookie"), SESSION_COOKIE_NAME);
+    if (secret && token) {
+      const parsed = verifySessionToken(token, secret);
+      if (parsed) {
+        rawUserId = s(parsed.sub);
+        rawEmail = s(parsed.email).toLowerCase();
+        rawName = s(parsed.name);
+      }
+    }
+  }
   const devEmail = s(process.env.DEV_AUTH_EMAIL).toLowerCase();
   const autoCreate = s(process.env.DEV_AUTH_AUTO_CREATE) === "1";
 

@@ -105,7 +105,7 @@ function parseOptionalJsonObject(input: unknown): Record<string, unknown> | null
 
 export async function GET(req: Request) {
   const auth = await requireAuthUser(req);
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const canReadAgency = auth.user.globalRoles.some((role) =>
     ["platform_admin", "owner", "agency_admin", "admin"].includes(role),
@@ -349,7 +349,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const auth = await requireAgencyPermission(req, "agency.manage");
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const body = (await req.json().catch(() => null)) as CreateTenantBody | null;
   if (!body) {

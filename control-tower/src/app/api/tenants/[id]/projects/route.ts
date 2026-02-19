@@ -33,7 +33,7 @@ export async function GET(req: Request, ctx: Ctx) {
   if (!tenantId) return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
 
   const auth = await requireTenantPermission(req, tenantId, "project.read");
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const pool = getDbPool();
   try {
@@ -67,7 +67,7 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!tenantId) return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
 
   const auth = await requireTenantPermission(req, tenantId, "project.manage");
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const body = (await req.json().catch(() => null)) as CreateProjectBody | null;
   if (!body) return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });

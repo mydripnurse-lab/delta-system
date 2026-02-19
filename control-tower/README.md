@@ -39,7 +39,7 @@ Abrir: [http://localhost:3001](http://localhost:3001)
 
 El backend ahora valida usuario y permisos por tenant en endpoints de tenants/staff/audit.
 
-### Headers requeridos
+### Headers requeridos (API server-to-server / pruebas manuales)
 
 En cada request a API protegida, enviar al menos uno:
 
@@ -60,6 +60,20 @@ DEV_AUTH_AUTO_CREATE=1
 Si no envias headers, `DEV_AUTH_EMAIL` se usa como fallback local.
 Con `DEV_AUTH_AUTO_CREATE=1`, si el usuario no existe en `app.users`, se crea automaticamente.
 
+### Sesion web (cookie)
+
+Para login de la UI se usa cookie `httpOnly` firmada:
+
+```env
+AUTH_SESSION_SECRET=pon-un-secreto-largo-y-unico
+```
+
+En local tambien puedes usar:
+
+```env
+DEV_AUTH_SESSION_SECRET=dev-secret-local
+```
+
 ### Roles soportados
 
 - Globales (`app.user_global_roles`): `platform_admin`, `agency_admin`, `analytics`
@@ -76,8 +90,18 @@ npm run db:migrate
 ### Endpoints nuevos
 
 - `GET /api/auth/me`: devuelve usuario actual + tenants/proyectos accesibles
+- `POST /api/auth/login`: crea sesion por email y setea cookie
+- `POST /api/auth/logout`: cierra sesion (borra cookie)
 - `GET|POST /api/tenants/:id/projects`: lista o crea proyectos del tenant
 - `GET|POST /api/tenants/:id/projects/:projectId/members`: lista o asigna usuarios a proyecto
+
+### Rutas protegidas por middleware
+
+- `/`
+- `/dashboard/*`
+- `/projects/*`
+
+Si no hay cookie de sesion, redirige a `/login`.
 
 ## 4) Setup minimo obligatorio (para que el dashboard cargue)
 

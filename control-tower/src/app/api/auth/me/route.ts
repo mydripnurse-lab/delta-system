@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   const auth = await requireAuthUser(req);
-  if (!auth.ok) return auth.response;
+  if ("response" in auth) return auth.response;
 
   const pool = getDbPool();
   const tenantIds = await listAccessibleTenantIdsForUser(auth.user);
