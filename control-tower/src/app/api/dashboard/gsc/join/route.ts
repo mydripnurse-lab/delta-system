@@ -703,6 +703,8 @@ export async function GET(req: Request) {
         const origin = url.origin;
         const range = url.searchParams.get("range") || "";
         const state = url.searchParams.get("state") || "";
+        const start = s(url.searchParams.get("start"));
+        const end = s(url.searchParams.get("end"));
         const tenantId = s(url.searchParams.get("tenantId"));
         const integrationKey = s(url.searchParams.get("integrationKey")) || "default";
         const compareEnabled = url.searchParams.get("compare") === "1";
@@ -724,14 +726,22 @@ export async function GET(req: Request) {
 
         let { metaRaw, pagesRaw, queriesRaw, qpRaw, trendRaw } = await readSnapshot();
         const missingCore = !metaRaw || !pagesRaw || !queriesRaw || !trendRaw;
-        if (missingCore && tenantId) {
+        const metaExisting = (metaRaw || {}) as MetaFile;
+        const rangeMismatch = !!range && s(metaExisting?.range) && s(metaExisting?.range) !== s(range);
+        const dateMismatch =
+            (!!start && s(metaExisting?.startDate) !== start) ||
+            (!!end && s(metaExisting?.endDate) !== end);
+        const compareMismatch = compareEnabled && !metaExisting?.trendIncludesCompare;
+        const mustSync =
+            !!tenantId &&
+            (missingCore || forceCatalog || rangeMismatch || dateMismatch || compareMismatch);
+
+        if (mustSync && tenantId) {
             const syncUrl = new URL("/api/dashboard/gsc/sync", origin);
             syncUrl.searchParams.set("tenantId", tenantId);
             syncUrl.searchParams.set("integrationKey", integrationKey);
             syncUrl.searchParams.set("force", "1");
             if (range) syncUrl.searchParams.set("range", range);
-            const start = s(url.searchParams.get("start"));
-            const end = s(url.searchParams.get("end"));
             if (start) syncUrl.searchParams.set("start", start);
             if (end) syncUrl.searchParams.set("end", end);
             if (compareEnabled) syncUrl.searchParams.set("compare", "1");

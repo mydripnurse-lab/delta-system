@@ -102,12 +102,32 @@ async function resolveTenantIntegrationInternal(
   const integrationKey = s(input.integrationKey) || "default";
   if (!requestedTenantId || !provider) throw new Error("Missing tenantId/provider");
 
-  const requested = await getTenantIntegration(requestedTenantId, provider, integrationKey);
+  const candidateKeys = Array.from(
+    new Set(
+      integrationKey === "owner"
+        ? ["owner", "default"]
+        : integrationKey === "default"
+          ? ["default", "owner"]
+          : [integrationKey, "default", "owner"],
+    ),
+  );
+
+  let resolvedIntegrationKey = integrationKey;
+  let requested: TenantIntegrationRow | null = null;
+  for (const key of candidateKeys) {
+    const hit = await getTenantIntegration(requestedTenantId, provider, key);
+    if (hit) {
+      requested = hit;
+      resolvedIntegrationKey = key;
+      break;
+    }
+  }
+
   if (!requested) {
     throw new Error(`Missing integration ${provider}:${integrationKey} for tenant ${requestedTenantId}`);
   }
 
-  const key = `${requestedTenantId}:${provider}:${integrationKey}`;
+  const key = `${requestedTenantId}:${provider}:${resolvedIntegrationKey}`;
   if (visited.has(key)) throw new Error("Detected circular OAuth integration share reference.");
   visited.add(key);
 
@@ -121,7 +141,7 @@ async function resolveTenantIntegrationInternal(
       effective: requested,
       requestedTenantId,
       effectiveTenantId: requestedTenantId,
-      integrationKey,
+      integrationKey: resolvedIntegrationKey,
     };
   }
 
@@ -129,19 +149,19 @@ async function resolveTenantIntegrationInternal(
     {
       tenantId: share.tenantId,
       provider,
-      integrationKey: share.integrationKey || integrationKey,
+      integrationKey: share.integrationKey || resolvedIntegrationKey,
     },
     depth + 1,
     visited,
   );
 
   return {
-    requested,
-    effective: shared.effective,
-    requestedTenantId,
-    effectiveTenantId: shared.effectiveTenantId,
-    integrationKey,
-  };
+      requested,
+      effective: shared.effective,
+      requestedTenantId,
+      effectiveTenantId: shared.effectiveTenantId,
+      integrationKey: resolvedIntegrationKey,
+    };
 }
 
 export async function resolveTenantOAuthConnection(input: ResolveInput): Promise<TenantOAuthConnection> {

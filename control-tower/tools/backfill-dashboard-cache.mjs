@@ -156,6 +156,15 @@ async function run() {
         compare: "1",
         bust: "1",
       });
+      const commonSearch = new URLSearchParams({
+        tenantId,
+        integrationKey: "default",
+        start,
+        end,
+        preset,
+        compare: "1",
+        bust: "1",
+      });
 
       const endpoints = [
         `/api/dashboard/calls?${common.toString()}`,
@@ -163,8 +172,8 @@ async function run() {
         `/api/dashboard/conversations?${common.toString()}`,
         `/api/dashboard/transactions?${common.toString()}`,
         `/api/dashboard/appointments?${common.toString()}`,
-        `/api/dashboard/search-performance/join?${common.toString()}`,
-        `/api/dashboard/overview?${common.toString()}&force=1`,
+        `/api/dashboard/search-performance/join?${commonSearch.toString()}`,
+        `/api/dashboard/overview?${common.toString()}&searchIntegrationKey=default&force=1`,
       ];
 
       for (const ep of endpoints) {
@@ -184,4 +193,3 @@ run().catch((e) => {
   console.error(`[backfill] ${e instanceof Error ? e.message : String(e)}`);
   process.exit(1);
 });
-

@@ -216,13 +216,25 @@ export async function GET(req: Request) {
       }
     }
 
-    const qs = u.searchParams.toString();
-    const [gscRes, bingRes] = await Promise.all([
-      fetch(`${origin}/api/dashboard/gsc/join?${qs}`, { cache: "no-store" }),
-      fetch(`${origin}/api/dashboard/bing/join?${qs}`, { cache: "no-store" }),
-    ]);
+    const callChild = async (key: string) => {
+      const params = new URLSearchParams(u.searchParams);
+      params.set("integrationKey", key);
+      const qs = params.toString();
+      const [gscRes, bingRes] = await Promise.all([
+        fetch(`${origin}/api/dashboard/gsc/join?${qs}`, { cache: "no-store" }),
+        fetch(`${origin}/api/dashboard/bing/join?${qs}`, { cache: "no-store" }),
+      ]);
+      const [gsc, bing] = await Promise.all([gscRes.json(), bingRes.json()]);
+      return { gscRes, bingRes, gsc, bing };
+    };
 
-    const [gsc, bing] = await Promise.all([gscRes.json(), bingRes.json()]);
+    let child = await callChild(integrationKey);
+    if (!child.gscRes.ok && !child.bingRes.ok) {
+      const fallbackKey = integrationKey === "owner" ? "default" : "owner";
+      child = await callChild(fallbackKey);
+    }
+
+    const { gscRes, bingRes, gsc, bing } = child;
 
     if (!gscRes.ok && !bingRes.ok) {
       return NextResponse.json(
