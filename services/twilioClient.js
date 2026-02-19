@@ -1,5 +1,35 @@
-import twilio from "twilio";
-import "dotenv/config";
+import path from "path";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+
+try {
+    await import("dotenv/config");
+} catch {
+    // Optional in production/serverless.
+}
+
+function loadTwilio() {
+    try {
+        return require("twilio");
+    } catch {}
+
+    const fallbackFromRepoRoot = path.join(process.cwd(), "control-tower", "node_modules", "twilio");
+    try {
+        return require(fallbackFromRepoRoot);
+    } catch {}
+
+    const fallbackFromThisFile = path.join(
+        path.dirname(new URL(import.meta.url).pathname),
+        "..",
+        "control-tower",
+        "node_modules",
+        "twilio",
+    );
+    return require(fallbackFromThisFile);
+}
+
+const twilio = loadTwilio();
 
 function mustEnvAny(names) {
     for (const n of names) {
