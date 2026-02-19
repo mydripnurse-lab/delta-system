@@ -304,6 +304,7 @@ export default function AgencyHomePage() {
   const [agencyStaffRows, setAgencyStaffRows] = useState<AgencyStaffRow[]>([]);
   const [agencyStaffLoading, setAgencyStaffLoading] = useState(false);
   const [agencyStaffBusy, setAgencyStaffBusy] = useState(false);
+  const [agencyStaffLoadedOnce, setAgencyStaffLoadedOnce] = useState(false);
   const [agencyStaffErr, setAgencyStaffErr] = useState("");
   const [agencyStaffOk, setAgencyStaffOk] = useState("");
   const [agencyStaffSearch, setAgencyStaffSearch] = useState("");
@@ -312,6 +313,32 @@ export default function AgencyHomePage() {
   const [agencyNewStaffEmail, setAgencyNewStaffEmail] = useState("");
   const [agencyNewStaffRole, setAgencyNewStaffRole] = useState<TenantStaffRow["role"]>("viewer");
   const [agencyNewStaffStatus, setAgencyNewStaffStatus] = useState<TenantStaffRow["status"]>("invited");
+  const [integrationsTenantId, setIntegrationsTenantId] = useState("");
+  const [integrationsRows, setIntegrationsRows] = useState<TenantIntegration[]>([]);
+  const [integrationsLoading, setIntegrationsLoading] = useState(false);
+  const [integrationsBusyId, setIntegrationsBusyId] = useState("");
+  const [integrationsErr, setIntegrationsErr] = useState("");
+  const [integrationsOk, setIntegrationsOk] = useState("");
+  const [settingsTenantId, setSettingsTenantId] = useState("");
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [settingsErr, setSettingsErr] = useState("");
+  const [settingsOk, setSettingsOk] = useState("");
+  const [settingsName, setSettingsName] = useState("");
+  const [settingsSlug, setSettingsSlug] = useState("");
+  const [settingsStatus, setSettingsStatus] = useState("active");
+  const [settingsTimezone, setSettingsTimezone] = useState("US/Eastern");
+  const [settingsLocale, setSettingsLocale] = useState("en-US");
+  const [settingsCurrency, setSettingsCurrency] = useState("USD");
+  const [settingsRootDomain, setSettingsRootDomain] = useState("");
+  const [settingsLogoUrl, setSettingsLogoUrl] = useState("");
+  const [settingsOwnerEmail, setSettingsOwnerEmail] = useState("");
+  const [settingsOwnerPhone, setSettingsOwnerPhone] = useState("");
+  const [auditTenantId, setAuditTenantId] = useState("");
+  const [auditRows, setAuditRows] = useState<TenantAuditRow[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditErr, setAuditErr] = useState("");
+  const [auditSearch, setAuditSearch] = useState("");
   const [activeMenu, setActiveMenu] = useState("projects");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -514,14 +541,51 @@ export default function AgencyHomePage() {
   }, [showManage, manageTab, manageTenantId, manageStaffRows.length, manageAuditRows.length, manageStaffLoading, manageAuditLoading]);
 
   useEffect(() => {
-    if (activeMenu !== "staff" || agencyStaffLoading || agencyStaffRows.length > 0) return;
+    if (activeMenu !== "staff" || agencyStaffLoading || agencyStaffLoadedOnce) return;
     void loadAgencyStaff();
-  }, [activeMenu, agencyStaffLoading, agencyStaffRows.length]);
+  }, [activeMenu, agencyStaffLoading, agencyStaffLoadedOnce]);
 
   useEffect(() => {
     if (s(agencyNewStaffTenantId) || tenantRows.length === 0) return;
     setAgencyNewStaffTenantId(tenantRows[0].id);
   }, [agencyNewStaffTenantId, tenantRows]);
+
+  useEffect(() => {
+    if (s(integrationsTenantId) || tenantRows.length === 0) return;
+    setIntegrationsTenantId(tenantRows[0].id);
+  }, [integrationsTenantId, tenantRows]);
+
+  useEffect(() => {
+    if (s(settingsTenantId) || tenantRows.length === 0) return;
+    setSettingsTenantId(tenantRows[0].id);
+  }, [settingsTenantId, tenantRows]);
+
+  useEffect(() => {
+    if (s(auditTenantId) || tenantRows.length === 0) return;
+    setAuditTenantId(tenantRows[0].id);
+  }, [auditTenantId, tenantRows]);
+
+  useEffect(() => {
+    if (activeMenu === "integrations" && s(integrationsTenantId)) {
+      void loadIntegrationsForTenant(integrationsTenantId);
+    }
+  }, [activeMenu, integrationsTenantId]);
+
+  useEffect(() => {
+    if (activeMenu === "settings" && s(settingsTenantId)) {
+      void loadSettingsForTenant(settingsTenantId);
+    }
+  }, [activeMenu, settingsTenantId]);
+
+  useEffect(() => {
+    if (activeMenu === "audit" && s(auditTenantId)) {
+      void loadAuditForTenant(auditTenantId);
+    }
+  }, [activeMenu, auditTenantId]);
+
+  useEffect(() => {
+    setAccountMenuOpen(false);
+  }, [activeMenu]);
 
   const filteredTenants = useMemo(() => {
     const q = s(tenantSearch).toLowerCase();
@@ -550,6 +614,25 @@ export default function AgencyHomePage() {
         .includes(q),
     );
   }, [agencyStaffRows, agencyStaffSearch]);
+
+  const filteredAuditRows = useMemo(() => {
+    const q = s(auditSearch).toLowerCase();
+    if (!q) return auditRows;
+    return auditRows.filter((row) =>
+      [row.action, row.actorLabel, row.entityType, row.severity, row.entityId]
+        .map(s)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [auditRows, auditSearch]);
+
+  const billingSummary = useMemo(() => {
+    const totalProjects = tenantRows.length;
+    const activeProjects = tenantRows.filter((t) => s(t.status).toLowerCase() === "active").length;
+    const totalRevenue = tenantRows.reduce((acc, row) => acc + (toNumberOrNull(row.total_revenue) || 0), 0);
+    return { totalProjects, activeProjects, totalRevenue };
+  }, [tenantRows]);
 
   function hydrateBingFields(rows: TenantIntegration[]) {
     const bingRow = rows.find(
@@ -988,6 +1071,7 @@ export default function AgencyHomePage() {
   async function loadAgencyStaff() {
     setAgencyStaffLoading(true);
     setAgencyStaffErr("");
+    setAgencyStaffOk("");
     try {
       const sourceTenants = tenantRows.length > 0 ? tenantRows : await (async () => {
         const res = await fetch("/api/tenants", { cache: "no-store" });
@@ -1001,27 +1085,42 @@ export default function AgencyHomePage() {
         setTenantRows(sourceTenants);
       }
 
-      const results = await Promise.all(
+      const results = await Promise.allSettled(
         sourceTenants.map(async (tenant) => {
-          const res = await fetch(`/api/tenants/${tenant.id}/staff`, { cache: "no-store" });
-          const data = (await safeJson(res)) as { ok?: boolean; rows?: TenantStaffRow[]; error?: string } | null;
-          if (!res.ok || !data?.ok) {
-            throw new Error(data?.error || `Failed to load staff for ${tenant.name}`);
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 12000);
+          try {
+            const res = await fetch(`/api/tenants/${tenant.id}/staff`, { cache: "no-store", signal: controller.signal });
+            const data = (await safeJson(res)) as { ok?: boolean; rows?: TenantStaffRow[]; error?: string } | null;
+            if (!res.ok || !data?.ok) {
+              throw new Error(data?.error || `Failed to load staff for ${tenant.name}`);
+            }
+            const rows = Array.isArray(data.rows) ? data.rows : [];
+            return rows.map((row) => ({
+              ...row,
+              tenantId: tenant.id,
+              tenantName: tenant.name,
+            }));
+          } finally {
+            clearTimeout(timeout);
           }
-          const rows = Array.isArray(data.rows) ? data.rows : [];
-          return rows.map((row) => ({
-            ...row,
-            tenantId: tenant.id,
-            tenantName: tenant.name,
-          }));
         }),
       );
-
-      setAgencyStaffRows(results.flat());
+      const fulfilled = results
+        .filter((r): r is PromiseFulfilledResult<AgencyStaffRow[]> => r.status === "fulfilled")
+        .flatMap((r) => r.value);
+      const rejected = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+      setAgencyStaffRows(fulfilled);
+      if (rejected.length > 0) {
+        setAgencyStaffErr(
+          `${rejected.length} project(s) could not load staff. Showing ${fulfilled.length} records loaded.`,
+        );
+      }
     } catch (error: unknown) {
       setAgencyStaffErr(error instanceof Error ? error.message : "Failed to load staff");
       setAgencyStaffRows([]);
     } finally {
+      setAgencyStaffLoadedOnce(true);
       setAgencyStaffLoading(false);
     }
   }
@@ -1113,6 +1212,167 @@ export default function AgencyHomePage() {
     } finally {
       setAgencyStaffBusy(false);
     }
+  }
+
+  async function loadIntegrationsForTenant(tenantId: string) {
+    const id = s(tenantId);
+    if (!id) return;
+    setIntegrationsLoading(true);
+    setIntegrationsErr("");
+    setIntegrationsOk("");
+    try {
+      const res = await fetch(`/api/tenants/${id}/integrations`, { cache: "no-store" });
+      const data = (await safeJson(res)) as { ok?: boolean; rows?: TenantIntegration[]; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setIntegrationsRows(Array.isArray(data.rows) ? data.rows : []);
+    } catch (error: unknown) {
+      setIntegrationsErr(error instanceof Error ? error.message : "Failed to load integrations");
+      setIntegrationsRows([]);
+    } finally {
+      setIntegrationsLoading(false);
+    }
+  }
+
+  async function saveIntegrationRowForTenant(tenantId: string, row: TenantIntegration) {
+    const id = s(tenantId);
+    if (!id || !s(row.id)) return;
+    setIntegrationsBusyId(s(row.id));
+    setIntegrationsErr("");
+    setIntegrationsOk("");
+    try {
+      const res = await fetch(`/api/tenants/${id}/integrations`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: s(row.id),
+          status: s(row.status),
+          authType: s(row.auth_type),
+          externalAccountId: s(row.external_account_id),
+          externalPropertyId: s(row.external_property_id),
+          lastError: s(row.last_error),
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setIntegrationsOk("Integration updated.");
+    } catch (error: unknown) {
+      setIntegrationsErr(error instanceof Error ? error.message : "Failed to update integration");
+    } finally {
+      setIntegrationsBusyId("");
+    }
+  }
+
+  async function loadSettingsForTenant(tenantId: string) {
+    const id = s(tenantId);
+    if (!id) return;
+    setSettingsLoading(true);
+    setSettingsErr("");
+    setSettingsOk("");
+    try {
+      const res = await fetch(`/api/tenants/${id}`, { cache: "no-store" });
+      const data = (await safeJson(res)) as TenantDetailResponse | null;
+      if (!res.ok || !data?.ok || !data.tenant) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const settings = data.settings || {};
+      setSettingsName(s(data.tenant.name));
+      setSettingsSlug(s(data.tenant.slug));
+      setSettingsStatus(s(data.tenant.status).toLowerCase() || "active");
+      setSettingsTimezone(s(settings.timezone) || "US/Eastern");
+      setSettingsLocale(s(settings.locale) || "en-US");
+      setSettingsCurrency(s(settings.currency) || "USD");
+      setSettingsRootDomain(s(settings.root_domain));
+      setSettingsLogoUrl(s(settings.logo_url));
+      setSettingsOwnerEmail(s(settings.owner_email));
+      setSettingsOwnerPhone(s(settings.owner_phone));
+    } catch (error: unknown) {
+      setSettingsErr(error instanceof Error ? error.message : "Failed to load settings");
+    } finally {
+      setSettingsLoading(false);
+    }
+  }
+
+  async function saveSettingsForTenant() {
+    const id = s(settingsTenantId);
+    if (!id) return;
+    setSettingsBusy(true);
+    setSettingsErr("");
+    setSettingsOk("");
+    try {
+      const res = await fetch(`/api/tenants/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: s(settingsName),
+          slug: s(settingsSlug),
+          status: s(settingsStatus),
+          timezone: s(settingsTimezone),
+          locale: s(settingsLocale),
+          currency: s(settingsCurrency),
+          rootDomain: s(settingsRootDomain),
+          logoUrl: s(settingsLogoUrl),
+          ownerEmail: s(settingsOwnerEmail),
+          ownerPhone: s(settingsOwnerPhone),
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setSettingsOk("Settings saved.");
+      await loadTenants();
+    } catch (error: unknown) {
+      setSettingsErr(error instanceof Error ? error.message : "Failed to save settings");
+    } finally {
+      setSettingsBusy(false);
+    }
+  }
+
+  async function loadAuditForTenant(tenantId: string) {
+    const id = s(tenantId);
+    if (!id) return;
+    setAuditLoading(true);
+    setAuditErr("");
+    try {
+      const res = await fetch(`/api/tenants/${id}/audit?limit=120`, { cache: "no-store" });
+      const data = (await safeJson(res)) as { ok?: boolean; rows?: TenantAuditRow[]; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setAuditRows(Array.isArray(data.rows) ? data.rows : []);
+    } catch (error: unknown) {
+      setAuditErr(error instanceof Error ? error.message : "Failed to load audit logs");
+      setAuditRows([]);
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
+  function exportBillingCsv() {
+    const headers = ["Project", "Status", "Revenue", "Calls", "Leads"];
+    const lines = [
+      headers.join(","),
+      ...tenantRows.map((t) =>
+        [
+          `"${s(t.name).replace(/"/g, '""')}"`,
+          s(t.status),
+          String(toNumberOrNull(t.total_revenue) || 0),
+          String(toNumberOrNull(t.total_calls) || 0),
+          String(toNumberOrNull(t.total_leads) || 0),
+        ].join(","),
+      ),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `billing-summary-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function onSaveManageTenant(e: FormEvent<HTMLFormElement>) {
@@ -1789,13 +2049,293 @@ export default function AgencyHomePage() {
           </section>
         ) : null}
 
-        {activeMenu !== "projects" && activeMenu !== "staff" ? (
-          <section className="agencyProjectsCard">
+        {activeMenu === "integrations" ? (
+          <section className="agencyProjectsCard agencyMenuSection">
             <div className="agencyProjectsHeader">
               <div>
-                <h2>{activeMenu === "integrations" ? "Integrations" : activeMenu === "settings" ? "App Settings" : activeMenu === "billing" ? "Billing" : "Audit Logs"}</h2>
-                <p>This section is still using the per-project screens. We can wire it next.</p>
+                <h2>Integrations</h2>
+                <p>Gestiona estado y credenciales base por integración.</p>
               </div>
+              <div className="agencyTopActions agencyTopActionsMinimal">
+                <select className="input agencyTenantSelect" value={integrationsTenantId} onChange={(e) => setIntegrationsTenantId(e.target.value)}>
+                  {tenantRows.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                  ))}
+                </select>
+                <button type="button" className="btnGhost" disabled={integrationsLoading} onClick={() => void loadIntegrationsForTenant(integrationsTenantId)}>
+                  {integrationsLoading ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+            </div>
+            {integrationsErr ? <div className="errorText">{integrationsErr}</div> : null}
+            {integrationsOk ? <div className="okText">{integrationsOk}</div> : null}
+            <div className="agencyTenantTableWrap">
+              <table className="agencyTenantTable">
+                <thead>
+                  <tr>
+                    <th>Provider</th>
+                    <th>Key</th>
+                    <th>Status</th>
+                    <th>Auth</th>
+                    <th>Account</th>
+                    <th>Property</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {integrationsLoading ? (
+                    <tr><td colSpan={7}>Loading integrations...</td></tr>
+                  ) : integrationsRows.length === 0 ? (
+                    <tr><td colSpan={7}>No integrations found.</td></tr>
+                  ) : (
+                    integrationsRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>{s(row.provider)}</td>
+                        <td>{s(row.integration_key)}</td>
+                        <td>
+                          <select
+                            className="input"
+                            value={s(row.status) || "connected"}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, status: value } : it)));
+                            }}
+                          >
+                            <option value="connected">connected</option>
+                            <option value="disconnected">disconnected</option>
+                            <option value="error">error</option>
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.auth_type)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, auth_type: value } : it)));
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.external_account_id)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, external_account_id: value } : it)));
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.external_property_id)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, external_property_id: value } : it)));
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btnGhost"
+                            disabled={integrationsBusyId === row.id}
+                            onClick={() => void saveIntegrationRowForTenant(integrationsTenantId, row)}
+                          >
+                            {integrationsBusyId === row.id ? "Saving..." : "Save"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {activeMenu === "settings" ? (
+          <section className="agencyProjectsCard agencyMenuSection">
+            <div className="agencyProjectsHeader">
+              <div>
+                <h2>App Settings</h2>
+                <p>Configuración central del proyecto: identidad, locale y contacto.</p>
+              </div>
+              <div className="agencyTopActions agencyTopActionsMinimal">
+                <select className="input agencyTenantSelect" value={settingsTenantId} onChange={(e) => setSettingsTenantId(e.target.value)}>
+                  {tenantRows.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                  ))}
+                </select>
+                <button type="button" className="btnGhost" disabled={settingsLoading} onClick={() => void loadSettingsForTenant(settingsTenantId)}>
+                  {settingsLoading ? "Loading..." : "Reload"}
+                </button>
+              </div>
+            </div>
+            {settingsErr ? <div className="errorText">{settingsErr}</div> : null}
+            {settingsOk ? <div className="okText">{settingsOk}</div> : null}
+            <div className="agencySettingsGrid">
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Project name</span>
+                <input className="input" value={settingsName} onChange={(e) => setSettingsName(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Slug</span>
+                <input className="input" value={settingsSlug} onChange={(e) => setSettingsSlug(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Status</span>
+                <select className="input" value={settingsStatus} onChange={(e) => setSettingsStatus(e.target.value)}>
+                  <option value="active">active</option>
+                  <option value="disabled">disabled</option>
+                </select>
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Timezone</span>
+                <input className="input" value={settingsTimezone} onChange={(e) => setSettingsTimezone(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Locale</span>
+                <input className="input" value={settingsLocale} onChange={(e) => setSettingsLocale(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Currency</span>
+                <input className="input" value={settingsCurrency} onChange={(e) => setSettingsCurrency(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Root domain</span>
+                <input className="input" value={settingsRootDomain} onChange={(e) => setSettingsRootDomain(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Logo URL</span>
+                <input className="input" value={settingsLogoUrl} onChange={(e) => setSettingsLogoUrl(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Owner email</span>
+                <input className="input" value={settingsOwnerEmail} onChange={(e) => setSettingsOwnerEmail(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Owner phone</span>
+                <input className="input" value={settingsOwnerPhone} onChange={(e) => setSettingsOwnerPhone(e.target.value)} />
+              </label>
+            </div>
+            <div className="agencyCreateActions agencyCreateActionsSpaced">
+              <button type="button" className="btnPrimary" disabled={settingsBusy} onClick={() => void saveSettingsForTenant()}>
+                {settingsBusy ? "Saving..." : "Save settings"}
+              </button>
+            </div>
+          </section>
+        ) : null}
+
+        {activeMenu === "billing" ? (
+          <section className="agencyProjectsCard agencyMenuSection">
+            <div className="agencyProjectsHeader">
+              <div>
+                <h2>Billing</h2>
+                <p>Resumen financiero operativo del agency con export rápido.</p>
+              </div>
+              <div className="agencyTopActions agencyTopActionsMinimal">
+                <button type="button" className="btnGhost" onClick={exportBillingCsv}>Export CSV</button>
+              </div>
+            </div>
+            <div className="agencyTenantKpiGrid agencyBillingKpis">
+              <div className="agencyTenantKpiItem">
+                <span>Projects</span>
+                <strong>{formatInt(billingSummary.totalProjects)}</strong>
+              </div>
+              <div className="agencyTenantKpiItem">
+                <span>Active</span>
+                <strong>{formatInt(billingSummary.activeProjects)}</strong>
+              </div>
+              <div className="agencyTenantKpiItem">
+                <span>Total Revenue</span>
+                <strong>{formatMoney(billingSummary.totalRevenue)}</strong>
+              </div>
+            </div>
+            <div className="agencyTenantTableWrap">
+              <table className="agencyTenantTable">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th>Revenue</th>
+                    <th>Calls</th>
+                    <th>Leads</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tenantRows.map((t) => (
+                    <tr key={t.id}>
+                      <td>{t.name}</td>
+                      <td>{s(t.status) || "active"}</td>
+                      <td>{formatMoney(toNumberOrNull(t.total_revenue))}</td>
+                      <td>{formatInt(toNumberOrNull(t.total_calls))}</td>
+                      <td>{formatInt(toNumberOrNull(t.total_leads))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {activeMenu === "audit" ? (
+          <section className="agencyProjectsCard agencyMenuSection">
+            <div className="agencyProjectsHeader">
+              <div>
+                <h2>Audit Logs</h2>
+                <p>Historial de cambios y acciones por proyecto.</p>
+              </div>
+              <div className="agencyTopActions agencyTopActionsMinimal">
+                <select className="input agencyTenantSelect" value={auditTenantId} onChange={(e) => setAuditTenantId(e.target.value)}>
+                  {tenantRows.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                  ))}
+                </select>
+                <button type="button" className="btnGhost" disabled={auditLoading} onClick={() => void loadAuditForTenant(auditTenantId)}>
+                  {auditLoading ? "Loading..." : "Refresh"}
+                </button>
+              </div>
+            </div>
+            <div className="agencySearchRow">
+              <input
+                className="input"
+                placeholder="Search by action, actor, entity or severity..."
+                value={auditSearch}
+                onChange={(e) => setAuditSearch(e.target.value)}
+              />
+            </div>
+            {auditErr ? <div className="errorText">{auditErr}</div> : null}
+            <div className="agencyTenantTableWrap">
+              <table className="agencyTenantTable">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Severity</th>
+                    <th>Action</th>
+                    <th>Actor</th>
+                    <th>Entity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditLoading ? (
+                    <tr><td colSpan={5}>Loading logs...</td></tr>
+                  ) : filteredAuditRows.length === 0 ? (
+                    <tr><td colSpan={5}>No logs found.</td></tr>
+                  ) : (
+                    filteredAuditRows.map((row) => (
+                      <tr key={row.id}>
+                        <td>{new Date(row.createdAt).toLocaleString()}</td>
+                        <td><span className={`statusPill ${row.severity === "error" ? "error" : row.severity === "warning" ? "warning" : "success"}`}>{row.severity}</span></td>
+                        <td>{row.action}</td>
+                        <td>{s(row.actorLabel) || s(row.actorType) || "—"}</td>
+                        <td>{[s(row.entityType), s(row.entityId)].filter(Boolean).join(":") || "—"}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </section>
         ) : null}

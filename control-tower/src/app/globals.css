@@ -5178,6 +5178,40 @@ button, input, select { font-family: inherit; }
   padding: 14px;
 }
 
+.agencyMain > .agencyProjectsCard {
+  animation: agencyPanelReveal .28s ease both;
+}
+
+@keyframes agencyPanelReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.agencyMenuSection {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 220px at 100% 0%, rgba(56,189,248,0.08), transparent 62%),
+    radial-gradient(820px 220px at -10% 100%, rgba(15,118,110,0.07), transparent 68%),
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+    var(--card);
+}
+
+.agencyTenantSelect {
+  min-width: 220px;
+}
+
+.agencySettingsGrid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agencyBillingKpis {
+  margin-top: 14px;
+}
+
 .agencyProjectsHeader {
   display: flex;
   align-items: flex-start;
@@ -5533,6 +5567,8 @@ button, input, select { font-family: inherit; }
   overflow: auto;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 14px;
+  background: rgba(7,12,24,0.25);
+  backdrop-filter: blur(8px);
 }
 
 .agencyTenantTable {
@@ -5567,6 +5603,18 @@ button, input, select { font-family: inherit; }
   border-color: rgba(16,185,129,0.42);
   background: rgba(16,185,129,0.14);
   color: #6ee7b7;
+}
+
+.statusPill.warning {
+  border-color: rgba(245,158,11,0.45);
+  background: rgba(245,158,11,0.14);
+  color: rgba(254,240,138,0.96);
+}
+
+.statusPill.error {
+  border-color: rgba(248,113,113,0.48);
+  background: rgba(239,68,68,0.14);
+  color: rgba(254,202,202,0.98);
 }
 
 @media (max-width: 1200px) {
@@ -5791,6 +5839,7 @@ button, input, select { font-family: inherit; }
   background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(17,24,39,0.96));
   box-shadow: 0 18px 34px rgba(2,6,23,0.48);
   padding: 6px;
+  backdrop-filter: blur(14px);
 }
 
 .agencyAccountMenuItem {
@@ -6335,5 +6384,16 @@ button, input, select { font-family: inherit; }
   .agencyProjectsHeaderRight {
     width: 100%;
     align-items: flex-start;
+  }
+
+  .agencyTenantSelect {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .agencySettingsGrid {
+    grid-template-columns: 1fr;
   }
 }
