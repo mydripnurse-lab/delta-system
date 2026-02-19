@@ -12,7 +12,17 @@ const nextConfig = {
       "../scripts/**/*",
       "../resources/**/*",
       "../services/**/*",
-      "./node_modules/**/*",
+      // only runtime deps required by external scripts
+      "./node_modules/googleapis/**/*",
+      "./node_modules/googleapis-common/**/*",
+      "./node_modules/google-auth-library/**/*",
+      "./node_modules/gaxios/**/*",
+      "./node_modules/gtoken/**/*",
+      "./node_modules/twilio/**/*",
+      "./node_modules/axios/**/*",
+      "./node_modules/form-data/**/*",
+      "./node_modules/qs/**/*",
+      "./node_modules/scmp/**/*",
     ],
   },
   turbopack: {
