@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { seedTenantStateFilesFromTemplates } from "@/lib/tenantStateTemplateSeed";
+import { listAccessibleTenantIdsForUser, requireAuthUser, requireAgencyPermission } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -102,7 +103,18 @@ function parseOptionalJsonObject(input: unknown): Record<string, unknown> | null
   throw new Error("googleServiceAccountJson must be a JSON object");
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await requireAuthUser(req);
+  if (!auth.ok) return auth.response;
+
+  const canReadAgency = auth.user.globalRoles.some((role) =>
+    ["platform_admin", "owner", "agency_admin", "admin"].includes(role),
+  );
+  const allowedTenantIds = canReadAgency ? [] : await listAccessibleTenantIdsForUser(auth.user);
+  if (!canReadAgency && allowedTenantIds.length === 0) {
+    return NextResponse.json({ ok: true, total: 0, rows: [] });
+  }
+
   const pool = getDbPool();
   try {
     const result = await pool.query<{
@@ -208,8 +220,10 @@ export async function GET() {
           order by sp.captured_at desc
           limit 1
         ) ov on true
+        ${canReadAgency ? "" : "where o.id = any($1::uuid[])"}
         order by o.created_at desc
       `,
+      canReadAgency ? [] : [allowedTenantIds],
     );
 
     const rows = result.rows.map((r) => {
@@ -334,6 +348,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAgencyPermission(req, "agency.manage");
+  if (!auth.ok) return auth.response;
+
   const body = (await req.json().catch(() => null)) as CreateTenantBody | null;
   if (!body) {
     return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { seedTenantStateFilesFromTemplates } from "@/lib/tenantStateTemplateSeed";
 import { writeAuditLog } from "@/lib/audit";
+import { requireTenantPermission } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,8 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (!tenantId) {
     return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
   }
+  const auth = await requireTenantPermission(_req, tenantId, "tenant.read");
+  if (!auth.ok) return auth.response;
 
   const pool = getDbPool();
   try {
@@ -165,6 +168,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!tenantId) {
     return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
   }
+  const auth = await requireTenantPermission(req, tenantId, "tenant.manage");
+  if (!auth.ok) return auth.response;
 
   const body = (await req.json().catch(() => null)) as PatchTenantBody | null;
   if (!body) {
@@ -505,6 +510,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   if (!tenantId) {
     return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
   }
+  const auth = await requireTenantPermission(_req, tenantId, "tenant.delete");
+  if (!auth.ok) return auth.response;
 
   const pool = getDbPool();
   const client = await pool.connect();

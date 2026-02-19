@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
+import { requireTenantPermission } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,16 @@ type Ctx = { params: Promise<{ id: string; staffId: string }> };
 
 type StaffPatchBody = {
   fullName?: string;
-  role?: "owner" | "admin" | "analyst" | "viewer";
+  role?:
+    | "owner"
+    | "admin"
+    | "analyst"
+    | "viewer"
+    | "agency_admin"
+    | "tenant_admin"
+    | "project_manager"
+    | "analytics"
+    | "member";
   status?: "active" | "invited" | "disabled";
 };
 
@@ -23,6 +33,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!tenantId || !memberId) {
     return NextResponse.json({ ok: false, error: "Missing tenant or staff id" }, { status: 400 });
   }
+  const auth = await requireTenantPermission(req, tenantId, "staff.manage");
+  if (!auth.ok) return auth.response;
 
   const body = (await req.json().catch(() => null)) as StaffPatchBody | null;
   if (!body) return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
@@ -97,6 +109,8 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   if (!tenantId || !memberId) {
     return NextResponse.json({ ok: false, error: "Missing tenant or staff id" }, { status: 400 });
   }
+  const auth = await requireTenantPermission(_req, tenantId, "staff.manage");
+  if (!auth.ok) return auth.response;
 
   const pool = getDbPool();
   const client = await pool.connect();

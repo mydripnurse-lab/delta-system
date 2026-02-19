@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
+import { requireTenantPermission } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,16 @@ type Ctx = { params: Promise<{ id: string }> };
 type StaffBody = {
   fullName?: string;
   email?: string;
-  role?: "owner" | "admin" | "analyst" | "viewer";
+  role?:
+    | "owner"
+    | "admin"
+    | "analyst"
+    | "viewer"
+    | "agency_admin"
+    | "tenant_admin"
+    | "project_manager"
+    | "analytics"
+    | "member";
   status?: "active" | "invited" | "disabled";
 };
 
@@ -27,6 +37,8 @@ export async function GET(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const tenantId = s(id);
   if (!tenantId) return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
+  const auth = await requireTenantPermission(_req, tenantId, "staff.read");
+  if (!auth.ok) return auth.response;
   if (!(await tenantExists(tenantId))) {
     return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
   }
@@ -60,6 +72,8 @@ export async function POST(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const tenantId = s(id);
   if (!tenantId) return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
+  const auth = await requireTenantPermission(req, tenantId, "staff.manage");
+  if (!auth.ok) return auth.response;
   if (!(await tenantExists(tenantId))) {
     return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
   }

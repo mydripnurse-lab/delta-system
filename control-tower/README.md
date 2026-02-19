@@ -35,6 +35,50 @@ npm run dev
 
 Abrir: [http://localhost:3001](http://localhost:3001)
 
+## 3.1 Auth y roles (multi-tenant)
+
+El backend ahora valida usuario y permisos por tenant en endpoints de tenants/staff/audit.
+
+### Headers requeridos
+
+En cada request a API protegida, enviar al menos uno:
+
+- `x-user-email: user@company.com`
+- `x-user-id: <uuid>`
+
+Opcional:
+
+- `x-user-name: Nombre Apellido` (se usa para autocreacion en dev)
+
+### Variables de desarrollo
+
+```env
+DEV_AUTH_EMAIL=admin@mydripnurse.com
+DEV_AUTH_AUTO_CREATE=1
+```
+
+Si no envias headers, `DEV_AUTH_EMAIL` se usa como fallback local.
+Con `DEV_AUTH_AUTO_CREATE=1`, si el usuario no existe en `app.users`, se crea automaticamente.
+
+### Roles soportados
+
+- Globales (`app.user_global_roles`): `platform_admin`, `agency_admin`, `analytics`
+- Tenant/Staff: `owner`, `admin`, `analyst`, `viewer`, `agency_admin`, `tenant_admin`, `project_manager`, `analytics`, `member`
+
+### Migracion nueva
+
+Corre migraciones para habilitar RBAC extendido + proyectos:
+
+```bash
+npm run db:migrate
+```
+
+### Endpoints nuevos
+
+- `GET /api/auth/me`: devuelve usuario actual + tenants/proyectos accesibles
+- `GET|POST /api/tenants/:id/projects`: lista o crea proyectos del tenant
+- `GET|POST /api/tenants/:id/projects/:projectId/members`: lista o asigna usuarios a proyecto
+
 ## 4) Setup minimo obligatorio (para que el dashboard cargue)
 
 Si solo quieres que abra el Control Tower y lea Sheets, completa esto primero.
@@ -263,4 +307,3 @@ Nunca subas credenciales reales al repositorio.
 ---
 
 Si necesitas, puedo convertir este README en un "Runbook de Produccion" con checklist diario/semanal y recovery steps.
-
