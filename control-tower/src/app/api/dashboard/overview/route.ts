@@ -305,8 +305,17 @@ async function loadOverviewSnapshot(tenantId: string): Promise<{ payload: JsonOb
 }
 
 export async function GET(req: Request) {
+    const reqUrl = new URL(req.url);
+    const tenantIdForFallback = s(reqUrl.searchParams.get("tenantId"));
+    const startForFallback = s(reqUrl.searchParams.get("start"));
+    const endForFallback = s(reqUrl.searchParams.get("end"));
+    const presetForFallback = s(reqUrl.searchParams.get("preset")) || "28d";
+    const integrationKeyRawForFallback = s(reqUrl.searchParams.get("integrationKey")) || "owner";
+    const integrationKeyForFallback =
+        integrationKeyRawForFallback.toLowerCase() === "default" ? "owner" : integrationKeyRawForFallback;
+    const compareForFallback = s(reqUrl.searchParams.get("compare")) !== "0";
     try {
-        const url = new URL(req.url);
+        const url = reqUrl;
         const start = s(url.searchParams.get("start"));
         const end = s(url.searchParams.get("end"));
         const preset = s(url.searchParams.get("preset")) || "28d";
@@ -1756,9 +1765,47 @@ export async function GET(req: Request) {
 
         return NextResponse.json(out);
     } catch (e: unknown) {
-        return NextResponse.json(
-            { ok: false, error: e instanceof Error ? e.message : "overview failed" },
-            { status: 500 },
-        );
+        const fallbackError = e instanceof Error ? e.message : "overview failed";
+        try {
+            if (tenantIdForFallback) {
+                const rangeCacheHit = await readDashboardKpiCache({
+                    tenantId: tenantIdForFallback,
+                    module: "overview",
+                    integrationKey: integrationKeyForFallback,
+                    start: startForFallback,
+                    end: endForFallback,
+                    preset: presetForFallback,
+                    compare: compareForFallback,
+                });
+                if (rangeCacheHit?.payload) {
+                    return NextResponse.json({
+                        ...(rangeCacheHit.payload as JsonObject),
+                        degraded: true,
+                        degradedReason: fallbackError,
+                        cache: {
+                            source: "db_range_cache_stale_fallback",
+                            capturedAt: rangeCacheHit.capturedAt,
+                            stale: true,
+                        },
+                    });
+                }
+                const snapshot = await loadOverviewSnapshot(tenantIdForFallback);
+                if (snapshot?.payload) {
+                    return NextResponse.json({
+                        ...(snapshot.payload as JsonObject),
+                        degraded: true,
+                        degradedReason: fallbackError,
+                        cache: {
+                            source: "db_snapshot_stale_fallback",
+                            capturedAt: snapshot.capturedAt,
+                            stale: true,
+                        },
+                    });
+                }
+            }
+        } catch {
+            // fallback path failed, return original error below
+        }
+        return NextResponse.json({ ok: false, error: fallbackError }, { status: 500 });
     }
 }
