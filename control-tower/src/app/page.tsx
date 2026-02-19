@@ -126,10 +126,30 @@ type TenantAuditRow = {
   createdAt: string;
 };
 
+type AuthMeUser = {
+  id: string;
+  email: string;
+  fullName?: string | null;
+  globalRoles?: string[];
+};
+
+type AgencyUserRow = {
+  id: string;
+  email: string;
+  fullName?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string | null;
+  globalRoles: string[];
+  tenantCount: number;
+  draftGlobalRole?: "" | "platform_admin" | "agency_admin" | "analytics";
+};
+
 const DEFAULT_INTEGRATION_KEY = "default";
 const BING_DEFAULT_ENDPOINT = "https://ssl.bing.com/webmaster/api.svc/json";
 const STAFF_ROLE_OPTIONS: TenantStaffRow["role"][] = ["owner", "admin", "analyst", "viewer"];
 const STAFF_STATUS_OPTIONS: TenantStaffRow["status"][] = ["active", "invited", "disabled"];
+const GLOBAL_ROLE_OPTIONS: Array<AgencyUserRow["draftGlobalRole"]> = ["", "agency_admin", "analytics", "platform_admin"];
 type KpiRangePreset = "7d" | "28d" | "3m" | "6m" | "1y" | "custom";
 
 function s(v: unknown) {
@@ -339,6 +359,33 @@ export default function AgencyHomePage() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditErr, setAuditErr] = useState("");
   const [auditSearch, setAuditSearch] = useState("");
+  const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
+  const [agencyCanManageUsers, setAgencyCanManageUsers] = useState(false);
+  const [agencyUsersRows, setAgencyUsersRows] = useState<AgencyUserRow[]>([]);
+  const [agencyUsersLoading, setAgencyUsersLoading] = useState(false);
+  const [agencyUsersLoadedOnce, setAgencyUsersLoadedOnce] = useState(false);
+  const [agencyUsersBusy, setAgencyUsersBusy] = useState(false);
+  const [agencyUsersErr, setAgencyUsersErr] = useState("");
+  const [agencyUsersOk, setAgencyUsersOk] = useState("");
+  const [agencyUsersSearch, setAgencyUsersSearch] = useState("");
+  const [agencyNewUserEmail, setAgencyNewUserEmail] = useState("");
+  const [agencyNewUserFullName, setAgencyNewUserFullName] = useState("");
+  const [agencyNewUserPassword, setAgencyNewUserPassword] = useState("");
+  const [agencyNewUserRole, setAgencyNewUserRole] = useState<AgencyUserRow["draftGlobalRole"]>("");
+  const [agencyNewUserIsActive, setAgencyNewUserIsActive] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [profileFullName, setProfileFullName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileErr, setProfileErr] = useState("");
+  const [profileOk, setProfileOk] = useState("");
+  const [securityCurrentPassword, setSecurityCurrentPassword] = useState("");
+  const [securityNewPassword, setSecurityNewPassword] = useState("");
+  const [securityConfirmPassword, setSecurityConfirmPassword] = useState("");
+  const [securityBusy, setSecurityBusy] = useState(false);
+  const [securityErr, setSecurityErr] = useState("");
+  const [securityOk, setSecurityOk] = useState("");
   const [activeMenu, setActiveMenu] = useState("projects");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -358,6 +405,207 @@ export default function AgencyHomePage() {
     } catch {
       return { error: `Non-JSON response (${res.status})`, raw: text.slice(0, 400) };
     }
+  }
+
+  function currentRoleLabel() {
+    const roles = Array.isArray(authMe?.globalRoles) ? authMe?.globalRoles : [];
+    if (roles.length === 0) return "member";
+    return s(roles[0]);
+  }
+
+  function accountDisplayName() {
+    return s(authMe?.fullName) || s(authMe?.email) || "Account";
+  }
+
+  function accountInitials() {
+    const label = accountDisplayName();
+    return tenantInitials(label);
+  }
+
+  async function loadAuthMe() {
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const data = (await safeJson(res)) as { ok?: boolean; user?: AuthMeUser; error?: string } | null;
+      if (!res.ok || !data?.ok || !data.user) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setAuthMe(data.user);
+      setProfileFullName(s(data.user.fullName));
+      setProfileEmail(s(data.user.email));
+    } catch {
+      // keep UI functional even if auth profile endpoint fails transiently
+    }
+  }
+
+  async function loadAgencyUsers() {
+    setAgencyUsersLoading(true);
+    setAgencyUsersErr("");
+    setAgencyUsersOk("");
+    try {
+      const res = await fetch("/api/agency/users", { cache: "no-store" });
+      const data = (await safeJson(res)) as
+        | { ok?: boolean; rows?: AgencyUserRow[]; canManageAgency?: boolean; error?: string }
+        | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const rows = Array.isArray(data.rows) ? data.rows : [];
+      setAgencyCanManageUsers(Boolean(data.canManageAgency));
+      setAgencyUsersRows(
+        rows.map((row) => ({
+          ...row,
+          globalRoles: Array.isArray(row.globalRoles) ? row.globalRoles : [],
+          draftGlobalRole: (s(Array.isArray(row.globalRoles) ? row.globalRoles[0] : "") as AgencyUserRow["draftGlobalRole"]) || "",
+        })),
+      );
+    } catch (error: unknown) {
+      setAgencyUsersErr(error instanceof Error ? error.message : "Failed to load agency accounts");
+      setAgencyUsersRows([]);
+    } finally {
+      setAgencyUsersLoadedOnce(true);
+      setAgencyUsersLoading(false);
+    }
+  }
+
+  async function createAgencyUserAccount() {
+    if (!agencyCanManageUsers) return;
+    if (!s(agencyNewUserEmail)) {
+      setAgencyUsersErr("Email is required.");
+      return;
+    }
+    setAgencyUsersBusy(true);
+    setAgencyUsersErr("");
+    setAgencyUsersOk("");
+    try {
+      const res = await fetch("/api/agency/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: s(agencyNewUserEmail),
+          fullName: s(agencyNewUserFullName),
+          password: s(agencyNewUserPassword) || undefined,
+          isActive: agencyNewUserIsActive,
+          globalRoles: s(agencyNewUserRole) ? [agencyNewUserRole] : [],
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setAgencyNewUserEmail("");
+      setAgencyNewUserFullName("");
+      setAgencyNewUserPassword("");
+      setAgencyNewUserRole("");
+      setAgencyNewUserIsActive(true);
+      setAgencyUsersOk("Agency account created.");
+      await loadAgencyUsers();
+    } catch (error: unknown) {
+      setAgencyUsersErr(error instanceof Error ? error.message : "Failed to create agency account");
+    } finally {
+      setAgencyUsersBusy(false);
+    }
+  }
+
+  async function updateAgencyUserAccount(row: AgencyUserRow) {
+    if (!s(row.id)) return;
+    setAgencyUsersBusy(true);
+    setAgencyUsersErr("");
+    setAgencyUsersOk("");
+    try {
+      const role = s(row.draftGlobalRole);
+      const res = await fetch(`/api/agency/users/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: s(row.fullName),
+          email: s(row.email),
+          isActive: row.isActive,
+          globalRoles: role ? [role] : [],
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setAgencyUsersOk("Agency account updated.");
+      await loadAgencyUsers();
+      await loadAuthMe();
+    } catch (error: unknown) {
+      setAgencyUsersErr(error instanceof Error ? error.message : "Failed to update agency account");
+    } finally {
+      setAgencyUsersBusy(false);
+    }
+  }
+
+  async function deleteAgencyUserAccount(userId: string) {
+    if (!s(userId)) return;
+    setAgencyUsersBusy(true);
+    setAgencyUsersErr("");
+    setAgencyUsersOk("");
+    try {
+      const res = await fetch(`/api/agency/users/${userId}`, { method: "DELETE" });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setAgencyUsersOk("Agency account deleted.");
+      await loadAgencyUsers();
+    } catch (error: unknown) {
+      setAgencyUsersErr(error instanceof Error ? error.message : "Failed to delete agency account");
+    } finally {
+      setAgencyUsersBusy(false);
+    }
+  }
+
+  async function saveProfile() {
+    setProfileBusy(true);
+    setProfileErr("");
+    setProfileOk("");
+    try {
+      const res = await fetch("/api/auth/me/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: s(profileFullName), email: s(profileEmail) }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setProfileOk("Profile updated.");
+      await loadAuthMe();
+      await loadAgencyUsers();
+    } catch (error: unknown) {
+      setProfileErr(error instanceof Error ? error.message : "Failed to update profile");
+    } finally {
+      setProfileBusy(false);
+    }
+  }
+
+  async function saveSecurity() {
+    if (s(securityNewPassword) !== s(securityConfirmPassword)) {
+      setSecurityErr("New password and confirmation do not match.");
+      return;
+    }
+    setSecurityBusy(true);
+    setSecurityErr("");
+    setSecurityOk("");
+    try {
+      const res = await fetch("/api/auth/me/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: s(securityCurrentPassword),
+          newPassword: s(securityNewPassword),
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setSecurityCurrentPassword("");
+      setSecurityNewPassword("");
+      setSecurityConfirmPassword("");
+      setSecurityOk("Password updated.");
+    } catch (error: unknown) {
+      setSecurityErr(error instanceof Error ? error.message : "Failed to update password");
+    } finally {
+      setSecurityBusy(false);
+    }
+  }
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+    router.push("/login");
   }
 
   async function loadTenants() {
@@ -484,6 +732,7 @@ export default function AgencyHomePage() {
     if (autoSyncRanRef.current) return;
     autoSyncRanRef.current = true;
     void (async () => {
+      await loadAuthMe();
       await loadTenantKpiPrefs();
       setTenantKpiPrefsReady(true);
       await loadTenants();
@@ -546,6 +795,11 @@ export default function AgencyHomePage() {
   }, [activeMenu, agencyStaffLoading, agencyStaffLoadedOnce]);
 
   useEffect(() => {
+    if (activeMenu !== "staff" || agencyUsersLoading || agencyUsersLoadedOnce) return;
+    void loadAgencyUsers();
+  }, [activeMenu, agencyUsersLoading, agencyUsersLoadedOnce]);
+
+  useEffect(() => {
     if (s(agencyNewStaffTenantId) || tenantRows.length === 0) return;
     setAgencyNewStaffTenantId(tenantRows[0].id);
   }, [agencyNewStaffTenantId, tenantRows]);
@@ -587,6 +841,23 @@ export default function AgencyHomePage() {
     setAccountMenuOpen(false);
   }, [activeMenu]);
 
+  useEffect(() => {
+    if (!showProfileModal) return;
+    setProfileFullName(s(authMe?.fullName));
+    setProfileEmail(s(authMe?.email));
+    setProfileErr("");
+    setProfileOk("");
+  }, [showProfileModal, authMe]);
+
+  useEffect(() => {
+    if (!showSecurityModal) return;
+    setSecurityCurrentPassword("");
+    setSecurityNewPassword("");
+    setSecurityConfirmPassword("");
+    setSecurityErr("");
+    setSecurityOk("");
+  }, [showSecurityModal]);
+
   const filteredTenants = useMemo(() => {
     const q = s(tenantSearch).toLowerCase();
     if (!q) return tenantRows;
@@ -614,6 +885,18 @@ export default function AgencyHomePage() {
         .includes(q),
     );
   }, [agencyStaffRows, agencyStaffSearch]);
+
+  const filteredAgencyUsers = useMemo(() => {
+    const q = s(agencyUsersSearch).toLowerCase();
+    if (!q) return agencyUsersRows;
+    return agencyUsersRows.filter((row) =>
+      [row.fullName, row.email, row.globalRoles.join(","), String(row.tenantCount)]
+        .map(s)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [agencyUsersRows, agencyUsersSearch]);
 
   const filteredAuditRows = useMemo(() => {
     const q = s(auditSearch).toLowerCase();
@@ -1552,18 +1835,24 @@ export default function AgencyHomePage() {
               className="agencyAccountTrigger"
               onClick={() => setAccountMenuOpen((prev) => !prev)}
             >
-              <span className="agencyProfileAvatar">AC</span>
+              <span className="agencyProfileAvatar">{accountInitials()}</span>
               <span className="agencyAccountIdentity">
-                <strong>Axel Castro</strong>
-                <small>Account</small>
+                <strong>{accountDisplayName()}</strong>
+                <small>{currentRoleLabel()}</small>
               </span>
               <span className="agencyAccountCaret" aria-hidden>▾</span>
             </button>
             {accountMenuOpen ? (
               <div className="agencyAccountMenu">
-                <button type="button" className="agencyAccountMenuItem">Profile</button>
-                <button type="button" className="agencyAccountMenuItem">Security</button>
-                <button type="button" className="agencyAccountMenuItem">Sign out</button>
+                <button type="button" className="agencyAccountMenuItem" onClick={() => { setShowProfileModal(true); setAccountMenuOpen(false); }}>
+                  Profile
+                </button>
+                <button type="button" className="agencyAccountMenuItem" onClick={() => { setShowSecurityModal(true); setAccountMenuOpen(false); }}>
+                  Security
+                </button>
+                <button type="button" className="agencyAccountMenuItem" onClick={() => void signOut()}>
+                  Sign out
+                </button>
               </div>
             ) : null}
           </div>
@@ -1873,7 +2162,7 @@ export default function AgencyHomePage() {
             <div className="agencyProjectsHeader">
               <div>
                 <h2>Staff</h2>
-                <p>Lista global de staff para editar Email y Role desde un solo lugar.</p>
+                <p>Tenant staff + Agency accounts (usuarios globales) en una sola vista.</p>
               </div>
               <div className="agencyProjectsHeaderRight">
                 <div className="agencyTopActions agencyTopActionsMinimal">
@@ -1883,9 +2172,170 @@ export default function AgencyHomePage() {
                 </div>
                 <div className="agencyProjectStats">
                   <div className="agencyPill">Total staff: {agencyStaffRows.length}</div>
-                  <div className="agencyPill">Shown: {filteredAgencyStaff.length}</div>
+                  <div className="agencyPill">Agency accounts: {agencyUsersRows.length}</div>
+                  <div className="agencyPill">Shown staff: {filteredAgencyStaff.length}</div>
                 </div>
               </div>
+            </div>
+
+            <div className="agencyDangerBox agencyStaffCreateBox">
+              <h4>Agency Accounts</h4>
+              <p className="mini">Usuarios globales del agency. Aquí puedes editar tu cuenta y borrar cuentas creadas.</p>
+              {agencyCanManageUsers ? (
+                <div className="agencyWizardGrid agencyWizardGridFour">
+                  <input
+                    className="input"
+                    placeholder="Full name"
+                    value={agencyNewUserFullName}
+                    onChange={(e) => setAgencyNewUserFullName(e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Email"
+                    value={agencyNewUserEmail}
+                    onChange={(e) => setAgencyNewUserEmail(e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="Temp password (optional)"
+                    value={agencyNewUserPassword}
+                    onChange={(e) => setAgencyNewUserPassword(e.target.value)}
+                  />
+                  <select className="input" value={agencyNewUserRole} onChange={(e) => setAgencyNewUserRole(e.target.value as AgencyUserRow["draftGlobalRole"])}>
+                    {GLOBAL_ROLE_OPTIONS.map((role) => (
+                      <option key={role || "none"} value={role || ""}>{role || "no global role"}</option>
+                    ))}
+                  </select>
+                  <select className="input" value={agencyNewUserIsActive ? "active" : "disabled"} onChange={(e) => setAgencyNewUserIsActive(e.target.value === "active")}>
+                    <option value="active">active</option>
+                    <option value="disabled">disabled</option>
+                  </select>
+                </div>
+              ) : null}
+              <div className="agencyCreateActions agencyCreateActionsSpaced">
+                <button type="button" className="btnPrimary" disabled={agencyUsersBusy || !agencyCanManageUsers} onClick={() => void createAgencyUserAccount()}>
+                  {agencyUsersBusy ? "Saving..." : "Add agency account"}
+                </button>
+                <button type="button" className="btnGhost" disabled={agencyUsersLoading} onClick={() => void loadAgencyUsers()}>
+                  {agencyUsersLoading ? "Loading..." : "Refresh accounts"}
+                </button>
+              </div>
+            </div>
+
+            <div className="agencySearchRow">
+              <input
+                className="input"
+                placeholder="Search agency accounts by name, email, role..."
+                value={agencyUsersSearch}
+                onChange={(e) => setAgencyUsersSearch(e.target.value)}
+              />
+            </div>
+            {agencyUsersErr ? <div className="errorText">{agencyUsersErr}</div> : null}
+            {agencyUsersOk ? <div className="okText">{agencyUsersOk}</div> : null}
+
+            <div className="agencyTenantTableWrap">
+              <table className="agencyTenantTable">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Global Role</th>
+                    <th>Status</th>
+                    <th>Tenants</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agencyUsersLoading ? (
+                    <tr>
+                      <td colSpan={7}>Loading agency accounts...</td>
+                    </tr>
+                  ) : filteredAgencyUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7}>No agency accounts found.</td>
+                    </tr>
+                  ) : (
+                    filteredAgencyUsers.map((row) => (
+                      <tr key={row.id}>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.fullName)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setAgencyUsersRows((prev) =>
+                                prev.map((it) => (it.id === row.id ? { ...it, fullName: value } : it)),
+                              );
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.email)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setAgencyUsersRows((prev) =>
+                                prev.map((it) => (it.id === row.id ? { ...it, email: value } : it)),
+                              );
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className="input"
+                            value={row.draftGlobalRole || ""}
+                            onChange={(e) => {
+                              const value = e.target.value as AgencyUserRow["draftGlobalRole"];
+                              setAgencyUsersRows((prev) =>
+                                prev.map((it) => (it.id === row.id ? { ...it, draftGlobalRole: value } : it)),
+                              );
+                            }}
+                            disabled={!agencyCanManageUsers}
+                          >
+                            {GLOBAL_ROLE_OPTIONS.map((role) => (
+                              <option key={role || "none"} value={role || ""}>{role || "no global role"}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <select
+                            className="input"
+                            value={row.isActive ? "active" : "disabled"}
+                            onChange={(e) => {
+                              const value = e.target.value === "active";
+                              setAgencyUsersRows((prev) =>
+                                prev.map((it) => (it.id === row.id ? { ...it, isActive: value } : it)),
+                              );
+                            }}
+                            disabled={!agencyCanManageUsers}
+                          >
+                            <option value="active">active</option>
+                            <option value="disabled">disabled</option>
+                          </select>
+                        </td>
+                        <td>{formatInt(row.tenantCount)}</td>
+                        <td>{s(row.lastLoginAt) ? new Date(s(row.lastLoginAt)).toLocaleString() : "—"}</td>
+                        <td className="agencyInlineActions">
+                          <button type="button" className="btnGhost" disabled={agencyUsersBusy} onClick={() => void updateAgencyUserAccount(row)}>
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            className="btnGhost"
+                            disabled={agencyUsersBusy || !agencyCanManageUsers || row.id === s(authMe?.id)}
+                            onClick={() => void deleteAgencyUserAccount(row.id)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
 
             <div className="agencyDangerBox agencyStaffCreateBox">
@@ -2341,6 +2791,80 @@ export default function AgencyHomePage() {
         ) : null}
       </section>
       </div>
+
+      {showProfileModal ? (
+        <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={() => { if (!profileBusy) setShowProfileModal(false); }}>
+          <div className="agencyModalCard agencyModalCardManage" onClick={(e) => e.stopPropagation()}>
+            <div className="agencyModalHeader">
+              <div>
+                <h3>Profile</h3>
+                <p>Edit your account profile and login email.</p>
+              </div>
+              <button type="button" className="agencyModalBtn agencyModalBtnSecondary" disabled={profileBusy} onClick={() => setShowProfileModal(false)}>
+                Close
+              </button>
+            </div>
+            <div className="agencyCreateFormModal">
+              <div className="agencyWizardGrid">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Full name</span>
+                  <input className="input" value={profileFullName} onChange={(e) => setProfileFullName(e.target.value)} />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Email</span>
+                  <input className="input" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                </label>
+              </div>
+              {profileErr ? <div className="errorText">{profileErr}</div> : null}
+              {profileOk ? <div className="okText">{profileOk}</div> : null}
+              <div className="agencyCreateActions agencyCreateActionsSpaced">
+                <button type="button" className="btnPrimary" disabled={profileBusy} onClick={() => void saveProfile()}>
+                  {profileBusy ? "Saving..." : "Save profile"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showSecurityModal ? (
+        <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={() => { if (!securityBusy) setShowSecurityModal(false); }}>
+          <div className="agencyModalCard agencyModalCardManage" onClick={(e) => e.stopPropagation()}>
+            <div className="agencyModalHeader">
+              <div>
+                <h3>Security</h3>
+                <p>Change your password.</p>
+              </div>
+              <button type="button" className="agencyModalBtn agencyModalBtnSecondary" disabled={securityBusy} onClick={() => setShowSecurityModal(false)}>
+                Close
+              </button>
+            </div>
+            <div className="agencyCreateFormModal">
+              <div className="agencyWizardGrid">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Current password</span>
+                  <input className="input" type="password" value={securityCurrentPassword} onChange={(e) => setSecurityCurrentPassword(e.target.value)} />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">New password</span>
+                  <input className="input" type="password" value={securityNewPassword} onChange={(e) => setSecurityNewPassword(e.target.value)} />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Confirm new password</span>
+                  <input className="input" type="password" value={securityConfirmPassword} onChange={(e) => setSecurityConfirmPassword(e.target.value)} />
+                </label>
+              </div>
+              {securityErr ? <div className="errorText">{securityErr}</div> : null}
+              {securityOk ? <div className="okText">{securityOk}</div> : null}
+              <div className="agencyCreateActions agencyCreateActionsSpaced">
+                <button type="button" className="btnPrimary" disabled={securityBusy} onClick={() => void saveSecurity()}>
+                  {securityBusy ? "Saving..." : "Save password"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showCreate ? (
         <div
