@@ -1343,6 +1343,135 @@ button, input, select { font-family: inherit; }
   gap: 12px;
 }
 
+.adsCampaignCarousel {
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 18px;
+  padding: 12px;
+  background:
+    radial-gradient(760px 260px at -10% -20%, rgba(96,165,250,0.12), transparent 65%),
+    radial-gradient(760px 260px at 110% -30%, rgba(16,185,129,0.11), transparent 66%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+}
+
+.adsCarouselHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.adsCarouselActions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.adsCampaignSlide {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(13,18,30,0.35);
+}
+
+.adsCampaignHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.adsCampaignTitle {
+  margin: 0;
+  font-size: clamp(18px, 1.85vw, 24px);
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+}
+
+.adsCampaignBadges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adsCampaignColumns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 1060px) {
+  .adsCampaignColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adsCampaignPanel {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+}
+
+.adsCampaignPanelTitle {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(255,255,255,0.72);
+  margin-bottom: 8px;
+}
+
+.adsCampaignList {
+  margin: 0 0 8px;
+  padding-left: 18px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.83);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.adsCarouselDots {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.adsCarouselDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.22);
+  cursor: pointer;
+}
+
+.adsCarouselDotOn {
+  width: 26px;
+  background: rgba(96,165,250,0.9);
+  border-color: rgba(96,165,250,0.95);
+}
+
+.adsDraftCarousel {
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 18px;
+  padding: 12px;
+  background:
+    radial-gradient(760px 260px at -10% -20%, rgba(249,115,22,0.14), transparent 65%),
+    radial-gradient(760px 260px at 110% -30%, rgba(99,102,241,0.12), transparent 66%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+}
+
+.adsDraftSlide {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(14,16,28,0.38);
+}
+
 .adsPlaybookCard {
   border: 1px solid rgba(255,255,255,0.14);
   background:
@@ -3711,6 +3840,236 @@ button, input, select { font-family: inherit; }
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.04);
   border-radius: 999px;
+}
+
+.adsTrendBoardMeta {
+  margin-bottom: 10px;
+  opacity: 0.85;
+}
+
+.adsTrendGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1080px) {
+  .adsTrendGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .adsTrendGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adsTrendCard {
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(420px 120px at 0% -20%, rgba(96,165,250,0.12), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.03));
+}
+
+.adsTrendCardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.adsTrendCardTitle {
+  font-size: 12px;
+  color: rgba(255,255,255,0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.adsTrendCardValue {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.adsTrendSpark {
+  color: rgba(96,165,250,0.95);
+}
+
+.adsTrendCard:nth-child(2) .adsTrendSpark {
+  color: rgba(16,185,129,0.95);
+}
+
+.adsTrendCard:nth-child(3) .adsTrendSpark {
+  color: rgba(250,204,21,0.95);
+}
+
+.adsTrendCard:nth-child(4) .adsTrendSpark {
+  color: rgba(244,114,182,0.95);
+}
+
+.adsTrendCard:nth-child(5) .adsTrendSpark {
+  color: rgba(251,146,60,0.95);
+}
+
+.adsTrendCard:nth-child(6) .adsTrendSpark {
+  color: rgba(192,132,252,0.95);
+}
+
+.adsTrendCardFoot {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.adsNotifBell {
+  cursor: pointer;
+}
+
+.adsNotifCount {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.16);
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(255,255,255,0.05);
+}
+
+.adsNotifCountHot {
+  background: rgba(244,63,94,0.18);
+  border-color: rgba(244,63,94,0.45);
+  color: rgba(255,228,235,0.98);
+}
+
+.adsNotifSummary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .adsNotifSummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.adsNotifOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 70;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.adsNotifDrawer {
+  width: min(560px, 100vw);
+  height: 100vh;
+  border-left: 1px solid rgba(255,255,255,0.14);
+  background:
+    radial-gradient(700px 320px at 0% -20%, rgba(96,165,250,0.14), transparent 64%),
+    linear-gradient(180deg, rgba(26,31,43,0.98), rgba(24,30,43,0.98));
+  box-shadow: -18px 0 48px rgba(0,0,0,0.45);
+  display: flex;
+  flex-direction: column;
+}
+
+.adsNotifDrawerHead {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.adsNotifDrawerBody {
+  padding: 12px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adsNotifItem {
+  border: 1px solid rgba(255,255,255,0.11);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255,255,255,0.04);
+}
+
+.adsNotifPriority-critical {
+  border-color: rgba(248,113,113,0.5);
+}
+
+.adsNotifPriority-high {
+  border-color: rgba(251,146,60,0.45);
+}
+
+.adsNotifPriority-medium {
+  border-color: rgba(96,165,250,0.35);
+}
+
+.adsNotifPriority-low {
+  border-color: rgba(110,231,183,0.35);
+}
+
+.adsNotifItemTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.adsNotifPill {
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+.adsNotifPill-open {
+  background: rgba(96,165,250,0.17);
+  border-color: rgba(96,165,250,0.35);
+}
+
+.adsNotifPill-accepted {
+  background: rgba(34,197,94,0.16);
+  border-color: rgba(34,197,94,0.35);
+}
+
+.adsNotifPill-denied {
+  background: rgba(248,113,113,0.16);
+  border-color: rgba(248,113,113,0.35);
+}
+
+.adsNotifTitle {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.adsNotifActions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.adsNotifNote {
+  min-width: 230px;
+  flex: 1;
 }
 
 /* Optional: funnel emphasis */

@@ -64,6 +64,9 @@ type TenantSettings = {
   app_display_name?: string | null;
   brand_name?: string | null;
   logo_url?: string | null;
+  ads_alert_webhook_url?: string | null;
+  ads_alert_sms_enabled?: boolean | null;
+  ads_alert_sms_to?: string | null;
   google_service_account_json?: Record<string, unknown> | null;
 };
 
@@ -210,6 +213,9 @@ export default function AgencyHomePage() {
   const [newTwilioAuthToken, setNewTwilioAuthToken] = useState("");
   const [newMailgunApiKey, setNewMailgunApiKey] = useState("");
   const [newMailgunDomain, setNewMailgunDomain] = useState("");
+  const [newAdsAlertWebhookUrl, setNewAdsAlertWebhookUrl] = useState("");
+  const [newAdsAlertSmsEnabled, setNewAdsAlertSmsEnabled] = useState(false);
+  const [newAdsAlertSmsTo, setNewAdsAlertSmsTo] = useState("");
   const [newGoogleCloudProjectId, setNewGoogleCloudProjectId] = useState("");
   const [newGoogleServiceAccountEmail, setNewGoogleServiceAccountEmail] = useState("");
   const [newGoogleServiceAccountKeyfilePath, setNewGoogleServiceAccountKeyfilePath] = useState("");
@@ -246,6 +252,9 @@ export default function AgencyHomePage() {
   const [manageTwilioAuthToken, setManageTwilioAuthToken] = useState("");
   const [manageMailgunApiKey, setManageMailgunApiKey] = useState("");
   const [manageMailgunDomain, setManageMailgunDomain] = useState("");
+  const [manageAdsAlertWebhookUrl, setManageAdsAlertWebhookUrl] = useState("");
+  const [manageAdsAlertSmsEnabled, setManageAdsAlertSmsEnabled] = useState(false);
+  const [manageAdsAlertSmsTo, setManageAdsAlertSmsTo] = useState("");
   const [manageGoogleCloudProjectId, setManageGoogleCloudProjectId] = useState("");
   const [manageGoogleServiceAccountEmail, setManageGoogleServiceAccountEmail] = useState("");
   const [manageGoogleServiceAccountKeyfilePath, setManageGoogleServiceAccountKeyfilePath] = useState("");
@@ -552,6 +561,9 @@ export default function AgencyHomePage() {
     setManageTwilioAuthToken("");
     setManageMailgunApiKey("");
     setManageMailgunDomain("");
+    setManageAdsAlertWebhookUrl("");
+    setManageAdsAlertSmsEnabled(false);
+    setManageAdsAlertSmsTo("");
     setManageGoogleCloudProjectId("");
     setManageGoogleServiceAccountEmail("");
     setManageGoogleServiceAccountKeyfilePath("");
@@ -616,6 +628,7 @@ export default function AgencyHomePage() {
       const ownerConfig = ((ownerIntegration?.config as Record<string, unknown> | null) || {}) as Record<string, unknown>;
       const twilioCfg = (ownerConfig.twilio as Record<string, unknown> | undefined) || {};
       const mailgunCfg = (ownerConfig.mailgun as Record<string, unknown> | undefined) || {};
+      const alertsCfg = (ownerConfig.alerts as Record<string, unknown> | undefined) || {};
       const googleCfg = (ownerConfig.google as Record<string, unknown> | undefined) || {};
       setManageTenantId(tenant.id);
       setManageTenantName(tenant.name);
@@ -628,6 +641,11 @@ export default function AgencyHomePage() {
       setManageTwilioAuthToken(s(twilioCfg.authToken));
       setManageMailgunApiKey(s(mailgunCfg.apiKey));
       setManageMailgunDomain(s(mailgunCfg.domain));
+      setManageAdsAlertWebhookUrl(s(settings.ads_alert_webhook_url) || s(alertsCfg.adsWebhookUrl));
+      setManageAdsAlertSmsEnabled(
+        settings.ads_alert_sms_enabled === true || alertsCfg.adsSmsEnabled === true,
+      );
+      setManageAdsAlertSmsTo(s(settings.ads_alert_sms_to) || s(alertsCfg.adsSmsTo));
       setManageGoogleCloudProjectId(s(googleCfg.cloudProjectId));
       setManageGoogleServiceAccountEmail(s(googleCfg.serviceAccountEmail));
       setManageGoogleServiceAccountKeyfilePath(s(googleCfg.serviceAccountKeyfilePath));
@@ -888,6 +906,9 @@ export default function AgencyHomePage() {
           twilioAuthToken: s(manageTwilioAuthToken) || undefined,
           mailgunApiKey: s(manageMailgunApiKey) || undefined,
           mailgunDomain: s(manageMailgunDomain) || undefined,
+          adsAlertWebhookUrl: s(manageAdsAlertWebhookUrl) || undefined,
+          adsAlertSmsEnabled: manageAdsAlertSmsEnabled,
+          adsAlertSmsTo: s(manageAdsAlertSmsTo) || undefined,
           googleCloudProjectId: s(manageGoogleCloudProjectId) || undefined,
           googleServiceAccountEmail: s(manageGoogleServiceAccountEmail) || undefined,
           googleServiceAccountKeyfilePath: s(manageGoogleServiceAccountKeyfilePath) || undefined,
@@ -954,6 +975,9 @@ export default function AgencyHomePage() {
           twilioAuthToken: s(newTwilioAuthToken) || undefined,
           mailgunApiKey: s(newMailgunApiKey) || undefined,
           mailgunDomain: s(newMailgunDomain) || undefined,
+          adsAlertWebhookUrl: s(newAdsAlertWebhookUrl) || undefined,
+          adsAlertSmsEnabled: newAdsAlertSmsEnabled,
+          adsAlertSmsTo: s(newAdsAlertSmsTo) || undefined,
           googleCloudProjectId: s(newGoogleCloudProjectId) || undefined,
           googleServiceAccountEmail: s(newGoogleServiceAccountEmail) || undefined,
           googleServiceAccountKeyfilePath: s(newGoogleServiceAccountKeyfilePath) || undefined,
@@ -988,6 +1012,9 @@ export default function AgencyHomePage() {
       setNewTwilioAuthToken("");
       setNewMailgunApiKey("");
       setNewMailgunDomain("");
+      setNewAdsAlertWebhookUrl("");
+      setNewAdsAlertSmsEnabled(false);
+      setNewAdsAlertSmsTo("");
       setNewGoogleCloudProjectId("");
       setNewGoogleServiceAccountEmail("");
       setNewGoogleServiceAccountKeyfilePath("");
@@ -1504,6 +1531,37 @@ export default function AgencyHomePage() {
                               <span className="agencyFieldLabel">Mailgun Domain</span>
                               <input className="input" placeholder="optional" value={newMailgunDomain} onChange={(e) => setNewMailgunDomain(e.target.value)} />
                             </label>
+                            <label className="agencyField agencyFieldFull">
+                              <span className="agencyFieldLabel">Ads Alerts Webhook (GHL)</span>
+                              <input
+                                className="input"
+                                placeholder="https://services.leadconnectorhq.com/hooks/..."
+                                value={newAdsAlertWebhookUrl}
+                                onChange={(e) => setNewAdsAlertWebhookUrl(e.target.value)}
+                              />
+                              <span className="agencyFieldHint">Webhook por tenant para alertas AI de Google Ads.</span>
+                            </label>
+                            <label className="agencyField">
+                              <span className="agencyFieldLabel">Enviar SMS via GHL</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10, height: 42 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={newAdsAlertSmsEnabled}
+                                  onChange={(e) => setNewAdsAlertSmsEnabled(e.target.checked)}
+                                />
+                                <span className="agencyFieldHint">Incluye instrucción de SMS en el payload al webhook.</span>
+                              </div>
+                            </label>
+                            <label className="agencyField">
+                              <span className="agencyFieldLabel">Ads SMS To</span>
+                              <input
+                                className="input"
+                                placeholder="+1..."
+                                value={newAdsAlertSmsTo}
+                                onChange={(e) => setNewAdsAlertSmsTo(e.target.value)}
+                              />
+                              <span className="agencyFieldHint">Número destino para alertas high/critical.</span>
+                            </label>
                           </div>
                         ) : null}
 
@@ -1793,6 +1851,37 @@ export default function AgencyHomePage() {
                       <label className="agencyField">
                         <span className="agencyFieldLabel">Mailgun Domain</span>
                         <input className="input" value={manageMailgunDomain} onChange={(e) => setManageMailgunDomain(e.target.value)} />
+                      </label>
+                      <label className="agencyField agencyFieldFull">
+                        <span className="agencyFieldLabel">Ads Alerts Webhook (GHL)</span>
+                        <input
+                          className="input"
+                          value={manageAdsAlertWebhookUrl}
+                          onChange={(e) => setManageAdsAlertWebhookUrl(e.target.value)}
+                          placeholder="https://services.leadconnectorhq.com/hooks/..."
+                        />
+                        <span className="agencyFieldHint">Webhook por tenant para alertas AI de Google Ads.</span>
+                      </label>
+                      <label className="agencyField">
+                        <span className="agencyFieldLabel">Enviar SMS via GHL</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, height: 42 }}>
+                          <input
+                            type="checkbox"
+                            checked={manageAdsAlertSmsEnabled}
+                            onChange={(e) => setManageAdsAlertSmsEnabled(e.target.checked)}
+                          />
+                          <span className="agencyFieldHint">Incluye instrucción de SMS en el payload al webhook.</span>
+                        </div>
+                      </label>
+                      <label className="agencyField">
+                        <span className="agencyFieldLabel">Ads SMS To</span>
+                        <input
+                          className="input"
+                          value={manageAdsAlertSmsTo}
+                          onChange={(e) => setManageAdsAlertSmsTo(e.target.value)}
+                          placeholder="+1..."
+                        />
+                        <span className="agencyFieldHint">Número destino para alertas high/critical.</span>
                       </label>
                     </div>
                   ) : null}

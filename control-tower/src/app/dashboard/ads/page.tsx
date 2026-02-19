@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import AdsTrendChart from "@/components/AdsTrendChart";
+import AdsMetricsGridCharts from "@/components/AdsMetricsGridCharts";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
@@ -44,6 +45,23 @@ type CampaignPlaybook = {
     cta: string;
     landingAngle: string;
   };
+};
+
+type AdsNotification = {
+  id: number;
+  priority: "low" | "medium" | "high" | "critical";
+  status: "open" | "accepted" | "denied";
+  title: string;
+  summary: string;
+  recommendation_type: string;
+  recommendation_payload?: {
+    actionPlan?: string[];
+    expectedImpact?: string;
+  };
+  evidence?: Record<string, unknown>;
+  decision_note?: string | null;
+  decided_at?: string | null;
+  created_at?: string | null;
 };
 
 function norm(v: any) {
@@ -152,6 +170,16 @@ export default function AdsDashboardPage() {
   const [strategyData, setStrategyData] = useState<any>(null);
 
   const [data, setData] = useState<any>(null);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsGenerating, setNotificationsGenerating] = useState(false);
+  const [notificationsErr, setNotificationsErr] = useState("");
+  const [notifications, setNotifications] = useState<AdsNotification[]>([]);
+  const [notificationStats, setNotificationStats] = useState<any>(null);
+  const [decisionLoadingId, setDecisionLoadingId] = useState<number | null>(null);
+  const [decisionNotes, setDecisionNotes] = useState<Record<number, string>>({});
+  const [playbookIndex, setPlaybookIndex] = useState(0);
+  const [draftIndex, setDraftIndex] = useState(0);
 
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKeyRaw =
@@ -229,6 +257,120 @@ export default function AdsDashboardPage() {
     }
   }
 
+  async function loadNotifications(opts?: { autoGenerate?: boolean }) {
+    if (!tenantReady || !tenantId) return;
+    setNotificationsLoading(true);
+    setNotificationsErr("");
+    try {
+      const p = new URLSearchParams();
+      p.set("tenantId", tenantId);
+      p.set("integrationKey", integrationKey);
+      p.set("status", "all");
+      p.set("limit", "80");
+      p.set("range", preset);
+      if (preset === "custom") {
+        if (customStart) p.set("start", customStart);
+        if (customEnd) p.set("end", customEnd);
+      }
+      p.set("autoGenerate", opts?.autoGenerate === false ? "0" : "1");
+      const res = await fetch(`/api/dashboard/ads/notifications?${p.toString()}`, {
+        cache: "no-store",
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error || `NOTIFS HTTP ${res.status}`);
+      }
+      setNotifications(Array.isArray(json.notifications) ? json.notifications : []);
+      setNotificationStats(json.stats || null);
+    } catch (e: any) {
+      setNotificationsErr(e?.message || "Failed to load notifications");
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }
+
+  async function generateNotifications(force = true) {
+    if (!tenantId) return;
+    setNotificationsGenerating(true);
+    setNotificationsErr("");
+    try {
+      const body: Record<string, unknown> = {
+        tenantId,
+        integrationKey,
+        range: preset,
+        force,
+      };
+      if (preset === "custom") {
+        body.start = customStart;
+        body.end = customEnd;
+      }
+      const res = await fetch("/api/dashboard/ads/notifications", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error || "Failed to generate notifications");
+      }
+      setNotifications(Array.isArray(json.notifications) ? json.notifications : []);
+      setNotificationStats(json.stats || null);
+    } catch (e: any) {
+      setNotificationsErr(e?.message || "Failed to generate notifications");
+    } finally {
+      setNotificationsGenerating(false);
+    }
+  }
+
+  async function decideNotification(
+    id: number,
+    decision: "accept" | "deny",
+  ) {
+    if (!tenantId) return;
+    setDecisionLoadingId(id);
+    setNotificationsErr("");
+    try {
+      const note = decisionNotes[id] || "";
+      const res = await fetch(`/api/dashboard/ads/notifications/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tenantId,
+          integrationKey,
+          decision,
+          note,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error || `DECISION HTTP ${res.status}`);
+      }
+      setNotifications((prev) =>
+        prev.map((row) =>
+          row.id === id ? { ...row, ...(json.notification || {}) } : row,
+        ),
+      );
+      setNotificationStats((prev: any) => {
+        const next = { ...(prev || {}) };
+        const accepted = n(next.accepted);
+        const denied = n(next.denied);
+        const open = n(next.open);
+        if (decision === "accept") {
+          next.accepted = accepted + 1;
+        } else {
+          next.denied = denied + 1;
+        }
+        next.open = Math.max(0, open - 1);
+        next.total = n(next.total);
+        return next;
+      });
+    } catch (e: any) {
+      setNotificationsErr(e?.message || "Failed to update notification");
+    } finally {
+      setDecisionLoadingId(null);
+    }
+  }
+
   useEffect(() => {
     if (!tenantReady) return;
     if (!tenantId) {
@@ -241,6 +383,13 @@ export default function AdsDashboardPage() {
     else if (customStart && customEnd) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset, customStart, customEnd, compareOn, tenantReady, tenantId]);
+
+  useEffect(() => {
+    if (!tenantReady || !tenantId) return;
+    if (preset !== "custom") loadNotifications();
+    else if (customStart && customEnd) loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantReady, tenantId, preset, customStart, customEnd, integrationKey]);
 
   async function generateKeywordStrategyAndCampaigns() {
     if (!tenantId) {
@@ -315,6 +464,13 @@ export default function AdsDashboardPage() {
     negativeIdeas: [],
     ctrProblems: [],
   };
+  const openNotifications = useMemo(
+    () =>
+      Array.isArray(notifications)
+        ? notifications.filter((x) => String(x.status) === "open").length
+        : 0,
+    [notifications],
+  );
 
   // -------------------------
   // Chart adapter (generic)
@@ -458,6 +614,44 @@ export default function AdsDashboardPage() {
     }));
   }, [topCampaigns, opportunities?.negativeIdeas, trend]);
 
+  useEffect(() => {
+    setPlaybookIndex((prev) => {
+      if (!campaignPlaybooks.length) return 0;
+      return Math.min(prev, campaignPlaybooks.length - 1);
+    });
+  }, [campaignPlaybooks.length]);
+
+  useEffect(() => {
+    if (campaignPlaybooks.length <= 1) return;
+    const t = setInterval(() => {
+      setPlaybookIndex((prev) => (prev + 1) % campaignPlaybooks.length);
+    }, 8000);
+    return () => clearInterval(t);
+  }, [campaignPlaybooks.length]);
+
+  const draftCampaigns = useMemo<any[]>(
+    () =>
+      Array.isArray(strategyData?.campaignDrafts)
+        ? strategyData.campaignDrafts
+        : [],
+    [strategyData?.campaignDrafts],
+  );
+
+  useEffect(() => {
+    setDraftIndex((prev) => {
+      if (!draftCampaigns.length) return 0;
+      return Math.min(prev, draftCampaigns.length - 1);
+    });
+  }, [draftCampaigns.length]);
+
+  useEffect(() => {
+    if (draftCampaigns.length <= 1) return;
+    const t = setInterval(() => {
+      setDraftIndex((prev) => (prev + 1) % draftCampaigns.length);
+    }, 9000);
+    return () => clearInterval(t);
+  }, [draftCampaigns.length]);
+
   async function generateAiPlaybook() {
     setAiLoading(true);
     setAiErr("");
@@ -561,6 +755,18 @@ export default function AdsDashboardPage() {
             <span className="dot" />
             <span>Live</span>
           </div>
+
+          <button
+            className="pill adsNotifBell"
+            type="button"
+            onClick={() => setNotificationsOpen(true)}
+            title="Abrir centro de recomendaciones AI"
+          >
+            <span>Notifications</span>
+            <span className={`adsNotifCount ${openNotifications > 0 ? "adsNotifCountHot" : ""}`}>
+              {fmtInt(openNotifications)}
+            </span>
+          </button>
 
           <div className="pill">
             <span style={{ color: "var(--muted)" }}>Created by</span>
@@ -1010,6 +1216,94 @@ export default function AdsDashboardPage() {
         </div>
       </section>
 
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Multi-Metric Trend Board</h2>
+            <div className="cardSubtitle">
+              Visualiza simultáneamente Cost, Conversions, Avg CPC, CTR, Clicks e Impressions por el rango seleccionado.
+            </div>
+          </div>
+          <div className="badge">trends</div>
+        </div>
+        <div className="cardBody">
+          <AdsMetricsGridCharts
+            trend={trend}
+            mode={trendMode}
+            startDate={startDate}
+            endDate={endDate}
+          />
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">AI Notification Center</h2>
+            <div className="cardSubtitle">
+              El agente evalúa campañas día a día y te propone cambios concretos para aprobar o denegar.
+            </div>
+          </div>
+          <div className="cardHeaderActions" style={{ display: "flex", gap: 10 }}>
+            <button
+              className="smallBtn"
+              type="button"
+              onClick={() => loadNotifications({ autoGenerate: false })}
+              disabled={notificationsLoading}
+            >
+              {notificationsLoading ? "Loading..." : "Refresh"}
+            </button>
+            <button
+              className="smallBtn aiBtn"
+              type="button"
+              onClick={() => generateNotifications(true)}
+              disabled={notificationsGenerating}
+            >
+              {notificationsGenerating ? "Analyzing..." : "Run Daily AI Analysis"}
+            </button>
+            <button
+              className="smallBtn"
+              type="button"
+              onClick={() => setNotificationsOpen(true)}
+            >
+              Open Window ({fmtInt(openNotifications)})
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          {notificationsErr ? (
+            <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>
+              X {notificationsErr}
+            </div>
+          ) : null}
+          <div className="adsNotifSummary">
+            <div className="kpi">
+              <p className="n">{fmtInt(notificationStats?.open || openNotifications)}</p>
+              <p className="l">Open suggestions</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtInt(notificationStats?.accepted || 0)}</p>
+              <p className="l">Accepted</p>
+            </div>
+            <div className="kpi">
+              <p className="n">{fmtInt(notificationStats?.denied || 0)}</p>
+              <p className="l">Denied</p>
+            </div>
+            <div className="kpi">
+              <p className="n">
+                {notificationStats?.lastGeneratedAt
+                  ? new Date(notificationStats.lastGeneratedAt).toLocaleString()
+                  : "—"}
+              </p>
+              <p className="l">Last AI run</p>
+            </div>
+          </div>
+          <div className="mini" style={{ marginTop: 10, opacity: 0.8 }}>
+            Mode: <b>Daily baseline + anomaly trigger</b>. El sistema genera recomendaciones cada día y también cuando detecta drift crítico.
+          </div>
+        </div>
+      </section>
+
       <section className="card" style={{ marginTop: 14 }} id="ai-playbook">
         <div className="cardHeader">
           <div>
@@ -1086,31 +1380,101 @@ export default function AdsDashboardPage() {
           </div>
         </div>
         <div className="cardBody">
-          <div className="moduleGrid adsPlaybookDeck">
-            {campaignPlaybooks.map((pb, i) => (
-              <div className="moduleCard adsPlaybookCard" key={`${pb.region}-${i}`}>
-                <div className="moduleTop">
-                  <p className="l moduleTitle">{pb.region}</p>
-                  <span className="mini moduleDelta">Score {pb.score}</span>
+          {campaignPlaybooks.length ? (
+            <div className="adsCampaignCarousel">
+              <div className="adsCarouselHead">
+                <div className="mini">
+                  Campaign <b>{playbookIndex + 1}</b> of <b>{campaignPlaybooks.length}</b>
                 </div>
-                <p className="mini moduleLine"><b>Objective:</b> {pb.objective}</p>
-                <p className="mini moduleLine"><b>Daily budget:</b> {fmtMoney(pb.budgetDaily)}</p>
-                <p className="mini moduleLine"><b>Campaign:</b> {pb.campaign}</p>
-                <p className="mini moduleLine"><b>Bid strategy:</b> {pb.setup.bidStrategy}</p>
-                <p className="mini moduleLine"><b>Ad groups:</b> {pb.setup.adGroups.join(" · ")}</p>
-                <p className="mini moduleLine"><b>Negative seeds:</b> {pb.setup.negativeSeeds.join(", ")}</p>
-                <p className="mini moduleLine"><b>Audience:</b> {pb.setup.audienceHint}</p>
-                <div className="moduleStat" style={{ marginTop: 8 }}>
-                  <div className="mini moduleStatLabel">Funnel copy pack</div>
-                  <div className="mini moduleLine"><b>H1:</b> {pb.funnel.headline1}</div>
-                  <div className="mini moduleLine"><b>H2:</b> {pb.funnel.headline2}</div>
-                  <div className="mini moduleLine"><b>Description:</b> {pb.funnel.description}</div>
-                  <div className="mini moduleLine"><b>CTA:</b> {pb.funnel.cta}</div>
-                  <div className="mini moduleLine"><b>Landing angle:</b> {pb.funnel.landingAngle}</div>
+                <div className="adsCarouselActions">
+                  <button
+                    type="button"
+                    className="smallBtn"
+                    onClick={() =>
+                      setPlaybookIndex((p) =>
+                        campaignPlaybooks.length
+                          ? (p - 1 + campaignPlaybooks.length) %
+                            campaignPlaybooks.length
+                          : 0,
+                      )
+                    }
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    className="smallBtn"
+                    onClick={() =>
+                      setPlaybookIndex((p) =>
+                        campaignPlaybooks.length
+                          ? (p + 1) % campaignPlaybooks.length
+                          : 0,
+                      )
+                    }
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {(() => {
+                const pb = campaignPlaybooks[playbookIndex];
+                return (
+                  <div className="adsCampaignSlide">
+                    <div className="adsCampaignHeader">
+                      <h3 className="adsCampaignTitle">{pb.campaign}</h3>
+                      <div className="adsCampaignBadges">
+                        <span className="badge">Region: {pb.region}</span>
+                        <span className="badge">Objective: {pb.objective}</span>
+                        <span className="badge">Score {pb.score}</span>
+                      </div>
+                    </div>
+
+                    <div className="adsCampaignColumns">
+                      <div className="adsCampaignPanel">
+                        <div className="adsCampaignPanelTitle">Campaign settings</div>
+                        <p className="mini moduleLine"><b>Daily budget:</b> {fmtMoney(pb.budgetDaily)}</p>
+                        <p className="mini moduleLine"><b>Bidding:</b> {pb.setup.bidStrategy}</p>
+                        <p className="mini moduleLine"><b>Funnel CTA:</b> {pb.funnel.cta}</p>
+                      </div>
+
+                      <div className="adsCampaignPanel">
+                        <div className="adsCampaignPanelTitle">Targeting & structure</div>
+                        <p className="mini moduleLine"><b>Ad groups:</b></p>
+                        <ul className="adsCampaignList">
+                          {pb.setup.adGroups.map((g, i) => (
+                            <li key={`pb-ag-${i}`}>{g}</li>
+                          ))}
+                        </ul>
+                        <p className="mini moduleLine"><b>Negative seeds:</b> {pb.setup.negativeSeeds.join(", ")}</p>
+                        <p className="mini moduleLine"><b>Audience:</b> {pb.setup.audienceHint}</p>
+                      </div>
+
+                      <div className="adsCampaignPanel">
+                        <div className="adsCampaignPanelTitle">Ad assets & landing</div>
+                        <p className="mini moduleLine"><b>H1:</b> {pb.funnel.headline1}</p>
+                        <p className="mini moduleLine"><b>H2:</b> {pb.funnel.headline2}</p>
+                        <p className="mini moduleLine"><b>Description:</b> {pb.funnel.description}</p>
+                        <p className="mini moduleLine"><b>Landing angle:</b> {pb.funnel.landingAngle}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="adsCarouselDots">
+                {campaignPlaybooks.map((pb, i) => (
+                  <button
+                    type="button"
+                    key={`pb-dot-${i}`}
+                    className={`adsCarouselDot ${i === playbookIndex ? "adsCarouselDotOn" : ""}`}
+                    onClick={() => setPlaybookIndex(i)}
+                    title={pb.region}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
           {!campaignPlaybooks.length ? (
             <div className="mini" style={{ marginTop: 8, opacity: 0.8 }}>
               No hay suficiente data en este rango para armar playbooks. Amplía el rango o haz refresh.
@@ -1197,6 +1561,18 @@ export default function AdsDashboardPage() {
                   ? ` (${String(strategyData.dataSources.transactions.sourceRange)})`
                   : ""}
               </div>
+              {strategyData?.budgetModel ? (
+                <div className="mini" style={{ marginBottom: 12, opacity: 0.82 }}>
+                  Budget model:{" "}
+                  spend/day actual <b>{fmtMoney(strategyData.budgetModel.spendDailyCurrent || 0)}</b>
+                  {" • "}
+                  revenue/day <b>{fmtMoney(strategyData.budgetModel.revenueDaily || 0)}</b>
+                  {" • "}
+                  invest ratio <b>{Number(strategyData.budgetModel.investRatio || 0).toFixed(2)}</b>
+                  {" • "}
+                  suggested/day <b>{fmtMoney(strategyData.budgetModel.totalSuggestedBudget || 0)}</b>
+                </div>
+              ) : null}
               <div className="mini" style={{ marginBottom: 12, opacity: 0.82 }}>
                 Keyword Planner:{" "}
                 <b>{strategyData?.dataSources?.keywordPlanner?.ok ? "connected" : "fallback mode"}</b>
@@ -1273,34 +1649,103 @@ export default function AdsDashboardPage() {
                 </table>
               </div>
 
-              <div className="moduleGrid adsDraftDeck" style={{ marginTop: 12 }}>
-                {(strategyData?.campaignDrafts || []).map((c: any, idx: number) => (
-                  <div className="moduleCard adsDraftCard" key={`draft-${idx}`}>
-                    <div className="moduleTop">
-                      <p className="l moduleTitle">{String(c.campaignName || "Draft campaign")}</p>
-                      <span className="mini moduleDelta adsDraftStatus">{String(c.status || "draft")}</span>
+              {draftCampaigns.length ? (
+                <div className="adsDraftCarousel" style={{ marginTop: 12 }}>
+                  <div className="adsCarouselHead">
+                    <div className="mini">
+                      Draft <b>{draftIndex + 1}</b> of <b>{draftCampaigns.length}</b>
                     </div>
-                    <p className="mini moduleLine"><b>Objective:</b> {String(c.objective || "-")}</p>
-                    <p className="mini moduleLine"><b>Budget/day:</b> {fmtMoney(c.budgetDailyUsd || 0)}</p>
-                    <p className="mini moduleLine"><b>Bidding:</b> {String(c.bidding || "-")}</p>
-                    <p className="mini moduleLine"><b>Region:</b> {String(c?.targeting?.regions?.join(", ") || "-")}</p>
-                    <p className="mini moduleLine"><b>CTA link:</b> {String(c.ctaLink || "-")}</p>
-                    <p className="mini moduleLine"><b>CTA geo match:</b> {String(c.ctaGeoMatch || "-")}</p>
-                    <p className="mini moduleLine">
-                      <b>Keywords:</b>{" "}
-                      {String(
-                        c?.adGroups?.flatMap((g: any) => g.keywords || []).slice(0, 8).join(", ") || "-",
-                      )}
-                    </p>
-                    <p className="mini moduleLine">
-                      <b>Negatives:</b>{" "}
-                      {String(
-                        c?.adGroups?.flatMap((g: any) => g.negatives || []).slice(0, 8).join(", ") || "-",
-                      )}
-                    </p>
+                    <div className="adsCarouselActions">
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        onClick={() =>
+                          setDraftIndex((p) =>
+                            draftCampaigns.length
+                              ? (p - 1 + draftCampaigns.length) %
+                                draftCampaigns.length
+                              : 0,
+                          )
+                        }
+                      >
+                        Prev
+                      </button>
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        onClick={() =>
+                          setDraftIndex((p) =>
+                            draftCampaigns.length
+                              ? (p + 1) % draftCampaigns.length
+                              : 0,
+                          )
+                        }
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
+
+                  {(() => {
+                    const c = draftCampaigns[draftIndex];
+                    const keywords = c?.adGroups?.flatMap((g: any) => g.keywords || []) || [];
+                    const negatives = c?.adGroups?.flatMap((g: any) => g.negatives || []) || [];
+                    return (
+                      <div className="adsDraftSlide">
+                        <div className="adsCampaignHeader">
+                          <h3 className="adsCampaignTitle">{String(c?.campaignName || "Draft campaign")}</h3>
+                          <div className="adsCampaignBadges">
+                            <span className="badge">Status: {String(c?.status || "draft")}</span>
+                            <span className="badge">Objective: {String(c?.objective || "-")}</span>
+                            <span className="badge">Budget {fmtMoney(c?.budgetDailyUsd || 0)}/day</span>
+                          </div>
+                        </div>
+
+                        <div className="adsCampaignColumns">
+                          <div className="adsCampaignPanel">
+                            <div className="adsCampaignPanelTitle">Campaign settings</div>
+                            <p className="mini moduleLine"><b>Bidding:</b> {String(c?.bidding || "-")}</p>
+                            <p className="mini moduleLine"><b>Region:</b> {String(c?.targeting?.regions?.join(", ") || "-")}</p>
+                            <p className="mini moduleLine"><b>Geo level:</b> {String(c?.targeting?.geoLevel || "-")}</p>
+                            <p className="mini moduleLine"><b>Schedule:</b> {String(c?.targeting?.schedule || "-")}</p>
+                          </div>
+
+                          <div className="adsCampaignPanel">
+                            <div className="adsCampaignPanelTitle">Keywords & negatives</div>
+                            <p className="mini moduleLine"><b>Primary keywords:</b></p>
+                            <ul className="adsCampaignList">
+                              {keywords.slice(0, 10).map((k: string, i: number) => (
+                                <li key={`draft-kw-${i}`}>{String(k)}</li>
+                              ))}
+                            </ul>
+                            <p className="mini moduleLine"><b>Negative set:</b> {negatives.slice(0, 10).join(", ") || "-"}</p>
+                          </div>
+
+                          <div className="adsCampaignPanel">
+                            <div className="adsCampaignPanelTitle">Landing & tracking</div>
+                            <p className="mini moduleLine"><b>CTA link:</b> {String(c?.ctaLink || "-")}</p>
+                            <p className="mini moduleLine"><b>Geo match:</b> {String(c?.ctaGeoMatch || "-")}</p>
+                            <p className="mini moduleLine"><b>Service:</b> {String(c?.ctaServiceId || "-")}</p>
+                            <p className="mini moduleLine"><b>UTM:</b> {String(c?.tracking?.utmTemplate || "-")}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="adsCarouselDots">
+                    {draftCampaigns.map((_: any, i: number) => (
+                      <button
+                        type="button"
+                        key={`draft-dot-${i}`}
+                        className={`adsCarouselDot ${i === draftIndex ? "adsCarouselDotOn" : ""}`}
+                        onClick={() => setDraftIndex(i)}
+                        title={`Draft ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mini" style={{ marginTop: 10, opacity: 0.8 }}>
                 Publish mode actual: <b>{String(strategyData?.publish?.mode || "draft_only")}</b>.{" "}
@@ -1705,6 +2150,122 @@ export default function AdsDashboardPage() {
           </div>
         </div>
       </section>
+
+      {notificationsOpen ? (
+        <div
+          className="adsNotifOverlay"
+          onClick={() => setNotificationsOpen(false)}
+          role="presentation"
+        >
+          <aside
+            className="adsNotifDrawer"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="adsNotifDrawerHead">
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16 }}>
+                  AI Notifications
+                </h3>
+                <div className="mini" style={{ marginTop: 4 }}>
+                  Open <b>{fmtInt(openNotifications)}</b> • Accepted{" "}
+                  <b>{fmtInt(notificationStats?.accepted || 0)}</b> • Denied{" "}
+                  <b>{fmtInt(notificationStats?.denied || 0)}</b>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="smallBtn"
+                onClick={() => setNotificationsOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="adsNotifDrawerBody">
+              {notificationsErr ? (
+                <div className="mini" style={{ color: "var(--danger)", marginBottom: 10 }}>
+                  X {notificationsErr}
+                </div>
+              ) : null}
+
+              {notificationsLoading ? (
+                <div className="mini">Loading notifications...</div>
+              ) : null}
+
+              {!notificationsLoading && !notifications.length ? (
+                <div className="mini">
+                  No hay notificaciones todavía. Corre el análisis diario para generar sugerencias.
+                </div>
+              ) : null}
+
+              {!notificationsLoading &&
+                notifications.map((note) => {
+                  const actions = Array.isArray(note?.recommendation_payload?.actionPlan)
+                    ? note.recommendation_payload?.actionPlan || []
+                    : [];
+                  return (
+                    <div
+                      key={`ads-notif-${note.id}`}
+                      className={`adsNotifItem adsNotifPriority-${String(note.priority || "medium")}`}
+                    >
+                      <div className="adsNotifItemTop">
+                        <span className={`adsNotifPill adsNotifPill-${String(note.status || "open")}`}>
+                          {String(note.status || "open").toUpperCase()}
+                        </span>
+                        <span className="mini">
+                          {note.created_at ? new Date(note.created_at).toLocaleString() : ""}
+                        </span>
+                      </div>
+                      <div className="adsNotifTitle">{String(note.title || "")}</div>
+                      <div className="mini" style={{ marginTop: 6 }}>
+                        {String(note.summary || "")}
+                      </div>
+
+                      {actions.length ? (
+                        <div className="mini" style={{ marginTop: 8 }}>
+                          <b>Action plan:</b> {actions.slice(0, 4).join(" • ")}
+                        </div>
+                      ) : null}
+
+                      <div className="adsNotifActions">
+                        <input
+                          className="input adsNotifNote"
+                          placeholder="Nota opcional de decisión"
+                          value={decisionNotes[note.id] || ""}
+                          onChange={(e) =>
+                            setDecisionNotes((prev) => ({
+                              ...prev,
+                              [note.id]: e.target.value,
+                            }))
+                          }
+                          disabled={note.status !== "open"}
+                        />
+                        <button
+                          type="button"
+                          className="smallBtn"
+                          onClick={() => decideNotification(note.id, "accept")}
+                          disabled={note.status !== "open" || decisionLoadingId === note.id}
+                        >
+                          {decisionLoadingId === note.id ? "Saving..." : "Accept"}
+                        </button>
+                        <button
+                          type="button"
+                          className="smallBtn"
+                          onClick={() => decideNotification(note.id, "deny")}
+                          disabled={note.status !== "open" || decisionLoadingId === note.id}
+                        >
+                          {decisionLoadingId === note.id ? "Saving..." : "Deny"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }

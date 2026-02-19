@@ -597,6 +597,12 @@ export async function GET(req: Request) {
       const days = Math.max(1, Math.floor((endMs - startMs) / 86_400_000) + 1);
       return totalCost / days;
     })();
+    const rangeDays = (() => {
+      const startMs = Date.parse(`${s(summary.startDate)}T00:00:00Z`);
+      const endMs = Date.parse(`${s(summary.endDate)}T00:00:00Z`);
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return 28;
+      return Math.max(1, Math.floor((endMs - startMs) / 86_400_000) + 1);
+    })();
 
     const prioritized = keywordStrategy.filter((k) => k.action === "scale" || k.action === "test");
 
@@ -619,12 +625,42 @@ export async function GET(req: Request) {
       .sort((a, b) => (b.rows[0]?.score || 0) - (a.rows[0]?.score || 0))
       .slice(0, 6);
 
-    const totalSuggestedBudget = Math.max(80, Math.round(budgetDailyCurrent * 1.25));
-    const weightDen = orderedGroups.reduce((acc, g) => acc + Math.max(1, g.rows[0]?.score || 1), 0) || 1;
+    const revenueDaily = revenueNow > 0 ? revenueNow / Math.max(1, rangeDays) : 0;
+    const investRatio =
+      revenueNow >= 20_000 ? 0.18
+      : revenueNow >= 8_000 ? 0.15
+      : revenueNow >= 3_000 ? 0.12
+      : 0.1;
+    const targetSpendByRevenue = revenueDaily > 0 ? revenueDaily * investRatio : budgetDailyCurrent * 1.15;
+    const revenueEfficiency = budgetDailyCurrent > 0 ? revenueDaily / budgetDailyCurrent : 0;
+    const efficiencyMultiplier = revenueDaily > 0 ? clamp(revenueEfficiency / 6, 0.9, 1.35) : 1.04;
+    const keywordMomentum = clamp(1 + prioritized.length / 90, 1.02, 1.32);
+    const upperCap = Math.max(500, Math.round((revenueDaily || 250) * 0.45));
+    const totalSuggestedBudget = clamp(
+      Math.round(Math.max(budgetDailyCurrent * 1.05, targetSpendByRevenue * efficiencyMultiplier) * keywordMomentum),
+      80,
+      upperCap,
+    );
 
-    const campaignDrafts = orderedGroups.map((g, idx) => {
-      const weight = Math.max(1, g.rows[0]?.score || 1);
-      const budgetDaily = Math.max(20, Math.round((totalSuggestedBudget * weight) / weightDen));
+    const groupWeights = orderedGroups.map((g) => {
+      const top = g.rows[0];
+      const scoreFactor = clamp((n(top?.score) || 1) / 40, 0.55, 2.4);
+      const demandSignal =
+        g.rows.reduce((acc, r) => acc + n(r.gscImpressions) + n(r.plannerAvgMonthlySearches) * 0.25, 0) /
+        Math.max(1, g.rows.length);
+      const demandFactor = clamp(demandSignal / 180, 0.85, 1.9);
+      const bidMidAvg =
+        g.rows.reduce((acc, r) => acc + (n(r.plannerLowTopBid) + n(r.plannerHighTopBid)) / 2, 0) /
+        Math.max(1, g.rows.length);
+      const bidFactor = clamp(1 + bidMidAvg / 8, 1, 1.7);
+      const scaleFactor = g.rows.some((r) => r.action === "scale") ? 1.2 : 1;
+      const value = scoreFactor * demandFactor * bidFactor * scaleFactor;
+      return { g, value };
+    });
+    const weightDen = groupWeights.reduce((acc, x) => acc + x.value, 0) || 1;
+
+    const campaignDrafts = groupWeights.map(({ g, value }, idx) => {
+      const budgetDaily = Math.max(20, Math.round((totalSuggestedBudget * value) / weightDen));
       const mainKeywords = g.rows.slice(0, 14).map((r) => r.keyword);
 
       const negatives = keywordStrategy
@@ -718,6 +754,18 @@ export async function GET(req: Request) {
       mappedKeywords: keywordStrategy.filter((k) => k.plannerAvgMonthlySearches > 0 || k.plannerLowTopBid > 0 || k.plannerHighTopBid > 0).length,
       error: plannerError,
     };
+    const budgetModel = {
+      rangeDays,
+      revenueNow,
+      revenueDaily,
+      spendDailyCurrent: budgetDailyCurrent,
+      investRatio,
+      targetSpendByRevenue,
+      efficiencyMultiplier,
+      keywordMomentum,
+      totalSuggestedBudget,
+      upperCap,
+    };
 
     const aiSummary = await maybeAiSummary({
       summary,
@@ -770,6 +818,7 @@ export async function GET(req: Request) {
         strategicKeywords: keywordStrategy.length,
         campaignDrafts: campaignDrafts.length,
       },
+      budgetModel,
       keywordStrategy,
       campaignDrafts,
       aiSummary,

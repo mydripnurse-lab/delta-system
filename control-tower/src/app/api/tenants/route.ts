@@ -84,6 +84,9 @@ type CreateTenantBody = {
   appDisplayName?: string;
   brandName?: string;
   logoUrl?: string;
+  adsAlertWebhookUrl?: string;
+  adsAlertSmsEnabled?: boolean;
+  adsAlertSmsTo?: string;
 };
 
 function parseOptionalJsonObject(input: unknown): Record<string, unknown> | null {
@@ -390,6 +393,9 @@ export async function POST(req: Request) {
   const appDisplayName = s(body.appDisplayName) || name || null;
   const brandName = s(body.brandName) || name || null;
   const logoUrl = s(body.logoUrl) || null;
+  const adsAlertWebhookUrl = s(body.adsAlertWebhookUrl) || null;
+  const adsAlertSmsEnabled = body.adsAlertSmsEnabled === true;
+  const adsAlertSmsTo = s(body.adsAlertSmsTo) || null;
 
   if (!name) {
     return NextResponse.json({ ok: false, error: "Missing required field: name" }, { status: 400 });
@@ -428,9 +434,9 @@ export async function POST(req: Request) {
     await client.query(
       `
         insert into app.organization_settings (
-          organization_id, timezone, locale, currency, root_domain, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json
+          organization_id, timezone, locale, currency, root_domain, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alert_sms_enabled, ads_alert_sms_to
         )
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb, $16, $17, $18)
       `,
       [
         organizationId,
@@ -448,6 +454,9 @@ export async function POST(req: Request) {
         brandName,
         logoUrl,
         googleServiceAccountJson ? JSON.stringify(googleServiceAccountJson) : null,
+        adsAlertWebhookUrl,
+        adsAlertSmsEnabled,
+        adsAlertSmsTo,
       ],
     );
 
@@ -466,6 +475,11 @@ export async function POST(req: Request) {
       mailgun: {
         apiKey: mailgunApiKey,
         domain: mailgunDomain,
+      },
+      alerts: {
+        adsWebhookUrl: adsAlertWebhookUrl,
+        adsSmsEnabled: adsAlertSmsEnabled,
+        adsSmsTo,
       },
       google: {
         cloudProjectId: googleCloudProjectId,

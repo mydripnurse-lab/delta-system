@@ -247,6 +247,55 @@ ADS_REDIRECT_URI=...
 ADS_TOKENS_FILE=...
 ```
 
+### 9.1 Ads AI Notifications (recomendado en produccion)
+
+El dashboard de Google Ads incluye observador AI con recomendaciones accionables (`accept/deny`).
+
+Modo operativo:
+
+- Baseline diario
+- Trigger adicional por anomalias criticas (cost up + conv down, ROAS drop, leaks, etc.) con cooldown
+
+Variables:
+
+```env
+ADS_NOTIF_CRON_KEY=tu-clave-segura
+ADS_ALERT_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+ADS_ALERT_EMAIL_WEBHOOK_URL=https://tu-webhook-email
+ADS_ALERT_GHL_WEBHOOK_URL=https://tu-webhook-global-ghl
+```
+
+Webhook por tenant en GHL (recomendado):
+
+- Guardar en `app.organization_settings` (preferido) los campos:
+  - `ads_alert_webhook_url`
+  - `ads_alert_sms_enabled`
+  - `ads_alert_sms_to`
+- O guardar en `app.organization_integrations.config` del provider `ghl` alguno de estos campos:
+  - `alerts.adsWebhookUrl`
+  - `alerts.ghlWebhookUrl`
+  - `webhooks.adsNotifications`
+- Si no existe por tenant, se usa `ADS_ALERT_GHL_WEBHOOK_URL` como fallback global.
+- Cuando `ads_alert_sms_enabled=true`, el webhook recibe `action.sendSms=true` y `action.smsTo` para que GHL dispare SMS.
+
+Ejecucion cron (recomendada cada hora):
+
+```bash
+curl -X POST "http://localhost:3001/api/dashboard/ads/notifications/cron" \
+  -H "content-type: application/json" \
+  -H "x-cron-key: $ADS_NOTIF_CRON_KEY" \
+  -d '{}'
+```
+
+Ejecucion para un tenant especifico:
+
+```bash
+curl -X POST "http://localhost:3001/api/dashboard/ads/notifications/cron" \
+  -H "content-type: application/json" \
+  -H "x-cron-key: $ADS_NOTIF_CRON_KEY" \
+  -d '{"tenantId":"<organization_uuid>"}'
+```
+
 ## 10) Bing Webmaster (opcional)
 
 ```env

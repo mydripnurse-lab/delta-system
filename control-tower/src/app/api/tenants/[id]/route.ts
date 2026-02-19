@@ -86,6 +86,9 @@ export async function GET(_req: Request, ctx: Ctx) {
           app_display_name,
           brand_name,
           logo_url,
+          ads_alert_webhook_url,
+          ads_alert_sms_enabled,
+          ads_alert_sms_to,
           google_service_account_json,
           created_at,
           updated_at
@@ -160,6 +163,9 @@ type PatchTenantBody = {
   brandName?: string;
   logoUrl?: string;
   ownerLocationId?: string;
+  adsAlertWebhookUrl?: string;
+  adsAlertSmsEnabled?: boolean;
+  adsAlertSmsTo?: string;
 };
 
 export async function PATCH(req: Request, ctx: Ctx) {
@@ -210,6 +216,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const brandName = s(body.brandName);
   const logoUrl = s(body.logoUrl);
   const ownerLocationId = s(body.ownerLocationId);
+  const adsAlertWebhookUrl = s(body.adsAlertWebhookUrl);
+  const adsAlertSmsEnabled =
+    typeof body.adsAlertSmsEnabled === "boolean" ? body.adsAlertSmsEnabled : null;
+  const adsAlertSmsTo = s(body.adsAlertSmsTo);
 
   const nextSlug = slugify(incomingSlug || "");
   if (incomingSlug && !nextSlug) {
@@ -258,7 +268,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     await client.query(
       `
         insert into app.organization_settings (
-          organization_id, timezone, locale, currency, root_domain, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json
+          organization_id, timezone, locale, currency, root_domain, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alert_sms_enabled, ads_alert_sms_to
         )
         values (
           $1,
@@ -275,7 +285,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
           nullif($12,''),
           nullif($13,''),
           nullif($14,''),
-          $15::jsonb
+          $15::jsonb,
+          nullif($16,''),
+          $17::boolean,
+          nullif($18,'')
         )
         on conflict (organization_id) do update
         set
@@ -292,7 +305,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
           brand_name = coalesce(excluded.brand_name, app.organization_settings.brand_name),
           logo_url = coalesce(excluded.logo_url, app.organization_settings.logo_url),
           snapshot_id = coalesce(excluded.snapshot_id, app.organization_settings.snapshot_id),
-          google_service_account_json = coalesce(excluded.google_service_account_json, app.organization_settings.google_service_account_json)
+          google_service_account_json = coalesce(excluded.google_service_account_json, app.organization_settings.google_service_account_json),
+          ads_alert_webhook_url = coalesce(excluded.ads_alert_webhook_url, app.organization_settings.ads_alert_webhook_url),
+          ads_alert_sms_enabled = coalesce(excluded.ads_alert_sms_enabled, app.organization_settings.ads_alert_sms_enabled),
+          ads_alert_sms_to = coalesce(excluded.ads_alert_sms_to, app.organization_settings.ads_alert_sms_to)
       `,
       [
         tenantId,
@@ -310,6 +326,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
         brandName,
         logoUrl,
         googleServiceAccountJson ? JSON.stringify(googleServiceAccountJson) : null,
+        adsAlertWebhookUrl,
+        adsAlertSmsEnabled,
+        adsAlertSmsTo,
       ],
     );
 
@@ -395,6 +414,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
         domain: mailgunDomain || null,
       };
     }
+    if (adsAlertWebhookUrl || adsAlertSmsTo || adsAlertSmsEnabled !== null) {
+      ownerConfigPatch.alerts = {
+        adsWebhookUrl: adsAlertWebhookUrl || null,
+        adsSmsEnabled: adsAlertSmsEnabled,
+        adsSmsTo: adsAlertSmsTo || null,
+      };
+    }
     if (
       googleCloudProjectId ||
       googleServiceAccountEmail ||
@@ -452,6 +478,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
           currency: !!currency,
           rootDomain: !!rootDomain,
           logoUrl: !!logoUrl,
+          adsAlertWebhookUrl: !!adsAlertWebhookUrl,
+          adsAlertSmsEnabled: adsAlertSmsEnabled !== null,
+          adsAlertSmsTo: !!adsAlertSmsTo,
         },
       },
     });
