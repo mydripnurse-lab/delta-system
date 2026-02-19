@@ -348,6 +348,8 @@ export async function GET(req: Request) {
     const end = s(url.searchParams.get("end"));
     const tenantId = s(url.searchParams.get("tenantId"));
     const integrationKey = s(url.searchParams.get("integrationKey")) || "default";
+    const integrationKeyForRevenue =
+      integrationKey.toLowerCase() === "default" ? "owner" : integrationKey;
 
     if (!tenantId) {
       return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
@@ -427,7 +429,34 @@ export async function GET(req: Request) {
       plannerError = e instanceof Error ? e.message : "Keyword Planner unavailable";
     }
 
-    const revenueNow = n(overviewJson?.executive?.transactionsRevenueNow);
+    const selectedStart = s(summary.startDate) || start;
+    const selectedEnd = s(summary.endDate) || end;
+
+    let txRevenueNow = 0;
+    let txRevenueError = "";
+    if (selectedStart && selectedEnd) {
+      try {
+        const txQ = new URLSearchParams();
+        txQ.set("start", selectedStart);
+        txQ.set("end", selectedEnd);
+        txQ.set("tenantId", tenantId);
+        txQ.set("integrationKey", integrationKeyForRevenue);
+        const txRes = await fetch(`${origin}/api/dashboard/transactions?${txQ.toString()}`, {
+          cache: "no-store",
+        });
+        const txJson = await txRes.json().catch(() => ({}));
+        if (txRes.ok && txJson?.ok) {
+          txRevenueNow = n(txJson?.kpis?.grossAmount);
+        } else {
+          txRevenueError = s(txJson?.error) || `HTTP ${txRes.status}`;
+        }
+      } catch (e: unknown) {
+        txRevenueError = e instanceof Error ? e.message : "transactions fetch failed";
+      }
+    }
+
+    const overviewRevenueNow = n(overviewJson?.executive?.transactionsRevenueNow);
+    const revenueNow = txRevenueNow > 0 ? txRevenueNow : overviewRevenueNow;
     const byKeyword = new Map<string, KeywordAgg>();
 
     const ensure = (keywordRaw: unknown) => {
@@ -720,8 +749,15 @@ export async function GET(req: Request) {
         },
         overview: {
           ok: !!overviewJson?.ok,
-          revenueNow,
+          revenueNow: overviewRevenueNow,
           error: overviewJson?.ok ? null : s(overviewJson?.error) || "Overview unavailable",
+        },
+        transactions: {
+          ok: txRevenueNow > 0 || !txRevenueError,
+          revenueNow: txRevenueNow,
+          sourceRange: selectedStart && selectedEnd ? `${selectedStart}..${selectedEnd}` : null,
+          integrationKey: integrationKeyForRevenue,
+          error: txRevenueError || null,
         },
         keywordPlanner: plannerStatus,
       },

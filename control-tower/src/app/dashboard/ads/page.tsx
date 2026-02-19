@@ -1160,6 +1160,13 @@ export default function AdsDashboardPage() {
                 <b>{fmtInt(strategyData?.scorecard?.campaignDrafts || 0)}</b>
               </div>
               <div className="mini" style={{ marginBottom: 12, opacity: 0.82 }}>
+                Revenue source: transactions{" "}
+                <b>{fmtMoney(strategyData?.dataSources?.transactions?.revenueNow || 0)}</b>
+                {strategyData?.dataSources?.transactions?.sourceRange
+                  ? ` (${String(strategyData.dataSources.transactions.sourceRange)})`
+                  : ""}
+              </div>
+              <div className="mini" style={{ marginBottom: 12, opacity: 0.82 }}>
                 Keyword Planner:{" "}
                 <b>{strategyData?.dataSources?.keywordPlanner?.ok ? "connected" : "fallback mode"}</b>
                 {" • "}

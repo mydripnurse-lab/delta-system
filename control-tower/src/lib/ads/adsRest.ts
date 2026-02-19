@@ -207,8 +207,12 @@ export async function googleAdsGenerateKeywordIdeas(opts: {
     const versions = versionCandidates(opts.version);
     let lastErr = "";
     for (const version of versions) {
-        const endpoint =
-            `https://googleads.googleapis.com/${version}/customers/${customerId}/keywordPlanIdeas:generateKeywordIdeas`;
+        const endpoints = [
+            // Canonical REST path for KeywordPlanIdeaService.
+            `https://googleads.googleapis.com/${version}/customers/${customerId}:generateKeywordIdeas`,
+            // Backward compatibility fallback (some internal docs/samples still show this shape).
+            `https://googleads.googleapis.com/${version}/customers/${customerId}/keywordPlanIdeas:generateKeywordIdeas`,
+        ];
 
         const body = {
             language: s(opts.languageConstant) || "languageConstants/1000",
@@ -222,50 +226,62 @@ export async function googleAdsGenerateKeywordIdeas(opts: {
             includeAdultKeywords: false,
         };
 
-        const res = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                ...headersBase(
-                    tenantAccess.developerToken,
-                    opts.loginCustomerId || tenantAccess.loginCustomerId,
-                    false,
-                ),
-            },
-            body: JSON.stringify(body),
-        });
+        let versionSucceeded = false;
+        for (const endpoint of endpoints) {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    ...headersBase(
+                        tenantAccess.developerToken,
+                        opts.loginCustomerId || tenantAccess.loginCustomerId,
+                        false,
+                    ),
+                },
+                body: JSON.stringify(body),
+            });
 
-        const text = await res.text();
-        let json: any;
-        try {
-            json = text ? JSON.parse(text) : null;
-        } catch {
-            json = { raw: text };
+            const text = await res.text();
+            let json: any;
+            try {
+                json = text ? JSON.parse(text) : null;
+            } catch {
+                json = { raw: text };
+            }
+
+            if (res.ok) {
+                const rawResults = Array.isArray(json?.results)
+                    ? json.results
+                    : Array.isArray(json?.keywordIdeas)
+                        ? json.keywordIdeas
+                        : [];
+                const results: GoogleAdsKeywordIdea[] = rawResults.map((r: any) => {
+                    const m = (r?.keywordIdeaMetrics || r?.keyword_idea_metrics || {}) as Record<string, unknown>;
+                    return {
+                        text: s(r?.text || r?.keyword),
+                        avgMonthlySearches: Number(m.avgMonthlySearches || m.avg_monthly_searches || 0),
+                        competition: s(m.competition || "UNSPECIFIED"),
+                        competitionIndex: Number(m.competitionIndex || m.competition_index || 0),
+                        lowTopOfPageBidMicros: Number(m.lowTopOfPageBidMicros || m.low_top_of_page_bid_micros || 0),
+                        highTopOfPageBidMicros: Number(m.highTopOfPageBidMicros || m.high_top_of_page_bid_micros || 0),
+                    };
+                }).filter((x) => x.text);
+                return { results };
+            }
+
+            lastErr = `Google Ads Keyword Ideas ${version} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`;
+            if (res.status !== 404) {
+                if (!shouldRetryWithAnotherVersion(res.status, json)) {
+                    throw new Error(lastErr);
+                }
+                versionSucceeded = true;
+                break;
+            }
         }
 
-        if (res.ok) {
-            const rawResults = Array.isArray(json?.results)
-                ? json.results
-                : Array.isArray(json?.keywordIdeas)
-                    ? json.keywordIdeas
-                    : [];
-            const results: GoogleAdsKeywordIdea[] = rawResults.map((r: any) => {
-                const m = (r?.keywordIdeaMetrics || r?.keyword_idea_metrics || {}) as Record<string, unknown>;
-                return {
-                    text: s(r?.text || r?.keyword),
-                    avgMonthlySearches: Number(m.avgMonthlySearches || m.avg_monthly_searches || 0),
-                    competition: s(m.competition || "UNSPECIFIED"),
-                    competitionIndex: Number(m.competitionIndex || m.competition_index || 0),
-                    lowTopOfPageBidMicros: Number(m.lowTopOfPageBidMicros || m.low_top_of_page_bid_micros || 0),
-                    highTopOfPageBidMicros: Number(m.highTopOfPageBidMicros || m.high_top_of_page_bid_micros || 0),
-                };
-            }).filter((x) => x.text);
-            return { results };
-        }
-
-        lastErr = `Google Ads Keyword Ideas ${version} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`;
-        if (!shouldRetryWithAnotherVersion(res.status, json)) {
-            throw new Error(lastErr);
+        if (!versionSucceeded && lastErr) {
+            // Continue with next API version candidate.
+            continue;
         }
     }
 
