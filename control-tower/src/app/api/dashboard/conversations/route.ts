@@ -899,17 +899,13 @@ export async function GET(req: Request) {
                 preset: "",
                 compare: false,
             });
-            if (dbCached) {
+            if (dbCached && !dbCached.expired) {
                 const payload = (dbCached.payload || {}) as ApiResponse;
                 const out: ApiResponse = {
                     ...payload,
                     cache: {
                         ...(payload.cache || {}),
                         source: "db_range_cache",
-                        refreshReason:
-                            dbCached.expired
-                                ? "db_range_cache_stale_fallback"
-                                : payload.cache?.refreshReason,
                     },
                 };
                 setCache(start, end, tenantId, integrationKey, out);

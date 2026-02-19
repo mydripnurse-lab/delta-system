@@ -3,7 +3,9 @@ import { getDbPool } from "@/lib/db";
 import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 const OVERVIEW_FAST_HIT_MAX_AGE_MS = Number(process.env.OVERVIEW_FAST_HIT_MAX_AGE_SEC || 90) * 1000;
+const OVERVIEW_SUBREQUEST_TIMEOUT_MS = Math.max(3000, Number(process.env.OVERVIEW_SUBREQUEST_TIMEOUT_MS || 12000));
 
 type JsonObject = Record<string, unknown>;
 
@@ -183,7 +185,7 @@ function prevPeriodRange(startIso: string, endIso: string) {
     return { prevStart: prevStart.toISOString(), prevEnd: prevEnd.toISOString() };
 }
 
-async function fetchJson(url: string, timeoutMs = 6000) {
+async function fetchJson(url: string, timeoutMs = OVERVIEW_SUBREQUEST_TIMEOUT_MS) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Math.max(1000, timeoutMs));
     try {
@@ -406,7 +408,7 @@ export async function GET(req: Request) {
             ]);
         }
 
-        const [
+        let [
             callsCur,
             callsPrev,
             contactsCur,
@@ -476,6 +478,76 @@ export async function GET(req: Request) {
         let searchJoin = searchJoinInitial;
         if (!searchJoin.ok) {
             searchJoin = await fetchJson(`${origin}/api/dashboard/search-performance/join?${syncParams.toString()}`);
+        }
+
+        const cacheFallback = async (
+            module: string,
+            rangeStart: string,
+            rangeEnd: string,
+            integrationKeyForModule: string,
+            compareForModule: boolean,
+            presetForModule: string,
+        ) => {
+            const hit = await readDashboardKpiCache({
+                tenantId,
+                module,
+                integrationKey: integrationKeyForModule,
+                start: rangeStart,
+                end: rangeEnd,
+                preset: presetForModule,
+                compare: compareForModule,
+            });
+            if (!hit?.payload) return null;
+            return {
+                ok: true,
+                status: 200,
+                data: hit.payload as JsonObject,
+            };
+        };
+
+        if (!callsCur.ok) {
+            const fb = await cacheFallback("calls", start, end, "sheet", false, preset);
+            if (fb) callsCur = fb;
+        }
+        if (prevStart && prevEnd && !callsPrev.ok) {
+            const fb = await cacheFallback("calls", prevStart, prevEnd, "sheet", false, preset);
+            if (fb) callsPrev = fb;
+        }
+        if (!contactsCur.ok) {
+            const fb = await cacheFallback("contacts", start, end, integrationKey, false, preset);
+            if (fb) contactsCur = fb;
+        }
+        if (prevStart && prevEnd && !contactsPrev.ok) {
+            const fb = await cacheFallback("contacts", prevStart, prevEnd, integrationKey, false, preset);
+            if (fb) contactsPrev = fb;
+        }
+        if (!conversationsCur.ok) {
+            const fb = await cacheFallback("conversations", start, end, integrationKey, false, preset);
+            if (fb) conversationsCur = fb;
+        }
+        if (prevStart && prevEnd && !conversationsPrev.ok) {
+            const fb = await cacheFallback("conversations", prevStart, prevEnd, integrationKey, false, preset);
+            if (fb) conversationsPrev = fb;
+        }
+        if (!transactionsCur.ok) {
+            const fb = await cacheFallback("transactions", start, end, integrationKey, false, preset);
+            if (fb) transactionsCur = fb;
+        }
+        if (prevStart && prevEnd && !transactionsPrev.ok) {
+            const fb = await cacheFallback("transactions", prevStart, prevEnd, integrationKey, false, preset);
+            if (fb) transactionsPrev = fb;
+        }
+        if (!appointmentsCur.ok) {
+            const fb = await cacheFallback("appointments", start, end, integrationKey, false, preset);
+            if (fb) appointmentsCur = fb;
+        }
+        if (prevStart && prevEnd && !appointmentsPrev.ok) {
+            const fb = await cacheFallback("appointments", prevStart, prevEnd, integrationKey, false, preset);
+            if (fb) appointmentsPrev = fb;
+        }
+        if (!searchJoin.ok) {
+            const fb = await cacheFallback("search_performance", start, end, searchIntegrationKey, compareEnabled, preset);
+            if (fb) searchJoin = fb;
         }
 
         const callsNow = callsCur.ok ? n(callsCur.data.total) : (useSnapshotFallback ? n(snapshotExecutive.callsNow) : 0);

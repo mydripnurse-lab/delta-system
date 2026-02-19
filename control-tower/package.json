@@ -8,7 +8,8 @@
     "start": "\"$npm_node_execpath\" ./node_modules/next/dist/bin/next start -p 3001",
     "lint": "eslint",
     "db:migrate": "node ./tools/migrate.mjs",
-    "db:seed:state-templates": "node ./tools/seed-state-templates-to-db.mjs"
+    "db:seed:state-templates": "node ./tools/seed-state-templates-to-db.mjs",
+    "db:backfill:dashboard-cache": "node ./tools/backfill-dashboard-cache.mjs"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",
