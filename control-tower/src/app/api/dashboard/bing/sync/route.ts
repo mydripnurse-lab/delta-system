@@ -57,8 +57,12 @@ async function loadTenantBingConfig(tenantId: string, integrationKey: string): P
 
   const cfg = row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {};
   const apiKey =
+    s(cfg.webmasterApiKey) ||
+    s(cfg.webmaster_api_key) ||
     s(cfg.apiKey) ||
     s(cfg.api_key) ||
+    s((cfg.auth as Record<string, unknown> | undefined)?.webmasterApiKey) ||
+    s((cfg.auth as Record<string, unknown> | undefined)?.webmaster_api_key) ||
     s((cfg.auth as Record<string, unknown> | undefined)?.apiKey) ||
     s((cfg.auth as Record<string, unknown> | undefined)?.api_key);
   const singleSite =
@@ -69,6 +73,8 @@ async function loadTenantBingConfig(tenantId: string, integrationKey: string): P
     s(cfg.siteUrls) ||
     s(cfg.site_urls);
   const endpoint =
+    s(cfg.webmasterEndpoint) ||
+    s(cfg.webmaster_endpoint) ||
     s(cfg.endpoint) ||
     "https://ssl.bing.com/webmaster/api.svc/json";
   const siteUrls = parseSiteUrls(singleSite, multiRaw);

@@ -36,12 +36,22 @@ function parseTenantBingConfig(raw: Record<string, unknown>) {
   const auth = raw.auth && typeof raw.auth === "object" ? (raw.auth as Record<string, unknown>) : {};
   return {
     apiKey:
+      s(raw.indexNowKey) ||
+      s(raw.index_now_key) ||
       s(raw.apiKey) ||
       s(raw.api_key) ||
+      s(auth.indexNowKey) ||
+      s(auth.index_now_key) ||
       s(auth.apiKey) ||
       s(auth.api_key),
-    endpoint: s(raw.endpoint) || "https://api.indexnow.org/indexnow",
+    endpoint:
+      s(raw.indexNowEndpoint) ||
+      s(raw.index_now_endpoint) ||
+      s(raw.endpoint) ||
+      "https://api.indexnow.org/indexnow",
     keyLocation:
+      s(raw.indexNowKeyLocation) ||
+      s(raw.index_now_key_location) ||
       s(raw.keyLocation) ||
       s(raw.key_location),
   };

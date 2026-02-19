@@ -460,11 +460,10 @@ export default function Home() {
   const [tenantCustomValuesMsg, setTenantCustomValuesMsg] = useState("");
   const [tenantCustomValuesPage, setTenantCustomValuesPage] = useState(1);
   const [tenantCustomValuesSearch, setTenantCustomValuesSearch] = useState("");
-  const [tenantBingIntegrationKey, setTenantBingIntegrationKey] = useState("default");
-  const [tenantBingApiKey, setTenantBingApiKey] = useState("");
-  const [tenantBingEndpoint, setTenantBingEndpoint] = useState("https://api.indexnow.org/indexnow");
-  const [tenantBingKeyLocation, setTenantBingKeyLocation] = useState("");
-  const [tenantBingSiteUrl, setTenantBingSiteUrl] = useState("");
+  const [tenantBingWebmasterApiKey, setTenantBingWebmasterApiKey] = useState("");
+  const [tenantBingWebmasterSiteUrl, setTenantBingWebmasterSiteUrl] = useState("");
+  const [tenantBingIndexNowKey, setTenantBingIndexNowKey] = useState("");
+  const [tenantBingIndexNowKeyLocation, setTenantBingIndexNowKeyLocation] = useState("");
   const [tenantBingSaving, setTenantBingSaving] = useState(false);
   const [tenantBingMsg, setTenantBingMsg] = useState("");
   const [actCvApplying, setActCvApplying] = useState(false);
@@ -947,7 +946,7 @@ export default function Home() {
   }
 
   function hydrateBingFormFromIntegrations(rows: TenantIntegrationRow[]) {
-    const key = s(tenantBingIntegrationKey) || "default";
+    const key = "default";
     const pick =
       rows.find(
         (it) =>
@@ -957,10 +956,10 @@ export default function Home() {
       rows.find((it) => s(it.provider).toLowerCase() === "bing_webmaster") ||
       null;
     if (!pick) {
-      setTenantBingApiKey("");
-      setTenantBingEndpoint("https://api.indexnow.org/indexnow");
-      setTenantBingKeyLocation("");
-      setTenantBingSiteUrl("");
+      setTenantBingWebmasterApiKey("");
+      setTenantBingWebmasterSiteUrl("");
+      setTenantBingIndexNowKey("");
+      setTenantBingIndexNowKeyLocation("");
       return;
     }
     const cfg =
@@ -971,19 +970,34 @@ export default function Home() {
       cfg.auth && typeof cfg.auth === "object"
         ? (cfg.auth as Record<string, unknown>)
         : {};
-    setTenantBingApiKey(
-      s(cfg.apiKey) || s(cfg.api_key) || s(auth.apiKey) || s(auth.api_key),
+    setTenantBingWebmasterApiKey(
+      s(cfg.webmasterApiKey) ||
+        s(cfg.webmaster_api_key) ||
+        s(cfg.apiKey) ||
+        s(cfg.api_key) ||
+        s(auth.webmasterApiKey) ||
+        s(auth.webmaster_api_key) ||
+        s(auth.apiKey) ||
+        s(auth.api_key),
     );
-    setTenantBingEndpoint(
-      s(cfg.endpoint) || "https://api.indexnow.org/indexnow",
-    );
-    setTenantBingKeyLocation(
-      s(cfg.keyLocation) || s(cfg.key_location),
-    );
-    setTenantBingSiteUrl(
+    setTenantBingWebmasterSiteUrl(
       s(pick.external_property_id || pick.externalPropertyId) ||
         s(cfg.siteUrl) ||
         s(cfg.site_url),
+    );
+    setTenantBingIndexNowKey(
+      s(cfg.indexNowKey) ||
+        s(cfg.index_now_key) ||
+        s(cfg.apiKey) ||
+        s(cfg.api_key) ||
+        s(auth.indexNowKey) ||
+        s(auth.index_now_key),
+    );
+    setTenantBingIndexNowKeyLocation(
+      s(cfg.indexNowKeyLocation) ||
+        s(cfg.index_now_key_location) ||
+        s(cfg.keyLocation) ||
+        s(cfg.key_location),
     );
   }
 
@@ -993,21 +1007,28 @@ export default function Home() {
     setTenantBingSaving(true);
     setTenantDetailErr("");
     try {
-      const integrationKey = s(tenantBingIntegrationKey) || "default";
-      if (!s(tenantBingApiKey)) {
-        throw new Error("Bing API key is required.");
+      if (!s(tenantBingWebmasterApiKey)) {
+        throw new Error("Bing Webmaster API key is required.");
+      }
+      if (!s(tenantBingWebmasterSiteUrl)) {
+        throw new Error("Bing Webmaster site URL is required.");
+      }
+      if (!s(tenantBingIndexNowKey)) {
+        throw new Error("Bing IndexNow key is required.");
       }
       const payload = {
         provider: "bing_webmaster",
-        integrationKey,
+        integrationKey: "default",
         status: "connected",
         authType: "api_key",
-        externalPropertyId: s(tenantBingSiteUrl) || undefined,
+        externalPropertyId: s(tenantBingWebmasterSiteUrl) || undefined,
         config: {
-          apiKey: s(tenantBingApiKey),
-          endpoint: s(tenantBingEndpoint) || "https://api.indexnow.org/indexnow",
-          keyLocation: s(tenantBingKeyLocation) || undefined,
-          siteUrl: s(tenantBingSiteUrl) || undefined,
+          webmasterApiKey: s(tenantBingWebmasterApiKey),
+          webmasterEndpoint: "https://ssl.bing.com/webmaster/api.svc/json",
+          siteUrl: s(tenantBingWebmasterSiteUrl),
+          indexNowKey: s(tenantBingIndexNowKey),
+          indexNowKeyLocation: s(tenantBingIndexNowKeyLocation) || undefined,
+          indexNowEndpoint: "https://api.indexnow.org/indexnow",
         },
       };
       const res = await fetch(
@@ -1074,7 +1095,7 @@ export default function Home() {
 
   useEffect(() => {
     hydrateBingFormFromIntegrations(tenantIntegrations);
-  }, [tenantBingIntegrationKey, tenantIntegrations]);
+  }, [tenantIntegrations]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2833,7 +2854,7 @@ export default function Home() {
         const payload = isBingAction
           ? {
               tenantId: routeTenantId || "",
-              integrationKey: s(tenantBingIntegrationKey) || "default",
+              integrationKey: "default",
               domainUrl,
             }
           : {
@@ -3658,56 +3679,48 @@ export default function Home() {
 
               <div className="detailsCustomTop" style={{ marginTop: 8 }}>
                 <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
-                  <div className="detailsPaneTitle">Bing IndexNow (Tenant)</div>
+                  <div className="detailsPaneTitle">Bing (Tenant)</div>
                   <div className="detailsPaneSub">
-                    Configure Bing per tenant. `Bing Counties/Cities` buttons use this DB config.
+                    One Bing connection per tenant. Dashboard uses Webmaster key; Bing Counties/Cities use IndexNow key.
                   </div>
                 </div>
                 <div className="row">
                   <div className="field">
-                    <label>Integration Key</label>
-                    <input
-                      className="input"
-                      value={tenantBingIntegrationKey}
-                      onChange={(e) => setTenantBingIntegrationKey(e.target.value)}
-                      placeholder="default"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Bing API Key</label>
+                    <label>Bing Webmaster API Key</label>
                     <input
                       className="input"
                       type="password"
-                      value={tenantBingApiKey}
-                      onChange={(e) => setTenantBingApiKey(e.target.value)}
+                      value={tenantBingWebmasterApiKey}
+                      onChange={(e) => setTenantBingWebmasterApiKey(e.target.value)}
+                      placeholder="Bing Webmaster API key"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Bing Webmaster Site URL</label>
+                    <input
+                      className="input"
+                      value={tenantBingWebmasterSiteUrl}
+                      onChange={(e) => setTenantBingWebmasterSiteUrl(e.target.value)}
+                      placeholder="https://mydripnurse.com"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>IndexNow Key</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={tenantBingIndexNowKey}
+                      onChange={(e) => setTenantBingIndexNowKey(e.target.value)}
                       placeholder="IndexNow key"
                     />
                   </div>
                   <div className="field">
-                    <label>IndexNow endpoint</label>
+                    <label>IndexNow Key Location (optional)</label>
                     <input
                       className="input"
-                      value={tenantBingEndpoint}
-                      onChange={(e) => setTenantBingEndpoint(e.target.value)}
-                      placeholder="https://api.indexnow.org/indexnow"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Key location override (optional)</label>
-                    <input
-                      className="input"
-                      value={tenantBingKeyLocation}
-                      onChange={(e) => setTenantBingKeyLocation(e.target.value)}
-                      placeholder="https://{host}/key.txt"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Site URL (optional)</label>
-                    <input
-                      className="input"
-                      value={tenantBingSiteUrl}
-                      onChange={(e) => setTenantBingSiteUrl(e.target.value)}
-                      placeholder="https://example.com/"
+                      value={tenantBingIndexNowKeyLocation}
+                      onChange={(e) => setTenantBingIndexNowKeyLocation(e.target.value)}
+                      placeholder="https://mydripnurse.com/{key}.txt"
                     />
                   </div>
                 </div>
