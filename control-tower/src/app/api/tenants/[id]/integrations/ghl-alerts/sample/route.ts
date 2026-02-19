@@ -40,9 +40,11 @@ export async function POST(req: Request, ctx: Ctx) {
     tenant_slug: string | null;
     location_id: string | null;
     settings_webhook_url: string | null;
+    settings_alerts_enabled: boolean | null;
     settings_sms_enabled: boolean | null;
     settings_sms_to: string | null;
     cfg_webhook_url: string | null;
+    cfg_alerts_enabled: boolean | null;
     cfg_sms_enabled: boolean | null;
     cfg_sms_to: string | null;
   }>(
@@ -52,9 +54,19 @@ export async function POST(req: Request, ctx: Ctx) {
         o.slug as tenant_slug,
         ghl.external_account_id as location_id,
         nullif(sg.ads_alert_webhook_url, '') as settings_webhook_url,
+        sg.ads_alerts_enabled as settings_alerts_enabled,
         sg.ads_alert_sms_enabled as settings_sms_enabled,
         nullif(sg.ads_alert_sms_to, '') as settings_sms_to,
         nullif(ghl.config #>> '{alerts,adsWebhookUrl}', '') as cfg_webhook_url,
+        case lower(coalesce(ghl.config #>> '{alerts,adsEnabled}', ''))
+          when 'true' then true
+          when '1' then true
+          when 'yes' then true
+          when 'false' then false
+          when '0' then false
+          when 'no' then false
+          else null
+        end as cfg_alerts_enabled,
         case lower(coalesce(ghl.config #>> '{alerts,adsSmsEnabled}', ''))
           when 'true' then true
           when '1' then true
@@ -116,6 +128,19 @@ export async function POST(req: Request, ctx: Ctx) {
     overrideSmsTo ||
     s(row.settings_sms_to || "") ||
     s(row.cfg_sms_to || "");
+
+  const alertsEnabled =
+    row.settings_alerts_enabled === false
+      ? false
+      : row.settings_alerts_enabled === true
+        ? true
+        : row.cfg_alerts_enabled !== false;
+  if (!alertsEnabled) {
+    return NextResponse.json(
+      { ok: false, error: "Ads alerts are disabled for this tenant. Enable them first." },
+      { status: 400 },
+    );
+  }
 
   const now = new Date().toISOString();
   const payload = {
@@ -181,4 +206,3 @@ export async function POST(req: Request, ctx: Ctx) {
     );
   }
 }
-

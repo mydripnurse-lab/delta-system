@@ -102,6 +102,10 @@ type TenantDetailResponse = {
     owner_email?: string | null;
     owner_phone?: string | null;
     logo_url?: string | null;
+    ads_alerts_enabled?: boolean | null;
+    ads_alert_webhook_url?: string | null;
+    ads_alert_sms_enabled?: boolean | null;
+    ads_alert_sms_to?: string | null;
   } | null;
   integrations?: TenantIntegrationRow[] | null;
   error?: string;
@@ -425,6 +429,10 @@ export default function Home() {
   const [tenantOwnerEmail, setTenantOwnerEmail] = useState("");
   const [tenantOwnerPhone, setTenantOwnerPhone] = useState("");
   const [tenantLogoUrl, setTenantLogoUrl] = useState("");
+  const [tenantAdsAlertsEnabled, setTenantAdsAlertsEnabled] = useState(true);
+  const [tenantAdsAlertWebhookUrl, setTenantAdsAlertWebhookUrl] = useState("");
+  const [tenantAdsAlertSmsEnabled, setTenantAdsAlertSmsEnabled] = useState(false);
+  const [tenantAdsAlertSmsTo, setTenantAdsAlertSmsTo] = useState("");
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
   const [oauthErr, setOauthErr] = useState("");
   const [oauthMsg, setOauthMsg] = useState("");
@@ -836,6 +844,10 @@ export default function Home() {
         setTenantOwnerEmail(s(settings.owner_email));
         setTenantOwnerPhone(s(settings.owner_phone));
         setTenantLogoUrl(s(settings.logo_url));
+        setTenantAdsAlertsEnabled(settings.ads_alerts_enabled !== false);
+        setTenantAdsAlertWebhookUrl(s(settings.ads_alert_webhook_url));
+        setTenantAdsAlertSmsEnabled(settings.ads_alert_sms_enabled === true);
+        setTenantAdsAlertSmsTo(s(settings.ads_alert_sms_to));
         setTenantOwnerLocationId(
           s(owner?.external_account_id || owner?.externalAccountId),
         );
@@ -902,6 +914,9 @@ export default function Home() {
           ownerEmail: tenantOwnerEmail || undefined,
           ownerPhone: tenantOwnerPhone || undefined,
           logoUrl: tenantLogoUrl || undefined,
+          adsAlertsEnabled: tenantAdsAlertsEnabled,
+          adsAlertWebhookUrl: tenantAdsAlertWebhookUrl || undefined,
+          adsAlertSmsEnabled: tenantAdsAlertSmsEnabled,
         }),
       });
       const data = await safeJson(res);
@@ -3025,6 +3040,37 @@ export default function Home() {
             <div className="field">
               <label>Logo URL</label>
               <input className="input" value={tenantLogoUrl} onChange={(e) => setTenantLogoUrl(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Ads Alerts Enabled</label>
+              <select
+                className="select"
+                value={tenantAdsAlertsEnabled ? "enabled" : "disabled"}
+                onChange={(e) => setTenantAdsAlertsEnabled(e.target.value === "enabled")}
+              >
+                <option value="enabled">Enabled</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>GHL Webhook Ads Notification</label>
+              <input
+                className="input"
+                value={tenantAdsAlertWebhookUrl}
+                onChange={(e) => setTenantAdsAlertWebhookUrl(e.target.value)}
+                placeholder="https://services.leadconnectorhq.com/hooks/..."
+              />
+            </div>
+            <div className="field">
+              <label>Enable SMS signal to GHL</label>
+              <select
+                className="select"
+                value={tenantAdsAlertSmsEnabled ? "enabled" : "disabled"}
+                onChange={(e) => setTenantAdsAlertSmsEnabled(e.target.value === "enabled")}
+              >
+                <option value="disabled">Disabled</option>
+                <option value="enabled">Enabled</option>
+              </select>
             </div>
           </div>
 

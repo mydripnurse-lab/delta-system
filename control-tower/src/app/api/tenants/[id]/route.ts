@@ -87,6 +87,7 @@ export async function GET(_req: Request, ctx: Ctx) {
           brand_name,
           logo_url,
           ads_alert_webhook_url,
+          ads_alerts_enabled,
           ads_alert_sms_enabled,
           ads_alert_sms_to,
           google_service_account_json,
@@ -164,6 +165,7 @@ type PatchTenantBody = {
   logoUrl?: string;
   ownerLocationId?: string;
   adsAlertWebhookUrl?: string;
+  adsAlertsEnabled?: boolean;
   adsAlertSmsEnabled?: boolean;
   adsAlertSmsTo?: string;
 };
@@ -217,6 +219,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const logoUrl = s(body.logoUrl);
   const ownerLocationId = s(body.ownerLocationId);
   const adsAlertWebhookUrl = s(body.adsAlertWebhookUrl);
+  const adsAlertsEnabled =
+    typeof body.adsAlertsEnabled === "boolean" ? body.adsAlertsEnabled : null;
   const adsAlertSmsEnabled =
     typeof body.adsAlertSmsEnabled === "boolean" ? body.adsAlertSmsEnabled : null;
   const adsAlertSmsTo = s(body.adsAlertSmsTo);
@@ -268,7 +272,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     await client.query(
       `
         insert into app.organization_settings (
-          organization_id, timezone, locale, currency, root_domain, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alert_sms_enabled, ads_alert_sms_to
+          organization_id, timezone, locale, currency, root_domain, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alerts_enabled, ads_alert_sms_enabled, ads_alert_sms_to
         )
         values (
           $1,
@@ -287,8 +291,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
           nullif($14,''),
           $15::jsonb,
           nullif($16,''),
-          $17::boolean,
-          nullif($18,'')
+          coalesce($17::boolean, true),
+          coalesce($18::boolean, false),
+          nullif($19,'')
         )
         on conflict (organization_id) do update
         set
@@ -307,6 +312,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
           snapshot_id = coalesce(excluded.snapshot_id, app.organization_settings.snapshot_id),
           google_service_account_json = coalesce(excluded.google_service_account_json, app.organization_settings.google_service_account_json),
           ads_alert_webhook_url = coalesce(excluded.ads_alert_webhook_url, app.organization_settings.ads_alert_webhook_url),
+          ads_alerts_enabled = coalesce(excluded.ads_alerts_enabled, app.organization_settings.ads_alerts_enabled),
           ads_alert_sms_enabled = coalesce(excluded.ads_alert_sms_enabled, app.organization_settings.ads_alert_sms_enabled),
           ads_alert_sms_to = coalesce(excluded.ads_alert_sms_to, app.organization_settings.ads_alert_sms_to)
       `,
@@ -327,6 +333,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
         logoUrl,
         googleServiceAccountJson ? JSON.stringify(googleServiceAccountJson) : null,
         adsAlertWebhookUrl,
+        adsAlertsEnabled,
         adsAlertSmsEnabled,
         adsAlertSmsTo,
       ],
@@ -414,8 +421,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
         domain: mailgunDomain || null,
       };
     }
-    if (adsAlertWebhookUrl || adsAlertSmsTo || adsAlertSmsEnabled !== null) {
+    if (adsAlertWebhookUrl || adsAlertSmsTo || adsAlertsEnabled !== null || adsAlertSmsEnabled !== null) {
       ownerConfigPatch.alerts = {
+        adsEnabled: adsAlertsEnabled,
         adsWebhookUrl: adsAlertWebhookUrl || null,
         adsSmsEnabled: adsAlertSmsEnabled,
         adsSmsTo: adsAlertSmsTo || null,
@@ -479,6 +487,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
           rootDomain: !!rootDomain,
           logoUrl: !!logoUrl,
           adsAlertWebhookUrl: !!adsAlertWebhookUrl,
+          adsAlertsEnabled: adsAlertsEnabled !== null,
           adsAlertSmsEnabled: adsAlertSmsEnabled !== null,
           adsAlertSmsTo: !!adsAlertSmsTo,
         },

@@ -283,7 +283,7 @@ Sample payload (para mapear campos en GHL):
 ```bash
 curl -X POST "http://localhost:3001/api/tenants/<TENANT_ID>/integrations/ghl-alerts/sample" \
   -H "content-type: application/json" \
-  -d '{"webhookUrl":"https://services.leadconnectorhq.com/hooks/...","smsEnabled":true,"smsTo":"+1..."}'
+  -d '{"webhookUrl":"https://services.leadconnectorhq.com/hooks/...","smsEnabled":true}'
 ```
 
 Ejecucion cron (recomendada cada hora):

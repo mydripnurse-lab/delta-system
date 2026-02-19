@@ -22,6 +22,7 @@ type GhlWebhookTarget = {
   integrationKey: string;
   webhookUrl: string;
   locationId: string;
+  alertsEnabled: boolean;
   smsEnabled: boolean;
   smsTo: string;
 };
@@ -77,6 +78,7 @@ async function listGhlWebhookTargets(bodyTenantId: string) {
     integration_key: string;
     external_account_id: string | null;
     webhook_url: string | null;
+    alerts_enabled: boolean | null;
     sms_enabled: boolean | null;
     sms_to: string | null;
   }>(
@@ -92,6 +94,19 @@ async function listGhlWebhookTargets(bodyTenantId: string) {
           nullif(ghl.config #>> '{webhooks,adsNotifications}', ''),
           nullif(ghl.config #>> '{webhooks,default}', '')
         ) as webhook_url,
+        coalesce(
+          s.ads_alerts_enabled,
+          case lower(coalesce(ghl.config #>> '{alerts,adsEnabled}', ''))
+            when 'true' then true
+            when '1' then true
+            when 'yes' then true
+            when 'false' then false
+            when '0' then false
+            when 'no' then false
+            else null
+          end,
+          true
+        ) as alerts_enabled,
         coalesce(
           s.ads_alert_sms_enabled,
           case lower(coalesce(ghl.config #>> '{alerts,adsSmsEnabled}', ''))
@@ -134,10 +149,11 @@ async function listGhlWebhookTargets(bodyTenantId: string) {
       integrationKey: s(r.integration_key || "owner"),
       webhookUrl: s(r.webhook_url || ""),
       locationId: s(r.external_account_id || ""),
+      alertsEnabled: r.alerts_enabled !== false,
       smsEnabled: r.sms_enabled === true,
       smsTo: s(r.sms_to || ""),
     }))
-    .filter((r) => r.tenantId && r.webhookUrl);
+    .filter((r) => r.tenantId && r.alertsEnabled && r.webhookUrl);
 }
 
 async function loadHighCritical(tenantId: string, integrationKey: string) {
