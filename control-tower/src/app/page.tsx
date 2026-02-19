@@ -107,6 +107,11 @@ type TenantStaffRow = {
   updatedAt?: string;
 };
 
+type AgencyStaffRow = TenantStaffRow & {
+  tenantId: string;
+  tenantName: string;
+};
+
 type TenantAuditRow = {
   id: string;
   organizationId: string;
@@ -123,6 +128,8 @@ type TenantAuditRow = {
 
 const DEFAULT_INTEGRATION_KEY = "default";
 const BING_DEFAULT_ENDPOINT = "https://ssl.bing.com/webmaster/api.svc/json";
+const STAFF_ROLE_OPTIONS: TenantStaffRow["role"][] = ["owner", "admin", "analyst", "viewer"];
+const STAFF_STATUS_OPTIONS: TenantStaffRow["status"][] = ["active", "invited", "disabled"];
 type KpiRangePreset = "7d" | "28d" | "3m" | "6m" | "1y" | "custom";
 
 function s(v: unknown) {
@@ -294,6 +301,17 @@ export default function AgencyHomePage() {
   const [newStaffEmail, setNewStaffEmail] = useState("");
   const [newStaffRole, setNewStaffRole] = useState<TenantStaffRow["role"]>("viewer");
   const [newStaffStatus, setNewStaffStatus] = useState<TenantStaffRow["status"]>("invited");
+  const [agencyStaffRows, setAgencyStaffRows] = useState<AgencyStaffRow[]>([]);
+  const [agencyStaffLoading, setAgencyStaffLoading] = useState(false);
+  const [agencyStaffBusy, setAgencyStaffBusy] = useState(false);
+  const [agencyStaffErr, setAgencyStaffErr] = useState("");
+  const [agencyStaffOk, setAgencyStaffOk] = useState("");
+  const [agencyStaffSearch, setAgencyStaffSearch] = useState("");
+  const [agencyNewStaffTenantId, setAgencyNewStaffTenantId] = useState("");
+  const [agencyNewStaffFullName, setAgencyNewStaffFullName] = useState("");
+  const [agencyNewStaffEmail, setAgencyNewStaffEmail] = useState("");
+  const [agencyNewStaffRole, setAgencyNewStaffRole] = useState<TenantStaffRow["role"]>("viewer");
+  const [agencyNewStaffStatus, setAgencyNewStaffStatus] = useState<TenantStaffRow["status"]>("invited");
   const [activeMenu, setActiveMenu] = useState("projects");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -495,6 +513,16 @@ export default function AgencyHomePage() {
     }
   }, [showManage, manageTab, manageTenantId, manageStaffRows.length, manageAuditRows.length, manageStaffLoading, manageAuditLoading]);
 
+  useEffect(() => {
+    if (activeMenu !== "staff" || agencyStaffLoading || agencyStaffRows.length > 0) return;
+    void loadAgencyStaff();
+  }, [activeMenu, agencyStaffLoading, agencyStaffRows.length]);
+
+  useEffect(() => {
+    if (s(agencyNewStaffTenantId) || tenantRows.length === 0) return;
+    setAgencyNewStaffTenantId(tenantRows[0].id);
+  }, [agencyNewStaffTenantId, tenantRows]);
+
   const filteredTenants = useMemo(() => {
     const q = s(tenantSearch).toLowerCase();
     if (!q) return tenantRows;
@@ -510,6 +538,18 @@ export default function AgencyHomePage() {
     const withDomain = tenantRows.filter((t) => !!s(t.root_domain)).length;
     return { total, active, withDomain };
   }, [tenantRows]);
+
+  const filteredAgencyStaff = useMemo(() => {
+    const q = s(agencyStaffSearch).toLowerCase();
+    if (!q) return agencyStaffRows;
+    return agencyStaffRows.filter((row) =>
+      [row.fullName, row.email, row.role, row.status, row.tenantName]
+        .map(s)
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [agencyStaffRows, agencyStaffSearch]);
 
   function hydrateBingFields(rows: TenantIntegration[]) {
     const bingRow = rows.find(
@@ -904,6 +944,7 @@ export default function AgencyHomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName: s(row.fullName),
+          email: s(row.email),
           role: row.role,
           status: row.status,
         }),
@@ -941,6 +982,136 @@ export default function AgencyHomePage() {
       setManageErr(error instanceof Error ? error.message : "Failed to delete staff member");
     } finally {
       setManageStaffBusy(false);
+    }
+  }
+
+  async function loadAgencyStaff() {
+    setAgencyStaffLoading(true);
+    setAgencyStaffErr("");
+    try {
+      const sourceTenants = tenantRows.length > 0 ? tenantRows : await (async () => {
+        const res = await fetch("/api/tenants", { cache: "no-store" });
+        const data = (await safeJson(res)) as TenantListResponse | null;
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
+        }
+        return Array.isArray(data.rows) ? data.rows : [];
+      })();
+      if (tenantRows.length === 0) {
+        setTenantRows(sourceTenants);
+      }
+
+      const results = await Promise.all(
+        sourceTenants.map(async (tenant) => {
+          const res = await fetch(`/api/tenants/${tenant.id}/staff`, { cache: "no-store" });
+          const data = (await safeJson(res)) as { ok?: boolean; rows?: TenantStaffRow[]; error?: string } | null;
+          if (!res.ok || !data?.ok) {
+            throw new Error(data?.error || `Failed to load staff for ${tenant.name}`);
+          }
+          const rows = Array.isArray(data.rows) ? data.rows : [];
+          return rows.map((row) => ({
+            ...row,
+            tenantId: tenant.id,
+            tenantName: tenant.name,
+          }));
+        }),
+      );
+
+      setAgencyStaffRows(results.flat());
+    } catch (error: unknown) {
+      setAgencyStaffErr(error instanceof Error ? error.message : "Failed to load staff");
+      setAgencyStaffRows([]);
+    } finally {
+      setAgencyStaffLoading(false);
+    }
+  }
+
+  async function createAgencyStaffMember() {
+    if (!s(agencyNewStaffTenantId)) {
+      setAgencyStaffErr("Select a project first.");
+      return;
+    }
+    if (!s(agencyNewStaffFullName) || !s(agencyNewStaffEmail)) {
+      setAgencyStaffErr("Staff full name and email are required.");
+      return;
+    }
+    setAgencyStaffBusy(true);
+    setAgencyStaffErr("");
+    setAgencyStaffOk("");
+    try {
+      const res = await fetch(`/api/tenants/${agencyNewStaffTenantId}/staff`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: s(agencyNewStaffFullName),
+          email: s(agencyNewStaffEmail),
+          role: agencyNewStaffRole,
+          status: agencyNewStaffStatus,
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setAgencyNewStaffFullName("");
+      setAgencyNewStaffEmail("");
+      setAgencyNewStaffRole("viewer");
+      setAgencyNewStaffStatus("invited");
+      setAgencyStaffOk("Staff member created.");
+      await loadAgencyStaff();
+    } catch (error: unknown) {
+      setAgencyStaffErr(error instanceof Error ? error.message : "Failed to create staff member");
+    } finally {
+      setAgencyStaffBusy(false);
+    }
+  }
+
+  async function updateAgencyStaffMember(row: AgencyStaffRow) {
+    if (!s(row.tenantId) || !s(row.id)) return;
+    setAgencyStaffBusy(true);
+    setAgencyStaffErr("");
+    setAgencyStaffOk("");
+    try {
+      const res = await fetch(`/api/tenants/${row.tenantId}/staff/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: s(row.fullName),
+          email: s(row.email),
+          role: row.role,
+          status: row.status,
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setAgencyStaffOk("Staff member updated.");
+      await loadAgencyStaff();
+    } catch (error: unknown) {
+      setAgencyStaffErr(error instanceof Error ? error.message : "Failed to update staff member");
+    } finally {
+      setAgencyStaffBusy(false);
+    }
+  }
+
+  async function deleteAgencyStaffMember(row: AgencyStaffRow) {
+    if (!s(row.tenantId) || !s(row.id)) return;
+    setAgencyStaffBusy(true);
+    setAgencyStaffErr("");
+    setAgencyStaffOk("");
+    try {
+      const res = await fetch(`/api/tenants/${row.tenantId}/staff/${row.id}`, { method: "DELETE" });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setAgencyStaffOk("Staff member deleted.");
+      await loadAgencyStaff();
+    } catch (error: unknown) {
+      setAgencyStaffErr(error instanceof Error ? error.message : "Failed to delete staff member");
+    } finally {
+      setAgencyStaffBusy(false);
     }
   }
 
@@ -1152,6 +1323,7 @@ export default function AgencyHomePage() {
       </aside>
 
       <section className="agencyMain">
+        {activeMenu === "projects" ? (
         <section className="agencyProjectsCard">
           <div className="agencyProjectsHeader">
             <div>
@@ -1434,6 +1606,199 @@ export default function AgencyHomePage() {
             </div>
           ) : null}
         </section>
+        ) : null}
+
+        {activeMenu === "staff" ? (
+          <section className="agencyProjectsCard">
+            <div className="agencyProjectsHeader">
+              <div>
+                <h2>Staff</h2>
+                <p>Lista global de staff para editar Email y Role desde un solo lugar.</p>
+              </div>
+              <div className="agencyProjectsHeaderRight">
+                <div className="agencyTopActions agencyTopActionsMinimal">
+                  <button type="button" className="btnGhost" disabled={agencyStaffLoading} onClick={() => void loadAgencyStaff()}>
+                    {agencyStaffLoading ? "Loading..." : "Refresh staff"}
+                  </button>
+                </div>
+                <div className="agencyProjectStats">
+                  <div className="agencyPill">Total staff: {agencyStaffRows.length}</div>
+                  <div className="agencyPill">Shown: {filteredAgencyStaff.length}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="agencyDangerBox agencyStaffCreateBox">
+              <h4>Add staff member</h4>
+              <div className="agencyWizardGrid agencyWizardGridFour">
+                <select className="input" value={agencyNewStaffTenantId} onChange={(e) => setAgencyNewStaffTenantId(e.target.value)}>
+                  <option value="">Select project</option>
+                  {tenantRows.map((tenant) => (
+                    <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                  ))}
+                </select>
+                <input
+                  className="input"
+                  placeholder="Full name"
+                  value={agencyNewStaffFullName}
+                  onChange={(e) => setAgencyNewStaffFullName(e.target.value)}
+                />
+                <input
+                  className="input"
+                  placeholder="Email"
+                  value={agencyNewStaffEmail}
+                  onChange={(e) => setAgencyNewStaffEmail(e.target.value)}
+                />
+                <select className="input" value={agencyNewStaffRole} onChange={(e) => setAgencyNewStaffRole(e.target.value as TenantStaffRow["role"])}>
+                  {STAFF_ROLE_OPTIONS.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+                <select className="input" value={agencyNewStaffStatus} onChange={(e) => setAgencyNewStaffStatus(e.target.value as TenantStaffRow["status"])}>
+                  {STAFF_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="agencyCreateActions agencyCreateActionsSpaced">
+                <button type="button" className="btnPrimary" disabled={agencyStaffBusy} onClick={() => void createAgencyStaffMember()}>
+                  {agencyStaffBusy ? "Creating..." : "Add staff"}
+                </button>
+              </div>
+            </div>
+
+            <div className="agencySearchRow">
+              <input
+                className="input"
+                placeholder="Search by name, email, role, status, project..."
+                value={agencyStaffSearch}
+                onChange={(e) => setAgencyStaffSearch(e.target.value)}
+              />
+            </div>
+
+            {agencyStaffErr ? <div className="errorText">{agencyStaffErr}</div> : null}
+            {agencyStaffOk ? <div className="okText">{agencyStaffOk}</div> : null}
+
+            <div className="agencyTenantTableWrap">
+              <table className="agencyTenantTable">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Invited</th>
+                    <th>Last Active</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agencyStaffLoading ? (
+                    <tr>
+                      <td colSpan={8}>Loading staff...</td>
+                    </tr>
+                  ) : filteredAgencyStaff.length === 0 ? (
+                    <tr>
+                      <td colSpan={8}>No staff members yet.</td>
+                    </tr>
+                  ) : (
+                    filteredAgencyStaff.map((row) => (
+                      <tr key={`${row.tenantId}-${row.id}`}>
+                        <td>{row.tenantName}</td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.fullName)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setAgencyStaffRows((prev) =>
+                                prev.map((it) =>
+                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, fullName: value } : it,
+                                ),
+                              );
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.email)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setAgencyStaffRows((prev) =>
+                                prev.map((it) =>
+                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, email: value } : it,
+                                ),
+                              );
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className="input"
+                            value={row.role}
+                            onChange={(e) => {
+                              const value = e.target.value as TenantStaffRow["role"];
+                              setAgencyStaffRows((prev) =>
+                                prev.map((it) =>
+                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, role: value } : it,
+                                ),
+                              );
+                            }}
+                          >
+                            {STAFF_ROLE_OPTIONS.map((role) => (
+                              <option key={role} value={role}>{role}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <select
+                            className="input"
+                            value={row.status}
+                            onChange={(e) => {
+                              const value = e.target.value as TenantStaffRow["status"];
+                              setAgencyStaffRows((prev) =>
+                                prev.map((it) =>
+                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, status: value } : it,
+                                ),
+                              );
+                            }}
+                          >
+                            {STAFF_STATUS_OPTIONS.map((status) => (
+                              <option key={status} value={status}>{status}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>{s(row.invitedAt) ? new Date(s(row.invitedAt)).toLocaleString() : "—"}</td>
+                        <td>{s(row.lastActiveAt) ? new Date(s(row.lastActiveAt)).toLocaleString() : "—"}</td>
+                        <td className="agencyInlineActions">
+                          <button type="button" className="btnGhost" disabled={agencyStaffBusy} onClick={() => void updateAgencyStaffMember(row)}>
+                            Save
+                          </button>
+                          <button type="button" className="btnGhost" disabled={agencyStaffBusy} onClick={() => void deleteAgencyStaffMember(row)}>
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {activeMenu !== "projects" && activeMenu !== "staff" ? (
+          <section className="agencyProjectsCard">
+            <div className="agencyProjectsHeader">
+              <div>
+                <h2>{activeMenu === "integrations" ? "Integrations" : activeMenu === "settings" ? "App Settings" : activeMenu === "billing" ? "Billing" : "Audit Logs"}</h2>
+                <p>This section is still using the per-project screens. We can wire it next.</p>
+              </div>
+            </div>
+          </section>
+        ) : null}
       </section>
       </div>
 
@@ -2218,15 +2583,14 @@ export default function AgencyHomePage() {
                       onChange={(e) => setNewStaffEmail(e.target.value)}
                     />
                     <select className="input" value={newStaffRole} onChange={(e) => setNewStaffRole(e.target.value as TenantStaffRow["role"])}>
-                      <option value="owner">owner</option>
-                      <option value="admin">admin</option>
-                      <option value="analyst">analyst</option>
-                      <option value="viewer">viewer</option>
+                      {STAFF_ROLE_OPTIONS.map((role) => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
                     </select>
                     <select className="input" value={newStaffStatus} onChange={(e) => setNewStaffStatus(e.target.value as TenantStaffRow["status"])}>
-                      <option value="invited">invited</option>
-                      <option value="active">active</option>
-                      <option value="disabled">disabled</option>
+                      {STAFF_STATUS_OPTIONS.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="agencyCreateActions agencyCreateActionsSpaced">
@@ -2276,7 +2640,18 @@ export default function AgencyHomePage() {
                                 }}
                               />
                             </td>
-                            <td>{s(row.email)}</td>
+                            <td>
+                              <input
+                                className="input"
+                                value={s(row.email)}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setManageStaffRows((prev) =>
+                                    prev.map((it) => (it.id === row.id ? { ...it, email: value } : it)),
+                                  );
+                                }}
+                              />
+                            </td>
                             <td>
                               <select
                                 className="input"
@@ -2288,10 +2663,9 @@ export default function AgencyHomePage() {
                                   );
                                 }}
                               >
-                                <option value="owner">owner</option>
-                                <option value="admin">admin</option>
-                                <option value="analyst">analyst</option>
-                                <option value="viewer">viewer</option>
+                                {STAFF_ROLE_OPTIONS.map((role) => (
+                                  <option key={role} value={role}>{role}</option>
+                                ))}
                               </select>
                             </td>
                             <td>
@@ -2305,9 +2679,9 @@ export default function AgencyHomePage() {
                                   );
                                 }}
                               >
-                                <option value="active">active</option>
-                                <option value="invited">invited</option>
-                                <option value="disabled">disabled</option>
+                                {STAFF_STATUS_OPTIONS.map((status) => (
+                                  <option key={status} value={status}>{status}</option>
+                                ))}
                               </select>
                             </td>
                             <td>{s(row.invitedAt) ? new Date(s(row.invitedAt)).toLocaleString() : "—"}</td>

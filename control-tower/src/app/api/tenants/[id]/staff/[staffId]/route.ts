@@ -13,6 +13,7 @@ type Ctx = { params: Promise<{ id: string; staffId: string }> };
 
 type StaffPatchBody = {
   fullName?: string;
+  email?: string;
   role?:
     | "owner"
     | "admin"
@@ -40,6 +41,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!body) return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
 
   const fullName = s(body.fullName);
+  const email = s(body.email).toLowerCase();
   const role = s(body.role).toLowerCase();
   const status = s(body.status).toLowerCase();
 
@@ -48,6 +50,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (fullName) {
     vals.push(fullName);
     set.push(`full_name = $${vals.length}`);
+  }
+  if (email) {
+    vals.push(email);
+    set.push(`email = $${vals.length}`);
   }
   if (role) {
     vals.push(role);
@@ -88,7 +94,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       action: "staff.update",
       entityType: "staff",
       entityId: memberId,
-      payload: { fullName, role, status },
+      payload: { fullName, email, role, status },
     });
 
     await client.query("COMMIT");
@@ -96,7 +102,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
   } catch (error: unknown) {
     await client.query("ROLLBACK");
     const message = error instanceof Error ? error.message : "Failed to update staff member";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const duplicate = message.toLowerCase().includes("organization_staff_org_email_lower_uq");
+    return NextResponse.json(
+      { ok: false, error: duplicate ? "Email already exists in this project." : message },
+      { status: duplicate ? 409 : 500 },
+    );
   } finally {
     client.release();
   }
