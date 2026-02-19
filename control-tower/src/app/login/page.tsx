@@ -2,6 +2,10 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import styles from "./login.module.css";
+
+const BRAND_ICON_URL =
+  "https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -66,130 +70,124 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
-      <form
-        onSubmit={onSubmit}
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          border: "1px solid #d9d9d9",
-          borderRadius: 12,
-          padding: 20,
-          display: "grid",
-          gap: 12,
-          background: "#fff",
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 20 }}>Iniciar Sesion</h1>
-        <p style={{ margin: 0, color: "#5f6368", fontSize: 13 }}>
-          Acceso seguro con email y password.
-        </p>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => setMode("login")}
-            style={{
-              flex: 1,
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              padding: "8px 10px",
-              background: mode === "login" ? "#f1f5ff" : "#fff",
-              cursor: "pointer",
-            }}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("register")}
-            style={{
-              flex: 1,
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              padding: "8px 10px",
-              background: mode === "register" ? "#f1f5ff" : "#fff",
-              cursor: "pointer",
-            }}
-          >
-            Crear Cuenta
-          </button>
-        </div>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 13 }}>Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@company.com"
-            autoComplete="email"
-            required
-            style={{ border: "1px solid #ccc", borderRadius: 8, padding: "10px 12px" }}
-          />
-        </label>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 13 }}>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="********"
-            autoComplete={mode === "register" ? "new-password" : "current-password"}
-            required
-            style={{ border: "1px solid #ccc", borderRadius: 8, padding: "10px 12px" }}
-          />
-        </label>
-        {mode === "register" ? (
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13 }}>Confirm Password</span>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="********"
-              autoComplete="new-password"
-              required
-              style={{ border: "1px solid #ccc", borderRadius: 8, padding: "10px 12px" }}
-            />
-          </label>
-        ) : null}
-        {mode === "register" ? (
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13 }}>Nombre (opcional)</span>
-            <input
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nombre Apellido"
-              style={{ border: "1px solid #ccc", borderRadius: 8, padding: "10px 12px" }}
-            />
-          </label>
-        ) : null}
-        {mode === "login" ? (
-          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#5f6368" }}>
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            Remember me (30 dias)
-          </label>
-        ) : null}
-        {error ? <div style={{ color: "#b42318", fontSize: 13 }}>{error}</div> : null}
-        <button
-          type="submit"
-          disabled={busy}
-          style={{
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 14px",
-            background: "#1f6feb",
-            color: "#fff",
-            cursor: busy ? "default" : "pointer",
-            opacity: busy ? 0.7 : 1,
-          }}
-        >
-          {busy ? "Procesando..." : mode === "register" ? "Crear Cuenta" : "Entrar"}
-        </button>
-      </form>
+    <main className={styles.page}>
+      <section className={styles.grid}>
+        <aside className={styles.hero}>
+          <div>
+            <div className={styles.brand}>
+              <img src={BRAND_ICON_URL} alt="Delta System" />
+              <p className={styles.brandTitle}>Delta System</p>
+            </div>
+            <h1 className={styles.headline}>Control seguro para agencias que operan en serio.</h1>
+            <p className={styles.subhead}>
+              Acceso unificado, sesiones protegidas y gobierno por roles para equipos multi-tenant.
+            </p>
+            <div className={styles.chips}>
+              <span className={styles.chip}>Role-Based Access</span>
+              <span className={styles.chip}>Tenant Isolation</span>
+              <span className={styles.chip}>Audit Ready</span>
+            </div>
+          </div>
+        </aside>
+
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>{mode === "register" ? "Crear Cuenta" : "Iniciar Sesion"}</h2>
+          <p className={styles.cardCopy}>Diseñado para equipos de alto rendimiento, con seguridad por defecto.</p>
+
+          <div className={styles.tabs}>
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={`${styles.tab} ${mode === "login" ? styles.tabOn : ""}`}
+            >
+              Entrar
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={`${styles.tab} ${mode === "register" ? styles.tabOn : ""}`}
+            >
+              Crear Cuenta
+            </button>
+          </div>
+
+          <form onSubmit={onSubmit} className={styles.form}>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Email</span>
+              <input
+                className={styles.input}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                autoComplete="email"
+                required
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Password</span>
+              <input
+                className={styles.input}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="********"
+                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                required
+              />
+            </label>
+
+            {mode === "register" ? (
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Confirm Password</span>
+                <input
+                  className={styles.input}
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="********"
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+            ) : null}
+
+            {mode === "register" ? (
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Nombre (opcional)</span>
+                <input
+                  className={styles.input}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Nombre Apellido"
+                />
+              </label>
+            ) : null}
+
+            {mode === "login" ? (
+              <label className={styles.remember}>
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                Remember me (30 dias)
+              </label>
+            ) : null}
+
+            {error ? <div className={styles.error}>{error}</div> : null}
+
+            <button type="submit" disabled={busy} className={styles.submit}>
+              {busy ? "Procesando..." : mode === "register" ? "Crear Cuenta" : "Entrar"}
+            </button>
+          </form>
+
+          <p className={styles.hint}>
+            Solo usuarios autorizados. Todas las acciones quedan sujetas a control de permisos y auditoria.
+          </p>
+        </section>
+      </section>
     </main>
   );
 }
