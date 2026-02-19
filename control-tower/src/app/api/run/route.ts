@@ -9,7 +9,7 @@ import readline from "readline";
 import { getDbPool } from "@/lib/db";
 import { getTenantIntegration, upsertTenantIntegration } from "@/lib/tenantIntegrations";
 import { getAgencyAccessTokenOrThrow } from "@/lib/ghlHttp";
-import { getTenantSheetConfig } from "@/lib/tenantSheets";
+import { getTenantSheetConfig } from "@/lib/tenantSheetConfig";
 
 import {
     createRun,

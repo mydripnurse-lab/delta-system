@@ -116,7 +116,8 @@ const nextConfig = {
     // Jobs ejecutados por /api/run (spawn de scripts fuera de control-tower)
     "/api/run": [
       "../scripts/**/*",
-      "../resources/**/*",
+      "../resources/customValues/**/*",
+      "../resources/config/**/*",
       "../services/**/*",
       ...RUN_JOB_RUNTIME_PACKAGES.map((pkg) => `./node_modules/${pkg}/**/*`),
     ],

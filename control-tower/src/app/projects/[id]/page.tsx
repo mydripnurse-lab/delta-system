@@ -576,6 +576,7 @@ export default function Home() {
     etaSec: null,
     status: "idle",
   });
+  const [runnerElapsedSec, setRunnerElapsedSec] = useState(0);
 
   // ✅ Map modal
   const [mapOpen, setMapOpen] = useState(false);
@@ -671,6 +672,22 @@ export default function Home() {
       esRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isRunning) {
+      setRunnerElapsedSec(0);
+      return;
+    }
+    const started = runStartedAtRef.current || Date.now();
+    const tick = () => {
+      setRunnerElapsedSec(
+        Math.max(0, Math.floor((Date.now() - started) / 1000)),
+      );
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [isRunning]);
 
   // DB-first: for tenant projects, states list comes from app.organization_state_files.
   useEffect(() => {
@@ -1605,11 +1622,9 @@ export default function Home() {
         }...`,
       );
 
-      const isLocalHost =
-        typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1");
-      const useSyncRun = !isLocalHost;
+      // Force SSE mode on both local and deployed environments so runner can
+      // render real-time progress/ETA from server events.
+      const useSyncRun = false;
 
       const res = await fetch(useSyncRun ? "/api/run?sync=1" : "/api/run", {
         method: "POST",
@@ -2522,6 +2537,7 @@ export default function Home() {
       counties: cT > 0 ? `${cD}/${cT}` : `${cD}`,
       cities: ciT > 0 ? `${ciD}/${ciT}` : `${ciD}`,
       eta: progress.etaSec === null ? "—" : formatDuration(progress.etaSec),
+      elapsed: formatDuration(runnerElapsedSec),
     };
   }, [
     progressTotals.allTotal,
@@ -2531,6 +2547,7 @@ export default function Home() {
     progress.countiesDone,
     progress.citiesDone,
     progress.etaSec,
+    runnerElapsedSec,
   ]);
 
   const runnerToneClass =
@@ -2954,6 +2971,12 @@ export default function Home() {
                   </span>
                   <span className="runnerChip">
                     Done: <b>{runnerMeta.all}</b>
+                  </span>
+                  <span className="runnerChip">
+                    ETA: <b>{runnerMeta.eta}</b>
+                  </span>
+                  <span className="runnerChip">
+                    Elapsed: <b>{runnerMeta.elapsed}</b>
                   </span>
 
                   {isStateJob ? (
