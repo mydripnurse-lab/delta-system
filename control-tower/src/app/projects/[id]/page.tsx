@@ -478,6 +478,7 @@ export default function Home() {
   const esRef = useRef<EventSource | null>(null);
   const sseRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sseRetryCountRef = useRef(0);
+  const MAX_SSE_RETRIES = 8;
   const [activeRuns, setActiveRuns] = useState<
     Array<{
       id: string;
@@ -1645,6 +1646,12 @@ export default function Home() {
         )
         .slice(0, 12);
       setActiveRuns(filtered);
+      setRunId((curr) => {
+        const current = s(curr);
+        if (!current) return curr;
+        const exists = filtered.some((r: any) => s(r?.id) === current);
+        return exists ? curr : "";
+      });
     } catch {
       // ignore background polling errors
     }
@@ -1908,11 +1915,12 @@ export default function Home() {
           } catch {}
 
           setIsRunning(false);
+          setRunId((curr) => (s(curr) === s(targetRunId) ? "" : curr));
           setProgress((p) => ({
             ...p,
-            pct: 1,
+            pct: data?.ok === false ? p.pct : 1,
             etaSec: 0,
-            message: "Done",
+            message: data?.ok === false ? s(data?.reason || data?.error || "Run ended with error") : "Done",
             status: data?.ok === false ? "error" : "done",
           }));
 
@@ -1937,6 +1945,17 @@ export default function Home() {
             return;
 
           const nextAttempt = sseRetryCountRef.current + 1;
+          if (nextAttempt > MAX_SSE_RETRIES) {
+            pushLog("❌ SSE retry limit reached. Detaching run.");
+            setIsRunning(false);
+            setRunId((curr) => (s(curr) === s(targetRunId) ? "" : curr));
+            setProgress((p) => ({
+              ...p,
+              status: "error",
+              message: "SSE disconnected (retry limit reached)",
+            }));
+            return;
+          }
           sseRetryCountRef.current = nextAttempt;
           const waitMs = Math.min(10000, 1000 * Math.pow(1.6, nextAttempt - 1));
           pushLog(
@@ -2029,11 +2048,12 @@ export default function Home() {
         es.close();
       } catch {}
       setIsRunning(false);
+      setRunId((curr) => (s(curr) === s(id) ? "" : curr));
       setProgress((p) => ({
         ...p,
-        pct: 1,
+        pct: data?.ok === false ? p.pct : 1,
         etaSec: 0,
-        message: "Done",
+        message: data?.ok === false ? s(data?.reason || data?.error || "Run ended with error") : "Done",
         status: data?.ok === false ? "error" : "done",
       }));
       loadActiveRuns();
@@ -2044,6 +2064,17 @@ export default function Home() {
       } catch {}
       if (!isRunningRef.current || currentRunIdRef.current !== id) return;
       const nextAttempt = sseRetryCountRef.current + 1;
+      if (nextAttempt > MAX_SSE_RETRIES) {
+        pushLog("❌ SSE retry limit reached. Detaching run.");
+        setIsRunning(false);
+        setRunId((curr) => (s(curr) === s(id) ? "" : curr));
+        setProgress((p) => ({
+          ...p,
+          status: "error",
+          message: "SSE disconnected (retry limit reached)",
+        }));
+        return;
+      }
       sseRetryCountRef.current = nextAttempt;
       const waitMs = Math.min(10000, 1000 * Math.pow(1.6, nextAttempt - 1));
       setProgress((p) => ({ ...p, message: "SSE reconnecting…" }));
