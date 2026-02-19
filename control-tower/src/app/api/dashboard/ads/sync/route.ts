@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { googleAdsSearch } from "@/lib/ads/adsRest";
 import { readCache, writeCache, cacheFresh } from "@/lib/ads/adsCache";
-import { qKpis, qTrendDaily, qCampaigns } from "@/lib/ads/adsQueries";
+import { qKpis, qTrendDaily, qCampaigns, qSearchTerms, qTopKeywords } from "@/lib/ads/adsQueries";
 
 export const runtime = "nodejs";
 
@@ -38,12 +38,17 @@ function prevPeriodRange(start: string, end: string) {
     return { start: toIsoDate(prevStartMs), end: toIsoDate(prevEndMs) };
 }
 
-function resolveRange(range: string) {
+function resolveRange(range: string, startQ?: string, endQ?: string) {
     const end = todayISO();
     const now = new Date();
     const prevYear = now.getFullYear() - 1;
     const prevYearStart = `${prevYear}-01-01`;
     const prevYearEnd = `${prevYear}-12-31`;
+    const startCustom = s(startQ);
+    const endCustom = s(endQ);
+    if (range === "custom" && startCustom && endCustom) {
+        return { start: startCustom, end: endCustom };
+    }
     if (range === "last_7_days") return { start: addDays(end, -6), end };
     if (range === "last_28_days") return { start: addDays(end, -27), end };
     if (range === "last_month") return { start: addDays(end, -30), end };
@@ -60,13 +65,15 @@ export async function GET(req: Request) {
         const force = s(url.searchParams.get("force")) === "1";
         const tenantId = s(url.searchParams.get("tenantId"));
         const integrationKey = s(url.searchParams.get("integrationKey")) || "default";
+        const startQ = s(url.searchParams.get("start"));
+        const endQ = s(url.searchParams.get("end"));
         if (!tenantId) {
             return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
         }
 
         const ttl = Number(process.env.ADS_CACHE_TTL_SECONDS || 600);
 
-        const { start, end } = resolveRange(range);
+        const { start, end } = resolveRange(range, startQ, endQ);
         const prev = prevPeriodRange(start, end);
 
         const cacheKey = `ads_${tenantId}_${integrationKey}_${range}`;
@@ -79,6 +86,23 @@ export async function GET(req: Request) {
         const generatedAt = new Date().toISOString();
         const meta = { range, startDate: start, endDate: end, generatedAt };
         const prevMeta = { range: `${range}_prev`, startDate: prev.start, endDate: prev.end, generatedAt };
+
+        const safeAdsSearch = async (query: string, label: string) => {
+            try {
+                return await googleAdsSearch({
+                    query,
+                    version: "v17",
+                    tenantId,
+                    integrationKey,
+                });
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : String(err);
+                return {
+                    results: [],
+                    _error: `${label} query failed: ${msg}`,
+                };
+            }
+        };
 
         // KPIs (customer)
         const kpis = await googleAdsSearch({
@@ -110,7 +134,23 @@ export async function GET(req: Request) {
             integrationKey,
         });
 
-        const envelope = { meta, prevMeta, kpis, prevKpis, trend, campaigns, generatedAt };
+        const topKeywords = await safeAdsSearch(qTopKeywords(start, end), "topKeywords");
+        const searchTerms = await safeAdsSearch(qSearchTerms(start, end), "searchTerms");
+
+        const warnings = [topKeywords?._error, searchTerms?._error].filter(Boolean);
+
+        const envelope = {
+            meta,
+            prevMeta,
+            kpis,
+            prevKpis,
+            trend,
+            campaigns,
+            topKeywords,
+            searchTerms,
+            generatedAt,
+            warnings,
+        };
 
         const savedPath = await writeCache(cacheKey, envelope);
 

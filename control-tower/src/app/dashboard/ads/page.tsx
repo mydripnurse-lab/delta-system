@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import AdsTrendChart from "@/components/AdsTrendChart";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
+import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 
 type RangePreset =
   | "last_7_days"
@@ -129,6 +131,7 @@ function extractRegionFromCampaignName(name: string) {
 }
 
 export default function AdsDashboardPage() {
+  const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
   const [err, setErr] = useState("");
@@ -144,8 +147,26 @@ export default function AdsDashboardPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiErr, setAiErr] = useState("");
   const [aiPlaybook, setAiPlaybook] = useState<any>(null);
+  const [strategyLoading, setStrategyLoading] = useState(false);
+  const [strategyErr, setStrategyErr] = useState("");
+  const [strategyData, setStrategyData] = useState<any>(null);
 
   const [data, setData] = useState<any>(null);
+
+  const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
+  const integrationKeyRaw =
+    String(searchParams?.get("integrationKey") || "").trim() || "default";
+  const integrationKey =
+    integrationKeyRaw.toLowerCase() === "owner" ? "default" : integrationKeyRaw;
+  const backHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}`
+    : "/dashboard";
+
+  function attachTenantScope(p: URLSearchParams) {
+    if (!tenantId) return;
+    p.set("tenantId", tenantId);
+    p.set("integrationKey", integrationKey);
+  }
 
   function buildParams(force: boolean) {
     const p = new URLSearchParams();
@@ -159,11 +180,19 @@ export default function AdsDashboardPage() {
     if (compareOn) p.set("compare", "1");
     if (force) p.set("force", "1");
     p.set("v", String(Date.now()));
+    attachTenantScope(p);
     return p.toString();
   }
 
   async function load(opts?: { force?: boolean }) {
+    if (!tenantReady) return;
     const force = !!opts?.force;
+    if (!tenantId) {
+      setErr(
+        "Missing tenant context. Open from Control Tower or use a mapped project domain.",
+      );
+      return;
+    }
     setErr("");
     setLoading(true);
 
@@ -201,10 +230,49 @@ export default function AdsDashboardPage() {
   }
 
   useEffect(() => {
+    if (!tenantReady) return;
+    if (!tenantId) {
+      setErr(
+        "Missing tenant context. Open from Control Tower or use a mapped project domain.",
+      );
+      return;
+    }
     if (preset !== "custom") load();
     else if (customStart && customEnd) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, customStart, customEnd, compareOn]);
+  }, [preset, customStart, customEnd, compareOn, tenantReady, tenantId]);
+
+  async function generateKeywordStrategyAndCampaigns() {
+    if (!tenantId) {
+      setStrategyErr("Missing tenant context.");
+      return;
+    }
+    setStrategyLoading(true);
+    setStrategyErr("");
+    try {
+      const p = new URLSearchParams();
+      p.set("range", preset);
+      if (preset === "custom") {
+        if (customStart) p.set("start", customStart);
+        if (customEnd) p.set("end", customEnd);
+      }
+      attachTenantScope(p);
+      const res = await fetch(`/api/dashboard/ads/strategy?${p.toString()}`, {
+        cache: "no-store",
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error || "Failed to generate keyword strategy");
+      }
+      setStrategyData(json);
+    } catch (e: unknown) {
+      setStrategyErr(
+        e instanceof Error ? e.message : "Failed to generate keyword strategy",
+      );
+    } finally {
+      setStrategyLoading(false);
+    }
+  }
 
   const summary = data?.summaryOverall || {
     impressions: 0,
@@ -483,7 +551,7 @@ export default function AdsDashboardPage() {
         <div className="pills">
           <Link
             className="pill"
-            href="/dashboard"
+            href={backHref}
             style={{ textDecoration: "none" }}
           >
             ← Back
@@ -1052,6 +1120,123 @@ export default function AdsDashboardPage() {
               searchTerms: (searchTerms || []).slice(0, 20),
             }}
           />
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Keyword Strategy + Campaign Generator</h2>
+            <div className="cardSubtitle">
+              Cruza Google Ads + GSC + revenue para recomendar keywords y generar campañas completas en draft.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button
+              className="smallBtn aiBtn"
+              onClick={generateKeywordStrategyAndCampaigns}
+              disabled={strategyLoading || loading}
+              type="button"
+            >
+              {strategyLoading ? "Generating..." : "Generate Strategy"}
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          {strategyErr ? (
+            <div className="mini" style={{ color: "var(--danger)" }}>
+              X {strategyErr}
+            </div>
+          ) : null}
+
+          {strategyData ? (
+            <>
+              <div className="mini" style={{ marginBottom: 12, opacity: 0.86 }}>
+                Revenue (range actual):{" "}
+                <b>{fmtMoney(strategyData?.scorecard?.revenueNow || 0)}</b> •
+                Candidate keywords:{" "}
+                <b>{fmtInt(strategyData?.scorecard?.candidateKeywords || 0)}</b> •
+                Draft campaigns:{" "}
+                <b>{fmtInt(strategyData?.scorecard?.campaignDrafts || 0)}</b>
+              </div>
+
+              {strategyData?.aiSummary?.executive_summary ? (
+                <div className="moduleCard" style={{ marginBottom: 12 }}>
+                  <p className="l moduleTitle">AI Executive Summary</p>
+                  <p className="mini moduleLine">
+                    {String(strategyData.aiSummary.executive_summary)}
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="tableWrap tableScrollX">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Keyword</th>
+                      <th className="th">Action</th>
+                      <th className="th">Score</th>
+                      <th className="th">GSC Impr</th>
+                      <th className="th">Ads Conv</th>
+                      <th className="th">Cost</th>
+                      <th className="th">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(strategyData?.keywordStrategy || [])
+                      .slice(0, 20)
+                      .map((k: any, i: number) => (
+                        <tr key={`kws-${i}`} className="tr">
+                          <td className="td mono">{String(k.keyword || "")}</td>
+                          <td className="td">{String(k.action || "monitor")}</td>
+                          <td className="td">{fmtInt(k.score || 0)}</td>
+                          <td className="td">{fmtInt(k.gscImpressions || 0)}</td>
+                          <td className="td">{fmtInt(k.adsConversions || 0)}</td>
+                          <td className="td">{fmtMoney(k.adsCost || 0)}</td>
+                          <td className="td mini">{String(k.reason || "")}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="moduleGrid" style={{ marginTop: 12 }}>
+                {(strategyData?.campaignDrafts || []).map((c: any, idx: number) => (
+                  <div className="moduleCard" key={`draft-${idx}`}>
+                    <div className="moduleTop">
+                      <p className="l moduleTitle">{String(c.campaignName || "Draft campaign")}</p>
+                      <span className="mini moduleDelta">{String(c.status || "draft")}</span>
+                    </div>
+                    <p className="mini moduleLine"><b>Objective:</b> {String(c.objective || "-")}</p>
+                    <p className="mini moduleLine"><b>Budget/day:</b> {fmtMoney(c.budgetDailyUsd || 0)}</p>
+                    <p className="mini moduleLine"><b>Bidding:</b> {String(c.bidding || "-")}</p>
+                    <p className="mini moduleLine"><b>Region:</b> {String(c?.targeting?.regions?.join(", ") || "-")}</p>
+                    <p className="mini moduleLine">
+                      <b>Keywords:</b>{" "}
+                      {String(
+                        c?.adGroups?.flatMap((g: any) => g.keywords || []).slice(0, 8).join(", ") || "-",
+                      )}
+                    </p>
+                    <p className="mini moduleLine">
+                      <b>Negatives:</b>{" "}
+                      {String(
+                        c?.adGroups?.flatMap((g: any) => g.negatives || []).slice(0, 8).join(", ") || "-",
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mini" style={{ marginTop: 10, opacity: 0.8 }}>
+                Publish mode actual: <b>{String(strategyData?.publish?.mode || "draft_only")}</b>.{" "}
+                {String(strategyData?.publish?.message || "")}
+              </div>
+            </>
+          ) : (
+            <div className="aiPlaceholder mini">
+              Genera el strategy para obtener keywords priorizadas y campañas listas para revisión.
+            </div>
+          )}
         </div>
       </section>
 
