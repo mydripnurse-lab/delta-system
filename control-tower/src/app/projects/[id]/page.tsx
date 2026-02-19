@@ -433,6 +433,8 @@ export default function Home() {
   const [tenantAdsAlertWebhookUrl, setTenantAdsAlertWebhookUrl] = useState("");
   const [tenantAdsAlertSmsEnabled, setTenantAdsAlertSmsEnabled] = useState(false);
   const [tenantAdsAlertSmsTo, setTenantAdsAlertSmsTo] = useState("");
+  const [tenantAdsSampleBusy, setTenantAdsSampleBusy] = useState(false);
+  const [tenantAdsSampleResult, setTenantAdsSampleResult] = useState("");
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
   const [oauthErr, setOauthErr] = useState("");
   const [oauthMsg, setOauthMsg] = useState("");
@@ -944,6 +946,45 @@ export default function Home() {
       setTenantDetailErr(e?.message || "Failed to save tenant.");
     } finally {
       setTenantSaving(false);
+    }
+  }
+
+  async function sendProjectAdsWebhookSample() {
+    if (!routeTenantId) return;
+    setTenantAdsSampleBusy(true);
+    setTenantAdsSampleResult("");
+    setTenantDetailErr("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/integrations/ghl-alerts/sample`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            webhookUrl: tenantAdsAlertWebhookUrl || undefined,
+            smsEnabled: tenantAdsAlertSmsEnabled,
+          }),
+        },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setTenantAdsSampleResult(
+        JSON.stringify(
+          {
+            responseStatus: data?.responseStatus || 200,
+            responsePreview: data?.responsePreview || "",
+            payload: data?.payload || {},
+          },
+          null,
+          2,
+        ),
+      );
+    } catch (e: any) {
+      setTenantDetailErr(e?.message || "Failed to send webhook sample.");
+    } finally {
+      setTenantAdsSampleBusy(false);
     }
   }
 
@@ -3054,12 +3095,22 @@ export default function Home() {
             </div>
             <div className="field">
               <label>GHL Webhook Ads Notification</label>
-              <input
-                className="input"
-                value={tenantAdsAlertWebhookUrl}
-                onChange={(e) => setTenantAdsAlertWebhookUrl(e.target.value)}
-                placeholder="https://services.leadconnectorhq.com/hooks/..."
-              />
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  className="input"
+                  value={tenantAdsAlertWebhookUrl}
+                  onChange={(e) => setTenantAdsAlertWebhookUrl(e.target.value)}
+                  placeholder="https://services.leadconnectorhq.com/hooks/..."
+                />
+                <button
+                  type="button"
+                  className="smallBtn"
+                  disabled={tenantAdsSampleBusy || !routeTenantId}
+                  onClick={() => void sendProjectAdsWebhookSample()}
+                >
+                  {tenantAdsSampleBusy ? "Sending..." : "Send sample"}
+                </button>
+              </div>
             </div>
             <div className="field">
               <label>Enable SMS signal to GHL</label>
@@ -3073,6 +3124,20 @@ export default function Home() {
               </select>
             </div>
           </div>
+
+          {tenantAdsSampleResult ? (
+            <div className="row" style={{ marginTop: 10 }}>
+              <div className="field" style={{ flex: 1 }}>
+                <label>Webhook sample response</label>
+                <textarea
+                  className="input"
+                  value={tenantAdsSampleResult}
+                  readOnly
+                  rows={10}
+                />
+              </div>
+            </div>
+          ) : null}
 
           {routeTenantId ? (
             <div className="row" style={{ marginTop: 10 }}>
