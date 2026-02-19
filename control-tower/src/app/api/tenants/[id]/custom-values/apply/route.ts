@@ -198,6 +198,7 @@ async function getLegacyDynamicValuesForLoc(opts: {
     values: [
       { name: "Business - County Domain", value: ensureHttps(countyDomain) },
       { name: "Business - County Name", value: countyName },
+      { name: "Business ID", value: s(opts.locId) },
       { name: "County Name And State", value: countyNameAndState },
       { name: "Website Url", value: websiteUrl },
     ],

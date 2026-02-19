@@ -3172,8 +3172,12 @@ export default function Home() {
   const tenantCustomValuesPageSize = 20;
   const tenantCustomValuesFiltered = useMemo(() => {
     const q = s(tenantCustomValuesSearch).toLowerCase();
-    if (!q) return tenantCustomValues;
-    return tenantCustomValues.filter((row) => s(row.keyName).toLowerCase().includes(q));
+    const indexed = tenantCustomValues.map((row, originalIndex) => ({
+      row,
+      originalIndex,
+    }));
+    if (!q) return indexed;
+    return indexed.filter(({ row }) => s(row.keyName).toLowerCase().includes(q));
   }, [tenantCustomValues, tenantCustomValuesSearch]);
   const tenantCustomValuesPages = Math.max(
     1,
@@ -3617,7 +3621,7 @@ export default function Home() {
                   }}
                 >
                   <div className="mini">
-                    Dynamic fields (`Business - County Domain`, `Business - County Name`, `County Name And State`, `Website Url`) are managed automatically per county/city.
+                    Dynamic fields (`Business - County Domain`, `Business - County Name`, `Business ID`, `County Name And State`, `Website Url`) are managed automatically per county/city.
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {tenantCustomValuesMsg ? <span className="badge">{tenantCustomValuesMsg}</span> : null}
@@ -3688,17 +3692,15 @@ export default function Home() {
                         </td>
                       </tr>
                     ) : (
-                      tenantCustomValuesPagedRows.map((row, pageIdx) => {
-                        const idx =
-                          (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize + pageIdx;
+                      tenantCustomValuesPagedRows.map(({ row, originalIndex }) => {
                         return (
-                        <tr key={`${row.id || row.keyName || "row"}:${idx}`} className="tr">
+                        <tr key={`${row.id || row.keyName || "row"}:${originalIndex}`} className="tr">
                           <td className="td" style={{ width: 110 }}>
                             <input
                               type="checkbox"
                               checked={row.isActive !== false}
                               onChange={(e) =>
-                                updateTenantCustomValueAt(idx, { isActive: e.target.checked })
+                                updateTenantCustomValueAt(originalIndex, { isActive: e.target.checked })
                               }
                             />
                           </td>
@@ -3710,7 +3712,7 @@ export default function Home() {
                               className="input"
                               value={row.keyValue}
                               onChange={(e) =>
-                                updateTenantCustomValueAt(idx, { keyValue: e.target.value })
+                                updateTenantCustomValueAt(originalIndex, { keyValue: e.target.value })
                               }
                               placeholder="Leave empty to skip this key on apply."
                             />

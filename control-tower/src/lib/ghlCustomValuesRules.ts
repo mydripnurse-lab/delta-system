@@ -9,6 +9,7 @@ function normalizeName(x: unknown) {
 export const LEGACY_DYNAMIC_CUSTOM_VALUE_NAMES = [
   "Business - County Domain",
   "Business - County Name",
+  "Business ID",
   "County Name And State",
   "Website Url",
 ];
