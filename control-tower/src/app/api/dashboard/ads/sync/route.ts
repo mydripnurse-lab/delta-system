@@ -77,7 +77,7 @@ export async function GET(req: Request) {
         }
 
         const ttl = Number(process.env.ADS_CACHE_TTL_SECONDS || 600);
-        const adsApiVersion = s(process.env.GOOGLE_ADS_API_VERSION) || "v19";
+        const adsApiVersion = s(process.env.GOOGLE_ADS_API_VERSION) || "v22";
 
         const { start, end } = resolveRange(range, startQ, endQ);
         const prev = prevPeriodRange(start, end);

@@ -26,7 +26,7 @@ export async function googleAdsSearch(opts: {
     const token = s((accessToken as any)?.token || accessToken || "");
     if (!token) throw new Error("Failed to obtain access token for Google Ads");
 
-    const version = s(process.env.GOOGLE_ADS_API_VERSION) || "v19";
+    const version = s(process.env.GOOGLE_ADS_API_VERSION) || "v22";
     const url = `https://googleads.googleapis.com/${version}/customers/${customerId}/googleAds:search`;
 
     const headers: Record<string, string> = {

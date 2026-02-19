@@ -13,7 +13,7 @@ export async function googleAdsSearch(opts: {
     loginCustomerId?: string;
     query: string;
     pageSize?: number;
-    version?: string; // e.g. "v19"
+    version?: string; // e.g. "v22"
 }) {
     const developerToken = s(process.env.GOOGLE_ADS_DEVELOPER_TOKEN);
     if (!developerToken) throw new Error("Missing env GOOGLE_ADS_DEVELOPER_TOKEN");
@@ -25,7 +25,7 @@ export async function googleAdsSearch(opts: {
         opts.loginCustomerId || s(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID),
     );
 
-    const version = s(opts.version) || s(process.env.GOOGLE_ADS_API_VERSION) || "v19";
+    const version = s(opts.version) || s(process.env.GOOGLE_ADS_API_VERSION) || "v22";
     const pageSize = Number(opts.pageSize || 1000);
 
     const oauth2 = await getAdsOAuth2();

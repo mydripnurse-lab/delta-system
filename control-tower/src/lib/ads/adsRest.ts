@@ -70,12 +70,35 @@ function headersBase(developerTokenInput?: string, loginCustomerId?: string, all
 }
 
 function buildSearchStreamUrl(opts: { version?: string; customerId: string }) {
-    const version = s(opts.version) || s(process.env.GOOGLE_ADS_API_VERSION) || "v19";
+    const version = s(opts.version) || s(process.env.GOOGLE_ADS_API_VERSION) || "v22";
     const customerId = cleanCid(opts.customerId);
 
     const base = `https://googleads.googleapis.com/${version}`;
     const path = `customers/${customerId}/googleAds:searchStream`;
     return `${base}/${path}`; // ✅ slash correcto
+}
+
+function versionCandidates(preferred?: string) {
+    const seed = [s(preferred), s(process.env.GOOGLE_ADS_API_VERSION), "v22", "v21", "v20"].filter(Boolean);
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const v of seed) {
+        const key = v.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(v);
+    }
+    return out;
+}
+
+function shouldRetryWithAnotherVersion(status: number, payload: unknown) {
+    if (status === 404) return true;
+    const text = JSON.stringify(payload || "").toLowerCase();
+    return (
+        text.includes("unsupported_version") ||
+        text.includes("deprecated") ||
+        text.includes("version") && text.includes("blocked")
+    );
 }
 
 /**
@@ -99,45 +122,50 @@ export async function googleAdsSearch(opts: {
         : cleanCid(opts.customerId || s(process.env.GOOGLE_ADS_CUSTOMER_ID));
     if (!customerId) throw new Error("Missing Google Ads customerId.");
 
-    const endpoint = buildSearchStreamUrl({ version: opts.version, customerId });
-
-    // ✅ Safe logging (endpoint exists)
-    console.log("[ADS] POST", endpoint);
-
     const accessToken = tenantAccess?.accessToken || (await getAccessToken());
+    const versions = versionCandidates(opts.version);
+    let lastErr = "";
 
-    const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            ...headersBase(
-                tenantAccess
-                    ? tenantAccess.developerToken
-                    : undefined,
-                tenantAccess
-                    ? (opts.loginCustomerId || tenantAccess.loginCustomerId)
-                    : opts.loginCustomerId,
-                !tenantAccess,
-            ),
-        },
-        body: JSON.stringify({ query: opts.query }),
-    });
+    for (const version of versions) {
+        const endpoint = buildSearchStreamUrl({ version, customerId });
+        console.log("[ADS] POST", endpoint);
 
-    const text = await res.text();
-    let json: any;
-    try {
-        json = text ? JSON.parse(text) : null;
-    } catch {
-        json = { raw: text };
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                ...headersBase(
+                    tenantAccess
+                        ? tenantAccess.developerToken
+                        : undefined,
+                    tenantAccess
+                        ? (opts.loginCustomerId || tenantAccess.loginCustomerId)
+                        : opts.loginCustomerId,
+                    !tenantAccess,
+                ),
+            },
+            body: JSON.stringify({ query: opts.query }),
+        });
+
+        const text = await res.text();
+        let json: any;
+        try {
+            json = text ? JSON.parse(text) : null;
+        } catch {
+            json = { raw: text };
+        }
+
+        if (res.ok) {
+            const chunks = Array.isArray(json) ? json : [];
+            const results = chunks.flatMap((c) => (Array.isArray(c?.results) ? c.results : []));
+            return { results };
+        }
+
+        lastErr = `Google Ads ${version} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`;
+        if (!shouldRetryWithAnotherVersion(res.status, json)) {
+            throw new Error(lastErr);
+        }
     }
 
-    if (!res.ok) {
-        throw new Error(`Google Ads HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`);
-    }
-
-    // searchStream returns: [{ results: [...] }, { results: [...] }, ...]
-    const chunks = Array.isArray(json) ? json : [];
-    const results = chunks.flatMap((c) => (Array.isArray(c?.results) ? c.results : []));
-
-    return { results };
+    throw new Error(lastErr || "Google Ads request failed for all API versions.");
 }
