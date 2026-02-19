@@ -460,6 +460,13 @@ export default function Home() {
   const [tenantCustomValuesMsg, setTenantCustomValuesMsg] = useState("");
   const [tenantCustomValuesPage, setTenantCustomValuesPage] = useState(1);
   const [tenantCustomValuesSearch, setTenantCustomValuesSearch] = useState("");
+  const [tenantBingIntegrationKey, setTenantBingIntegrationKey] = useState("default");
+  const [tenantBingApiKey, setTenantBingApiKey] = useState("");
+  const [tenantBingEndpoint, setTenantBingEndpoint] = useState("https://api.indexnow.org/indexnow");
+  const [tenantBingKeyLocation, setTenantBingKeyLocation] = useState("");
+  const [tenantBingSiteUrl, setTenantBingSiteUrl] = useState("");
+  const [tenantBingSaving, setTenantBingSaving] = useState(false);
+  const [tenantBingMsg, setTenantBingMsg] = useState("");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -939,6 +946,92 @@ export default function Home() {
     }
   }
 
+  function hydrateBingFormFromIntegrations(rows: TenantIntegrationRow[]) {
+    const key = s(tenantBingIntegrationKey) || "default";
+    const pick =
+      rows.find(
+        (it) =>
+          s(it.provider).toLowerCase() === "bing_webmaster" &&
+          s(it.integration_key || it.integrationKey).toLowerCase() === key.toLowerCase(),
+      ) ||
+      rows.find((it) => s(it.provider).toLowerCase() === "bing_webmaster") ||
+      null;
+    if (!pick) {
+      setTenantBingApiKey("");
+      setTenantBingEndpoint("https://api.indexnow.org/indexnow");
+      setTenantBingKeyLocation("");
+      setTenantBingSiteUrl("");
+      return;
+    }
+    const cfg =
+      pick.config && typeof pick.config === "object"
+        ? (pick.config as Record<string, unknown>)
+        : {};
+    const auth =
+      cfg.auth && typeof cfg.auth === "object"
+        ? (cfg.auth as Record<string, unknown>)
+        : {};
+    setTenantBingApiKey(
+      s(cfg.apiKey) || s(cfg.api_key) || s(auth.apiKey) || s(auth.api_key),
+    );
+    setTenantBingEndpoint(
+      s(cfg.endpoint) || "https://api.indexnow.org/indexnow",
+    );
+    setTenantBingKeyLocation(
+      s(cfg.keyLocation) || s(cfg.key_location),
+    );
+    setTenantBingSiteUrl(
+      s(pick.external_property_id || pick.externalPropertyId) ||
+        s(cfg.siteUrl) ||
+        s(cfg.site_url),
+    );
+  }
+
+  async function saveTenantBingIntegration() {
+    if (!routeTenantId) return;
+    setTenantBingMsg("");
+    setTenantBingSaving(true);
+    setTenantDetailErr("");
+    try {
+      const integrationKey = s(tenantBingIntegrationKey) || "default";
+      if (!s(tenantBingApiKey)) {
+        throw new Error("Bing API key is required.");
+      }
+      const payload = {
+        provider: "bing_webmaster",
+        integrationKey,
+        status: "connected",
+        authType: "api_key",
+        externalPropertyId: s(tenantBingSiteUrl) || undefined,
+        config: {
+          apiKey: s(tenantBingApiKey),
+          endpoint: s(tenantBingEndpoint) || "https://api.indexnow.org/indexnow",
+          keyLocation: s(tenantBingKeyLocation) || undefined,
+          siteUrl: s(tenantBingSiteUrl) || undefined,
+        },
+      };
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/integrations`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      await refreshIntegrationsSnapshot();
+      setTenantBingMsg("Bing integration saved in tenant DB.");
+    } catch (e: any) {
+      setTenantBingMsg("");
+      setTenantDetailErr(e?.message || "Failed to save Bing integration.");
+    } finally {
+      setTenantBingSaving(false);
+    }
+  }
+
   async function applyCustomValuesForActivationLocation() {
     if (!routeTenantId || !s(actLocId)) return;
     setActCvMsg("");
@@ -978,6 +1071,10 @@ export default function Home() {
       if (tab && activeProjectTab !== "details") setActiveProjectTab("details");
     }
   }, [searchParams, activeProjectTab]);
+
+  useEffect(() => {
+    hydrateBingFormFromIntegrations(tenantIntegrations);
+  }, [tenantBingIntegrationKey, tenantIntegrations]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1020,6 +1117,7 @@ export default function Home() {
           status: s(t.status || "active"),
         });
         setTenantIntegrations(integrations);
+        hydrateBingFormFromIntegrations(integrations);
         setTenantDetailErr("");
 
         setTenantName(s(t.name));
@@ -1477,7 +1575,9 @@ export default function Home() {
     });
     const freshData = (await safeJson(fresh)) as TenantDetailResponse | null;
     if (fresh.ok && freshData?.ok && freshData.tenant) {
-      setTenantIntegrations(Array.isArray(freshData.integrations) ? freshData.integrations : []);
+      const rows = Array.isArray(freshData.integrations) ? freshData.integrations : [];
+      setTenantIntegrations(rows);
+      hydrateBingFormFromIntegrations(rows);
     }
   }
 
@@ -2733,6 +2833,7 @@ export default function Home() {
         const payload = isBingAction
           ? {
               tenantId: routeTenantId || "",
+              integrationKey: s(tenantBingIntegrationKey) || "default",
               domainUrl,
             }
           : {
@@ -3554,6 +3655,74 @@ export default function Home() {
                   </button>
                 </div>
               ) : null}
+
+              <div className="detailsCustomTop" style={{ marginTop: 8 }}>
+                <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
+                  <div className="detailsPaneTitle">Bing IndexNow (Tenant)</div>
+                  <div className="detailsPaneSub">
+                    Configure Bing per tenant. `Bing Counties/Cities` buttons use this DB config.
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="field">
+                    <label>Integration Key</label>
+                    <input
+                      className="input"
+                      value={tenantBingIntegrationKey}
+                      onChange={(e) => setTenantBingIntegrationKey(e.target.value)}
+                      placeholder="default"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Bing API Key</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={tenantBingApiKey}
+                      onChange={(e) => setTenantBingApiKey(e.target.value)}
+                      placeholder="IndexNow key"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>IndexNow endpoint</label>
+                    <input
+                      className="input"
+                      value={tenantBingEndpoint}
+                      onChange={(e) => setTenantBingEndpoint(e.target.value)}
+                      placeholder="https://api.indexnow.org/indexnow"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Key location override (optional)</label>
+                    <input
+                      className="input"
+                      value={tenantBingKeyLocation}
+                      onChange={(e) => setTenantBingKeyLocation(e.target.value)}
+                      placeholder="https://{host}/key.txt"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Site URL (optional)</label>
+                    <input
+                      className="input"
+                      value={tenantBingSiteUrl}
+                      onChange={(e) => setTenantBingSiteUrl(e.target.value)}
+                      placeholder="https://example.com/"
+                    />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  {tenantBingMsg ? <span className="badge">{tenantBingMsg}</span> : null}
+                  <button
+                    type="button"
+                    className="smallBtn"
+                    disabled={!routeTenantId || tenantBingSaving}
+                    onClick={() => void saveTenantBingIntegration()}
+                  >
+                    {tenantBingSaving ? "Saving..." : "Save Bing Config"}
+                  </button>
+                </div>
+              </div>
 
               <div className="tableWrap" style={{ marginTop: 12 }}>
                 <table className="table">
