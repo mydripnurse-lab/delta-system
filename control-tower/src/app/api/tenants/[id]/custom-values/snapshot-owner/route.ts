@@ -32,6 +32,25 @@ async function getSnapshotLocationId(tenantId: string) {
   throw new Error("Missing Snapshot Location ID. Set it in Project Details > Custom Values.");
 }
 
+async function saveSnapshotLocationId(tenantId: string, snapshotLocationId: string) {
+  const pool = getDbPool();
+  await pool.query(
+    `
+      insert into app.organization_settings (
+        organization_id,
+        snapshot_location_id
+      )
+      values ($1, $2)
+      on conflict (organization_id)
+      do update
+      set
+        snapshot_location_id = excluded.snapshot_location_id,
+        updated_at = now()
+    `,
+    [tenantId, snapshotLocationId],
+  );
+}
+
 async function getLocationTokenForOwner(input: {
   tenantId: string;
   companyId: string;
@@ -129,7 +148,12 @@ export async function POST(req: Request, ctx: Ctx) {
   if ("response" in auth) return auth.response;
 
   try {
-    const snapshotLocationId = await getSnapshotLocationId(tenantId);
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const snapshotLocationIdFromBody = s(body.snapshotLocationId);
+    if (snapshotLocationIdFromBody) {
+      await saveSnapshotLocationId(tenantId, snapshotLocationIdFromBody);
+    }
+    const snapshotLocationId = snapshotLocationIdFromBody || (await getSnapshotLocationId(tenantId));
     const companyId = await getEffectiveCompanyIdOrThrow({ tenantId, integrationKey: "owner" });
     const locationToken = await getLocationTokenForOwner({ tenantId, companyId, ownerLocationId: snapshotLocationId });
 

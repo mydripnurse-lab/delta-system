@@ -459,6 +459,7 @@ export default function Home() {
   const [tenantCustomValuesSnapshotBusy, setTenantCustomValuesSnapshotBusy] = useState(false);
   const [tenantCustomValuesMsg, setTenantCustomValuesMsg] = useState("");
   const [tenantCustomValuesPage, setTenantCustomValuesPage] = useState(1);
+  const [tenantCustomValuesSearch, setTenantCustomValuesSearch] = useState("");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -873,6 +874,9 @@ export default function Home() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            snapshotLocationId: s(tenantSnapshotLocationId) || undefined,
+          }),
         },
       );
       const data = await safeJson(res);
@@ -3166,9 +3170,14 @@ export default function Home() {
   }, [runCards, runCardSearch, runCardStatusFilter]);
 
   const tenantCustomValuesPageSize = 20;
+  const tenantCustomValuesFiltered = useMemo(() => {
+    const q = s(tenantCustomValuesSearch).toLowerCase();
+    if (!q) return tenantCustomValues;
+    return tenantCustomValues.filter((row) => s(row.keyName).toLowerCase().includes(q));
+  }, [tenantCustomValues, tenantCustomValuesSearch]);
   const tenantCustomValuesPages = Math.max(
     1,
-    Math.ceil(tenantCustomValues.length / tenantCustomValuesPageSize),
+    Math.ceil(tenantCustomValuesFiltered.length / tenantCustomValuesPageSize),
   );
   const tenantCustomValuesPageSafe = Math.min(
     tenantCustomValuesPages,
@@ -3176,8 +3185,8 @@ export default function Home() {
   );
   const tenantCustomValuesPagedRows = useMemo(() => {
     const start = (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize;
-    return tenantCustomValues.slice(start, start + tenantCustomValuesPageSize);
-  }, [tenantCustomValues, tenantCustomValuesPageSafe]);
+    return tenantCustomValuesFiltered.slice(start, start + tenantCustomValuesPageSize);
+  }, [tenantCustomValuesFiltered, tenantCustomValuesPageSafe]);
 
   const runSummary = useMemo(() => {
     const out = { total: runCards.length, running: 0, done: 0, error: 0, stopped: 0 };
@@ -3637,6 +3646,19 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <input
+                    className="input"
+                    style={{ maxWidth: 360 }}
+                    value={tenantCustomValuesSearch}
+                    onChange={(e) => {
+                      setTenantCustomValuesSearch(e.target.value);
+                      setTenantCustomValuesPage(1);
+                    }}
+                    placeholder="Search custom values..."
+                  />
+                  <span className="badge">{tenantCustomValuesFiltered.length} results</span>
+                </div>
               </div>
 
               <div className="tableWrap detailsCustomTableWrap" style={{ marginTop: 12 }}>
@@ -3655,11 +3677,13 @@ export default function Home() {
                           <span className="mini">Loading custom values template...</span>
                         </td>
                       </tr>
-                    ) : tenantCustomValues.length === 0 ? (
+                    ) : tenantCustomValuesFiltered.length === 0 ? (
                       <tr>
                         <td className="td" colSpan={3}>
                           <span className="mini">
-                            No rows found. Use <b>Sync from Snapshot Location</b> first.
+                            {tenantCustomValues.length === 0
+                              ? <>No rows found. Use <b>Sync from Snapshot Location</b> first.</>
+                              : <>No matches found for current search.</>}
                           </span>
                         </td>
                       </tr>
@@ -3697,7 +3721,7 @@ export default function Home() {
                     )}
                   </tbody>
                 </table>
-                {tenantCustomValues.length > tenantCustomValuesPageSize ? (
+                {tenantCustomValuesFiltered.length > tenantCustomValuesPageSize ? (
                   <div
                     style={{
                       display: "flex",
@@ -3710,15 +3734,15 @@ export default function Home() {
                     <div className="mini">
                       Showing{" "}
                       {Math.min(
-                        tenantCustomValues.length,
+                        tenantCustomValuesFiltered.length,
                         (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize + 1,
                       )}{" "}
                       to{" "}
                       {Math.min(
-                        tenantCustomValues.length,
+                        tenantCustomValuesFiltered.length,
                         tenantCustomValuesPageSafe * tenantCustomValuesPageSize,
                       )}{" "}
-                      of {tenantCustomValues.length}
+                      of {tenantCustomValuesFiltered.length}
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
