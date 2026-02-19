@@ -479,7 +479,7 @@ export async function POST(req: Request) {
       alerts: {
         adsWebhookUrl: adsAlertWebhookUrl,
         adsSmsEnabled: adsAlertSmsEnabled,
-        adsSmsTo,
+        adsSmsTo: adsAlertSmsTo,
       },
       google: {
         cloudProjectId: googleCloudProjectId,
