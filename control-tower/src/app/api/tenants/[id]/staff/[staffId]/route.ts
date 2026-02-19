@@ -14,6 +14,7 @@ type Ctx = { params: Promise<{ id: string; staffId: string }> };
 type StaffPatchBody = {
   fullName?: string;
   email?: string;
+  phone?: string;
   role?:
     | "owner"
     | "admin"
@@ -42,8 +43,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
+  const phone = s(body.phone);
   const role = s(body.role).toLowerCase();
   const status = s(body.status).toLowerCase();
+
+  if (!phone) {
+    return NextResponse.json({ ok: false, error: "phone is required" }, { status: 400 });
+  }
 
   const set: string[] = [];
   const vals: unknown[] = [tenantId, memberId];
@@ -55,6 +61,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
     vals.push(email);
     set.push(`email = $${vals.length}`);
   }
+  vals.push(phone);
+  set.push(`phone = $${vals.length}`);
   if (role) {
     vals.push(role);
     set.push(`role = $${vals.length}`);
@@ -94,7 +102,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       action: "staff.update",
       entityType: "staff",
       entityId: memberId,
-      payload: { fullName, email, role, status },
+      payload: { fullName, email, phone, role, status },
     });
 
     await client.query("COMMIT");

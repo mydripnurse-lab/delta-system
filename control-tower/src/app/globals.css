@@ -5224,6 +5224,44 @@ button, input, select { font-family: inherit; }
   gap: 10px;
 }
 
+.agencyScopeTabs {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(148,163,184,0.22);
+  border-radius: 999px;
+  background: rgba(15,23,42,0.28);
+}
+
+.agencyScopeTab {
+  border: 1px solid rgba(148,163,184,0.22);
+  background: rgba(255,255,255,0.03);
+  color: rgba(241,245,249,0.92);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, transform .12s ease;
+}
+
+.agencyScopeTab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(148,163,184,0.38);
+}
+
+.agencyScopeTabActive {
+  border-color: rgba(96,165,250,0.52);
+  background: rgba(59,130,246,0.16);
+}
+
+.agencyIntegrationsToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .agencyRoleCard {
   border: 1px solid rgba(148,163,184,0.24);
   border-radius: 14px;
@@ -5620,6 +5658,13 @@ button, input, select { font-family: inherit; }
 
 .agencyTenantTable tbody tr:hover {
   background: rgba(148,163,184,0.06);
+}
+
+.agencyTenantTable td[title] {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .agencyTenantTable th,
@@ -6495,5 +6540,14 @@ button, input, select { font-family: inherit; }
 
   .agencyRoleOnboarding {
     grid-template-columns: 1fr;
+  }
+
+  .agencyIntegrationsToolbar {
+    width: 100%;
+  }
+
+  .agencyScopeTabs {
+    width: 100%;
+    justify-content: space-between;
   }
 }

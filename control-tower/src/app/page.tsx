@@ -75,14 +75,22 @@ type TenantIntegration = {
   id: string;
   provider: string;
   integration_key: string;
+  integrationKey?: string;
   status: string;
   auth_type?: string | null;
+  authType?: string | null;
   external_account_id?: string | null;
+  externalAccountId?: string | null;
   external_property_id?: string | null;
+  externalPropertyId?: string | null;
   config?: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
   scopes?: string[] | null;
   last_sync_at?: string | null;
+  lastSyncAt?: string | null;
   last_error?: string | null;
+  lastError?: string | null;
+  display_name?: string;
 };
 
 type TenantDetailResponse = {
@@ -98,6 +106,7 @@ type TenantStaffRow = {
   organizationId: string;
   fullName: string;
   email: string;
+  phone: string;
   role: "owner" | "admin" | "analyst" | "viewer";
   status: "active" | "invited" | "disabled";
   invitedAt?: string | null;
@@ -331,6 +340,7 @@ export default function AgencyHomePage() {
   const [manageAuditLoading, setManageAuditLoading] = useState(false);
   const [newStaffFullName, setNewStaffFullName] = useState("");
   const [newStaffEmail, setNewStaffEmail] = useState("");
+  const [newStaffPhone, setNewStaffPhone] = useState("");
   const [newStaffRole, setNewStaffRole] = useState<TenantStaffRow["role"]>("viewer");
   const [newStaffStatus, setNewStaffStatus] = useState<TenantStaffRow["status"]>("invited");
   const [agencyStaffRows, setAgencyStaffRows] = useState<AgencyStaffRow[]>([]);
@@ -340,10 +350,12 @@ export default function AgencyHomePage() {
   const [agencyStaffErr, setAgencyStaffErr] = useState("");
   const [agencyStaffOk, setAgencyStaffOk] = useState("");
   const [agencyStaffSearch, setAgencyStaffSearch] = useState("");
+  const [staffScopeTab, setStaffScopeTab] = useState<"agency" | "projects">("agency");
   const [agencyStaffPage, setAgencyStaffPage] = useState(1);
   const [agencyNewStaffTenantId, setAgencyNewStaffTenantId] = useState("");
   const [agencyNewStaffFullName, setAgencyNewStaffFullName] = useState("");
   const [agencyNewStaffEmail, setAgencyNewStaffEmail] = useState("");
+  const [agencyNewStaffPhone, setAgencyNewStaffPhone] = useState("");
   const [agencyNewStaffRole, setAgencyNewStaffRole] = useState<TenantStaffRow["role"]>("viewer");
   const [agencyNewStaffStatus, setAgencyNewStaffStatus] = useState<TenantStaffRow["status"]>("invited");
   const [integrationsTenantId, setIntegrationsTenantId] = useState("");
@@ -429,6 +441,35 @@ export default function AgencyHomePage() {
     } catch {
       return { error: `Non-JSON response (${res.status})`, raw: text.slice(0, 400) };
     }
+  }
+
+  function normalizeIntegrationRow(raw: TenantIntegration): TenantIntegration {
+    const metadata =
+      raw.metadata && typeof raw.metadata === "object" && !Array.isArray(raw.metadata)
+        ? (raw.metadata as Record<string, unknown>)
+        : {};
+    const config =
+      raw.config && typeof raw.config === "object" && !Array.isArray(raw.config)
+        ? (raw.config as Record<string, unknown>)
+        : {};
+    const displayName =
+      s(metadata.displayName) ||
+      s(metadata.name) ||
+      s(config.displayName) ||
+      s(config.name) ||
+      `${s(raw.provider)}:${s(raw.integration_key || raw.integrationKey)}`;
+    return {
+      ...raw,
+      integration_key: s(raw.integration_key || raw.integrationKey),
+      auth_type: s(raw.auth_type || raw.authType) || null,
+      external_account_id: s(raw.external_account_id || raw.externalAccountId) || null,
+      external_property_id: s(raw.external_property_id || raw.externalPropertyId) || null,
+      last_sync_at: s(raw.last_sync_at || raw.lastSyncAt) || null,
+      last_error: s(raw.last_error || raw.lastError) || null,
+      metadata,
+      config,
+      display_name: displayName,
+    };
   }
 
   function openConfirm(opts: {
@@ -622,7 +663,9 @@ export default function AgencyHomePage() {
       if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setProfileOk("Profile updated.");
       await loadAuthMe();
-      await loadAgencyUsers();
+      if (activeMenu === "staff" && agencyUsersLoadedOnce) {
+        await loadAgencyUsers();
+      }
     } catch (error: unknown) {
       setProfileErr(error instanceof Error ? error.message : "Failed to update profile");
     } finally {
@@ -947,7 +990,7 @@ export default function AgencyHomePage() {
     const q = s(agencyStaffSearch).toLowerCase();
     if (!q) return agencyStaffRows;
     return agencyStaffRows.filter((row) =>
-      [row.fullName, row.email, row.role, row.status, row.tenantName]
+      [row.fullName, row.email, row.phone, row.role, row.status, row.tenantName]
         .map(s)
         .join(" ")
         .toLowerCase()
@@ -1100,6 +1143,7 @@ export default function AgencyHomePage() {
     setManageAuditLoading(false);
     setNewStaffFullName("");
     setNewStaffEmail("");
+    setNewStaffPhone("");
     setNewStaffRole("viewer");
     setNewStaffStatus("invited");
   }
@@ -1353,8 +1397,8 @@ export default function AgencyHomePage() {
 
   async function createStaffMember() {
     if (!s(manageTenantId)) return;
-    if (!s(newStaffFullName) || !s(newStaffEmail)) {
-      setManageErr("Staff full name and email are required.");
+    if (!s(newStaffFullName) || !s(newStaffEmail) || !s(newStaffPhone)) {
+      setManageErr("Staff full name, email and phone are required.");
       return;
     }
     setManageStaffBusy(true);
@@ -1367,6 +1411,7 @@ export default function AgencyHomePage() {
         body: JSON.stringify({
           fullName: s(newStaffFullName),
           email: s(newStaffEmail),
+          phone: s(newStaffPhone),
           role: newStaffRole,
           status: newStaffStatus,
         }),
@@ -1377,6 +1422,7 @@ export default function AgencyHomePage() {
       }
       setNewStaffFullName("");
       setNewStaffEmail("");
+      setNewStaffPhone("");
       setNewStaffRole("viewer");
       setNewStaffStatus("invited");
       setManageOk("Staff member created.");
@@ -1401,6 +1447,7 @@ export default function AgencyHomePage() {
         body: JSON.stringify({
           fullName: s(row.fullName),
           email: s(row.email),
+          phone: s(row.phone),
           role: row.role,
           status: row.status,
         }),
@@ -1503,8 +1550,8 @@ export default function AgencyHomePage() {
       setAgencyStaffErr("Select a project first.");
       return;
     }
-    if (!s(agencyNewStaffFullName) || !s(agencyNewStaffEmail)) {
-      setAgencyStaffErr("Staff full name and email are required.");
+    if (!s(agencyNewStaffFullName) || !s(agencyNewStaffEmail) || !s(agencyNewStaffPhone)) {
+      setAgencyStaffErr("Staff full name, email and phone are required.");
       return;
     }
     setAgencyStaffBusy(true);
@@ -1517,6 +1564,7 @@ export default function AgencyHomePage() {
         body: JSON.stringify({
           fullName: s(agencyNewStaffFullName),
           email: s(agencyNewStaffEmail),
+          phone: s(agencyNewStaffPhone),
           role: agencyNewStaffRole,
           status: agencyNewStaffStatus,
         }),
@@ -1527,6 +1575,7 @@ export default function AgencyHomePage() {
       }
       setAgencyNewStaffFullName("");
       setAgencyNewStaffEmail("");
+      setAgencyNewStaffPhone("");
       setAgencyNewStaffRole("viewer");
       setAgencyNewStaffStatus("invited");
       setAgencyStaffOk("Staff member created.");
@@ -1550,6 +1599,7 @@ export default function AgencyHomePage() {
         body: JSON.stringify({
           fullName: s(row.fullName),
           email: s(row.email),
+          phone: s(row.phone),
           role: row.role,
           status: row.status,
         }),
@@ -1599,7 +1649,8 @@ export default function AgencyHomePage() {
       if (!res.ok || !data?.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setIntegrationsRows(Array.isArray(data.rows) ? data.rows : []);
+      const rows = Array.isArray(data.rows) ? data.rows.map(normalizeIntegrationRow) : [];
+      setIntegrationsRows(rows);
     } catch (error: unknown) {
       setIntegrationsErr(error instanceof Error ? error.message : "Failed to load integrations");
       setIntegrationsRows([]);
@@ -1620,11 +1671,16 @@ export default function AgencyHomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: s(row.id),
+          integrationKey: s(row.integration_key),
           status: s(row.status),
           authType: s(row.auth_type),
           externalAccountId: s(row.external_account_id),
           externalPropertyId: s(row.external_property_id),
           lastError: s(row.last_error),
+          metadata: {
+            ...((row.metadata && typeof row.metadata === "object") ? row.metadata : {}),
+            displayName: s(row.display_name),
+          },
         }),
       });
       const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
@@ -2268,6 +2324,24 @@ export default function AgencyHomePage() {
               </div>
             </div>
 
+            <div className="agencyScopeTabs">
+              <button
+                type="button"
+                className={staffScopeTab === "agency" ? "agencyScopeTab agencyScopeTabActive" : "agencyScopeTab"}
+                onClick={() => setStaffScopeTab("agency")}
+              >
+                Agency
+              </button>
+              <button
+                type="button"
+                className={staffScopeTab === "projects" ? "agencyScopeTab agencyScopeTabActive" : "agencyScopeTab"}
+                onClick={() => setStaffScopeTab("projects")}
+              >
+                Projects
+              </button>
+            </div>
+
+            {staffScopeTab === "agency" ? (
             <section className="agencyRoleOnboarding">
               <article className="agencyRoleCard">
                 <h4>Agency Scope</h4>
@@ -2298,7 +2372,9 @@ export default function AgencyHomePage() {
                 </div>
               </article>
             </section>
+            ) : null}
 
+            {staffScopeTab === "agency" ? (
             <div className="agencyDangerBox agencyStaffCreateBox">
               <h4>Agency Accounts</h4>
               <p className="mini">Usuarios globales del agency. Aquí puedes editar tu cuenta y borrar cuentas creadas.</p>
@@ -2343,7 +2419,9 @@ export default function AgencyHomePage() {
                 </button>
               </div>
             </div>
+            ) : null}
 
+            {staffScopeTab === "agency" ? (
             <div className="agencySearchRow">
               <input
                 className="input"
@@ -2352,9 +2430,11 @@ export default function AgencyHomePage() {
                 onChange={(e) => setAgencyUsersSearch(e.target.value)}
               />
             </div>
-            {agencyUsersErr ? <div className="errorText">{agencyUsersErr}</div> : null}
-            {agencyUsersOk ? <div className="okText">{agencyUsersOk}</div> : null}
+            ) : null}
+            {staffScopeTab === "agency" ? <>{agencyUsersErr ? <div className="errorText">{agencyUsersErr}</div> : null}</> : null}
+            {staffScopeTab === "agency" ? <>{agencyUsersOk ? <div className="okText">{agencyUsersOk}</div> : null}</> : null}
 
+            {staffScopeTab === "agency" ? (
             <div className="agencyTenantTableWrap">
               <table className="agencyTenantTable">
                 <thead>
@@ -2478,6 +2558,8 @@ export default function AgencyHomePage() {
                 </tbody>
               </table>
             </div>
+            ) : null}
+            {staffScopeTab === "agency" ? (
             <div className="agencyTableFooter">
               <div className="mini">
                 Showing {filteredAgencyUsers.length === 0 ? 0 : (agencyUsersCurrentPage - 1) * TABLE_PAGE_SIZE + 1}
@@ -2494,7 +2576,9 @@ export default function AgencyHomePage() {
                 </button>
               </div>
             </div>
+            ) : null}
 
+            {staffScopeTab === "projects" ? (
             <div className="agencyDangerBox agencyStaffCreateBox">
               <h4>Add staff member</h4>
               <div className="agencyWizardGrid agencyWizardGridFour">
@@ -2516,6 +2600,12 @@ export default function AgencyHomePage() {
                   value={agencyNewStaffEmail}
                   onChange={(e) => setAgencyNewStaffEmail(e.target.value)}
                 />
+                <input
+                  className="input"
+                  placeholder="Phone"
+                  value={agencyNewStaffPhone}
+                  onChange={(e) => setAgencyNewStaffPhone(e.target.value)}
+                />
                 <select className="input" value={agencyNewStaffRole} onChange={(e) => setAgencyNewStaffRole(e.target.value as TenantStaffRow["role"])}>
                   {STAFF_ROLE_OPTIONS.map((role) => (
                     <option key={role} value={role}>{role}</option>
@@ -2531,9 +2621,14 @@ export default function AgencyHomePage() {
                 <button type="button" className="btnPrimary" disabled={agencyStaffBusy} onClick={() => void createAgencyStaffMember()}>
                   {agencyStaffBusy ? "Creating..." : "Add staff"}
                 </button>
+                <button type="button" className="btnGhost" disabled={agencyStaffLoading} onClick={() => void loadAgencyStaff()}>
+                  {agencyStaffLoading ? "Loading..." : "Refresh project staff"}
+                </button>
               </div>
             </div>
+            ) : null}
 
+            {staffScopeTab === "projects" ? (
             <div className="agencySearchRow">
               <input
                 className="input"
@@ -2542,10 +2637,12 @@ export default function AgencyHomePage() {
                 onChange={(e) => setAgencyStaffSearch(e.target.value)}
               />
             </div>
+            ) : null}
 
-            {agencyStaffErr ? <div className="errorText">{agencyStaffErr}</div> : null}
-            {agencyStaffOk ? <div className="okText">{agencyStaffOk}</div> : null}
+            {staffScopeTab === "projects" ? <>{agencyStaffErr ? <div className="errorText">{agencyStaffErr}</div> : null}</> : null}
+            {staffScopeTab === "projects" ? <>{agencyStaffOk ? <div className="okText">{agencyStaffOk}</div> : null}</> : null}
 
+            {staffScopeTab === "projects" ? (
             <div className="agencyTenantTableWrap">
               <table className="agencyTenantTable">
                 <thead>
@@ -2553,6 +2650,7 @@ export default function AgencyHomePage() {
                     <th>Project</th>
                     <th>Name</th>
                     <th>Email</th>
+                    <th>Phone</th>
                     <th>Role</th>
                     <th>Status</th>
                     <th>Invited</th>
@@ -2563,11 +2661,11 @@ export default function AgencyHomePage() {
                 <tbody>
                   {agencyStaffLoading ? (
                     <tr>
-                      <td colSpan={8}>Loading staff...</td>
+                      <td colSpan={9}>Loading staff...</td>
                     </tr>
                   ) : filteredAgencyStaff.length === 0 ? (
                     <tr>
-                      <td colSpan={8}>No staff members yet.</td>
+                      <td colSpan={9}>No staff members yet.</td>
                     </tr>
                   ) : (
                     pagedAgencyStaff.map((row) => (
@@ -2596,6 +2694,20 @@ export default function AgencyHomePage() {
                               setAgencyStaffRows((prev) =>
                                 prev.map((it) =>
                                   it.tenantId === row.tenantId && it.id === row.id ? { ...it, email: value } : it,
+                                ),
+                              );
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.phone)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setAgencyStaffRows((prev) =>
+                                prev.map((it) =>
+                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, phone: value } : it,
                                 ),
                               );
                             }}
@@ -2678,6 +2790,8 @@ export default function AgencyHomePage() {
                 </tbody>
               </table>
             </div>
+            ) : null}
+            {staffScopeTab === "projects" ? (
             <div className="agencyTableFooter">
               <div className="mini">
                 Showing {filteredAgencyStaff.length === 0 ? 0 : (agencyStaffCurrentPage - 1) * TABLE_PAGE_SIZE + 1}
@@ -2694,6 +2808,7 @@ export default function AgencyHomePage() {
                 </button>
               </div>
             </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -2702,9 +2817,9 @@ export default function AgencyHomePage() {
             <div className="agencyProjectsHeader">
               <div>
                 <h2>Integrations</h2>
-                <p>Gestiona estado y credenciales base por integración.</p>
+                <p>Gestiona conexiones con nombre identificable, estado y metadata técnica completa.</p>
               </div>
-              <div className="agencyTopActions agencyTopActionsMinimal">
+              <div className="agencyIntegrationsToolbar">
                 <select className="input agencyTenantSelect" value={integrationsTenantId} onChange={(e) => setIntegrationsTenantId(e.target.value)}>
                   {tenantRows.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
@@ -2713,6 +2828,7 @@ export default function AgencyHomePage() {
                 <button type="button" className="btnGhost" disabled={integrationsLoading} onClick={() => void loadIntegrationsForTenant(integrationsTenantId)}>
                   {integrationsLoading ? "Loading..." : "Refresh"}
                 </button>
+                <span className="agencyPill">Rows: {integrationsRows.length}</span>
               </div>
             </div>
             {integrationsErr ? <div className="errorText">{integrationsErr}</div> : null}
@@ -2721,23 +2837,36 @@ export default function AgencyHomePage() {
               <table className="agencyTenantTable">
                 <thead>
                   <tr>
+                    <th>Name</th>
                     <th>Provider</th>
                     <th>Key</th>
                     <th>Status</th>
                     <th>Auth</th>
                     <th>Account</th>
                     <th>Property</th>
-                    <th>Actions</th>
+                    <th>Last Sync</th>
+                    <th>Last Error</th>
+                    <th className="agencyStickyCol">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {integrationsLoading ? (
-                    <tr><td colSpan={7}>Loading integrations...</td></tr>
+                    <tr><td colSpan={10}>Loading integrations...</td></tr>
                   ) : integrationsRows.length === 0 ? (
-                    <tr><td colSpan={7}>No integrations found.</td></tr>
+                    <tr><td colSpan={10}>No integrations found.</td></tr>
                   ) : (
                     integrationsRows.map((row) => (
                       <tr key={row.id}>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.display_name)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, display_name: value } : it)));
+                            }}
+                          />
+                        </td>
                         <td>{s(row.provider)}</td>
                         <td>{s(row.integration_key)}</td>
                         <td>
@@ -2784,7 +2913,9 @@ export default function AgencyHomePage() {
                             }}
                           />
                         </td>
-                        <td>
+                        <td>{s(row.last_sync_at) ? new Date(s(row.last_sync_at)).toLocaleString() : "—"}</td>
+                        <td title={s(row.last_error)}>{s(row.last_error) || "—"}</td>
+                        <td className="agencyStickyCol">
                           <button
                             type="button"
                             className="btnGhost"
@@ -3081,14 +3212,7 @@ export default function AgencyHomePage() {
                   type="button"
                   className="btnPrimary"
                   disabled={profileBusy}
-                  onClick={() =>
-                    openConfirm({
-                      title: "Save profile changes?",
-                      description: "This updates your account name and email.",
-                      confirmLabel: "Save",
-                      onConfirm: () => saveProfile(),
-                    })
-                  }
+                  onClick={() => void saveProfile()}
                 >
                   {profileBusy ? "Saving..." : "Save profile"}
                 </button>
@@ -3929,6 +4053,12 @@ export default function AgencyHomePage() {
                       value={newStaffEmail}
                       onChange={(e) => setNewStaffEmail(e.target.value)}
                     />
+                    <input
+                      className="input"
+                      placeholder="Phone"
+                      value={newStaffPhone}
+                      onChange={(e) => setNewStaffPhone(e.target.value)}
+                    />
                     <select className="input" value={newStaffRole} onChange={(e) => setNewStaffRole(e.target.value as TenantStaffRow["role"])}>
                       {STAFF_ROLE_OPTIONS.map((role) => (
                         <option key={role} value={role}>{role}</option>
@@ -3956,6 +4086,7 @@ export default function AgencyHomePage() {
                       <tr>
                         <th>Name</th>
                         <th>Email</th>
+                        <th>Phone</th>
                         <th>Role</th>
                         <th>Status</th>
                         <th>Invited</th>
@@ -3966,11 +4097,11 @@ export default function AgencyHomePage() {
                     <tbody>
                       {manageStaffLoading ? (
                         <tr>
-                          <td colSpan={7}>Loading staff...</td>
+                          <td colSpan={8}>Loading staff...</td>
                         </tr>
                       ) : manageStaffRows.length === 0 ? (
                         <tr>
-                          <td colSpan={7}>No staff members yet.</td>
+                          <td colSpan={8}>No staff members yet.</td>
                         </tr>
                       ) : (
                         manageStaffRows.map((row) => (
@@ -3995,6 +4126,18 @@ export default function AgencyHomePage() {
                                   const value = e.target.value;
                                   setManageStaffRows((prev) =>
                                     prev.map((it) => (it.id === row.id ? { ...it, email: value } : it)),
+                                  );
+                                }}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="input"
+                                value={s(row.phone)}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  setManageStaffRows((prev) =>
+                                    prev.map((it) => (it.id === row.id ? { ...it, phone: value } : it)),
                                   );
                                 }}
                               />

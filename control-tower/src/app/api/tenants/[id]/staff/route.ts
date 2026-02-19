@@ -14,6 +14,7 @@ type Ctx = { params: Promise<{ id: string }> };
 type StaffBody = {
   fullName?: string;
   email?: string;
+  phone?: string;
   role?:
     | "owner"
     | "admin"
@@ -51,6 +52,7 @@ export async function GET(_req: Request, ctx: Ctx) {
         organization_id as "organizationId",
         full_name as "fullName",
         email,
+        phone,
         role,
         status,
         invited_at as "invitedAt",
@@ -83,11 +85,12 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
+  const phone = s(body.phone);
   const role = s(body.role || "viewer").toLowerCase();
   const status = s(body.status || "invited").toLowerCase();
 
-  if (!fullName || !email) {
-    return NextResponse.json({ ok: false, error: "fullName and email are required" }, { status: 400 });
+  if (!fullName || !email || !phone) {
+    return NextResponse.json({ ok: false, error: "fullName, email and phone are required" }, { status: 400 });
   }
 
   const pool = getDbPool();
@@ -97,12 +100,12 @@ export async function POST(req: Request, ctx: Ctx) {
     const q = await client.query<{ id: string }>(
       `
         insert into app.organization_staff (
-          organization_id, full_name, email, role, status, invited_at
+          organization_id, full_name, email, phone, role, status, invited_at
         )
-        values ($1, $2, $3, $4, $5, case when $5 = 'invited' then now() else null end)
+        values ($1, $2, $3, $4, $5, $6, case when $6 = 'invited' then now() else null end)
         returning id
       `,
-      [tenantId, fullName, email, role, status],
+      [tenantId, fullName, email, phone, role, status],
     );
 
     await writeAuditLog(client, {
@@ -112,7 +115,7 @@ export async function POST(req: Request, ctx: Ctx) {
       action: "staff.create",
       entityType: "staff",
       entityId: q.rows[0]?.id || null,
-      payload: { fullName, email, role, status },
+      payload: { fullName, email, phone, role, status },
     });
 
     await client.query("COMMIT");
@@ -121,6 +124,7 @@ export async function POST(req: Request, ctx: Ctx) {
       id: q.rows[0]?.id || null,
       fullName,
       email,
+      phone,
       role,
       status,
     });
