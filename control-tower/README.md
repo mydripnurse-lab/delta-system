@@ -105,7 +105,7 @@ Incluye tambien auth de password (migracion `013_user_password_auth.sql`).
 
 - `GET /api/auth/me`: devuelve usuario actual + tenants/proyectos accesibles
 - `POST /api/auth/login`: crea sesion por `email + password` y setea cookie
-- `POST /api/auth/register`: crea usuario (`email + password`) si `AUTH_ALLOW_SELF_SIGNUP=1`
+- `POST /api/auth/register`: actualmente deshabilitado (siempre `403`)
 - `POST /api/auth/logout`: cierra sesion (borra cookie)
 - `POST /api/auth/bootstrap-admin`: crea/actualiza el primer admin (requiere `AUTH_BOOTSTRAP_TOKEN`)
 - `GET|POST /api/tenants/:id/projects`: lista o crea proyectos del tenant

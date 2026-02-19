@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { requireTenantPermission } from "@/lib/authz";
+import { isLegacyDynamicCustomValueName } from "@/lib/ghlCustomValuesRules";
 
 export const runtime = "nodejs";
 
@@ -95,8 +96,16 @@ export async function GET(req: Request, ctx: Ctx) {
     `,
     vals,
   );
+  let rows = q.rows;
+  if (
+    s(provider).toLowerCase() === "ghl" &&
+    s(scope).toLowerCase() === "module" &&
+    s(moduleName).toLowerCase() === "custom_values"
+  ) {
+    rows = rows.filter((r: any) => !isLegacyDynamicCustomValueName(r?.keyName));
+  }
 
-  return NextResponse.json({ ok: true, total: q.rowCount ?? 0, rows: q.rows });
+  return NextResponse.json({ ok: true, total: rows.length, rows });
 }
 
 export async function POST(req: Request, ctx: Ctx) {
@@ -134,6 +143,7 @@ export async function POST(req: Request, ctx: Ctx) {
   try {
     await client.query("BEGIN");
     let upserted = 0;
+    let skippedDynamic = 0;
 
     for (const row of rows) {
       const provider = s(row.provider) || "ghl";
@@ -148,6 +158,15 @@ export async function POST(req: Request, ctx: Ctx) {
 
       if (!keyName) {
         throw new Error("Each row requires keyName");
+      }
+      if (
+        provider.toLowerCase() === "ghl" &&
+        scope.toLowerCase() === "module" &&
+        moduleName.toLowerCase() === "custom_values" &&
+        isLegacyDynamicCustomValueName(keyName)
+      ) {
+        skippedDynamic += 1;
+        continue;
       }
 
       await client.query(
@@ -172,7 +191,7 @@ export async function POST(req: Request, ctx: Ctx) {
     }
 
     await client.query("COMMIT");
-    return NextResponse.json({ ok: true, upserted });
+    return NextResponse.json({ ok: true, upserted, skippedDynamic });
   } catch (error: unknown) {
     await client.query("ROLLBACK");
     const message = error instanceof Error ? error.message : "Failed to upsert custom values";

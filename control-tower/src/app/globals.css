@@ -5076,6 +5076,87 @@ button, input, select { font-family: inherit; }
   color: rgba(191,219,254,0.98);
 }
 
+.detailsTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.025));
+}
+
+.detailsTabBtn {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.02);
+  color: rgba(227,235,247,0.9);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.08s ease;
+}
+
+.detailsTabBtn:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.detailsTabBtn:active {
+  transform: translateY(1px);
+}
+
+.detailsTabBtnOn {
+  border-color: rgba(96,165,250,0.48);
+  background: linear-gradient(180deg, rgba(96,165,250,0.24), rgba(96,165,250,0.12));
+  color: rgba(216,233,255,0.98);
+}
+
+.detailsPane {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(500px 220px at 15% -30%, rgba(96,165,250,0.08), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+}
+
+.detailsPaneHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.detailsPaneTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(241,246,255,0.96);
+}
+
+.detailsPaneSub {
+  font-size: 12px;
+  color: rgba(210,220,236,0.72);
+}
+
+.detailsIntegrationsActions {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 760px) {
+  .detailsTabs {
+    gap: 6px;
+  }
+  .detailsTabBtn {
+    width: 100%;
+    text-align: left;
+  }
+}
+
 .agencyProjectsCard {
   border: 1px solid var(--line);
   border-radius: 18px;

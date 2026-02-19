@@ -135,6 +135,11 @@
   color: #ffffff;
 }
 
+.tabDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .form {
   display: grid;
   gap: 11px;
@@ -226,4 +231,3 @@
     padding: 18px;
   }
 }
-

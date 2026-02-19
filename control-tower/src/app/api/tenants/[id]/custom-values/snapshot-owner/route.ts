@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { requireTenantPermission } from "@/lib/authz";
 import { getAgencyAccessTokenOrThrow, getEffectiveCompanyIdOrThrow } from "@/lib/ghlHttp";
+import { isLegacyDynamicCustomValueName } from "@/lib/ghlCustomValuesRules";
 
 export const runtime = "nodejs";
 
@@ -120,13 +121,15 @@ export async function POST(req: Request, ctx: Ctx) {
       .filter(Boolean);
 
     const uniqueNames = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+    const filteredNames = uniqueNames.filter((name) => !isLegacyDynamicCustomValueName(name));
+    const skippedDynamic = uniqueNames.length - filteredNames.length;
     const pool = getDbPool();
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
       let inserted = 0;
       let touched = 0;
-      for (const name of uniqueNames) {
+      for (const name of filteredNames) {
         const q = await client.query<{ inserted: boolean }>(
           `
             insert into app.organization_custom_values (
@@ -150,6 +153,8 @@ export async function POST(req: Request, ctx: Ctx) {
         ok: true,
         ownerLocationId,
         totalFromOwner: uniqueNames.length,
+        totalAfterFilter: filteredNames.length,
+        skippedDynamic,
         touched,
         inserted,
       });
@@ -164,4 +169,3 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
-

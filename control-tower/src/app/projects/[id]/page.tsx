@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 const JOBS = [
   { key: "build-sheet-rows", label: "Create DB" },
@@ -122,6 +122,7 @@ type TenantDetailResponse = {
 };
 
 type ProjectTab = "runner" | "sheet" | "activation" | "logs" | "details";
+type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values";
 
 type StateDetailResponse = {
   state: string;
@@ -413,8 +414,10 @@ function normalizePct(raw: any): number | null {
 
 export default function Home() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const routeTenantId = s(params?.id || "");
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>("runner");
+  const [detailsTab, setDetailsTab] = useState<ProjectDetailsTab>("business");
   const [tenantSummary, setTenantSummary] = useState<TenantSummary | null>(
     null,
   );
@@ -939,7 +942,7 @@ export default function Home() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ locId: s(actLocId) }),
+          body: JSON.stringify({ locId: s(actLocId), kind: s(actKind) || undefined }),
         },
       );
       const data = await safeJson(res);
@@ -959,6 +962,14 @@ export default function Home() {
   useEffect(() => {
     void loadTenantCustomValues();
   }, [routeTenantId]);
+
+  useEffect(() => {
+    const tab = s(searchParams?.get("detailsTab")).toLowerCase();
+    if (tab === "business" || tab === "ghl" || tab === "integrations" || tab === "custom_values") {
+      setDetailsTab(tab as ProjectDetailsTab);
+      if (tab && activeProjectTab !== "details") setActiveProjectTab("details");
+    }
+  }, [searchParams, activeProjectTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1870,7 +1881,7 @@ export default function Home() {
 
     try {
       const domainUrlForDns = s(toUrlMaybe(actDomainToPaste));
-      if (routeTenantId && domainUrlForDns) {
+      if (!actIsActive && routeTenantId && domainUrlForDns) {
         const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1885,6 +1896,8 @@ export default function Home() {
         if (!dnsRes.ok || !(dnsData as any)?.ok) {
           throw new Error((dnsData as any)?.error || `Cloudflare create failed (HTTP ${dnsRes.status})`);
         }
+        setActDnsReady(true);
+      } else if (actIsActive) {
         setActDnsReady(true);
       }
 
@@ -3300,151 +3313,205 @@ export default function Home() {
             </div>
           ) : null}
 
-          <div className="row">
-            <div className="field">
-              <label>Project name</label>
-              <input className="input" value={tenantName} onChange={(e) => setTenantName(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Slug</label>
-              <input className="input" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Status</label>
-              <select className="select" value={tenantStatus} onChange={(e) => setTenantStatus(e.target.value === "disabled" ? "disabled" : "active")}>
-                <option value="active">Active</option>
-                <option value="disabled">Disabled</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>Root domain</label>
-              <input className="input" value={tenantRootDomain} onChange={(e) => setTenantRootDomain(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Timezone</label>
-              <input className="input" value={tenantTimezone} onChange={(e) => setTenantTimezone(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Cloudflare CNAME target</label>
-              <input
-                className="input"
-                value={tenantCloudflareCnameTarget}
-                onChange={(e) => setTenantCloudflareCnameTarget(e.target.value)}
-                placeholder="sites.ludicrous.cloud"
-              />
-            </div>
-            <div className="field">
-              <label>Cloudflare API token</label>
-              <input
-                className="input"
-                type="password"
-                value={tenantCloudflareApiToken}
-                onChange={(e) => setTenantCloudflareApiToken(e.target.value)}
-                placeholder={
-                  tenantCloudflareHasToken
-                    ? "Token saved. Enter a new token only if you want to rotate it."
-                    : "cf_api_token..."
-                }
-              />
-            </div>
-            <div className="field">
-              <label>Locale</label>
-              <input className="input" value={tenantLocale} onChange={(e) => setTenantLocale(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Currency</label>
-              <input className="input" value={tenantCurrency} onChange={(e) => setTenantCurrency(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Owner Location ID</label>
-              <input className="input" value={tenantOwnerLocationId} onChange={(e) => setTenantOwnerLocationId(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Company ID (GHL)</label>
-              <input className="input" value={tenantCompanyId} onChange={(e) => setTenantCompanyId(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Owner first name</label>
-              <input className="input" value={tenantOwnerFirstName} onChange={(e) => setTenantOwnerFirstName(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Owner last name</label>
-              <input className="input" value={tenantOwnerLastName} onChange={(e) => setTenantOwnerLastName(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Owner email</label>
-              <input className="input" value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Owner phone</label>
-              <input className="input" value={tenantOwnerPhone} onChange={(e) => setTenantOwnerPhone(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Logo URL</label>
-              <input className="input" value={tenantLogoUrl} onChange={(e) => setTenantLogoUrl(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Ads Alerts Enabled</label>
-              <select
-                className="select"
-                value={tenantAdsAlertsEnabled ? "enabled" : "disabled"}
-                onChange={(e) => setTenantAdsAlertsEnabled(e.target.value === "enabled")}
-              >
-                <option value="enabled">Enabled</option>
-                <option value="disabled">Disabled</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>GHL Webhook Ads Notification</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  className="input"
-                  value={tenantAdsAlertWebhookUrl}
-                  onChange={(e) => setTenantAdsAlertWebhookUrl(e.target.value)}
-                  placeholder="https://services.leadconnectorhq.com/hooks/..."
-                />
-                <button
-                  type="button"
-                  className="smallBtn"
-                  disabled={tenantAdsSampleBusy || !routeTenantId}
-                  onClick={() => void sendProjectAdsWebhookSample()}
-                >
-                  {tenantAdsSampleBusy ? "Sending..." : "Send sample"}
-                </button>
-              </div>
-            </div>
-            <div className="field">
-              <label>Enable SMS signal to GHL</label>
-              <select
-                className="select"
-                value={tenantAdsAlertSmsEnabled ? "enabled" : "disabled"}
-                onChange={(e) => setTenantAdsAlertSmsEnabled(e.target.value === "enabled")}
-              >
-                <option value="disabled">Disabled</option>
-                <option value="enabled">Enabled</option>
-              </select>
-            </div>
+          <div className="detailsTabs">
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "business" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("business")}
+            >
+              Business Profile
+            </button>
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "ghl" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("ghl")}
+            >
+              GHL + Cloudflare
+            </button>
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "integrations" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("integrations")}
+            >
+              Integrations
+            </button>
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "custom_values" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("custom_values")}
+            >
+              Custom Values
+            </button>
           </div>
 
-          {tenantAdsSampleResult ? (
-            <div className="row" style={{ marginTop: 10 }}>
-              <div className="field" style={{ flex: 1 }}>
-                <label>Webhook sample response</label>
-                <textarea
-                  className="input"
-                  value={tenantAdsSampleResult}
-                  readOnly
-                  rows={10}
-                />
+          {detailsTab === "business" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">Business Profile</div>
+                <div className="detailsPaneSub">Core identity, owner profile and branding.</div>
+              </div>
+              <div className="row">
+                <div className="field">
+                  <label>Project name</label>
+                  <input className="input" value={tenantName} onChange={(e) => setTenantName(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Slug</label>
+                  <input className="input" value={tenantSlug} onChange={(e) => setTenantSlug(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Status</label>
+                  <select className="select" value={tenantStatus} onChange={(e) => setTenantStatus(e.target.value === "disabled" ? "disabled" : "active")}>
+                    <option value="active">Active</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Root domain</label>
+                  <input className="input" value={tenantRootDomain} onChange={(e) => setTenantRootDomain(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Timezone</label>
+                  <input className="input" value={tenantTimezone} onChange={(e) => setTenantTimezone(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Locale</label>
+                  <input className="input" value={tenantLocale} onChange={(e) => setTenantLocale(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Currency</label>
+                  <input className="input" value={tenantCurrency} onChange={(e) => setTenantCurrency(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Logo URL</label>
+                  <input className="input" value={tenantLogoUrl} onChange={(e) => setTenantLogoUrl(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Owner first name</label>
+                  <input className="input" value={tenantOwnerFirstName} onChange={(e) => setTenantOwnerFirstName(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Owner last name</label>
+                  <input className="input" value={tenantOwnerLastName} onChange={(e) => setTenantOwnerLastName(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Owner email</label>
+                  <input className="input" value={tenantOwnerEmail} onChange={(e) => setTenantOwnerEmail(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Owner phone</label>
+                  <input className="input" value={tenantOwnerPhone} onChange={(e) => setTenantOwnerPhone(e.target.value)} />
+                </div>
               </div>
             </div>
           ) : null}
 
-          {routeTenantId ? (
-            <div className="row" style={{ marginTop: 10 }}>
-              <div className="field">
-                <label>OAuth Actions</label>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {detailsTab === "ghl" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">GHL + Cloudflare Setup</div>
+                <div className="detailsPaneSub">Tenant-level DNS and owner account linkage used by activation flows.</div>
+              </div>
+              <div className="row">
+                <div className="field">
+                  <label>Owner Location ID</label>
+                  <input className="input" value={tenantOwnerLocationId} onChange={(e) => setTenantOwnerLocationId(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Company ID (GHL)</label>
+                  <input className="input" value={tenantCompanyId} onChange={(e) => setTenantCompanyId(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Cloudflare CNAME target</label>
+                  <input
+                    className="input"
+                    value={tenantCloudflareCnameTarget}
+                    onChange={(e) => setTenantCloudflareCnameTarget(e.target.value)}
+                    placeholder="sites.ludicrous.cloud"
+                  />
+                </div>
+                <div className="field">
+                  <label>Cloudflare API token</label>
+                  <input
+                    className="input"
+                    type="password"
+                    value={tenantCloudflareApiToken}
+                    onChange={(e) => setTenantCloudflareApiToken(e.target.value)}
+                    placeholder={
+                      tenantCloudflareHasToken
+                        ? "Token saved. Enter a new token only if you want to rotate it."
+                        : "cf_api_token..."
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label>Ads Alerts Enabled</label>
+                  <select
+                    className="select"
+                    value={tenantAdsAlertsEnabled ? "enabled" : "disabled"}
+                    onChange={(e) => setTenantAdsAlertsEnabled(e.target.value === "enabled")}
+                  >
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Enable SMS signal to GHL</label>
+                  <select
+                    className="select"
+                    value={tenantAdsAlertSmsEnabled ? "enabled" : "disabled"}
+                    onChange={(e) => setTenantAdsAlertSmsEnabled(e.target.value === "enabled")}
+                  >
+                    <option value="disabled">Disabled</option>
+                    <option value="enabled">Enabled</option>
+                  </select>
+                </div>
+                <div className="field" style={{ gridColumn: "span 2" }}>
+                  <label>GHL Webhook Ads Notification</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      className="input"
+                      value={tenantAdsAlertWebhookUrl}
+                      onChange={(e) => setTenantAdsAlertWebhookUrl(e.target.value)}
+                      placeholder="https://services.leadconnectorhq.com/hooks/..."
+                    />
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={tenantAdsSampleBusy || !routeTenantId}
+                      onClick={() => void sendProjectAdsWebhookSample()}
+                    >
+                      {tenantAdsSampleBusy ? "Sending..." : "Send sample"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {tenantAdsSampleResult ? (
+                <div className="row" style={{ marginTop: 10 }}>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>Webhook sample response</label>
+                    <textarea
+                      className="input"
+                      value={tenantAdsSampleResult}
+                      readOnly
+                      rows={10}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {detailsTab === "integrations" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">Integrations</div>
+                <div className="detailsPaneSub">OAuth and provider connections. These credentials can be shared across tenants from Agency View.</div>
+              </div>
+
+              {routeTenantId ? (
+                <div className="detailsIntegrationsActions">
                   <button
                     type="button"
                     className="smallBtn"
@@ -3453,140 +3520,149 @@ export default function Home() {
                     Open OAuth Integration Manager
                   </button>
                 </div>
+              ) : null}
+
+              <div className="tableWrap" style={{ marginTop: 12 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Provider</th>
+                      <th className="th">Key</th>
+                      <th className="th">Status</th>
+                      <th className="th">External Account</th>
+                      <th className="th">Auth</th>
+                      <th className="th">Last Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tenantIntegrations.length === 0 ? (
+                      <tr>
+                        <td className="td" colSpan={6}>
+                          <span className="mini">No integrations found.</span>
+                        </td>
+                      </tr>
+                    ) : (
+                      tenantIntegrations.map((it) => (
+                        <tr key={it.id} className="tr">
+                          <td className="td">{s(it.provider) || "—"}</td>
+                          <td className="td">{s(it.integration_key || it.integrationKey) || "—"}</td>
+                          <td className="td">{s(it.status) || "—"}</td>
+                          <td className="td">{s(it.external_account_id || it.externalAccountId) || "—"}</td>
+                          <td className="td">{s(it.auth_type || it.authType) || "—"}</td>
+                          <td className="td">{s(it.last_error || it.lastError) || "—"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           ) : null}
 
-          <div className="tableWrap" style={{ marginTop: 12 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                flexWrap: "wrap",
-                marginBottom: 8,
-              }}
-            >
-              <div className="mini">
-                Custom Values Template (Owner snapshot). Edit values and save to DB.
+          {detailsTab === "custom_values" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">Custom Values Template</div>
+                <div className="detailsPaneSub">Snapshot from Owner Location. Edit values in DB and apply to child subaccounts.</div>
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {tenantCustomValuesMsg ? <span className="badge">{tenantCustomValuesMsg}</span> : null}
-                <button
-                  type="button"
-                  className="smallBtn"
-                  disabled={!routeTenantId || tenantCustomValuesSnapshotBusy}
-                  onClick={() => void snapshotOwnerCustomValuesTemplate()}
-                  title="Sync custom value names from Owner Location snapshot."
+
+              <div className="tableWrap" style={{ marginTop: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginBottom: 8,
+                  }}
                 >
-                  {tenantCustomValuesSnapshotBusy ? "Syncing..." : "Sync from Owner Snapshot"}
-                </button>
-                <button
-                  type="button"
-                  className="smallBtn"
-                  disabled={
-                    !routeTenantId ||
-                    tenantCustomValuesSaving ||
-                    tenantCustomValuesLoading ||
-                    tenantCustomValues.length === 0
-                  }
-                  onClick={() => void saveTenantCustomValuesTemplate()}
-                  title="Save edited template in DB."
-                >
-                  {tenantCustomValuesSaving ? "Saving..." : "Save Custom Values"}
-                </button>
+                  <div className="mini">
+                    Dynamic fields (`Business - County Domain`, `Business - County Name`, `County Name And State`, `Website Url`) are managed automatically per county/city.
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {tenantCustomValuesMsg ? <span className="badge">{tenantCustomValuesMsg}</span> : null}
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={!routeTenantId || tenantCustomValuesSnapshotBusy}
+                      onClick={() => void snapshotOwnerCustomValuesTemplate()}
+                      title="Sync custom value names from Owner Location snapshot."
+                    >
+                      {tenantCustomValuesSnapshotBusy ? "Syncing..." : "Sync from Owner Snapshot"}
+                    </button>
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={
+                        !routeTenantId ||
+                        tenantCustomValuesSaving ||
+                        tenantCustomValuesLoading ||
+                        tenantCustomValues.length === 0
+                      }
+                      onClick={() => void saveTenantCustomValuesTemplate()}
+                      title="Save edited template in DB."
+                    >
+                      {tenantCustomValuesSaving ? "Saving..." : "Save Custom Values"}
+                    </button>
+                  </div>
+                </div>
+
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Active</th>
+                      <th className="th">Name</th>
+                      <th className="th">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tenantCustomValuesLoading ? (
+                      <tr>
+                        <td className="td" colSpan={3}>
+                          <span className="mini">Loading custom values template...</span>
+                        </td>
+                      </tr>
+                    ) : tenantCustomValues.length === 0 ? (
+                      <tr>
+                        <td className="td" colSpan={3}>
+                          <span className="mini">
+                            No rows found. Use <b>Sync from Owner Snapshot</b> first.
+                          </span>
+                        </td>
+                      </tr>
+                    ) : (
+                      tenantCustomValues.map((row, idx) => (
+                        <tr key={`${row.id || row.keyName || "row"}:${idx}`} className="tr">
+                          <td className="td" style={{ width: 110 }}>
+                            <input
+                              type="checkbox"
+                              checked={row.isActive !== false}
+                              onChange={(e) =>
+                                updateTenantCustomValueAt(idx, { isActive: e.target.checked })
+                              }
+                            />
+                          </td>
+                          <td className="td" style={{ minWidth: 260 }}>
+                            <input className="input" value={row.keyName} readOnly />
+                          </td>
+                          <td className="td" style={{ minWidth: 320 }}>
+                            <input
+                              className="input"
+                              value={row.keyValue}
+                              onChange={(e) =>
+                                updateTenantCustomValueAt(idx, { keyValue: e.target.value })
+                              }
+                              placeholder="Leave empty to skip this key on apply."
+                            />
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-
-            <table className="table">
-              <thead>
-                <tr>
-                  <th className="th">Active</th>
-                  <th className="th">Name</th>
-                  <th className="th">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenantCustomValuesLoading ? (
-                  <tr>
-                    <td className="td" colSpan={3}>
-                      <span className="mini">Loading custom values template...</span>
-                    </td>
-                  </tr>
-                ) : tenantCustomValues.length === 0 ? (
-                  <tr>
-                    <td className="td" colSpan={3}>
-                      <span className="mini">
-                        No rows found. Use <b>Sync from Owner Snapshot</b> first.
-                      </span>
-                    </td>
-                  </tr>
-                ) : (
-                  tenantCustomValues.map((row, idx) => (
-                    <tr key={`${row.id || row.keyName || "row"}:${idx}`} className="tr">
-                      <td className="td" style={{ width: 110 }}>
-                        <input
-                          type="checkbox"
-                          checked={row.isActive !== false}
-                          onChange={(e) =>
-                            updateTenantCustomValueAt(idx, { isActive: e.target.checked })
-                          }
-                        />
-                      </td>
-                      <td className="td" style={{ minWidth: 260 }}>
-                        <input className="input" value={row.keyName} readOnly />
-                      </td>
-                      <td className="td" style={{ minWidth: 320 }}>
-                        <input
-                          className="input"
-                          value={row.keyValue}
-                          onChange={(e) =>
-                            updateTenantCustomValueAt(idx, { keyValue: e.target.value })
-                          }
-                          placeholder="Leave empty to skip this key on apply."
-                        />
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="tableWrap" style={{ marginTop: 12 }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th className="th">Provider</th>
-                  <th className="th">Key</th>
-                  <th className="th">Status</th>
-                  <th className="th">External Account</th>
-                  <th className="th">Auth</th>
-                  <th className="th">Last Error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenantIntegrations.length === 0 ? (
-                  <tr>
-                    <td className="td" colSpan={6}>
-                      <span className="mini">No integrations found.</span>
-                    </td>
-                  </tr>
-                ) : (
-                  tenantIntegrations.map((it) => (
-                    <tr key={it.id} className="tr">
-                      <td className="td">{s(it.provider) || "—"}</td>
-                      <td className="td">{s(it.integration_key || it.integrationKey) || "—"}</td>
-                      <td className="td">{s(it.status) || "—"}</td>
-                      <td className="td">{s(it.external_account_id || it.externalAccountId) || "—"}</td>
-                      <td className="td">{s(it.auth_type || it.authType) || "—"}</td>
-                      <td className="td">{s(it.last_error || it.lastError) || "—"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          ) : null}
         </div>
       </section>
       ) : null}

@@ -14,11 +14,8 @@ function s(v: unknown) {
 export default function LoginPage() {
   const router = useRouter();
   const [nextPath, setNextPath] = useState("/");
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,35 +32,26 @@ export default function LoginPage() {
     const nextEmail = s(email).toLowerCase();
     const nextPassword = s(password);
     if (!nextEmail || !nextPassword) {
-      setError("Email y password son requeridos.");
-      return;
-    }
-    if (mode === "register" && nextPassword !== s(confirmPassword)) {
-      setError("El confirm password no coincide.");
+      setError("Email and password are required.");
       return;
     }
 
     setBusy(true);
     try {
-      const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login";
-      const payload =
-        mode === "register"
-          ? { email: nextEmail, fullName: s(fullName), password: nextPassword }
-          : { email: nextEmail, password: nextPassword, rememberMe };
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ email: nextEmail, password: nextPassword, rememberMe }),
       });
       const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
       if (!res.ok || !json?.ok) {
-        setError(s(json?.error) || "No se pudo iniciar sesion.");
+        setError(s(json?.error) || "Unable to sign in.");
         return;
       }
       router.push(nextPath.startsWith("/") ? nextPath : "/");
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error de red");
+      setError(err instanceof Error ? err.message : "Network error.");
     } finally {
       setBusy(false);
     }
@@ -78,36 +66,37 @@ export default function LoginPage() {
               <img src={BRAND_ICON_URL} alt="Delta System" />
               <p className={styles.brandTitle}>Delta System</p>
             </div>
-            <h1 className={styles.headline}>Control seguro para agencias que operan en serio.</h1>
+            <h1 className={styles.headline}>AI growth infrastructure for every U.S. market.</h1>
             <p className={styles.subhead}>
-              Acceso unificado, sesiones protegidas y gobierno por roles para equipos multi-tenant.
+              Delta System generates websites for every city, county, and state in the U.S., including Puerto Rico,
+              then runs business operations with AI from one control tower.
             </p>
             <div className={styles.chips}>
               <span className={styles.chip}>Role-Based Access</span>
               <span className={styles.chip}>Tenant Isolation</span>
-              <span className={styles.chip}>Audit Ready</span>
+              <span className={styles.chip}>AI Operations</span>
             </div>
           </div>
         </aside>
 
         <section className={styles.card}>
-          <h2 className={styles.cardTitle}>{mode === "register" ? "Crear Cuenta" : "Iniciar Sesion"}</h2>
-          <p className={styles.cardCopy}>Diseñado para equipos de alto rendimiento, con seguridad por defecto.</p>
+          <h2 className={styles.cardTitle}>Sign In</h2>
+          <p className={styles.cardCopy}>Built for high-performance teams with security by default.</p>
 
           <div className={styles.tabs}>
             <button
               type="button"
-              onClick={() => setMode("login")}
-              className={`${styles.tab} ${mode === "login" ? styles.tabOn : ""}`}
+              className={`${styles.tab} ${styles.tabOn}`}
             >
-              Entrar
+              Sign In
             </button>
             <button
               type="button"
-              onClick={() => setMode("register")}
-              className={`${styles.tab} ${mode === "register" ? styles.tabOn : ""}`}
+              disabled
+              aria-disabled="true"
+              className={`${styles.tab} ${styles.tabDisabled}`}
             >
-              Crear Cuenta
+              Create Account (Coming Soon)
             </button>
           </div>
 
@@ -133,58 +122,29 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="********"
-                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                autoComplete="current-password"
                 required
               />
             </label>
 
-            {mode === "register" ? (
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Confirm Password</span>
-                <input
-                  className={styles.input}
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="********"
-                  autoComplete="new-password"
-                  required
-                />
-              </label>
-            ) : null}
-
-            {mode === "register" ? (
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Nombre (opcional)</span>
-                <input
-                  className={styles.input}
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nombre Apellido"
-                />
-              </label>
-            ) : null}
-
-            {mode === "login" ? (
-              <label className={styles.remember}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                Remember me (30 dias)
-              </label>
-            ) : null}
+            <label className={styles.remember}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              Remember me (30 days)
+            </label>
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
             <button type="submit" disabled={busy} className={styles.submit}>
-              {busy ? "Procesando..." : mode === "register" ? "Crear Cuenta" : "Entrar"}
+              {busy ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           <p className={styles.hint}>
-            Solo usuarios autorizados. Todas las acciones quedan sujetas a control de permisos y auditoria.
+            Authorized users only. All actions are governed by permissions and audit controls.
           </p>
         </section>
       </section>

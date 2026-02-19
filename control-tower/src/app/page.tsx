@@ -1298,6 +1298,17 @@ export default function AgencyHomePage() {
                         >
                           Manage
                         </button>
+                        <button
+                          type="button"
+                          className="agencyTenantManageBtn"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            router.push(`/projects/${t.id}?detailsTab=integrations`);
+                          }}
+                        >
+                          Integrations
+                        </button>
                       </div>
                     </div>
                     <div className="agencyTenantWide">
@@ -1389,6 +1400,7 @@ export default function AgencyHomePage() {
                     <th>Owner Location</th>
                     <th>Status</th>
                     <th>Open</th>
+                    <th>Integrations</th>
                     <th>Manage</th>
                   </tr>
                 </thead>
@@ -1406,6 +1418,9 @@ export default function AgencyHomePage() {
                       </td>
                       <td>
                         <Link className="btnGhost" href={`/projects/${t.id}`}>Open</Link>
+                      </td>
+                      <td>
+                        <Link className="btnGhost" href={`/projects/${t.id}?detailsTab=integrations`}>Open</Link>
                       </td>
                       <td>
                         <button type="button" className="btnGhost" onClick={() => void openManageTenant(t.id)}>
