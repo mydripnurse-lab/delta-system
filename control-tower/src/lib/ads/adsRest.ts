@@ -70,7 +70,7 @@ function headersBase(developerTokenInput?: string, loginCustomerId?: string, all
 }
 
 function buildSearchStreamUrl(opts: { version?: string; customerId: string }) {
-    const version = s(opts.version) || "v16"; // ✅ v16 test (puedes subir a v17 después)
+    const version = s(opts.version) || s(process.env.GOOGLE_ADS_API_VERSION) || "v19";
     const customerId = cleanCid(opts.customerId);
 
     const base = `https://googleads.googleapis.com/${version}`;

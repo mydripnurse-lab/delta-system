@@ -10,8 +10,12 @@ function s(v: unknown) {
 export default function LoginPage() {
   const router = useRouter();
   const [nextPath, setNextPath] = useState("/");
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,17 +29,27 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     const nextEmail = s(email).toLowerCase();
-    if (!nextEmail) {
-      setError("Email es requerido.");
+    const nextPassword = s(password);
+    if (!nextEmail || !nextPassword) {
+      setError("Email y password son requeridos.");
+      return;
+    }
+    if (mode === "register" && nextPassword !== s(confirmPassword)) {
+      setError("El confirm password no coincide.");
       return;
     }
 
     setBusy(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login";
+      const payload =
+        mode === "register"
+          ? { email: nextEmail, fullName: s(fullName), password: nextPassword }
+          : { email: nextEmail, password: nextPassword, rememberMe };
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: nextEmail, fullName: s(fullName) }),
+        body: JSON.stringify(payload),
       });
       const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
       if (!res.ok || !json?.ok) {
@@ -68,8 +82,38 @@ export default function LoginPage() {
       >
         <h1 style={{ margin: 0, fontSize: 20 }}>Iniciar Sesion</h1>
         <p style={{ margin: 0, color: "#5f6368", fontSize: 13 }}>
-          Usa tu email de `app.users` (en dev puede autocrearse si `DEV_AUTH_AUTO_CREATE=1`).
+          Acceso seguro con email y password.
         </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setMode("login")}
+            style={{
+              flex: 1,
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              padding: "8px 10px",
+              background: mode === "login" ? "#f1f5ff" : "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("register")}
+            style={{
+              flex: 1,
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              padding: "8px 10px",
+              background: mode === "register" ? "#f1f5ff" : "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Crear Cuenta
+          </button>
+        </div>
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ fontSize: 13 }}>Email</span>
           <input
@@ -83,14 +127,52 @@ export default function LoginPage() {
           />
         </label>
         <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 13 }}>Nombre (opcional)</span>
+          <span style={{ fontSize: 13 }}>Password</span>
           <input
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Nombre Apellido"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="********"
+            autoComplete={mode === "register" ? "new-password" : "current-password"}
+            required
             style={{ border: "1px solid #ccc", borderRadius: 8, padding: "10px 12px" }}
           />
         </label>
+        {mode === "register" ? (
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13 }}>Confirm Password</span>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="********"
+              autoComplete="new-password"
+              required
+              style={{ border: "1px solid #ccc", borderRadius: 8, padding: "10px 12px" }}
+            />
+          </label>
+        ) : null}
+        {mode === "register" ? (
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13 }}>Nombre (opcional)</span>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Nombre Apellido"
+              style={{ border: "1px solid #ccc", borderRadius: 8, padding: "10px 12px" }}
+            />
+          </label>
+        ) : null}
+        {mode === "login" ? (
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#5f6368" }}>
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
+            Remember me (30 dias)
+          </label>
+        ) : null}
         {error ? <div style={{ color: "#b42318", fontSize: 13 }}>{error}</div> : null}
         <button
           type="submit"
@@ -105,7 +187,7 @@ export default function LoginPage() {
             opacity: busy ? 0.7 : 1,
           }}
         >
-          {busy ? "Entrando..." : "Entrar"}
+          {busy ? "Procesando..." : mode === "register" ? "Crear Cuenta" : "Entrar"}
         </button>
       </form>
     </main>

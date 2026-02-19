@@ -74,6 +74,18 @@ En local tambien puedes usar:
 DEV_AUTH_SESSION_SECRET=dev-secret-local
 ```
 
+### Password auth (profesional)
+
+El login ahora usa `email + password` con hash `scrypt` y bloqueo temporal por intentos fallidos.
+
+Variables recomendadas:
+
+```env
+AUTH_ALLOW_SELF_SIGNUP=0
+```
+
+Pon `AUTH_ALLOW_SELF_SIGNUP=1` solo si quieres habilitar registro desde UI.
+
 ### Roles soportados
 
 - Globales (`app.user_global_roles`): `platform_admin`, `agency_admin`, `analytics`
@@ -87,13 +99,30 @@ Corre migraciones para habilitar RBAC extendido + proyectos:
 npm run db:migrate
 ```
 
+Incluye tambien auth de password (migracion `013_user_password_auth.sql`).
+
 ### Endpoints nuevos
 
 - `GET /api/auth/me`: devuelve usuario actual + tenants/proyectos accesibles
-- `POST /api/auth/login`: crea sesion por email y setea cookie
+- `POST /api/auth/login`: crea sesion por `email + password` y setea cookie
+- `POST /api/auth/register`: crea usuario (`email + password`) si `AUTH_ALLOW_SELF_SIGNUP=1`
 - `POST /api/auth/logout`: cierra sesion (borra cookie)
+- `POST /api/auth/bootstrap-admin`: crea/actualiza el primer admin (requiere `AUTH_BOOTSTRAP_TOKEN`)
 - `GET|POST /api/tenants/:id/projects`: lista o crea proyectos del tenant
 - `GET|POST /api/tenants/:id/projects/:projectId/members`: lista o asigna usuarios a proyecto
+
+Bootstrap admin (recomendado en produccion cuando `AUTH_ALLOW_SELF_SIGNUP=0`):
+
+```bash
+curl -X POST "$APP_URL/api/auth/bootstrap-admin" \
+  -H "content-type: application/json" \
+  -d '{
+    "token":"'"$AUTH_BOOTSTRAP_TOKEN"'",
+    "email":"admin@mydripnurse.com",
+    "fullName":"Agency Admin",
+    "password":"StrongPass123A"
+  }'
+```
 
 ### Rutas protegidas por middleware
 

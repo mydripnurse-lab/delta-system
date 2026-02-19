@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const SESSION_COOKIE_NAME = "ct_session";
-const DEFAULT_TTL_SECONDS = 60 * 60 * 12;
+export const DEFAULT_SESSION_TTL_SECONDS = 60 * 60 * 12;
 
 type SessionPayload = {
   sub: string;
@@ -50,7 +50,7 @@ export function createSessionToken(input: {
     email: s(input.email).toLowerCase(),
     name: s(input.name) || undefined,
     iat: now,
-    exp: now + Math.max(60, Number(input.ttlSeconds || DEFAULT_TTL_SECONDS)),
+    exp: now + Math.max(60, Number(input.ttlSeconds || DEFAULT_SESSION_TTL_SECONDS)),
   };
   const body = base64UrlEncode(JSON.stringify(payload));
   const signature = sign(body, input.secret);
@@ -99,3 +99,31 @@ export function readCookieFromHeader(cookieHeader: string | null, cookieName: st
   return "";
 }
 
+export function buildSessionCookie(input: { token: string; maxAgeSeconds?: number }) {
+  const secure = process.env.NODE_ENV === "production";
+  const maxAgeSeconds = Math.max(60, Number(input.maxAgeSeconds || DEFAULT_SESSION_TTL_SECONDS));
+  return [
+    `${SESSION_COOKIE_NAME}=${encodeURIComponent(input.token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    secure ? "Secure" : "",
+    `Max-Age=${maxAgeSeconds}`,
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+export function buildClearSessionCookie() {
+  const secure = process.env.NODE_ENV === "production";
+  return [
+    `${SESSION_COOKIE_NAME}=`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    secure ? "Secure" : "",
+    "Max-Age=0",
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
