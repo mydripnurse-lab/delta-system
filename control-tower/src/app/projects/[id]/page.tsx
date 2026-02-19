@@ -476,6 +476,26 @@ export default function Home() {
   const [runId, setRunId] = useState<string>("");
   const [logs, setLogs] = useState<string[]>([]);
   const esRef = useRef<EventSource | null>(null);
+  const sseRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sseRetryCountRef = useRef(0);
+  const [activeRuns, setActiveRuns] = useState<
+    Array<{
+      id: string;
+      createdAt: number;
+      meta?: {
+        job?: string;
+        state?: string;
+        mode?: string;
+        tenantId?: string;
+        locId?: string;
+        kind?: string;
+      };
+      linesCount?: number;
+      lastLine?: string;
+    }>
+  >([]);
+  const currentRunIdRef = useRef<string>("");
+  const isRunningRef = useRef<boolean>(false);
 
   const runStartedAtRef = useRef<number | null>(null);
 
@@ -665,11 +685,23 @@ export default function Home() {
   }
 
   useEffect(() => {
+    currentRunIdRef.current = runId;
+  }, [runId]);
+
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+
+  useEffect(() => {
     return () => {
       try {
         esRef.current?.close();
       } catch {}
       esRef.current = null;
+      if (sseRetryTimerRef.current) {
+        clearTimeout(sseRetryTimerRef.current);
+        sseRetryTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -1580,15 +1612,57 @@ export default function Home() {
     }, 1550);
   }
 
+  async function loadActiveRuns() {
+    try {
+      const res = await fetch("/api/run?active=1&limit=10", {
+        cache: "no-store",
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok || !Array.isArray(data?.runs)) return;
+      setActiveRuns(
+        data.runs.map((r: any) => ({
+          id: String(r?.id || ""),
+          createdAt: Number(r?.createdAt || 0),
+          meta: r?.meta || {},
+          linesCount: Number(r?.linesCount || 0),
+          lastLine: String(r?.lastLine || ""),
+        })),
+      );
+    } catch {
+      // ignore background polling errors
+    }
+  }
+
+  useEffect(() => {
+    loadActiveRuns();
+    const id = setInterval(loadActiveRuns, 5000);
+    return () => clearInterval(id);
+  }, []);
+
   // ✅ Unified runner (supports optional locId/kind)
   async function run(opts?: { job?: string; locId?: string; kind?: string }) {
-    if (isRunning) return;
-
     const jobKey = s(opts?.job || job);
     const locId = s(opts?.locId || (isOneLocJob ? runLocId : ""));
     const kind = s(opts?.kind || (isOneLocJob ? runKind : ""));
     const metaState =
       jobKey === "update-custom-values-one" ? s(openState) || "one" : stateOut;
+
+    const duplicate = activeRuns.find((r) => {
+      const m = r.meta || {};
+      return (
+        s(m.tenantId) === s(routeTenantId) &&
+        s(m.job) === jobKey &&
+        s(m.state) === metaState &&
+        s(m.locId) === locId &&
+        s(m.kind) === kind
+      );
+    });
+    if (duplicate) {
+      pushLog(
+        `⚠ Duplicate blocked: run already active (${duplicate.id}) for same job/state scope.`,
+      );
+      return;
+    }
 
     if (jobKey === "update-custom-values-one" && !locId) {
       pushLog("❌ Missing locId for update-custom-values-one");
@@ -1597,6 +1671,11 @@ export default function Home() {
 
     setLogs([]);
     runStartedAtRef.current = Date.now();
+    sseRetryCountRef.current = 0;
+    if (sseRetryTimerRef.current) {
+      clearTimeout(sseRetryTimerRef.current);
+      sseRetryTimerRef.current = null;
+    }
     setIsRunning(true);
 
     setProgressTotals(runScopeTotals);
@@ -1648,6 +1727,9 @@ export default function Home() {
 
       if (!res.ok) {
         const msg = payload?.error || text || `HTTP ${res.status}`;
+        if (res.status === 409 && payload?.runId) {
+          setRunId(String(payload.runId));
+        }
         throw new Error(msg);
       }
 
@@ -1689,149 +1771,174 @@ export default function Home() {
       }
 
       pushLog(`✅ runId=${id} (connecting SSE...)`);
-
-      const es = new EventSource(`/api/stream/${id}`);
-      esRef.current = es;
-
-      const onHello = (ev: MessageEvent) => {
-        pushLog(`🟢 SSE connected: ${ev.data}`);
-        setProgress((p) => ({ ...p, message: "Running…", status: "running" }));
-      };
-
-      const onLine = (ev: MessageEvent) => {
-        const raw = String(ev.data ?? "");
-        if (!raw || raw === "__HB__" || raw === "__END__") return;
-        if (
-          raw.startsWith("__PROGRESS__ ") ||
-          raw.startsWith("__PROGRESS_INIT__ ") ||
-          raw.startsWith("__PROGRESS_END__ ")
-        ) {
-          return;
-        }
-        pushLog(raw);
-      };
-
-      const onProgress = (ev: MessageEvent) => {
-        let data: any = null;
-        try {
-          data = JSON.parse(String(ev.data ?? ""));
-        } catch {
-          return;
+      const connectStream = (targetRunId: string, reconnecting = false) => {
+        if (sseRetryTimerRef.current) {
+          clearTimeout(sseRetryTimerRef.current);
+          sseRetryTimerRef.current = null;
         }
 
-        const totalsAll = Number(data?.totals?.all ?? 0);
-        const totalsCounties = Number(data?.totals?.counties ?? 0);
-        const totalsCities = Number(data?.totals?.cities ?? 0);
+        const es = new EventSource(`/api/stream/${targetRunId}`);
+        esRef.current = es;
 
-        const doneAll = Number(data?.done?.all ?? 0);
-        const doneCounties = Number(data?.done?.counties ?? 0);
-        const doneCities = Number(data?.done?.cities ?? 0);
+        const onHello = (ev: MessageEvent) => {
+          sseRetryCountRef.current = 0;
+          pushLog(
+            reconnecting
+              ? `🔁 SSE reconnected: ${ev.data}`
+              : `🟢 SSE connected: ${ev.data}`,
+          );
+          setProgress((p) => ({ ...p, message: "Running…", status: "running" }));
+        };
 
-        const pctFromPayload = normalizePct(data?.pct);
-        const pctComputed = totalsAll > 0 ? clamp01(doneAll / totalsAll) : 0;
-        const pctFinal =
-          typeof pctFromPayload === "number" ? pctFromPayload : pctComputed;
+        const onLine = (ev: MessageEvent) => {
+          const raw = String(ev.data ?? "");
+          if (!raw || raw === "__HB__" || raw === "__END__") return;
+          if (
+            raw.startsWith("__PROGRESS__ ") ||
+            raw.startsWith("__PROGRESS_INIT__ ") ||
+            raw.startsWith("__PROGRESS_END__ ")
+          ) {
+            return;
+          }
+          pushLog(raw);
+        };
 
-        setProgressTotals((prev) => ({
-          allTotal: totalsAll || prev.allTotal || runScopeTotals.allTotal,
-          countiesTotal:
-            totalsCounties ||
-            prev.countiesTotal ||
-            runScopeTotals.countiesTotal,
-          citiesTotal:
-            totalsCities || prev.citiesTotal || runScopeTotals.citiesTotal,
-        }));
+        const onProgress = (ev: MessageEvent) => {
+          let data: any = null;
+          try {
+            data = JSON.parse(String(ev.data ?? ""));
+          } catch {
+            return;
+          }
 
-        const startedAt = runStartedAtRef.current;
-        let etaSec: number | null = null;
-        if (startedAt && totalsAll > 0 && doneAll > 0) {
-          const elapsedSec = (Date.now() - startedAt) / 1000;
-          const rate = doneAll / Math.max(0.5, elapsedSec);
-          const remaining = Math.max(0, totalsAll - doneAll);
-          etaSec = rate > 0 ? remaining / rate : null;
-          if (etaSec !== null && !Number.isFinite(etaSec)) etaSec = null;
-        }
+          const totalsAll = Number(data?.totals?.all ?? 0);
+          const totalsCounties = Number(data?.totals?.counties ?? 0);
+          const totalsCities = Number(data?.totals?.cities ?? 0);
 
-        const last = data?.last;
-        const msg =
-          last?.kind === "state"
-            ? `🗺️ ${s(last?.state)} • ${s(last?.action)}`
-            : last?.kind === "city"
-              ? `🏙️ ${s(last?.city)} • ${s(last?.action)}`
-              : last?.kind === "county"
-                ? `🧩 ${s(last?.county)} • ${s(last?.action)}`
-                : "Running…";
+          const doneAll = Number(data?.done?.all ?? 0);
+          const doneCounties = Number(data?.done?.counties ?? 0);
+          const doneCities = Number(data?.done?.cities ?? 0);
 
-        setProgress((p) => ({
-          ...p,
-          pct: pctFinal,
-          allDone: Number.isFinite(doneAll) ? doneAll : p.allDone,
-          countiesDone: Number.isFinite(doneCounties)
-            ? doneCounties
-            : p.countiesDone,
-          citiesDone: Number.isFinite(doneCities) ? doneCities : p.citiesDone,
-          message: msg,
-          etaSec,
-          status: "running",
-        }));
+          const pctFromPayload = normalizePct(data?.pct);
+          const pctComputed = totalsAll > 0 ? clamp01(doneAll / totalsAll) : 0;
+          const pctFinal =
+            typeof pctFromPayload === "number" ? pctFromPayload : pctComputed;
+
+          setProgressTotals((prev) => ({
+            allTotal: totalsAll || prev.allTotal || runScopeTotals.allTotal,
+            countiesTotal:
+              totalsCounties ||
+              prev.countiesTotal ||
+              runScopeTotals.countiesTotal,
+            citiesTotal:
+              totalsCities || prev.citiesTotal || runScopeTotals.citiesTotal,
+          }));
+
+          const startedAt = runStartedAtRef.current;
+          let etaSec: number | null = null;
+          if (startedAt && totalsAll > 0 && doneAll > 0) {
+            const elapsedSec = (Date.now() - startedAt) / 1000;
+            const rate = doneAll / Math.max(0.5, elapsedSec);
+            const remaining = Math.max(0, totalsAll - doneAll);
+            etaSec = rate > 0 ? remaining / rate : null;
+            if (etaSec !== null && !Number.isFinite(etaSec)) etaSec = null;
+          }
+
+          const last = data?.last;
+          const msg =
+            last?.kind === "state"
+              ? `🗺️ ${s(last?.state)} • ${s(last?.action)}`
+              : last?.kind === "city"
+                ? `🏙️ ${s(last?.city)} • ${s(last?.action)}`
+                : last?.kind === "county"
+                  ? `🧩 ${s(last?.county)} • ${s(last?.action)}`
+                  : "Running…";
+
+          setProgress((p) => ({
+            ...p,
+            pct: pctFinal,
+            allDone: Number.isFinite(doneAll) ? doneAll : p.allDone,
+            countiesDone: Number.isFinite(doneCounties)
+              ? doneCounties
+              : p.countiesDone,
+            citiesDone: Number.isFinite(doneCities) ? doneCities : p.citiesDone,
+            message: msg,
+            etaSec,
+            status: "running",
+          }));
+        };
+
+        const onEnd = (ev: MessageEvent) => {
+          let data: any = ev.data;
+          try {
+            data = JSON.parse(String(ev.data ?? ""));
+          } catch {}
+
+          const ms = runStartedAtRef.current
+            ? Date.now() - runStartedAtRef.current
+            : null;
+          const msTxt =
+            ms === null ? "" : ` • duration=${(ms / 1000).toFixed(2)}s`;
+
+          pushLog(
+            `🏁 END ${
+              typeof data === "object" ? JSON.stringify(data) : String(data)
+            }${msTxt}`,
+          );
+
+          try {
+            es.close();
+          } catch {}
+
+          setIsRunning(false);
+          setProgress((p) => ({
+            ...p,
+            pct: 1,
+            etaSec: 0,
+            message: "Done",
+            status: data?.ok === false ? "error" : "done",
+          }));
+
+          setTimeout(() => {
+            loadOverview();
+            loadActiveRuns();
+            if (openState) openDetail(openState);
+          }, 350);
+        };
+
+        es.addEventListener("hello", onHello as any);
+        es.addEventListener("line", onLine as any);
+        es.addEventListener("progress", onProgress as any);
+        es.addEventListener("end", onEnd as any);
+
+        es.onerror = () => {
+          try {
+            es.close();
+          } catch {}
+
+          if (!isRunningRef.current || currentRunIdRef.current !== targetRunId)
+            return;
+
+          const nextAttempt = sseRetryCountRef.current + 1;
+          sseRetryCountRef.current = nextAttempt;
+          const waitMs = Math.min(10000, 1000 * Math.pow(1.6, nextAttempt - 1));
+          pushLog(
+            `⚠ SSE disconnected. Reconnecting in ${(waitMs / 1000).toFixed(1)}s (attempt ${nextAttempt})...`,
+          );
+          setProgress((p) => ({
+            ...p,
+            message: "SSE reconnecting…",
+            status: "running",
+          }));
+
+          sseRetryTimerRef.current = setTimeout(() => {
+            connectStream(targetRunId, true);
+          }, waitMs);
+        };
       };
 
-      const onEnd = (ev: MessageEvent) => {
-        let data: any = ev.data;
-        try {
-          data = JSON.parse(String(ev.data ?? ""));
-        } catch {}
-
-        const ms = runStartedAtRef.current
-          ? Date.now() - runStartedAtRef.current
-          : null;
-        const msTxt =
-          ms === null ? "" : ` • duration=${(ms / 1000).toFixed(2)}s`;
-
-        pushLog(
-          `🏁 END ${
-            typeof data === "object" ? JSON.stringify(data) : String(data)
-          }${msTxt}`,
-        );
-
-        try {
-          es.close();
-        } catch {}
-
-        setIsRunning(false);
-        setProgress((p) => ({
-          ...p,
-          pct: 1,
-          etaSec: 0,
-          message: "Done",
-          status: data?.ok === false ? "error" : "done",
-        }));
-
-        setTimeout(() => {
-          loadOverview();
-          if (openState) openDetail(openState);
-        }, 350);
-      };
-
-      es.addEventListener("hello", onHello as any);
-      es.addEventListener("line", onLine as any);
-      es.addEventListener("progress", onProgress as any);
-      es.addEventListener("end", onEnd as any);
-
-      es.onerror = () => {
-        pushLog(
-          "⚠ SSE error / disconnected. (If job still running, refresh or check server logs.)",
-        );
-        try {
-          es.close();
-        } catch {}
-        setProgress((p) => ({
-          ...p,
-          message: "SSE disconnected",
-          status: "error",
-        }));
-        setIsRunning(false);
-      };
+      connectStream(id, false);
+      loadActiveRuns();
     } catch (e: any) {
       pushLog(`❌ /api/run failed: ${e?.message || e}`);
       setIsRunning(false);
@@ -1859,6 +1966,74 @@ export default function Home() {
         status: "error",
       }));
     }
+  }
+
+  async function attachToActiveRun(targetRunId: string) {
+    const id = s(targetRunId);
+    if (!id) return;
+
+    try {
+      esRef.current?.close();
+    } catch {}
+    esRef.current = null;
+    if (sseRetryTimerRef.current) {
+      clearTimeout(sseRetryTimerRef.current);
+      sseRetryTimerRef.current = null;
+    }
+    sseRetryCountRef.current = 0;
+
+    setRunId(id);
+    setIsRunning(true);
+    if (!runStartedAtRef.current) runStartedAtRef.current = Date.now();
+    pushLog(`🔎 Attaching to active run ${id}...`);
+    // Reuse existing run() stream logic by opening /api/stream directly here.
+    const es = new EventSource(`/api/stream/${id}`);
+    esRef.current = es;
+    es.addEventListener("hello", (ev: MessageEvent) => {
+      pushLog(`🟢 SSE connected: ${ev.data}`);
+      setProgress((p) => ({ ...p, status: "running", message: "Running…" }));
+    });
+    es.addEventListener("line", (ev: MessageEvent) => {
+      const raw = String(ev.data ?? "");
+      if (!raw || raw === "__HB__" || raw === "__END__") return;
+      pushLog(raw);
+    });
+    es.addEventListener("end", (ev: MessageEvent) => {
+      let data: any = ev.data;
+      try {
+        data = JSON.parse(String(ev.data ?? ""));
+      } catch {}
+      pushLog(
+        `🏁 END ${
+          typeof data === "object" ? JSON.stringify(data) : String(data)
+        }`,
+      );
+      try {
+        es.close();
+      } catch {}
+      setIsRunning(false);
+      setProgress((p) => ({
+        ...p,
+        pct: 1,
+        etaSec: 0,
+        message: "Done",
+        status: data?.ok === false ? "error" : "done",
+      }));
+      loadActiveRuns();
+    });
+    es.onerror = () => {
+      try {
+        es.close();
+      } catch {}
+      if (!isRunningRef.current || currentRunIdRef.current !== id) return;
+      const nextAttempt = sseRetryCountRef.current + 1;
+      sseRetryCountRef.current = nextAttempt;
+      const waitMs = Math.min(10000, 1000 * Math.pow(1.6, nextAttempt - 1));
+      setProgress((p) => ({ ...p, message: "SSE reconnecting…" }));
+      sseRetryTimerRef.current = setTimeout(() => {
+        void attachToActiveRun(id);
+      }, waitMs);
+    };
   }
 
   async function openDetail(stateName: string) {
@@ -2581,7 +2756,15 @@ export default function Home() {
     <div className="shell">
       <header className="topbar">
         <div className="brand">
-          <div className="logo" />
+          {tenantLogoUrl ? (
+            <img
+              className="logo tenantLogo"
+              src={tenantLogoUrl}
+              alt={tenantSummary?.name ? `${tenantSummary.name} logo` : "Tenant logo"}
+            />
+          ) : (
+            <div className="logo" />
+          )}
           <div>
             <h1>
               {tenantSummary?.name || "Project"} — Delta Control Tower
@@ -2639,7 +2822,7 @@ export default function Home() {
           className={`agencySubnavItem ${activeProjectTab === "runner" ? "agencySubnavItemActive" : ""}`}
           onClick={() => jumpTo("runner")}
         >
-          Project Runner
+          Runs Center
         </button>
         <button
           type="button"
@@ -2664,6 +2847,7 @@ export default function Home() {
         </button>
       </section>
 
+      {activeProjectTab === "details" ? (
       <section className="card" style={{ marginTop: 12 }} ref={detailsRef}>
         <div className="cardHeader">
           <div>
@@ -2810,7 +2994,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeProjectTab === "runner" ? (
       <div className="grid" ref={runnerRef}>
         {/* Runner */}
         <section className="card">
@@ -2832,7 +3018,6 @@ export default function Home() {
                   className="select"
                   value={job}
                   onChange={(e) => setJob(e.target.value)}
-                  disabled={isRunning}
                 >
                   {JOBS.map((j) => (
                     <option key={j.key} value={j.key}>
@@ -2848,7 +3033,7 @@ export default function Home() {
                   className="select"
                   value={stateOut}
                   onChange={(e) => setStateOut(e.target.value)}
-                  disabled={isRunning || isOneLocJob}
+                  disabled={isOneLocJob}
                   title={
                     isOneLocJob
                       ? "Single-location job does not require state"
@@ -2870,7 +3055,6 @@ export default function Home() {
                   className="select"
                   value={mode}
                   onChange={(e) => setMode(e.target.value as any)}
-                  disabled={isRunning}
                 >
                   <option value="dry">Dry Run</option>
                   <option value="live">Live Run</option>
@@ -2883,7 +3067,6 @@ export default function Home() {
                   className="select"
                   value={debug ? "on" : "off"}
                   onChange={(e) => setDebug(e.target.value === "on")}
-                  disabled={isRunning}
                 >
                   <option value="on">ON</option>
                   <option value="off">OFF</option>
@@ -2901,7 +3084,6 @@ export default function Home() {
                     placeholder="e.g. 2rYTkmtMkwdUQLNCdCfB"
                     value={runLocId}
                     onChange={(e) => setRunLocId(e.target.value)}
-                    disabled={isRunning}
                   />
                 </div>
 
@@ -2911,7 +3093,6 @@ export default function Home() {
                     className="select"
                     value={runKind}
                     onChange={(e) => setRunKind(e.target.value as any)}
-                    disabled={isRunning}
                     title="Optional"
                   >
                     <option value="">auto</option>
@@ -2926,10 +3107,9 @@ export default function Home() {
               <button
                 className="btn btnPrimary"
                 onClick={() => run()}
-                disabled={isRunning}
-                title={isRunning ? "Job is running" : "Run"}
+                title="Run"
               >
-                {isRunning ? "Running…" : "Run"}
+                Run
               </button>
 
               <button
@@ -2953,6 +3133,48 @@ export default function Home() {
                   </>
                 )}{" "}
                 • Mode: <b>{mode}</b>
+              </div>
+            </div>
+
+            <div
+              className="row"
+              style={{ marginTop: 8, alignItems: "flex-start", gap: 8 }}
+            >
+              <div className="field" style={{ flex: 1 }}>
+                <label>Active runs</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {activeRuns.length === 0 ? (
+                    <div className="mini">No active runs.</div>
+                  ) : (
+                    activeRuns.map((r) => (
+                      <div
+                        key={r.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 8,
+                          alignItems: "center",
+                          border: "1px solid var(--line)",
+                          borderRadius: 10,
+                          padding: "6px 8px",
+                        }}
+                      >
+                        <div className="mini" style={{ minWidth: 0 }}>
+                          <b>{s(r.meta?.job) || "run"}</b> •{" "}
+                          {s(r.meta?.state) || "all"} • {s(r.meta?.mode) || "live"}{" "}
+                          • lines {Number(r.linesCount || 0)}
+                        </div>
+                        <button
+                          type="button"
+                          className="smallBtn"
+                          onClick={() => attachToActiveRun(r.id)}
+                        >
+                          Attach
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
 
@@ -3111,8 +3333,10 @@ export default function Home() {
           </div>
         </aside>
       </div>
+      ) : null}
 
       {/* Sheet Explorer */}
+      {activeProjectTab === "sheet" || activeProjectTab === "activation" ? (
       <section className="card sheetExplorerCard" style={{ marginTop: 14 }} ref={sheetRef}>
         <div className="cardHeader">
           <div>
@@ -3248,8 +3472,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+      ) : null}
 
       {/* Logs */}
+      {activeProjectTab === "logs" ? (
       <section className="console" ref={logsRef}>
         <div className="consoleHeader">
           <div>
@@ -3270,6 +3496,7 @@ export default function Home() {
           )}
         </div>
       </section>
+      ) : null}
 
       {/* Drawer: State Detail */}
       {openState && (

@@ -18,9 +18,20 @@ import {
     endRun,
     errorRun,
     setRunMetaCmd,
+    listRuns,
 } from "@/lib/runStore";
 
 export const runtime = "nodejs";
+
+export async function GET(req: Request) {
+    const url = new URL(req.url);
+    const activeParam = String(url.searchParams.get("active") || "").toLowerCase();
+    const activeOnly = activeParam === "1" || activeParam === "true" || activeParam === "yes";
+    const limitRaw = Number(url.searchParams.get("limit") || 50);
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
+    const runs = listRuns({ activeOnly, limit });
+    return NextResponse.json({ ok: true, runs });
+}
 
 function exists(p: string) {
     try {
@@ -524,7 +535,28 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Missing locId for update-custom-values-one" }, { status: 400 });
     }
 
-    const run = createRun({ job, state: metaState, mode, debug, tenantId });
+    // Avoid duplicate active run for same tenant/job/state/scope.
+    const existingActive = listRuns({ activeOnly: true, limit: 200 }).find((r) => {
+        const m = (r.meta || {}) as Record<string, unknown>;
+        return (
+            s(m.tenantId) === tenantId &&
+            s(m.job) === job &&
+            s(m.state) === metaState &&
+            s(m.locId) === locId &&
+            s(m.kind) === kind
+        );
+    });
+    if (existingActive) {
+        return NextResponse.json(
+            {
+                error: "A run with same Job/State scope is already running.",
+                runId: existingActive.id,
+            },
+            { status: 409 },
+        );
+    }
+
+    const run = createRun({ job, state: metaState, mode, debug, tenantId, locId, kind });
 
     let closed = false;
 

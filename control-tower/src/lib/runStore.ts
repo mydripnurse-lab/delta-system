@@ -8,6 +8,8 @@ export type RunMeta = {
     mode?: string;
     debug?: boolean;
     tenantId?: string;
+    locId?: string;
+    kind?: string;
     cmd?: string;
 };
 
@@ -77,6 +79,28 @@ export function createRun(meta: RunMeta = {}) {
 
 export function getRun(id: string) {
     return runs.get(id) || null;
+}
+
+export function listRuns(opts?: { activeOnly?: boolean; limit?: number }) {
+    cleanupOldRuns();
+    const activeOnly = !!opts?.activeOnly;
+    const limit = Math.max(1, Number(opts?.limit || 50));
+    const items = Array.from(runs.values())
+        .filter((r) => (activeOnly ? !r.finished : true))
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, limit)
+        .map((r) => ({
+            id: r.id,
+            createdAt: r.createdAt,
+            meta: r.meta,
+            stopped: r.stopped,
+            finished: r.finished,
+            exitCode: r.exitCode,
+            error: r.error || null,
+            linesCount: r.lines.length,
+            lastLine: r.lines.length ? r.lines[r.lines.length - 1] : "",
+        }));
+    return items;
 }
 
 export function setRunMetaCmd(id: string, cmd: string) {
