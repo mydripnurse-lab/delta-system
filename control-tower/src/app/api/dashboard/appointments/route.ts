@@ -189,6 +189,7 @@ const LOST_BOOKINGS_PIPELINE_ID = String(process.env.APPOINTMENTS_LOST_PIPELINE_
 const LOST_BOOKINGS_STAGE_ID = String(process.env.APPOINTMENTS_LOST_STAGE_ID || "").trim();
 const INCLUDE_SHEET_LOCATIONS = String(process.env.APPOINTMENTS_INCLUDE_SHEET_LOCATIONS || "").trim() === "1";
 const REQUEST_MAX_MS = Math.max(10_000, Number(process.env.APPOINTMENTS_REQUEST_MAX_MS || 45_000));
+const SNAPSHOT_RANGE_SLOP_MS = Number(process.env.APPOINTMENTS_RANGE_SLOP_MIN || 15) * 60 * 1000;
 const PLACE_NAME_CORRECTIONS: Record<string, string> = {
   rincon: "Rincón",
   mayaguez: "Mayagüez",
@@ -228,6 +229,14 @@ function dateMsFromUnknown(v: unknown) {
   const d = new Date(s);
   const t = d.getTime();
   return Number.isFinite(t) ? t : NaN;
+}
+
+function snapshotCoversRange(snapshot: LocationSnapshot | null, startMs: number, endMs: number) {
+  if (!snapshot) return false;
+  const newestMs = toMs(String(snapshot.newestStartAt || ""));
+  const oldestMs = toMs(String(snapshot.oldestStartAt || ""));
+  if (!Number.isFinite(newestMs) || !Number.isFinite(oldestMs)) return false;
+  return oldestMs <= startMs + SNAPSHOT_RANGE_SLOP_MS && newestMs >= endMs - SNAPSHOT_RANGE_SLOP_MS;
 }
 
 function pct(n: number, d: number) {
@@ -2094,8 +2103,9 @@ export async function GET(req: Request) {
         !!snapshot &&
         Array.isArray(snapshot.lostRows) &&
         Date.now() - Number(snapshot.updatedAtMs || 0) <= SNAPSHOT_TTL_MS;
+      const covered = snapshotCoversRange(snapshot, startMs, endMs);
 
-      if (snapshot && !bust && (fresh || preferSnapshot)) {
+      if (snapshot && !bust && covered && (fresh || preferSnapshot)) {
         byLocationRows.set(locationId, snapshot.rows || []);
         byLocationLostRows.set(locationId, snapshot.lostRows || []);
         for (const id of snapshot.lostDiscovery?.pipelineIds || []) if (id) discoveredPipelineIds.add(id);
@@ -2112,7 +2122,7 @@ export async function GET(req: Request) {
         continue;
       }
 
-      if (refreshedLocations >= LOCATION_REFRESH_BUDGET && snapshot?.rows?.length) {
+      if (refreshedLocations >= LOCATION_REFRESH_BUDGET && snapshot?.rows?.length && covered) {
         byLocationRows.set(locationId, snapshot.rows);
         byLocationLostRows.set(locationId, snapshot.lostRows || []);
         for (const id of snapshot.lostDiscovery?.pipelineIds || []) if (id) discoveredPipelineIds.add(id);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
+const OVERVIEW_FAST_HIT_MAX_AGE_MS = Number(process.env.OVERVIEW_FAST_HIT_MAX_AGE_SEC || 90) * 1000;
 
 type JsonObject = Record<string, unknown>;
 
@@ -332,6 +333,7 @@ export async function GET(req: Request) {
         const snapshotPayload = (snapshot?.payload || {}) as JsonObject;
         const snapshotRange = (snapshotPayload.range as JsonObject) || {};
         const snapshotExecutive = (snapshotPayload.executive as JsonObject) || {};
+        const snapshotModules = (snapshotPayload.modules as JsonObject) || {};
         const snapshotStart = s(snapshotRange.start);
         const snapshotEnd = s(snapshotRange.end);
         const snapshotPreset = s(snapshotRange.preset);
@@ -339,7 +341,7 @@ export async function GET(req: Request) {
         const snapshotAgeMs = Number.isFinite(snapshotCapturedMs) ? Math.max(0, Date.now() - snapshotCapturedMs) : Number.POSITIVE_INFINITY;
         const snapshotMatchesRange = snapshotStart === start && snapshotEnd === end && snapshotPreset === preset;
         const useSnapshotFallback = snapshotMatchesRange;
-        if (!force && snapshot && snapshotMatchesRange) {
+        if (!force && snapshot && snapshotMatchesRange && snapshotAgeMs <= OVERVIEW_FAST_HIT_MAX_AGE_MS) {
             return NextResponse.json({
                 ...(snapshotPayload as JsonObject),
                 cache: {
@@ -503,6 +505,11 @@ export async function GET(req: Request) {
             return (searchJoin.data.summaryOverall as JsonObject) || {};
         })();
         const searchCompare = (searchJoin.ok ? (searchJoin.data.compare as JsonObject) : {}) || {};
+
+        const snapshotConversations = (snapshotModules.conversations as JsonObject) || {};
+        const snapshotAppointments = (snapshotModules.appointments as JsonObject) || {};
+        const hasSnapshotConversations = useSnapshotFallback && Object.keys(snapshotConversations).length > 0;
+        const hasSnapshotAppointments = useSnapshotFallback && Object.keys(snapshotAppointments).length > 0;
 
         const searchImpressionsNow = n(searchSummary.impressions);
         const searchImpressionsBefore = n((searchCompare.previous as JsonObject)?.impressions);
@@ -1541,18 +1548,23 @@ export async function GET(req: Request) {
                     error: contactsCur.ok ? null : s(contactsCur.data.error || `HTTP ${contactsCur.status}`),
                 },
                 conversations: {
-                    ok: conversationsCur.ok,
+                    ok: conversationsCur.ok || hasSnapshotConversations,
                     total: convNow,
                     prevTotal: convBefore,
                     deltaPct: percentChange(convNow, convBefore),
-                    mappedStateRate: n((conversationsCur.data.kpis as JsonObject)?.stateRate) || 0,
-                    topChannel:
-                        Object.entries(
-                            ((conversationsCur.data.byChannel as JsonObject) || {}) as Record<string, unknown>,
-                        ).sort((a, b) => n(b[1]) - n(a[1]))[0]?.[0] || "unknown",
-                    error: conversationsCur.ok
-                        ? null
-                        : s(conversationsCur.data.error || `HTTP ${conversationsCur.status}`),
+                    mappedStateRate:
+                        n((conversationsCur.data.kpis as JsonObject)?.stateRate) ||
+                        n(snapshotConversations.mappedStateRate) ||
+                        0,
+                    topChannel: Object.entries(
+                        ((conversationsCur.data.byChannel as JsonObject) || {}) as Record<string, unknown>,
+                    ).sort((a, b) => n(b[1]) - n(a[1]))[0]?.[0] ||
+                        s(snapshotConversations.topChannel) ||
+                        "unknown",
+                    error:
+                        conversationsCur.ok || hasSnapshotConversations
+                            ? null
+                            : s(conversationsCur.data.error || `HTTP ${conversationsCur.status}`),
                 },
                 transactions: {
                     ok: transactionsCur.ok,
@@ -1569,23 +1581,30 @@ export async function GET(req: Request) {
                         : s(transactionsCur.data.error || `HTTP ${transactionsCur.status}`),
                 },
                 appointments: {
-                    ok: appointmentsCur.ok,
+                    ok: appointmentsCur.ok || hasSnapshotAppointments,
                     total: apptNow,
                     prevTotal: apptBefore,
                     deltaPct: percentChange(apptNow, apptBefore),
-                    showRate: n((appointmentsCur.data.kpis as JsonObject)?.showRate) || 0,
-                    noShowRate: n((appointmentsCur.data.kpis as JsonObject)?.noShowRate) || 0,
-                    cancellationRate: n((appointmentsCur.data.kpis as JsonObject)?.cancellationRate) || 0,
-                    mappedStateRate: n((appointmentsCur.data.kpis as JsonObject)?.stateRate) || 0,
+                    showRate:
+                        n((appointmentsCur.data.kpis as JsonObject)?.showRate) || n(snapshotAppointments.showRate) || 0,
+                    noShowRate:
+                        n((appointmentsCur.data.kpis as JsonObject)?.noShowRate) || n(snapshotAppointments.noShowRate) || 0,
+                    cancellationRate:
+                        n((appointmentsCur.data.kpis as JsonObject)?.cancellationRate) ||
+                        n(snapshotAppointments.cancellationRate) ||
+                        0,
+                    mappedStateRate:
+                        n((appointmentsCur.data.kpis as JsonObject)?.stateRate) || n(snapshotAppointments.mappedStateRate) || 0,
                     lostQualified: apptLostNow,
                     lostQualifiedPrev: apptLostBefore,
                     lostQualifiedDeltaPct: percentChange(apptLostNow, apptLostBefore),
                     potentialLostValue: apptLostValueNow,
                     potentialLostValuePrev: apptLostValueBefore,
                     potentialLostValueDeltaPct: percentChange(apptLostValueNow, apptLostValueBefore),
-                    error: appointmentsCur.ok
-                        ? null
-                        : s(appointmentsCur.data.error || `HTTP ${appointmentsCur.status}`),
+                    error:
+                        appointmentsCur.ok || hasSnapshotAppointments
+                            ? null
+                            : s(appointmentsCur.data.error || `HTTP ${appointmentsCur.status}`),
                 },
                 gsc: {
                     ok: searchJoin.ok,

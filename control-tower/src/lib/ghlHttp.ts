@@ -60,10 +60,15 @@ function pickGhlClient(cfg: Record<string, unknown>) {
 }
 
 async function getTenantGhlIntegration(tenantId: string, integrationKey: string) {
-    const ghl = await getTenantIntegration(tenantId, "ghl", integrationKey);
-    if (ghl) return { row: ghl, provider: "ghl" as const };
-    const custom = await getTenantIntegration(tenantId, "custom", integrationKey);
-    if (custom) return { row: custom, provider: "custom" as const };
+    const preferred = String(integrationKey || "").trim() || "owner";
+    const fallbacks = preferred === "owner" ? ["default"] : preferred === "default" ? ["owner"] : ["owner", "default"];
+    const keys = [preferred, ...fallbacks.filter((k) => k !== preferred)];
+    for (const key of keys) {
+        const ghl = await getTenantIntegration(tenantId, "ghl", key);
+        if (ghl) return { row: ghl, provider: "ghl" as const, integrationKey: key };
+        const custom = await getTenantIntegration(tenantId, "custom", key);
+        if (custom) return { row: custom, provider: "custom" as const, integrationKey: key };
+    }
     return null;
 }
 
@@ -102,7 +107,7 @@ async function resolveTenantGhlConfig(input?: TenantCtx): Promise<GhlResolvedCon
 
     return {
         provider: hit.provider,
-        integrationKey,
+        integrationKey: hit.integrationKey,
         companyId,
         locationId,
         clientId,

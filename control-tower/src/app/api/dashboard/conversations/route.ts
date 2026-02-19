@@ -84,6 +84,7 @@ const CONTACTS_MAX_429_RETRIES = 5;
 const SNAPSHOT_TTL_MS = Number(process.env.CONVERSATIONS_SNAPSHOT_TTL_SEC || 900) * 1000;
 const SNAPSHOT_MAX_NEW_PAGES = Math.max(3, Number(process.env.CONVERSATIONS_INCREMENTAL_MAX_PAGES || 12));
 const SNAPSHOT_OVERLAP_MS = Number(process.env.CONVERSATIONS_INCREMENTAL_OVERLAP_MIN || 15) * 60 * 1000;
+const SNAPSHOT_RANGE_SLOP_MS = Number(process.env.CONVERSATIONS_RANGE_SLOP_MIN || 15) * 60 * 1000;
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -119,6 +120,14 @@ function convRowsCoverage(rows: ConvRow[]) {
         newestIso: newest ? new Date(newest).toISOString() : "",
         oldestIso: Number.isFinite(oldest) && oldest > 0 ? new Date(oldest).toISOString() : "",
     };
+}
+
+function snapshotCoversRange(snapshot: ConvSnapshot | null, startMs: number, endMs: number) {
+    if (!snapshot) return false;
+    const newestMs = Date.parse(String(snapshot.newestMessageAt || ""));
+    const oldestMs = Date.parse(String(snapshot.oldestMessageAt || ""));
+    if (!Number.isFinite(newestMs) || !Number.isFinite(oldestMs)) return false;
+    return oldestMs <= startMs + SNAPSHOT_RANGE_SLOP_MS && newestMs >= endMs - SNAPSHOT_RANGE_SLOP_MS;
 }
 
 function is429(err: any) {
@@ -859,6 +868,11 @@ export async function GET(req: Request) {
         if (!start || !end) {
             return NextResponse.json({ ok: false, error: "Missing start/end" } satisfies ApiResponse, { status: 400 });
         }
+        const reqStartMs = Date.parse(start);
+        const reqEndMs = Date.parse(end);
+        if (!Number.isFinite(reqStartMs) || !Number.isFinite(reqEndMs) || reqEndMs <= reqStartMs) {
+            return NextResponse.json({ ok: false, error: "Invalid start/end range" } satisfies ApiResponse, { status: 400 });
+        }
 
         if (!bust) {
             const cached = getCache(start, end, tenantId, integrationKey);
@@ -877,6 +891,7 @@ export async function GET(req: Request) {
         const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
         const snapshot = await readConvSnapshot(tenantId, locationId);
         const snapshotFresh = !!snapshot && Date.now() - Number(snapshot.updatedAtMs || 0) <= SNAPSHOT_TTL_MS;
+        const snapshotRangeCovered = snapshotCoversRange(snapshot, reqStartMs, reqEndMs);
 
         let rowsSource = "ghl_conversations_api";
         const warnings: string[] = [];
@@ -888,7 +903,7 @@ export async function GET(req: Request) {
         let refreshReason = "";
         let snapshotUpdatedAtIso = snapshot?.updatedAtMs ? new Date(snapshot.updatedAtMs).toISOString() : "";
 
-        if (snapshot && !bust && (snapshotFresh || preferSnapshot)) {
+        if (snapshot && !bust && snapshotRangeCovered && (snapshotFresh || preferSnapshot)) {
             rawRows = snapshot.rows || [];
             rowsSource = "snapshot";
             cacheSource = "snapshot";
