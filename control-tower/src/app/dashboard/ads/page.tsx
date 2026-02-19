@@ -352,16 +352,16 @@ export default function AdsDashboardPage() {
       );
       setNotificationStats((prev: any) => {
         const next = { ...(prev || {}) };
-        const accepted = n(next.accepted);
-        const denied = n(next.denied);
-        const open = n(next.open);
+        const accepted = num(next.accepted);
+        const denied = num(next.denied);
+        const open = num(next.open);
         if (decision === "accept") {
           next.accepted = accepted + 1;
         } else {
           next.denied = denied + 1;
         }
         next.open = Math.max(0, open - 1);
-        next.total = n(next.total);
+        next.total = num(next.total);
         return next;
       });
     } catch (e: any) {

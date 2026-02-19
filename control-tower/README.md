@@ -278,6 +278,14 @@ Webhook por tenant en GHL (recomendado):
 - Si no existe por tenant, se usa `ADS_ALERT_GHL_WEBHOOK_URL` como fallback global.
 - Cuando `ads_alert_sms_enabled=true`, el webhook recibe `action.sendSms=true` y `action.smsTo` para que GHL dispare SMS.
 
+Sample payload (para mapear campos en GHL):
+
+```bash
+curl -X POST "http://localhost:3001/api/tenants/<TENANT_ID>/integrations/ghl-alerts/sample" \
+  -H "content-type: application/json" \
+  -d '{"webhookUrl":"https://services.leadconnectorhq.com/hooks/...","smsEnabled":true,"smsTo":"+1..."}'
+```
+
 Ejecucion cron (recomendada cada hora):
 
 ```bash

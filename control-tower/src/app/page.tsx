@@ -280,6 +280,8 @@ export default function AgencyHomePage() {
   const [manageBingSiteUrls, setManageBingSiteUrls] = useState("");
   const [manageBingEndpoint, setManageBingEndpoint] = useState(BING_DEFAULT_ENDPOINT);
   const [manageBingBusy, setManageBingBusy] = useState(false);
+  const [manageAdsSampleBusy, setManageAdsSampleBusy] = useState(false);
+  const [manageAdsSampleResult, setManageAdsSampleResult] = useState("");
   const [manageStaffRows, setManageStaffRows] = useState<TenantStaffRow[]>([]);
   const [manageStaffLoading, setManageStaffLoading] = useState(false);
   const [manageStaffBusy, setManageStaffBusy] = useState(false);
@@ -589,6 +591,8 @@ export default function AgencyHomePage() {
     setManageBingSiteUrls("");
     setManageBingEndpoint(BING_DEFAULT_ENDPOINT);
     setManageBingBusy(false);
+    setManageAdsSampleBusy(false);
+    setManageAdsSampleResult("");
     setManageStaffRows([]);
     setManageStaffLoading(false);
     setManageStaffBusy(false);
@@ -794,6 +798,54 @@ export default function AgencyHomePage() {
       setManageErr(error instanceof Error ? error.message : "Failed to save Bing integration");
     } finally {
       setManageBingBusy(false);
+    }
+  }
+
+  async function sendAdsWebhookSample() {
+    if (!s(manageTenantId)) return;
+    setManageAdsSampleBusy(true);
+    setManageErr("");
+    setManageOk("");
+    setManageAdsSampleResult("");
+    try {
+      const res = await fetch(`/api/tenants/${manageTenantId}/integrations/ghl-alerts/sample`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          webhookUrl: s(manageAdsAlertWebhookUrl) || undefined,
+          smsEnabled: manageAdsAlertSmsEnabled,
+          smsTo: s(manageAdsAlertSmsTo) || undefined,
+        }),
+      });
+      const data = (await safeJson(res)) as
+        | {
+            ok?: boolean;
+            sent?: boolean;
+            error?: string;
+            responseStatus?: number;
+            responsePreview?: string;
+            payload?: unknown;
+          }
+        | null;
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setManageOk(`Sample sent (${data.responseStatus || 200}).`);
+      setManageAdsSampleResult(
+        JSON.stringify(
+          {
+            responseStatus: data.responseStatus || 200,
+            responsePreview: data.responsePreview || "",
+            payload: data.payload || {},
+          },
+          null,
+          2,
+        ),
+      );
+    } catch (error: unknown) {
+      setManageErr(error instanceof Error ? error.message : "Failed to send sample webhook");
+    } finally {
+      setManageAdsSampleBusy(false);
     }
   }
 
@@ -1883,6 +1935,31 @@ export default function AgencyHomePage() {
                         />
                         <span className="agencyFieldHint">Número destino para alertas high/critical.</span>
                       </label>
+                      <div className="agencyField agencyFieldFull">
+                        <span className="agencyFieldLabel">Webhook sample</span>
+                        <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 8 }}>
+                          <button
+                            type="button"
+                            className="btnGhost"
+                            disabled={manageAdsSampleBusy || !s(manageTenantId)}
+                            onClick={() => void sendAdsWebhookSample()}
+                          >
+                            {manageAdsSampleBusy ? "Sending sample..." : "Send sample to GHL webhook"}
+                          </button>
+                          <span className="agencyFieldHint">
+                            Envia un payload de prueba con el formato real de alertas Ads AI.
+                          </span>
+                        </div>
+                        {manageAdsSampleResult ? (
+                          <textarea
+                            className="input agencyTextarea"
+                            rows={10}
+                            value={manageAdsSampleResult}
+                            readOnly
+                            style={{ marginTop: 10 }}
+                          />
+                        ) : null}
+                      </div>
                     </div>
                   ) : null}
 
