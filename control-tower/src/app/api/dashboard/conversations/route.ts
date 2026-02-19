@@ -75,7 +75,7 @@ type CacheEntry = {
 
 const RANGE_CACHE = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 45_000;
-const MAX_PAGES = 40;
+const MAX_PAGES = Math.max(5, Number(process.env.CONVERSATIONS_MAX_PAGES || 15));
 const PAGE_LIMIT = 100;
 const CONTACTS_MAX_PAGES = 25;
 const CONTACTS_PAGE_LIMIT = 100;
@@ -87,6 +87,8 @@ const SNAPSHOT_MAX_NEW_PAGES = Math.max(3, Number(process.env.CONVERSATIONS_INCR
 const SNAPSHOT_OVERLAP_MS = Number(process.env.CONVERSATIONS_INCREMENTAL_OVERLAP_MIN || 15) * 60 * 1000;
 const SNAPSHOT_RANGE_SLOP_MS = Number(process.env.CONVERSATIONS_RANGE_SLOP_MIN || 15) * 60 * 1000;
 const RANGE_DB_CACHE_TTL_SEC = Math.max(30, Number(process.env.CONVERSATIONS_RANGE_DB_CACHE_TTL_SEC || 300));
+const ENRICH_CONTACT_MAX = Math.max(0, Number(process.env.CONVERSATIONS_ENRICH_CONTACT_MAX || 120));
+const ENRICH_BUDGET_MS = Math.max(1000, Number(process.env.CONVERSATIONS_ENRICH_BUDGET_MS || 7000));
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -897,13 +899,17 @@ export async function GET(req: Request) {
                 preset: "",
                 compare: false,
             });
-            if (dbCached && !dbCached.expired) {
+            if (dbCached) {
                 const payload = (dbCached.payload || {}) as ApiResponse;
                 const out: ApiResponse = {
                     ...payload,
                     cache: {
                         ...(payload.cache || {}),
                         source: "db_range_cache",
+                        refreshReason:
+                            dbCached.expired
+                                ? "db_range_cache_stale_fallback"
+                                : payload.cache?.refreshReason,
                     },
                 };
                 setCache(start, end, tenantId, integrationKey, out);
@@ -1042,7 +1048,11 @@ export async function GET(req: Request) {
         const contactStateCache = new Map<string, { state: string; city: string; from: ConvRow["stateFrom"] }>();
         const oppCache = new Map<string, string | null>();
 
+        const enrichStartedAt = Date.now();
+        let enrichedAttempts = 0;
         for (const r of withMissing) {
+            if (enrichedAttempts >= ENRICH_CONTACT_MAX) break;
+            if (Date.now() - enrichStartedAt > ENRICH_BUDGET_MS) break;
             if (contactStateCache.has(r.contactId)) continue;
             try {
                 const resolved = await resolveContactState(r.contactId, oppCache, ghlCtx);
@@ -1050,6 +1060,7 @@ export async function GET(req: Request) {
             } catch {
                 contactStateCache.set(r.contactId, { state: "", city: "", from: "unknown" });
             }
+            enrichedAttempts++;
         }
 
         let inferredFromContact = 0;
