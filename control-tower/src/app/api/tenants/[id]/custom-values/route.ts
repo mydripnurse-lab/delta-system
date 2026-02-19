@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
+import { requireTenantPermission } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -40,6 +41,8 @@ export async function GET(req: Request, ctx: Ctx) {
   if (!tenantId) {
     return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
   }
+  const auth = await requireTenantPermission(req, tenantId, "tenant.read");
+  if ("response" in auth) return auth.response;
   if (!(await tenantExists(tenantId))) {
     return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
   }
@@ -102,6 +105,8 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!tenantId) {
     return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
   }
+  const auth = await requireTenantPermission(req, tenantId, "tenant.manage");
+  if ("response" in auth) return auth.response;
   if (!(await tenantExists(tenantId))) {
     return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { getTenantGoogleAuth } from "@/lib/tenantGoogleAuth";
+import { getTenantIntegration } from "@/lib/tenantIntegrations";
 
 export const runtime = "nodejs";
 
@@ -167,14 +168,38 @@ async function requestDiscoveryForUnknown(
 
 type GoogleSubmitMode = "inspect" | "discovery" | "auto";
 
+type TenantGoogleIndexConfig = {
+  enabled: boolean;
+  siteProperty: string;
+};
+
+async function loadTenantGoogleIndexConfig(tenantId: string): Promise<TenantGoogleIndexConfig> {
+  const row = await getTenantIntegration(tenantId, "google_search_console", "default");
+  const cfg = row?.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {};
+  const enabledRaw =
+    s(cfg.indexGoogleEnabled) ||
+    s(cfg.indexingEnabled) ||
+    s(cfg.enabled);
+  const enabled =
+    enabledRaw
+      ? !["false", "0", "no", "off", "disabled"].includes(enabledRaw.toLowerCase())
+      : true;
+  const siteProperty =
+    s(row?.externalPropertyId) ||
+    s(cfg.siteUrl) ||
+    s(cfg.gscProperty) ||
+    "";
+  return { enabled, siteProperty };
+}
+
 async function inspectGoogleDomain(
   domainUrl: string,
   tenantId: string,
   mode: GoogleSubmitMode = "auto",
 ) {
-  const enabled = s(process.env.INDEX_GOOGLE_ENABLED || "true").toLowerCase();
-  if (enabled === "false" || enabled === "0" || enabled === "no") {
-    return { ok: false, error: "Google indexing disabled by env (INDEX_GOOGLE_ENABLED=false)." };
+  const tenantCfg = await loadTenantGoogleIndexConfig(tenantId);
+  if (!tenantCfg.enabled) {
+    return { ok: false, error: "Google indexing disabled by tenant config (google_search_console:default)." };
   }
 
   const target = toOriginUrlMaybe(domainUrl);
@@ -223,9 +248,8 @@ async function inspectGoogleDomain(
   }
 
   const host = new URL(target).host.toLowerCase();
-  const configuredSiteUrl = s(process.env.GSC_SITE_URL);
   const siteUrlForInspection =
-    configuredSiteUrl || `sc-domain:${apexFromHost(host)}`;
+    tenantCfg.siteProperty || `sc-domain:${apexFromHost(host)}`;
   if (mode === "discovery") {
     const discovery = await requestDiscoveryForUnknown(
       authCandidates,

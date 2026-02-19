@@ -825,6 +825,29 @@ button, input, select { font-family: inherit; }
   gap: 14px;
 }
 
+.drawerHeaderMain {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.drawerHeaderActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 980px) {
+  .drawerHeader {
+    flex-wrap: wrap;
+  }
+
+  .drawerHeaderActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 .drawerBody {
   padding: 14px;
   overflow: auto;

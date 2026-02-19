@@ -67,6 +67,14 @@ type TenantIntegrationRow = {
   lastError?: string | null;
 };
 
+type TenantCustomValueRow = {
+  id?: string;
+  keyName: string;
+  keyValue: string;
+  isActive: boolean;
+  description?: string | null;
+};
+
 type IntegrationHealthRow = {
   id: string;
   provider: string;
@@ -440,6 +448,14 @@ export default function Home() {
   const [tenantAdsAlertSmsTo, setTenantAdsAlertSmsTo] = useState("");
   const [tenantAdsSampleBusy, setTenantAdsSampleBusy] = useState(false);
   const [tenantAdsSampleResult, setTenantAdsSampleResult] = useState("");
+  const [tenantCustomValues, setTenantCustomValues] = useState<TenantCustomValueRow[]>([]);
+  const [tenantCustomValuesLoading, setTenantCustomValuesLoading] = useState(false);
+  const [tenantCustomValuesSaving, setTenantCustomValuesSaving] = useState(false);
+  const [tenantCustomValuesSnapshotBusy, setTenantCustomValuesSnapshotBusy] = useState(false);
+  const [tenantCustomValuesMsg, setTenantCustomValuesMsg] = useState("");
+  const [actCvApplying, setActCvApplying] = useState(false);
+  const [actCvMsg, setActCvMsg] = useState("");
+  const [actCvErr, setActCvErr] = useState("");
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
   const [oauthErr, setOauthErr] = useState("");
   const [oauthMsg, setOauthMsg] = useState("");
@@ -611,6 +627,8 @@ export default function Home() {
   const [actMarking, setActMarking] = useState(false);
   const [actMarkErr, setActMarkErr] = useState("");
   const [actMarkDone, setActMarkDone] = useState(false);
+  const [actDnsReady, setActDnsReady] = useState(false);
+  const [actDnsChecking, setActDnsChecking] = useState(false);
   const [actKind, setActKind] = useState<"" | "counties" | "cities">("");
   const [actCelebrateOn, setActCelebrateOn] = useState(false);
   const [actCelebrateKey, setActCelebrateKey] = useState(0);
@@ -791,6 +809,155 @@ export default function Home() {
 
   useEffect(() => {
     loadOverview();
+  }, [routeTenantId]);
+
+  async function loadTenantCustomValues() {
+    if (!routeTenantId) {
+      setTenantCustomValues([]);
+      return;
+    }
+    setTenantCustomValuesLoading(true);
+    try {
+      const qs = new URLSearchParams({
+        provider: "ghl",
+        scope: "module",
+        module: "custom_values",
+      });
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values?${qs.toString()}`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const rows = Array.isArray((data as any)?.rows) ? (data as any).rows : [];
+      setTenantCustomValues(
+        rows.map((r: any) => ({
+          id: s(r.id),
+          keyName: s(r.keyName),
+          keyValue: s(r.keyValue),
+          isActive: r.isActive !== false,
+          description: s(r.description) || null,
+        })),
+      );
+    } catch (e: any) {
+      setTenantCustomValues([]);
+      setTenantDetailErr(e?.message || "Failed to load custom values template.");
+    } finally {
+      setTenantCustomValuesLoading(false);
+    }
+  }
+
+  function updateTenantCustomValueAt(index: number, patch: Partial<TenantCustomValueRow>) {
+    setTenantCustomValues((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  async function snapshotOwnerCustomValuesTemplate() {
+    if (!routeTenantId) return;
+    setTenantCustomValuesMsg("");
+    setTenantCustomValuesSnapshotBusy(true);
+    setTenantDetailErr("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values/snapshot-owner`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      await loadTenantCustomValues();
+      setTenantCustomValuesMsg(
+        `Owner snapshot synced. Found ${(data as any)?.totalFromOwner || 0}, inserted ${(data as any)?.inserted || 0}.`,
+      );
+    } catch (e: any) {
+      setTenantCustomValuesMsg("");
+      setTenantDetailErr(e?.message || "Failed to snapshot owner custom values.");
+    } finally {
+      setTenantCustomValuesSnapshotBusy(false);
+    }
+  }
+
+  async function saveTenantCustomValuesTemplate() {
+    if (!routeTenantId) return;
+    setTenantCustomValuesMsg("");
+    setTenantCustomValuesSaving(true);
+    setTenantDetailErr("");
+    try {
+      const rows = tenantCustomValues
+        .map((r) => ({
+          provider: "ghl",
+          scope: "module",
+          module: "custom_values",
+          keyName: s(r.keyName),
+          keyValue: s(r.keyValue),
+          isActive: r.isActive !== false,
+          description: s(r.description) || undefined,
+        }))
+        .filter((r) => !!r.keyName);
+
+      if (!rows.length) {
+        throw new Error("No custom values rows to save.");
+      }
+
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows }),
+        },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      await loadTenantCustomValues();
+      setTenantCustomValuesMsg(`Saved ${Number((data as any)?.upserted || 0)} custom values in DB.`);
+    } catch (e: any) {
+      setTenantCustomValuesMsg("");
+      setTenantDetailErr(e?.message || "Failed to save custom values template.");
+    } finally {
+      setTenantCustomValuesSaving(false);
+    }
+  }
+
+  async function applyCustomValuesForActivationLocation() {
+    if (!routeTenantId || !s(actLocId)) return;
+    setActCvMsg("");
+    setActCvErr("");
+    setActCvApplying(true);
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ locId: s(actLocId) }),
+        },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const updated = Number((data as any)?.updated || 0);
+      const noMatch = Number((data as any)?.noMatch || 0);
+      setActCvMsg(`Custom Values updated (${updated}). No match: ${noMatch}.`);
+    } catch (e: any) {
+      setActCvErr(e?.message || "Failed to update custom values.");
+    } finally {
+      setActCvApplying(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadTenantCustomValues();
   }, [routeTenantId]);
 
   useEffect(() => {
@@ -1636,6 +1803,11 @@ export default function Home() {
     setActMarking(true);
 
     try {
+      const dnsReady = await refreshActivationDnsStatus();
+      if (!dnsReady) {
+        throw new Error("Cannot complete until Cloudflare CNAME is active for this domain.");
+      }
+
       const domainUrlForDnsDelete = s(toUrlMaybe(actDomainToPaste));
       if (routeTenantId && domainUrlForDnsDelete) {
         const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
@@ -1713,11 +1885,43 @@ export default function Home() {
         if (!dnsRes.ok || !(dnsData as any)?.ok) {
           throw new Error((dnsData as any)?.error || `Cloudflare create failed (HTTP ${dnsRes.status})`);
         }
+        setActDnsReady(true);
       }
 
       window.open(activationUrl, "_blank", "noopener,noreferrer");
     } catch (e: any) {
       setActMarkErr(e?.message || "Failed to create Cloudflare DNS record.");
+    }
+  }
+
+  async function refreshActivationDnsStatus(domainOverride?: string) {
+    const domainUrl = s(toUrlMaybe(domainOverride || actDomainToPaste));
+    if (!routeTenantId || !domainUrl) {
+      setActDnsReady(false);
+      return false;
+    }
+    setActDnsChecking(true);
+    try {
+      const res = await fetch("/api/tools/cloudflare-dns-cname", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          tenantId: routeTenantId,
+          domainUrl,
+          action: "check",
+        }),
+      });
+      const data = await safeJson(res);
+      const ready = !!(data as any)?.ready;
+      const ok = !!res.ok && !!(data as any)?.ok && ready;
+      setActDnsReady(ok);
+      return ok;
+    } catch {
+      setActDnsReady(false);
+      return false;
+    } finally {
+      setActDnsChecking(false);
     }
   }
 
@@ -2293,8 +2497,14 @@ export default function Home() {
     setActMarking(false);
     setActMarkErr("");
     setActMarkDone(false);
+    setActDnsReady(false);
+    setActDnsChecking(false);
+    setActCvMsg("");
+    setActCvErr("");
+    setActCvApplying(false);
 
     if (lid) loadHeadersForLocation(lid);
+    void refreshActivationDnsStatus(opts.domainToPaste);
 
     setActOpen(true);
   }
@@ -2498,7 +2708,10 @@ export default function Home() {
           ? "/api/tools/bing-indexnow-submit"
           : "/api/tools/index-submit";
         const payload = isBingAction
-          ? { domainUrl }
+          ? {
+              tenantId: routeTenantId || "",
+              domainUrl,
+            }
           : {
               tenantId: routeTenantId || "",
               target: "google",
@@ -2813,6 +3026,9 @@ export default function Home() {
     setActMarking(false);
     setActMarkErr("");
     setActMarkDone(false);
+    setActCvMsg("");
+    setActCvErr("");
+    setActCvApplying(false);
   }
 
   async function copyDomain() {
@@ -3240,6 +3456,102 @@ export default function Home() {
               </div>
             </div>
           ) : null}
+
+          <div className="tableWrap" style={{ marginTop: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                flexWrap: "wrap",
+                marginBottom: 8,
+              }}
+            >
+              <div className="mini">
+                Custom Values Template (Owner snapshot). Edit values and save to DB.
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {tenantCustomValuesMsg ? <span className="badge">{tenantCustomValuesMsg}</span> : null}
+                <button
+                  type="button"
+                  className="smallBtn"
+                  disabled={!routeTenantId || tenantCustomValuesSnapshotBusy}
+                  onClick={() => void snapshotOwnerCustomValuesTemplate()}
+                  title="Sync custom value names from Owner Location snapshot."
+                >
+                  {tenantCustomValuesSnapshotBusy ? "Syncing..." : "Sync from Owner Snapshot"}
+                </button>
+                <button
+                  type="button"
+                  className="smallBtn"
+                  disabled={
+                    !routeTenantId ||
+                    tenantCustomValuesSaving ||
+                    tenantCustomValuesLoading ||
+                    tenantCustomValues.length === 0
+                  }
+                  onClick={() => void saveTenantCustomValuesTemplate()}
+                  title="Save edited template in DB."
+                >
+                  {tenantCustomValuesSaving ? "Saving..." : "Save Custom Values"}
+                </button>
+              </div>
+            </div>
+
+            <table className="table">
+              <thead>
+                <tr>
+                  <th className="th">Active</th>
+                  <th className="th">Name</th>
+                  <th className="th">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tenantCustomValuesLoading ? (
+                  <tr>
+                    <td className="td" colSpan={3}>
+                      <span className="mini">Loading custom values template...</span>
+                    </td>
+                  </tr>
+                ) : tenantCustomValues.length === 0 ? (
+                  <tr>
+                    <td className="td" colSpan={3}>
+                      <span className="mini">
+                        No rows found. Use <b>Sync from Owner Snapshot</b> first.
+                      </span>
+                    </td>
+                  </tr>
+                ) : (
+                  tenantCustomValues.map((row, idx) => (
+                    <tr key={`${row.id || row.keyName || "row"}:${idx}`} className="tr">
+                      <td className="td" style={{ width: 110 }}>
+                        <input
+                          type="checkbox"
+                          checked={row.isActive !== false}
+                          onChange={(e) =>
+                            updateTenantCustomValueAt(idx, { isActive: e.target.checked })
+                          }
+                        />
+                      </td>
+                      <td className="td" style={{ minWidth: 260 }}>
+                        <input className="input" value={row.keyName} readOnly />
+                      </td>
+                      <td className="td" style={{ minWidth: 320 }}>
+                        <input
+                          className="input"
+                          value={row.keyValue}
+                          onChange={(e) =>
+                            updateTenantCustomValueAt(idx, { keyValue: e.target.value })
+                          }
+                          placeholder="Leave empty to skip this key on apply."
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
           <div className="tableWrap" style={{ marginTop: 12 }}>
             <table className="table">
@@ -3677,7 +3989,7 @@ export default function Home() {
           <div className="drawerBackdrop" onClick={closeDetail} />
           <div className="drawer">
             <div className="drawerHeader">
-              <div>
+              <div className="drawerHeaderMain">
                 <div className="badge">STATE</div>
                 <h2 style={{ marginTop: 6, marginBottom: 0 }}>{openState}</h2>
 
@@ -3824,15 +4136,16 @@ export default function Home() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div className="drawerHeaderActions">
                 <button
                   className="smallBtn"
                   onClick={() => openDetail(openState)}
                   disabled={detailLoading}
+                  type="button"
                 >
                   {detailLoading ? "Refreshing..." : "Refresh"}
                 </button>
-                <button className="smallBtn" onClick={closeDetail}>
+                <button className="smallBtn" onClick={closeDetail} type="button">
                   Close
                 </button>
               </div>
@@ -4567,6 +4880,16 @@ export default function Home() {
                     ❌ {actMarkErr}
                   </div>
                 ) : null}
+                {actCvErr ? (
+                  <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
+                    ❌ {actCvErr}
+                  </div>
+                ) : null}
+                {actCvMsg ? (
+                  <div className="mini" style={{ color: "var(--ok)", marginTop: 8 }}>
+                    ✅ {actCvMsg}
+                  </div>
+                ) : null}
 
               </div>
 
@@ -4574,12 +4897,16 @@ export default function Home() {
                 <button
                   className={`smallBtn ${actMarkDone || actIsActive ? "smallBtnOn" : ""}`}
                   onClick={markDomainCreatedTrue}
-                  disabled={!actLocId || actMarking || actIsActive}
+                  disabled={!actLocId || actMarking || actIsActive || actDnsChecking || !actDnsReady}
                   title={
                     !actLocId
                       ? "Missing Location Id"
                       : actIsActive
                         ? "Already Active"
+                        : actDnsChecking
+                          ? "Checking Cloudflare DNS..."
+                          : !actDnsReady
+                            ? "Cloudflare CNAME is not active yet for this domain."
                         : `Set Domain Created = TRUE (${actKind})`
                   }
                   type="button"
@@ -4596,26 +4923,16 @@ export default function Home() {
                 {/* ✅ NEW: Update Custom Values for this locId */}
                 <button
                   className="smallBtn"
-                  onClick={() => {
-                    // lock runner config + run immediately
-                    setJob("update-custom-values-one");
-                    setRunLocId(actLocId);
-                    setRunKind(actKind || "");
-                    run({
-                      job: "update-custom-values-one",
-                      locId: actLocId,
-                      kind: actKind || "",
-                    });
-                  }}
-                  disabled={!actLocId || isRunning}
+                  onClick={() => void applyCustomValuesForActivationLocation()}
+                  disabled={!actLocId || actCvApplying}
                   title={
                     !actLocId
                       ? "Missing Location Id"
-                      : "Update Custom Values in this subaccount"
+                      : "Update Custom Values in this subaccount from DB template"
                   }
                   type="button"
                 >
-                  Update Custom Values
+                  {actCvApplying ? "Updating..." : "Update Custom Values"}
                 </button>
 
                 <button className="smallBtn" onClick={closeActivationHelper}>

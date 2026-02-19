@@ -138,6 +138,22 @@ export async function POST(req: Request) {
     const zoneName = s(cfg.rootDomain).toLowerCase() || apexFromHost(host);
     const zoneId = await resolveZoneId(cfg.apiToken, zoneName);
     const existing = await listCnameRecords(cfg.apiToken, zoneId, host);
+    const target = s(cfg.cnameTarget).toLowerCase();
+    const hasTargetMatch = existing.some((rec) => s(rec.content).toLowerCase() === target);
+
+    if (action === "check") {
+      return NextResponse.json({
+        ok: true,
+        action: "check",
+        tenantId,
+        zoneName,
+        host,
+        target: cfg.cnameTarget,
+        exists: existing.length > 0,
+        matchesTarget: hasTargetMatch,
+        ready: hasTargetMatch,
+      });
+    }
 
     if (action === "delete") {
       let deleted = 0;
@@ -165,7 +181,6 @@ export async function POST(req: Request) {
 
     const first = existing[0];
     const currentContent = s(first?.content).toLowerCase();
-    const target = s(cfg.cnameTarget).toLowerCase();
 
     if (first && currentContent === target) {
       return NextResponse.json({
@@ -220,4 +235,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: s(message) }, { status: 500 });
   }
 }
-

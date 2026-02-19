@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTenantIntegration } from "@/lib/tenantIntegrations";
 
 export const runtime = "nodejs";
 
@@ -24,39 +25,64 @@ function toOriginUrlMaybe(v: string) {
   }
 }
 
-function resolveKeyLocation(origin: string, host: string, key: string) {
-  const raw = s(process.env.INDEXNOW_KEY_LOCATION || process.env.BING_INDEXNOW_KEY_LOCATION);
+function resolveKeyLocation(origin: string, host: string, key: string, rawOverride = "") {
+  const raw = s(rawOverride);
   if (!raw) return `${origin}${key}.txt`;
   if (raw.includes("{host}")) return raw.replaceAll("{host}", host);
   return raw;
 }
 
+function parseTenantBingConfig(raw: Record<string, unknown>) {
+  const auth = raw.auth && typeof raw.auth === "object" ? (raw.auth as Record<string, unknown>) : {};
+  return {
+    apiKey:
+      s(raw.apiKey) ||
+      s(raw.api_key) ||
+      s(auth.apiKey) ||
+      s(auth.api_key),
+    endpoint: s(raw.endpoint) || "https://api.indexnow.org/indexnow",
+    keyLocation:
+      s(raw.keyLocation) ||
+      s(raw.key_location),
+  };
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const tenantId = s(body?.tenantId);
+    const integrationKey = s(body?.integrationKey) || "default";
     const domainUrl = toOriginUrlMaybe(s(body?.domainUrl));
     if (!domainUrl) {
       return NextResponse.json({ ok: false, error: "Missing domainUrl" }, { status: 400 });
     }
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
 
-    const key = s(
-      process.env.INDEXNOW_KEY ||
-        process.env.BING_INDEXNOW_KEY ||
-        process.env.BING_WEBMASTER_API_KEY,
-    );
+    let key = "";
+    let endpoint = "";
+    let keyLocationOverride = "";
+
+    const row = await getTenantIntegration(tenantId, "bing_webmaster", integrationKey);
+    const cfg = row?.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {};
+    const parsed = parseTenantBingConfig(cfg);
+    key = parsed.apiKey;
+    endpoint = parsed.endpoint;
+    keyLocationOverride = parsed.keyLocation;
+
     if (!key) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing INDEXNOW_KEY (or BING_INDEXNOW_KEY / BING_WEBMASTER_API_KEY).",
+          error: `Missing Bing IndexNow key in tenant integration (bing_webmaster:${integrationKey}).`,
         },
         { status: 400 },
       );
     }
 
-    const endpoint = s(process.env.INDEXNOW_ENDPOINT) || "https://api.indexnow.org/indexnow";
     const host = new URL(domainUrl).host.toLowerCase();
-    const keyLocation = resolveKeyLocation(domainUrl, host, key);
+    const keyLocation = resolveKeyLocation(domainUrl, host, key, keyLocationOverride);
 
     const bodyUrlList = Array.isArray(body?.urlList)
       ? body.urlList.map((u: unknown) => s(u)).filter(Boolean)
@@ -88,6 +114,8 @@ export async function POST(req: Request) {
         endpoint,
         host,
         domainUrl,
+        tenantId: tenantId || undefined,
+        integrationKey: integrationKey || undefined,
         keyLocation,
         submittedUrls: urlList.length,
         responsePreview: text.slice(0, 500) || undefined,
