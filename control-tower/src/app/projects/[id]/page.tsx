@@ -510,6 +510,10 @@ export default function Home() {
       } | null;
     }>
   >([]);
+  const [runCardStatusFilter, setRunCardStatusFilter] = useState<
+    "all" | "running" | "done" | "error" | "stopped"
+  >("all");
+  const [runCardSearch, setRunCardSearch] = useState("");
   const currentRunIdRef = useRef<string>("");
   const isRunningRef = useRef<boolean>(false);
 
@@ -2742,6 +2746,7 @@ export default function Home() {
         countiesLabel,
         citiesLabel,
         status,
+        isRunning: status === "running",
         stateLabel,
         eta:
           p && p.etaSec !== null
@@ -2755,6 +2760,37 @@ export default function Home() {
       };
     });
   }, [activeRuns]);
+
+  const filteredRunCards = useMemo(() => {
+    const term = s(runCardSearch).toLowerCase();
+    return runCards.filter((r) => {
+      const statusOk =
+        runCardStatusFilter === "all" ? true : r.status === runCardStatusFilter;
+      if (!statusOk) return false;
+      if (!term) return true;
+      const haystack = [
+        s(r.id),
+        s(r.meta?.job),
+        s(r.stateLabel),
+        s(r.message),
+        s(r.meta?.locId),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [runCards, runCardSearch, runCardStatusFilter]);
+
+  const runSummary = useMemo(() => {
+    const out = { total: runCards.length, running: 0, done: 0, error: 0, stopped: 0 };
+    for (const r of runCards) {
+      if (r.status === "running") out.running += 1;
+      else if (r.status === "done") out.done += 1;
+      else if (r.status === "error") out.error += 1;
+      else if (r.status === "stopped") out.stopped += 1;
+    }
+    return out;
+  }, [runCards]);
 
   const gscHealth = oauthHealthRows.find(
     (r) =>
@@ -3017,306 +3053,232 @@ export default function Home() {
       ) : null}
 
       {activeProjectTab === "runner" ? (
-      <div className="grid" ref={runnerRef}>
-        {/* Runner */}
-        <section className="card">
-          <div className="cardHeader">
-            <div>
-              <h2 className="cardTitle">Runner</h2>
-              <div className="cardSubtitle">
-                Ejecuta scripts existentes y streamea logs en vivo (SSE).
-              </div>
-            </div>
-            <div className="badge">{runId ? `runId: ${runId}` : "idle"}</div>
-          </div>
-
-          <div className="cardBody">
-            <div className="row">
-              <div className="field">
-                <label>Job</label>
-                <select
-                  className="select"
-                  value={job}
-                  onChange={(e) => setJob(e.target.value)}
-                >
-                  {JOBS.map((j) => (
-                    <option key={j.key} value={j.key}>
-                      {j.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="field">
-                <label>State</label>
-                <select
-                  className="select"
-                  value={stateOut}
-                  onChange={(e) => setStateOut(e.target.value)}
-                  disabled={isOneLocJob}
-                  title={
-                    isOneLocJob
-                      ? "Single-location job does not require state"
-                      : ""
-                  }
-                >
-                  <option value="all">ALL</option>
-                  {statesOut.map((s0) => (
-                    <option key={s0} value={s0}>
-                      {formatStateLabel(s0)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="field">
-                <label>Mode</label>
-                <select
-                  className="select"
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value as any)}
-                >
-                  <option value="dry">Dry Run</option>
-                  <option value="live">Live Run</option>
-                </select>
-              </div>
-
-              <div className="field">
-                <label>Debug</label>
-                <select
-                  className="select"
-                  value={debug ? "on" : "off"}
-                  onChange={(e) => setDebug(e.target.value === "on")}
-                >
-                  <option value="on">ON</option>
-                  <option value="off">OFF</option>
-                </select>
-              </div>
-            </div>
-
-            {/* ✅ Single Location args */}
-            {isOneLocJob && (
-              <div className="row" style={{ marginTop: 10 }}>
-                <div className="field" style={{ flex: 2 }}>
-                  <label>Location Id (locId)</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. 2rYTkmtMkwdUQLNCdCfB"
-                    value={runLocId}
-                    onChange={(e) => setRunLocId(e.target.value)}
-                  />
-                </div>
-
-                <div className="field" style={{ maxWidth: 220 }}>
-                  <label>Kind</label>
-                  <select
-                    className="select"
-                    value={runKind}
-                    onChange={(e) => setRunKind(e.target.value as any)}
-                    title="Optional"
-                  >
-                    <option value="">auto</option>
-                    <option value="counties">counties</option>
-                    <option value="cities">cities</option>
-                  </select>
-                </div>
-              </div>
-            )}
-
-            <div className="actions">
-              <button
-                className="btn btnPrimary"
-                onClick={() => run()}
-                title="Run"
-              >
-                Run
-              </button>
-
-              <button
-                className="btn btnDanger"
-                onClick={stop}
-                disabled={!runId}
-                title={!runId ? "No active runId" : "Stop"}
-              >
-                Stop
-              </button>
-
-              <div className="mini" style={{ alignSelf: "center" }}>
-                Job: <b>{selectedJob?.label}</b>{" "}
-                {isOneLocJob ? (
-                  <>
-                    • locId: <b>{runLocId || "—"}</b>
-                  </>
-                ) : (
-                  <>
-                    • State: <b>{stateOut === "all" ? "ALL" : formatStateLabel(stateOut)}</b>
-                  </>
-                )}{" "}
-                • Mode: <b>{mode}</b>
-              </div>
-            </div>
-
-            <div
-              className="row"
-              style={{ marginTop: 8, alignItems: "flex-start", gap: 8 }}
-            >
-              <div className="field" style={{ flex: 1 }}>
-                <label>Runs</label>
-                <div className="runCardsGrid">
-                  {runCards.length === 0 ? (
-                    <div className="mini">No runs yet.</div>
-                  ) : (
-                    runCards.map((r) => (
-                      <article
-                        key={r.id}
-                        className={`runCard runCardStatus${r.status.charAt(0).toUpperCase()}${r.status.slice(1)}`}
-                      >
-                        <div className="runCardHead">
-                          <div className="runCardTitle">
-                            <b>{s(r.meta?.job) || "run"}</b>
-                            <span className="mini">state: {formatStateLabel(r.stateLabel) || "ALL"}</span>
-                          </div>
-                          <span className="badge">{r.pct}%</span>
-                        </div>
-
-                        <div className="runCardMeta mini">
-                          <span>Done: <b>{r.doneLabel}</b></span>
-                          <span>ETA: <b>{r.eta}</b></span>
-                          <span>Elapsed: <b>{r.elapsed}</b></span>
-                          <span>Counties: <b>{r.countiesLabel}</b></span>
-                          <span>Cities: <b>{r.citiesLabel}</b></span>
-                        </div>
-
-                        <div className="runCardMsg mini">{r.message}</div>
-
-                        <div className="runCardBar" aria-hidden>
-                          <div className="runCardBarFill" style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }} />
-                        </div>
-
-                        <div className="runCardActions">
-                          <button
-                            type="button"
-                            className="smallBtn"
-                            onClick={() => attachToActiveRun(r.id)}
-                          >
-                            Attach
-                          </button>
-                          {!r.finished ? (
-                            <button
-                              type="button"
-                              className="smallBtn"
-                              onClick={async () => {
-                                await fetch(`/api/stop/${r.id}`, { method: "POST" });
-                                pushLog(`🛑 Stop requested for ${r.id}`);
-                                loadActiveRuns();
-                              }}
-                            >
-                              Stop
-                            </button>
-                          ) : null}
-                        </div>
-                      </article>
-                    ))
-                  )}
-                </div>
-              </div>
+      <section className="card runCenterCard" ref={runnerRef} style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Runs Center</h2>
+            <div className="cardSubtitle">
+              Ejecuta y monitorea jobs por tenant con progreso individual, ETA y control por run.
             </div>
           </div>
-        </section>
+          <div className="cardHeaderActions">
+            <div className="badge">{runId ? `attached: ${runId}` : "no attachment"}</div>
+            <button className="smallBtn" onClick={loadActiveRuns}>
+              Refresh runs
+            </button>
+          </div>
+        </div>
 
-        {/* Sheet Overview */}
-        <aside className="card sheetOverviewCard">
-          <div className="cardHeader">
-            <div>
-              <h2 className="cardTitle">Sheet overview</h2>
-              <div className="cardSubtitle">
-                Live summary from Google Sheets
-              </div>
+        <div className="cardBody">
+          <div className="row">
+            <div className="field">
+              <label>Job</label>
+              <select
+                className="select"
+                value={job}
+                onChange={(e) => setJob(e.target.value)}
+              >
+                {JOBS.map((j) => (
+                  <option key={j.key} value={j.key}>
+                    {j.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="cardHeaderActions">
-              <button
-                className="smallBtn smallBtnGhost"
-                onClick={() => setMapOpen(true)}
-                disabled={!sheet?.states?.length}
+            <div className="field">
+              <label>State</label>
+              <select
+                className="select"
+                value={stateOut}
+                onChange={(e) => setStateOut(e.target.value)}
+                disabled={isOneLocJob}
                 title={
-                  sheet?.states?.length
-                    ? "Open progress map"
-                    : "Load overview first"
+                  isOneLocJob
+                    ? "Single-location job does not require state"
+                    : ""
                 }
               >
-                Map
-              </button>
+                <option value="all">ALL</option>
+                {statesOut.map((s0) => (
+                  <option key={s0} value={s0}>
+                    {formatStateLabel(s0)}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <button
-                className="smallBtn"
-                onClick={loadOverview}
-                disabled={sheetLoading}
+            <div className="field">
+              <label>Mode</label>
+              <select
+                className="select"
+                value={mode}
+                onChange={(e) => setMode(e.target.value as any)}
               >
-                {sheetLoading ? "Refreshing..." : "Refresh"}
-              </button>
+                <option value="dry">Dry Run</option>
+                <option value="live">Live Run</option>
+              </select>
+            </div>
+
+            <div className="field">
+              <label>Debug</label>
+              <select
+                className="select"
+                value={debug ? "on" : "off"}
+                onChange={(e) => setDebug(e.target.value === "on")}
+              >
+                <option value="on">ON</option>
+                <option value="off">OFF</option>
+              </select>
             </div>
           </div>
 
-          <div className="cardBody">
-            {sheetErr ? (
-              <div className="mini" style={{ color: "var(--danger)" }}>
-                ❌ {sheetErr}
+          {isOneLocJob ? (
+            <div className="row" style={{ marginTop: 10 }}>
+              <div className="field" style={{ flex: 2 }}>
+                <label>Location Id (locId)</label>
+                <input
+                  className="input"
+                  placeholder="e.g. 2rYTkmtMkwdUQLNCdCfB"
+                  value={runLocId}
+                  onChange={(e) => setRunLocId(e.target.value)}
+                />
               </div>
+
+              <div className="field" style={{ maxWidth: 220 }}>
+                <label>Kind</label>
+                <select
+                  className="select"
+                  value={runKind}
+                  onChange={(e) => setRunKind(e.target.value as any)}
+                  title="Optional"
+                >
+                  <option value="">auto</option>
+                  <option value="counties">counties</option>
+                  <option value="cities">cities</option>
+                </select>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="actions">
+            <button className="btn btnPrimary" onClick={() => run()} title="Run">
+              Run
+            </button>
+            <button
+              className="btn btnDanger"
+              onClick={stop}
+              disabled={!runId}
+              title={!runId ? "No active runId" : "Stop"}
+            >
+              Stop attached
+            </button>
+            <div className="mini" style={{ alignSelf: "center" }}>
+              Job: <b>{selectedJob?.label}</b>{" "}
+              {isOneLocJob ? (
+                <>• locId: <b>{runLocId || "—"}</b></>
+              ) : (
+                <>• State: <b>{stateOut === "all" ? "ALL" : formatStateLabel(stateOut)}</b></>
+              )}{" "}
+              • Mode: <b>{mode}</b>
+            </div>
+          </div>
+
+          <div className="runCenterSummary">
+            <span className="badge">Total: {runSummary.total}</span>
+            <span className="badge">Running: {runSummary.running}</span>
+            <span className="badge">Done: {runSummary.done}</span>
+            <span className="badge">Stopped: {runSummary.stopped}</span>
+            <span className="badge">Error: {runSummary.error}</span>
+          </div>
+
+          <div className="runCenterFilters">
+            <input
+              className="input"
+              placeholder="Search runId, job, state, message, locId..."
+              value={runCardSearch}
+              onChange={(e) => setRunCardSearch(e.target.value)}
+            />
+            <select
+              className="select"
+              value={runCardStatusFilter}
+              onChange={(e) =>
+                setRunCardStatusFilter(
+                  e.target.value as "all" | "running" | "done" | "error" | "stopped",
+                )
+              }
+            >
+              <option value="all">All statuses</option>
+              <option value="running">Running</option>
+              <option value="done">Done</option>
+              <option value="stopped">Stopped</option>
+              <option value="error">Error</option>
+            </select>
+          </div>
+
+          <div className="runCardsGrid" style={{ marginTop: 10 }}>
+            {filteredRunCards.length === 0 ? (
+              <div className="mini">No runs for current filter.</div>
             ) : (
-              <div className="kpiRow sheetOverviewGrid">
-                <div className="kpi kpiHero">
-                  <p className="n">
-                    {fmtInt((totals.countiesTotal || 0) + (totals.citiesTotal || 0))}
-                  </p>
-                  <p className="l">Total counties + cities</p>
-                </div>
+              filteredRunCards.map((r) => (
+                <article
+                  key={r.id}
+                  className={`runCard runCardStatus${r.status.charAt(0).toUpperCase()}${r.status.slice(1)}`}
+                >
+                  <div className="runCardHead">
+                    <div className="runCardTitle">
+                      <b>{s(r.meta?.job) || "run"}</b>
+                      <span className="mini">state: {formatStateLabel(r.stateLabel) || "ALL"}</span>
+                      <span className="mini">runId: {r.id}</span>
+                    </div>
+                    <span className="badge">{r.pct}%</span>
+                  </div>
 
-                <div className="kpi">
-                  <p className="n">{fmtInt(sheet?.states?.length ?? 0)}</p>
-                  <p className="l">States in sheet</p>
-                </div>
+                  <div className="runCardMeta mini">
+                    <span>Done: <b>{r.doneLabel}</b></span>
+                    <span>ETA: <b>{r.eta}</b></span>
+                    <span>Elapsed: <b>{r.elapsed}</b></span>
+                    <span>Counties: <b>{r.countiesLabel}</b></span>
+                    <span>Cities: <b>{r.citiesLabel}</b></span>
+                  </div>
 
-                <div className="kpi">
-                  <p className="n nPair">{fmtPair(totals.countiesReady, totals.countiesTotal)}</p>
-                  <p className="l">Counties ready</p>
-                </div>
+                  <div className="runCardMsg mini">{r.message}</div>
 
-                <div className="kpi">
-                  <p className="n nPair">{fmtPair(totals.citiesReady, totals.citiesTotal)}</p>
-                  <p className="l">Cities ready</p>
-                </div>
+                  <div className="runCardBar" aria-hidden>
+                    <div
+                      className="runCardBarFill"
+                      style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }}
+                    />
+                  </div>
 
-                <div className="kpi">
-                  <p className="n">{fmtInt(totals.countiesDomainsActive)}</p>
-                  <p className="l">County domains active</p>
-                </div>
-
-                <div className="kpi">
-                  <p className="n">{fmtInt(totals.citiesDomainsActive)}</p>
-                  <p className="l">City domains active</p>
-                </div>
-                <div className="kpi">
-                  <p className="n">
-                    {totals.countiesTotal
-                      ? `${Math.round((totals.countiesDomainsActive / totals.countiesTotal) * 100)}%`
-                      : "0%"}
-                  </p>
-                  <p className="l">County activation %</p>
-                </div>
-                <div className="kpi">
-                  <p className="n">
-                    {totals.citiesTotal
-                      ? `${Math.round((totals.citiesDomainsActive / totals.citiesTotal) * 100)}%`
-                      : "0%"}
-                  </p>
-                  <p className="l">City activation %</p>
-                </div>
-              </div>
+                  <div className="runCardActions">
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      onClick={() => attachToActiveRun(r.id)}
+                    >
+                      Attach
+                    </button>
+                    {!r.finished ? (
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        onClick={async () => {
+                          await fetch(`/api/stop/${r.id}`, { method: "POST" });
+                          pushLog(`🛑 Stop requested for ${r.id}`);
+                          loadActiveRuns();
+                        }}
+                      >
+                        Stop
+                      </button>
+                    ) : null}
+                  </div>
+                </article>
+              ))
             )}
           </div>
-        </aside>
-      </div>
+        </div>
+      </section>
       ) : null}
 
       {/* Sheet Explorer */}
