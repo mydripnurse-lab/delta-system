@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { ghlFetchJson, getEffectiveLocationIdOrThrow } from "@/lib/ghlHttp";
 import { inferStateFromText, normalizeStateName, norm } from "@/lib/ghlState";
 import { tokensDebugInfo } from "@/lib/ghlTokens";
+import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,10 @@ type ApiResponse = {
     };
     byState?: Record<string, number>;
     rows?: ContactsRow[];
+    cache?: {
+        source: "memory" | "db_range_cache" | "ghl_refresh";
+        cachedAt?: string;
+    };
     debug?: any;
     error?: string;
 };
@@ -320,8 +325,37 @@ export async function GET(req: Request) {
         }
 
         if (!bust) {
+            const dbCached = await readDashboardKpiCache({
+                tenantId: tenantId,
+                module: "contacts",
+                integrationKey,
+                start: start,
+                end: end,
+                preset: norm(url.searchParams.get("preset")) || "",
+                compare: url.searchParams.get("compare") === "1",
+            });
+            if (dbCached?.payload) {
+                const payload = dbCached.payload as ApiResponse;
+                return NextResponse.json({
+                    ...payload,
+                    cache: {
+                        ...(payload.cache || {}),
+                        source: "db_range_cache",
+                        cachedAt: dbCached.capturedAt || undefined,
+                    },
+                } satisfies ApiResponse);
+            }
+
             const cached = getCache(start, end, tenantId, integrationKey);
-            if (cached) return NextResponse.json(cached);
+            if (cached) {
+                return NextResponse.json({
+                    ...cached,
+                    cache: {
+                        ...(cached.cache || {}),
+                        source: "memory",
+                    },
+                } satisfies ApiResponse);
+            }
         }
 
         const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
@@ -401,6 +435,7 @@ export async function GET(req: Request) {
             },
             byState,
             rows,
+            cache: { source: "ghl_refresh" },
             ...(debug
                 ? {
                     debug: {
@@ -415,6 +450,18 @@ export async function GET(req: Request) {
         };
 
         setCache(start, end, tenantId, integrationKey, resp);
+        await writeDashboardKpiCache({
+            tenantId: tenantId,
+            module: "contacts",
+            integrationKey,
+            start: start,
+            end: end,
+            preset: norm(url.searchParams.get("preset")) || "",
+            compare: url.searchParams.get("compare") === "1",
+            source: "ghl_contacts_refresh",
+            payload: resp as unknown as Record<string, unknown>,
+            ttlSec: Number(process.env.CONTACTS_RANGE_DB_CACHE_TTL_SEC || 300),
+        });
         return NextResponse.json(resp);
     } catch (e: any) {
         const msg = e?.message || "Unknown error";

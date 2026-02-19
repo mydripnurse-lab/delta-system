@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
 
@@ -183,6 +184,37 @@ export async function GET(req: Request) {
     const u = new URL(req.url);
     const origin = u.origin;
     const compareEnabled = s(u.searchParams.get("compare")) === "1";
+    const bust = s(u.searchParams.get("bust")) === "1";
+    const tenantId = s(u.searchParams.get("tenantId"));
+    const integrationKey = s(u.searchParams.get("integrationKey")) || "aggregate";
+    const start = s(u.searchParams.get("start"));
+    const end = s(u.searchParams.get("end"));
+    const preset = s(u.searchParams.get("preset"));
+
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+
+    if (!bust) {
+      const dbCached = await readDashboardKpiCache({
+        tenantId: tenantId,
+        module: "search_performance",
+        integrationKey,
+        start: start,
+        end: end,
+        preset,
+        compare: compareEnabled,
+      });
+      if (dbCached?.payload) {
+        return NextResponse.json({
+          ...(dbCached.payload as AnyObj),
+          cache: {
+            source: "db_range_cache",
+            cachedAt: dbCached.capturedAt || undefined,
+          },
+        });
+      }
+    }
 
     const qs = u.searchParams.toString();
     const [gscRes, bingRes] = await Promise.all([
@@ -308,7 +340,7 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({
+    const responsePayload = {
       ok: true,
       meta: {
         ok: true,
@@ -351,7 +383,22 @@ export async function GET(req: Request) {
         gscOk: !!gscRes.ok,
         bingOk: !!bingRes.ok,
       },
+    };
+
+    await writeDashboardKpiCache({
+      tenantId: tenantId,
+      module: "search_performance",
+      integrationKey,
+      start: start,
+      end: end,
+      preset,
+      compare: compareEnabled,
+      source: "search_performance_join_refresh",
+      payload: responsePayload as Record<string, unknown>,
+      ttlSec: Number(process.env.SEARCH_PERFORMANCE_RANGE_DB_CACHE_TTL_SEC || 300),
     });
+
+    return NextResponse.json(responsePayload);
   } catch (e: unknown) {
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "search performance join failed" }, { status: 500 });
   }

@@ -8,6 +8,7 @@ import {
 } from "@/lib/ghlHttp";
 import { inferStateFromText, normalizeStateName, norm } from "@/lib/ghlState";
 import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
+import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
 
@@ -96,7 +97,7 @@ type ApiResponse = {
   rows?: ApptRow[];
   lostBookings?: LostBookingsBlock;
   cache?: {
-    source: "memory" | "snapshot" | "ghl_refresh";
+    source: "memory" | "snapshot" | "ghl_refresh" | "db_range_cache";
     snapshotUpdatedAt?: string;
     snapshotCoverage?: { newestStartAt: string; oldestStartAt: string };
     refreshedLocations?: number;
@@ -190,6 +191,7 @@ const LOST_BOOKINGS_STAGE_ID = String(process.env.APPOINTMENTS_LOST_STAGE_ID || 
 const INCLUDE_SHEET_LOCATIONS = String(process.env.APPOINTMENTS_INCLUDE_SHEET_LOCATIONS || "").trim() === "1";
 const REQUEST_MAX_MS = Math.max(10_000, Number(process.env.APPOINTMENTS_REQUEST_MAX_MS || 45_000));
 const SNAPSHOT_RANGE_SLOP_MS = Number(process.env.APPOINTMENTS_RANGE_SLOP_MIN || 15) * 60 * 1000;
+const RANGE_DB_CACHE_TTL_SEC = Math.max(30, Number(process.env.APPOINTMENTS_RANGE_DB_CACHE_TTL_SEC || 300));
 const PLACE_NAME_CORRECTIONS: Record<string, string> = {
   rincon: "Rincón",
   mayaguez: "Mayagüez",
@@ -2062,6 +2064,27 @@ export async function GET(req: Request) {
           },
         });
       }
+      const dbCached = await readDashboardKpiCache({
+        tenantId,
+        module: "appointments",
+        integrationKey,
+        start,
+        end,
+        preset: "",
+        compare: false,
+      });
+      if (dbCached && !dbCached.expired) {
+        const payload = (dbCached.payload || {}) as ApiResponse;
+        const out: ApiResponse = {
+          ...payload,
+          cache: {
+            ...(payload.cache || {}),
+            source: "db_range_cache",
+          },
+        };
+        setRangeCache(start, end, tenantId, integrationKey, out);
+        return NextResponse.json(out);
+      }
     }
 
     const locationIds = (await getLocationDirectory(ghlCtx)).ids;
@@ -2387,6 +2410,22 @@ export async function GET(req: Request) {
     };
 
     setRangeCache(start, end, tenantId, integrationKey, resp);
+    try {
+      await writeDashboardKpiCache({
+        tenantId,
+        module: "appointments",
+        integrationKey,
+        start,
+        end,
+        preset: "",
+        compare: false,
+        payload: resp as unknown as Record<string, unknown>,
+        source: "dashboard_appointments_api",
+        ttlSec: RANGE_DB_CACHE_TTL_SEC,
+      });
+    } catch {
+      // non-blocking
+    }
     console.info(
       `[appointments] request done inMs=${Date.now() - reqStartedAt} total=${resp.total || 0} lost=${resp.lostBookings?.total || 0} refreshReason=${resp.cache?.refreshReason || "none"}`,
     );

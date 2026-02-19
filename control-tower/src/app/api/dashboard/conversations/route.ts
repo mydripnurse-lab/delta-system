@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getEffectiveLocationIdOrThrow, ghlFetchJson } from "@/lib/ghlHttp";
 import { normalizeStateName, norm } from "@/lib/ghlState";
 import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
+import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
 
@@ -38,7 +39,7 @@ type ApiResponse = {
     byChannel?: Record<string, number>;
     rows?: ConvRow[];
     cache?: {
-        source: "memory" | "snapshot" | "ghl_refresh";
+        source: "memory" | "snapshot" | "ghl_refresh" | "db_range_cache";
         snapshotUpdatedAt?: string;
         snapshotCoverage?: { newestMessageAt: string; oldestMessageAt: string };
         fetchedPages?: number;
@@ -85,6 +86,7 @@ const SNAPSHOT_TTL_MS = Number(process.env.CONVERSATIONS_SNAPSHOT_TTL_SEC || 900
 const SNAPSHOT_MAX_NEW_PAGES = Math.max(3, Number(process.env.CONVERSATIONS_INCREMENTAL_MAX_PAGES || 12));
 const SNAPSHOT_OVERLAP_MS = Number(process.env.CONVERSATIONS_INCREMENTAL_OVERLAP_MIN || 15) * 60 * 1000;
 const SNAPSHOT_RANGE_SLOP_MS = Number(process.env.CONVERSATIONS_RANGE_SLOP_MIN || 15) * 60 * 1000;
+const RANGE_DB_CACHE_TTL_SEC = Math.max(30, Number(process.env.CONVERSATIONS_RANGE_DB_CACHE_TTL_SEC || 300));
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -886,6 +888,27 @@ export async function GET(req: Request) {
                 };
                 return NextResponse.json(cachedOut);
             }
+            const dbCached = await readDashboardKpiCache({
+                tenantId,
+                module: "conversations",
+                integrationKey,
+                start,
+                end,
+                preset: "",
+                compare: false,
+            });
+            if (dbCached && !dbCached.expired) {
+                const payload = (dbCached.payload || {}) as ApiResponse;
+                const out: ApiResponse = {
+                    ...payload,
+                    cache: {
+                        ...(payload.cache || {}),
+                        source: "db_range_cache",
+                    },
+                };
+                setCache(start, end, tenantId, integrationKey, out);
+                return NextResponse.json(out);
+            }
         }
 
         const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
@@ -1115,6 +1138,22 @@ export async function GET(req: Request) {
         };
 
         setCache(start, end, tenantId, integrationKey, resp);
+        try {
+            await writeDashboardKpiCache({
+                tenantId,
+                module: "conversations",
+                integrationKey,
+                start,
+                end,
+                preset: "",
+                compare: false,
+                payload: resp as unknown as Record<string, unknown>,
+                source: "dashboard_conversations_api",
+                ttlSec: RANGE_DB_CACHE_TTL_SEC,
+            });
+        } catch {
+            // non-blocking
+        }
         return NextResponse.json(resp);
     } catch (e: any) {
         return NextResponse.json(

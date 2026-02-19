@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
+import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
 const OVERVIEW_FAST_HIT_MAX_AGE_MS = Number(process.env.OVERVIEW_FAST_HIT_MAX_AGE_SEC || 90) * 1000;
@@ -315,6 +316,7 @@ export async function GET(req: Request) {
         const searchIntegrationKey =
             s(url.searchParams.get("searchIntegrationKey")) ||
             (integrationKeyRaw.toLowerCase() === "owner" ? "default" : integrationKeyRaw);
+        const compareEnabled = s(url.searchParams.get("compare")) !== "0";
 
         if (!start || !end) {
             return NextResponse.json(
@@ -327,6 +329,26 @@ export async function GET(req: Request) {
                 { ok: false, error: "Missing tenantId query param." },
                 { status: 400 },
             );
+        }
+
+        const rangeCacheHit = await readDashboardKpiCache({
+            tenantId,
+            module: "overview",
+            integrationKey,
+            start,
+            end,
+            preset,
+            compare: compareEnabled,
+        });
+        if (!force && rangeCacheHit && !rangeCacheHit.expired) {
+            const payload = (rangeCacheHit.payload || {}) as JsonObject;
+            return NextResponse.json({
+                ...(payload as JsonObject),
+                cache: {
+                    source: "db_range_cache",
+                    capturedAt: rangeCacheHit.capturedAt,
+                },
+            });
         }
 
         const snapshot = await loadOverviewSnapshot(tenantId);
@@ -1642,6 +1664,22 @@ export async function GET(req: Request) {
             await saveOverviewSnapshot(tenantId, out as JsonObject);
         } catch {
             // non-blocking: dashboard response should still return even if snapshot persistence fails
+        }
+        try {
+            await writeDashboardKpiCache({
+                tenantId,
+                module: "overview",
+                integrationKey,
+                start,
+                end,
+                preset,
+                compare: compareEnabled,
+                payload: out as JsonObject,
+                source: "dashboard_overview_api",
+                ttlSec: Number(process.env.OVERVIEW_CACHE_TTL_SEC || 600),
+            });
+        } catch {
+            // non-blocking
         }
 
         return NextResponse.json(out);

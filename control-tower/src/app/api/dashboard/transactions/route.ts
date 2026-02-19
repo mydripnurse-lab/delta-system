@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAgencyAccessTokenOrThrow, getEffectiveLocationIdOrThrow, ghlFetchJson } from "@/lib/ghlHttp";
 import { normalizeStateName, norm } from "@/lib/ghlState";
 import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
+import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
 
@@ -51,7 +52,7 @@ type ApiResponse = {
     byStateAmount?: Record<string, number>;
     rows?: TxRow[];
     cache?: {
-        source: "memory" | "snapshot" | "ghl_refresh";
+        source: "memory" | "snapshot" | "ghl_refresh" | "db_range_cache";
         snapshotUpdatedAt?: string;
         snapshotCoverage?: { newestCreatedAt: string; oldestCreatedAt: string };
         fetchedPages?: number;
@@ -884,6 +885,26 @@ export async function GET(req: Request) {
         }
 
         if (!bust) {
+            const dbCached = await readDashboardKpiCache({
+                tenantId: tenantId,
+                module: "transactions",
+                integrationKey,
+                start: start,
+                end: end,
+                preset: norm(url.searchParams.get("preset")) || "",
+                compare: url.searchParams.get("compare") === "1",
+            });
+            if (dbCached?.payload) {
+                const payload = dbCached.payload as ApiResponse;
+                return NextResponse.json({
+                    ...payload,
+                    cache: {
+                        ...(payload.cache || {}),
+                        source: "db_range_cache",
+                    },
+                } satisfies ApiResponse);
+            }
+
             const cached = getCache(start, end, tenantId, integrationKey);
             if (cached) {
                 const cachedOut: ApiResponse = {
@@ -1189,6 +1210,18 @@ export async function GET(req: Request) {
         };
 
         setCache(start, end, tenantId, integrationKey, resp);
+        await writeDashboardKpiCache({
+            tenantId: tenantId,
+            module: "transactions",
+            integrationKey,
+            start: start,
+            end: end,
+            preset: norm(url.searchParams.get("preset")) || "",
+            compare: url.searchParams.get("compare") === "1",
+            source: "ghl_transactions_refresh",
+            payload: resp as unknown as Record<string, unknown>,
+            ttlSec: Number(process.env.TRANSACTIONS_RANGE_DB_CACHE_TTL_SEC || 300),
+        });
         return NextResponse.json(resp);
     } catch (e: any) {
         return NextResponse.json(

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
+import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
 
@@ -158,6 +159,9 @@ export async function GET(req: Request) {
         const start = s(url.searchParams.get("start"));
         const end = s(url.searchParams.get("end"));
         const tenantId = s(url.searchParams.get("tenantId"));
+        const bust = s(url.searchParams.get("bust")) === "1";
+        const preset = s(url.searchParams.get("preset"));
+        const compareEnabled = s(url.searchParams.get("compare")) === "1";
 
         const startMs = start ? toRangeBoundaryMs(start, "start") : null;
         const endMs = end ? toRangeBoundaryMs(end, "end") : null;
@@ -167,6 +171,27 @@ export async function GET(req: Request) {
                 { ok: false, error: "Missing tenantId" },
                 { status: 400 },
             );
+        }
+
+        if (!bust) {
+            const cached = await readDashboardKpiCache({
+                tenantId: tenantId,
+                module: "calls",
+                integrationKey: "sheet",
+                start: start,
+                end: end,
+                preset,
+                compare: compareEnabled,
+            });
+            if (cached?.payload) {
+                return NextResponse.json({
+                    ...(cached.payload as Record<string, unknown>),
+                    cache: {
+                        source: "db_range_cache",
+                        cachedAt: cached.capturedAt || undefined,
+                    },
+                });
+            }
         }
 
         const cfg = await getTenantSheetConfig(tenantId);
@@ -208,12 +233,28 @@ export async function GET(req: Request) {
             byState[st] = (byState[st] || 0) + 1;
         }
 
-        return NextResponse.json({
+        const responsePayload = {
             ok: true,
             total: objects.length,
             byState,
             rows: objects,
+            cache: { source: "sheet_refresh" },
+        };
+
+        await writeDashboardKpiCache({
+            tenantId: tenantId,
+            module: "calls",
+            integrationKey: "sheet",
+            start: start,
+            end: end,
+            preset,
+            compare: compareEnabled,
+            source: "sheet_calls_refresh",
+            payload: responsePayload as Record<string, unknown>,
+            ttlSec: Number(process.env.CALLS_RANGE_DB_CACHE_TTL_SEC || 180),
         });
+
+        return NextResponse.json(responsePayload);
     } catch (e: unknown) {
         return NextResponse.json(
             { ok: false, error: e instanceof Error ? e.message : "Failed to load Calls Dashboard" },
