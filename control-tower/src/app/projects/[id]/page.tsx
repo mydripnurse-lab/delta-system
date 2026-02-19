@@ -96,6 +96,8 @@ type TenantDetailResponse = {
     locale?: string | null;
     currency?: string | null;
     root_domain?: string | null;
+    cloudflare_cname_target?: string | null;
+    has_cloudflare_api_token?: boolean | null;
     ghl_company_id?: string | null;
     owner_first_name?: string | null;
     owner_last_name?: string | null;
@@ -419,6 +421,9 @@ export default function Home() {
   const [tenantSlug, setTenantSlug] = useState("");
   const [tenantStatus, setTenantStatus] = useState<"active" | "disabled">("active");
   const [tenantRootDomain, setTenantRootDomain] = useState("");
+  const [tenantCloudflareCnameTarget, setTenantCloudflareCnameTarget] = useState("");
+  const [tenantCloudflareApiToken, setTenantCloudflareApiToken] = useState("");
+  const [tenantCloudflareHasToken, setTenantCloudflareHasToken] = useState(false);
   const [tenantTimezone, setTenantTimezone] = useState("UTC");
   const [tenantLocale, setTenantLocale] = useState("en-US");
   const [tenantCurrency, setTenantCurrency] = useState("USD");
@@ -837,6 +842,9 @@ export default function Home() {
           s(t.status).toLowerCase() === "disabled" ? "disabled" : "active",
         );
         setTenantRootDomain(s(settings.root_domain));
+        setTenantCloudflareCnameTarget(s(settings.cloudflare_cname_target));
+        setTenantCloudflareHasToken(settings.has_cloudflare_api_token === true);
+        setTenantCloudflareApiToken("");
         setTenantTimezone(s(settings.timezone) || "UTC");
         setTenantLocale(s(settings.locale) || "en-US");
         setTenantCurrency(s(settings.currency) || "USD");
@@ -906,6 +914,8 @@ export default function Home() {
           slug: tenantSlug,
           status: tenantStatus,
           rootDomain: tenantRootDomain || undefined,
+          cloudflareCnameTarget: tenantCloudflareCnameTarget || undefined,
+          cloudflareApiToken: tenantCloudflareApiToken || undefined,
           timezone: tenantTimezone || undefined,
           locale: tenantLocale || undefined,
           currency: tenantCurrency || undefined,
@@ -927,6 +937,10 @@ export default function Home() {
       }
       setTenantSaveMsg("Saved");
       setTenantDetailErr("");
+      if (s(tenantCloudflareApiToken)) {
+        setTenantCloudflareHasToken(true);
+        setTenantCloudflareApiToken("");
+      }
       // refresh snapshot
       const fresh = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}`, {
         cache: "no-store",
@@ -1622,6 +1636,24 @@ export default function Home() {
     setActMarking(true);
 
     try {
+      const domainUrlForDnsDelete = s(toUrlMaybe(actDomainToPaste));
+      if (routeTenantId && domainUrlForDnsDelete) {
+        const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({
+            tenantId: routeTenantId,
+            domainUrl: domainUrlForDnsDelete,
+            action: "delete",
+          }),
+        });
+        const dnsData = await safeJson(dnsRes);
+        if (!dnsRes.ok || !(dnsData as any)?.ok) {
+          throw new Error((dnsData as any)?.error || `Cloudflare delete failed (HTTP ${dnsRes.status})`);
+        }
+      }
+
       const res = await fetch("/api/sheet/domain-created", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1656,6 +1688,36 @@ export default function Home() {
       setActMarkErr(e?.message || "Failed to mark Domain Created");
     } finally {
       setActMarking(false);
+    }
+  }
+
+  async function openActivationWithDns() {
+    const activationUrl = s(actActivationUrl);
+    if (!activationUrl) return;
+    setActMarkErr("");
+
+    try {
+      const domainUrlForDns = s(toUrlMaybe(actDomainToPaste));
+      if (routeTenantId && domainUrlForDns) {
+        const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({
+            tenantId: routeTenantId,
+            domainUrl: domainUrlForDns,
+            action: "upsert",
+          }),
+        });
+        const dnsData = await safeJson(dnsRes);
+        if (!dnsRes.ok || !(dnsData as any)?.ok) {
+          throw new Error((dnsData as any)?.error || `Cloudflare create failed (HTTP ${dnsRes.status})`);
+        }
+      }
+
+      window.open(activationUrl, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      setActMarkErr(e?.message || "Failed to create Cloudflare DNS record.");
     }
   }
 
@@ -3045,6 +3107,29 @@ export default function Home() {
             <div className="field">
               <label>Timezone</label>
               <input className="input" value={tenantTimezone} onChange={(e) => setTenantTimezone(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Cloudflare CNAME target</label>
+              <input
+                className="input"
+                value={tenantCloudflareCnameTarget}
+                onChange={(e) => setTenantCloudflareCnameTarget(e.target.value)}
+                placeholder="sites.ludicrous.cloud"
+              />
+            </div>
+            <div className="field">
+              <label>Cloudflare API token</label>
+              <input
+                className="input"
+                type="password"
+                value={tenantCloudflareApiToken}
+                onChange={(e) => setTenantCloudflareApiToken(e.target.value)}
+                placeholder={
+                  tenantCloudflareHasToken
+                    ? "Token saved. Enter a new token only if you want to rotate it."
+                    : "cf_api_token..."
+                }
+              />
             </div>
             <div className="field">
               <label>Locale</label>
@@ -4574,18 +4659,18 @@ export default function Home() {
                       Copy Domain
                     </button>
 
-                    <a
+                    <button
                       className="btn"
-                      href={actActivationUrl || "#"}
-                      target="_blank"
-                      rel="noreferrer"
+                      onClick={() => void openActivationWithDns()}
+                      disabled={!actActivationUrl}
                       style={{
                         opacity: actActivationUrl ? 1 : 0.55,
                         pointerEvents: actActivationUrl ? "auto" : "none",
                       }}
+                      type="button"
                     >
                       Open Activation
-                    </a>
+                    </button>
 
                     <a
                       className="btn"

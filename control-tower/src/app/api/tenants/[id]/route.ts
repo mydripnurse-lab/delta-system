@@ -77,6 +77,8 @@ export async function GET(_req: Request, ctx: Ctx) {
           locale,
           currency,
           root_domain,
+          cloudflare_cname_target,
+          (nullif(cloudflare_api_token, '') is not null) as has_cloudflare_api_token,
           ghl_company_id,
           snapshot_id,
           owner_first_name,
@@ -168,6 +170,8 @@ type PatchTenantBody = {
   adsAlertsEnabled?: boolean;
   adsAlertSmsEnabled?: boolean;
   adsAlertSmsTo?: string;
+  cloudflareCnameTarget?: string;
+  cloudflareApiToken?: string;
 };
 
 export async function PATCH(req: Request, ctx: Ctx) {
@@ -224,6 +228,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const adsAlertSmsEnabled =
     typeof body.adsAlertSmsEnabled === "boolean" ? body.adsAlertSmsEnabled : null;
   const adsAlertSmsTo = s(body.adsAlertSmsTo);
+  const cloudflareCnameTarget = s(body.cloudflareCnameTarget);
+  const cloudflareApiToken = s(body.cloudflareApiToken);
 
   const nextSlug = slugify(incomingSlug || "");
   if (incomingSlug && !nextSlug) {
@@ -272,7 +278,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     await client.query(
       `
         insert into app.organization_settings (
-          organization_id, timezone, locale, currency, root_domain, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alerts_enabled, ads_alert_sms_enabled, ads_alert_sms_to
+          organization_id, timezone, locale, currency, root_domain, cloudflare_cname_target, cloudflare_api_token, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alerts_enabled, ads_alert_sms_enabled, ads_alert_sms_to
         )
         values (
           $1,
@@ -289,11 +295,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
           nullif($12,''),
           nullif($13,''),
           nullif($14,''),
-          $15::jsonb,
+          nullif($15,''),
           nullif($16,''),
-          coalesce($17::boolean, true),
-          coalesce($18::boolean, false),
-          nullif($19,'')
+          $17::jsonb,
+          nullif($18,''),
+          coalesce($19::boolean, true),
+          coalesce($20::boolean, false),
+          nullif($21,'')
         )
         on conflict (organization_id) do update
         set
@@ -301,6 +309,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
           locale = coalesce(nullif(excluded.locale,''), app.organization_settings.locale),
           currency = coalesce(nullif(excluded.currency,''), app.organization_settings.currency),
           root_domain = coalesce(excluded.root_domain, app.organization_settings.root_domain),
+          cloudflare_cname_target = coalesce(excluded.cloudflare_cname_target, app.organization_settings.cloudflare_cname_target),
+          cloudflare_api_token = coalesce(excluded.cloudflare_api_token, app.organization_settings.cloudflare_api_token),
           ghl_company_id = coalesce(excluded.ghl_company_id, app.organization_settings.ghl_company_id),
           owner_first_name = coalesce(excluded.owner_first_name, app.organization_settings.owner_first_name),
           owner_last_name = coalesce(excluded.owner_last_name, app.organization_settings.owner_last_name),
@@ -322,6 +332,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
         locale,
         currency,
         rootDomain,
+        cloudflareCnameTarget,
+        cloudflareApiToken,
         companyId,
         snapshotId,
         ownerFirstName,
@@ -485,6 +497,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
           locale: !!locale,
           currency: !!currency,
           rootDomain: !!rootDomain,
+          cloudflareCnameTarget: !!cloudflareCnameTarget,
+          cloudflareApiToken: !!cloudflareApiToken,
           logoUrl: !!logoUrl,
           adsAlertWebhookUrl: !!adsAlertWebhookUrl,
           adsAlertsEnabled: adsAlertsEnabled !== null,
