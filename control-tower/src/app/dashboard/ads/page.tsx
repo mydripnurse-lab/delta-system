@@ -526,8 +526,8 @@ export default function AdsDashboardPage() {
   }
 
   return (
-    <div className="shell callsDash gaDash">
-      <header className="topbar">
+    <div className="shell callsDash gaDash adsCinema">
+      <header className="topbar adsTopbar">
         <div className="brand">
           <div className="logo" />
           <div>
@@ -571,6 +571,37 @@ export default function AdsDashboardPage() {
           </div>
         </div>
       </header>
+
+      <section className="card adsHeroCard" style={{ marginTop: 14 }}>
+        <div className="adsHeroGlow" />
+        <div className="cardBody adsHeroBody">
+          <div className="adsHeroLead">
+            <div className="adsHeroEyebrow">Google Ads Control Room</div>
+            <h2 className="adsHeroTitle">Campaign Intelligence Stream</h2>
+            <p className="adsHeroSub">
+              Prioriza conversiones rentables, reduce leakage y empuja crecimiento por geo con estrategia asistida por AI.
+            </p>
+          </div>
+          <div className="adsHeroStats">
+            <div className="adsHeroStat">
+              <span className="adsHeroLabel">Spend</span>
+              <strong>{fmtMoney(summary.cost)}</strong>
+            </div>
+            <div className="adsHeroStat">
+              <span className="adsHeroLabel">Conversions</span>
+              <strong>{fmtInt(summary.conversions)}</strong>
+            </div>
+            <div className="adsHeroStat">
+              <span className="adsHeroLabel">ROAS</span>
+              <strong>{kpi.roas.toFixed(2)}x</strong>
+            </div>
+            <div className="adsHeroStat">
+              <span className="adsHeroLabel">Range</span>
+              <strong>{summary.startDate || "—"} → {summary.endDate || "—"}</strong>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Filters */}
       <section className="card" style={{ marginTop: 14 }}>
@@ -1055,9 +1086,9 @@ export default function AdsDashboardPage() {
           </div>
         </div>
         <div className="cardBody">
-          <div className="moduleGrid">
+          <div className="moduleGrid adsPlaybookDeck">
             {campaignPlaybooks.map((pb, i) => (
-              <div className="moduleCard" key={`${pb.region}-${i}`}>
+              <div className="moduleCard adsPlaybookCard" key={`${pb.region}-${i}`}>
                 <div className="moduleTop">
                   <p className="l moduleTitle">{pb.region}</p>
                   <span className="mini moduleDelta">Score {pb.score}</span>
@@ -1184,7 +1215,7 @@ export default function AdsDashboardPage() {
               ) : null}
 
               {strategyData?.aiSummary?.executive_summary ? (
-                <div className="moduleCard" style={{ marginBottom: 12 }}>
+                <div className="moduleCard adsSummaryCard" style={{ marginBottom: 12 }}>
                   <p className="l moduleTitle">AI Executive Summary</p>
                   <p className="mini moduleLine">
                     {String(strategyData.aiSummary.executive_summary)}
@@ -1242,12 +1273,12 @@ export default function AdsDashboardPage() {
                 </table>
               </div>
 
-              <div className="moduleGrid" style={{ marginTop: 12 }}>
+              <div className="moduleGrid adsDraftDeck" style={{ marginTop: 12 }}>
                 {(strategyData?.campaignDrafts || []).map((c: any, idx: number) => (
-                  <div className="moduleCard" key={`draft-${idx}`}>
+                  <div className="moduleCard adsDraftCard" key={`draft-${idx}`}>
                     <div className="moduleTop">
                       <p className="l moduleTitle">{String(c.campaignName || "Draft campaign")}</p>
-                      <span className="mini moduleDelta">{String(c.status || "draft")}</span>
+                      <span className="mini moduleDelta adsDraftStatus">{String(c.status || "draft")}</span>
                     </div>
                     <p className="mini moduleLine"><b>Objective:</b> {String(c.objective || "-")}</p>
                     <p className="mini moduleLine"><b>Budget/day:</b> {fmtMoney(c.budgetDailyUsd || 0)}</p>

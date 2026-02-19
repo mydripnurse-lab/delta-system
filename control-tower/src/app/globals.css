@@ -1239,6 +1239,163 @@ button, input, select { font-family: inherit; }
 .metaLabel { font-size: 11px; color: var(--muted); }
 .metaValue { font-size: 12px; margin-top: 4px; color: rgba(255,255,255,0.90); word-break: break-word; }
 
+/* ===== Ads Cinematic UI ===== */
+.adsCinema {
+  --ads-accent-a: #f97316;
+  --ads-accent-b: #10b981;
+  --ads-accent-c: #60a5fa;
+}
+
+.adsTopbar {
+  background:
+    radial-gradient(900px 200px at 14% -20%, rgba(249,115,22,0.14), transparent 48%),
+    radial-gradient(900px 220px at 86% -30%, rgba(16,185,129,0.14), transparent 52%),
+    var(--surface);
+  border-color: rgba(255,255,255,0.16);
+}
+
+.adsHeroCard {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255,255,255,0.17);
+}
+
+.adsHeroGlow {
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 240px at 8% -30%, rgba(249,115,22,0.18), transparent 58%),
+    radial-gradient(820px 220px at 92% -30%, rgba(16,185,129,0.18), transparent 56%);
+}
+
+.adsHeroBody {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.adsHeroLead {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+}
+
+.adsHeroEyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: rgba(255,255,255,0.7);
+}
+
+.adsHeroTitle {
+  margin: 8px 0 6px;
+  font-size: clamp(20px, 2.6vw, 32px);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+.adsHeroSub {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255,255,255,0.78);
+  max-width: 64ch;
+}
+
+.adsHeroStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.adsHeroStat {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 88px;
+  background:
+    linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.adsHeroLabel {
+  font-size: 11px;
+  color: rgba(255,255,255,0.66);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.adsHeroStat strong {
+  font-size: clamp(16px, 1.7vw, 24px);
+  letter-spacing: 0.01em;
+  line-height: 1.08;
+}
+
+.adsPlaybookDeck {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.adsPlaybookCard {
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.03)),
+    radial-gradient(600px 200px at 0% 0%, rgba(96,165,250,0.12), transparent 70%);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.adsPlaybookCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(96,165,250,0.34);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.28);
+}
+
+.adsSummaryCard {
+  border-color: rgba(16,185,129,0.30);
+  background:
+    linear-gradient(180deg, rgba(16,185,129,0.14), rgba(16,185,129,0.04)),
+    rgba(255,255,255,0.02);
+}
+
+.adsDraftDeck {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.adsDraftCard {
+  border: 1px solid rgba(255,255,255,0.14);
+  background:
+    radial-gradient(500px 180px at 100% -20%, rgba(249,115,22,0.14), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.adsDraftCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(249,115,22,0.35);
+  box-shadow: 0 14px 24px rgba(0,0,0,0.3);
+}
+
+.adsDraftStatus {
+  border: 1px solid rgba(96,165,250,0.28);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(96,165,250,0.12);
+}
+
+@media (max-width: 980px) {
+  .adsHeroBody {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modalBody {
   height: calc(100% - 84px);
   overflow: auto;
