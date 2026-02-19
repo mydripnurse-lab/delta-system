@@ -26,6 +26,11 @@ function toIsoDate(ms: number) {
     return new Date(ms).toISOString().slice(0, 10);
 }
 
+type SafeAdsResult = {
+    results: unknown[];
+    _error?: string;
+};
+
 function prevPeriodRange(start: string, end: string) {
     const startMs = toMs(start);
     const endMs = toMs(end);
@@ -87,14 +92,19 @@ export async function GET(req: Request) {
         const meta = { range, startDate: start, endDate: end, generatedAt };
         const prevMeta = { range: `${range}_prev`, startDate: prev.start, endDate: prev.end, generatedAt };
 
-        const safeAdsSearch = async (query: string, label: string) => {
+        const safeAdsSearch = async (query: string, label: string): Promise<SafeAdsResult> => {
             try {
-                return await googleAdsSearch({
+                const res = await googleAdsSearch({
                     query,
                     version: "v17",
                     tenantId,
                     integrationKey,
                 });
+                return {
+                    results: Array.isArray((res as { results?: unknown[] } | null)?.results)
+                        ? ((res as { results?: unknown[] }).results as unknown[])
+                        : [],
+                };
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : String(err);
                 return {
