@@ -82,6 +82,49 @@ function extractCustomValues(payload: Record<string, unknown>) {
   return [] as Array<Record<string, unknown>>;
 }
 
+async function fetchAllLocationCustomValues(opts: {
+  locationId: string;
+  locationToken: string;
+}) {
+  const all: Array<Record<string, unknown>> = [];
+  const limit = 200;
+  let offset = 0;
+  let safety = 0;
+  let lastSignature = "";
+
+  while (safety < 30) {
+    safety += 1;
+    const url =
+      `https://services.leadconnectorhq.com/locations/${encodeURIComponent(opts.locationId)}/customValues` +
+      `?limit=${limit}&offset=${offset}`;
+    const r = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${opts.locationToken}`,
+        Version: "2021-07-28",
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+    const data = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!r.ok) {
+      throw new Error(`Failed to fetch owner custom values (${r.status}).`);
+    }
+    const batch = extractCustomValues(data);
+    if (!batch.length) break;
+    const signature = batch
+      .slice(0, 3)
+      .map((x) => `${s(x.id)}:${s(x.name)}`)
+      .join("|");
+    if (signature && signature === lastSignature) break;
+    lastSignature = signature;
+    all.push(...batch);
+    if (batch.length < limit) break;
+    offset += batch.length;
+  }
+  return all;
+}
+
 export async function POST(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const tenantId = s(id);
@@ -96,27 +139,10 @@ export async function POST(req: Request, ctx: Ctx) {
     const companyId = await getEffectiveCompanyIdOrThrow({ tenantId, integrationKey: "owner" });
     const locationToken = await getLocationTokenForOwner({ tenantId, companyId, ownerLocationId });
 
-    const r = await fetch(
-      `https://services.leadconnectorhq.com/locations/${encodeURIComponent(ownerLocationId)}/customValues`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${locationToken}`,
-          Version: "2021-07-28",
-          Accept: "application/json",
-        },
-        cache: "no-store",
-      },
-    );
-    const data = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!r.ok) {
-      return NextResponse.json(
-        { ok: false, error: `Failed to fetch owner custom values (${r.status}).` },
-        { status: 502 },
-      );
-    }
-
-    const values = extractCustomValues(data)
+    const values = (await fetchAllLocationCustomValues({
+      locationId: ownerLocationId,
+      locationToken,
+    }))
       .map((x) => s(x.name))
       .filter(Boolean);
 

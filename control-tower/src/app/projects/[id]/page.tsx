@@ -456,6 +456,7 @@ export default function Home() {
   const [tenantCustomValuesSaving, setTenantCustomValuesSaving] = useState(false);
   const [tenantCustomValuesSnapshotBusy, setTenantCustomValuesSnapshotBusy] = useState(false);
   const [tenantCustomValuesMsg, setTenantCustomValuesMsg] = useState("");
+  const [tenantCustomValuesPage, setTenantCustomValuesPage] = useState(1);
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -844,6 +845,7 @@ export default function Home() {
           description: s(r.description) || null,
         })),
       );
+      setTenantCustomValuesPage(1);
     } catch (e: any) {
       setTenantCustomValues([]);
       setTenantDetailErr(e?.message || "Failed to load custom values template.");
@@ -3159,6 +3161,20 @@ export default function Home() {
     });
   }, [runCards, runCardSearch, runCardStatusFilter]);
 
+  const tenantCustomValuesPageSize = 20;
+  const tenantCustomValuesPages = Math.max(
+    1,
+    Math.ceil(tenantCustomValues.length / tenantCustomValuesPageSize),
+  );
+  const tenantCustomValuesPageSafe = Math.min(
+    tenantCustomValuesPages,
+    Math.max(1, tenantCustomValuesPage),
+  );
+  const tenantCustomValuesPagedRows = useMemo(() => {
+    const start = (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize;
+    return tenantCustomValues.slice(start, start + tenantCustomValuesPageSize);
+  }, [tenantCustomValues, tenantCustomValuesPageSafe]);
+
   const runSummary = useMemo(() => {
     const out = { total: runCards.length, running: 0, done: 0, error: 0, stopped: 0 };
     for (const r of runCards) {
@@ -3631,7 +3647,10 @@ export default function Home() {
                         </td>
                       </tr>
                     ) : (
-                      tenantCustomValues.map((row, idx) => (
+                      tenantCustomValuesPagedRows.map((row, pageIdx) => {
+                        const idx =
+                          (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize + pageIdx;
+                        return (
                         <tr key={`${row.id || row.keyName || "row"}:${idx}`} className="tr">
                           <td className="td" style={{ width: 110 }}>
                             <input
@@ -3656,10 +3675,61 @@ export default function Home() {
                             />
                           </td>
                         </tr>
-                      ))
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
+                {tenantCustomValues.length > tenantCustomValuesPageSize ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
+                      marginTop: 8,
+                    }}
+                  >
+                    <div className="mini">
+                      Showing{" "}
+                      {Math.min(
+                        tenantCustomValues.length,
+                        (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize + 1,
+                      )}{" "}
+                      to{" "}
+                      {Math.min(
+                        tenantCustomValues.length,
+                        tenantCustomValuesPageSafe * tenantCustomValuesPageSize,
+                      )}{" "}
+                      of {tenantCustomValues.length}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        disabled={tenantCustomValuesPageSafe <= 1}
+                        onClick={() => setTenantCustomValuesPage((p) => Math.max(1, p - 1))}
+                      >
+                        Prev
+                      </button>
+                      <span className="badge">
+                        Page {tenantCustomValuesPageSafe} / {tenantCustomValuesPages}
+                      </span>
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        disabled={tenantCustomValuesPageSafe >= tenantCustomValuesPages}
+                        onClick={() =>
+                          setTenantCustomValuesPage((p) =>
+                            Math.min(tenantCustomValuesPages, p + 1),
+                          )
+                        }
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
