@@ -145,11 +145,23 @@ type AgencyUserRow = {
   draftGlobalRole?: "" | "platform_admin" | "agency_admin" | "analytics";
 };
 
+type ConfirmTone = "neutral" | "danger";
+
+type ConfirmState = {
+  open: boolean;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  tone: ConfirmTone;
+  onConfirm: (() => Promise<void> | void) | null;
+};
+
 const DEFAULT_INTEGRATION_KEY = "default";
 const BING_DEFAULT_ENDPOINT = "https://ssl.bing.com/webmaster/api.svc/json";
 const STAFF_ROLE_OPTIONS: TenantStaffRow["role"][] = ["owner", "admin", "analyst", "viewer"];
 const STAFF_STATUS_OPTIONS: TenantStaffRow["status"][] = ["active", "invited", "disabled"];
 const GLOBAL_ROLE_OPTIONS: Array<AgencyUserRow["draftGlobalRole"]> = ["", "agency_admin", "analytics", "platform_admin"];
+const TABLE_PAGE_SIZE = 12;
 type KpiRangePreset = "7d" | "28d" | "3m" | "6m" | "1y" | "custom";
 
 function s(v: unknown) {
@@ -328,6 +340,7 @@ export default function AgencyHomePage() {
   const [agencyStaffErr, setAgencyStaffErr] = useState("");
   const [agencyStaffOk, setAgencyStaffOk] = useState("");
   const [agencyStaffSearch, setAgencyStaffSearch] = useState("");
+  const [agencyStaffPage, setAgencyStaffPage] = useState(1);
   const [agencyNewStaffTenantId, setAgencyNewStaffTenantId] = useState("");
   const [agencyNewStaffFullName, setAgencyNewStaffFullName] = useState("");
   const [agencyNewStaffEmail, setAgencyNewStaffEmail] = useState("");
@@ -359,6 +372,7 @@ export default function AgencyHomePage() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditErr, setAuditErr] = useState("");
   const [auditSearch, setAuditSearch] = useState("");
+  const [auditPage, setAuditPage] = useState(1);
   const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
   const [agencyCanManageUsers, setAgencyCanManageUsers] = useState(false);
   const [agencyUsersRows, setAgencyUsersRows] = useState<AgencyUserRow[]>([]);
@@ -368,6 +382,7 @@ export default function AgencyHomePage() {
   const [agencyUsersErr, setAgencyUsersErr] = useState("");
   const [agencyUsersOk, setAgencyUsersOk] = useState("");
   const [agencyUsersSearch, setAgencyUsersSearch] = useState("");
+  const [agencyUsersPage, setAgencyUsersPage] = useState(1);
   const [agencyNewUserEmail, setAgencyNewUserEmail] = useState("");
   const [agencyNewUserFullName, setAgencyNewUserFullName] = useState("");
   const [agencyNewUserPassword, setAgencyNewUserPassword] = useState("");
@@ -386,6 +401,15 @@ export default function AgencyHomePage() {
   const [securityBusy, setSecurityBusy] = useState(false);
   const [securityErr, setSecurityErr] = useState("");
   const [securityOk, setSecurityOk] = useState("");
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState>({
+    open: false,
+    title: "",
+    description: "",
+    confirmLabel: "Confirm",
+    tone: "neutral",
+    onConfirm: null,
+  });
   const [activeMenu, setActiveMenu] = useState("projects");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -404,6 +428,39 @@ export default function AgencyHomePage() {
       return JSON.parse(text);
     } catch {
       return { error: `Non-JSON response (${res.status})`, raw: text.slice(0, 400) };
+    }
+  }
+
+  function openConfirm(opts: {
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    tone?: ConfirmTone;
+    onConfirm: () => Promise<void> | void;
+  }) {
+    setConfirmState({
+      open: true,
+      title: opts.title,
+      description: opts.description,
+      confirmLabel: s(opts.confirmLabel) || "Confirm",
+      tone: opts.tone || "neutral",
+      onConfirm: opts.onConfirm,
+    });
+  }
+
+  function closeConfirm() {
+    if (confirmBusy) return;
+    setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null }));
+  }
+
+  async function runConfirmAction() {
+    if (!confirmState.onConfirm) return;
+    setConfirmBusy(true);
+    try {
+      await confirmState.onConfirm();
+      setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null }));
+    } finally {
+      setConfirmBusy(false);
     }
   }
 
@@ -842,6 +899,18 @@ export default function AgencyHomePage() {
   }, [activeMenu]);
 
   useEffect(() => {
+    setAgencyUsersPage(1);
+  }, [agencyUsersSearch, agencyUsersRows.length]);
+
+  useEffect(() => {
+    setAgencyStaffPage(1);
+  }, [agencyStaffSearch, agencyStaffRows.length]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [auditSearch, auditRows.length, auditTenantId]);
+
+  useEffect(() => {
     if (!showProfileModal) return;
     setProfileFullName(s(authMe?.fullName));
     setProfileEmail(s(authMe?.email));
@@ -898,6 +967,20 @@ export default function AgencyHomePage() {
     );
   }, [agencyUsersRows, agencyUsersSearch]);
 
+  const agencyUsersTotalPages = Math.max(1, Math.ceil(filteredAgencyUsers.length / TABLE_PAGE_SIZE));
+  const agencyUsersCurrentPage = Math.min(agencyUsersPage, agencyUsersTotalPages);
+  const pagedAgencyUsers = useMemo(() => {
+    const start = (agencyUsersCurrentPage - 1) * TABLE_PAGE_SIZE;
+    return filteredAgencyUsers.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredAgencyUsers, agencyUsersCurrentPage]);
+
+  const agencyStaffTotalPages = Math.max(1, Math.ceil(filteredAgencyStaff.length / TABLE_PAGE_SIZE));
+  const agencyStaffCurrentPage = Math.min(agencyStaffPage, agencyStaffTotalPages);
+  const pagedAgencyStaff = useMemo(() => {
+    const start = (agencyStaffCurrentPage - 1) * TABLE_PAGE_SIZE;
+    return filteredAgencyStaff.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredAgencyStaff, agencyStaffCurrentPage]);
+
   const filteredAuditRows = useMemo(() => {
     const q = s(auditSearch).toLowerCase();
     if (!q) return auditRows;
@@ -909,6 +992,13 @@ export default function AgencyHomePage() {
         .includes(q),
     );
   }, [auditRows, auditSearch]);
+
+  const auditTotalPages = Math.max(1, Math.ceil(filteredAuditRows.length / TABLE_PAGE_SIZE));
+  const auditCurrentPage = Math.min(auditPage, auditTotalPages);
+  const pagedAuditRows = useMemo(() => {
+    const start = (auditCurrentPage - 1) * TABLE_PAGE_SIZE;
+    return filteredAuditRows.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredAuditRows, auditCurrentPage]);
 
   const billingSummary = useMemo(() => {
     const totalProjects = tenantRows.length;
@@ -2178,6 +2268,37 @@ export default function AgencyHomePage() {
               </div>
             </div>
 
+            <section className="agencyRoleOnboarding">
+              <article className="agencyRoleCard">
+                <h4>Agency Scope</h4>
+                <p>Global users in <code>app.users</code>. Controls full platform visibility and account lifecycle.</p>
+                <div className="agencyRoleChips">
+                  <span className="agencyPill">platform_admin</span>
+                  <span className="agencyPill">agency_admin</span>
+                  <span className="agencyPill">analytics</span>
+                </div>
+              </article>
+              <article className="agencyRoleCard">
+                <h4>Tenant Scope</h4>
+                <p>Project/company staff per tenant with business-level access and operational permissions.</p>
+                <div className="agencyRoleChips">
+                  <span className="agencyPill">owner</span>
+                  <span className="agencyPill">admin</span>
+                  <span className="agencyPill">analyst</span>
+                  <span className="agencyPill">viewer</span>
+                </div>
+              </article>
+              <article className="agencyRoleCard">
+                <h4>Project Scope</h4>
+                <p>Granular permissions inside project workspaces and dashboards.</p>
+                <div className="agencyRoleChips">
+                  <span className="agencyPill">tenant_admin</span>
+                  <span className="agencyPill">project_manager</span>
+                  <span className="agencyPill">member</span>
+                </div>
+              </article>
+            </section>
+
             <div className="agencyDangerBox agencyStaffCreateBox">
               <h4>Agency Accounts</h4>
               <p className="mini">Usuarios globales del agency. Aquí puedes editar tu cuenta y borrar cuentas creadas.</p>
@@ -2244,7 +2365,7 @@ export default function AgencyHomePage() {
                     <th>Status</th>
                     <th>Tenants</th>
                     <th>Last Login</th>
-                    <th>Actions</th>
+                    <th className="agencyStickyCol">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2257,7 +2378,7 @@ export default function AgencyHomePage() {
                       <td colSpan={7}>No agency accounts found.</td>
                     </tr>
                   ) : (
-                    filteredAgencyUsers.map((row) => (
+                    pagedAgencyUsers.map((row) => (
                       <tr key={row.id}>
                         <td>
                           <input
@@ -2318,15 +2439,35 @@ export default function AgencyHomePage() {
                         </td>
                         <td>{formatInt(row.tenantCount)}</td>
                         <td>{s(row.lastLoginAt) ? new Date(s(row.lastLoginAt)).toLocaleString() : "—"}</td>
-                        <td className="agencyInlineActions">
-                          <button type="button" className="btnGhost" disabled={agencyUsersBusy} onClick={() => void updateAgencyUserAccount(row)}>
+                        <td className="agencyInlineActions agencyStickyCol">
+                          <button
+                            type="button"
+                            className="btnGhost"
+                            disabled={agencyUsersBusy}
+                            onClick={() =>
+                              openConfirm({
+                                title: "Save agency account changes?",
+                                description: `Apply updates for ${s(row.email) || "this account"}.`,
+                                confirmLabel: "Save",
+                                onConfirm: () => updateAgencyUserAccount(row),
+                              })
+                            }
+                          >
                             Save
                           </button>
                           <button
                             type="button"
                             className="btnGhost"
                             disabled={agencyUsersBusy || !agencyCanManageUsers || row.id === s(authMe?.id)}
-                            onClick={() => void deleteAgencyUserAccount(row.id)}
+                            onClick={() =>
+                              openConfirm({
+                                title: "Delete agency account?",
+                                description: `This will permanently remove ${s(row.email)} and related memberships.`,
+                                confirmLabel: "Delete",
+                                tone: "danger",
+                                onConfirm: () => deleteAgencyUserAccount(row.id),
+                              })
+                            }
                           >
                             Delete
                           </button>
@@ -2336,6 +2477,22 @@ export default function AgencyHomePage() {
                   )}
                 </tbody>
               </table>
+            </div>
+            <div className="agencyTableFooter">
+              <div className="mini">
+                Showing {filteredAgencyUsers.length === 0 ? 0 : (agencyUsersCurrentPage - 1) * TABLE_PAGE_SIZE + 1}
+                {"-"}
+                {Math.min(agencyUsersCurrentPage * TABLE_PAGE_SIZE, filteredAgencyUsers.length)} of {filteredAgencyUsers.length}
+              </div>
+              <div className="agencyPager">
+                <button type="button" className="btnGhost" disabled={agencyUsersCurrentPage <= 1} onClick={() => setAgencyUsersPage((p) => Math.max(1, p - 1))}>
+                  Prev
+                </button>
+                <span className="agencyPill">Page {agencyUsersCurrentPage} / {agencyUsersTotalPages}</span>
+                <button type="button" className="btnGhost" disabled={agencyUsersCurrentPage >= agencyUsersTotalPages} onClick={() => setAgencyUsersPage((p) => Math.min(agencyUsersTotalPages, p + 1))}>
+                  Next
+                </button>
+              </div>
             </div>
 
             <div className="agencyDangerBox agencyStaffCreateBox">
@@ -2400,7 +2557,7 @@ export default function AgencyHomePage() {
                     <th>Status</th>
                     <th>Invited</th>
                     <th>Last Active</th>
-                    <th>Actions</th>
+                    <th className="agencyStickyCol">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2413,7 +2570,7 @@ export default function AgencyHomePage() {
                       <td colSpan={8}>No staff members yet.</td>
                     </tr>
                   ) : (
-                    filteredAgencyStaff.map((row) => (
+                    pagedAgencyStaff.map((row) => (
                       <tr key={`${row.tenantId}-${row.id}`}>
                         <td>{row.tenantName}</td>
                         <td>
@@ -2482,11 +2639,36 @@ export default function AgencyHomePage() {
                         </td>
                         <td>{s(row.invitedAt) ? new Date(s(row.invitedAt)).toLocaleString() : "—"}</td>
                         <td>{s(row.lastActiveAt) ? new Date(s(row.lastActiveAt)).toLocaleString() : "—"}</td>
-                        <td className="agencyInlineActions">
-                          <button type="button" className="btnGhost" disabled={agencyStaffBusy} onClick={() => void updateAgencyStaffMember(row)}>
+                        <td className="agencyInlineActions agencyStickyCol">
+                          <button
+                            type="button"
+                            className="btnGhost"
+                            disabled={agencyStaffBusy}
+                            onClick={() =>
+                              openConfirm({
+                                title: "Save staff changes?",
+                                description: `Apply updates for ${s(row.email) || "this staff member"}.`,
+                                confirmLabel: "Save",
+                                onConfirm: () => updateAgencyStaffMember(row),
+                              })
+                            }
+                          >
                             Save
                           </button>
-                          <button type="button" className="btnGhost" disabled={agencyStaffBusy} onClick={() => void deleteAgencyStaffMember(row)}>
+                          <button
+                            type="button"
+                            className="btnGhost"
+                            disabled={agencyStaffBusy}
+                            onClick={() =>
+                              openConfirm({
+                                title: "Delete staff member?",
+                                description: `Remove ${s(row.email)} from ${s(row.tenantName)}.`,
+                                confirmLabel: "Delete",
+                                tone: "danger",
+                                onConfirm: () => deleteAgencyStaffMember(row),
+                              })
+                            }
+                          >
                             Delete
                           </button>
                         </td>
@@ -2495,6 +2677,22 @@ export default function AgencyHomePage() {
                   )}
                 </tbody>
               </table>
+            </div>
+            <div className="agencyTableFooter">
+              <div className="mini">
+                Showing {filteredAgencyStaff.length === 0 ? 0 : (agencyStaffCurrentPage - 1) * TABLE_PAGE_SIZE + 1}
+                {"-"}
+                {Math.min(agencyStaffCurrentPage * TABLE_PAGE_SIZE, filteredAgencyStaff.length)} of {filteredAgencyStaff.length}
+              </div>
+              <div className="agencyPager">
+                <button type="button" className="btnGhost" disabled={agencyStaffCurrentPage <= 1} onClick={() => setAgencyStaffPage((p) => Math.max(1, p - 1))}>
+                  Prev
+                </button>
+                <span className="agencyPill">Page {agencyStaffCurrentPage} / {agencyStaffTotalPages}</span>
+                <button type="button" className="btnGhost" disabled={agencyStaffCurrentPage >= agencyStaffTotalPages} onClick={() => setAgencyStaffPage((p) => Math.min(agencyStaffTotalPages, p + 1))}>
+                  Next
+                </button>
+              </div>
             </div>
           </section>
         ) : null}
@@ -2591,7 +2789,14 @@ export default function AgencyHomePage() {
                             type="button"
                             className="btnGhost"
                             disabled={integrationsBusyId === row.id}
-                            onClick={() => void saveIntegrationRowForTenant(integrationsTenantId, row)}
+                            onClick={() =>
+                              openConfirm({
+                                title: "Save integration changes?",
+                                description: `Apply updates for ${s(row.provider)}:${s(row.integration_key)}.`,
+                                confirmLabel: "Save",
+                                onConfirm: () => saveIntegrationRowForTenant(integrationsTenantId, row),
+                              })
+                            }
                           >
                             {integrationsBusyId === row.id ? "Saving..." : "Save"}
                           </button>
@@ -2671,7 +2876,19 @@ export default function AgencyHomePage() {
               </label>
             </div>
             <div className="agencyCreateActions agencyCreateActionsSpaced">
-              <button type="button" className="btnPrimary" disabled={settingsBusy} onClick={() => void saveSettingsForTenant()}>
+              <button
+                type="button"
+                className="btnPrimary"
+                disabled={settingsBusy}
+                onClick={() =>
+                  openConfirm({
+                    title: "Save app settings?",
+                    description: "This updates identity and locale values for the selected project.",
+                    confirmLabel: "Save",
+                    onConfirm: () => saveSettingsForTenant(),
+                  })
+                }
+              >
                 {settingsBusy ? "Saving..." : "Save settings"}
               </button>
             </div>
@@ -2774,7 +2991,7 @@ export default function AgencyHomePage() {
                   ) : filteredAuditRows.length === 0 ? (
                     <tr><td colSpan={5}>No logs found.</td></tr>
                   ) : (
-                    filteredAuditRows.map((row) => (
+                    pagedAuditRows.map((row) => (
                       <tr key={row.id}>
                         <td>{new Date(row.createdAt).toLocaleString()}</td>
                         <td><span className={`statusPill ${row.severity === "error" ? "error" : row.severity === "warning" ? "warning" : "success"}`}>{row.severity}</span></td>
@@ -2787,10 +3004,52 @@ export default function AgencyHomePage() {
                 </tbody>
               </table>
             </div>
+            <div className="agencyTableFooter">
+              <div className="mini">
+                Showing {filteredAuditRows.length === 0 ? 0 : (auditCurrentPage - 1) * TABLE_PAGE_SIZE + 1}
+                {"-"}
+                {Math.min(auditCurrentPage * TABLE_PAGE_SIZE, filteredAuditRows.length)} of {filteredAuditRows.length}
+              </div>
+              <div className="agencyPager">
+                <button type="button" className="btnGhost" disabled={auditCurrentPage <= 1} onClick={() => setAuditPage((p) => Math.max(1, p - 1))}>
+                  Prev
+                </button>
+                <span className="agencyPill">Page {auditCurrentPage} / {auditTotalPages}</span>
+                <button type="button" className="btnGhost" disabled={auditCurrentPage >= auditTotalPages} onClick={() => setAuditPage((p) => Math.min(auditTotalPages, p + 1))}>
+                  Next
+                </button>
+              </div>
+            </div>
           </section>
         ) : null}
       </section>
       </div>
+
+      {confirmState.open ? (
+        <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={closeConfirm}>
+          <div className="agencyModalCard agencyConfirmModal" onClick={(e) => e.stopPropagation()}>
+            <div className="agencyModalHeader">
+              <div>
+                <h3>{confirmState.title}</h3>
+                <p>{confirmState.description}</p>
+              </div>
+            </div>
+            <div className="agencyModalActionBar agencyModalActionBarCompact">
+              <button type="button" className="agencyModalBtn agencyModalBtnSecondary" disabled={confirmBusy} onClick={closeConfirm}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={confirmState.tone === "danger" ? "agencyModalBtn agencyModalBtnDanger" : "agencyModalBtn agencyModalBtnPrimary"}
+                disabled={confirmBusy}
+                onClick={() => void runConfirmAction()}
+              >
+                {confirmBusy ? "Working..." : confirmState.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showProfileModal ? (
         <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={() => { if (!profileBusy) setShowProfileModal(false); }}>
@@ -2818,7 +3077,19 @@ export default function AgencyHomePage() {
               {profileErr ? <div className="errorText">{profileErr}</div> : null}
               {profileOk ? <div className="okText">{profileOk}</div> : null}
               <div className="agencyCreateActions agencyCreateActionsSpaced">
-                <button type="button" className="btnPrimary" disabled={profileBusy} onClick={() => void saveProfile()}>
+                <button
+                  type="button"
+                  className="btnPrimary"
+                  disabled={profileBusy}
+                  onClick={() =>
+                    openConfirm({
+                      title: "Save profile changes?",
+                      description: "This updates your account name and email.",
+                      confirmLabel: "Save",
+                      onConfirm: () => saveProfile(),
+                    })
+                  }
+                >
                   {profileBusy ? "Saving..." : "Save profile"}
                 </button>
               </div>
@@ -2857,7 +3128,19 @@ export default function AgencyHomePage() {
               {securityErr ? <div className="errorText">{securityErr}</div> : null}
               {securityOk ? <div className="okText">{securityOk}</div> : null}
               <div className="agencyCreateActions agencyCreateActionsSpaced">
-                <button type="button" className="btnPrimary" disabled={securityBusy} onClick={() => void saveSecurity()}>
+                <button
+                  type="button"
+                  className="btnPrimary"
+                  disabled={securityBusy}
+                  onClick={() =>
+                    openConfirm({
+                      title: "Update password?",
+                      description: "You will need to use the new password on the next login.",
+                      confirmLabel: "Update",
+                      onConfirm: () => saveSecurity(),
+                    })
+                  }
+                >
                   {securityBusy ? "Saving..." : "Save password"}
                 </button>
               </div>
