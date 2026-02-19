@@ -5,12 +5,14 @@ const nextConfig = {
   experimental: {
     externalDir: true, // permite importar ../services/*
   },
+  outputFileTracingRoot: path.resolve(__dirname, ".."),
   outputFileTracingIncludes: {
     // Jobs ejecutados por /api/run (spawn de scripts fuera de control-tower)
     "/api/run": [
       "../scripts/**/*",
       "../resources/**/*",
       "../services/**/*",
+      "./node_modules/**/*",
     ],
   },
   turbopack: {
