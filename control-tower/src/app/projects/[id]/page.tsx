@@ -492,6 +492,22 @@ export default function Home() {
       };
       linesCount?: number;
       lastLine?: string;
+      finished?: boolean;
+      stopped?: boolean;
+      exitCode?: number | null;
+      error?: string | null;
+      progress?: {
+        pct: number | null;
+        doneAll: number;
+        doneCounties: number;
+        doneCities: number;
+        totalAll: number;
+        totalCounties: number;
+        totalCities: number;
+        lastMessage: string;
+        etaSec: number | null;
+        updatedAt: number;
+      } | null;
     }>
   >([]);
   const currentRunIdRef = useRef<string>("");
@@ -596,7 +612,6 @@ export default function Home() {
     etaSec: null,
     status: "idle",
   });
-  const [runnerElapsedSec, setRunnerElapsedSec] = useState(0);
 
   // ✅ Map modal
   const [mapOpen, setMapOpen] = useState(false);
@@ -704,22 +719,6 @@ export default function Home() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (!isRunning) {
-      setRunnerElapsedSec(0);
-      return;
-    }
-    const started = runStartedAtRef.current || Date.now();
-    const tick = () => {
-      setRunnerElapsedSec(
-        Math.max(0, Math.floor((Date.now() - started) / 1000)),
-      );
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [isRunning]);
 
   // DB-first: for tenant projects, states list comes from app.organization_state_files.
   useEffect(() => {
@@ -1614,20 +1613,34 @@ export default function Home() {
 
   async function loadActiveRuns() {
     try {
-      const res = await fetch("/api/run?active=1&limit=10", {
+      const res = await fetch("/api/run?limit=30", {
         cache: "no-store",
       });
       const data = await safeJson(res);
       if (!res.ok || !data?.ok || !Array.isArray(data?.runs)) return;
-      setActiveRuns(
-        data.runs.map((r: any) => ({
+      const filtered = data.runs
+        .map((r: any) => ({
           id: String(r?.id || ""),
           createdAt: Number(r?.createdAt || 0),
           meta: r?.meta || {},
           linesCount: Number(r?.linesCount || 0),
           lastLine: String(r?.lastLine || ""),
-        })),
-      );
+          finished: !!r?.finished,
+          stopped: !!r?.stopped,
+          exitCode:
+            r?.exitCode === null || r?.exitCode === undefined
+              ? null
+              : Number(r?.exitCode),
+          error: r?.error ? String(r.error) : null,
+          progress: r?.progress || null,
+        }))
+        .filter((r: any) =>
+          routeTenantId
+            ? s(r?.meta?.tenantId) === s(routeTenantId)
+            : true,
+        )
+        .slice(0, 12);
+      setActiveRuns(filtered);
     } catch {
       // ignore background polling errors
     }
@@ -1637,7 +1650,7 @@ export default function Home() {
     loadActiveRuns();
     const id = setInterval(loadActiveRuns, 5000);
     return () => clearInterval(id);
-  }, []);
+  }, [routeTenantId]);
 
   // ✅ Unified runner (supports optional locId/kind)
   async function run(opts?: { job?: string; locId?: string; kind?: string }) {
@@ -2692,49 +2705,56 @@ export default function Home() {
     [actSitemapUrl],
   );
 
-  const pctText = useMemo(() => {
-    const pct = clamp01(progress.pct || 0);
-    return `${Math.round(pct * 100)}%`;
-  }, [progress.pct]);
-
-  const runnerMeta = useMemo(() => {
-    const allT = progressTotals.allTotal || 0;
-    const allD = progress.allDone || 0;
-
-    const cT = progressTotals.countiesTotal || 0;
-    const ciT = progressTotals.citiesTotal || 0;
-
-    const cD = progress.countiesDone || 0;
-    const ciD = progress.citiesDone || 0;
-
-    return {
-      all: allT > 0 ? `${allD}/${allT}` : `${allD}`,
-      counties: cT > 0 ? `${cD}/${cT}` : `${cD}`,
-      cities: ciT > 0 ? `${ciD}/${ciT}` : `${ciD}`,
-      eta: progress.etaSec === null ? "—" : formatDuration(progress.etaSec),
-      elapsed: formatDuration(runnerElapsedSec),
-    };
-  }, [
-    progressTotals.allTotal,
-    progressTotals.countiesTotal,
-    progressTotals.citiesTotal,
-    progress.allDone,
-    progress.countiesDone,
-    progress.citiesDone,
-    progress.etaSec,
-    runnerElapsedSec,
-  ]);
-
-  const runnerToneClass =
-    progress.status === "running"
-      ? "runnerToneRunning"
-      : progress.status === "stopping"
-        ? "runnerToneStopping"
-        : progress.status === "done"
-          ? "runnerToneDone"
-          : progress.status === "error"
-            ? "runnerToneError"
-            : "runnerToneIdle";
+  const runCards = useMemo(() => {
+    return activeRuns.map((r) => {
+      const p = r.progress || null;
+      const pct =
+        p && p.pct !== null && Number.isFinite(Number(p.pct))
+          ? Math.round(clamp01(Number(p.pct)) * 100)
+          : 0;
+      const doneLabel = p
+        ? p.totalAll > 0
+          ? `${p.doneAll}/${p.totalAll}`
+          : `${p.doneAll}`
+        : "—";
+      const countiesLabel = p
+        ? p.totalCounties > 0
+          ? `${p.doneCounties}/${p.totalCounties}`
+          : `${p.doneCounties}`
+        : "—";
+      const citiesLabel = p
+        ? p.totalCities > 0
+          ? `${p.doneCities}/${p.totalCities}`
+          : `${p.doneCities}`
+        : "—";
+      const status = r.finished
+        ? r.exitCode === 0
+          ? "done"
+          : "error"
+        : r.stopped
+          ? "stopped"
+          : "running";
+      const stateLabel = s(r.meta?.state) || "all";
+      return {
+        ...r,
+        pct,
+        doneLabel,
+        countiesLabel,
+        citiesLabel,
+        status,
+        stateLabel,
+        eta:
+          p && p.etaSec !== null
+            ? formatDuration(Math.max(0, Number(p.etaSec || 0)))
+            : "—",
+        elapsed: formatDuration(
+          Math.max(0, Math.floor((Date.now() - Number(r.createdAt || 0)) / 1000)),
+        ),
+        message:
+          s(p?.lastMessage) || s(r.lastLine) || (status === "running" ? "Running…" : "Idle"),
+      };
+    });
+  }, [activeRuns]);
 
   const gscHealth = oauthHealthRows.find(
     (r) =>
@@ -3141,100 +3161,64 @@ export default function Home() {
               style={{ marginTop: 8, alignItems: "flex-start", gap: 8 }}
             >
               <div className="field" style={{ flex: 1 }}>
-                <label>Active runs</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {activeRuns.length === 0 ? (
-                    <div className="mini">No active runs.</div>
+                <label>Runs</label>
+                <div className="runCardsGrid">
+                  {runCards.length === 0 ? (
+                    <div className="mini">No runs yet.</div>
                   ) : (
-                    activeRuns.map((r) => (
-                      <div
+                    runCards.map((r) => (
+                      <article
                         key={r.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 8,
-                          alignItems: "center",
-                          border: "1px solid var(--line)",
-                          borderRadius: 10,
-                          padding: "6px 8px",
-                        }}
+                        className={`runCard runCardStatus${r.status.charAt(0).toUpperCase()}${r.status.slice(1)}`}
                       >
-                        <div className="mini" style={{ minWidth: 0 }}>
-                          <b>{s(r.meta?.job) || "run"}</b> •{" "}
-                          {s(r.meta?.state) || "all"} • {s(r.meta?.mode) || "live"}{" "}
-                          • lines {Number(r.linesCount || 0)}
+                        <div className="runCardHead">
+                          <div className="runCardTitle">
+                            <b>{s(r.meta?.job) || "run"}</b>
+                            <span className="mini">state: {formatStateLabel(r.stateLabel) || "ALL"}</span>
+                          </div>
+                          <span className="badge">{r.pct}%</span>
                         </div>
-                        <button
-                          type="button"
-                          className="smallBtn"
-                          onClick={() => attachToActiveRun(r.id)}
-                        >
-                          Attach
-                        </button>
-                      </div>
+
+                        <div className="runCardMeta mini">
+                          <span>Done: <b>{r.doneLabel}</b></span>
+                          <span>ETA: <b>{r.eta}</b></span>
+                          <span>Elapsed: <b>{r.elapsed}</b></span>
+                          <span>Counties: <b>{r.countiesLabel}</b></span>
+                          <span>Cities: <b>{r.citiesLabel}</b></span>
+                        </div>
+
+                        <div className="runCardMsg mini">{r.message}</div>
+
+                        <div className="runCardBar" aria-hidden>
+                          <div className="runCardBarFill" style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }} />
+                        </div>
+
+                        <div className="runCardActions">
+                          <button
+                            type="button"
+                            className="smallBtn"
+                            onClick={() => attachToActiveRun(r.id)}
+                          >
+                            Attach
+                          </button>
+                          {!r.finished ? (
+                            <button
+                              type="button"
+                              className="smallBtn"
+                              onClick={async () => {
+                                await fetch(`/api/stop/${r.id}`, { method: "POST" });
+                                pushLog(`🛑 Stop requested for ${r.id}`);
+                                loadActiveRuns();
+                              }}
+                            >
+                              Stop
+                            </button>
+                          ) : null}
+                        </div>
+                      </article>
                     ))
                   )}
                 </div>
-              </div>
-            </div>
-
-            <div className={`runnerProgress ${runnerToneClass}`}>
-              <div className="runnerProgressTop">
-                <div className="runnerProgressTitle">
-                  <span className="runnerDot" />
-                  <span className="runnerText">
-                    {progress.message || "Idle"}
-                  </span>
-                </div>
-
-                <div className="runnerProgressMeta">
-                  <span className="runnerChip">
-                    <b>{pctText}</b>
-                  </span>
-                  <span className="runnerChip">
-                    Done: <b>{runnerMeta.all}</b>
-                  </span>
-                  <span className="runnerChip">
-                    ETA: <b>{runnerMeta.eta}</b>
-                  </span>
-                  <span className="runnerChip">
-                    Elapsed: <b>{runnerMeta.elapsed}</b>
-                  </span>
-
-                  {isStateJob ? (
-                    <span className="runnerChip">
-                      States: <b>{runnerMeta.all}</b>
-                    </span>
-                  ) : isOneLocJob ? (
-                    <span className="runnerChip">
-                      Location: <b>{runLocId ? "1/1" : "—"}</b>
-                    </span>
-                  ) : (
-                    <>
-                      <span className="runnerChip">
-                        Counties: <b>{runnerMeta.counties}</b>
-                      </span>
-                      <span className="runnerChip">
-                        Cities: <b>{runnerMeta.cities}</b>
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div
-                className="runnerBar"
-                role="progressbar"
-                aria-valuenow={Math.round(clamp01(progress.pct) * 100)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              >
-                <div
-                  className="runnerBarFill"
-                  style={{
-                    width: `${Math.round(clamp01(progress.pct) * 100)}%`,
-                  }}
-                />
               </div>
             </div>
           </div>

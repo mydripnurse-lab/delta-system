@@ -445,6 +445,82 @@ button, input, select { font-family: inherit; }
   box-shadow: 0 0 0 6px rgba(239,68,68,0.14);
 }
 
+/* ===== Runs Center Cards ===== */
+.runCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.runCard {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+}
+
+.runCardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.runCardTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.runCardMeta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.runCardMsg {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.runCardBar {
+  margin-top: 8px;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  overflow: hidden;
+}
+
+.runCardBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2ba7ff, #3ee6c5);
+}
+
+.runCardActions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.runCardStatusDone {
+  border-color: rgba(34,197,94,0.45);
+}
+
+.runCardStatusError,
+.runCardStatusStopped {
+  border-color: rgba(248,113,113,0.45);
+}
+
+@media (max-width: 980px) {
+  .runCardsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== KPIs ===== */
 .kpiRow {
   display: grid;
