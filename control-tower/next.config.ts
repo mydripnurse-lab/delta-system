@@ -47,8 +47,6 @@ const RUN_JOB_RUNTIME_PACKAGES = [
   "glob",
   "google-auth-library",
   "google-logging-utils",
-  "googleapis",
-  "googleapis-common",
   "gopd",
   "gtoken",
   "has-symbols",

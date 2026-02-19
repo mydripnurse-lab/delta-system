@@ -5,13 +5,17 @@ import path from "path";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
-
-function loadGoogleapis() {
+function loadGoogleAuthLibrary() {
     try {
-        return require("googleapis");
+        return require("google-auth-library");
     } catch {}
 
-    const fallbackFromRepoRoot = path.join(process.cwd(), "control-tower", "node_modules", "googleapis");
+    const fallbackFromRepoRoot = path.join(
+        process.cwd(),
+        "control-tower",
+        "node_modules",
+        "google-auth-library"
+    );
     try {
         return require(fallbackFromRepoRoot);
     } catch {}
@@ -21,12 +25,12 @@ function loadGoogleapis() {
         "..",
         "control-tower",
         "node_modules",
-        "googleapis",
+        "google-auth-library",
     );
     return require(fallbackFromThisFile);
 }
 
-const { google } = loadGoogleapis();
+const { GoogleAuth } = loadGoogleAuthLibrary();
 
 // =====================
 // CLI Args
@@ -286,6 +290,91 @@ async function withRetries(fn, { label = "sheets-op", scope = "sheets" } = {}) {
 // =====================
 // Google Client
 // =====================
+async function getAuthAccessToken(auth) {
+    const client = await auth.getClient();
+    const tokenRes = await client.getAccessToken();
+    if (!tokenRes) throw new Error("Failed to obtain Google access token for Sheets.");
+    if (typeof tokenRes === "string") return tokenRes;
+    const token = tokenRes?.token || tokenRes?.access_token || "";
+    if (!token) throw new Error("Google access token is empty.");
+    return token;
+}
+
+function encodeRange(range) {
+    return encodeURIComponent(String(range || ""));
+}
+
+function buildSheetsRestClient(auth) {
+    async function callSheets(url, opts = {}) {
+        const accessToken = await getAuthAccessToken(auth);
+        const res = await fetch(url, {
+            method: opts.method || "GET",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+                ...(opts.headers || {}),
+            },
+            body: opts.body ? JSON.stringify(opts.body) : undefined,
+        });
+        const txt = await res.text();
+        let json = {};
+        try {
+            json = txt ? JSON.parse(txt) : {};
+        } catch {
+            json = { raw: txt };
+        }
+        if (!res.ok) {
+            const msg =
+                json?.error?.message ||
+                json?.message ||
+                `Google Sheets HTTP ${res.status}`;
+            const err = new Error(msg);
+            err.code = res.status;
+            err.response = { status: res.status, data: json };
+            throw err;
+        }
+        return { data: json };
+    }
+
+    return {
+        spreadsheets: {
+            values: {
+                get: async ({ spreadsheetId, range, valueRenderOption }) => {
+                    const u = new URL(
+                        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(
+                            String(spreadsheetId || "")
+                        )}/values/${encodeRange(range)}`
+                    );
+                    if (valueRenderOption) u.searchParams.set("valueRenderOption", String(valueRenderOption));
+                    return callSheets(u.toString(), { method: "GET" });
+                },
+                append: async ({ spreadsheetId, range, valueInputOption, insertDataOption, requestBody }) => {
+                    const u = new URL(
+                        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(
+                            String(spreadsheetId || "")
+                        )}/values/${encodeRange(range)}:append`
+                    );
+                    if (valueInputOption) u.searchParams.set("valueInputOption", String(valueInputOption));
+                    if (insertDataOption) u.searchParams.set("insertDataOption", String(insertDataOption));
+                    return callSheets(u.toString(), {
+                        method: "POST",
+                        body: requestBody || {},
+                    });
+                },
+                batchUpdate: async ({ spreadsheetId, requestBody }) => {
+                    const u = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(
+                        String(spreadsheetId || "")
+                    )}/values:batchUpdate`;
+                    return callSheets(u, {
+                        method: "POST",
+                        body: requestBody || {},
+                    });
+                },
+            },
+        },
+    };
+}
+
 async function getSheetsClient({ scope = "sheets" } = {}) {
     const jsonB64 = String(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_B64 || "").trim();
     const jsonRaw = String(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "").trim();
@@ -302,11 +391,11 @@ async function getSheetsClient({ scope = "sheets" } = {}) {
             );
         }
 
-        const auth = new google.auth.GoogleAuth({
+        const auth = new GoogleAuth({
             credentials,
             scopes: ["https://www.googleapis.com/auth/spreadsheets"],
         });
-        return google.sheets({ version: "v4", auth });
+        return buildSheetsRestClient(auth);
     }
 
     const keyFile =
@@ -321,12 +410,12 @@ async function getSheetsClient({ scope = "sheets" } = {}) {
     log(scope, `cwd=${resolved.cwd}`);
     log(scope, `repoRoot=${resolved.repoRoot}`);
 
-    const auth = new google.auth.GoogleAuth({
+    const auth = new GoogleAuth({
         keyFile: resolved.absKeyFile,
         scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
 
-    return google.sheets({ version: "v4", auth });
+    return buildSheetsRestClient(auth);
 }
 
 // =====================
