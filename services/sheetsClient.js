@@ -2,7 +2,31 @@
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
-import { google } from "googleapis";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+
+function loadGoogleapis() {
+    try {
+        return require("googleapis");
+    } catch {}
+
+    const fallbackFromRepoRoot = path.join(process.cwd(), "control-tower", "node_modules", "googleapis");
+    try {
+        return require(fallbackFromRepoRoot);
+    } catch {}
+
+    const fallbackFromThisFile = path.join(
+        path.dirname(new URL(import.meta.url).pathname),
+        "..",
+        "control-tower",
+        "node_modules",
+        "googleapis",
+    );
+    return require(fallbackFromThisFile);
+}
+
+const { google } = loadGoogleapis();
 
 // =====================
 // CLI Args
