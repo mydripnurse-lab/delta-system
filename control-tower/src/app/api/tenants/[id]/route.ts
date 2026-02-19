@@ -70,37 +70,86 @@ export async function GET(_req: Request, ctx: Ctx) {
       return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
     }
 
-    const settings = await pool.query(
-      `
-        select
-          timezone,
-          locale,
-          currency,
-          root_domain,
-          cloudflare_cname_target,
-          (nullif(cloudflare_api_token, '') is not null) as has_cloudflare_api_token,
-          ghl_company_id,
-          snapshot_id,
-          owner_first_name,
-          owner_last_name,
-          owner_email,
-          owner_phone,
-          app_display_name,
-          brand_name,
-          logo_url,
-          ads_alert_webhook_url,
-          ads_alerts_enabled,
-          ads_alert_sms_enabled,
-          ads_alert_sms_to,
-          google_service_account_json,
-          created_at,
-          updated_at
-        from app.organization_settings
-        where organization_id = $1
-        limit 1
-      `,
-      [tenantId],
-    );
+    let settingsRow: Record<string, unknown> | null = null;
+    try {
+      const settings = await pool.query(
+        `
+          select
+            timezone,
+            locale,
+            currency,
+            root_domain,
+            cloudflare_cname_target,
+            (nullif(cloudflare_api_token, '') is not null) as has_cloudflare_api_token,
+            ghl_company_id,
+            snapshot_id,
+            owner_first_name,
+            owner_last_name,
+            owner_email,
+            owner_phone,
+            app_display_name,
+            brand_name,
+            logo_url,
+            ads_alert_webhook_url,
+            ads_alerts_enabled,
+            ads_alert_sms_enabled,
+            ads_alert_sms_to,
+            google_service_account_json,
+            created_at,
+            updated_at
+          from app.organization_settings
+          where organization_id = $1
+          limit 1
+        `,
+        [tenantId],
+      );
+      settingsRow = (settings.rows[0] as Record<string, unknown> | undefined) || null;
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "";
+      const missingCloudflareColumns =
+        msg.includes("cloudflare_cname_target") ||
+        msg.includes("cloudflare_api_token") ||
+        msg.includes("has_cloudflare_api_token");
+      if (!missingCloudflareColumns) throw error;
+
+      const legacy = await pool.query(
+        `
+          select
+            timezone,
+            locale,
+            currency,
+            root_domain,
+            ghl_company_id,
+            snapshot_id,
+            owner_first_name,
+            owner_last_name,
+            owner_email,
+            owner_phone,
+            app_display_name,
+            brand_name,
+            logo_url,
+            ads_alert_webhook_url,
+            ads_alerts_enabled,
+            ads_alert_sms_enabled,
+            ads_alert_sms_to,
+            google_service_account_json,
+            created_at,
+            updated_at
+          from app.organization_settings
+          where organization_id = $1
+          limit 1
+        `,
+        [tenantId],
+      );
+      const row = (legacy.rows[0] as Record<string, unknown> | undefined) || null;
+      settingsRow = row
+        ? {
+            ...row,
+            cloudflare_cname_target: null,
+            has_cloudflare_api_token: false,
+          }
+        : null;
+    }
 
     const integrations = await pool.query(
       `
@@ -128,7 +177,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({
       ok: true,
       tenant: org.rows[0],
-      settings: settings.rows[0] || null,
+      settings: settingsRow,
       integrations: integrations.rows,
     });
   } catch (error: unknown) {
