@@ -1159,6 +1159,14 @@ export default function AdsDashboardPage() {
                 Draft campaigns:{" "}
                 <b>{fmtInt(strategyData?.scorecard?.campaignDrafts || 0)}</b>
               </div>
+              <div className="mini" style={{ marginBottom: 12, opacity: 0.82 }}>
+                Keyword Planner:{" "}
+                <b>{strategyData?.dataSources?.keywordPlanner?.ok ? "connected" : "fallback mode"}</b>
+                {" • "}
+                seeds <b>{fmtInt(strategyData?.dataSources?.keywordPlanner?.seeds || 0)}</b>
+                {" • "}
+                ideas <b>{fmtInt(strategyData?.dataSources?.keywordPlanner?.ideas || 0)}</b>
+              </div>
 
               {strategyData?.aiSummary?.executive_summary ? (
                 <div className="moduleCard" style={{ marginBottom: 12 }}>
@@ -1177,6 +1185,9 @@ export default function AdsDashboardPage() {
                       <th className="th">Action</th>
                       <th className="th">Score</th>
                       <th className="th">GSC Impr</th>
+                      <th className="th">Planner Vol</th>
+                      <th className="th">Comp.</th>
+                      <th className="th">Top Bid</th>
                       <th className="th">Ads Conv</th>
                       <th className="th">Cost</th>
                       <th className="th">Reason</th>
@@ -1191,6 +1202,15 @@ export default function AdsDashboardPage() {
                           <td className="td">{String(k.action || "monitor")}</td>
                           <td className="td">{fmtInt(k.score || 0)}</td>
                           <td className="td">{fmtInt(k.gscImpressions || 0)}</td>
+                          <td className="td">{fmtInt(k.plannerAvgMonthlySearches || 0)}</td>
+                          <td className="td">
+                            {String(k.plannerCompetition || "UNSPECIFIED")}
+                            {k.plannerCompetitionIndex ? ` (${fmtInt(k.plannerCompetitionIndex)})` : ""}
+                          </td>
+                          <td className="td">
+                            {fmtMoney(k.plannerLowTopBid || 0)} -{" "}
+                            {fmtMoney(k.plannerHighTopBid || 0)}
+                          </td>
                           <td className="td">{fmtInt(k.adsConversions || 0)}</td>
                           <td className="td">{fmtMoney(k.adsCost || 0)}</td>
                           <td className="td mini">{String(k.reason || "")}</td>
@@ -1211,6 +1231,8 @@ export default function AdsDashboardPage() {
                     <p className="mini moduleLine"><b>Budget/day:</b> {fmtMoney(c.budgetDailyUsd || 0)}</p>
                     <p className="mini moduleLine"><b>Bidding:</b> {String(c.bidding || "-")}</p>
                     <p className="mini moduleLine"><b>Region:</b> {String(c?.targeting?.regions?.join(", ") || "-")}</p>
+                    <p className="mini moduleLine"><b>CTA link:</b> {String(c.ctaLink || "-")}</p>
+                    <p className="mini moduleLine"><b>CTA geo match:</b> {String(c.ctaGeoMatch || "-")}</p>
                     <p className="mini moduleLine">
                       <b>Keywords:</b>{" "}
                       {String(

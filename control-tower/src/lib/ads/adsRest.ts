@@ -169,3 +169,105 @@ export async function googleAdsSearch(opts: {
 
     throw new Error(lastErr || "Google Ads request failed for all API versions.");
 }
+
+export type GoogleAdsKeywordIdea = {
+    text: string;
+    avgMonthlySearches: number;
+    competition: string;
+    competitionIndex: number;
+    lowTopOfPageBidMicros: number;
+    highTopOfPageBidMicros: number;
+};
+
+export async function googleAdsGenerateKeywordIdeas(opts: {
+    keywords: string[];
+    tenantId: string;
+    integrationKey?: string;
+    customerId?: string;
+    loginCustomerId?: string;
+    version?: string;
+    languageConstant?: string;
+    geoTargetConstants?: string[];
+    keywordPlanNetwork?: "GOOGLE_SEARCH" | "GOOGLE_SEARCH_AND_PARTNERS";
+    pageSize?: number;
+}) {
+    const tenantId = s(opts.tenantId);
+    if (!tenantId) throw new Error("Missing tenantId");
+    const tenantAccess = await getTenantAccess({ tenantId, integrationKey: opts.integrationKey });
+    const accessToken = tenantAccess.accessToken || (await getAccessToken());
+
+    const customerId = cleanCid(opts.customerId || tenantAccess.customerId);
+    if (!customerId) throw new Error("Missing Google Ads customerId.");
+
+    const keywords = Array.from(
+        new Set((opts.keywords || []).map((k) => s(k)).filter(Boolean)),
+    ).slice(0, 20);
+    if (!keywords.length) return { results: [] as GoogleAdsKeywordIdea[] };
+
+    const versions = versionCandidates(opts.version);
+    let lastErr = "";
+    for (const version of versions) {
+        const endpoint =
+            `https://googleads.googleapis.com/${version}/customers/${customerId}/keywordPlanIdeas:generateKeywordIdeas`;
+
+        const body = {
+            language: s(opts.languageConstant) || "languageConstants/1000",
+            geoTargetConstants:
+                Array.isArray(opts.geoTargetConstants) && opts.geoTargetConstants.length
+                    ? opts.geoTargetConstants
+                    : ["geoTargetConstants/2840"],
+            keywordPlanNetwork: s(opts.keywordPlanNetwork) || "GOOGLE_SEARCH_AND_PARTNERS",
+            pageSize: Number(opts.pageSize || 100),
+            keywordSeed: { keywords },
+            includeAdultKeywords: false,
+        };
+
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                ...headersBase(
+                    tenantAccess.developerToken,
+                    opts.loginCustomerId || tenantAccess.loginCustomerId,
+                    false,
+                ),
+            },
+            body: JSON.stringify(body),
+        });
+
+        const text = await res.text();
+        let json: any;
+        try {
+            json = text ? JSON.parse(text) : null;
+        } catch {
+            json = { raw: text };
+        }
+
+        if (res.ok) {
+            const rawResults = Array.isArray(json?.results)
+                ? json.results
+                : Array.isArray(json?.keywordIdeas)
+                    ? json.keywordIdeas
+                    : [];
+            const results: GoogleAdsKeywordIdea[] = rawResults.map((r: any) => {
+                const m = (r?.keywordIdeaMetrics || r?.keyword_idea_metrics || {}) as Record<string, unknown>;
+                return {
+                    text: s(r?.text || r?.keyword),
+                    avgMonthlySearches: Number(m.avgMonthlySearches || m.avg_monthly_searches || 0),
+                    competition: s(m.competition || "UNSPECIFIED"),
+                    competitionIndex: Number(m.competitionIndex || m.competition_index || 0),
+                    lowTopOfPageBidMicros: Number(m.lowTopOfPageBidMicros || m.low_top_of_page_bid_micros || 0),
+                    highTopOfPageBidMicros: Number(m.highTopOfPageBidMicros || m.high_top_of_page_bid_micros || 0),
+                };
+            }).filter((x) => x.text);
+            return { results };
+        }
+
+        lastErr = `Google Ads Keyword Ideas ${version} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`;
+        if (!shouldRetryWithAnotherVersion(res.status, json)) {
+            throw new Error(lastErr);
+        }
+    }
+
+    throw new Error(lastErr || "Google Ads keyword ideas failed for all API versions.");
+}
