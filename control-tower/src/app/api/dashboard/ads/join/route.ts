@@ -73,6 +73,19 @@ type AdsMetricPayload = {
     };
 };
 
+type AdsSummaryPayload = {
+    startDate?: unknown;
+    endDate?: unknown;
+    impressions?: unknown;
+    clicks?: unknown;
+    cost?: unknown;
+    conversions?: unknown;
+    avgCpc?: unknown;
+    ctr?: unknown;
+    roas?: unknown;
+    conversionValue?: unknown;
+};
+
 function asPayload(r: unknown): AdsMetricPayload {
     return (r || {}) as AdsMetricPayload;
 }
@@ -221,8 +234,8 @@ export async function GET(req: Request) {
             .sort((a, b) => a.ctr - b.ctr)
             .slice(0, 20);
 
-        const curr = summary.summary || {};
-        const prev = summaryPrev.summary || {};
+        const curr = (summary.summary || {}) as AdsSummaryPayload;
+        const prev = (summaryPrev.summary || {}) as AdsSummaryPayload;
 
         const compare = {
             windowDays: (() => {
