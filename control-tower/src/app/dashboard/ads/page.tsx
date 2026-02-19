@@ -1166,7 +1166,15 @@ export default function AdsDashboardPage() {
                 seeds <b>{fmtInt(strategyData?.dataSources?.keywordPlanner?.seeds || 0)}</b>
                 {" • "}
                 ideas <b>{fmtInt(strategyData?.dataSources?.keywordPlanner?.ideas || 0)}</b>
+                {" • "}
+                mapped <b>{fmtInt(strategyData?.dataSources?.keywordPlanner?.mappedKeywords || 0)}</b>
               </div>
+              {!strategyData?.dataSources?.keywordPlanner?.ok &&
+              strategyData?.dataSources?.keywordPlanner?.error ? (
+                <div className="mini" style={{ marginBottom: 12, color: "var(--warning)" }}>
+                  Planner error: {String(strategyData.dataSources.keywordPlanner.error)}
+                </div>
+              ) : null}
 
               {strategyData?.aiSummary?.executive_summary ? (
                 <div className="moduleCard" style={{ marginBottom: 12 }}>
@@ -1182,6 +1190,7 @@ export default function AdsDashboardPage() {
                   <thead>
                     <tr>
                       <th className="th">Keyword</th>
+                      <th className="th">Geo</th>
                       <th className="th">Action</th>
                       <th className="th">Score</th>
                       <th className="th">GSC Impr</th>
@@ -1199,6 +1208,12 @@ export default function AdsDashboardPage() {
                       .map((k: any, i: number) => (
                         <tr key={`kws-${i}`} className="tr">
                           <td className="td mono">{String(k.keyword || "")}</td>
+                          <td className="td">
+                            {String(k.geoLabel || "Core Market")}{" "}
+                            <span className="mini" style={{ opacity: 0.75 }}>
+                              ({String(k.geoLevel || "unscoped")})
+                            </span>
+                          </td>
                           <td className="td">{String(k.action || "monitor")}</td>
                           <td className="td">{fmtInt(k.score || 0)}</td>
                           <td className="td">{fmtInt(k.gscImpressions || 0)}</td>
