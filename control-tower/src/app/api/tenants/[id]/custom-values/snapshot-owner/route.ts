@@ -16,26 +16,20 @@ function asObj(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
 
-async function getOwnerLocationId(tenantId: string) {
+async function getSnapshotLocationId(tenantId: string) {
   const pool = getDbPool();
-  const q = await pool.query<{ external_account_id: string | null; provider: string; config: Record<string, unknown> | null }>(
+  const settingsQ = await pool.query<{ snapshot_location_id: string | null }>(
     `
-      select external_account_id, provider, config
-      from app.organization_integrations
+      select snapshot_location_id
+      from app.organization_settings
       where organization_id = $1
-        and integration_key = 'owner'
-        and provider in ('ghl', 'custom')
-      order by updated_at desc
       limit 1
     `,
     [tenantId],
   );
-  const row = q.rows[0];
-  if (!row) throw new Error("Owner integration not found (ghl/custom owner).");
-  const cfg = asObj(row.config);
-  const ownerLocationId = s(row.external_account_id) || s(cfg.locationId);
-  if (!ownerLocationId) throw new Error("Missing Owner Location ID in integration owner.");
-  return ownerLocationId;
+  const snapshotLocationId = s(settingsQ.rows[0]?.snapshot_location_id);
+  if (snapshotLocationId) return snapshotLocationId;
+  throw new Error("Missing Snapshot Location ID. Set it in Project Details > Custom Values.");
 }
 
 async function getLocationTokenForOwner(input: {
@@ -135,12 +129,12 @@ export async function POST(req: Request, ctx: Ctx) {
   if ("response" in auth) return auth.response;
 
   try {
-    const ownerLocationId = await getOwnerLocationId(tenantId);
+    const snapshotLocationId = await getSnapshotLocationId(tenantId);
     const companyId = await getEffectiveCompanyIdOrThrow({ tenantId, integrationKey: "owner" });
-    const locationToken = await getLocationTokenForOwner({ tenantId, companyId, ownerLocationId });
+    const locationToken = await getLocationTokenForOwner({ tenantId, companyId, ownerLocationId: snapshotLocationId });
 
     const values = (await fetchAllLocationCustomValues({
-      locationId: ownerLocationId,
+      locationId: snapshotLocationId,
       locationToken,
     }))
       .map((x) => s(x.name))
@@ -177,7 +171,7 @@ export async function POST(req: Request, ctx: Ctx) {
       await client.query("COMMIT");
       return NextResponse.json({
         ok: true,
-        ownerLocationId,
+        snapshotLocationId,
         totalFromOwner: uniqueNames.length,
         totalAfterFilter: filteredNames.length,
         skippedDynamic,

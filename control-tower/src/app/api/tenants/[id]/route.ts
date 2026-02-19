@@ -79,6 +79,7 @@ export async function GET(_req: Request, ctx: Ctx) {
             locale,
             currency,
             root_domain,
+            snapshot_location_id,
             cloudflare_cname_target,
             (nullif(cloudflare_api_token, '') is not null) as has_cloudflare_api_token,
             ghl_company_id,
@@ -109,7 +110,8 @@ export async function GET(_req: Request, ctx: Ctx) {
       const missingCloudflareColumns =
         msg.includes("cloudflare_cname_target") ||
         msg.includes("cloudflare_api_token") ||
-        msg.includes("has_cloudflare_api_token");
+        msg.includes("has_cloudflare_api_token") ||
+        msg.includes("snapshot_location_id");
       if (!missingCloudflareColumns) throw error;
 
       const legacy = await pool.query(
@@ -119,6 +121,7 @@ export async function GET(_req: Request, ctx: Ctx) {
             locale,
             currency,
             root_domain,
+            snapshot_location_id,
             ghl_company_id,
             snapshot_id,
             owner_first_name,
@@ -145,6 +148,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       settingsRow = row
         ? {
             ...row,
+            snapshot_location_id: row?.snapshot_location_id ?? null,
             cloudflare_cname_target: null,
             has_cloudflare_api_token: false,
           }
@@ -221,6 +225,7 @@ type PatchTenantBody = {
   adsAlertSmsTo?: string;
   cloudflareCnameTarget?: string;
   cloudflareApiToken?: string;
+  snapshotLocationId?: string;
 };
 
 export async function PATCH(req: Request, ctx: Ctx) {
@@ -279,6 +284,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const adsAlertSmsTo = s(body.adsAlertSmsTo);
   const cloudflareCnameTarget = s(body.cloudflareCnameTarget);
   const cloudflareApiToken = s(body.cloudflareApiToken);
+  const snapshotLocationId = s(body.snapshotLocationId);
 
   const nextSlug = slugify(incomingSlug || "");
   if (incomingSlug && !nextSlug) {
@@ -327,7 +333,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     await client.query(
       `
         insert into app.organization_settings (
-          organization_id, timezone, locale, currency, root_domain, cloudflare_cname_target, cloudflare_api_token, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alerts_enabled, ads_alert_sms_enabled, ads_alert_sms_to
+          organization_id, timezone, locale, currency, root_domain, snapshot_location_id, cloudflare_cname_target, cloudflare_api_token, ghl_company_id, snapshot_id, owner_first_name, owner_last_name, owner_email, owner_phone, app_display_name, brand_name, logo_url, google_service_account_json, ads_alert_webhook_url, ads_alerts_enabled, ads_alert_sms_enabled, ads_alert_sms_to
         )
         values (
           $1,
@@ -346,11 +352,12 @@ export async function PATCH(req: Request, ctx: Ctx) {
           nullif($14,''),
           nullif($15,''),
           nullif($16,''),
-          $17::jsonb,
-          nullif($18,''),
-          coalesce($19::boolean, true),
-          coalesce($20::boolean, false),
-          nullif($21,'')
+          nullif($17,''),
+          $18::jsonb,
+          nullif($19,''),
+          coalesce($20::boolean, true),
+          coalesce($21::boolean, false),
+          nullif($22,'')
         )
         on conflict (organization_id) do update
         set
@@ -358,6 +365,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
           locale = coalesce(nullif(excluded.locale,''), app.organization_settings.locale),
           currency = coalesce(nullif(excluded.currency,''), app.organization_settings.currency),
           root_domain = coalesce(excluded.root_domain, app.organization_settings.root_domain),
+          snapshot_location_id = coalesce(excluded.snapshot_location_id, app.organization_settings.snapshot_location_id),
           cloudflare_cname_target = coalesce(excluded.cloudflare_cname_target, app.organization_settings.cloudflare_cname_target),
           cloudflare_api_token = coalesce(excluded.cloudflare_api_token, app.organization_settings.cloudflare_api_token),
           ghl_company_id = coalesce(excluded.ghl_company_id, app.organization_settings.ghl_company_id),
@@ -381,6 +389,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
         locale,
         currency,
         rootDomain,
+        snapshotLocationId,
         cloudflareCnameTarget,
         cloudflareApiToken,
         companyId,
@@ -546,6 +555,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
           locale: !!locale,
           currency: !!currency,
           rootDomain: !!rootDomain,
+          snapshotLocationId: !!snapshotLocationId,
           cloudflareCnameTarget: !!cloudflareCnameTarget,
           cloudflareApiToken: !!cloudflareApiToken,
           logoUrl: !!logoUrl,

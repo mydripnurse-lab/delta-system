@@ -5147,6 +5147,17 @@ button, input, select { font-family: inherit; }
   margin-bottom: 4px;
 }
 
+.detailsCustomTop {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255,255,255,0.02);
+}
+
+.detailsCustomTableWrap {
+  padding: 0;
+}
+
 @media (max-width: 760px) {
   .detailsTabs {
     gap: 6px;

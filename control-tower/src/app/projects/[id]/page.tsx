@@ -104,6 +104,7 @@ type TenantDetailResponse = {
     locale?: string | null;
     currency?: string | null;
     root_domain?: string | null;
+    snapshot_location_id?: string | null;
     cloudflare_cname_target?: string | null;
     has_cloudflare_api_token?: boolean | null;
     ghl_company_id?: string | null;
@@ -438,6 +439,7 @@ export default function Home() {
   const [tenantTimezone, setTenantTimezone] = useState("UTC");
   const [tenantLocale, setTenantLocale] = useState("en-US");
   const [tenantCurrency, setTenantCurrency] = useState("USD");
+  const [tenantSnapshotLocationId, setTenantSnapshotLocationId] = useState("");
   const [tenantOwnerLocationId, setTenantOwnerLocationId] = useState("");
   const [tenantCompanyId, setTenantCompanyId] = useState("");
   const [tenantOwnerFirstName, setTenantOwnerFirstName] = useState("");
@@ -879,7 +881,7 @@ export default function Home() {
       }
       await loadTenantCustomValues();
       setTenantCustomValuesMsg(
-        `Owner snapshot synced. Found ${(data as any)?.totalFromOwner || 0}, inserted ${(data as any)?.inserted || 0}.`,
+        `Snapshot synced. Found ${(data as any)?.totalFromOwner || 0}, inserted ${(data as any)?.inserted || 0}.`,
       );
     } catch (e: any) {
       setTenantCustomValuesMsg("");
@@ -1028,6 +1030,7 @@ export default function Home() {
         setTenantTimezone(s(settings.timezone) || "UTC");
         setTenantLocale(s(settings.locale) || "en-US");
         setTenantCurrency(s(settings.currency) || "USD");
+        setTenantSnapshotLocationId(s(settings.snapshot_location_id));
         setTenantCompanyId(s(settings.ghl_company_id) || s(ownerCfg.companyId));
         setTenantOwnerFirstName(s(settings.owner_first_name));
         setTenantOwnerLastName(s(settings.owner_last_name));
@@ -1099,6 +1102,7 @@ export default function Home() {
           timezone: tenantTimezone || undefined,
           locale: tenantLocale || undefined,
           currency: tenantCurrency || undefined,
+          snapshotLocationId: tenantSnapshotLocationId || undefined,
           ownerLocationId: tenantOwnerLocationId || undefined,
           companyId: tenantCompanyId || undefined,
           ownerFirstName: tenantOwnerFirstName || undefined,
@@ -3579,10 +3583,21 @@ export default function Home() {
             <div className="detailsPane">
               <div className="detailsPaneHeader">
                 <div className="detailsPaneTitle">Custom Values Template</div>
-                <div className="detailsPaneSub">Snapshot from Owner Location. Edit values in DB and apply to child subaccounts.</div>
+                <div className="detailsPaneSub">Snapshot from Snapshot Location ID. Edit values in DB and apply to child subaccounts.</div>
               </div>
 
-              <div className="tableWrap" style={{ marginTop: 12 }}>
+              <div className="detailsCustomTop">
+                <div className="row" style={{ marginBottom: 10 }}>
+                  <div className="field">
+                    <label>Snapshot Location ID (Custom Values Source)</label>
+                    <input
+                      className="input"
+                      value={tenantSnapshotLocationId}
+                      onChange={(e) => setTenantSnapshotLocationId(e.target.value)}
+                      placeholder="Location ID used for Custom Values sync"
+                    />
+                  </div>
+                </div>
                 <div
                   style={{
                     display: "flex",
@@ -3602,9 +3617,9 @@ export default function Home() {
                       className="smallBtn"
                       disabled={!routeTenantId || tenantCustomValuesSnapshotBusy}
                       onClick={() => void snapshotOwnerCustomValuesTemplate()}
-                      title="Sync custom value names from Owner Location snapshot."
+                      title="Sync custom value names from Snapshot Location ID."
                     >
-                      {tenantCustomValuesSnapshotBusy ? "Syncing..." : "Sync from Owner Snapshot"}
+                      {tenantCustomValuesSnapshotBusy ? "Syncing..." : "Sync from Snapshot Location"}
                     </button>
                     <button
                       type="button"
@@ -3622,7 +3637,9 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
+              </div>
 
+              <div className="tableWrap detailsCustomTableWrap" style={{ marginTop: 12 }}>
                 <table className="table">
                   <thead>
                     <tr>
@@ -3642,7 +3659,7 @@ export default function Home() {
                       <tr>
                         <td className="td" colSpan={3}>
                           <span className="mini">
-                            No rows found. Use <b>Sync from Owner Snapshot</b> first.
+                            No rows found. Use <b>Sync from Snapshot Location</b> first.
                           </span>
                         </td>
                       </tr>
