@@ -149,6 +149,7 @@ type AgencyUserRow = {
   fullName?: string | null;
   phone?: string | null;
   isActive: boolean;
+  status?: "active" | "invited" | "disabled";
   createdAt: string;
   lastLoginAt?: string | null;
   globalRoles: string[];
@@ -171,6 +172,7 @@ const DEFAULT_INTEGRATION_KEY = "default";
 const BING_DEFAULT_ENDPOINT = "https://ssl.bing.com/webmaster/api.svc/json";
 const STAFF_ROLE_OPTIONS: TenantStaffRow["role"][] = ["owner", "admin", "analyst", "viewer"];
 const STAFF_STATUS_OPTIONS: TenantStaffRow["status"][] = ["active", "invited", "disabled"];
+const AGENCY_USER_STATUS_OPTIONS: Array<"active" | "invited" | "disabled"> = ["active", "invited", "disabled"];
 const GLOBAL_ROLE_OPTIONS: Array<AgencyUserRow["draftGlobalRole"]> = ["", "agency_admin", "analytics", "platform_admin"];
 const TABLE_PAGE_SIZE = 12;
 type KpiRangePreset = "7d" | "28d" | "3m" | "6m" | "1y" | "custom";
@@ -217,6 +219,14 @@ function formatDeltaPct(v: number | null | undefined) {
 function deltaClass(v: number | null | undefined) {
   if (v === null || v === undefined || !Number.isFinite(v) || v === 0) return "agencyKpiDelta agencyKpiDeltaNeutral";
   return v > 0 ? "agencyKpiDelta agencyKpiDeltaUp" : "agencyKpiDelta agencyKpiDeltaDown";
+}
+
+function staffStatusPillClass(statusRaw: unknown) {
+  const status = s(statusRaw).toLowerCase();
+  if (status === "active") return "statusPill success";
+  if (status === "invited") return "statusPill warning";
+  if (status === "disabled") return "statusPill";
+  return "statusPill";
 }
 
 function tenantInitials(name: string) {
@@ -402,7 +412,7 @@ export default function AgencyHomePage() {
   const [agencyNewUserPhone, setAgencyNewUserPhone] = useState("");
   const [agencyNewUserPassword, setAgencyNewUserPassword] = useState("");
   const [agencyNewUserRole, setAgencyNewUserRole] = useState<AgencyUserRow["draftGlobalRole"]>("");
-  const [agencyNewUserIsActive, setAgencyNewUserIsActive] = useState(true);
+  const [agencyNewUserStatus, setAgencyNewUserStatus] = useState<"active" | "invited" | "disabled">("invited");
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [profileFullName, setProfileFullName] = useState("");
@@ -563,6 +573,11 @@ export default function AgencyHomePage() {
       setAgencyUsersRows(
         rows.map((row) => ({
           ...row,
+          status: s((row as { status?: string }).status) === "invited"
+            ? "invited"
+            : s((row as { status?: string }).status) === "disabled"
+              ? "disabled"
+              : "active",
           globalRoles: Array.isArray(row.globalRoles) ? row.globalRoles : [],
           draftGlobalRole: (s(Array.isArray(row.globalRoles) ? row.globalRoles[0] : "") as AgencyUserRow["draftGlobalRole"]) || "",
         })),
@@ -594,7 +609,7 @@ export default function AgencyHomePage() {
           fullName: s(agencyNewUserFullName),
           phone: s(agencyNewUserPhone),
           password: s(agencyNewUserPassword) || undefined,
-          isActive: agencyNewUserIsActive,
+          status: agencyNewUserStatus,
           globalRoles: s(agencyNewUserRole) ? [agencyNewUserRole] : [],
         }),
       });
@@ -605,7 +620,7 @@ export default function AgencyHomePage() {
       setAgencyNewUserPhone("");
       setAgencyNewUserPassword("");
       setAgencyNewUserRole("");
-      setAgencyNewUserIsActive(true);
+      setAgencyNewUserStatus("invited");
       const inviteDelivery = data && typeof data === "object" && "inviteDelivery" in data
         ? (data as { inviteDelivery?: { sent?: boolean; reason?: string } }).inviteDelivery
         : null;
@@ -636,7 +651,7 @@ export default function AgencyHomePage() {
           fullName: s(row.fullName),
           email: s(row.email),
           phone: s(row.phone),
-          isActive: row.isActive,
+          status: row.status || (row.isActive ? "active" : "disabled"),
           globalRoles: role ? [role] : [],
         }),
       });
@@ -2468,7 +2483,7 @@ export default function AgencyHomePage() {
             ) : null}
 
             {staffScopeTab === "agency" ? (
-            <div className="agencyDangerBox agencyStaffCreateBox">
+            <div className="agencyFormPanel agencyStaffCreateBox">
               <h4>Agency Accounts</h4>
               <p className="mini">Usuarios globales del agency. Aquí puedes editar tu cuenta y borrar cuentas creadas.</p>
               {agencyCanManageUsers ? (
@@ -2503,14 +2518,15 @@ export default function AgencyHomePage() {
                       <option key={role || "none"} value={role || ""}>{role || "no global role"}</option>
                     ))}
                   </select>
-                  <select className="input" value={agencyNewUserIsActive ? "active" : "disabled"} onChange={(e) => setAgencyNewUserIsActive(e.target.value === "active")}>
-                    <option value="active">active</option>
-                    <option value="disabled">disabled</option>
+                  <select className="input" value={agencyNewUserStatus} onChange={(e) => setAgencyNewUserStatus(e.target.value as "active" | "invited" | "disabled")}>
+                    {AGENCY_USER_STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
                   </select>
                 </div>
               ) : null}
               <div className="agencyCreateActions agencyCreateActionsSpaced">
-                <button type="button" className="btnPrimary" disabled={agencyUsersBusy || !agencyCanManageUsers} onClick={() => void createAgencyUserAccount()}>
+                <button type="button" className="btnGhost agencyActionPrimary" disabled={agencyUsersBusy || !agencyCanManageUsers} onClick={() => void createAgencyUserAccount()}>
                   {agencyUsersBusy ? "Saving..." : "Add agency account"}
                 </button>
                 <button type="button" className="btnGhost" disabled={agencyUsersLoading} onClick={() => void loadAgencyUsers()}>
@@ -2614,20 +2630,26 @@ export default function AgencyHomePage() {
                           </select>
                         </td>
                         <td>
-                          <select
-                            className="input"
-                            value={row.isActive ? "active" : "disabled"}
-                            onChange={(e) => {
-                              const value = e.target.value === "active";
-                              setAgencyUsersRows((prev) =>
-                                prev.map((it) => (it.id === row.id ? { ...it, isActive: value } : it)),
-                              );
-                            }}
-                            disabled={!agencyCanManageUsers}
-                          >
-                            <option value="active">active</option>
-                            <option value="disabled">disabled</option>
-                          </select>
+                          <div className="agencyStatusEditor">
+                            <span className={staffStatusPillClass(row.status || (row.isActive ? "active" : "disabled"))}>
+                              {row.status || (row.isActive ? "active" : "disabled")}
+                            </span>
+                            <select
+                              className="input"
+                              value={row.status || (row.isActive ? "active" : "disabled")}
+                              onChange={(e) => {
+                                const value = e.target.value as "active" | "invited" | "disabled";
+                                setAgencyUsersRows((prev) =>
+                                  prev.map((it) => (it.id === row.id ? { ...it, status: value, isActive: value === "active" } : it)),
+                                );
+                              }}
+                              disabled={!agencyCanManageUsers}
+                            >
+                              {AGENCY_USER_STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>{status}</option>
+                              ))}
+                            </select>
+                          </div>
                         </td>
                         <td>{formatInt(row.tenantCount)}</td>
                         <td>{s(row.lastLoginAt) ? new Date(s(row.lastLoginAt)).toLocaleString() : "—"}</td>
@@ -2691,7 +2713,7 @@ export default function AgencyHomePage() {
             ) : null}
 
             {staffScopeTab === "projects" ? (
-            <div className="agencyDangerBox agencyStaffCreateBox">
+            <div className="agencyFormPanel agencyStaffCreateBox">
               <h4>Add staff member</h4>
               <div className="agencyWizardGrid agencyWizardGridFour">
                 <select className="input" value={agencyNewStaffTenantId} onChange={(e) => setAgencyNewStaffTenantId(e.target.value)}>
@@ -2730,7 +2752,7 @@ export default function AgencyHomePage() {
                 </select>
               </div>
               <div className="agencyCreateActions agencyCreateActionsSpaced">
-                <button type="button" className="btnPrimary" disabled={agencyStaffBusy} onClick={() => void createAgencyStaffMember()}>
+                <button type="button" className="btnGhost agencyActionPrimary" disabled={agencyStaffBusy} onClick={() => void createAgencyStaffMember()}>
                   {agencyStaffBusy ? "Creating..." : "Add staff"}
                 </button>
                 <button type="button" className="btnGhost" disabled={agencyStaffLoading} onClick={() => void loadAgencyStaff()}>
@@ -2844,22 +2866,25 @@ export default function AgencyHomePage() {
                           </select>
                         </td>
                         <td>
-                          <select
-                            className="input"
-                            value={row.status}
-                            onChange={(e) => {
-                              const value = e.target.value as TenantStaffRow["status"];
-                              setAgencyStaffRows((prev) =>
-                                prev.map((it) =>
-                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, status: value } : it,
-                                ),
-                              );
-                            }}
-                          >
-                            {STAFF_STATUS_OPTIONS.map((status) => (
-                              <option key={status} value={status}>{status}</option>
-                            ))}
-                          </select>
+                          <div className="agencyStatusEditor">
+                            <span className={staffStatusPillClass(row.status)}>{row.status}</span>
+                            <select
+                              className="input"
+                              value={row.status}
+                              onChange={(e) => {
+                                const value = e.target.value as TenantStaffRow["status"];
+                                setAgencyStaffRows((prev) =>
+                                  prev.map((it) =>
+                                    it.tenantId === row.tenantId && it.id === row.id ? { ...it, status: value } : it,
+                                  ),
+                                );
+                              }}
+                            >
+                              {STAFF_STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>{status}</option>
+                              ))}
+                            </select>
+                          </div>
                         </td>
                         <td>{s(row.invitedAt) ? new Date(s(row.invitedAt)).toLocaleString() : "—"}</td>
                         <td>{s(row.lastActiveAt) ? new Date(s(row.lastActiveAt)).toLocaleString() : "—"}</td>
@@ -4195,7 +4220,7 @@ export default function AgencyHomePage() {
 
             {!manageLoading && manageTab === "staff" ? (
               <div className="agencyCreateFormModal">
-                <div className="agencyDangerBox agencyStaffCreateBox">
+                <div className="agencyFormPanel agencyStaffCreateBox">
                   <h4>Add staff member</h4>
                   <div className="agencyWizardGrid agencyWizardGridFour">
                     <input
@@ -4228,7 +4253,7 @@ export default function AgencyHomePage() {
                     </select>
                   </div>
                   <div className="agencyCreateActions agencyCreateActionsSpaced">
-                    <button type="button" className="btnPrimary" disabled={manageStaffBusy} onClick={() => void createStaffMember()}>
+                    <button type="button" className="btnGhost agencyActionPrimary" disabled={manageStaffBusy} onClick={() => void createStaffMember()}>
                       {manageStaffBusy ? "Creating..." : "Add staff"}
                     </button>
                     <button type="button" className="btnGhost" disabled={manageStaffLoading} onClick={() => void loadManageStaff(manageTenantId)}>
@@ -4316,20 +4341,23 @@ export default function AgencyHomePage() {
                               </select>
                             </td>
                             <td>
-                              <select
-                                className="input"
-                                value={row.status}
-                                onChange={(e) => {
-                                  const value = e.target.value as TenantStaffRow["status"];
-                                  setManageStaffRows((prev) =>
-                                    prev.map((it) => (it.id === row.id ? { ...it, status: value } : it)),
-                                  );
-                                }}
-                              >
-                                {STAFF_STATUS_OPTIONS.map((status) => (
-                                  <option key={status} value={status}>{status}</option>
-                                ))}
-                              </select>
+                              <div className="agencyStatusEditor">
+                                <span className={staffStatusPillClass(row.status)}>{row.status}</span>
+                                <select
+                                  className="input"
+                                  value={row.status}
+                                  onChange={(e) => {
+                                    const value = e.target.value as TenantStaffRow["status"];
+                                    setManageStaffRows((prev) =>
+                                      prev.map((it) => (it.id === row.id ? { ...it, status: value } : it)),
+                                    );
+                                  }}
+                                >
+                                  {STAFF_STATUS_OPTIONS.map((status) => (
+                                    <option key={status} value={status}>{status}</option>
+                                  ))}
+                                </select>
+                              </div>
                             </td>
                             <td>{s(row.invitedAt) ? new Date(s(row.invitedAt)).toLocaleString() : "—"}</td>
                             <td>{s(row.lastActiveAt) ? new Date(s(row.lastActiveAt)).toLocaleString() : "—"}</td>

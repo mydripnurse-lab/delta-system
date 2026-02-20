@@ -34,6 +34,8 @@ export async function POST(req: Request) {
         id: "test-tenant",
         name: "Demo Project",
       },
+      tenant_id: "test-tenant",
+      tenant_name: "Demo Project",
       invitedBy: {
         name: "Agency Admin",
         email: "admin@example.com",

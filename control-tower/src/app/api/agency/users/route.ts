@@ -25,6 +25,7 @@ type CreateAgencyUserBody = {
   fullName?: string;
   phone?: string;
   password?: string;
+  status?: "active" | "invited" | "disabled";
   isActive?: boolean;
   globalRoles?: string[];
 };
@@ -48,6 +49,7 @@ export async function GET(req: Request) {
       fullName: string | null;
       phone: string | null;
       isActive: boolean;
+      status: "active" | "invited" | "disabled";
       createdAt: string;
       lastLoginAt: string | null;
       globalRoles: string[];
@@ -60,6 +62,7 @@ export async function GET(req: Request) {
           u.full_name as "fullName",
           u.phone,
           u.is_active as "isActive",
+          coalesce(nullif(u.account_status, ''), case when u.is_active then 'active' else 'disabled' end) as "status",
           u.created_at::text as "createdAt",
           u.last_login_at::text as "lastLoginAt",
           coalesce(array_remove(array_agg(distinct ugr.role), null), '{}') as "globalRoles",
@@ -111,7 +114,13 @@ export async function GET(req: Request) {
     );
     return NextResponse.json({
       ok: true,
-      rows: fallback.rows.map((row) => ({ ...row, phone: null, lastLoginAt: null, globalRoles: [] })),
+      rows: fallback.rows.map((row) => ({
+        ...row,
+        phone: null,
+        status: row.isActive ? "active" : "disabled",
+        lastLoginAt: null,
+        globalRoles: [],
+      })),
       canManageAgency: isAgencyManager,
     });
   }
@@ -131,7 +140,14 @@ export async function POST(req: Request) {
   const fullName = s(body.fullName);
   const phone = s(body.phone);
   const password = s(body.password);
-  const isActive = body.isActive !== false;
+  const rawStatus = s(body.status).toLowerCase();
+  const status: "active" | "invited" | "disabled" =
+    rawStatus === "active" || rawStatus === "invited" || rawStatus === "disabled"
+      ? rawStatus
+      : body.isActive === false
+        ? "disabled"
+        : "active";
+  const isActive = status === "active";
   const roleSet = Array.from(new Set((Array.isArray(body.globalRoles) ? body.globalRoles : []).map(normalizeGlobalRole).filter(Boolean)));
 
   if (!email || !phone) {
@@ -153,11 +169,11 @@ export async function POST(req: Request) {
     try {
       created = await client.query<{ id: string }>(
         `
-          insert into app.users (email, full_name, phone, is_active, password_hash, password_updated_at)
-          values ($1, nullif($2, ''), nullif($3, ''), $4, $5, case when $5 is null then null else now() end)
+          insert into app.users (email, full_name, phone, is_active, account_status, password_hash, password_updated_at)
+          values ($1, nullif($2, ''), nullif($3, ''), $4, $5, $6, case when $6 is null then null else now() end)
           returning id
         `,
-        [email, fullName, phone, isActive, nextHash],
+        [email, fullName, phone, isActive, status, nextHash],
       );
     } catch (error: unknown) {
       const code = error && typeof error === "object" && "code" in error ? String((error as { code?: string }).code || "") : "";
@@ -165,11 +181,11 @@ export async function POST(req: Request) {
       try {
         created = await client.query<{ id: string }>(
           `
-            insert into app.users (email, full_name, phone, is_active)
-            values ($1, nullif($2, ''), nullif($3, ''), $4)
+            insert into app.users (email, full_name, phone, is_active, account_status)
+            values ($1, nullif($2, ''), nullif($3, ''), $4, $5)
             returning id
           `,
-          [email, fullName, phone, isActive],
+          [email, fullName, phone, isActive, status],
         );
       } catch {
         created = await client.query<{ id: string }>(
@@ -208,7 +224,7 @@ export async function POST(req: Request) {
       email,
       phone,
       role: roleSet[0] || "",
-      status: isActive ? "active" : "disabled",
+      status,
       tempPasswordSet: !!password,
     }).catch((error: unknown) => ({
       sent: false,

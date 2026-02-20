@@ -180,6 +180,20 @@ export async function sendStaffInviteWebhook(input: {
     return { sent: false, reason: "Invite webhook URL is missing." as const };
   }
 
+  let resolvedTenantName = s(input.tenantName);
+  const resolvedTenantId = s(input.tenantId);
+  if (!resolvedTenantName && resolvedTenantId) {
+    try {
+      const tenantQ = await pool.query<{ name: string }>(
+        `select name from app.organizations where id = $1 limit 1`,
+        [resolvedTenantId],
+      );
+      resolvedTenantName = s(tenantQ.rows[0]?.name);
+    } catch {
+      // Best effort only; webhook still sends with tenant id.
+    }
+  }
+
   let activationLink = "";
   if (s(input.userId)) {
     const client = await pool.connect();
@@ -220,9 +234,11 @@ export async function sendStaffInviteWebhook(input: {
       tempPasswordSet: Boolean(input.tempPasswordSet),
     },
     tenant: {
-      id: s(input.tenantId),
-      name: s(input.tenantName),
+      id: resolvedTenantId,
+      name: resolvedTenantName,
     },
+    tenant_id: resolvedTenantId,
+    tenant_name: resolvedTenantName,
     invitedBy: {
       name: s(input.invitedByName),
       email: s(input.invitedByEmail).toLowerCase(),

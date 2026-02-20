@@ -24,6 +24,7 @@ type PatchAgencyUserBody = {
   fullName?: string;
   email?: string;
   phone?: string;
+  status?: "active" | "invited" | "disabled";
   isActive?: boolean;
   globalRoles?: string[];
 };
@@ -48,6 +49,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
   const phone = s(body.phone);
+  const rawStatus = s(body.status).toLowerCase();
   const set: string[] = [];
   const vals: unknown[] = [targetUserId];
 
@@ -63,9 +65,17 @@ export async function PATCH(req: Request, ctx: Ctx) {
     vals.push(phone || null);
     set.push(`phone = nullif($${vals.length}::text, '')`);
   }
-  if (isAgencyManager && typeof body.isActive === "boolean") {
+  if (isAgencyManager && (rawStatus === "active" || rawStatus === "invited" || rawStatus === "disabled")) {
+    const isActive = rawStatus === "active";
+    vals.push(isActive);
+    set.push(`is_active = $${vals.length}`);
+    vals.push(rawStatus);
+    set.push(`account_status = $${vals.length}`);
+  } else if (isAgencyManager && typeof body.isActive === "boolean") {
     vals.push(body.isActive);
     set.push(`is_active = $${vals.length}`);
+    vals.push(body.isActive ? "active" : "disabled");
+    set.push(`account_status = $${vals.length}`);
   }
 
   const pool = getDbPool();

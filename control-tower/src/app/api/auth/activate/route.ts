@@ -48,6 +48,7 @@ export async function POST(req: Request) {
           password_updated_at = now(),
           failed_login_attempts = 0,
           locked_until = null,
+          account_status = 'active',
           is_active = true
         where id = $1
         returning id, email
