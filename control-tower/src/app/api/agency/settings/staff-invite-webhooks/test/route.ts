@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAgencyPermission } from "@/lib/authz";
-import { readInviteWebhookSettings } from "@/lib/staffInvite";
+import { getDefaultActivationBaseUrl, readInviteWebhookSettings } from "@/lib/staffInvite";
 
 export const runtime = "nodejs";
 
@@ -22,10 +22,6 @@ export async function POST(req: Request) {
     const payload = {
       event: "staff.invite.test",
       sentAt: new Date().toISOString(),
-      channels: {
-        email: settings.sendEmail,
-        sms: settings.sendSms,
-      },
       staff: {
         fullName: "Test Staff",
         full_name: "Test Staff",
@@ -39,7 +35,7 @@ export async function POST(req: Request) {
         name: "Demo Project",
       },
       activation: {
-        link: `${s(settings.activationBaseUrl) || "https://app.example.com/activate"}?token=test-token`,
+        link: `${s(settings.activationBaseUrl) || getDefaultActivationBaseUrl()}?token=test-token`,
         expiresInHours: 72,
       },
       fullName: "Test Staff",

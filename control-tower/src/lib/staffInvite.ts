@@ -7,39 +7,35 @@ function s(v: unknown) {
 }
 
 function getBaseAppUrl() {
-  return s(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001").replace(/\/+$/, "");
+  const direct = s(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL);
+  if (direct) return direct.replace(/\/+$/, "");
+  const vercelHost = s(process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL);
+  if (vercelHost) return `https://${vercelHost.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
+  return "http://localhost:3001";
+}
+
+export function getDefaultActivationBaseUrl() {
+  return `${getBaseAppUrl()}/activate`;
 }
 
 type InviteWebhookSettings = {
-  enabled: boolean;
   webhookUrl: string;
   activationBaseUrl: string;
-  sendEmail: boolean;
-  sendSms: boolean;
 };
 
 const DEFAULT_SETTINGS: InviteWebhookSettings = {
-  enabled: false,
   webhookUrl: "",
   activationBaseUrl: "",
-  sendEmail: true,
-  sendSms: false,
 };
 
 const SETTING_KEY = "staff_invite_webhooks_v1";
 
 export function normalizeInviteWebhookSettings(input: Record<string, unknown> | null | undefined): InviteWebhookSettings {
-  const enabledRaw = s(input?.enabled).toLowerCase();
-  const sendEmailRaw = s(input?.sendEmail).toLowerCase();
-  const sendSmsRaw = s(input?.sendSms).toLowerCase();
   const activationBaseUrl = s(input?.activationBaseUrl);
   const webhookUrl = s(input?.webhookUrl);
   return {
-    enabled: enabledRaw === "1" || enabledRaw === "true" || enabledRaw === "on",
     webhookUrl,
     activationBaseUrl,
-    sendEmail: sendEmailRaw ? !(sendEmailRaw === "0" || sendEmailRaw === "false" || sendEmailRaw === "off") : true,
-    sendSms: sendSmsRaw === "1" || sendSmsRaw === "true" || sendSmsRaw === "on",
   };
 }
 
@@ -178,8 +174,8 @@ export async function sendStaffInviteWebhook(input: {
 }) {
   const pool = getDbPool();
   const settings = await readInviteWebhookSettings(pool).catch(() => DEFAULT_SETTINGS);
-  if (!settings.enabled || !settings.webhookUrl) {
-    return { sent: false, reason: "Invite webhook disabled or missing URL." as const };
+  if (!settings.webhookUrl) {
+    return { sent: false, reason: "Invite webhook URL is missing." as const };
   }
 
   let activationLink = "";
@@ -198,7 +194,7 @@ export async function sendStaffInviteWebhook(input: {
         },
       });
       await client.query("COMMIT");
-      const base = s(settings.activationBaseUrl) || `${getBaseAppUrl()}/activate`;
+      const base = s(settings.activationBaseUrl) || getDefaultActivationBaseUrl();
       activationLink = `${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
     } catch (error: unknown) {
       await client.query("ROLLBACK");
@@ -212,10 +208,6 @@ export async function sendStaffInviteWebhook(input: {
     event: "staff.invited",
     sentAt: new Date().toISOString(),
     scope: input.scope,
-    channels: {
-      email: settings.sendEmail,
-      sms: settings.sendSms,
-    },
     staff: {
       fullName: s(input.fullName),
       full_name: s(input.fullName),

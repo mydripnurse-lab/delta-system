@@ -1,7 +1,11 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { FormEvent, Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import styles from "./activate.module.css";
+
+const BRAND_ICON_URL =
+  "https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -18,7 +22,8 @@ function ActivatePageInner() {
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
 
-  async function submit() {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     if (!token) {
       setError("Missing activation token.");
       return;
@@ -48,37 +53,63 @@ function ActivatePageInner() {
   }
 
   return (
-    <main className="agencyRoot">
-      <section className="agencyProjectsCard agencyMenuSection" style={{ maxWidth: 560, margin: "48px auto" }}>
-        <div className="agencyProjectsHeader">
+    <main className={styles.page}>
+      <section className={styles.grid}>
+        <aside className={styles.hero}>
           <div>
-            <h2>Activate Account</h2>
-            <p>Set your new password to complete the invite process.</p>
+            <div className={styles.brand}>
+              <img src={BRAND_ICON_URL} alt="Delta System" />
+              <p className={styles.brandTitle}>Delta System</p>
+            </div>
+            <h1 className={styles.headline}>Secure your account in one final step.</h1>
+            <p className={styles.subhead}>
+              Set a strong password to activate access to the Agency Control Center and continue with your invite.
+            </p>
+            <div className={styles.chips}>
+              <span className={styles.chip}>Activation Link</span>
+              <span className={styles.chip}>Secure Password</span>
+              <span className={styles.chip}>Immediate Access</span>
+            </div>
           </div>
-        </div>
-        <div className="agencySettingsGrid">
-          <label className="agencyField">
-            <span className="agencyFieldLabel">New password</span>
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 10 chars, uppercase, lowercase, number"
-            />
-          </label>
-          <label className="agencyField">
-            <span className="agencyFieldLabel">Confirm password</span>
-            <input className="input" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-          </label>
-        </div>
-        {error ? <div className="errorText">{error}</div> : null}
-        {ok ? <div className="okText">{ok}</div> : null}
-        <div className="agencyCreateActions">
-          <button className="btnPrimary" type="button" disabled={busy} onClick={() => void submit()}>
-            {busy ? "Saving..." : "Activate account"}
-          </button>
-        </div>
+        </aside>
+
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Activate Account</h2>
+          <p className={styles.cardCopy}>Create your new password and continue to login.</p>
+          <form className={styles.form} onSubmit={submit}>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>New password</span>
+              <input
+                className={styles.input}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 10 chars, uppercase, lowercase, number"
+                autoComplete="new-password"
+                required
+              />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Confirm password</span>
+              <input
+                className={styles.input}
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+              />
+            </label>
+            {error ? <div className={styles.error}>{error}</div> : null}
+            {ok ? <div className={styles.ok}>{ok}</div> : null}
+            <button className={styles.submit} type="submit" disabled={busy}>
+              {busy ? "Saving..." : "Activate account"}
+            </button>
+          </form>
+          <p className={styles.hint}>
+            For security, activation links expire automatically and can only be used once.
+          </p>
+        </section>
       </section>
     </main>
   );
@@ -86,14 +117,12 @@ function ActivatePageInner() {
 
 function ActivateFallback() {
   return (
-    <main className="agencyRoot">
-      <section className="agencyProjectsCard agencyMenuSection" style={{ maxWidth: 560, margin: "48px auto" }}>
-        <div className="agencyProjectsHeader">
-          <div>
-            <h2>Activate Account</h2>
-            <p>Loading activation form...</p>
-          </div>
-        </div>
+    <main className={styles.page}>
+      <section className={styles.grid}>
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Activate Account</h2>
+          <p className={styles.cardCopy}>Loading activation form...</p>
+        </section>
       </section>
     </main>
   );

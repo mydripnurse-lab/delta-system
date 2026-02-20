@@ -411,11 +411,8 @@ export default function AgencyHomePage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileErr, setProfileErr] = useState("");
   const [profileOk, setProfileOk] = useState("");
-  const [inviteWebhookEnabled, setInviteWebhookEnabled] = useState(false);
   const [inviteWebhookUrl, setInviteWebhookUrl] = useState("");
   const [inviteActivationBaseUrl, setInviteActivationBaseUrl] = useState("");
-  const [inviteSendEmail, setInviteSendEmail] = useState(true);
-  const [inviteSendSms, setInviteSendSms] = useState(false);
   const [inviteWebhookBusy, setInviteWebhookBusy] = useState(false);
   const [inviteWebhookTestBusy, setInviteWebhookTestBusy] = useState(false);
   const [inviteWebhookErr, setInviteWebhookErr] = useState("");
@@ -740,21 +737,15 @@ export default function AgencyHomePage() {
         | {
             ok?: boolean;
             payload?: {
-              enabled?: boolean;
               webhookUrl?: string;
               activationBaseUrl?: string;
-              sendEmail?: boolean;
-              sendSms?: boolean;
             };
             error?: string;
           }
         | null;
       if (!res.ok || !data?.ok || !data.payload) throw new Error(data?.error || `HTTP ${res.status}`);
-      setInviteWebhookEnabled(Boolean(data.payload.enabled));
       setInviteWebhookUrl(s(data.payload.webhookUrl));
       setInviteActivationBaseUrl(s(data.payload.activationBaseUrl));
-      setInviteSendEmail(data.payload.sendEmail !== false);
-      setInviteSendSms(data.payload.sendSms === true);
     } catch (error: unknown) {
       setInviteWebhookErr(error instanceof Error ? error.message : "Failed to load invite webhooks.");
     }
@@ -769,11 +760,8 @@ export default function AgencyHomePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          enabled: inviteWebhookEnabled,
           webhookUrl: s(inviteWebhookUrl),
           activationBaseUrl: s(inviteActivationBaseUrl),
-          sendEmail: inviteSendEmail,
-          sendSms: inviteSendSms,
         }),
       });
       const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
@@ -1030,7 +1018,7 @@ export default function AgencyHomePage() {
   }, [activeMenu, settingsTenantId]);
 
   useEffect(() => {
-    if (activeMenu !== "settings") return;
+    if (activeMenu !== "webhooks") return;
     void loadInviteWebhookSettings();
   }, [activeMenu]);
 
@@ -2116,6 +2104,7 @@ export default function AgencyHomePage() {
           <button className={`agencyNavItem ${activeMenu === "staff" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("staff")}>Staff</button>
           <button className={`agencyNavItem ${activeMenu === "integrations" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("integrations")}>Integrations</button>
           <button className={`agencyNavItem ${activeMenu === "settings" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("settings")}>App Settings</button>
+          <button className={`agencyNavItem ${activeMenu === "webhooks" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("webhooks")}>Webhooks</button>
           <button className={`agencyNavItem ${activeMenu === "billing" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("billing")}>Billing</button>
           <button className={`agencyNavItem ${activeMenu === "audit" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("audit")}>Audit Logs</button>
         </nav>
@@ -3084,51 +3073,6 @@ export default function AgencyHomePage() {
             </div>
             {settingsErr ? <div className="errorText">{settingsErr}</div> : null}
             {settingsOk ? <div className="okText">{settingsOk}</div> : null}
-            <div className="agencyDangerBox agencyStaffCreateBox">
-              <h4>Staff Invite Webhooks (GHL)</h4>
-              <p className="mini">Envía eventos de invitación por webhook para automatizar SMS/Email en GHL.</p>
-              <div className="agencySettingsGrid">
-                <label className="agencyField">
-                  <span className="agencyFieldLabel">Enable webhook automation</span>
-                  <select className="input" value={inviteWebhookEnabled ? "on" : "off"} onChange={(e) => setInviteWebhookEnabled(e.target.value === "on")}>
-                    <option value="on">on</option>
-                    <option value="off">off</option>
-                  </select>
-                </label>
-                <label className="agencyField">
-                  <span className="agencyFieldLabel">Webhook URL</span>
-                  <input className="input" value={inviteWebhookUrl} onChange={(e) => setInviteWebhookUrl(e.target.value)} placeholder="https://hooks..." />
-                </label>
-                <label className="agencyField">
-                  <span className="agencyFieldLabel">Activation Base URL</span>
-                  <input className="input" value={inviteActivationBaseUrl} onChange={(e) => setInviteActivationBaseUrl(e.target.value)} placeholder="https://your-app.com/activate" />
-                </label>
-                <label className="agencyField">
-                  <span className="agencyFieldLabel">Send Email</span>
-                  <select className="input" value={inviteSendEmail ? "yes" : "no"} onChange={(e) => setInviteSendEmail(e.target.value === "yes")}>
-                    <option value="yes">yes</option>
-                    <option value="no">no</option>
-                  </select>
-                </label>
-                <label className="agencyField">
-                  <span className="agencyFieldLabel">Send SMS</span>
-                  <select className="input" value={inviteSendSms ? "yes" : "no"} onChange={(e) => setInviteSendSms(e.target.value === "yes")}>
-                    <option value="yes">yes</option>
-                    <option value="no">no</option>
-                  </select>
-                </label>
-              </div>
-              {inviteWebhookErr ? <div className="errorText">{inviteWebhookErr}</div> : null}
-              {inviteWebhookOk ? <div className="okText">{inviteWebhookOk}</div> : null}
-              <div className="agencyCreateActions agencyCreateActionsSpaced">
-                <button type="button" className="btnPrimary" disabled={inviteWebhookBusy} onClick={() => void saveInviteWebhookSettings()}>
-                  {inviteWebhookBusy ? "Saving..." : "Save webhook settings"}
-                </button>
-                <button type="button" className="btnGhost" disabled={inviteWebhookTestBusy} onClick={() => void sendInviteWebhookTest()}>
-                  {inviteWebhookTestBusy ? "Sending..." : "Send test webhook"}
-                </button>
-              </div>
-            </div>
             <div className="agencySettingsGrid">
               <label className="agencyField">
                 <span className="agencyFieldLabel">Project name</span>
@@ -3190,6 +3134,47 @@ export default function AgencyHomePage() {
               >
                 {settingsBusy ? "Saving..." : "Save settings"}
               </button>
+            </div>
+          </section>
+        ) : null}
+
+        {activeMenu === "webhooks" ? (
+          <section className="agencyProjectsCard agencyMenuSection">
+            <div className="agencyProjectsHeader">
+              <div>
+                <h2>Webhooks</h2>
+                <p>Automatizaciones agency-level para invitaciones de staff (SMS/Email via GHL).</p>
+              </div>
+            </div>
+            <div className="agencyDangerBox agencyStaffCreateBox">
+              <h4>Staff Invite Webhooks (GHL)</h4>
+              <p className="mini">Configura el webhook de Staff Invite y envía un test para validar tu workflow.</p>
+              <div className="agencySettingsGrid">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Webhook URL</span>
+                  <input className="input" value={inviteWebhookUrl} onChange={(e) => setInviteWebhookUrl(e.target.value)} placeholder="https://hooks..." />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Activation Base URL (optional)</span>
+                  <input
+                    className="input"
+                    value={inviteActivationBaseUrl}
+                    onChange={(e) => setInviteActivationBaseUrl(e.target.value)}
+                    placeholder="Auto: APP_URL/activate"
+                  />
+                </label>
+              </div>
+              <p className="mini">Si dejas Activation Base URL vacío, el sistema usa automáticamente `APP_URL/activate`.</p>
+              {inviteWebhookErr ? <div className="errorText">{inviteWebhookErr}</div> : null}
+              {inviteWebhookOk ? <div className="okText">{inviteWebhookOk}</div> : null}
+              <div className="agencyCreateActions agencyCreateActionsSpaced">
+                <button type="button" className="btnPrimary" disabled={inviteWebhookBusy} onClick={() => void saveInviteWebhookSettings()}>
+                  {inviteWebhookBusy ? "Saving..." : "Save webhook settings"}
+                </button>
+                <button type="button" className="btnGhost" disabled={inviteWebhookTestBusy} onClick={() => void sendInviteWebhookTest()}>
+                  {inviteWebhookTestBusy ? "Sending..." : "Send test webhook"}
+                </button>
+              </div>
             </div>
           </section>
         ) : null}
