@@ -356,9 +356,9 @@ async function geocodeLocation(locationText: string) {
   url.searchParams.set("q", locationText);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("limit", "1");
-  const json = (await fetchJsonSafe(url.toString(), {
+  const json = ((await fetchJsonSafe(url.toString(), {
     headers: { "user-agent": "ProspectingBot/1.0 (control-tower)" },
-  })) as unknown[] | null;
+  })) as unknown) as unknown[] | null;
   const first = Array.isArray(json) ? (json[0] as JsonMap | undefined) : undefined;
   const lat = Number(first?.lat);
   const lon = Number(first?.lon);
