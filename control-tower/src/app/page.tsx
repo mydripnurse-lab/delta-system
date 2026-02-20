@@ -93,6 +93,31 @@ type TenantIntegration = {
   display_name?: string;
 };
 
+type AgencyIntegrationTenantUse = {
+  tenantId: string;
+  tenantName: string;
+  integrationId: string;
+};
+
+type AgencyIntegrationRow = {
+  groupKey: string;
+  name: string;
+  provider: string;
+  integrationKey: string;
+  status: string;
+  authType: string;
+  externalAccountId: string;
+  externalPropertyId: string;
+  lastSyncAt: string | null;
+  lastError: string | null;
+  metadata: Record<string, unknown>;
+  config: Record<string, unknown>;
+  scopes: string[];
+  tenants: AgencyIntegrationTenantUse[];
+  sourceTenantId: string;
+  sourceIntegrationId: string;
+};
+
 type TenantDetailResponse = {
   ok: boolean;
   tenant?: TenantDetail;
@@ -372,12 +397,16 @@ export default function AgencyHomePage() {
   const [agencyNewStaffPhone, setAgencyNewStaffPhone] = useState("");
   const [agencyNewStaffRole, setAgencyNewStaffRole] = useState<TenantStaffRow["role"]>("viewer");
   const [agencyNewStaffStatus, setAgencyNewStaffStatus] = useState<TenantStaffRow["status"]>("invited");
-  const [integrationsTenantId, setIntegrationsTenantId] = useState("");
-  const [integrationsRows, setIntegrationsRows] = useState<TenantIntegration[]>([]);
+  const [integrationsTenantId, setIntegrationsTenantId] = useState("all");
+  const [integrationsRows, setIntegrationsRows] = useState<AgencyIntegrationRow[]>([]);
   const [integrationsLoading, setIntegrationsLoading] = useState(false);
   const [integrationsBusyId, setIntegrationsBusyId] = useState("");
   const [integrationsErr, setIntegrationsErr] = useState("");
   const [integrationsOk, setIntegrationsOk] = useState("");
+  const [showIntegrationEditModal, setShowIntegrationEditModal] = useState(false);
+  const [integrationEditRow, setIntegrationEditRow] = useState<AgencyIntegrationRow | null>(null);
+  const [integrationEditTenantIds, setIntegrationEditTenantIds] = useState<string[]>([]);
+  const [integrationShareMode, setIntegrationShareMode] = useState<"copy" | "reference">("copy");
   const [settingsTenantId, setSettingsTenantId] = useState("");
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
@@ -555,6 +584,17 @@ export default function AgencyHomePage() {
   function openAgencyStaffEdit(row: AgencyStaffRow) {
     setAgencyStaffEditRow({ ...row });
     setShowAgencyStaffEditModal(true);
+  }
+
+  function openIntegrationEdit(row: AgencyIntegrationRow) {
+    setIntegrationEditRow({ ...row, tenants: [...row.tenants], scopes: [...row.scopes] });
+    setIntegrationEditTenantIds(row.tenants.map((t) => t.tenantId));
+    setIntegrationShareMode("copy");
+    setShowIntegrationEditModal(true);
+  }
+
+  function integrationGroupKey(row: TenantIntegration) {
+    return `${s(row.provider)}::${s(row.integration_key || row.integrationKey)}`;
   }
 
   async function loadAuthMe() {
@@ -1032,8 +1072,8 @@ export default function AgencyHomePage() {
   }, [agencyNewStaffTenantId, tenantRows]);
 
   useEffect(() => {
-    if (s(integrationsTenantId) || tenantRows.length === 0) return;
-    setIntegrationsTenantId(tenantRows[0].id);
+    if (s(integrationsTenantId)) return;
+    setIntegrationsTenantId("all");
   }, [integrationsTenantId, tenantRows]);
 
   useEffect(() => {
@@ -1047,10 +1087,10 @@ export default function AgencyHomePage() {
   }, [auditTenantId, tenantRows]);
 
   useEffect(() => {
-    if (activeMenu === "integrations" && s(integrationsTenantId)) {
-      void loadIntegrationsForTenant(integrationsTenantId);
+    if (activeMenu === "integrations") {
+      void loadAgencyIntegrations();
     }
-  }, [activeMenu, integrationsTenantId]);
+  }, [activeMenu]);
 
   useEffect(() => {
     if (activeMenu === "settings" && s(settingsTenantId)) {
@@ -1143,6 +1183,12 @@ export default function AgencyHomePage() {
         .includes(q),
     );
   }, [agencyUsersRows, agencyUsersSearch]);
+
+  const filteredIntegrations = useMemo(() => {
+    const filterTenantId = s(integrationsTenantId);
+    if (!filterTenantId || filterTenantId === "all") return integrationsRows;
+    return integrationsRows.filter((row) => row.tenants.some((t) => t.tenantId === filterTenantId));
+  }, [integrationsRows, integrationsTenantId]);
 
   const agencyUsersTotalPages = Math.max(1, Math.ceil(filteredAgencyUsers.length / TABLE_PAGE_SIZE));
   const agencyUsersCurrentPage = Math.min(agencyUsersPage, agencyUsersTotalPages);
@@ -1773,20 +1819,93 @@ export default function AgencyHomePage() {
     }
   }
 
-  async function loadIntegrationsForTenant(tenantId: string) {
-    const id = s(tenantId);
-    if (!id) return;
+  async function loadAgencyIntegrations() {
     setIntegrationsLoading(true);
     setIntegrationsErr("");
     setIntegrationsOk("");
     try {
-      const res = await fetch(`/api/tenants/${id}/integrations`, { cache: "no-store" });
-      const data = (await safeJson(res)) as { ok?: boolean; rows?: TenantIntegration[]; error?: string } | null;
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
+      const sourceTenants = tenantRows.length > 0 ? tenantRows : await (async () => {
+        const res = await fetch("/api/tenants", { cache: "no-store" });
+        const data = (await safeJson(res)) as TenantListResponse | null;
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
+        }
+        return Array.isArray(data.rows) ? data.rows : [];
+      })();
+      if (tenantRows.length === 0) {
+        setTenantRows(sourceTenants);
       }
-      const rows = Array.isArray(data.rows) ? data.rows.map(normalizeIntegrationRow) : [];
+
+      const settled = await Promise.allSettled(
+        sourceTenants.map(async (tenant) => {
+          const res = await fetch(`/api/tenants/${tenant.id}/integrations`, { cache: "no-store" });
+          const data = (await safeJson(res)) as { ok?: boolean; rows?: TenantIntegration[]; error?: string } | null;
+          if (!res.ok || !data?.ok) {
+            throw new Error(data?.error || `Failed to load integrations for ${tenant.name}`);
+          }
+          const rows = Array.isArray(data.rows) ? data.rows.map(normalizeIntegrationRow) : [];
+          return rows.map((row) => ({
+            ...row,
+            tenantId: tenant.id,
+            tenantName: tenant.name,
+          }));
+        }),
+      );
+
+      const flat = settled
+        .filter((r): r is PromiseFulfilledResult<Array<TenantIntegration & { tenantId: string; tenantName: string }>> => r.status === "fulfilled")
+        .flatMap((r) => r.value);
+      const rejected = settled.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+
+      const grouped = new Map<string, AgencyIntegrationRow>();
+      for (const row of flat) {
+        const key = integrationGroupKey(row);
+        const candidateSync = s(row.last_sync_at || row.lastSyncAt) || null;
+        const existing = grouped.get(key);
+        const tenantUse: AgencyIntegrationTenantUse = {
+          tenantId: row.tenantId,
+          tenantName: row.tenantName,
+          integrationId: s(row.id),
+        };
+        if (!existing) {
+          grouped.set(key, {
+            groupKey: key,
+            name: s(row.display_name) || `${s(row.provider)}:${s(row.integration_key || row.integrationKey)}`,
+            provider: s(row.provider),
+            integrationKey: s(row.integration_key || row.integrationKey),
+            status: s(row.status) || "connected",
+            authType: s(row.auth_type || row.authType) || "api_key",
+            externalAccountId: s(row.external_account_id || row.externalAccountId),
+            externalPropertyId: s(row.external_property_id || row.externalPropertyId),
+            lastSyncAt: candidateSync,
+            lastError: s(row.last_error || row.lastError) || null,
+            metadata: row.metadata && typeof row.metadata === "object" ? (row.metadata as Record<string, unknown>) : {},
+            config: row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {},
+            scopes: Array.isArray(row.scopes) ? row.scopes : [],
+            tenants: [tenantUse],
+            sourceTenantId: row.tenantId,
+            sourceIntegrationId: s(row.id),
+          });
+          continue;
+        }
+        if (!existing.tenants.some((t) => t.tenantId === row.tenantId)) {
+          existing.tenants.push(tenantUse);
+        }
+        const prevTs = existing.lastSyncAt ? new Date(existing.lastSyncAt).getTime() : 0;
+        const nextTs = candidateSync ? new Date(candidateSync).getTime() : 0;
+        if (nextTs > prevTs) {
+          existing.lastSyncAt = candidateSync;
+        }
+        if (!existing.lastError && s(row.last_error || row.lastError)) {
+          existing.lastError = s(row.last_error || row.lastError);
+        }
+      }
+
+      const rows = Array.from(grouped.values()).sort((a, b) => a.name.localeCompare(b.name));
       setIntegrationsRows(rows);
+      if (rejected.length > 0) {
+        setIntegrationsErr(`${rejected.length} tenant(s) failed loading integrations. Showing partial results.`);
+      }
     } catch (error: unknown) {
       setIntegrationsErr(error instanceof Error ? error.message : "Failed to load integrations");
       setIntegrationsRows([]);
@@ -1795,35 +1914,95 @@ export default function AgencyHomePage() {
     }
   }
 
-  async function saveIntegrationRowForTenant(tenantId: string, row: TenantIntegration) {
-    const id = s(tenantId);
-    if (!id || !s(row.id)) return;
-    setIntegrationsBusyId(s(row.id));
+  async function saveIntegrationModalChanges() {
+    if (!integrationEditRow) return;
+    const selectedTenantIds = integrationEditTenantIds.filter(Boolean);
+    if (selectedTenantIds.length === 0) {
+      setIntegrationsErr("Select at least one tenant.");
+      return;
+    }
+    setIntegrationsBusyId(s(integrationEditRow.groupKey));
     setIntegrationsErr("");
     setIntegrationsOk("");
     try {
-      const res = await fetch(`/api/tenants/${id}/integrations`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: s(row.id),
-          integrationKey: s(row.integration_key),
-          status: s(row.status),
-          authType: s(row.auth_type),
-          externalAccountId: s(row.external_account_id),
-          externalPropertyId: s(row.external_property_id),
-          lastError: s(row.last_error),
-          metadata: {
-            ...((row.metadata && typeof row.metadata === "object") ? row.metadata : {}),
-            displayName: s(row.display_name),
-          },
-        }),
-      });
-      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
+      const selectedSet = new Set(selectedTenantIds);
+      const currentTenantMap = new Map(integrationEditRow.tenants.map((t) => [t.tenantId, t]));
+      const isShareableOAuth =
+        s(integrationEditRow.authType).toLowerCase() === "oauth" &&
+        ["google_search_console", "google_ads", "google_analytics"].includes(s(integrationEditRow.provider));
+      if (isShareableOAuth && !selectedSet.has(s(integrationEditRow.sourceTenantId))) {
+        throw new Error("For shared OAuth integrations, source tenant must remain selected.");
       }
+
+      for (const tenantId of selectedTenantIds) {
+        if (isShareableOAuth && tenantId !== s(integrationEditRow.sourceTenantId)) {
+          const shareRes = await fetch(`/api/tenants/${tenantId}/integrations/share-oauth`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sourceTenantId: s(integrationEditRow.sourceTenantId),
+              provider: s(integrationEditRow.provider),
+              sourceIntegrationKey: s(integrationEditRow.integrationKey) || "default",
+              targetIntegrationKey: s(integrationEditRow.integrationKey) || "default",
+              mode: integrationShareMode,
+            }),
+          });
+          const shareData = (await safeJson(shareRes)) as { ok?: boolean; error?: string } | null;
+          if (!shareRes.ok || !shareData?.ok) {
+            throw new Error(shareData?.error || `HTTP ${shareRes.status}`);
+          }
+        }
+
+        const existing = currentTenantMap.get(tenantId);
+        const res = await fetch(`/api/tenants/${tenantId}/integrations`, {
+          method: existing ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: existing ? s(existing.integrationId) : undefined,
+            provider: s(integrationEditRow.provider),
+            integrationKey: s(integrationEditRow.integrationKey),
+            status: s(integrationEditRow.status),
+            authType: s(integrationEditRow.authType),
+            externalAccountId: s(integrationEditRow.externalAccountId),
+            externalPropertyId: s(integrationEditRow.externalPropertyId),
+            scopes: integrationEditRow.scopes,
+            config: integrationEditRow.config,
+            lastError: s(integrationEditRow.lastError),
+            metadata: {
+              ...integrationEditRow.metadata,
+              displayName: s(integrationEditRow.name),
+            },
+          }),
+        });
+        const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
+        }
+      }
+
+      for (const existing of integrationEditRow.tenants) {
+        if (selectedSet.has(existing.tenantId)) continue;
+        const res = await fetch(`/api/tenants/${existing.tenantId}/integrations`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: s(existing.integrationId),
+            status: "disconnected",
+            metadata: {
+              ...integrationEditRow.metadata,
+              displayName: s(integrationEditRow.name),
+            },
+          }),
+        });
+        const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
+        }
+      }
+
       setIntegrationsOk("Integration updated.");
+      setShowIntegrationEditModal(false);
+      await loadAgencyIntegrations();
     } catch (error: unknown) {
       setIntegrationsErr(error instanceof Error ? error.message : "Failed to update integration");
     } finally {
@@ -2857,18 +3036,19 @@ export default function AgencyHomePage() {
             <div className="agencyProjectsHeader">
               <div>
                 <h2>Integrations</h2>
-                <p>Gestiona conexiones con nombre identificable, estado y metadata técnica completa.</p>
+                <p>Agency-wide integrations with tenant usage. Edit full configuration inside modal.</p>
               </div>
               <div className="agencyIntegrationsToolbar">
                 <select className="input agencyTenantSelect" value={integrationsTenantId} onChange={(e) => setIntegrationsTenantId(e.target.value)}>
+                  <option value="all">All tenants</option>
                   {tenantRows.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
                   ))}
                 </select>
-                <button type="button" className="btnGhost" disabled={integrationsLoading} onClick={() => void loadIntegrationsForTenant(integrationsTenantId)}>
+                <button type="button" className="btnGhost" disabled={integrationsLoading} onClick={() => void loadAgencyIntegrations()}>
                   {integrationsLoading ? "Loading..." : "Refresh"}
                 </button>
-                <span className="agencyPill">Rows: {integrationsRows.length}</span>
+                <span className="agencyPill">Rows: {filteredIntegrations.length}</span>
               </div>
             </div>
             {integrationsErr ? <div className="errorText">{integrationsErr}</div> : null}
@@ -2878,12 +3058,7 @@ export default function AgencyHomePage() {
                 <thead>
                   <tr>
                     <th>Name</th>
-                    <th>Provider</th>
-                    <th>Key</th>
-                    <th>Status</th>
-                    <th>Auth</th>
-                    <th>Account</th>
-                    <th>Property</th>
+                    <th>Tenants</th>
                     <th>Last Sync</th>
                     <th>Last Error</th>
                     <th className="agencyStickyCol">Actions</th>
@@ -2891,85 +3066,36 @@ export default function AgencyHomePage() {
                 </thead>
                 <tbody>
                   {integrationsLoading ? (
-                    <tr><td colSpan={10}>Loading integrations...</td></tr>
-                  ) : integrationsRows.length === 0 ? (
-                    <tr><td colSpan={10}>No integrations found.</td></tr>
+                    <tr><td colSpan={5}>Loading integrations...</td></tr>
+                  ) : filteredIntegrations.length === 0 ? (
+                    <tr><td colSpan={5}>No integrations found.</td></tr>
                   ) : (
-                    integrationsRows.map((row) => (
-                      <tr key={row.id}>
+                    filteredIntegrations.map((row) => (
+                      <tr key={row.groupKey}>
                         <td>
-                          <input
-                            className="input"
-                            value={s(row.display_name)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, display_name: value } : it)));
-                            }}
-                          />
-                        </td>
-                        <td>{s(row.provider)}</td>
-                        <td>{s(row.integration_key)}</td>
-                        <td>
-                          <select
-                            className="input"
-                            value={s(row.status) || "connected"}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, status: value } : it)));
-                            }}
-                          >
-                            <option value="connected">connected</option>
-                            <option value="disconnected">disconnected</option>
-                            <option value="error">error</option>
-                          </select>
+                          <div className="agencyIntegrationTitle">
+                            <strong>{s(row.name)}</strong>
+                            <span>{s(row.provider)}:{s(row.integrationKey)}</span>
+                          </div>
                         </td>
                         <td>
-                          <input
-                            className="input"
-                            value={s(row.auth_type)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, auth_type: value } : it)));
-                            }}
-                          />
+                          <div className="agencyIntegrationTenants">
+                            {row.tenants.slice(0, 3).map((tenantUse) => (
+                              <span key={`${row.groupKey}-${tenantUse.tenantId}`} className="agencyPill">{tenantUse.tenantName}</span>
+                            ))}
+                            {row.tenants.length > 3 ? <span className="agencyPill">+{row.tenants.length - 3} more</span> : null}
+                          </div>
                         </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={s(row.external_account_id)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, external_account_id: value } : it)));
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={s(row.external_property_id)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setIntegrationsRows((prev) => prev.map((it) => (it.id === row.id ? { ...it, external_property_id: value } : it)));
-                            }}
-                          />
-                        </td>
-                        <td>{s(row.last_sync_at) ? new Date(s(row.last_sync_at)).toLocaleString() : "—"}</td>
-                        <td title={s(row.last_error)}>{s(row.last_error) || "—"}</td>
+                        <td>{s(row.lastSyncAt) ? new Date(s(row.lastSyncAt)).toLocaleString() : "—"}</td>
+                        <td title={s(row.lastError)}>{s(row.lastError) || "—"}</td>
                         <td className="agencyStickyCol">
                           <button
                             type="button"
                             className="btnGhost"
-                            disabled={integrationsBusyId === row.id}
-                            onClick={() =>
-                              openConfirm({
-                                title: "Save integration changes?",
-                                description: `Apply updates for ${s(row.provider)}:${s(row.integration_key)}.`,
-                                confirmLabel: "Save",
-                                onConfirm: () => saveIntegrationRowForTenant(integrationsTenantId, row),
-                              })
-                            }
+                            disabled={integrationsBusyId === row.groupKey}
+                            onClick={() => openIntegrationEdit(row)}
                           >
-                            {integrationsBusyId === row.id ? "Saving..." : "Save"}
+                            Edit
                           </button>
                         </td>
                       </tr>
@@ -3534,6 +3660,159 @@ export default function AgencyHomePage() {
                     }}
                   >
                     {agencyStaffBusy ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showIntegrationEditModal && integrationEditRow ? (
+        <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={() => { if (!integrationsBusyId) setShowIntegrationEditModal(false); }}>
+          <div className="agencyModalCard agencyModalCardManage" onClick={(e) => e.stopPropagation()}>
+            <div className="agencyModalHeader">
+              <div>
+                <h3>Edit Integration</h3>
+                <p>Configure technical fields and choose tenant sharing scope.</p>
+              </div>
+            </div>
+            <div className="agencyCreateFormModal">
+              <div className="agencyWizardGrid agencyWizardGridTwo">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Display name</span>
+                  <input
+                    className="input"
+                    value={s(integrationEditRow.name)}
+                    onChange={(e) => setIntegrationEditRow((prev) => (prev ? { ...prev, name: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Status</span>
+                  <select
+                    className="input"
+                    value={s(integrationEditRow.status) || "connected"}
+                    onChange={(e) => setIntegrationEditRow((prev) => (prev ? { ...prev, status: e.target.value } : prev))}
+                  >
+                    <option value="connected">connected</option>
+                    <option value="disconnected">disconnected</option>
+                    <option value="error">error</option>
+                  </select>
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Provider</span>
+                  <input className="input" value={s(integrationEditRow.provider)} disabled />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Integration key</span>
+                  <input className="input" value={s(integrationEditRow.integrationKey)} disabled />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Auth type</span>
+                  <input
+                    className="input"
+                    value={s(integrationEditRow.authType)}
+                    onChange={(e) => setIntegrationEditRow((prev) => (prev ? { ...prev, authType: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">External account</span>
+                  <input
+                    className="input"
+                    value={s(integrationEditRow.externalAccountId)}
+                    onChange={(e) => setIntegrationEditRow((prev) => (prev ? { ...prev, externalAccountId: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">External property</span>
+                  <input
+                    className="input"
+                    value={s(integrationEditRow.externalPropertyId)}
+                    onChange={(e) => setIntegrationEditRow((prev) => (prev ? { ...prev, externalPropertyId: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Last error</span>
+                  <input
+                    className="input"
+                    value={s(integrationEditRow.lastError)}
+                    onChange={(e) => setIntegrationEditRow((prev) => (prev ? { ...prev, lastError: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Scopes (comma-separated)</span>
+                  <input
+                    className="input"
+                    value={integrationEditRow.scopes.join(", ")}
+                    onChange={(e) =>
+                      setIntegrationEditRow((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              scopes: e.target.value.split(",").map((x) => s(x)).filter(Boolean),
+                            }
+                          : prev,
+                      )
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="agencyIntegrationTenantPicker">
+                <div className="agencyFieldLabel">Tenant usage</div>
+                <div className="agencyIntegrationTenantList">
+                  {tenantRows.map((tenant) => {
+                    const checked = integrationEditTenantIds.includes(tenant.id);
+                    return (
+                      <label key={`integration-tenant-${tenant.id}`} className="agencyIntegrationTenantItem">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            setIntegrationEditTenantIds((prev) =>
+                              e.target.checked
+                                ? Array.from(new Set([...prev, tenant.id]))
+                                : prev.filter((id) => id !== tenant.id),
+                            )
+                          }
+                        />
+                        <span>{tenant.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {s(integrationEditRow.authType).toLowerCase() === "oauth" &&
+                ["google_search_console", "google_ads", "google_analytics"].includes(s(integrationEditRow.provider)) ? (
+                  <label className="agencyField">
+                    <span className="agencyFieldLabel">OAuth share mode</span>
+                    <select className="input" value={integrationShareMode} onChange={(e) => setIntegrationShareMode(e.target.value as "copy" | "reference")}>
+                      <option value="copy">copy tokens</option>
+                      <option value="reference">reference source</option>
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+
+              {integrationsErr ? <div className="errorText">{integrationsErr}</div> : null}
+              {integrationsOk ? <div className="okText">{integrationsOk}</div> : null}
+              <div className="agencyModalActionBar">
+                <div className="agencyModalActionMeta">Changes can be applied and shared across selected tenants.</div>
+                <div className="agencyModalActionRight">
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnSecondary"
+                    disabled={!!integrationsBusyId}
+                    onClick={() => setShowIntegrationEditModal(false)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnPrimary"
+                    disabled={!!integrationsBusyId}
+                    onClick={() => void saveIntegrationModalChanges()}
+                  >
+                    {integrationsBusyId ? "Saving..." : "Save changes"}
                   </button>
                 </div>
               </div>
