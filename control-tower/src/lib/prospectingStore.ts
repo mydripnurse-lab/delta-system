@@ -37,6 +37,14 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function toIsoOrEmpty(v: unknown) {
+  const raw = s(v);
+  if (!raw) return "";
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return "";
+  return new Date(ms).toISOString();
+}
+
 function normalizeLead(input: any): ProspectLead {
   return {
     id: s(input?.id),
@@ -52,16 +60,16 @@ function normalizeLead(input: any): ProspectLead {
     source: s(input?.source),
     status: (s(input?.status) as ProspectLeadStatus) || "new",
     notes: s(input?.notes),
-    createdAt: s(input?.createdAt),
-    updatedAt: s(input?.updatedAt),
-    webhookSentAt: s(input?.webhookSentAt) || "",
+    createdAt: toIsoOrEmpty(input?.createdAt),
+    updatedAt: toIsoOrEmpty(input?.updatedAt),
+    webhookSentAt: toIsoOrEmpty(input?.webhookSentAt),
     webhookAttempts: Number(input?.webhookAttempts || 0) || 0,
     webhookLastError: s(input?.webhookLastError) || "",
     reviewStatus: (s(input?.reviewStatus) as "pending" | "approved" | "rejected") || "pending",
-    reviewedAt: s(input?.reviewedAt) || "",
+    reviewedAt: toIsoOrEmpty(input?.reviewedAt),
     reviewedBy: s(input?.reviewedBy) || "",
-    notificationCreatedAt: s(input?.notificationCreatedAt) || "",
-    notificationSeenAt: s(input?.notificationSeenAt) || "",
+    notificationCreatedAt: toIsoOrEmpty(input?.notificationCreatedAt),
+    notificationSeenAt: toIsoOrEmpty(input?.notificationSeenAt),
   };
 }
 

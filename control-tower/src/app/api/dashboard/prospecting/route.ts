@@ -20,6 +20,10 @@ function n(v: unknown) {
   return Number.isFinite(x) ? x : 0;
 }
 
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
 function norm(v: unknown) {
   return s(v)
     .normalize("NFD")
@@ -47,6 +51,14 @@ async function fetchJson(url: string) {
     throw new Error(s(json?.error) || `HTTP ${res.status}`);
   }
   return json || {};
+}
+
+async function fetchJsonSafe(url: string) {
+  try {
+    return await fetchJson(url);
+  } catch {
+    return null;
+  }
 }
 
 function pickCustom(customMap: JsonMap, keys: string[]) {
@@ -86,6 +98,88 @@ function rankGeo(rows: GeoRow[], lostBookings: number, impressions: number) {
       };
     })
     .sort((a, b) => b.priorityScore - a.priorityScore || b.opportunities - a.opportunities);
+}
+
+function deriveGeoFromLeads(leads: ProspectLead[], field: "state" | "county" | "city") {
+  const grouped = new Map<string, { opportunities: number; value: number; contacts: Set<string> }>();
+  for (const lead of leads) {
+    const name = s(lead[field]);
+    if (!name) continue;
+    const key = norm(name);
+    const contactKey = s(lead.email) || s(lead.phone) || s(lead.businessName) || lead.id;
+    const row = grouped.get(key) || { opportunities: 0, value: 0, contacts: new Set<string>() };
+    row.opportunities += 1;
+    row.value += 120;
+    if (contactKey) row.contacts.add(norm(contactKey));
+    grouped.set(key, row);
+  }
+  return Array.from(grouped.entries()).map(([key, row]) => ({
+    name: key
+      .split(" ")
+      .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ""))
+      .join(" "),
+    opportunities: row.opportunities,
+    value: row.value,
+    uniqueContacts: row.contacts.size,
+  }));
+}
+
+function buildGeoPriorityMap(geoQueue: {
+  states: Array<{ name: string; priorityScore: number }>;
+  counties: Array<{ name: string; priorityScore: number }>;
+  cities: Array<{ name: string; priorityScore: number }>;
+}) {
+  const stateMap = new Map<string, number>();
+  const countyMap = new Map<string, number>();
+  const cityMap = new Map<string, number>();
+  for (const row of geoQueue.states || []) stateMap.set(norm(row.name), n(row.priorityScore));
+  for (const row of geoQueue.counties || []) countyMap.set(norm(row.name), n(row.priorityScore));
+  for (const row of geoQueue.cities || []) cityMap.set(norm(row.name), n(row.priorityScore));
+  return { stateMap, countyMap, cityMap };
+}
+
+function computeLeadConvictionScore(args: {
+  lead: ProspectLead;
+  maxPriority: number;
+  statePriority: number;
+  countyPriority: number;
+  cityPriority: number;
+  businessCategory: string;
+}) {
+  const lead = args.lead;
+  const geoPriority = Math.max(args.statePriority, args.countyPriority, args.cityPriority);
+  const geoNorm = args.maxPriority > 0 ? clamp(geoPriority / args.maxPriority, 0, 1) : 0;
+  const hasEmail = Boolean(s(lead.email));
+  const hasPhone = Boolean(s(lead.phone));
+  const hasWebsite = Boolean(s(lead.website));
+  const validated = s(lead.status).toLowerCase() === "validated";
+  const sameCategory =
+    args.businessCategory &&
+    norm(s(lead.category)).includes(norm(args.businessCategory));
+
+  let score = 30;
+  score += Math.round(geoNorm * 35);
+  if (hasEmail) score += 12;
+  if (hasPhone) score += 10;
+  if (hasWebsite) score += 6;
+  if (validated) score += 5;
+  if (sameCategory) score += 2;
+
+  const finalScore = clamp(score, 0, 100);
+  const tier = finalScore >= 80 ? "hot" : finalScore >= 60 ? "warm" : "cold";
+  const reasons: string[] = [];
+  reasons.push(`Geo priority ${Math.round(geoNorm * 100)}%`);
+  if (hasEmail) reasons.push("Has email");
+  if (hasPhone) reasons.push("Has phone");
+  if (hasWebsite) reasons.push("Has website");
+  if (validated) reasons.push("Validated lead");
+  if (sameCategory) reasons.push("Same category as tenant");
+
+  return {
+    convictionScore: finalScore,
+    convictionTier: tier,
+    convictionReasons: reasons,
+  };
 }
 
 function requiredProfileFields(profile: {
@@ -131,9 +225,9 @@ export async function GET(req: Request) {
     });
 
     const [overview, context, bootstrap, leadStore] = await Promise.all([
-      fetchJson(`${origin}/api/dashboard/overview?${overviewQs.toString()}`),
-      fetchJson(`${origin}/api/dashboard/campaign-factory/context?tenantId=${encodeURIComponent(tenantId)}`),
-      fetchJson(`${origin}/api/tenants/${encodeURIComponent(tenantId)}/bootstrap`),
+      fetchJsonSafe(`${origin}/api/dashboard/overview?${overviewQs.toString()}`),
+      fetchJsonSafe(`${origin}/api/dashboard/campaign-factory/context?tenantId=${encodeURIComponent(tenantId)}`),
+      fetchJsonSafe(`${origin}/api/tenants/${encodeURIComponent(tenantId)}/bootstrap`),
       readLeadStore(tenantId),
     ]);
 
@@ -177,19 +271,48 @@ export async function GET(req: Request) {
 
     const executive = (overview?.executive as JsonMap | undefined) || {};
     const topGeo = (overview?.topOpportunitiesGeo as JsonMap | undefined) || {};
-    const states = rankGeo((((topGeo.states as unknown[]) || []) as GeoRow[]).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
-    const counties = rankGeo((((topGeo.counties as unknown[]) || []) as GeoRow[]).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
-    const cities = rankGeo((((topGeo.cities as unknown[]) || []) as GeoRow[]).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
+    const fallbackStates = deriveGeoFromLeads(leadStore.leads, "state");
+    const fallbackCounties = deriveGeoFromLeads(leadStore.leads, "county");
+    const fallbackCities = deriveGeoFromLeads(leadStore.leads, "city");
+    const topStates = (((topGeo.states as unknown[]) || []) as GeoRow[]).slice(0, 50);
+    const topCounties = (((topGeo.counties as unknown[]) || []) as GeoRow[]).slice(0, 50);
+    const topCities = (((topGeo.cities as unknown[]) || []) as GeoRow[]).slice(0, 50);
+    const states = rankGeo((topStates.length ? topStates : fallbackStates).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
+    const counties = rankGeo((topCounties.length ? topCounties : fallbackCounties).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
+    const cities = rankGeo((topCities.length ? topCities : fallbackCities).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
 
-    const leads = [...leadStore.leads].sort((a, b) => s(b.updatedAt).localeCompare(s(a.updatedAt)));
-    const leadsWithEmail = leads.filter((x) => Boolean(s(x.email))).length;
-    const leadsWithPhone = leads.filter((x) => Boolean(s(x.phone))).length;
-    const contactable = leads.filter((x) => Boolean(s(x.email) || s(x.phone))).length;
-    const byStatus = leads.reduce<Record<string, number>>((acc, row) => {
+    const leadsRaw = [...leadStore.leads].sort((a, b) => s(b.updatedAt).localeCompare(s(a.updatedAt)));
+    const leadsWithEmail = leadsRaw.filter((x) => Boolean(s(x.email))).length;
+    const leadsWithPhone = leadsRaw.filter((x) => Boolean(s(x.phone))).length;
+    const contactable = leadsRaw.filter((x) => Boolean(s(x.email) || s(x.phone))).length;
+    const byStatus = leadsRaw.reduce<Record<string, number>>((acc, row) => {
       const key = s(row.status) || "new";
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
+    const maxPriority = Math.max(
+      1,
+      ...states.map((x) => n(x.priorityScore)),
+      ...counties.map((x) => n(x.priorityScore)),
+      ...cities.map((x) => n(x.priorityScore)),
+    );
+    const geoPriorityMap = buildGeoPriorityMap({ states, counties, cities });
+    const leads = leadsRaw
+      .map((lead) => {
+        const scoring = computeLeadConvictionScore({
+          lead,
+          maxPriority,
+          statePriority: n(geoPriorityMap.stateMap.get(norm(lead.state)) || 0),
+          countyPriority: n(geoPriorityMap.countyMap.get(norm(lead.county)) || 0),
+          cityPriority: n(geoPriorityMap.cityMap.get(norm(lead.city)) || 0),
+          businessCategory: profile.businessCategory,
+        });
+        return {
+          ...lead,
+          ...scoring,
+        };
+      })
+      .sort((a, b) => b.convictionScore - a.convictionScore || s(b.updatedAt).localeCompare(s(a.updatedAt)));
 
     const servicesList = parseServices(profile.servicesOffered);
 

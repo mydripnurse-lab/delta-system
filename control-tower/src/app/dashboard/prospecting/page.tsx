@@ -91,6 +91,9 @@ type LeadRow = {
   createdAt: string;
   updatedAt: string;
   notificationSeenAt?: string;
+  convictionScore?: number;
+  convictionTier?: "hot" | "warm" | "cold";
+  convictionReasons?: string[];
 };
 
 type LeadDraft = {
@@ -187,6 +190,9 @@ function ProspectingDashboardContent() {
   const [autoMessage, setAutoMessage] = useState("");
   const [pushLoading, setPushLoading] = useState(false);
   const [pushMessage, setPushMessage] = useState("");
+  const [queueRunLoading, setQueueRunLoading] = useState(false);
+  const [queueMessage, setQueueMessage] = useState("");
+  const [leadViewId, setLeadViewId] = useState("");
 
   async function load() {
     if (!tenantReady || !tenantId) return;
@@ -508,6 +514,110 @@ function ProspectingDashboardContent() {
     return data.geoQueue.cities.map((x) => x.name);
   }, [data?.geoQueue, runGeoType]);
 
+  function useGeoFromQueue(type: "state" | "county" | "city", name: string) {
+    setRunGeoType(type);
+    setRunGeoName(name);
+    if (type === "state") {
+      setRunState(name);
+      setRunCounty("");
+      setRunCity("");
+    }
+    if (type === "county") {
+      setRunCounty(name);
+      setRunCity("");
+    }
+    if (type === "city") {
+      setRunCity(name);
+    }
+    setQueueMessage(`Selected ${type}: ${name}`);
+  }
+
+  async function runTopGeoOpportunities() {
+    if (!tenantId || !data?.geoQueue) return;
+    const picks: Array<{ type: "state" | "county" | "city"; name: string }> = [];
+    const topState = data.geoQueue.states[0];
+    const topCounty = data.geoQueue.counties[0];
+    const topCity = data.geoQueue.cities[0];
+    if (topState?.name) picks.push({ type: "state", name: topState.name });
+    if (topCounty?.name) picks.push({ type: "county", name: topCounty.name });
+    if (topCity?.name) picks.push({ type: "city", name: topCity.name });
+    if (!picks.length) {
+      setQueueMessage("No geo opportunities available yet.");
+      return;
+    }
+
+    setQueueRunLoading(true);
+    setQueueMessage("");
+    let success = 0;
+    try {
+      for (const pick of picks) {
+        const services = runServices
+          .split(/[,\n|;]/g)
+          .map((x) => x.trim())
+          .filter(Boolean);
+        const res = await fetch("/api/dashboard/prospecting/run", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tenantId,
+            integrationKey,
+            geoType: pick.type,
+            geoName: pick.name,
+            state: pick.type === "state" ? pick.name : runState,
+            county: pick.type === "county" ? pick.name : runCounty,
+            city: pick.type === "city" ? pick.name : runCity,
+            maxResults: Number(runMaxResults || 25),
+            services,
+          }),
+        });
+        const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+        if (!res.ok || !json?.ok) continue;
+        success += 1;
+      }
+      await load();
+      setQueueMessage(`Queued geo runs completed: ${success}/${picks.length}.`);
+    } catch (e: unknown) {
+      setQueueMessage(e instanceof Error ? e.message : "Failed to run top geo opportunities");
+    } finally {
+      setQueueRunLoading(false);
+    }
+  }
+
+  async function runGeoFromQueue(type: "state" | "county" | "city", name: string) {
+    if (!tenantId) return;
+    setQueueRunLoading(true);
+    setQueueMessage("");
+    try {
+      const services = runServices
+        .split(/[,\n|;]/g)
+        .map((x) => x.trim())
+        .filter(Boolean);
+      const res = await fetch("/api/dashboard/prospecting/run", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tenantId,
+          integrationKey,
+          geoType: type,
+          geoName: name,
+          state: type === "state" ? name : runState,
+          county: type === "county" ? name : runCounty,
+          city: type === "city" ? name : runCity,
+          maxResults: Number(runMaxResults || 25),
+          services,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; results?: { created?: number; discovered?: number } } | null;
+      if (!res.ok || !json?.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      await load();
+      setQueueMessage(`Run complete for ${type}: ${name}. Discovered ${fmtInt(json?.results?.discovered)}.`);
+    } catch (e: unknown) {
+      setQueueMessage(e instanceof Error ? e.message : "Failed to run selected geo");
+    } finally {
+      setQueueRunLoading(false);
+    }
+  }
+
   async function deleteLead(id: string) {
     if (!tenantId) return;
     setLeadSaving(true);
@@ -539,6 +649,7 @@ function ProspectingDashboardContent() {
   const leadSummary = data?.leadPool?.summary;
   const leads = data?.leadPool?.rows || [];
   const notifications = data?.notifications;
+  const leadView = useMemo(() => leads.find((x) => x.id === leadViewId) || null, [leads, leadViewId]);
 
   return (
     <div className="shell callsDash ceoDash prospectingDash">
@@ -778,7 +889,12 @@ function ProspectingDashboardContent() {
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Geo Opportunity Queue</h2>
-            <div className="cardSubtitle">Priority candidates to discover and enrich by state, county, and city.</div>
+            <div className="cardSubtitle">Priority candidates from business signals + top geo opportunities (state/county/city).</div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn agencyActionPrimary" type="button" onClick={() => void runTopGeoOpportunities()} disabled={queueRunLoading || runLoading}>
+              {queueRunLoading ? "Running top opportunities..." : "Run top opportunities"}
+            </button>
           </div>
         </div>
         <div className="cardBody">
@@ -793,6 +909,7 @@ function ProspectingDashboardContent() {
                       <th>Opp</th>
                       <th>Value</th>
                       <th>Priority</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
@@ -802,6 +919,10 @@ function ProspectingDashboardContent() {
                         <td>{fmtInt(r.opportunities)}</td>
                         <td>{fmtMoney(r.value)}</td>
                         <td>{fmtInt(r.priorityScore)}</td>
+                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: 6 }}>
+                          <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("state", r.name)}>Use</button>
+                          <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("state", r.name)} disabled={queueRunLoading}>Run</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -819,6 +940,7 @@ function ProspectingDashboardContent() {
                       <th>Opp</th>
                       <th>Value</th>
                       <th>Priority</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
@@ -828,6 +950,10 @@ function ProspectingDashboardContent() {
                         <td>{fmtInt(r.opportunities)}</td>
                         <td>{fmtMoney(r.value)}</td>
                         <td>{fmtInt(r.priorityScore)}</td>
+                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: 6 }}>
+                          <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("county", r.name)}>Use</button>
+                          <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("county", r.name)} disabled={queueRunLoading}>Run</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -845,6 +971,7 @@ function ProspectingDashboardContent() {
                       <th>Opp</th>
                       <th>Value</th>
                       <th>Priority</th>
+                      <th />
                     </tr>
                   </thead>
                   <tbody>
@@ -854,6 +981,10 @@ function ProspectingDashboardContent() {
                         <td>{fmtInt(r.opportunities)}</td>
                         <td>{fmtMoney(r.value)}</td>
                         <td>{fmtInt(r.priorityScore)}</td>
+                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: 6 }}>
+                          <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("city", r.name)}>Use</button>
+                          <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("city", r.name)} disabled={queueRunLoading}>Run</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -861,6 +992,7 @@ function ProspectingDashboardContent() {
               </div>
             </div>
           </div>
+          {queueMessage ? <div className="mini" style={{ marginTop: 10 }}>{queueMessage}</div> : null}
         </div>
       </section>
 
@@ -1009,14 +1141,12 @@ function ProspectingDashboardContent() {
               <thead>
                 <tr>
                   <th>Business</th>
-                  <th>Category</th>
-                  <th>Location</th>
-                  <th>Email</th>
-                  <th>Phone</th>
+                  <th>Geo</th>
+                  <th>Contact</th>
+                  <th>Score</th>
                   <th>Status</th>
                   <th>Review</th>
-                  <th>Updated</th>
-                  <th />
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1024,40 +1154,95 @@ function ProspectingDashboardContent() {
                   <tr key={lead.id}>
                     <td>
                       <div>{lead.businessName}</div>
-                      <div className="mini">{lead.website || "-"}</div>
+                      <div className="mini">{lead.category || "-"}</div>
                     </td>
-                    <td>{lead.category || "-"}</td>
                     <td>{[lead.city, lead.county, lead.state].filter(Boolean).join(", ") || "-"}</td>
-                    <td>{lead.email || "-"}</td>
-                    <td>{lead.phone || "-"}</td>
-                    <td>{lead.status}</td>
                     <td>
-                      <div className="mini">{lead.reviewStatus || "pending"}</div>
-                      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                        <button className="smallBtn" type="button" onClick={() => void reviewLead(lead.id, "approved")} disabled={leadSaving}>
-                          Approve
+                      <div className="mini">{lead.email || "-"}</div>
+                      <div className="mini">{lead.phone || "-"}</div>
+                    </td>
+                    <td>
+                      <div className="mini"><b>{fmtInt(lead.convictionScore)}</b> / 100</div>
+                      <div className="mini">{lead.convictionTier || "cold"}</div>
+                    </td>
+                    <td>{lead.status}</td>
+                    <td>{lead.reviewStatus || "pending"}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button className="smallBtn" type="button" onClick={() => setLeadViewId(lead.id)}>
+                          View
                         </button>
-                        <button className="smallBtn" type="button" onClick={() => void reviewLead(lead.id, "rejected")} disabled={leadSaving}>
-                          Reject
+                        <button className="smallBtn" type="button" onClick={() => void deleteLead(lead.id)} disabled={leadSaving}>
+                          Delete
                         </button>
                       </div>
-                    </td>
-                    <td>{fmtDateTime(lead.updatedAt)}</td>
-                    <td>
-                      <button className="smallBtn" type="button" onClick={() => void deleteLead(lead.id)} disabled={leadSaving}>
-                        Delete
-                      </button>
                     </td>
                   </tr>
                 ))}
                 {leads.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="mini">No leads saved yet.</td>
+                    <td colSpan={7} className="mini">No leads saved yet.</td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
           </div>
+
+          {leadView ? (
+            <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 12 }}>
+              <div className="cardHeader" style={{ padding: 0, borderBottom: "none" }}>
+                <div>
+                  <h2 className="cardTitle" style={{ marginBottom: 4 }}>Lead Detail</h2>
+                  <div className="cardSubtitle">{leadView.businessName}</div>
+                </div>
+                <div className="cardHeaderActions">
+                  <button className="smallBtn" type="button" onClick={() => setLeadViewId("")}>Close</button>
+                </div>
+              </div>
+              <div className="agencyWizardGrid agencyWizardGridThree" style={{ marginTop: 10 }}>
+                <div className="agencyField"><span className="agencyFieldLabel">Website</span><div className="mini">{leadView.website || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Email</span><div className="mini">{leadView.email || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Phone</span><div className="mini">{leadView.phone || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Category</span><div className="mini">{leadView.category || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Services</span><div className="mini">{leadView.services || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Location</span><div className="mini">{[leadView.city, leadView.county, leadView.state].filter(Boolean).join(", ") || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Source</span><div className="mini">{leadView.source || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Status</span><div className="mini">{leadView.status}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Review</span><div className="mini">{leadView.reviewStatus || "pending"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Conviction Score</span><div className="mini">{fmtInt(leadView.convictionScore)} / 100 ({leadView.convictionTier || "cold"})</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Created</span><div className="mini">{fmtDateTime(leadView.createdAt)}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Updated</span><div className="mini">{fmtDateTime(leadView.updatedAt)}</div></div>
+                <div className="agencyField agencyFieldFull"><span className="agencyFieldLabel">Notes</span><div className="mini">{leadView.notes || "-"}</div></div>
+                <div className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Why This Score</span>
+                  <div className="mini">{(leadView.convictionReasons || []).join(" • ") || "-"}</div>
+                </div>
+              </div>
+              <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 10 }}>
+                <button className="smallBtn agencyActionPrimary" type="button" onClick={() => void reviewLead(leadView.id, "approved")} disabled={leadSaving}>
+                  Approve
+                </button>
+                <button className="smallBtn" type="button" onClick={() => void reviewLead(leadView.id, "rejected")} disabled={leadSaving}>
+                  Reject
+                </button>
+                {leadView.website ? (
+                  <a className="smallBtn" href={leadView.website} target="_blank" rel="noreferrer">
+                    Open Website
+                  </a>
+                ) : null}
+                {leadView.email ? (
+                  <a className="smallBtn" href={`mailto:${leadView.email}`}>
+                    Email
+                  </a>
+                ) : null}
+                {leadView.phone ? (
+                  <a className="smallBtn" href={`tel:${leadView.phone}`}>
+                    Call
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {(data?.complianceChecklist || []).length ? (
             <div style={{ marginTop: 12 }}>
