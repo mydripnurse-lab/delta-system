@@ -6582,6 +6582,152 @@ button, input, select { font-family: inherit; }
   background: rgba(15, 23, 42, 0.35);
 }
 
+.prospectingDash .prospectingPremiumWrap {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.32));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.prospectingDash .prospectingPremiumTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.prospectingDash .prospectingPremiumTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(226, 232, 240, 0.94);
+  background: rgba(30, 41, 59, 0.9);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 13px 16px;
+}
+
+.prospectingDash .prospectingPremiumTable tbody td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding: 12px 16px;
+  vertical-align: middle;
+  color: rgba(241, 245, 249, 0.95);
+  font-size: 14px;
+}
+
+.prospectingDash .prospectingPremiumTable tbody tr:hover td {
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.prospectingDash .prospectingPremiumTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.prospectingDash .prospectingCellTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.96);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prospectingDash .prospectingCellSub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(203, 213, 225, 0.86);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prospectingDash .prospectingNotificationsTable th:nth-child(1),
+.prospectingDash .prospectingNotificationsTable td:nth-child(1) {
+  width: 38%;
+}
+
+.prospectingDash .prospectingNotificationsTable th:nth-child(2),
+.prospectingDash .prospectingNotificationsTable td:nth-child(2) {
+  width: 24%;
+}
+
+.prospectingDash .prospectingNotificationsTable th:nth-child(3),
+.prospectingDash .prospectingNotificationsTable td:nth-child(3) {
+  width: 14%;
+}
+
+.prospectingDash .prospectingNotificationsTable th:nth-child(4),
+.prospectingDash .prospectingNotificationsTable td:nth-child(4) {
+  width: 18%;
+}
+
+.prospectingDash .prospectingNotificationsTable th:nth-child(5),
+.prospectingDash .prospectingNotificationsTable td:nth-child(5) {
+  width: 90px;
+}
+
+.prospectingDash .prospectingLeadTable th:nth-child(1),
+.prospectingDash .prospectingLeadTable td:nth-child(1) {
+  width: 26%;
+}
+
+.prospectingDash .prospectingLeadTable th:nth-child(2),
+.prospectingDash .prospectingLeadTable td:nth-child(2) {
+  width: 15%;
+}
+
+.prospectingDash .prospectingLeadTable th:nth-child(3),
+.prospectingDash .prospectingLeadTable td:nth-child(3) {
+  width: 18%;
+}
+
+.prospectingDash .prospectingLeadTable th:nth-child(4),
+.prospectingDash .prospectingLeadTable td:nth-child(4) {
+  width: 11%;
+}
+
+.prospectingDash .prospectingLeadTable th:nth-child(5),
+.prospectingDash .prospectingLeadTable td:nth-child(5),
+.prospectingDash .prospectingLeadTable th:nth-child(6),
+.prospectingDash .prospectingLeadTable td:nth-child(6) {
+  width: 10%;
+}
+
+.prospectingDash .prospectingLeadTable th:nth-child(7),
+.prospectingDash .prospectingLeadTable td:nth-child(7) {
+  width: 120px;
+}
+
+.prospectingDash .prospectingRowActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prospectingDash .prospectingPremiumTable .statusPill {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.prospectingDash .prospectingDetailModal {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.58), rgba(15, 23, 42, 0.36)),
+    linear-gradient(115deg, rgba(59, 130, 246, 0.12), transparent 60%);
+}
+
+.prospectingDash .prospectingDetailModal .agencyField {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.28);
+}
+
 .prospectingDash .prospectingCompactTable {
   table-layout: fixed;
   width: 100%;
@@ -6604,35 +6750,52 @@ button, input, select { font-family: inherit; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .prospectingDash .prospectingGeoList {
   display: grid;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .prospectingDash .prospectingGeoRow {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
-  align-items: center;
+  grid-template-columns: 1fr;
+  align-items: flex-start;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 12px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 14px;
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.45), rgba(15, 23, 42, 0.28));
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.32));
+}
+
+.prospectingDash .prospectingGeoHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.prospectingDash .prospectingGeoIdentity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .prospectingDash .prospectingGeoRank {
   font-size: 12px;
-  color: rgba(191, 219, 254, 0.9);
+  color: rgba(191, 219, 254, 0.96);
   font-weight: 700;
   min-width: 26px;
 }
 
 .prospectingDash .prospectingGeoName {
-  font-size: 14px;
+  font-size: 15px;
   color: rgba(241, 245, 249, 0.95);
   font-weight: 700;
   min-width: 0;
@@ -6642,7 +6805,7 @@ button, input, select { font-family: inherit; }
 }
 
 .prospectingDash .prospectingGeoMeta {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
@@ -6655,23 +6818,42 @@ button, input, select { font-family: inherit; }
 }
 
 @media (max-width: 1200px) {
-  .prospectingDash .prospectingGeoRow {
-    grid-template-columns: 1fr;
+  .prospectingDash .prospectingNotificationsTable,
+  .prospectingDash .prospectingLeadTable {
+    min-width: 980px;
+  }
+
+  .prospectingDash .prospectingGeoHead {
+    flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .prospectingDash .prospectingGeoActions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .prospectingDash .prospectingGeoActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .prospectingDash .prospectingGeoActions .smallBtn {
+    width: 100%;
+    justify-content: center;
   }
 }
 
 .prospectingDash .prospectingLeadTable th {
-  font-size: 12px;
-  letter-spacing: 0.03em;
-  color: rgba(203, 213, 225, 0.88);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .prospectingDash .prospectingLeadTable td {
   vertical-align: middle;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .agencyActionPrimary {

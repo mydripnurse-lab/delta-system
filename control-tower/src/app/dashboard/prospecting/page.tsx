@@ -128,6 +128,14 @@ function fmtDateTime(v: string) {
   return d.toLocaleString();
 }
 
+function statusToneClass(value: string) {
+  const v = String(value || "").toLowerCase();
+  if (v === "validated" || v === "approved" || v === "replied") return "success";
+  if (v === "pending" || v === "new" || v === "contacted") return "warning";
+  if (v === "rejected" || v === "disqualified") return "error";
+  return "";
+}
+
 function ProspectingDashboardContent() {
   const searchParams = useBrowserSearchParams();
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
@@ -926,8 +934,8 @@ function ProspectingDashboardContent() {
             />
             <span className="badge">{fmtInt(notifRowsFiltered.length)} results</span>
           </div>
-          <div className="tableWrap">
-            <table className="table">
+          <div className="tableWrap prospectingPremiumWrap">
+            <table className="table prospectingPremiumTable prospectingNotificationsTable">
               <thead>
                 <tr>
                   <th>Business</th>
@@ -940,10 +948,17 @@ function ProspectingDashboardContent() {
               <tbody>
                 {notifRowsFiltered.map((row) => (
                   <tr key={`notif-${row.leadId}`}>
-                    <td>{row.businessName}</td>
-                    <td>{[row.city, row.county, row.state].filter(Boolean).join(", ") || "-"}</td>
-                    <td>{row.reviewStatus}</td>
-                    <td>{fmtDateTime(row.createdAt)}</td>
+                    <td>
+                      <div className="prospectingCellTitle">{row.businessName}</div>
+                    </td>
+                    <td>
+                      <div className="prospectingCellTitle">{row.city || row.county || row.state || "-"}</div>
+                      <div className="prospectingCellSub">{[row.county, row.state].filter(Boolean).join(", ") || "-"}</div>
+                    </td>
+                    <td>
+                      <span className={`statusPill ${statusToneClass(row.reviewStatus)}`}>{row.reviewStatus}</span>
+                    </td>
+                    <td className="prospectingCellSub">{fmtDateTime(row.createdAt)}</td>
                     <td>
                       <button className="smallBtn" type="button" onClick={() => setNotifViewId(row.leadId)}>
                         View
@@ -961,7 +976,7 @@ function ProspectingDashboardContent() {
           </div>
 
           {notifView ? (
-            <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 12 }}>
+            <div className="agencyFormPanel prospectingFormPanel prospectingDetailModal" style={{ marginTop: 12 }}>
               <div className="cardHeader" style={{ padding: 0, borderBottom: "none" }}>
                 <div>
                   <h2 className="cardTitle" style={{ marginBottom: 4 }}>Opportunity Notification</h2>
@@ -1011,16 +1026,20 @@ function ProspectingDashboardContent() {
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.states || []).slice(0, 8).map((r, idx) => (
                   <div key={`state-${r.name}`} className="prospectingGeoRow">
-                    <div className="prospectingGeoRank">#{idx + 1}</div>
-                    <div className="prospectingGeoName">{r.name}</div>
+                    <div className="prospectingGeoHead">
+                      <div className="prospectingGeoIdentity">
+                        <div className="prospectingGeoRank">#{idx + 1}</div>
+                        <div className="prospectingGeoName">{r.name}</div>
+                      </div>
+                      <div className="prospectingGeoActions">
+                        <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("state", r.name)}>Use</button>
+                        <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("state", r.name)} disabled={queueRunLoading}>Run</button>
+                      </div>
+                    </div>
                     <div className="prospectingGeoMeta">
                       <span className="badge">Opp {fmtInt(r.opportunities)}</span>
                       <span className="badge">{fmtMoney(r.value)}</span>
                       <span className="badge">P {fmtInt(r.priorityScore)}</span>
-                    </div>
-                    <div className="prospectingGeoActions">
-                      <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("state", r.name)}>Use</button>
-                      <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("state", r.name)} disabled={queueRunLoading}>Run</button>
                     </div>
                   </div>
                 ))}
@@ -1035,16 +1054,20 @@ function ProspectingDashboardContent() {
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.counties || []).slice(0, 8).map((r, idx) => (
                   <div key={`county-${r.name}`} className="prospectingGeoRow">
-                    <div className="prospectingGeoRank">#{idx + 1}</div>
-                    <div className="prospectingGeoName">{r.name}</div>
+                    <div className="prospectingGeoHead">
+                      <div className="prospectingGeoIdentity">
+                        <div className="prospectingGeoRank">#{idx + 1}</div>
+                        <div className="prospectingGeoName">{r.name}</div>
+                      </div>
+                      <div className="prospectingGeoActions">
+                        <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("county", r.name)}>Use</button>
+                        <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("county", r.name)} disabled={queueRunLoading}>Run</button>
+                      </div>
+                    </div>
                     <div className="prospectingGeoMeta">
                       <span className="badge">Opp {fmtInt(r.opportunities)}</span>
                       <span className="badge">{fmtMoney(r.value)}</span>
                       <span className="badge">P {fmtInt(r.priorityScore)}</span>
-                    </div>
-                    <div className="prospectingGeoActions">
-                      <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("county", r.name)}>Use</button>
-                      <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("county", r.name)} disabled={queueRunLoading}>Run</button>
                     </div>
                   </div>
                 ))}
@@ -1059,16 +1082,20 @@ function ProspectingDashboardContent() {
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.cities || []).slice(0, 8).map((r, idx) => (
                   <div key={`city-${r.name}`} className="prospectingGeoRow">
-                    <div className="prospectingGeoRank">#{idx + 1}</div>
-                    <div className="prospectingGeoName">{r.name}</div>
+                    <div className="prospectingGeoHead">
+                      <div className="prospectingGeoIdentity">
+                        <div className="prospectingGeoRank">#{idx + 1}</div>
+                        <div className="prospectingGeoName">{r.name}</div>
+                      </div>
+                      <div className="prospectingGeoActions">
+                        <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("city", r.name)}>Use</button>
+                        <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("city", r.name)} disabled={queueRunLoading}>Run</button>
+                      </div>
+                    </div>
                     <div className="prospectingGeoMeta">
                       <span className="badge">Opp {fmtInt(r.opportunities)}</span>
                       <span className="badge">{fmtMoney(r.value)}</span>
                       <span className="badge">P {fmtInt(r.priorityScore)}</span>
-                    </div>
-                    <div className="prospectingGeoActions">
-                      <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("city", r.name)}>Use</button>
-                      <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("city", r.name)} disabled={queueRunLoading}>Run</button>
                     </div>
                   </div>
                 ))}
@@ -1253,8 +1280,8 @@ function ProspectingDashboardContent() {
             <span className="badge">{fmtInt(leadRowsFiltered.length)} leads</span>
           </div>
 
-          <div className="tableWrap" style={{ marginTop: 12 }}>
-            <table className="table prospectingLeadTable">
+          <div className="tableWrap prospectingPremiumWrap" style={{ marginTop: 12 }}>
+            <table className="table prospectingPremiumTable prospectingLeadTable">
               <thead>
                 <tr>
                   <th>Business</th>
@@ -1270,22 +1297,29 @@ function ProspectingDashboardContent() {
                 {leadRowsPaged.map((lead) => (
                   <tr key={lead.id}>
                     <td>
-                      <div>{lead.businessName}</div>
-                      <div className="mini">{lead.category || "-"}</div>
-                    </td>
-                    <td>{[lead.city, lead.county, lead.state].filter(Boolean).join(", ") || "-"}</td>
-                    <td>
-                      <div className="mini">{lead.email || "-"}</div>
-                      <div className="mini">{lead.phone || "-"}</div>
+                      <div className="prospectingCellTitle">{lead.businessName}</div>
+                      <div className="prospectingCellSub">{lead.category || "-"}</div>
                     </td>
                     <td>
-                      <div className="mini"><b>{fmtInt(lead.convictionScore)}</b> / 100</div>
-                      <div className="mini">{lead.convictionTier || "cold"}</div>
+                      <div className="prospectingCellTitle">{lead.city || lead.county || lead.state || "-"}</div>
+                      <div className="prospectingCellSub">{[lead.county, lead.state].filter(Boolean).join(", ") || "-"}</div>
                     </td>
-                    <td>{lead.status}</td>
-                    <td>{lead.reviewStatus || "pending"}</td>
                     <td>
-                      <div style={{ display: "flex", gap: 6 }}>
+                      <div className="prospectingCellSub">{lead.email || "-"}</div>
+                      <div className="prospectingCellSub">{lead.phone || "-"}</div>
+                    </td>
+                    <td>
+                      <div className="prospectingCellTitle">{fmtInt(lead.convictionScore)} / 100</div>
+                      <div className="prospectingCellSub">{lead.convictionTier || "cold"}</div>
+                    </td>
+                    <td>
+                      <span className={`statusPill ${statusToneClass(lead.status)}`}>{lead.status}</span>
+                    </td>
+                    <td>
+                      <span className={`statusPill ${statusToneClass(lead.reviewStatus || "pending")}`}>{lead.reviewStatus || "pending"}</span>
+                    </td>
+                    <td>
+                      <div className="prospectingRowActions">
                         <button className="smallBtn" type="button" onClick={() => setLeadViewId(lead.id)}>
                           View
                         </button>
@@ -1324,7 +1358,7 @@ function ProspectingDashboardContent() {
           ) : null}
 
           {leadView ? (
-            <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 12 }}>
+            <div className="agencyFormPanel prospectingFormPanel prospectingDetailModal" style={{ marginTop: 12 }}>
               <div className="cardHeader" style={{ padding: 0, borderBottom: "none" }}>
                 <div>
                   <h2 className="cardTitle" style={{ marginBottom: 4 }}>Lead Detail</h2>
