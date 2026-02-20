@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
-export default function ActivatePage() {
+function ActivatePageInner() {
   const search = useSearchParams();
   const router = useRouter();
   const token = useMemo(() => s(search.get("token")), [search]);
@@ -81,5 +81,28 @@ export default function ActivatePage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function ActivateFallback() {
+  return (
+    <main className="agencyRoot">
+      <section className="agencyProjectsCard agencyMenuSection" style={{ maxWidth: 560, margin: "48px auto" }}>
+        <div className="agencyProjectsHeader">
+          <div>
+            <h2>Activate Account</h2>
+            <p>Loading activation form...</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export default function ActivatePage() {
+  return (
+    <Suspense fallback={<ActivateFallback />}>
+      <ActivatePageInner />
+    </Suspense>
   );
 }
