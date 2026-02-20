@@ -2,11 +2,11 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import DashboardTopbar from "@/components/DashboardTopbar";
 
 const UsaChoroplethProgressMap = dynamic(
   () => import("@/components/UsaChoroplethProgressMap"),
@@ -94,6 +94,9 @@ function GscDashboardPageContent() {
   const backHref = tenantId
     ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}`
     : "/dashboard";
+  const notificationsHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`
+    : "/dashboard#notification-hub";
 
   function attachTenantScope(p: URLSearchParams) {
     if (!tenantId) return;
@@ -377,37 +380,12 @@ function GscDashboardPageContent() {
 
   return (
     <div className="shell callsDash">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>My Drip Nurse — Search Performance Dashboard</h1>
-          </div>
-        </div>
-
-        <div className="pills">
-          <Link
-            className="pill"
-            href={backHref}
-            style={{ textDecoration: "none" }}
-          >
-            ← Back
-          </Link>
-
-          <div className="pill">
-            <span className="dot" />
-            <span>Live</span>
-          </div>
-
-          <div className="pill">
-            <span style={{ color: "var(--muted)" }}>Created by</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Axel Castro</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Devasks</span>
-          </div>
-        </div>
-      </header>
+      <DashboardTopbar
+        title="My Drip Nurse — Search Performance Dashboard"
+        backHref={backHref}
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+      />
 
       {/* Filters */}
       <section className="card" style={{ marginTop: 14 }}>

@@ -937,6 +937,14 @@ function DashboardHomeContent() {
   const [queueBusyKey, setQueueBusyKey] = useState("");
   const [queueErr, setQueueErr] = useState("");
   const [queueMsg, setQueueMsg] = useState("");
+  const [hubTab, setHubTab] = useState<"inbox" | "setups">("inbox");
+  const [hubCounts, setHubCounts] = useState<{ proposed: number; approved: number; rejected: number; executed: number; failed: number }>({
+    proposed: 0,
+    approved: 0,
+    rejected: 0,
+    executed: 0,
+    failed: 0,
+  });
 
   const computedRange = useMemo(
     () => computeDashboardRange(preset, customStart, customEnd),
@@ -1033,6 +1041,13 @@ function DashboardHomeContent() {
     const joiner = basePath.includes("?") ? "&" : "?";
     const scoped = `${basePath}${joiner}${qs.toString()}`;
     return hash ? `${scoped}#${hash}` : scoped;
+  }
+
+  function openNotificationHub() {
+    setHubTab("inbox");
+    if (typeof window !== "undefined") {
+      window.location.hash = "notification-hub";
+    }
   }
 
   async function load(force = false) {
@@ -2246,6 +2261,16 @@ function DashboardHomeContent() {
         </div>
 
         <div className="pills">
+          <button
+            className="pill"
+            type="button"
+            onClick={openNotificationHub}
+            style={{ cursor: "pointer" }}
+            title="Open Notification Hub"
+          >
+            <span>Notifications</span>
+            <span className="badge" style={{ marginLeft: 6 }}>{fmtInt(hubCounts.proposed)}</span>
+          </button>
           <div className="pill">
             <span className="dot" />
             <span>Live</span>
@@ -3124,12 +3149,12 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section className="card" id="notification-hub" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Notification Hub</h2>
             <div className="cardSubtitle">
-              Approval queue for dashboard agents. Approve, edit+approve, reject, and execute proposals from one place.
+              Premium approval center for dashboard agents. Review, approve, execute, and manage setup from one place.
             </div>
           </div>
           <div className="cardHeaderActions">
@@ -3139,24 +3164,30 @@ function DashboardHomeContent() {
             <div className="badge">{tenantId ? `Tenant: ${tenantId.slice(0, 8)}...` : "Missing tenant"}</div>
           </div>
         </div>
-        <AgentNotificationHub tenantId={tenantId} />
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">OpenClaw Routing (Per Tenant)</h2>
-            <div className="cardSubtitle">
-              Configure tenant agent key and map each dashboard to its soul/agent ID.
-            </div>
-          </div>
-          <div className="cardHeaderActions">
-            <button className="smallBtn" type="button" onClick={() => openSectionHelp("ai_ceo_swarm")} title="Section helper">
-              ?
+        <div className="cardBody" style={{ paddingBottom: 0 }}>
+          <div className="segmented" role="tablist" aria-label="Notification hub tabs">
+            <button
+              className={`segBtn ${hubTab === "inbox" ? "segBtnOn" : ""}`}
+              type="button"
+              onClick={() => setHubTab("inbox")}
+            >
+              Notification Hub
+              <span className="badge" style={{ marginLeft: 8 }}>{fmtInt(hubCounts.proposed)}</span>
+            </button>
+            <button
+              className={`segBtn ${hubTab === "setups" ? "segBtnOn" : ""}`}
+              type="button"
+              onClick={() => setHubTab("setups")}
+            >
+              Setups
             </button>
           </div>
         </div>
-        <TenantOpenclawConfigCard tenantId={tenantId} />
+        {hubTab === "inbox" ? (
+          <AgentNotificationHub tenantId={tenantId} onCountsChange={setHubCounts} />
+        ) : (
+          <TenantOpenclawConfigCard tenantId={tenantId} />
+        )}
       </section>
 
       <section className="card" style={{ marginTop: 14 }}>

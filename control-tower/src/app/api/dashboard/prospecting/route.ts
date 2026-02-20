@@ -82,6 +82,103 @@ type GeoRow = {
   uniqueContacts: number;
 };
 
+type OpportunityGeoSignals = {
+  openCount: number;
+  wonCount: number;
+  lostCount: number;
+  staleOpenOver7d: number;
+  staleOpenOver14d: number;
+  valueTotal: number;
+  avgAgeDays: number;
+  winRate: number;
+};
+
+function toDateMs(v: unknown) {
+  const d = new Date(s(v));
+  const t = d.getTime();
+  return Number.isFinite(t) ? t : NaN;
+}
+
+function classifyOpportunityStatus(raw: unknown) {
+  const st = norm(raw);
+  if (!st) return "unknown" as const;
+  if (/\bwon\b|\bclosed won\b|\bsucceeded\b|\bsuccess\b/.test(st)) return "won" as const;
+  if (/\blost\b|\bclosed lost\b|\babandon\b|\bcancel\b|\bdead\b/.test(st)) return "lost" as const;
+  if (/\bopen\b|\bnew\b|\bqualified\b|\bactive\b|\bpending\b/.test(st)) return "open" as const;
+  return "other" as const;
+}
+
+function initOpportunitySignals(): OpportunityGeoSignals {
+  return {
+    openCount: 0,
+    wonCount: 0,
+    lostCount: 0,
+    staleOpenOver7d: 0,
+    staleOpenOver14d: 0,
+    valueTotal: 0,
+    avgAgeDays: 0,
+    winRate: 0,
+  };
+}
+
+function deriveOpportunityGeoSignals(
+  rows: Array<Record<string, unknown>>,
+  field: "state" | "county" | "city",
+) {
+  const nowMs = Date.now();
+  const map = new Map<
+    string,
+    OpportunityGeoSignals & { _ageDaysTotal: number; _ageSamples: number }
+  >();
+
+  for (const row of rows) {
+    const geoName = s(row[field]);
+    if (!geoName) continue;
+    const key = norm(geoName);
+    if (!key) continue;
+
+    const statusKind = classifyOpportunityStatus(row.status);
+    const value = n(row.value);
+    const updatedMs = toDateMs(row.updatedAt);
+    const createdMs = toDateMs(row.createdAt);
+    const baseMs = Number.isFinite(updatedMs) ? updatedMs : createdMs;
+    const ageDays = Number.isFinite(baseMs) ? Math.max(0, (nowMs - baseMs) / (24 * 60 * 60 * 1000)) : 0;
+
+    const agg = map.get(key) || { ...initOpportunitySignals(), _ageDaysTotal: 0, _ageSamples: 0 };
+    if (statusKind === "open") {
+      agg.openCount += 1;
+      if (ageDays > 7) agg.staleOpenOver7d += 1;
+      if (ageDays > 14) agg.staleOpenOver14d += 1;
+    } else if (statusKind === "won") {
+      agg.wonCount += 1;
+    } else if (statusKind === "lost") {
+      agg.lostCount += 1;
+    }
+    agg.valueTotal += value;
+    if (ageDays > 0) {
+      agg._ageDaysTotal += ageDays;
+      agg._ageSamples += 1;
+    }
+    map.set(key, agg);
+  }
+
+  const out = new Map<string, OpportunityGeoSignals>();
+  for (const [k, v] of map.entries()) {
+    const resolvedTotal = v.openCount + v.wonCount + v.lostCount;
+    out.set(k, {
+      openCount: v.openCount,
+      wonCount: v.wonCount,
+      lostCount: v.lostCount,
+      staleOpenOver7d: v.staleOpenOver7d,
+      staleOpenOver14d: v.staleOpenOver14d,
+      valueTotal: Math.round(v.valueTotal * 100) / 100,
+      avgAgeDays: v._ageSamples > 0 ? Math.round((v._ageDaysTotal / v._ageSamples) * 10) / 10 : 0,
+      winRate: resolvedTotal > 0 ? Math.round((v.wonCount / resolvedTotal) * 100) : 0,
+    });
+  }
+  return out;
+}
+
 async function fetchCbpStateSignals() {
   const years = ["2022", "2021", "2020"];
   for (const year of years) {
@@ -110,7 +207,17 @@ async function fetchCbpStateSignals() {
   return new Map<string, number>();
 }
 
-function rankGeo(rows: GeoRow[], lostBookings: number, impressions: number, cbpByState?: Map<string, number>) {
+function rankGeo(
+  rows: GeoRow[],
+  lostBookings: number,
+  impressions: number,
+  options?: {
+    cbpByState?: Map<string, number>;
+    oppSignals?: Map<string, OpportunityGeoSignals>;
+  },
+) {
+  const cbpByState = options?.cbpByState;
+  const oppSignals = options?.oppSignals || new Map<string, OpportunityGeoSignals>();
   const lostBoost = Math.min(30, Math.round(lostBookings / 3));
   const impressionsBoost = Math.min(30, Math.round(Math.log10(Math.max(1, impressions)) * 8));
   const cbpMax = Math.max(1, ...(cbpByState ? Array.from(cbpByState.values()) : [0]));
@@ -120,13 +227,36 @@ function rankGeo(rows: GeoRow[], lostBookings: number, impressions: number, cbpB
       const value = n(row.value);
       const cbpEstab = n(cbpByState?.get(norm(row.name)) || 0);
       const cbpBoost = cbpEstab > 0 ? Math.round((cbpEstab / cbpMax) * 18) : 0;
-      const priorityScore = Math.round(opportunities * 5 + value / 150 + lostBoost + impressionsBoost + cbpBoost);
+      const opp = oppSignals.get(norm(row.name)) || initOpportunitySignals();
+      const openBoost = Math.min(24, opp.openCount * 2);
+      const staleBoost = Math.min(20, opp.staleOpenOver7d * 3 + opp.staleOpenOver14d * 2);
+      const valueBoost = Math.min(24, Math.round(opp.valueTotal / 800));
+      const winRatePenalty = opp.winRate > 0 ? Math.round((opp.winRate / 100) * 10) : 0;
+      const priorityScore = Math.round(
+        opportunities * 5 +
+          value / 150 +
+          lostBoost +
+          impressionsBoost +
+          cbpBoost +
+          openBoost +
+          staleBoost +
+          valueBoost -
+          winRatePenalty,
+      );
       return {
         ...row,
         opportunities,
         value,
         uniqueContacts: n(row.uniqueContacts),
         cbpEstablishments: cbpEstab,
+        opportunityOpen: opp.openCount,
+        opportunityWon: opp.wonCount,
+        opportunityLost: opp.lostCount,
+        opportunityStaleOver7d: opp.staleOpenOver7d,
+        opportunityStaleOver14d: opp.staleOpenOver14d,
+        opportunityValue: opp.valueTotal,
+        opportunityWinRate: opp.winRate,
+        opportunityAvgAgeDays: opp.avgAgeDays,
         priorityScore,
       };
     })
@@ -310,6 +440,10 @@ export async function GET(req: Request) {
     const appointmentsLost = n(((appointments?.lostBookings as JsonMap | undefined)?.total));
     const appointmentsLostValue = n(((appointments?.lostBookings as JsonMap | undefined)?.valueTotal));
     const topGeo = (overview?.topOpportunitiesGeo as JsonMap | undefined) || {};
+    const opportunityRows = ((((appointments?.lostBookings as JsonMap | undefined)?.rows as unknown[]) || []) as Array<Record<string, unknown>>);
+    const oppSignalsState = deriveOpportunityGeoSignals(opportunityRows, "state");
+    const oppSignalsCounty = deriveOpportunityGeoSignals(opportunityRows, "county");
+    const oppSignalsCity = deriveOpportunityGeoSignals(opportunityRows, "city");
     const fallbackStates = deriveGeoFromLeads(leadStore.leads, "state");
     const fallbackCounties = deriveGeoFromLeads(leadStore.leads, "county");
     const fallbackCities = deriveGeoFromLeads(leadStore.leads, "city");
@@ -317,9 +451,16 @@ export async function GET(req: Request) {
     const topCounties = (((topGeo.counties as unknown[]) || []) as GeoRow[]).slice(0, 50);
     const topCities = (((topGeo.cities as unknown[]) || []) as GeoRow[]).slice(0, 50);
     const lostForRank = appointmentsLost || n(executive.appointmentsLostNow);
-    const states = rankGeo((topStates.length ? topStates : fallbackStates).slice(0, 50), lostForRank, n(executive.searchImpressionsNow), cbpByState);
-    const counties = rankGeo((topCounties.length ? topCounties : fallbackCounties).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
-    const cities = rankGeo((topCities.length ? topCities : fallbackCities).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
+    const states = rankGeo((topStates.length ? topStates : fallbackStates).slice(0, 50), lostForRank, n(executive.searchImpressionsNow), {
+      cbpByState,
+      oppSignals: oppSignalsState,
+    });
+    const counties = rankGeo((topCounties.length ? topCounties : fallbackCounties).slice(0, 50), lostForRank, n(executive.searchImpressionsNow), {
+      oppSignals: oppSignalsCounty,
+    });
+    const cities = rankGeo((topCities.length ? topCities : fallbackCities).slice(0, 50), lostForRank, n(executive.searchImpressionsNow), {
+      oppSignals: oppSignalsCity,
+    });
 
     const leadsRaw = [...leadStore.leads].sort((a, b) => s(b.updatedAt).localeCompare(s(a.updatedAt)));
     const leadsWithEmail = leadsRaw.filter((x) => Boolean(s(x.email))).length;

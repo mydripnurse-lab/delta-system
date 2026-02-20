@@ -1,10 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
+import DashboardTopbar from "@/components/DashboardTopbar";
 
 import UsaChoroplethGaMap from "@/components/UsaChoroplethGaMap";
 import GaInsightsPanel from "@/components/GaInsightsPanel";
@@ -83,6 +83,9 @@ function GaDashboardPageContent() {
   const backHref = tenantId
     ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}`
     : "/dashboard";
+  const notificationsHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`
+    : "/dashboard#notification-hub";
 
   function attachTenantScope(p: URLSearchParams) {
     if (!tenantId) return;
@@ -425,49 +428,21 @@ function GaDashboardPageContent() {
 
   return (
     <div className="shell callsDash gaDash">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>My Drip Nurse — Google Analytics (GA4) Dashboard</h1>
-            <div className="mini" style={{ opacity: 0.8, marginTop: 4 }}>
-              Behavior + traffic quality + geo insights (Delta-aware). Property:{" "}
-              <b className="mono">{data?.meta?.propertyId || "—"}</b>
-            </div>
-            {data?.meta?.warning ? (
-              <div
-                className="mini"
-                style={{ color: "var(--warning)", marginTop: 6 }}
-              >
-                ⚠️ {String(data.meta.warning)}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="pills">
-          <Link
-            className="pill"
-            href={backHref}
-            style={{ textDecoration: "none" }}
-          >
-            ← Back
-          </Link>
-
-          <div className="pill">
-            <span className="dot" />
-            <span>Live</span>
-          </div>
-
-          <div className="pill">
-            <span style={{ color: "var(--muted)" }}>Created by</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Axel Castro</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Devasks</span>
-          </div>
-        </div>
-      </header>
+      <DashboardTopbar
+        title="My Drip Nurse — Google Analytics (GA4) Dashboard"
+        subtitle={(
+          <>
+            Behavior + traffic quality + geo insights (Delta-aware). Property:{" "}
+            <b className="mono">{data?.meta?.propertyId || "—"}</b>
+          </>
+        )}
+        details={data?.meta?.warning ? (
+          <span style={{ color: "var(--warning)" }}>⚠ {String(data.meta.warning)}</span>
+        ) : undefined}
+        backHref={backHref}
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+      />
 
       {/* Filters */}
       <section className="card" style={{ marginTop: 14 }}>

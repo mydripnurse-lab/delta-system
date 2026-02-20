@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 
 import AdsTrendChart from "@/components/AdsTrendChart";
 import AdsMetricsGridCharts from "@/components/AdsMetricsGridCharts";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import DashboardTopbar from "@/components/DashboardTopbar";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 
@@ -189,6 +189,9 @@ export default function AdsDashboardPage() {
   const backHref = tenantId
     ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}`
     : "/dashboard";
+  const notificationsHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`
+    : "/dashboard#notification-hub";
 
   function attachTenantScope(p: URLSearchParams) {
     if (!tenantId) return;
@@ -721,62 +724,35 @@ export default function AdsDashboardPage() {
 
   return (
     <div className="shell callsDash gaDash adsCinema">
-      <header className="topbar adsTopbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>My Drip Nurse — Google Ads Dashboard</h1>
-            <div className="mini" style={{ opacity: 0.8, marginTop: 4 }}>
-              Performance + budget efficiency + keyword leakage + Delta
-              opportunities. Customer:{" "}
-              <b className="mono">{data?.meta?.customerId || "—"}</b>
-            </div>
-            {data?.meta?.warning ? (
-              <div
-                className="mini"
-                style={{ color: "var(--warning)", marginTop: 6 }}
-              >
-                ⚠️ {String(data.meta.warning)}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="pills">
-          <Link
-            className="pill"
-            href={backHref}
-            style={{ textDecoration: "none" }}
-          >
-            ← Back
-          </Link>
-
-          <div className="pill">
-            <span className="dot" />
-            <span>Live</span>
-          </div>
-
+      <DashboardTopbar
+        title="My Drip Nurse — Google Ads Dashboard"
+        subtitle={(
+          <>
+            Performance + budget efficiency + keyword leakage + Delta opportunities. Customer:{" "}
+            <b className="mono">{data?.meta?.customerId || "—"}</b>
+          </>
+        )}
+        details={data?.meta?.warning ? (
+          <span style={{ color: "var(--warning)" }}>⚠ {String(data.meta.warning)}</span>
+        ) : undefined}
+        backHref={backHref}
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+        className="adsTopbar"
+        extraPill={(
           <button
             className="pill adsNotifBell"
             type="button"
             onClick={() => setNotificationsOpen(true)}
             title="Abrir centro de recomendaciones AI"
           >
-            <span>Notifications</span>
+            <span>Alerts</span>
             <span className={`adsNotifCount ${openNotifications > 0 ? "adsNotifCountHot" : ""}`}>
               {fmtInt(openNotifications)}
             </span>
           </button>
-
-          <div className="pill">
-            <span style={{ color: "var(--muted)" }}>Created by</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Axel Castro</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Devasks</span>
-          </div>
-        </div>
-      </header>
+        )}
+      />
 
       <section className="card adsHeroCard" style={{ marginTop: 14 }}>
         <div className="adsHeroGlow" />

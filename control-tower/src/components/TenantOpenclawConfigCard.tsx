@@ -56,12 +56,16 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [openclawWorkspace, setOpenclawWorkspace] = useState("");
   const [agents, setAgents] = useState<Record<string, AgentNode>>({});
   const [loadedAgents, setLoadedAgents] = useState<Record<string, AgentNode>>({});
+  const [loadedOpenclawBaseUrl, setLoadedOpenclawBaseUrl] = useState("");
+  const [loadedOpenclawWorkspace, setLoadedOpenclawWorkspace] = useState("");
 
   const isDirty = useMemo(() => {
     return (
-      JSON.stringify(agents) !== JSON.stringify(loadedAgents)
+      JSON.stringify(agents) !== JSON.stringify(loadedAgents) ||
+      s(openclawBaseUrl) !== s(loadedOpenclawBaseUrl) ||
+      s(openclawWorkspace) !== s(loadedOpenclawWorkspace)
     );
-  }, [agents, loadedAgents]);
+  }, [agents, loadedAgents, openclawBaseUrl, loadedOpenclawBaseUrl, openclawWorkspace, loadedOpenclawWorkspace]);
 
   async function load() {
     if (!tenantId) return;
@@ -80,6 +84,8 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       setApiKeyMasked(s(json.apiKeyMasked));
       setOpenclawBaseUrl(s(json.openclawBaseUrl));
       setOpenclawWorkspace(s(json.openclawWorkspace));
+      setLoadedOpenclawBaseUrl(s(json.openclawBaseUrl));
+      setLoadedOpenclawWorkspace(s(json.openclawWorkspace));
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
     } catch (e: unknown) {
@@ -128,6 +134,10 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       setStatus(s(json.status) || "connected");
       setHasApiKey(true);
       setApiKeyMasked(s(json.apiKeyMasked));
+      setOpenclawBaseUrl(s(json.openclawBaseUrl));
+      setOpenclawWorkspace(s(json.openclawWorkspace));
+      setLoadedOpenclawBaseUrl(s(json.openclawBaseUrl));
+      setLoadedOpenclawWorkspace(s(json.openclawWorkspace));
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
       if (rotate && s((json as any).apiKey)) {
@@ -142,10 +152,11 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   }
 
   return (
-    <div className="cardBody">
+    <div className="cardBody hubSetupBody">
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <div className="badge">Status: {status || "disconnected"}</div>
         <div className="badge">API Key: {hasApiKey ? apiKeyMasked || "configured" : "not configured"}</div>
+        {isDirty ? <div className="badge" style={{ borderColor: "rgba(59,130,246,.45)", color: "rgba(191,219,254,.95)" }}>Unsaved changes</div> : null}
         <button className="smallBtn" type="button" onClick={() => void load()} disabled={loading || saving || !tenantId}>
           {loading ? "Refreshing..." : "Refresh"}
         </button>
@@ -160,7 +171,7 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       {err ? <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {err}</div> : null}
       {msg ? <div className="mini" style={{ color: "rgba(74,222,128,0.95)", marginBottom: 8 }}>✓ {msg}</div> : null}
 
-      <div className="moduleGrid" style={{ marginBottom: 10 }}>
+      <div className="moduleGrid hubSetupGrid" style={{ marginBottom: 10 }}>
         <div className="moduleCard">
           <p className="l moduleTitle">OpenClaw Base URL</p>
           <input
@@ -181,8 +192,8 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
         </div>
       </div>
 
-      <div className="tableWrap">
-        <table className="table">
+      <div className="tableWrap hubSetupTableWrap">
+        <table className="table hubSetupTable">
           <thead>
             <tr>
               <th>Dashboard</th>
@@ -220,4 +231,3 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
     </div>
   );
 }
-

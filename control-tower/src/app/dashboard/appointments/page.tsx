@@ -1,11 +1,11 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import DashboardTopbar from "@/components/DashboardTopbar";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -353,6 +353,10 @@ function AppointmentsDashboardPageContent() {
     addDashboardRangeParams(qs, preset, customStart, customEnd);
     return `/dashboard?${qs.toString()}`;
   }, [tenantId, integrationKey, preset, customStart, customEnd]);
+  const notificationsHref = useMemo(() => {
+    if (!tenantId) return "/dashboard#notification-hub";
+    return `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`;
+  }, [tenantId, integrationKey]);
 
   async function load(force = false) {
     if (!tenantReady) return;
@@ -735,23 +739,13 @@ function AppointmentsDashboardPageContent() {
         </div>
       ) : null}
 
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>My Drip Nurse — Appointments Dashboard</h1>
-          </div>
-        </div>
-        <div className="pills">
-          <Link className="smallBtn" href={backHref}>
-            Back to Dashboard
-          </Link>
-          <div className="pill">
-            <span className="dot" />
-            <span>Live</span>
-          </div>
-        </div>
-      </header>
+      <DashboardTopbar
+        title="My Drip Nurse — Appointments Dashboard"
+        backHref={backHref}
+        backLabel="Back to Dashboard"
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+      />
 
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">

@@ -2,11 +2,11 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import DashboardTopbar from "@/components/DashboardTopbar";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -378,6 +378,10 @@ function ContactsDashboardPageContent() {
     addDashboardRangeParams(qs, preset, customStart, customEnd);
     return `/dashboard?${qs.toString()}`;
   }, [tenantId, integrationKey, preset, customStart, customEnd]);
+  const notificationsHref = useMemo(() => {
+    if (!tenantId) return "/dashboard#notification-hub";
+    return `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`;
+  }, [tenantId, integrationKey]);
 
   async function fetchContacts(start: string, end: string, force = false) {
     const qs = new URLSearchParams();
@@ -688,24 +692,12 @@ function ContactsDashboardPageContent() {
         </div>
       )}
 
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>My Drip Nurse - Contacts (Leads) Dashboard</h1>
-          </div>
-        </div>
-
-        <div className="pills">
-          <Link className="pill" href={backHref} style={{ textDecoration: "none" }}>
-            ← Back
-          </Link>
-          <div className="pill">
-            <span className="dot" />
-            <span>Live</span>
-          </div>
-        </div>
-      </header>
+      <DashboardTopbar
+        title="My Drip Nurse - Contacts (Leads) Dashboard"
+        backHref={backHref}
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+      />
 
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import DashboardTopbar from "@/components/DashboardTopbar";
+import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
+import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import type { DashboardRangePreset } from "@/lib/dateRangePresets";
 
 type RangePreset = DashboardRangePreset;
@@ -112,6 +114,15 @@ function downloadCsv(filename: string, headers: string[], rows: Array<Array<unkn
 }
 
 export default function FacebookAdsDashboardPage() {
+  const searchParams = useBrowserSearchParams();
+  const { tenantId } = useResolvedTenantId(searchParams);
+  const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
+  const backHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard";
+  const notificationsHref = tenantId
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`
+    : "/dashboard#notification-hub";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -242,21 +253,14 @@ export default function FacebookAdsDashboardPage() {
 
   return (
     <div className="shell callsDash gaDash">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>My Drip Nurse — Facebook Ads Strategy Dashboard</h1>
-            <div className="mini" style={{ opacity: 0.8, marginTop: 4 }}>
-              Planner de campañas por región con setup de funnel y copy listo para ejecutar.
-            </div>
-          </div>
-        </div>
-        <div className="pills">
-          <Link className="pill" href="/dashboard" style={{ textDecoration: "none" }}>← Back</Link>
-          <div className="pill"><span className="dot" /><span>Planning Mode</span></div>
-        </div>
-      </header>
+      <DashboardTopbar
+        title="My Drip Nurse — Facebook Ads Strategy Dashboard"
+        subtitle="Planner de campanas por region con setup de funnel y copy listo para ejecutar."
+        backHref={backHref}
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+        liveLabel="Planning Mode"
+      />
 
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">

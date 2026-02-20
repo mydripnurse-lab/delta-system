@@ -1,10 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import DashboardTopbar from "@/components/DashboardTopbar";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -74,6 +74,14 @@ type GeoQueueRow = {
   uniqueContacts: number;
   priorityScore: number;
   cbpEstablishments?: number;
+  opportunityOpen?: number;
+  opportunityWon?: number;
+  opportunityLost?: number;
+  opportunityStaleOver7d?: number;
+  opportunityStaleOver14d?: number;
+  opportunityValue?: number;
+  opportunityWinRate?: number;
+  opportunityAvgAgeDays?: number;
 };
 
 type LeadRow = {
@@ -181,6 +189,15 @@ function statusToneClass(value: string) {
   return "";
 }
 
+function geoOppSignalsLabel(row: GeoQueueRow) {
+  const parts: string[] = [];
+  if (Number(row.opportunityOpen || 0) > 0) parts.push(`Open ${fmtInt(row.opportunityOpen)}`);
+  if (Number(row.opportunityStaleOver7d || 0) > 0) parts.push(`Stale>7d ${fmtInt(row.opportunityStaleOver7d)}`);
+  if (Number(row.opportunityValue || 0) > 0) parts.push(`OppValue ${fmtMoney(row.opportunityValue)}`);
+  if (Number(row.opportunityWinRate || 0) > 0) parts.push(`Win ${fmtInt(row.opportunityWinRate)}%`);
+  return parts.join(" · ");
+}
+
 function ProspectingDashboardContent() {
   const searchParams = useBrowserSearchParams();
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
@@ -198,6 +215,10 @@ function ProspectingDashboardContent() {
     addDashboardRangeParams(qs, preset, customStart, customEnd);
     return `/dashboard?${qs.toString()}`;
   }, [tenantId, integrationKey, preset, customStart, customEnd]);
+  const notificationsHref = useMemo(() => {
+    if (!tenantId) return "/dashboard#notification-hub";
+    return `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`;
+  }, [tenantId, integrationKey]);
   const computedRange = useMemo(
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
@@ -905,20 +926,14 @@ function ProspectingDashboardContent() {
 
   return (
     <div className="shell callsDash ceoDash prospectingDash">
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>Prospecting Dashboard</h1>
-            <div className="subtle">County by county and city by city lead intelligence.</div>
-          </div>
-        </div>
-        <div className="pills">
-          <Link className="smallBtn" href={backHref}>
-            Back to Executive Dashboard
-          </Link>
-        </div>
-      </header>
+      <DashboardTopbar
+        title="Prospecting Dashboard"
+        subtitle="County by county and city by city lead intelligence."
+        backHref={backHref}
+        backLabel="Back to Executive Dashboard"
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+      />
 
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
@@ -1223,8 +1238,17 @@ function ProspectingDashboardContent() {
                       <span className="badge">Opp {fmtInt(r.opportunities)}</span>
                       <span className="badge">{fmtMoney(r.value)}</span>
                       <span className="badge">CBP {fmtInt(r.cbpEstablishments)}</span>
+                      {Number(r.opportunityOpen || 0) > 0 ? <span className="badge">Open {fmtInt(r.opportunityOpen)}</span> : null}
+                      {Number(r.opportunityStaleOver7d || 0) > 0 ? <span className="badge">Stale &gt;7d {fmtInt(r.opportunityStaleOver7d)}</span> : null}
+                      {Number(r.opportunityValue || 0) > 0 ? <span className="badge">Opp Value {fmtMoney(r.opportunityValue)}</span> : null}
+                      {Number(r.opportunityWinRate || 0) > 0 ? <span className="badge">Win {fmtInt(r.opportunityWinRate)}%</span> : null}
                       <span className="badge">P {fmtInt(r.priorityScore)}</span>
                     </div>
+                    {geoOppSignalsLabel(r) ? (
+                      <div className="mini" style={{ marginTop: 6, opacity: 0.85 }}>
+                        {geoOppSignalsLabel(r)}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
                 {(data?.geoQueue?.states || []).length === 0 ? (
@@ -1251,8 +1275,17 @@ function ProspectingDashboardContent() {
                     <div className="prospectingGeoMeta">
                       <span className="badge">Opp {fmtInt(r.opportunities)}</span>
                       <span className="badge">{fmtMoney(r.value)}</span>
+                      {Number(r.opportunityOpen || 0) > 0 ? <span className="badge">Open {fmtInt(r.opportunityOpen)}</span> : null}
+                      {Number(r.opportunityStaleOver7d || 0) > 0 ? <span className="badge">Stale &gt;7d {fmtInt(r.opportunityStaleOver7d)}</span> : null}
+                      {Number(r.opportunityValue || 0) > 0 ? <span className="badge">Opp Value {fmtMoney(r.opportunityValue)}</span> : null}
+                      {Number(r.opportunityWinRate || 0) > 0 ? <span className="badge">Win {fmtInt(r.opportunityWinRate)}%</span> : null}
                       <span className="badge">P {fmtInt(r.priorityScore)}</span>
                     </div>
+                    {geoOppSignalsLabel(r) ? (
+                      <div className="mini" style={{ marginTop: 6, opacity: 0.85 }}>
+                        {geoOppSignalsLabel(r)}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
                 {(data?.geoQueue?.counties || []).length === 0 ? (
@@ -1279,8 +1312,17 @@ function ProspectingDashboardContent() {
                     <div className="prospectingGeoMeta">
                       <span className="badge">Opp {fmtInt(r.opportunities)}</span>
                       <span className="badge">{fmtMoney(r.value)}</span>
+                      {Number(r.opportunityOpen || 0) > 0 ? <span className="badge">Open {fmtInt(r.opportunityOpen)}</span> : null}
+                      {Number(r.opportunityStaleOver7d || 0) > 0 ? <span className="badge">Stale &gt;7d {fmtInt(r.opportunityStaleOver7d)}</span> : null}
+                      {Number(r.opportunityValue || 0) > 0 ? <span className="badge">Opp Value {fmtMoney(r.opportunityValue)}</span> : null}
+                      {Number(r.opportunityWinRate || 0) > 0 ? <span className="badge">Win {fmtInt(r.opportunityWinRate)}%</span> : null}
                       <span className="badge">P {fmtInt(r.priorityScore)}</span>
                     </div>
+                    {geoOppSignalsLabel(r) ? (
+                      <div className="mini" style={{ marginTop: 6, opacity: 0.85 }}>
+                        {geoOppSignalsLabel(r)}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
                 {(data?.geoQueue?.cities || []).length === 0 ? (

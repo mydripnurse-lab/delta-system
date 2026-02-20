@@ -20,6 +20,7 @@ type AgentProposal = {
 
 type Props = {
   tenantId: string;
+  onCountsChange?: (counts: { proposed: number; approved: number; rejected: number; executed: number; failed: number }) => void;
 };
 
 function s(v: unknown) {
@@ -40,7 +41,34 @@ function badgeTone(status: string) {
   return "rgba(59,130,246,0.22)";
 }
 
-export default function AgentNotificationHub({ tenantId }: Props) {
+function humanizeToken(raw: string) {
+  const v = s(raw).replace(/^soul_/, "").replace(/_/g, " ").trim();
+  return v
+    .split(" ")
+    .filter(Boolean)
+    .map((x) => x[0].toUpperCase() + x.slice(1))
+    .join(" ");
+}
+
+function dashboardLabel(raw: string) {
+  const v = s(raw).toLowerCase();
+  if (v === "facebook_ads") return "Facebook Ads";
+  if (v === "gsc") return "GSC";
+  if (v === "ga") return "GA";
+  if (v === "prospecting") return "Prospecting";
+  return humanizeToken(v);
+}
+
+function actionLabel(raw: string) {
+  const v = s(raw).toLowerCase();
+  if (v === "send_leads_ghl") return "Send Leads to GHL";
+  if (v === "publish_ads") return "Publish Ads";
+  if (v === "optimize_ads") return "Optimize Ads";
+  if (v === "publish_content") return "Publish Content";
+  return humanizeToken(v);
+}
+
+export default function AgentNotificationHub({ tenantId, onCountsChange }: Props) {
   const [items, setItems] = useState<AgentProposal[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
@@ -83,6 +111,10 @@ export default function AgentNotificationHub({ tenantId }: Props) {
     }
     return out;
   }, [items]);
+
+  useEffect(() => {
+    onCountsChange?.(counts);
+  }, [counts, onCountsChange]);
 
   async function decide(proposalId: string, decision: "approved" | "rejected") {
     setBusyId(proposalId);
@@ -167,7 +199,7 @@ export default function AgentNotificationHub({ tenantId }: Props) {
   }
 
   return (
-    <div className="cardBody">
+    <div className="cardBody hubBody">
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         <div className="badge">Proposed: {counts.proposed}</div>
         <div className="badge">Approved: {counts.approved}</div>
@@ -193,8 +225,8 @@ export default function AgentNotificationHub({ tenantId }: Props) {
 
       {err ? <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {err}</div> : null}
 
-      <div className="tableWrap">
-        <table className="table">
+      <div className="tableWrap hubTableWrap">
+        <table className="table hubTable">
           <thead>
             <tr>
               <th>Agent</th>
@@ -214,11 +246,11 @@ export default function AgentNotificationHub({ tenantId }: Props) {
               items.map((row) => (
                 <tr key={row.id}>
                   <td>
-                    <div className="mini"><b>{row.agent_id}</b></div>
-                    <div className="mini" style={{ opacity: 0.8 }}>{row.dashboard_id} · {row.priority}</div>
+                    <div className="mini"><b>{humanizeToken(row.agent_id)}</b></div>
+                    <div className="mini" style={{ opacity: 0.8 }}>{dashboardLabel(row.dashboard_id)} · {row.priority}</div>
                   </td>
                   <td>
-                    <div className="mini">{row.action_type}</div>
+                    <div className="mini">{actionLabel(row.action_type)}</div>
                     <div className="mini" style={{ opacity: 0.8 }}>{row.risk_level} risk · {row.expected_impact} impact</div>
                   </td>
                   <td>
@@ -278,4 +310,3 @@ export default function AgentNotificationHub({ tenantId }: Props) {
     </div>
   );
 }
-

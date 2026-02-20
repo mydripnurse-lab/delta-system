@@ -1,12 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import DashboardTopbar from "@/components/DashboardTopbar";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -437,6 +437,10 @@ function CallsDashboardPageContent() {
     addDashboardRangeParams(qs, preset, customStart, customEnd);
     return `/dashboard?${qs.toString()}`;
   }, [tenantId, integrationKey, preset, customStart, customEnd]);
+  const notificationsHref = useMemo(() => {
+    if (!tenantId) return "/dashboard#notification-hub";
+    return `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`;
+  }, [tenantId, integrationKey]);
 
   function clearSelection() {
     setMapSelected("");
@@ -858,38 +862,12 @@ function CallsDashboardPageContent() {
 
   return (
     <div className="shell callsDash">
-      {/* Topbar */}
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
-          <div>
-            <h1>My Drip Nurse — Calls Dashboard</h1>
-          </div>
-        </div>
-
-        <div className="pills">
-          <Link
-            className="pill"
-            href={backHref}
-            style={{ textDecoration: "none" }}
-          >
-            ← Back
-          </Link>
-
-          <div className="pill">
-            <span className="dot" />
-            <span>Live</span>
-          </div>
-
-          <div className="pill">
-            <span style={{ color: "var(--muted)" }}>Created by</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Axel Castro</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Devasks</span>
-          </div>
-        </div>
-      </header>
+      <DashboardTopbar
+        title="My Drip Nurse — Calls Dashboard"
+        backHref={backHref}
+        tenantId={tenantId}
+        notificationsHref={notificationsHref}
+      />
 
       {/* Filters */}
       <section className="card" style={{ marginTop: 14 }}>
