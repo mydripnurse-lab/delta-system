@@ -466,6 +466,9 @@ export default function Home() {
   const [tenantBingIndexNowKeyLocation, setTenantBingIndexNowKeyLocation] = useState("");
   const [tenantBingSaving, setTenantBingSaving] = useState(false);
   const [tenantBingMsg, setTenantBingMsg] = useState("");
+  const [tenantGooglePlacesApiKey, setTenantGooglePlacesApiKey] = useState("");
+  const [tenantGooglePlacesSaving, setTenantGooglePlacesSaving] = useState(false);
+  const [tenantGooglePlacesMsg, setTenantGooglePlacesMsg] = useState("");
   const [tenantProspectingWebhookUrl, setTenantProspectingWebhookUrl] = useState("");
   const [tenantProspectingWebhookEnabled, setTenantProspectingWebhookEnabled] = useState(true);
   const [tenantProspectingWebhookBusy, setTenantProspectingWebhookBusy] = useState(false);
@@ -1009,6 +1012,43 @@ export default function Home() {
     );
   }
 
+  function hydrateGooglePlacesFormFromIntegrations(rows: TenantIntegrationRow[]) {
+    const pick =
+      rows.find(
+        (it) =>
+          (s(it.provider).toLowerCase() === "google_maps" ||
+            s(it.provider).toLowerCase() === "google_places") &&
+          s(it.integration_key || it.integrationKey || "default").toLowerCase() === "default",
+      ) ||
+      rows.find(
+        (it) =>
+          s(it.provider).toLowerCase() === "google_maps" ||
+          s(it.provider).toLowerCase() === "google_places",
+      ) ||
+      null;
+    if (!pick) {
+      setTenantGooglePlacesApiKey("");
+      return;
+    }
+    const cfg =
+      pick.config && typeof pick.config === "object"
+        ? (pick.config as Record<string, unknown>)
+        : {};
+    const auth =
+      cfg.auth && typeof cfg.auth === "object"
+        ? (cfg.auth as Record<string, unknown>)
+        : {};
+    setTenantGooglePlacesApiKey(
+      s(cfg.apiKey) ||
+        s(cfg.mapsApiKey) ||
+        s(cfg.placesApiKey) ||
+        s(cfg.key) ||
+        s(cfg.api_key) ||
+        s(auth.apiKey) ||
+        s(auth.api_key),
+    );
+  }
+
   async function loadTenantProspectingWebhookSettings() {
     if (!routeTenantId) return;
     setTenantProspectingWebhookErr("");
@@ -1081,6 +1121,48 @@ export default function Home() {
     }
   }
 
+  async function saveTenantGooglePlacesIntegration() {
+    if (!routeTenantId) return;
+    setTenantGooglePlacesMsg("");
+    setTenantGooglePlacesSaving(true);
+    setTenantDetailErr("");
+    try {
+      if (!s(tenantGooglePlacesApiKey)) {
+        throw new Error("Google Places API key is required.");
+      }
+      const payload = {
+        provider: "google_maps",
+        integrationKey: "default",
+        status: "connected",
+        authType: "api_key",
+        config: {
+          apiKey: s(tenantGooglePlacesApiKey),
+          mapsApiKey: s(tenantGooglePlacesApiKey),
+          placesApiKey: s(tenantGooglePlacesApiKey),
+        },
+      };
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/integrations`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      await refreshIntegrationsSnapshot();
+      setTenantGooglePlacesMsg("Google Places integration saved in tenant DB.");
+    } catch (e: any) {
+      setTenantGooglePlacesMsg("");
+      setTenantDetailErr(e?.message || "Failed to save Google Places integration.");
+    } finally {
+      setTenantGooglePlacesSaving(false);
+    }
+  }
+
   async function applyCustomValuesForActivationLocation() {
     if (!routeTenantId || !s(actLocId)) return;
     setActCvMsg("");
@@ -1127,6 +1209,7 @@ export default function Home() {
 
   useEffect(() => {
     hydrateBingFormFromIntegrations(tenantIntegrations);
+    hydrateGooglePlacesFormFromIntegrations(tenantIntegrations);
   }, [tenantIntegrations]);
 
   async function saveTenantProspectingWebhookSettings() {
@@ -1252,6 +1335,7 @@ export default function Home() {
         });
         setTenantIntegrations(integrations);
         hydrateBingFormFromIntegrations(integrations);
+        hydrateGooglePlacesFormFromIntegrations(integrations);
         setTenantDetailErr("");
 
         setTenantName(s(t.name));
@@ -1740,6 +1824,7 @@ export default function Home() {
       const rows = Array.isArray(freshData.integrations) ? freshData.integrations : [];
       setTenantIntegrations(rows);
       hydrateBingFormFromIntegrations(rows);
+      hydrateGooglePlacesFormFromIntegrations(rows);
     }
   }
 
@@ -3860,6 +3945,38 @@ export default function Home() {
                     onClick={() => void saveTenantBingIntegration()}
                   >
                     {tenantBingSaving ? "Saving..." : "Save Bing Config"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="detailsCustomTop" style={{ marginTop: 12 }}>
+                <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
+                  <div className="detailsPaneTitle">Google Places (Tenant)</div>
+                  <div className="detailsPaneSub">
+                    API key used by Prospecting discovery runs to search businesses in Google Places.
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="field">
+                    <label>Google Places API Key</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={tenantGooglePlacesApiKey}
+                      onChange={(e) => setTenantGooglePlacesApiKey(e.target.value)}
+                      placeholder="AIza..."
+                    />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  {tenantGooglePlacesMsg ? <span className="badge">{tenantGooglePlacesMsg}</span> : null}
+                  <button
+                    type="button"
+                    className="smallBtn"
+                    disabled={!routeTenantId || tenantGooglePlacesSaving}
+                    onClick={() => void saveTenantGooglePlacesIntegration()}
+                  >
+                    {tenantGooglePlacesSaving ? "Saving..." : "Save Google Places Config"}
                   </button>
                 </div>
               </div>
