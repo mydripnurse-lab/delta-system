@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
+import AgentNotificationHub from "@/components/AgentNotificationHub";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -3016,6 +3017,24 @@ function DashboardHomeContent() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Notification Hub</h2>
+            <div className="cardSubtitle">
+              Approval queue for dashboard agents. Approve, edit+approve, reject, and execute proposals from one place.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("action_center")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">{tenantId ? `Tenant: ${tenantId.slice(0, 8)}...` : "Missing tenant"}</div>
+          </div>
+        </div>
+        <AgentNotificationHub tenantId={tenantId} />
       </section>
 
       <section className="card" style={{ marginTop: 14 }}>
