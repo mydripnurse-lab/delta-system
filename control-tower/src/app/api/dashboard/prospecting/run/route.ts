@@ -79,7 +79,7 @@ async function loadTenantPlacesApiKey(tenantId: string) {
       select config, metadata
       from app.organization_integrations
       where organization_id = $1::uuid
-        and provider in ('google_maps', 'google_places')
+        and provider in ('google_maps', 'google_places', 'google_cloud')
         and integration_key in ('default', 'owner')
       order by case when integration_key = 'default' then 0 else 1 end
       limit 1
@@ -242,13 +242,13 @@ export async function POST(req: Request) {
       s(process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_PLACES_API_KEY);
     if (!placesApiKey) {
       return Response.json(
-        {
-          ok: false,
-          error:
-            "Missing Places API key. Configure tenant integration provider=google_maps/integrationKey=default with config.apiKey, or set GOOGLE_MAPS_API_KEY.",
-        },
-        { status: 400 },
-      );
+          {
+            ok: false,
+            error:
+              "Missing Places API key. Configure tenant integration provider=google_cloud (or google_maps/google_places) with integrationKey=default and config.apiKey, or set GOOGLE_MAPS_API_KEY.",
+          },
+          { status: 400 },
+        );
     }
 
     const origin = new URL(req.url).origin;

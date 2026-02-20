@@ -1017,13 +1017,15 @@ export default function Home() {
       rows.find(
         (it) =>
           (s(it.provider).toLowerCase() === "google_maps" ||
-            s(it.provider).toLowerCase() === "google_places") &&
+            s(it.provider).toLowerCase() === "google_places" ||
+            s(it.provider).toLowerCase() === "google_cloud") &&
           s(it.integration_key || it.integrationKey || "default").toLowerCase() === "default",
       ) ||
       rows.find(
         (it) =>
           s(it.provider).toLowerCase() === "google_maps" ||
-          s(it.provider).toLowerCase() === "google_places",
+          s(it.provider).toLowerCase() === "google_places" ||
+          s(it.provider).toLowerCase() === "google_cloud",
       ) ||
       null;
     if (!pick) {
@@ -1131,7 +1133,7 @@ export default function Home() {
         throw new Error("Google Places API key is required.");
       }
       const payload = {
-        provider: "google_maps",
+        provider: "google_cloud",
         integrationKey: "default",
         status: "connected",
         authType: "api_key",

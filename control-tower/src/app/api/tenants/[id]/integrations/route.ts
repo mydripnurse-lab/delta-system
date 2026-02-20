@@ -122,50 +122,65 @@ export async function POST(req: Request, ctx: Ctx) {
   const lastError = s(body.lastError) || null;
 
   const pool = getDbPool();
-  const q = await pool.query<{ id: string }>(
-    `
-      insert into app.organization_integrations (
-        organization_id,
+  let q;
+  try {
+    q = await pool.query<{ id: string }>(
+      `
+        insert into app.organization_integrations (
+          organization_id,
+          provider,
+          integration_key,
+          status,
+          auth_type,
+          external_account_id,
+          external_property_id,
+          scopes,
+          config,
+          metadata,
+          last_error
+        )
+        values ($1,$2,$3,$4,$5,$6,$7,$8::text[],$9::jsonb,$10::jsonb,$11)
+        on conflict (organization_id, provider, integration_key)
+        do update
+          set
+            status = excluded.status,
+            auth_type = excluded.auth_type,
+            external_account_id = excluded.external_account_id,
+            external_property_id = excluded.external_property_id,
+            scopes = excluded.scopes,
+            config = excluded.config,
+            metadata = excluded.metadata,
+            last_error = excluded.last_error,
+            updated_at = now()
+        returning id
+      `,
+      [
+        tenantId,
         provider,
-        integration_key,
+        integrationKey,
         status,
-        auth_type,
-        external_account_id,
-        external_property_id,
+        authType,
+        externalAccountId,
+        externalPropertyId,
         scopes,
         config,
         metadata,
-        last_error
-      )
-      values ($1,$2,$3,$4,$5,$6,$7,$8::text[],$9::jsonb,$10::jsonb,$11)
-      on conflict (organization_id, provider, integration_key)
-      do update
-        set
-          status = excluded.status,
-          auth_type = excluded.auth_type,
-          external_account_id = excluded.external_account_id,
-          external_property_id = excluded.external_property_id,
-          scopes = excluded.scopes,
-          config = excluded.config,
-          metadata = excluded.metadata,
-          last_error = excluded.last_error,
-          updated_at = now()
-      returning id
-    `,
-    [
-      tenantId,
-      provider,
-      integrationKey,
-      status,
-      authType,
-      externalAccountId,
-      externalPropertyId,
-      scopes,
-      config,
-      metadata,
-      lastError,
-    ],
-  );
+        lastError,
+      ],
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to save integration";
+    if (message.includes("organization_integrations_provider_ck")) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Invalid provider '${provider}'. Allowed values come from DB constraint organization_integrations_provider_ck.`,
+        },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
 
   return NextResponse.json({
     ok: true,
