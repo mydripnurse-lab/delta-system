@@ -306,8 +306,8 @@ function ConversationsDashboardPageContent() {
     return `/dashboard?${qs.toString()}`;
   }, [tenantId, integrationKey, preset, customStart, customEnd]);
   const notificationsHref = useMemo(() => {
-    if (!tenantId) return "/dashboard#notification-hub";
-    return `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`;
+    if (!tenantId) return "/dashboard/notification-hub";
+    return `/dashboard/notification-hub?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`;
   }, [tenantId, integrationKey]);
 
   async function load(force = false) {

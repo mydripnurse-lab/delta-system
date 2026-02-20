@@ -84,8 +84,8 @@ function GaDashboardPageContent() {
     ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}`
     : "/dashboard";
   const notificationsHref = tenantId
-    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}#notification-hub`
-    : "/dashboard#notification-hub";
+    ? `/dashboard/notification-hub?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard/notification-hub";
 
   function attachTenantScope(p: URLSearchParams) {
     if (!tenantId) return;

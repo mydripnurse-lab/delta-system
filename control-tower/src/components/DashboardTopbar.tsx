@@ -13,6 +13,7 @@ type Props = {
   liveLabel?: string;
   tenantId?: string;
   notificationsHref?: string;
+  showNotifications?: boolean;
   extraPill?: ReactNode;
   showCreator?: boolean;
   className?: string;
@@ -26,7 +27,8 @@ export default function DashboardTopbar({
   backLabel = "← Back",
   liveLabel = "Live",
   tenantId = "",
-  notificationsHref = "/dashboard#notification-hub",
+  notificationsHref = "/dashboard/notification-hub",
+  showNotifications = true,
   extraPill = null,
   showCreator = true,
   className = "",
@@ -60,7 +62,9 @@ export default function DashboardTopbar({
           <span>{liveLabel}</span>
         </div>
 
-        <DashboardNotificationsPill tenantId={tenantId} href={notificationsHref} />
+        {showNotifications ? (
+          <DashboardNotificationsPill tenantId={tenantId} href={notificationsHref} />
+        ) : null}
 
         {extraPill}
 
@@ -77,4 +81,3 @@ export default function DashboardTopbar({
     </header>
   );
 }
-

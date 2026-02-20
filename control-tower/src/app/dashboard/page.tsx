@@ -4,8 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
-import AgentNotificationHub from "@/components/AgentNotificationHub";
-import TenantOpenclawConfigCard from "@/components/TenantOpenclawConfigCard";
+import DashboardNotificationsPill from "@/components/DashboardNotificationsPill";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -937,14 +936,6 @@ function DashboardHomeContent() {
   const [queueBusyKey, setQueueBusyKey] = useState("");
   const [queueErr, setQueueErr] = useState("");
   const [queueMsg, setQueueMsg] = useState("");
-  const [hubTab, setHubTab] = useState<"inbox" | "setups">("inbox");
-  const [hubCounts, setHubCounts] = useState<{ proposed: number; approved: number; rejected: number; executed: number; failed: number }>({
-    proposed: 0,
-    approved: 0,
-    rejected: 0,
-    executed: 0,
-    failed: 0,
-  });
 
   const computedRange = useMemo(
     () => computeDashboardRange(preset, customStart, customEnd),
@@ -957,6 +948,9 @@ function DashboardHomeContent() {
   const controlTowerHref = tenantId ? `/projects/${encodeURIComponent(tenantId)}` : "/";
   const integrationKeyRaw = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
   const integrationKey = integrationKeyRaw.toLowerCase() === "default" ? "owner" : integrationKeyRaw;
+  const notificationHubHref = tenantId
+    ? `/dashboard/notification-hub?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
+    : "/dashboard/notification-hub";
 
   useEffect(() => {
     let cancelled = false;
@@ -1041,13 +1035,6 @@ function DashboardHomeContent() {
     const joiner = basePath.includes("?") ? "&" : "?";
     const scoped = `${basePath}${joiner}${qs.toString()}`;
     return hash ? `${scoped}#${hash}` : scoped;
-  }
-
-  function openNotificationHub() {
-    setHubTab("inbox");
-    if (typeof window !== "undefined") {
-      window.location.hash = "notification-hub";
-    }
   }
 
   async function load(force = false) {
@@ -2261,16 +2248,10 @@ function DashboardHomeContent() {
         </div>
 
         <div className="pills">
-          <button
-            className="pill"
-            type="button"
-            onClick={openNotificationHub}
-            style={{ cursor: "pointer" }}
-            title="Open Notification Hub"
-          >
-            <span>Notifications</span>
-            <span className="badge" style={{ marginLeft: 6 }}>{fmtInt(hubCounts.proposed)}</span>
-          </button>
+          <DashboardNotificationsPill
+            tenantId={tenantId}
+            href={notificationHubHref}
+          />
           <div className="pill">
             <span className="dot" />
             <span>Live</span>
@@ -3147,47 +3128,6 @@ function DashboardHomeContent() {
             ))}
           </div>
         </div>
-      </section>
-
-      <section className="card" id="notification-hub" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Notification Hub</h2>
-            <div className="cardSubtitle">
-              Premium approval center for dashboard agents. Review, approve, execute, and manage setup from one place.
-            </div>
-          </div>
-          <div className="cardHeaderActions">
-            <button className="smallBtn" type="button" onClick={() => openSectionHelp("action_center")} title="Section helper">
-              ?
-            </button>
-            <div className="badge">{tenantId ? `Tenant: ${tenantId.slice(0, 8)}...` : "Missing tenant"}</div>
-          </div>
-        </div>
-        <div className="cardBody" style={{ paddingBottom: 0 }}>
-          <div className="segmented" role="tablist" aria-label="Notification hub tabs">
-            <button
-              className={`segBtn ${hubTab === "inbox" ? "segBtnOn" : ""}`}
-              type="button"
-              onClick={() => setHubTab("inbox")}
-            >
-              Notification Hub
-              <span className="badge" style={{ marginLeft: 8 }}>{fmtInt(hubCounts.proposed)}</span>
-            </button>
-            <button
-              className={`segBtn ${hubTab === "setups" ? "segBtnOn" : ""}`}
-              type="button"
-              onClick={() => setHubTab("setups")}
-            >
-              Setups
-            </button>
-          </div>
-        </div>
-        {hubTab === "inbox" ? (
-          <AgentNotificationHub tenantId={tenantId} onCountsChange={setHubCounts} />
-        ) : (
-          <TenantOpenclawConfigCard tenantId={tenantId} />
-        )}
       </section>
 
       <section className="card" style={{ marginTop: 14 }}>
