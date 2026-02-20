@@ -6402,6 +6402,10 @@ button, input, select { font-family: inherit; }
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.agencyWizardGridThree {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .agencyModalActionBar {
   display: flex;
   justify-content: space-between;
@@ -6565,6 +6569,17 @@ button, input, select { font-family: inherit; }
 
 .agencyFormPanel .input {
   margin-top: 10px;
+}
+
+.prospectingDash .prospectingFormPanel .input {
+  margin-top: 0;
+}
+
+.prospectingDash .prospectingCheckboxField {
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.35);
 }
 
 .agencyActionPrimary {
@@ -6786,6 +6801,10 @@ button, input, select { font-family: inherit; }
   }
 
   .agencyWizardGridFour {
+    grid-template-columns: 1fr;
+  }
+
+  .agencyWizardGridThree {
     grid-template-columns: 1fr;
   }
 

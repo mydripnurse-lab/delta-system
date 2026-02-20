@@ -62,10 +62,15 @@ function uniqueFirst(items: string[]) {
   return out;
 }
 
-async function fetchJson(url: string) {
-  const res = await fetch(url, { cache: "no-store" });
+async function fetchJson(url: string, init?: RequestInit) {
+  const res = await fetch(url, { cache: "no-store", ...(init || {}) });
   const json = (await res.json().catch(() => null)) as JsonMap | null;
-  if (!res.ok) throw new Error(s(json?.error) || `HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = (json?.error as JsonMap | undefined) || {};
+    const msg = s(err.message) || s(json?.error) || `HTTP ${res.status}`;
+    const status = s(err.status);
+    throw new Error(status ? `${status} - ${msg}` : msg);
+  }
   return json || {};
 }
 
@@ -151,7 +156,7 @@ async function enrichFromWebsite(website: string) {
   return { email: s(emails[0]), phone: s(phones[0]) };
 }
 
-async function googlePlacesSearch(query: string, key: string) {
+async function googlePlacesSearchLegacy(query: string, key: string) {
   const url = new URL("https://maps.googleapis.com/maps/api/place/textsearch/json");
   url.searchParams.set("query", query);
   url.searchParams.set("key", key);
@@ -164,7 +169,7 @@ async function googlePlacesSearch(query: string, key: string) {
   return results as JsonMap[];
 }
 
-async function googlePlacesDetails(placeId: string, key: string) {
+async function googlePlacesDetailsLegacy(placeId: string, key: string) {
   const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
   url.searchParams.set("place_id", placeId);
   url.searchParams.set("fields", "name,website,formatted_phone_number,international_phone_number,formatted_address,url");
@@ -177,6 +182,40 @@ async function googlePlacesDetails(placeId: string, key: string) {
   return (json.result as JsonMap | undefined) || {};
 }
 
+async function googlePlacesSearchNew(query: string, key: string, maxResultCount: number) {
+  const json = (await fetchJson("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask":
+        "places.id,places.displayName,places.websiteUri,places.nationalPhoneNumber,places.internationalPhoneNumber,places.formattedAddress,places.googleMapsUri",
+    },
+    body: JSON.stringify({
+      textQuery: query,
+      languageCode: "en",
+      regionCode: "US",
+      maxResultCount: Math.max(1, Math.min(20, maxResultCount)),
+    }),
+  })) as JsonMap;
+  const places = Array.isArray(json.places) ? json.places : [];
+  return places as JsonMap[];
+}
+
+async function googlePlacesDetailsNew(placeId: string, key: string) {
+  const resourceId = s(placeId).replace(/^places\//i, "");
+  if (!resourceId) return {} as JsonMap;
+  const json = (await fetchJson(`https://places.googleapis.com/v1/places/${encodeURIComponent(resourceId)}`, {
+    method: "GET",
+    headers: {
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask":
+        "id,displayName,websiteUri,nationalPhoneNumber,internationalPhoneNumber,formattedAddress,googleMapsUri",
+    },
+  })) as JsonMap;
+  return json || {};
+}
+
 async function discoverByGooglePlaces(opts: {
   services: string[];
   locationText: string;
@@ -185,22 +224,49 @@ async function discoverByGooglePlaces(opts: {
 }) {
   const out: PlaceCandidate[] = [];
   const perService = Math.max(1, Math.ceil(opts.maxResults / Math.max(1, opts.services.length)));
+  const useNewFirst = true;
   for (const service of opts.services) {
     if (out.length >= opts.maxResults) break;
     const query = `${service} in ${opts.locationText}`;
-    const rows = await googlePlacesSearch(query, opts.apiKey);
+    let rows: JsonMap[] = [];
+    let usingNew = useNewFirst;
+    try {
+      rows = await googlePlacesSearchNew(query, opts.apiKey, perService);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
+      const canFallbackLegacy =
+        msg.includes("REQUEST_DENIED") ||
+        msg.includes("PERMISSION_DENIED") ||
+        msg.includes("API key") ||
+        msg.includes("Legacy");
+      if (!canFallbackLegacy) throw e;
+      usingNew = false;
+      rows = await googlePlacesSearchLegacy(query, opts.apiKey);
+    }
     for (const row of rows.slice(0, perService)) {
       if (out.length >= opts.maxResults) break;
-      const placeId = s(row.place_id);
+      const placeId = s(row.id) || s(row.place_id);
       if (!placeId) continue;
-      const detail = await googlePlacesDetails(placeId, opts.apiKey).catch(() => ({} as JsonMap));
+      const detail = usingNew
+        ? await googlePlacesDetailsNew(placeId, opts.apiKey).catch(() => ({} as JsonMap))
+        : await googlePlacesDetailsLegacy(placeId, opts.apiKey).catch(() => ({} as JsonMap));
+      const displayName = (detail.displayName as JsonMap | undefined) || (row.displayName as JsonMap | undefined);
       out.push({
         placeId,
-        businessName: s(detail.name) || s(row.name),
-        website: safeUrl(s(detail.website)),
-        phone: s(detail.international_phone_number) || s(detail.formatted_phone_number),
-        address: s(detail.formatted_address) || s(row.formatted_address),
-        sourceUrl: s(detail.url),
+        businessName: s(detail.name) || s(displayName?.text) || s(row.name),
+        website:
+          safeUrl(s(detail.websiteUri)) ||
+          safeUrl(s(detail.website)) ||
+          safeUrl(s(row.websiteUri)),
+        phone:
+          s(detail.internationalPhoneNumber) ||
+          s(detail.nationalPhoneNumber) ||
+          s(detail.international_phone_number) ||
+          s(detail.formatted_phone_number) ||
+          s(row.internationalPhoneNumber) ||
+          s(row.nationalPhoneNumber),
+        address: s(detail.formattedAddress) || s(detail.formatted_address) || s(row.formattedAddress) || s(row.formatted_address),
+        sourceUrl: s(detail.googleMapsUri) || s(detail.url) || s(row.googleMapsUri),
       });
     }
   }

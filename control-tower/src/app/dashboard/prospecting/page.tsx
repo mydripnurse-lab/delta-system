@@ -541,7 +541,7 @@ function ProspectingDashboardContent() {
   const notifications = data?.notifications;
 
   return (
-    <div className="shell callsDash ceoDash">
+    <div className="shell callsDash ceoDash prospectingDash">
       <header className="topbar">
         <div className="brand">
           <div className="logo" />
@@ -581,8 +581,8 @@ function ProspectingDashboardContent() {
             ))}
             {preset === "custom" ? (
               <>
-                <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
-                <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
+                <input className="input" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+                <input className="input" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
               </>
             ) : null}
           </div>
@@ -631,55 +631,86 @@ function ProspectingDashboardContent() {
             <h2 className="cardTitle">Business Profile Enrichment</h2>
             <div className="cardSubtitle">Add structured fields to improve matching against similar businesses nationwide.</div>
           </div>
-          <button className="smallBtn" type="button" onClick={() => void saveBusinessProfile()} disabled={profileSaving || !tenantId}>
+          <button className="smallBtn agencyActionPrimary" type="button" onClick={() => void saveBusinessProfile()} disabled={profileSaving || !tenantId}>
             {profileSaving ? "Saving..." : "Save profile fields"}
           </button>
         </div>
         <div className="cardBody">
-          <div className="tableWrap">
-            <div className="toolbar" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(240px, 1fr))", gap: 10 }}>
-              <input
-                placeholder="Business category (e.g. Mobile IV Therapy)"
-                value={profileDraft.businessCategory}
-                onChange={(e) => setProfileDraft((p) => ({ ...p, businessCategory: e.target.value }))}
-              />
-              <input
-                placeholder="Services offered (comma separated)"
-                value={profileDraft.servicesOffered}
-                onChange={(e) => setProfileDraft((p) => ({ ...p, servicesOffered: e.target.value }))}
-              />
-              <input
-                placeholder="Target geo scope"
-                value={profileDraft.targetGeoScope}
-                onChange={(e) => setProfileDraft((p) => ({ ...p, targetGeoScope: e.target.value }))}
-              />
-              <input
-                placeholder="Target industries"
-                value={profileDraft.targetIndustries}
-                onChange={(e) => setProfileDraft((p) => ({ ...p, targetIndustries: e.target.value }))}
-              />
-              <input
-                placeholder="Ideal customer profile"
-                value={profileDraft.idealCustomerProfile}
-                onChange={(e) => setProfileDraft((p) => ({ ...p, idealCustomerProfile: e.target.value }))}
-              />
-              <input
-                placeholder="High impression low booking services"
-                value={profileDraft.highImpressionLowBookingServices}
-                onChange={(e) => setProfileDraft((p) => ({ ...p, highImpressionLowBookingServices: e.target.value }))}
-              />
-              <input
-                placeholder="Lost booking reasons"
-                value={profileDraft.lostBookingReasons}
-                onChange={(e) => setProfileDraft((p) => ({ ...p, lostBookingReasons: e.target.value }))}
-              />
-              <label className="mini" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
+            <div className="agencyWizardGrid agencyWizardGridTwo">
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Business Category</span>
                 <input
-                  type="checkbox"
-                  checked={profileDraft.prospectingAutoEnabled}
-                  onChange={(e) => setProfileDraft((p) => ({ ...p, prospectingAutoEnabled: e.target.checked }))}
+                  className="input"
+                  placeholder="e.g. Mobile IV Therapy"
+                  value={profileDraft.businessCategory}
+                  onChange={(e) => setProfileDraft((p) => ({ ...p, businessCategory: e.target.value }))}
                 />
-                Auto prospecting enabled (continuous search via cron auto-run)
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Services Offered</span>
+                <input
+                  className="input"
+                  placeholder="comma separated"
+                  value={profileDraft.servicesOffered}
+                  onChange={(e) => setProfileDraft((p) => ({ ...p, servicesOffered: e.target.value }))}
+                />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Target Geo Scope</span>
+                <input
+                  className="input"
+                  placeholder="USA and Puerto Rico"
+                  value={profileDraft.targetGeoScope}
+                  onChange={(e) => setProfileDraft((p) => ({ ...p, targetGeoScope: e.target.value }))}
+                />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Target Industries</span>
+                <input
+                  className="input"
+                  placeholder="Healthcare, Wellness..."
+                  value={profileDraft.targetIndustries}
+                  onChange={(e) => setProfileDraft((p) => ({ ...p, targetIndustries: e.target.value }))}
+                />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Ideal Customer Profile</span>
+                <input
+                  className="input"
+                  placeholder="high intent profile"
+                  value={profileDraft.idealCustomerProfile}
+                  onChange={(e) => setProfileDraft((p) => ({ ...p, idealCustomerProfile: e.target.value }))}
+                />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">High Impression Low Booking Services</span>
+                <input
+                  className="input"
+                  placeholder="top missed-conversion services"
+                  value={profileDraft.highImpressionLowBookingServices}
+                  onChange={(e) => setProfileDraft((p) => ({ ...p, highImpressionLowBookingServices: e.target.value }))}
+                />
+              </label>
+              <label className="agencyField agencyFieldFull">
+                <span className="agencyFieldLabel">Lost Booking Reasons</span>
+                <input
+                  className="input"
+                  placeholder="reason tags"
+                  value={profileDraft.lostBookingReasons}
+                  onChange={(e) => setProfileDraft((p) => ({ ...p, lostBookingReasons: e.target.value }))}
+                />
+              </label>
+              <label className="agencyField agencyFieldFull prospectingCheckboxField">
+                <span className="agencyFieldLabel">Automation</span>
+                <span className="mini" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={profileDraft.prospectingAutoEnabled}
+                    onChange={(e) => setProfileDraft((p) => ({ ...p, prospectingAutoEnabled: e.target.checked }))}
+                  />
+                  Auto prospecting enabled (continuous search via cron auto-run)
+                </span>
               </label>
             </div>
           </div>
@@ -841,26 +872,49 @@ function ProspectingDashboardContent() {
           </div>
         </div>
         <div className="cardBody">
-          <div className="toolbar" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(220px, 1fr))", gap: 10 }}>
-            <select value={runGeoType} onChange={(e) => setRunGeoType(e.target.value as "state" | "county" | "city")}>
-              <option value="state">State</option>
-              <option value="county">County</option>
-              <option value="city">City</option>
-            </select>
-            <input list="prospecting-geo-options" placeholder="Geo name" value={runGeoName} onChange={(e) => setRunGeoName(e.target.value)} />
+          <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
+            <div className="agencyWizardGrid agencyWizardGridThree">
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Geo Type</span>
+                <select className="input" value={runGeoType} onChange={(e) => setRunGeoType(e.target.value as "state" | "county" | "city")}>
+                  <option value="state">State</option>
+                  <option value="county">County</option>
+                  <option value="city">City</option>
+                </select>
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Geo Name</span>
+                <input className="input" list="prospecting-geo-options" placeholder="Miami" value={runGeoName} onChange={(e) => setRunGeoName(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">State Context</span>
+                <input className="input" placeholder="optional" value={runState} onChange={(e) => setRunState(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">County Context</span>
+                <input className="input" placeholder="optional" value={runCounty} onChange={(e) => setRunCounty(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">City Context</span>
+                <input className="input" placeholder="optional" value={runCity} onChange={(e) => setRunCity(e.target.value)} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Max Results</span>
+                <input className="input" placeholder="25" value={runMaxResults} onChange={(e) => setRunMaxResults(e.target.value)} />
+              </label>
+              <label className="agencyField agencyFieldFull">
+                <span className="agencyFieldLabel">Services</span>
+                <input className="input" placeholder="comma separated services" value={runServices} onChange={(e) => setRunServices(e.target.value)} />
+              </label>
+            </div>
             <datalist id="prospecting-geo-options">
               {geoCandidates.slice(0, 100).map((name) => (
                 <option key={`geo-opt-${name}`} value={name} />
               ))}
             </datalist>
-            <input placeholder="State context (optional)" value={runState} onChange={(e) => setRunState(e.target.value)} />
-            <input placeholder="County context (optional)" value={runCounty} onChange={(e) => setRunCounty(e.target.value)} />
-            <input placeholder="City context (optional)" value={runCity} onChange={(e) => setRunCity(e.target.value)} />
-            <input placeholder="Max results" value={runMaxResults} onChange={(e) => setRunMaxResults(e.target.value)} />
-            <input placeholder="Services (comma separated)" value={runServices} onChange={(e) => setRunServices(e.target.value)} />
           </div>
-          <div className="toolbar" style={{ marginTop: 10 }}>
-            <button className="btn btnPrimary" type="button" onClick={() => void runDiscovery()} disabled={runLoading}>
+          <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 10 }}>
+            <button className="smallBtn agencyActionPrimary" type="button" onClick={() => void runDiscovery()} disabled={runLoading}>
               {runLoading ? "Running discovery..." : "Run discovery"}
             </button>
             <button className="smallBtn" type="button" onClick={() => void runAutoBatch()} disabled={autoLoading}>
@@ -874,7 +928,7 @@ function ProspectingDashboardContent() {
             {pushMessage ? <div className="mini">{pushMessage}</div> : null}
           </div>
           <div className="mini" style={{ marginTop: 8 }}>
-            API key source priority: tenant integration `google_maps:default` config.apiKey, then env `GOOGLE_MAPS_API_KEY`.
+            API key source priority: tenant integration `google_cloud/google_maps/google_places:default` config.apiKey, then env `GOOGLE_MAPS_API_KEY`.
           </div>
         </div>
       </section>
@@ -895,21 +949,56 @@ function ProspectingDashboardContent() {
           ) : null}
         </div>
         <div className="cardBody">
-          <div className="toolbar" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(220px, 1fr))", gap: 10 }}>
-            <input placeholder="Business name" value={leadDraft.businessName} onChange={(e) => setLeadDraft((p) => ({ ...p, businessName: e.target.value }))} />
-            <input placeholder="Website" value={leadDraft.website} onChange={(e) => setLeadDraft((p) => ({ ...p, website: e.target.value }))} />
-            <input placeholder="Email" value={leadDraft.email} onChange={(e) => setLeadDraft((p) => ({ ...p, email: e.target.value }))} />
-            <input placeholder="Phone" value={leadDraft.phone} onChange={(e) => setLeadDraft((p) => ({ ...p, phone: e.target.value }))} />
-            <input placeholder="State" value={leadDraft.state} onChange={(e) => setLeadDraft((p) => ({ ...p, state: e.target.value }))} />
-            <input placeholder="County" value={leadDraft.county} onChange={(e) => setLeadDraft((p) => ({ ...p, county: e.target.value }))} />
-            <input placeholder="City" value={leadDraft.city} onChange={(e) => setLeadDraft((p) => ({ ...p, city: e.target.value }))} />
-            <input placeholder="Category" value={leadDraft.category} onChange={(e) => setLeadDraft((p) => ({ ...p, category: e.target.value }))} />
-            <input placeholder="Services" value={leadDraft.services} onChange={(e) => setLeadDraft((p) => ({ ...p, services: e.target.value }))} />
-            <input placeholder="Source URL / Notes source" value={leadDraft.source} onChange={(e) => setLeadDraft((p) => ({ ...p, source: e.target.value }))} />
-            <input placeholder="Notes" value={leadDraft.notes} onChange={(e) => setLeadDraft((p) => ({ ...p, notes: e.target.value }))} />
+          <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
+            <div className="agencyWizardGrid agencyWizardGridThree">
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Business Name</span>
+                <input className="input" placeholder="Business name" value={leadDraft.businessName} onChange={(e) => setLeadDraft((p) => ({ ...p, businessName: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Website</span>
+                <input className="input" placeholder="https://..." value={leadDraft.website} onChange={(e) => setLeadDraft((p) => ({ ...p, website: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Email</span>
+                <input className="input" placeholder="hello@business.com" value={leadDraft.email} onChange={(e) => setLeadDraft((p) => ({ ...p, email: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Phone</span>
+                <input className="input" placeholder="+1..." value={leadDraft.phone} onChange={(e) => setLeadDraft((p) => ({ ...p, phone: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">State</span>
+                <input className="input" placeholder="State" value={leadDraft.state} onChange={(e) => setLeadDraft((p) => ({ ...p, state: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">County</span>
+                <input className="input" placeholder="County" value={leadDraft.county} onChange={(e) => setLeadDraft((p) => ({ ...p, county: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">City</span>
+                <input className="input" placeholder="City" value={leadDraft.city} onChange={(e) => setLeadDraft((p) => ({ ...p, city: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Category</span>
+                <input className="input" placeholder="Category" value={leadDraft.category} onChange={(e) => setLeadDraft((p) => ({ ...p, category: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Services</span>
+                <input className="input" placeholder="Services" value={leadDraft.services} onChange={(e) => setLeadDraft((p) => ({ ...p, services: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Source</span>
+                <input className="input" placeholder="Source URL / notes source" value={leadDraft.source} onChange={(e) => setLeadDraft((p) => ({ ...p, source: e.target.value }))} />
+              </label>
+              <label className="agencyField agencyFieldFull">
+                <span className="agencyFieldLabel">Notes</span>
+                <input className="input" placeholder="Notes" value={leadDraft.notes} onChange={(e) => setLeadDraft((p) => ({ ...p, notes: e.target.value }))} />
+              </label>
+            </div>
           </div>
-          <div className="toolbar" style={{ marginTop: 10 }}>
-            <button className="btn btnPrimary" type="button" onClick={() => void addLead()} disabled={leadSaving}>
+          <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 10 }}>
+            <button className="smallBtn agencyActionPrimary" type="button" onClick={() => void addLead()} disabled={leadSaving}>
               {leadSaving ? "Saving..." : "Add lead"}
             </button>
             {leadMessage ? <div className="mini">{leadMessage}</div> : null}
