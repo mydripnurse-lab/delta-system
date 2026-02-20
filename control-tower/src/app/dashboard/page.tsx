@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
+import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
 declare global {
   interface Window {
@@ -900,10 +901,10 @@ function DashboardHomeContent() {
   const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-
-  const [preset, setPreset] = useState<RangePreset>("28d");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const initialRange = readDashboardRangeFromSearch(searchParams, "28d");
+  const [preset, setPreset] = useState<RangePreset>(initialRange.preset);
+  const [customStart, setCustomStart] = useState(initialRange.customStart);
+  const [customEnd, setCustomEnd] = useState(initialRange.customEnd);
 
   const [data, setData] = useState<OverviewResponse | null>(null);
 
@@ -986,9 +987,13 @@ function DashboardHomeContent() {
   function withTenantHref(baseHref: string, opts?: { integrationKey?: string }) {
     if (!tenantId) return baseHref;
     const [basePath, hash = ""] = baseHref.split("#");
-    const joiner = basePath.includes("?") ? "&" : "?";
+    const qs = new URLSearchParams();
+    addDashboardRangeParams(qs, preset, customStart, customEnd);
     const key = String(opts?.integrationKey ?? integrationKey).trim() || integrationKey;
-    const scoped = `${basePath}${joiner}tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(key)}`;
+    qs.set("tenantId", tenantId);
+    qs.set("integrationKey", key);
+    const joiner = basePath.includes("?") ? "&" : "?";
+    const scoped = `${basePath}${joiner}${qs.toString()}`;
     return hash ? `${scoped}#${hash}` : scoped;
   }
 

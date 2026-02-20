@@ -861,6 +861,7 @@ export async function GET(req: Request) {
     const bust = url.searchParams.get("bust") === "1";
     const debug = url.searchParams.get("debug") === "1";
     const preferSnapshot = url.searchParams.get("preferSnapshot") === "1";
+    const preset = norm(url.searchParams.get("preset")) || "";
     const tenantId = norm(url.searchParams.get("tenantId"));
     const integrationKey = norm(url.searchParams.get("integrationKey")) || "owner";
     if (!tenantId) {
@@ -896,7 +897,7 @@ export async function GET(req: Request) {
                 integrationKey,
                 start,
                 end,
-                preset: "",
+                preset,
                 compare: false,
             });
             if (dbCached && !dbCached.expired) {
@@ -1152,7 +1153,7 @@ export async function GET(req: Request) {
                 integrationKey,
                 start,
                 end,
-                preset: "",
+                preset,
                 compare: false,
                 payload: resp as unknown as Record<string, unknown>,
                 source: "dashboard_conversations_api",

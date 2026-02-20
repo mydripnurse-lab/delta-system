@@ -100,6 +100,8 @@ export async function POST(req: Request) {
     const batchSize = Math.max(1, Math.min(50, Number(body?.batchSize || 6)));
     const cooldownMinutes = Math.max(5, Math.min(24 * 60, Number(body?.cooldownMinutes || 180)));
     const maxResultsPerGeo = Math.max(1, Math.min(50, Number(body?.maxResultsPerGeo || 20)));
+    const sources = ((body?.sources as JsonMap | undefined) || {}) as JsonMap;
+    const enrichment = ((body?.enrichment as JsonMap | undefined) || {}) as JsonMap;
 
     const tenantIds = singleTenantId ? [singleTenantId] : await listAutoEnabledTenants();
     const origin = new URL(req.url).origin;
@@ -139,6 +141,8 @@ export async function POST(req: Request) {
                 county: pick.geoType === "county" ? pick.geoName : "",
                 state: pick.geoType === "state" ? pick.geoName : "",
                 maxResults: maxResultsPerGeo,
+                sources,
+                enrichment,
               }),
             });
             const r = (run.results as JsonMap | undefined) || {};
@@ -199,4 +203,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

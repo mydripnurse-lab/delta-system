@@ -7,6 +7,7 @@ import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
+import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
 const UsaChoroplethProgressMap = dynamic(
   () => import("@/components/UsaChoroplethProgressMap"),
@@ -275,10 +276,10 @@ function ConversationsDashboardPageContent() {
   const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-
-  const [preset, setPreset] = useState<RangePreset>("today");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const initialRange = readDashboardRangeFromSearch(searchParams, "today");
+  const [preset, setPreset] = useState<RangePreset>(initialRange.preset);
+  const [customStart, setCustomStart] = useState(initialRange.customStart);
+  const [customEnd, setCustomEnd] = useState(initialRange.customEnd);
   const [grain, setGrain] = useState<TrendGrain>("day");
 
   const [data, setData] = useState<ConversationsApiResponse | null>(null);
@@ -296,9 +297,14 @@ function ConversationsDashboardPageContent() {
   );
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
-  const backHref = tenantId
-    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
-    : "/dashboard";
+  const backHref = useMemo(() => {
+    if (!tenantId) return "/dashboard";
+    const qs = new URLSearchParams();
+    qs.set("tenantId", tenantId);
+    qs.set("integrationKey", integrationKey);
+    addDashboardRangeParams(qs, preset, customStart, customEnd);
+    return `/dashboard?${qs.toString()}`;
+  }, [tenantId, integrationKey, preset, customStart, customEnd]);
 
   async function load(force = false) {
     if (!tenantReady) return;
@@ -316,6 +322,7 @@ function ConversationsDashboardPageContent() {
       const qs = new URLSearchParams();
       qs.set("start", computedRange.start);
       qs.set("end", computedRange.end);
+      qs.set("preset", preset);
       if (force) qs.set("bust", "1");
       if (tenantId) {
         qs.set("tenantId", tenantId);
@@ -334,6 +341,7 @@ function ConversationsDashboardPageContent() {
         const pQs = new URLSearchParams();
         pQs.set("start", prev.prevStart);
         pQs.set("end", prev.prevEnd);
+        pQs.set("preset", preset);
         if (force) pQs.set("bust", "1");
         if (tenantId) {
           pQs.set("tenantId", tenantId);

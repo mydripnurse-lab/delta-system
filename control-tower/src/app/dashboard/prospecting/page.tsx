@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
+import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
 type RangePreset = DashboardRangePreset;
 
@@ -71,6 +72,7 @@ type GeoQueueRow = {
   value: number;
   uniqueContacts: number;
   priorityScore: number;
+  cbpEstablishments?: number;
 };
 
 type LeadRow = {
@@ -110,6 +112,28 @@ type LeadDraft = {
   notes: string;
 };
 
+type RunDiscoveryResponse = {
+  ok?: boolean;
+  error?: string;
+  results?: {
+    discovered?: number;
+    processed?: number;
+    created?: number;
+    updated?: number;
+    withEmail?: number;
+    withPhone?: number;
+  };
+  diagnostics?: {
+    sourceCounts?: Record<string, number>;
+    warnings?: string[];
+    enrichment?: {
+      crawlWebsiteEnabled?: boolean;
+      hunterDomainSearchEnabled?: boolean;
+      hunterConfigured?: boolean;
+    };
+  };
+};
+
 function fmtInt(v: unknown) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "0";
@@ -141,13 +165,18 @@ function ProspectingDashboardContent() {
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
 
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
-  const backHref = tenantId
-    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
-    : "/dashboard";
-
-  const [preset, setPreset] = useState<RangePreset>("28d");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const initialRange = readDashboardRangeFromSearch(searchParams, "28d");
+  const [preset, setPreset] = useState<RangePreset>(initialRange.preset);
+  const [customStart, setCustomStart] = useState(initialRange.customStart);
+  const [customEnd, setCustomEnd] = useState(initialRange.customEnd);
+  const backHref = useMemo(() => {
+    if (!tenantId) return "/dashboard";
+    const qs = new URLSearchParams();
+    qs.set("tenantId", tenantId);
+    qs.set("integrationKey", integrationKey);
+    addDashboardRangeParams(qs, preset, customStart, customEnd);
+    return `/dashboard?${qs.toString()}`;
+  }, [tenantId, integrationKey, preset, customStart, customEnd]);
   const computedRange = useMemo(
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
@@ -194,6 +223,15 @@ function ProspectingDashboardContent() {
   const [runCity, setRunCity] = useState("");
   const [runMaxResults, setRunMaxResults] = useState("25");
   const [runServices, setRunServices] = useState("");
+  const [runSources, setRunSources] = useState({
+    googlePlaces: true,
+    osmOverpass: true,
+    overture: true,
+  });
+  const [runEnrichment, setRunEnrichment] = useState({
+    crawlWebsite: true,
+    hunterDomainSearch: false,
+  });
   const [autoLoading, setAutoLoading] = useState(false);
   const [autoMessage, setAutoMessage] = useState("");
   const [pushLoading, setPushLoading] = useState(false);
@@ -385,28 +423,23 @@ function ProspectingDashboardContent() {
           city: runCity,
           maxResults: Number(runMaxResults || 25),
           services,
+          sources: runSources,
+          enrichment: runEnrichment,
         }),
       });
-      const json = (await res.json().catch(() => null)) as
-        | {
-            ok?: boolean;
-            error?: string;
-            results?: {
-              discovered?: number;
-              processed?: number;
-              created?: number;
-              updated?: number;
-              withEmail?: number;
-              withPhone?: number;
-            };
-          }
-        | null;
+      const json = (await res.json().catch(() => null)) as RunDiscoveryResponse | null;
       if (!res.ok || !json?.ok) {
         throw new Error(json?.error || `HTTP ${res.status}`);
       }
       const r = json.results || {};
+      const bySource = json.diagnostics?.sourceCounts || {};
+      const sourceSummary = Object.entries(bySource)
+        .filter(([, count]) => Number(count || 0) > 0)
+        .map(([k, count]) => `${k}: ${fmtInt(count)}`)
+        .join(" | ");
+      const warningSummary = (json.diagnostics?.warnings || []).slice(0, 2).join(" | ");
       setRunMessage(
-        `Run complete. Discovered ${fmtInt(r.discovered)}; created ${fmtInt(r.created)}; updated ${fmtInt(r.updated)}; with email ${fmtInt(r.withEmail)}; with phone ${fmtInt(r.withPhone)}.`,
+        `Run complete. Discovered ${fmtInt(r.discovered)}; created ${fmtInt(r.created)}; updated ${fmtInt(r.updated)}; with email ${fmtInt(r.withEmail)}; with phone ${fmtInt(r.withPhone)}.${sourceSummary ? ` Sources -> ${sourceSummary}.` : ""}${warningSummary ? ` Warnings -> ${warningSummary}` : ""}`,
       );
       await load();
     } catch (e: unknown) {
@@ -430,6 +463,8 @@ function ProspectingDashboardContent() {
           batchSize: 6,
           cooldownMinutes: 180,
           maxResultsPerGeo: 20,
+          sources: runSources,
+          enrichment: runEnrichment,
         }),
       });
       const json = (await res.json().catch(() => null)) as
@@ -526,7 +561,7 @@ function ProspectingDashboardContent() {
     return data.geoQueue.cities.map((x) => x.name);
   }, [data?.geoQueue, runGeoType]);
 
-  function useGeoFromQueue(type: "state" | "county" | "city", name: string) {
+  function applyGeoFromQueue(type: "state" | "county" | "city", name: string) {
     setRunGeoType(type);
     setRunGeoName(name);
     if (type === "state") {
@@ -580,6 +615,8 @@ function ProspectingDashboardContent() {
             city: pick.type === "city" ? pick.name : runCity,
             maxResults: Number(runMaxResults || 25),
             services,
+            sources: runSources,
+            enrichment: runEnrichment,
           }),
         });
         const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
@@ -617,9 +654,11 @@ function ProspectingDashboardContent() {
           city: type === "city" ? name : runCity,
           maxResults: Number(runMaxResults || 25),
           services,
+          sources: runSources,
+          enrichment: runEnrichment,
         }),
       });
-      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; results?: { created?: number; discovered?: number } } | null;
+      const json = (await res.json().catch(() => null)) as RunDiscoveryResponse | null;
       if (!res.ok || !json?.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       await load();
       setQueueMessage(`Run complete for ${type}: ${name}. Discovered ${fmtInt(json?.results?.discovered)}.`);
@@ -1032,13 +1071,14 @@ function ProspectingDashboardContent() {
                         <div className="prospectingGeoName">{r.name}</div>
                       </div>
                       <div className="prospectingGeoActions">
-                        <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("state", r.name)}>Use</button>
+                        <button className="smallBtn" type="button" onClick={() => applyGeoFromQueue("state", r.name)}>Use</button>
                         <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("state", r.name)} disabled={queueRunLoading}>Run</button>
                       </div>
                     </div>
                     <div className="prospectingGeoMeta">
                       <span className="badge">Opp {fmtInt(r.opportunities)}</span>
                       <span className="badge">{fmtMoney(r.value)}</span>
+                      <span className="badge">CBP {fmtInt(r.cbpEstablishments)}</span>
                       <span className="badge">P {fmtInt(r.priorityScore)}</span>
                     </div>
                   </div>
@@ -1060,7 +1100,7 @@ function ProspectingDashboardContent() {
                         <div className="prospectingGeoName">{r.name}</div>
                       </div>
                       <div className="prospectingGeoActions">
-                        <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("county", r.name)}>Use</button>
+                        <button className="smallBtn" type="button" onClick={() => applyGeoFromQueue("county", r.name)}>Use</button>
                         <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("county", r.name)} disabled={queueRunLoading}>Run</button>
                       </div>
                     </div>
@@ -1088,7 +1128,7 @@ function ProspectingDashboardContent() {
                         <div className="prospectingGeoName">{r.name}</div>
                       </div>
                       <div className="prospectingGeoActions">
-                        <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("city", r.name)}>Use</button>
+                        <button className="smallBtn" type="button" onClick={() => applyGeoFromQueue("city", r.name)}>Use</button>
                         <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("city", r.name)} disabled={queueRunLoading}>Run</button>
                       </div>
                     </div>
@@ -1131,10 +1171,57 @@ function ProspectingDashboardContent() {
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Discovery Runner</h2>
-            <div className="cardSubtitle">Automated business discovery + email/phone enrichment via Google Places + website scan.</div>
+            <div className="cardSubtitle">Multi-source discovery (Overture + OSM + Google optional) with website crawl and optional Hunter enrichment.</div>
           </div>
         </div>
         <div className="cardBody">
+          <div className="prospectingRunnerConfig">
+            <div className="prospectingRunnerConfigBlock">
+              <div className="prospectingRunnerConfigTitle">Discovery Sources</div>
+              <div className="prospectingRunnerChipRow">
+                <button
+                  className={`smallBtn ${runSources.overture ? "agencyActionPrimary" : ""}`}
+                  type="button"
+                  onClick={() => setRunSources((p) => ({ ...p, overture: !p.overture }))}
+                >
+                  {runSources.overture ? "Overture ON" : "Overture OFF"}
+                </button>
+                <button
+                  className={`smallBtn ${runSources.osmOverpass ? "agencyActionPrimary" : ""}`}
+                  type="button"
+                  onClick={() => setRunSources((p) => ({ ...p, osmOverpass: !p.osmOverpass }))}
+                >
+                  {runSources.osmOverpass ? "OSM ON" : "OSM OFF"}
+                </button>
+                <button
+                  className={`smallBtn ${runSources.googlePlaces ? "agencyActionPrimary" : ""}`}
+                  type="button"
+                  onClick={() => setRunSources((p) => ({ ...p, googlePlaces: !p.googlePlaces }))}
+                >
+                  {runSources.googlePlaces ? "Google ON" : "Google OFF"}
+                </button>
+              </div>
+            </div>
+            <div className="prospectingRunnerConfigBlock">
+              <div className="prospectingRunnerConfigTitle">Enrichment</div>
+              <div className="prospectingRunnerChipRow">
+                <button
+                  className={`smallBtn ${runEnrichment.crawlWebsite ? "agencyActionPrimary" : ""}`}
+                  type="button"
+                  onClick={() => setRunEnrichment((p) => ({ ...p, crawlWebsite: !p.crawlWebsite }))}
+                >
+                  {runEnrichment.crawlWebsite ? "Crawl ON" : "Crawl OFF"}
+                </button>
+                <button
+                  className={`smallBtn ${runEnrichment.hunterDomainSearch ? "agencyActionPrimary" : ""}`}
+                  type="button"
+                  onClick={() => setRunEnrichment((p) => ({ ...p, hunterDomainSearch: !p.hunterDomainSearch }))}
+                >
+                  {runEnrichment.hunterDomainSearch ? "Hunter ON" : "Hunter OFF"}
+                </button>
+              </div>
+            </div>
+          </div>
           <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
             <div className="agencyWizardGrid agencyWizardGridThree">
               <label className="agencyField">
@@ -1191,7 +1278,7 @@ function ProspectingDashboardContent() {
             {pushMessage ? <div className="mini">{pushMessage}</div> : null}
           </div>
           <div className="mini" style={{ marginTop: 8 }}>
-            API key source priority: tenant integration `google_cloud/google_maps/google_places:default` config.apiKey, then env `GOOGLE_MAPS_API_KEY`.
+            Config priority: Google key from tenant integration `google_cloud/google_maps/google_places:default` config.apiKey, then env `GOOGLE_MAPS_API_KEY`; Hunter key from tenant integration `hunter:default` config.apiKey, then env `HUNTER_API_KEY`; Overture uses optional env `OVERTURE_PLACE_SEARCH_URL`.
           </div>
         </div>
       </section>
@@ -1299,6 +1386,7 @@ function ProspectingDashboardContent() {
                     <td>
                       <div className="prospectingCellTitle">{lead.businessName}</div>
                       <div className="prospectingCellSub">{lead.category || "-"}</div>
+                      <div className="prospectingCellSub">{lead.source || "-"}</div>
                     </td>
                     <td>
                       <div className="prospectingCellTitle">{lead.city || lead.county || lead.state || "-"}</div>

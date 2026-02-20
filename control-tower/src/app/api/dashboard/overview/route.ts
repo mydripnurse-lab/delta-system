@@ -440,12 +440,12 @@ export async function GET(req: Request) {
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
-                `${origin}/api/dashboard/contacts?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${contactsBust}&${tenantQ}`,
+                `${origin}/api/dashboard/contacts?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${contactsBust}&${tenantQ}`,
                 7000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
-                    `${origin}/api/dashboard/contacts?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${contactsBust}&${tenantQ}`,
+                    `${origin}/api/dashboard/contacts?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${contactsBust}&${tenantQ}`,
                     7000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
@@ -453,32 +453,32 @@ export async function GET(req: Request) {
             fetchJson(`${origin}/api/dashboard/ga/join?compare=1${tenantSearchForceQ}`, 7000),
             fetchJson(`${origin}/api/dashboard/ads/join?range=${encodeURIComponent(adsRange)}${tenantSearchForceQ}`, 7000),
             fetchJson(
-                `${origin}/api/dashboard/conversations?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}${preferSnapshotQ}&${tenantQ}`,
+                `${origin}/api/dashboard/conversations?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${convBust}${preferSnapshotQ}&${tenantQ}`,
                 7000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
-                    `${origin}/api/dashboard/conversations?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}${preferSnapshotQ}&${tenantQ}`,
+                    `${origin}/api/dashboard/conversations?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${convBust}${preferSnapshotQ}&${tenantQ}`,
                     7000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
-                `${origin}/api/dashboard/transactions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}&${tenantQ}`,
+                `${origin}/api/dashboard/transactions?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${convBust}&${tenantQ}`,
                 7000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
-                    `${origin}/api/dashboard/transactions?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}&${tenantQ}`,
+                    `${origin}/api/dashboard/transactions?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${convBust}&${tenantQ}`,
                     7000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
             fetchJson(
-                `${origin}/api/dashboard/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}${convBust}${preferSnapshotQ}&${tenantQ}`,
+                `${origin}/api/dashboard/appointments?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${convBust}${preferSnapshotQ}&${tenantQ}`,
                 12000,
             ),
             prevStart && prevEnd
                 ? fetchJson(
-                    `${origin}/api/dashboard/appointments?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}${convBust}${preferSnapshotQ}&${tenantQ}`,
+                    `${origin}/api/dashboard/appointments?start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${convBust}${preferSnapshotQ}&${tenantQ}`,
                     12000,
                 )
                 : Promise.resolve({ ok: false, status: 0, data: {} as JsonObject }),
@@ -497,21 +497,27 @@ export async function GET(req: Request) {
             compareForModule: boolean,
             presetForModule: string,
         ) => {
-            const hit = await readDashboardKpiCache({
-                tenantId,
-                module,
-                integrationKey: integrationKeyForModule,
-                start: rangeStart,
-                end: rangeEnd,
-                preset: presetForModule,
-                compare: compareForModule,
-            });
-            if (!hit?.payload) return null;
-            return {
-                ok: true,
-                status: 200,
-                data: hit.payload as JsonObject,
-            };
+            const presetCandidates = Array.from(
+                new Set([s(presetForModule), "", "custom"].filter((x) => x.length > 0 || x === "")),
+            );
+            for (const presetCandidate of presetCandidates) {
+                const hit = await readDashboardKpiCache({
+                    tenantId,
+                    module,
+                    integrationKey: integrationKeyForModule,
+                    start: rangeStart,
+                    end: rangeEnd,
+                    preset: presetCandidate,
+                    compare: compareForModule,
+                });
+                if (!hit?.payload) continue;
+                return {
+                    ok: true,
+                    status: 200,
+                    data: hit.payload as JsonObject,
+                };
+            }
+            return null;
         };
 
         if (!callsCur.ok) {

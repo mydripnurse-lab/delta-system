@@ -1,4 +1,5 @@
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
+import { STATE_ABBR_TO_NAME } from "@/lib/ghlState";
 import {
   readLeadStore,
   writeLeadStore,
@@ -81,19 +82,51 @@ type GeoRow = {
   uniqueContacts: number;
 };
 
-function rankGeo(rows: GeoRow[], lostBookings: number, impressions: number) {
+async function fetchCbpStateSignals() {
+  const years = ["2022", "2021", "2020"];
+  for (const year of years) {
+    try {
+      const url = `https://api.census.gov/data/${year}/cbp?get=ESTAB,STATE&for=state:*`;
+      const res = await fetch(url, { cache: "no-store" });
+      const json = (await res.json().catch(() => null)) as unknown[] | null;
+      if (!res.ok || !Array.isArray(json) || json.length < 2) continue;
+      const rows = json as string[][];
+      const header = rows[0] || [];
+      const estabIdx = header.findIndex((x) => norm(x) === "estab");
+      const stateIdx = header.findIndex((x) => norm(x) === "state");
+      if (estabIdx < 0 || stateIdx < 0) continue;
+      const out = new Map<string, number>();
+      for (const row of rows.slice(1)) {
+        const code = s(row[stateIdx]).toUpperCase();
+        const estab = n(row[estabIdx]);
+        const name = s((STATE_ABBR_TO_NAME as Record<string, string>)[code]);
+        if (name && estab > 0) out.set(norm(name), estab);
+      }
+      if (out.size > 0) return out;
+    } catch {
+      // try next year
+    }
+  }
+  return new Map<string, number>();
+}
+
+function rankGeo(rows: GeoRow[], lostBookings: number, impressions: number, cbpByState?: Map<string, number>) {
   const lostBoost = Math.min(30, Math.round(lostBookings / 3));
   const impressionsBoost = Math.min(30, Math.round(Math.log10(Math.max(1, impressions)) * 8));
+  const cbpMax = Math.max(1, ...(cbpByState ? Array.from(cbpByState.values()) : [0]));
   return rows
     .map((row) => {
       const opportunities = n(row.opportunities);
       const value = n(row.value);
-      const priorityScore = Math.round(opportunities * 5 + value / 150 + lostBoost + impressionsBoost);
+      const cbpEstab = n(cbpByState?.get(norm(row.name)) || 0);
+      const cbpBoost = cbpEstab > 0 ? Math.round((cbpEstab / cbpMax) * 18) : 0;
+      const priorityScore = Math.round(opportunities * 5 + value / 150 + lostBoost + impressionsBoost + cbpBoost);
       return {
         ...row,
         opportunities,
         value,
         uniqueContacts: n(row.uniqueContacts),
+        cbpEstablishments: cbpEstab,
         priorityScore,
       };
     })
@@ -224,7 +257,7 @@ export async function GET(req: Request) {
       end: range.end,
     });
 
-    const [overview, context, bootstrap, appointments, leadStore] = await Promise.all([
+    const [overview, context, bootstrap, appointments, leadStore, cbpByState] = await Promise.all([
       fetchJsonSafe(`${origin}/api/dashboard/overview?${overviewQs.toString()}`),
       fetchJsonSafe(`${origin}/api/dashboard/campaign-factory/context?tenantId=${encodeURIComponent(tenantId)}`),
       fetchJsonSafe(`${origin}/api/tenants/${encodeURIComponent(tenantId)}/bootstrap`),
@@ -232,12 +265,13 @@ export async function GET(req: Request) {
         `${origin}/api/dashboard/appointments?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}&start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}&preferSnapshot=1`,
       ),
       readLeadStore(tenantId),
+      fetchCbpStateSignals(),
     ]);
 
     const customMap = (bootstrap?.customValues as JsonMap | undefined)?.map as JsonMap | undefined;
     const ctxBusiness = ((context?.context as JsonMap | undefined)?.business as JsonMap | undefined) || {};
     const landingServices = ((((context?.context as JsonMap | undefined)?.landingMap as JsonMap | undefined)?.services as unknown[]) || [])
-      .map((x: any) => s(x?.name))
+      .map((x) => s((x as JsonMap | undefined)?.name))
       .filter(Boolean);
     const servicesFromMap = pickCustom(customMap || {}, [
       "ghl.module.custom_values.services_offered",
@@ -283,7 +317,7 @@ export async function GET(req: Request) {
     const topCounties = (((topGeo.counties as unknown[]) || []) as GeoRow[]).slice(0, 50);
     const topCities = (((topGeo.cities as unknown[]) || []) as GeoRow[]).slice(0, 50);
     const lostForRank = appointmentsLost || n(executive.appointmentsLostNow);
-    const states = rankGeo((topStates.length ? topStates : fallbackStates).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
+    const states = rankGeo((topStates.length ? topStates : fallbackStates).slice(0, 50), lostForRank, n(executive.searchImpressionsNow), cbpByState);
     const counties = rankGeo((topCounties.length ? topCounties : fallbackCounties).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
     const cities = rankGeo((topCities.length ? topCities : fallbackCities).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
 

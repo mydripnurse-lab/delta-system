@@ -8,6 +8,7 @@ import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
+import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
 type ApiRow = Record<string, any> & {
   __startIso?: string;
@@ -395,10 +396,10 @@ function CallsDashboardPageContent() {
   const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-
-  const [preset, setPreset] = useState<RangePreset>("today");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const initialRange = readDashboardRangeFromSearch(searchParams, "today");
+  const [preset, setPreset] = useState<RangePreset>(initialRange.preset);
+  const [customStart, setCustomStart] = useState(initialRange.customStart);
+  const [customEnd, setCustomEnd] = useState(initialRange.customEnd);
 
   const [grain, setGrain] = useState<TrendGrain>("day");
 
@@ -428,9 +429,14 @@ function CallsDashboardPageContent() {
   );
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
-  const backHref = tenantId
-    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
-    : "/dashboard";
+  const backHref = useMemo(() => {
+    if (!tenantId) return "/dashboard";
+    const qs = new URLSearchParams();
+    qs.set("tenantId", tenantId);
+    qs.set("integrationKey", integrationKey);
+    addDashboardRangeParams(qs, preset, customStart, customEnd);
+    return `/dashboard?${qs.toString()}`;
+  }, [tenantId, integrationKey, preset, customStart, customEnd]);
 
   function clearSelection() {
     setMapSelected("");
@@ -446,6 +452,7 @@ function CallsDashboardPageContent() {
       qs.set("start", start);
       qs.set("end", end);
     }
+    qs.set("preset", preset);
     if (tenantId) {
       qs.set("tenantId", tenantId);
       qs.set("integrationKey", integrationKey);
