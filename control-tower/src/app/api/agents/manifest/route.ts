@@ -24,6 +24,7 @@ function defaultAgents(): Record<string, AgentNode> {
     central: { enabled: true, agentId: "soul_central_orchestrator" },
     calls: { enabled: true, agentId: "soul_calls" },
     leads: { enabled: true, agentId: "soul_leads_prospecting" },
+    prospecting: { enabled: true, agentId: "soul_leads_prospecting" },
     conversations: { enabled: true, agentId: "soul_conversations" },
     transactions: { enabled: true, agentId: "soul_transactions" },
     appointments: { enabled: true, agentId: "soul_appointments" },
@@ -131,4 +132,3 @@ export async function GET(req: Request) {
     );
   }
 }
-

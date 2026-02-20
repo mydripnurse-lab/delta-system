@@ -399,7 +399,7 @@ type CeoInsights = {
   execute_plan?: Array<{
     priority: "P1" | "P2" | "P3";
     action: string;
-    dashboard: "calls" | "leads" | "conversations" | "transactions" | "appointments" | "gsc" | "ga" | "ads" | "facebook_ads";
+    dashboard: "calls" | "leads" | "prospecting" | "conversations" | "transactions" | "appointments" | "gsc" | "ga" | "ads" | "facebook_ads";
     rationale: string;
     trigger_metric: string;
   }>;
@@ -2156,13 +2156,13 @@ function DashboardHomeContent() {
   }
 
   function actionTypeForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
-    if (dashboard === "leads") return "send_leads_ghl";
+    if (dashboard === "leads" || dashboard === "prospecting") return "send_leads_ghl";
     if (dashboard === "ads" || dashboard === "facebook_ads") return "optimize_ads";
     return "publish_content";
   }
 
   function fallbackAgentIdForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
-    if (dashboard === "leads") return "soul_leads_prospecting";
+    if (dashboard === "leads" || dashboard === "prospecting") return "soul_leads_prospecting";
     if (dashboard === "ads") return "soul_ads_optimizer";
     if (dashboard === "facebook_ads") return "soul_facebook_ads";
     if (dashboard === "calls") return "soul_calls";
@@ -2184,7 +2184,7 @@ function DashboardHomeContent() {
     const key = `${idx}-${p.dashboard}-${p.action}`;
     setQueueBusyKey(key);
     try {
-      const routeKey = p.dashboard;
+      const routeKey = p.dashboard === "prospecting" ? "leads" : p.dashboard;
       const agentId = agentRouting[routeKey] || fallbackAgentIdForDashboard(p.dashboard);
       const actionType = actionTypeForDashboard(p.dashboard);
       const riskLevel = p.priority === "P1" ? "high" : p.priority === "P2" ? "medium" : "low";

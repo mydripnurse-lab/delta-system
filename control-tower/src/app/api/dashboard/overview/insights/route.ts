@@ -85,7 +85,7 @@ export async function POST(req: Request) {
                             action: { type: "string" },
                             dashboard: {
                                 type: "string",
-                                enum: ["calls", "leads", "conversations", "transactions", "appointments", "gsc", "ga", "ads", "facebook_ads"],
+                                enum: ["calls", "leads", "prospecting", "conversations", "transactions", "appointments", "gsc", "ga", "ads", "facebook_ads"],
                             },
                             rationale: { type: "string" },
                             trigger_metric: { type: "string" },

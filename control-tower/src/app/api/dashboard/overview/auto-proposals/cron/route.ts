@@ -11,6 +11,7 @@ type ExecutePlanItem = {
   dashboard:
     | "calls"
     | "leads"
+    | "prospecting"
     | "conversations"
     | "transactions"
     | "appointments"
@@ -65,13 +66,13 @@ function computeRange() {
 }
 
 function actionTypeForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
-  if (dashboard === "leads") return "send_leads_ghl" as const;
+  if (dashboard === "leads" || dashboard === "prospecting") return "send_leads_ghl" as const;
   if (dashboard === "ads" || dashboard === "facebook_ads") return "optimize_ads" as const;
   return "publish_content" as const;
 }
 
 function fallbackAgentIdForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
-  if (dashboard === "leads") return "soul_leads_prospecting";
+  if (dashboard === "leads" || dashboard === "prospecting") return "soul_leads_prospecting";
   if (dashboard === "ads") return "soul_ads_optimizer";
   if (dashboard === "facebook_ads") return "soul_facebook_ads";
   if (dashboard === "calls") return "soul_calls";
@@ -264,7 +265,8 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
         const priority = normalizePriority(item.priority);
         if (!dashboard || !action) continue;
 
-        const agentNode = target.agents[dashboard];
+        const routeKey = dashboard === "prospecting" ? "leads" : dashboard;
+        const agentNode = target.agents[routeKey];
         if (agentNode && !agentNode.enabled) {
           row.skippedDisabled = Number(row.skippedDisabled || 0) + 1;
           continue;

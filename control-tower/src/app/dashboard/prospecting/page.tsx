@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
+import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -134,6 +135,26 @@ type RunDiscoveryResponse = {
   };
 };
 
+type AiOpportunity = {
+  title: string;
+  why_it_matters: string;
+  evidence: string;
+  expected_impact: "low" | "medium" | "high";
+  recommended_actions: string[];
+};
+
+type AiInsights = {
+  executive_summary: string;
+  scorecard?: {
+    health?: "good" | "mixed" | "bad";
+    primary_risk?: string;
+    primary_opportunity?: string;
+  };
+  opportunities?: AiOpportunity[];
+  quick_wins_next_7_days?: string[];
+  experiments_next_30_days?: string[];
+};
+
 function fmtInt(v: unknown) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "0";
@@ -185,6 +206,13 @@ function ProspectingDashboardContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [data, setData] = useState<ProspectingResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiErr, setAiErr] = useState("");
+  const [aiInsights, setAiInsights] = useState<AiInsights | null>(null);
+  const [agentRouting, setAgentRouting] = useState<Record<string, string>>({});
+  const [hubBusyKey, setHubBusyKey] = useState("");
+  const [hubMessage, setHubMessage] = useState("");
+  const [hubError, setHubError] = useState("");
 
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -309,6 +337,36 @@ function ProspectingDashboardContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantReady, tenantId, preset, customStart, customEnd, integrationKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAgentRouting() {
+      if (!tenantId) return;
+      try {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/integrations/openclaw`, {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; agents?: Record<string, { agentId?: string; enabled?: boolean }> }
+          | null;
+        if (!res.ok || !json?.ok) return;
+        const agents = (json.agents || {}) as Record<string, { agentId?: string; enabled?: boolean }>;
+        const map: Record<string, string> = {};
+        Object.keys(agents).forEach((k) => {
+          const row = agents[k];
+          const agentId = String(row?.agentId || "").trim();
+          if (row?.enabled !== false && agentId) map[k] = agentId;
+        });
+        if (!cancelled) setAgentRouting(map);
+      } catch {
+        // optional integration
+      }
+    }
+    void loadAgentRouting();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
 
   async function saveBusinessProfile() {
     if (!tenantId) return;
@@ -759,6 +817,92 @@ function ProspectingDashboardContent() {
     return out;
   }, [signals?.lostBookings, signals?.impressions, leadSummary?.contactable, leadSummary?.total, data?.geoQueue?.cities]);
 
+  async function generateAiInsights() {
+    setAiErr("");
+    setAiLoading(true);
+    setAiInsights(null);
+    try {
+      const payload = {
+        range: {
+          start: computedRange.start,
+          end: computedRange.end,
+          preset,
+        },
+        opportunity_signals: signals || null,
+        business_profile: profile || null,
+        lead_summary: leadSummary || null,
+        top_geo_queue: {
+          states: (data?.geoQueue?.states || []).slice(0, 6),
+          counties: (data?.geoQueue?.counties || []).slice(0, 6),
+          cities: (data?.geoQueue?.cities || []).slice(0, 6),
+        },
+        current_recommendations: recommendations,
+      };
+      const res = await fetch("/api/dashboard/prospecting/insights", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; insights?: AiInsights } | null;
+      if (!res.ok || !json?.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      setAiInsights(json.insights || null);
+    } catch (e: unknown) {
+      setAiErr(e instanceof Error ? e.message : "Failed to generate AI insights.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  async function sendOpportunityToHub(op: AiOpportunity, idx: number) {
+    if (!tenantId) {
+      setHubError("Missing tenant context.");
+      return;
+    }
+    setHubError("");
+    setHubMessage("");
+    const key = `${idx}-${op.title}`;
+    setHubBusyKey(key);
+    try {
+      const impact = String(op.expected_impact || "medium").toLowerCase();
+      const priority = impact === "high" ? "P1" : impact === "low" ? "P3" : "P2";
+      const riskLevel = impact === "high" ? "high" : impact === "low" ? "low" : "medium";
+      const expectedImpact = impact === "high" ? "high" : impact === "low" ? "low" : "medium";
+      const agentId = agentRouting.prospecting || agentRouting.leads || "soul_leads_prospecting";
+      const payload: Record<string, unknown> = {
+        tenant_id: tenantId,
+        integration_key: integrationKey,
+        dashboard: "prospecting",
+        recommended_action: op.title,
+        rationale: op.why_it_matters,
+        evidence: op.evidence,
+        steps: op.recommended_actions || [],
+        source: "prospecting_ai_playbook",
+      };
+      const res = await fetch("/api/agents/proposals", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          organizationId: tenantId,
+          actionType: "send_leads_ghl",
+          agentId,
+          dashboardId: "prospecting",
+          priority,
+          riskLevel,
+          expectedImpact,
+          summary: `${op.title} (prospecting)`,
+          payload,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !json?.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+      setHubMessage(`Sent to Notification Hub: ${op.title}`);
+    } catch (e: unknown) {
+      setHubError(e instanceof Error ? e.message : "Failed to send to Notification Hub.");
+    } finally {
+      setHubBusyKey("");
+    }
+  }
+
   return (
     <div className="shell callsDash ceoDash prospectingDash">
       <header className="topbar">
@@ -1163,6 +1307,114 @@ function ProspectingDashboardContent() {
                 <li key={`rec-${idx}`} style={{ marginBottom: 8 }}>{rec}</li>
               ))}
             </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">AI Playbook (Prospecting Expert)</h2>
+            <div className="cardSubtitle">Generate strategy actions and send selected actions to Notification Hub/OpenClaw.</div>
+          </div>
+          <button
+            className="smallBtn agencyActionPrimary"
+            type="button"
+            onClick={() => void generateAiInsights()}
+            disabled={aiLoading || loading || !tenantId}
+          >
+            {aiLoading ? "Generating..." : "Generate AI Playbook"}
+          </button>
+        </div>
+        <div className="cardBody">
+          {aiErr ? <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {aiErr}</div> : null}
+          {hubError ? <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {hubError}</div> : null}
+          {hubMessage ? <div className="mini" style={{ color: "rgba(74,222,128,0.95)", marginBottom: 8 }}>✓ {hubMessage}</div> : null}
+
+          {aiInsights ? (
+            <div className="aiBody">
+              <div className="aiSummary">
+                <div className="aiSummaryTitle">Executive summary</div>
+                <div className="aiText">{aiInsights.executive_summary}</div>
+              </div>
+
+              <div className="aiScore">
+                <span className={`aiBadge ${aiInsights.scorecard?.health || ""}`}>
+                  {String(aiInsights.scorecard?.health || "mixed").toUpperCase()}
+                </span>
+                <div className="mini" style={{ marginTop: 8 }}>
+                  <b>Primary risk:</b> {aiInsights.scorecard?.primary_risk}
+                </div>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  <b>Primary opportunity:</b> {aiInsights.scorecard?.primary_opportunity}
+                </div>
+              </div>
+
+              {!!aiInsights.opportunities?.length && (
+                <div className="aiBlock">
+                  <div className="aiBlockTitle">Top opportunities</div>
+                  <div className="aiOps">
+                    {aiInsights.opportunities.slice(0, 4).map((o, idx) => {
+                      const key = `${idx}-${o.title}`;
+                      return (
+                        <div className="aiOp" key={key}>
+                          <div className="aiOpHead">
+                            <div className="aiOpTitle">{o.title}</div>
+                            <span className={`aiImpact ${o.expected_impact || "medium"}`}>
+                              {String(o.expected_impact || "medium").toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="mini" style={{ marginTop: 6 }}>
+                            <b>Why:</b> {o.why_it_matters}
+                          </div>
+                          <div className="mini" style={{ marginTop: 6 }}>
+                            <b>Evidence:</b> {o.evidence}
+                          </div>
+                          {Array.isArray(o.recommended_actions) && o.recommended_actions.length ? (
+                            <ul className="aiList">
+                              {o.recommended_actions.slice(0, 4).map((a, i) => (
+                                <li key={i}>{a}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                          <div style={{ marginTop: 10 }}>
+                            <button
+                              className="btn moduleBtn"
+                              type="button"
+                              disabled={hubBusyKey === key}
+                              onClick={() => void sendOpportunityToHub(o, idx)}
+                            >
+                              {hubBusyKey === key ? "Sending..." : "Send to Hub"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="mini">Generate AI Playbook to get actionable prospecting plan and send items to hub.</div>
+          )}
+
+          <div style={{ marginTop: 12 }}>
+            <AiAgentChatPanel
+              agent="prospecting"
+              title="Prospecting Agent Chat"
+              context={{
+                tenantId,
+                integrationKey,
+                range: { start: computedRange.start, end: computedRange.end, preset },
+                opportunitySignals: signals || null,
+                leadSummary: leadSummary || null,
+                topGeo: {
+                  states: (data?.geoQueue?.states || []).slice(0, 5),
+                  counties: (data?.geoQueue?.counties || []).slice(0, 5),
+                  cities: (data?.geoQueue?.cities || []).slice(0, 5),
+                },
+              }}
+            />
           </div>
         </div>
       </section>
