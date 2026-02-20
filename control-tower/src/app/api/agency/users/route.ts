@@ -202,6 +202,8 @@ export async function POST(req: Request) {
     const inviteDelivery = await sendStaffInviteWebhook({
       scope: "agency",
       userId,
+      invitedByName: auth.user.fullName || auth.user.email,
+      invitedByEmail: auth.user.email,
       fullName,
       email,
       phone,

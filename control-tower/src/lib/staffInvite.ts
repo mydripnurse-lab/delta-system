@@ -165,6 +165,8 @@ export async function sendStaffInviteWebhook(input: {
   userId?: string | null;
   tenantId?: string | null;
   tenantName?: string | null;
+  invitedByName?: string | null;
+  invitedByEmail?: string | null;
   fullName: string;
   email: string;
   phone: string;
@@ -221,6 +223,12 @@ export async function sendStaffInviteWebhook(input: {
       id: s(input.tenantId),
       name: s(input.tenantName),
     },
+    invitedBy: {
+      name: s(input.invitedByName),
+      email: s(input.invitedByEmail).toLowerCase(),
+    },
+    invited_by_name: s(input.invitedByName),
+    invited_by_email: s(input.invitedByEmail).toLowerCase(),
     activation: {
       link: activationLink || null,
       expiresInHours: 72,

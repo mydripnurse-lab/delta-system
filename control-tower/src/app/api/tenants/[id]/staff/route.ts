@@ -130,6 +130,8 @@ export async function POST(req: Request, ctx: Ctx) {
             scope: "tenant",
             userId: linkedUserId,
             tenantId,
+            invitedByName: auth.user.fullName || auth.user.email,
+            invitedByEmail: auth.user.email,
             fullName,
             email,
             phone,

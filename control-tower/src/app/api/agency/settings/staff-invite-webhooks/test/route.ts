@@ -34,6 +34,12 @@ export async function POST(req: Request) {
         id: "test-tenant",
         name: "Demo Project",
       },
+      invitedBy: {
+        name: "Agency Admin",
+        email: "admin@example.com",
+      },
+      invited_by_name: "Agency Admin",
+      invited_by_email: "admin@example.com",
       activation: {
         link: `${s(settings.activationBaseUrl) || getDefaultActivationBaseUrl()}?token=test-token`,
         expiresInHours: 72,
