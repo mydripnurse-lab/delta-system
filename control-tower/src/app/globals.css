@@ -6600,6 +6600,47 @@ button, input, select { font-family: inherit; }
   width: 92px;
 }
 
+.prospectingDash .prospectingGeoTable {
+  width: 100%;
+  table-layout: auto;
+}
+
+.prospectingDash .prospectingGeoTable th {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: rgba(203, 213, 225, 0.88);
+  text-transform: uppercase;
+}
+
+.prospectingDash .prospectingGeoTable td {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.prospectingDash .prospectingGeoTable td:nth-child(1) {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prospectingDash .prospectingGeoActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prospectingDash .prospectingLeadTable th {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: rgba(203, 213, 225, 0.88);
+  text-transform: uppercase;
+}
+
+.prospectingDash .prospectingLeadTable td {
+  vertical-align: middle;
+  font-size: 14px;
+}
+
 .agencyActionPrimary {
   border-color: rgba(96,165,250,0.6);
   color: #eaf2ff;

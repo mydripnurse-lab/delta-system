@@ -1009,14 +1009,14 @@ function ProspectingDashboardContent() {
             <div className="moduleCard">
               <p className="l moduleTitle">Top States</p>
               <div className="tableWrap">
-                <table className="table prospectingCompactTable">
+                <table className="table prospectingGeoTable">
                   <thead>
                     <tr>
                       <th>State</th>
                       <th>Opp</th>
                       <th>Value</th>
                       <th>Priority</th>
-                      <th />
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1026,12 +1026,19 @@ function ProspectingDashboardContent() {
                         <td>{fmtInt(r.opportunities)}</td>
                         <td>{fmtMoney(r.value)}</td>
                         <td>{fmtInt(r.priorityScore)}</td>
-                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: 6 }}>
-                          <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("state", r.name)}>Use</button>
-                          <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("state", r.name)} disabled={queueRunLoading}>Run</button>
+                        <td>
+                          <div className="prospectingGeoActions">
+                            <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("state", r.name)}>Use</button>
+                            <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("state", r.name)} disabled={queueRunLoading}>Run</button>
+                          </div>
                         </td>
                       </tr>
                     ))}
+                    {(data?.geoQueue?.states || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="mini">No state opportunities yet.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -1040,14 +1047,14 @@ function ProspectingDashboardContent() {
             <div className="moduleCard">
               <p className="l moduleTitle">Top Counties</p>
               <div className="tableWrap">
-                <table className="table prospectingCompactTable">
+                <table className="table prospectingGeoTable">
                   <thead>
                     <tr>
                       <th>County</th>
                       <th>Opp</th>
                       <th>Value</th>
                       <th>Priority</th>
-                      <th />
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1057,12 +1064,19 @@ function ProspectingDashboardContent() {
                         <td>{fmtInt(r.opportunities)}</td>
                         <td>{fmtMoney(r.value)}</td>
                         <td>{fmtInt(r.priorityScore)}</td>
-                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: 6 }}>
-                          <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("county", r.name)}>Use</button>
-                          <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("county", r.name)} disabled={queueRunLoading}>Run</button>
+                        <td>
+                          <div className="prospectingGeoActions">
+                            <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("county", r.name)}>Use</button>
+                            <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("county", r.name)} disabled={queueRunLoading}>Run</button>
+                          </div>
                         </td>
                       </tr>
                     ))}
+                    {(data?.geoQueue?.counties || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="mini">No county opportunities yet.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -1071,14 +1085,14 @@ function ProspectingDashboardContent() {
             <div className="moduleCard">
               <p className="l moduleTitle">Top Cities</p>
               <div className="tableWrap">
-                <table className="table prospectingCompactTable">
+                <table className="table prospectingGeoTable">
                   <thead>
                     <tr>
                       <th>City</th>
                       <th>Opp</th>
                       <th>Value</th>
                       <th>Priority</th>
-                      <th />
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1088,12 +1102,19 @@ function ProspectingDashboardContent() {
                         <td>{fmtInt(r.opportunities)}</td>
                         <td>{fmtMoney(r.value)}</td>
                         <td>{fmtInt(r.priorityScore)}</td>
-                        <td style={{ whiteSpace: "nowrap", display: "flex", gap: 6 }}>
-                          <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("city", r.name)}>Use</button>
-                          <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("city", r.name)} disabled={queueRunLoading}>Run</button>
+                        <td>
+                          <div className="prospectingGeoActions">
+                            <button className="smallBtn" type="button" onClick={() => useGeoFromQueue("city", r.name)}>Use</button>
+                            <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("city", r.name)} disabled={queueRunLoading}>Run</button>
+                          </div>
                         </td>
                       </tr>
                     ))}
+                    {(data?.geoQueue?.cities || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="mini">No city opportunities yet.</td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>
@@ -1275,7 +1296,7 @@ function ProspectingDashboardContent() {
           </div>
 
           <div className="tableWrap" style={{ marginTop: 12 }}>
-            <table className="table">
+            <table className="table prospectingLeadTable">
               <thead>
                 <tr>
                   <th>Business</th>
