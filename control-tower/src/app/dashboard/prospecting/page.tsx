@@ -193,6 +193,10 @@ function ProspectingDashboardContent() {
   const [queueRunLoading, setQueueRunLoading] = useState(false);
   const [queueMessage, setQueueMessage] = useState("");
   const [leadViewId, setLeadViewId] = useState("");
+  const [leadSearch, setLeadSearch] = useState("");
+  const [leadPage, setLeadPage] = useState(1);
+  const [notifSearch, setNotifSearch] = useState("");
+  const [notifViewId, setNotifViewId] = useState("");
 
   async function load() {
     if (!tenantReady || !tenantId) return;
@@ -650,6 +654,63 @@ function ProspectingDashboardContent() {
   const leads = data?.leadPool?.rows || [];
   const notifications = data?.notifications;
   const leadView = useMemo(() => leads.find((x) => x.id === leadViewId) || null, [leads, leadViewId]);
+  const leadPageSize = 12;
+  const leadRowsFiltered = useMemo(() => {
+    const q = leadSearch.trim().toLowerCase();
+    if (!q) return leads;
+    return leads.filter((row) => {
+      const hay = [
+        row.businessName,
+        row.category,
+        row.city,
+        row.county,
+        row.state,
+        row.email,
+        row.phone,
+        row.website,
+        row.services,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [leads, leadSearch]);
+  const leadPages = Math.max(1, Math.ceil(leadRowsFiltered.length / leadPageSize));
+  const leadPageSafe = Math.min(Math.max(1, leadPage), leadPages);
+  const leadRowsPaged = leadRowsFiltered.slice((leadPageSafe - 1) * leadPageSize, leadPageSafe * leadPageSize);
+
+  const notifRowsFiltered = useMemo(() => {
+    const q = notifSearch.trim().toLowerCase();
+    const rows = notifications?.latest || [];
+    if (!q) return rows;
+    return rows.filter((row) =>
+      [row.businessName, row.city, row.county, row.state, row.reviewStatus].join(" ").toLowerCase().includes(q),
+    );
+  }, [notifications?.latest, notifSearch]);
+  const notifView = useMemo(
+    () => (notifications?.latest || []).find((x) => x.leadId === notifViewId) || null,
+    [notifications?.latest, notifViewId],
+  );
+  const recommendations = useMemo(() => {
+    const out: string[] = [];
+    if (Number(signals?.lostBookings || 0) > 0) {
+      out.push(`Recover lost demand: ${fmtInt(signals?.lostBookings)} lost qualified opportunities in selected range.`);
+    }
+    if (Number(signals?.impressions || 0) > 0 && Number(signals?.lostBookings || 0) > 0) {
+      out.push("Prioritize geos with high search demand and low booking conversion for prospect outreach.");
+    }
+    if (Number(leadSummary?.contactable || 0) < Number(leadSummary?.total || 0) * 0.6) {
+      out.push("Improve enrichment quality: run website/email/phone enrichment to raise contactable lead ratio.");
+    }
+    const topCity = data?.geoQueue?.cities?.[0];
+    if (topCity?.name) {
+      out.push(`Run city-first expansion in ${topCity.name} (top geo priority).`);
+    }
+    if (!out.length) {
+      out.push("No critical risk detected. Keep daily geo discovery running and review approvals.");
+    }
+    return out;
+  }, [signals?.lostBookings, signals?.impressions, leadSummary?.contactable, leadSummary?.total, data?.geoQueue?.cities]);
 
   return (
     <div className="shell callsDash ceoDash prospectingDash">
@@ -855,6 +916,16 @@ function ProspectingDashboardContent() {
           </div>
         </div>
         <div className="cardBody">
+          <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginBottom: 10 }}>
+            <input
+              className="input"
+              style={{ maxWidth: 360 }}
+              placeholder="Search notifications..."
+              value={notifSearch}
+              onChange={(e) => setNotifSearch(e.target.value)}
+            />
+            <span className="badge">{fmtInt(notifRowsFiltered.length)} results</span>
+          </div>
           <div className="tableWrap">
             <table className="table">
               <thead>
@@ -863,25 +934,61 @@ function ProspectingDashboardContent() {
                   <th>Geo</th>
                   <th>Status</th>
                   <th>Created</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
-                {(notifications?.latest || []).map((row) => (
+                {notifRowsFiltered.map((row) => (
                   <tr key={`notif-${row.leadId}`}>
                     <td>{row.businessName}</td>
                     <td>{[row.city, row.county, row.state].filter(Boolean).join(", ") || "-"}</td>
                     <td>{row.reviewStatus}</td>
                     <td>{fmtDateTime(row.createdAt)}</td>
+                    <td>
+                      <button className="smallBtn" type="button" onClick={() => setNotifViewId(row.leadId)}>
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
-                {(notifications?.latest || []).length === 0 ? (
+                {notifRowsFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="mini">No notifications yet.</td>
+                    <td colSpan={5} className="mini">No notifications yet.</td>
                   </tr>
                 ) : null}
               </tbody>
             </table>
           </div>
+
+          {notifView ? (
+            <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 12 }}>
+              <div className="cardHeader" style={{ padding: 0, borderBottom: "none" }}>
+                <div>
+                  <h2 className="cardTitle" style={{ marginBottom: 4 }}>Opportunity Notification</h2>
+                  <div className="cardSubtitle">{notifView.businessName}</div>
+                </div>
+                <div className="cardHeaderActions">
+                  <button className="smallBtn" type="button" onClick={() => setNotifViewId("")}>Close</button>
+                </div>
+              </div>
+              <div className="agencyWizardGrid agencyWizardGridThree" style={{ marginTop: 10 }}>
+                <div className="agencyField"><span className="agencyFieldLabel">Geo</span><div className="mini">{[notifView.city, notifView.county, notifView.state].filter(Boolean).join(", ") || "-"}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Status</span><div className="mini">{notifView.reviewStatus}</div></div>
+                <div className="agencyField"><span className="agencyFieldLabel">Created</span><div className="mini">{fmtDateTime(notifView.createdAt)}</div></div>
+              </div>
+              <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 10 }}>
+                <button className="smallBtn agencyActionPrimary" type="button" onClick={() => void reviewLead(notifView.leadId, "approved")} disabled={leadSaving}>
+                  Approve
+                </button>
+                <button className="smallBtn" type="button" onClick={() => void reviewLead(notifView.leadId, "rejected")} disabled={leadSaving}>
+                  Reject
+                </button>
+                <button className="smallBtn" type="button" onClick={() => setLeadViewId(notifView.leadId)}>
+                  Open Full Lead
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -902,7 +1009,7 @@ function ProspectingDashboardContent() {
             <div className="moduleCard">
               <p className="l moduleTitle">Top States</p>
               <div className="tableWrap">
-                <table className="table">
+                <table className="table prospectingCompactTable">
                   <thead>
                     <tr>
                       <th>State</th>
@@ -933,7 +1040,7 @@ function ProspectingDashboardContent() {
             <div className="moduleCard">
               <p className="l moduleTitle">Top Counties</p>
               <div className="tableWrap">
-                <table className="table">
+                <table className="table prospectingCompactTable">
                   <thead>
                     <tr>
                       <th>County</th>
@@ -964,7 +1071,7 @@ function ProspectingDashboardContent() {
             <div className="moduleCard">
               <p className="l moduleTitle">Top Cities</p>
               <div className="tableWrap">
-                <table className="table">
+                <table className="table prospectingCompactTable">
                   <thead>
                     <tr>
                       <th>City</th>
@@ -993,6 +1100,24 @@ function ProspectingDashboardContent() {
             </div>
           </div>
           {queueMessage ? <div className="mini" style={{ marginTop: 10 }}>{queueMessage}</div> : null}
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Opportunity Recommendations</h2>
+            <div className="cardSubtitle">Actions generated from bookings, impressions, geo priority, and lead quality signals.</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
+            <ul className="mini" style={{ margin: 0, paddingLeft: 18 }}>
+              {recommendations.map((rec, idx) => (
+                <li key={`rec-${idx}`} style={{ marginBottom: 8 }}>{rec}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -1135,6 +1260,19 @@ function ProspectingDashboardContent() {
             </button>
             {leadMessage ? <div className="mini">{leadMessage}</div> : null}
           </div>
+          <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 8 }}>
+            <input
+              className="input"
+              style={{ maxWidth: 380 }}
+              placeholder="Search business, geo, email, phone..."
+              value={leadSearch}
+              onChange={(e) => {
+                setLeadSearch(e.target.value);
+                setLeadPage(1);
+              }}
+            />
+            <span className="badge">{fmtInt(leadRowsFiltered.length)} leads</span>
+          </div>
 
           <div className="tableWrap" style={{ marginTop: 12 }}>
             <table className="table">
@@ -1150,7 +1288,7 @@ function ProspectingDashboardContent() {
                 </tr>
               </thead>
               <tbody>
-                {leads.map((lead) => (
+                {leadRowsPaged.map((lead) => (
                   <tr key={lead.id}>
                     <td>
                       <div>{lead.businessName}</div>
@@ -1179,7 +1317,7 @@ function ProspectingDashboardContent() {
                     </td>
                   </tr>
                 ))}
-                {leads.length === 0 ? (
+                {leadRowsFiltered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="mini">No leads saved yet.</td>
                   </tr>
@@ -1187,6 +1325,24 @@ function ProspectingDashboardContent() {
               </tbody>
             </table>
           </div>
+          {leadRowsFiltered.length > leadPageSize ? (
+            <div
+              className="agencyCreateActions agencyCreateActionsSpaced"
+              style={{ marginTop: 8 }}
+            >
+              <div className="mini">
+                Page {leadPageSafe} / {leadPages}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="smallBtn" type="button" disabled={leadPageSafe <= 1} onClick={() => setLeadPage((p) => Math.max(1, p - 1))}>
+                  Prev
+                </button>
+                <button className="smallBtn" type="button" disabled={leadPageSafe >= leadPages} onClick={() => setLeadPage((p) => Math.min(leadPages, p + 1))}>
+                  Next
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {leadView ? (
             <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 12 }}>

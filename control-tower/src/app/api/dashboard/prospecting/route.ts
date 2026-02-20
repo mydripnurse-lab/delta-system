@@ -224,10 +224,13 @@ export async function GET(req: Request) {
       end: range.end,
     });
 
-    const [overview, context, bootstrap, leadStore] = await Promise.all([
+    const [overview, context, bootstrap, appointments, leadStore] = await Promise.all([
       fetchJsonSafe(`${origin}/api/dashboard/overview?${overviewQs.toString()}`),
       fetchJsonSafe(`${origin}/api/dashboard/campaign-factory/context?tenantId=${encodeURIComponent(tenantId)}`),
       fetchJsonSafe(`${origin}/api/tenants/${encodeURIComponent(tenantId)}/bootstrap`),
+      fetchJsonSafe(
+        `${origin}/api/dashboard/appointments?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}&start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}&preferSnapshot=1`,
+      ),
       readLeadStore(tenantId),
     ]);
 
@@ -270,6 +273,8 @@ export async function GET(req: Request) {
     };
 
     const executive = (overview?.executive as JsonMap | undefined) || {};
+    const appointmentsLost = n(((appointments?.lostBookings as JsonMap | undefined)?.total));
+    const appointmentsLostValue = n(((appointments?.lostBookings as JsonMap | undefined)?.valueTotal));
     const topGeo = (overview?.topOpportunitiesGeo as JsonMap | undefined) || {};
     const fallbackStates = deriveGeoFromLeads(leadStore.leads, "state");
     const fallbackCounties = deriveGeoFromLeads(leadStore.leads, "county");
@@ -277,9 +282,10 @@ export async function GET(req: Request) {
     const topStates = (((topGeo.states as unknown[]) || []) as GeoRow[]).slice(0, 50);
     const topCounties = (((topGeo.counties as unknown[]) || []) as GeoRow[]).slice(0, 50);
     const topCities = (((topGeo.cities as unknown[]) || []) as GeoRow[]).slice(0, 50);
-    const states = rankGeo((topStates.length ? topStates : fallbackStates).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
-    const counties = rankGeo((topCounties.length ? topCounties : fallbackCounties).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
-    const cities = rankGeo((topCities.length ? topCities : fallbackCities).slice(0, 50), n(executive.appointmentsLostNow), n(executive.searchImpressionsNow));
+    const lostForRank = appointmentsLost || n(executive.appointmentsLostNow);
+    const states = rankGeo((topStates.length ? topStates : fallbackStates).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
+    const counties = rankGeo((topCounties.length ? topCounties : fallbackCounties).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
+    const cities = rankGeo((topCities.length ? topCities : fallbackCities).slice(0, 50), lostForRank, n(executive.searchImpressionsNow));
 
     const leadsRaw = [...leadStore.leads].sort((a, b) => s(b.updatedAt).localeCompare(s(a.updatedAt)));
     const leadsWithEmail = leadsRaw.filter((x) => Boolean(s(x.email))).length;
@@ -321,8 +327,8 @@ export async function GET(req: Request) {
       tenantId,
       range,
       opportunitySignals: {
-        lostBookings: n(executive.appointmentsLostNow),
-        lostBookingValue: n(executive.appointmentsLostValueNow),
+        lostBookings: lostForRank,
+        lostBookingValue: appointmentsLostValue || n(executive.appointmentsLostValueNow),
         impressions: n(executive.searchImpressionsNow),
         clicks: n(executive.searchClicksNow),
         leadVolume: n(executive.leadsNow),

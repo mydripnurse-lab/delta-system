@@ -6582,6 +6582,24 @@ button, input, select { font-family: inherit; }
   background: rgba(15, 23, 42, 0.35);
 }
 
+.prospectingDash .prospectingCompactTable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.prospectingDash .prospectingCompactTable th,
+.prospectingDash .prospectingCompactTable td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.prospectingDash .prospectingCompactTable th:last-child,
+.prospectingDash .prospectingCompactTable td:last-child {
+  width: 92px;
+}
+
 .agencyActionPrimary {
   border-color: rgba(96,165,250,0.6);
   color: #eaf2ff;
