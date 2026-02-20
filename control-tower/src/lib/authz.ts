@@ -30,6 +30,7 @@ type AuthUser = {
   id: string;
   email: string;
   fullName: string | null;
+  phone: string | null;
   globalRoles: AppRole[];
 };
 
@@ -140,18 +141,18 @@ async function resolveOrCreateUser(req: Request): Promise<AuthResult> {
 
   const byId = !!userId;
   const query = byId
-    ? `select id, email, full_name, is_active from app.users where id = $1 limit 1`
-    : `select id, email, full_name, is_active from app.users where lower(email) = lower($1) limit 1`;
+    ? `select id, email, full_name, phone, is_active from app.users where id = $1 limit 1`
+    : `select id, email, full_name, phone, is_active from app.users where lower(email) = lower($1) limit 1`;
   const val = byId ? userId : email;
-  const existing = await pool.query<{ id: string; email: string; full_name: string | null; is_active: boolean }>(query, [val]);
+  const existing = await pool.query<{ id: string; email: string; full_name: string | null; phone: string | null; is_active: boolean }>(query, [val]);
 
   let user = existing.rows[0] || null;
   if (!user && !byId && autoCreate) {
-    const inserted = await pool.query<{ id: string; email: string; full_name: string | null; is_active: boolean }>(
+    const inserted = await pool.query<{ id: string; email: string; full_name: string | null; phone: string | null; is_active: boolean }>(
       `
-        insert into app.users (email, full_name, is_active)
-        values ($1, nullif($2, ''), true)
-        returning id, email, full_name, is_active
+        insert into app.users (email, full_name, phone, is_active)
+        values ($1, nullif($2, ''), null, true)
+        returning id, email, full_name, phone, is_active
       `,
       [email, rawName],
     );
@@ -192,6 +193,7 @@ async function resolveOrCreateUser(req: Request): Promise<AuthResult> {
       id: user.id,
       email: s(user.email).toLowerCase(),
       fullName: user.full_name,
+      phone: user.phone,
       globalRoles,
     },
   };

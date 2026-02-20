@@ -23,6 +23,7 @@ type Ctx = { params: Promise<{ userId: string }> };
 type PatchAgencyUserBody = {
   fullName?: string;
   email?: string;
+  phone?: string;
   isActive?: boolean;
   globalRoles?: string[];
 };
@@ -46,6 +47,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
+  const phone = s(body.phone);
   const set: string[] = [];
   const vals: unknown[] = [targetUserId];
 
@@ -56,6 +58,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (email) {
     vals.push(email);
     set.push(`email = $${vals.length}`);
+  }
+  if (phone || body.phone === "") {
+    vals.push(phone || null);
+    set.push(`phone = nullif($${vals.length}::text, '')`);
   }
   if (isAgencyManager && typeof body.isActive === "boolean") {
     vals.push(body.isActive);

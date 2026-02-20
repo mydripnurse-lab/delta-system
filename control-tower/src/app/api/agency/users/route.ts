@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { requireAuthUser } from "@/lib/authz";
 import { hashPassword, validatePasswordStrength } from "@/lib/password";
+import { sendStaffInviteWebhook } from "@/lib/staffInvite";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,7 @@ function normalizeGlobalRole(role: unknown) {
 type CreateAgencyUserBody = {
   email?: string;
   fullName?: string;
+  phone?: string;
   password?: string;
   isActive?: boolean;
   globalRoles?: string[];
@@ -44,6 +46,7 @@ export async function GET(req: Request) {
       id: string;
       email: string;
       fullName: string | null;
+      phone: string | null;
       isActive: boolean;
       createdAt: string;
       lastLoginAt: string | null;
@@ -55,6 +58,7 @@ export async function GET(req: Request) {
           u.id,
           u.email,
           u.full_name as "fullName",
+          u.phone,
           u.is_active as "isActive",
           u.created_at::text as "createdAt",
           u.last_login_at::text as "lastLoginAt",
@@ -107,7 +111,7 @@ export async function GET(req: Request) {
     );
     return NextResponse.json({
       ok: true,
-      rows: fallback.rows.map((row) => ({ ...row, lastLoginAt: null, globalRoles: [] })),
+      rows: fallback.rows.map((row) => ({ ...row, phone: null, lastLoginAt: null, globalRoles: [] })),
       canManageAgency: isAgencyManager,
     });
   }
@@ -125,12 +129,13 @@ export async function POST(req: Request) {
 
   const email = s(body.email).toLowerCase();
   const fullName = s(body.fullName);
+  const phone = s(body.phone);
   const password = s(body.password);
   const isActive = body.isActive !== false;
   const roleSet = Array.from(new Set((Array.isArray(body.globalRoles) ? body.globalRoles : []).map(normalizeGlobalRole).filter(Boolean)));
 
-  if (!email) {
-    return NextResponse.json({ ok: false, error: "Email is required." }, { status: 400 });
+  if (!email || !phone) {
+    return NextResponse.json({ ok: false, error: "Email and phone are required." }, { status: 400 });
   }
   if (password) {
     const weakReason = validatePasswordStrength(password);
@@ -148,23 +153,34 @@ export async function POST(req: Request) {
     try {
       created = await client.query<{ id: string }>(
         `
-          insert into app.users (email, full_name, is_active, password_hash, password_updated_at)
-          values ($1, nullif($2, ''), $3, $4, case when $4 is null then null else now() end)
+          insert into app.users (email, full_name, phone, is_active, password_hash, password_updated_at)
+          values ($1, nullif($2, ''), nullif($3, ''), $4, $5, case when $5 is null then null else now() end)
           returning id
         `,
-        [email, fullName, isActive, nextHash],
+        [email, fullName, phone, isActive, nextHash],
       );
     } catch (error: unknown) {
       const code = error && typeof error === "object" && "code" in error ? String((error as { code?: string }).code || "") : "";
       if (code !== "42703") throw error;
-      created = await client.query<{ id: string }>(
-        `
-          insert into app.users (email, full_name, is_active)
-          values ($1, nullif($2, ''), $3)
-          returning id
-        `,
-        [email, fullName, isActive],
-      );
+      try {
+        created = await client.query<{ id: string }>(
+          `
+            insert into app.users (email, full_name, phone, is_active)
+            values ($1, nullif($2, ''), nullif($3, ''), $4)
+            returning id
+          `,
+          [email, fullName, phone, isActive],
+        );
+      } catch {
+        created = await client.query<{ id: string }>(
+          `
+            insert into app.users (email, full_name, is_active)
+            values ($1, nullif($2, ''), $3)
+            returning id
+          `,
+          [email, fullName, isActive],
+        );
+      }
     }
     const userId = created.rows[0]?.id;
     if (!userId) throw new Error("Failed to create user.");
@@ -183,7 +199,21 @@ export async function POST(req: Request) {
     }
 
     await client.query("COMMIT");
-    return NextResponse.json({ ok: true, id: userId });
+    const inviteDelivery = await sendStaffInviteWebhook({
+      scope: "agency",
+      userId,
+      fullName,
+      email,
+      phone,
+      role: roleSet[0] || "",
+      status: isActive ? "active" : "disabled",
+      tempPasswordSet: !!password,
+    }).catch((error: unknown) => ({
+      sent: false,
+      reason: error instanceof Error ? error.message : "Invite webhook failed",
+    }));
+
+    return NextResponse.json({ ok: true, id: userId, inviteDelivery });
   } catch (error: unknown) {
     await client.query("ROLLBACK");
     const message = error instanceof Error ? error.message : "Failed to create user";

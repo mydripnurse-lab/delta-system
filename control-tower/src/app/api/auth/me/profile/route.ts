@@ -11,6 +11,7 @@ function s(v: unknown) {
 type PatchProfileBody = {
   fullName?: string;
   email?: string;
+  phone?: string;
 };
 
 export async function PATCH(req: Request) {
@@ -22,7 +23,8 @@ export async function PATCH(req: Request) {
 
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
-  if (!fullName && !email) {
+  const phone = s(body.phone);
+  if (!fullName && !email && !phone && body.phone !== "") {
     return NextResponse.json({ ok: false, error: "Nothing to update." }, { status: 400 });
   }
 
@@ -36,6 +38,10 @@ export async function PATCH(req: Request) {
     vals.push(email);
     set.push(`email = $${vals.length}`);
   }
+  if (phone || body.phone === "") {
+    vals.push(phone || null);
+    set.push(`phone = nullif($${vals.length}::text, '')`);
+  }
 
   const pool = getDbPool();
   try {
@@ -43,12 +49,13 @@ export async function PATCH(req: Request) {
       id: string;
       email: string;
       full_name: string | null;
+      phone: string | null;
     }>(
       `
         update app.users
         set ${set.join(", ")}
         where id = $1
-        returning id, email, full_name
+        returning id, email, full_name, phone
       `,
       vals,
     );
@@ -62,6 +69,7 @@ export async function PATCH(req: Request) {
         id: q.rows[0].id,
         email: q.rows[0].email,
         fullName: q.rows[0].full_name,
+        phone: q.rows[0].phone,
       },
     });
   } catch (error: unknown) {

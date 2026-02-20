@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { requireTenantPermission } from "@/lib/authz";
+import { findOrCreateUserIdentity, sendStaffInviteWebhook } from "@/lib/staffInvite";
 
 export const runtime = "nodejs";
 
@@ -108,6 +109,10 @@ export async function POST(req: Request, ctx: Ctx) {
       [tenantId, fullName, email, phone, role, status],
     );
 
+    const linkedUserId = status === "invited"
+      ? await findOrCreateUserIdentity(client, { email, fullName, phone, isActive: true })
+      : null;
+
     await writeAuditLog(client, {
       organizationId: tenantId,
       actorType: "user",
@@ -119,6 +124,22 @@ export async function POST(req: Request, ctx: Ctx) {
     });
 
     await client.query("COMMIT");
+    const inviteDelivery =
+      status === "invited"
+        ? await sendStaffInviteWebhook({
+            scope: "tenant",
+            userId: linkedUserId,
+            tenantId,
+            fullName,
+            email,
+            phone,
+            role,
+            status,
+          }).catch((error: unknown) => ({
+            sent: false,
+            reason: error instanceof Error ? error.message : "Invite webhook failed",
+          }))
+        : { sent: false, reason: "status is not invited" };
     return NextResponse.json({
       ok: true,
       id: q.rows[0]?.id || null,
@@ -127,6 +148,7 @@ export async function POST(req: Request, ctx: Ctx) {
       phone,
       role,
       status,
+      inviteDelivery,
     });
   } catch (error: unknown) {
     await client.query("ROLLBACK");

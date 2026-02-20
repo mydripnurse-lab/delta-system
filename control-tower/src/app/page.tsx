@@ -139,6 +139,7 @@ type AuthMeUser = {
   id: string;
   email: string;
   fullName?: string | null;
+  phone?: string | null;
   globalRoles?: string[];
 };
 
@@ -146,6 +147,7 @@ type AgencyUserRow = {
   id: string;
   email: string;
   fullName?: string | null;
+  phone?: string | null;
   isActive: boolean;
   createdAt: string;
   lastLoginAt?: string | null;
@@ -397,6 +399,7 @@ export default function AgencyHomePage() {
   const [agencyUsersPage, setAgencyUsersPage] = useState(1);
   const [agencyNewUserEmail, setAgencyNewUserEmail] = useState("");
   const [agencyNewUserFullName, setAgencyNewUserFullName] = useState("");
+  const [agencyNewUserPhone, setAgencyNewUserPhone] = useState("");
   const [agencyNewUserPassword, setAgencyNewUserPassword] = useState("");
   const [agencyNewUserRole, setAgencyNewUserRole] = useState<AgencyUserRow["draftGlobalRole"]>("");
   const [agencyNewUserIsActive, setAgencyNewUserIsActive] = useState(true);
@@ -404,9 +407,19 @@ export default function AgencyHomePage() {
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [profileFullName, setProfileFullName] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileErr, setProfileErr] = useState("");
   const [profileOk, setProfileOk] = useState("");
+  const [inviteWebhookEnabled, setInviteWebhookEnabled] = useState(false);
+  const [inviteWebhookUrl, setInviteWebhookUrl] = useState("");
+  const [inviteActivationBaseUrl, setInviteActivationBaseUrl] = useState("");
+  const [inviteSendEmail, setInviteSendEmail] = useState(true);
+  const [inviteSendSms, setInviteSendSms] = useState(false);
+  const [inviteWebhookBusy, setInviteWebhookBusy] = useState(false);
+  const [inviteWebhookTestBusy, setInviteWebhookTestBusy] = useState(false);
+  const [inviteWebhookErr, setInviteWebhookErr] = useState("");
+  const [inviteWebhookOk, setInviteWebhookOk] = useState("");
   const [securityCurrentPassword, setSecurityCurrentPassword] = useState("");
   const [securityNewPassword, setSecurityNewPassword] = useState("");
   const [securityConfirmPassword, setSecurityConfirmPassword] = useState("");
@@ -530,6 +543,7 @@ export default function AgencyHomePage() {
       setAuthMe(data.user);
       setProfileFullName(s(data.user.fullName));
       setProfileEmail(s(data.user.email));
+      setProfilePhone(s(data.user.phone));
     } catch {
       // keep UI functional even if auth profile endpoint fails transiently
     }
@@ -567,8 +581,8 @@ export default function AgencyHomePage() {
 
   async function createAgencyUserAccount() {
     if (!agencyCanManageUsers) return;
-    if (!s(agencyNewUserEmail)) {
-      setAgencyUsersErr("Email is required.");
+    if (!s(agencyNewUserEmail) || !s(agencyNewUserPhone)) {
+      setAgencyUsersErr("Email and phone are required.");
       return;
     }
     setAgencyUsersBusy(true);
@@ -581,6 +595,7 @@ export default function AgencyHomePage() {
         body: JSON.stringify({
           email: s(agencyNewUserEmail),
           fullName: s(agencyNewUserFullName),
+          phone: s(agencyNewUserPhone),
           password: s(agencyNewUserPassword) || undefined,
           isActive: agencyNewUserIsActive,
           globalRoles: s(agencyNewUserRole) ? [agencyNewUserRole] : [],
@@ -590,10 +605,18 @@ export default function AgencyHomePage() {
       if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setAgencyNewUserEmail("");
       setAgencyNewUserFullName("");
+      setAgencyNewUserPhone("");
       setAgencyNewUserPassword("");
       setAgencyNewUserRole("");
       setAgencyNewUserIsActive(true);
-      setAgencyUsersOk("Agency account created.");
+      const inviteDelivery = data && typeof data === "object" && "inviteDelivery" in data
+        ? (data as { inviteDelivery?: { sent?: boolean; reason?: string } }).inviteDelivery
+        : null;
+      setAgencyUsersOk(
+        inviteDelivery?.sent
+          ? "Agency account created and invitation webhook sent."
+          : `Agency account created.${inviteDelivery?.reason ? ` Invite: ${inviteDelivery.reason}` : ""}`,
+      );
       await loadAgencyUsers();
     } catch (error: unknown) {
       setAgencyUsersErr(error instanceof Error ? error.message : "Failed to create agency account");
@@ -615,6 +638,7 @@ export default function AgencyHomePage() {
         body: JSON.stringify({
           fullName: s(row.fullName),
           email: s(row.email),
+          phone: s(row.phone),
           isActive: row.isActive,
           globalRoles: role ? [role] : [],
         }),
@@ -657,7 +681,7 @@ export default function AgencyHomePage() {
       const res = await fetch("/api/auth/me/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: s(profileFullName), email: s(profileEmail) }),
+        body: JSON.stringify({ fullName: s(profileFullName), email: s(profileEmail), phone: s(profilePhone) }),
       });
       const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
       if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
@@ -706,6 +730,80 @@ export default function AgencyHomePage() {
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
     router.push("/login");
+  }
+
+  async function loadInviteWebhookSettings() {
+    setInviteWebhookErr("");
+    try {
+      const res = await fetch("/api/agency/settings/staff-invite-webhooks", { cache: "no-store" });
+      const data = (await safeJson(res)) as
+        | {
+            ok?: boolean;
+            payload?: {
+              enabled?: boolean;
+              webhookUrl?: string;
+              activationBaseUrl?: string;
+              sendEmail?: boolean;
+              sendSms?: boolean;
+            };
+            error?: string;
+          }
+        | null;
+      if (!res.ok || !data?.ok || !data.payload) throw new Error(data?.error || `HTTP ${res.status}`);
+      setInviteWebhookEnabled(Boolean(data.payload.enabled));
+      setInviteWebhookUrl(s(data.payload.webhookUrl));
+      setInviteActivationBaseUrl(s(data.payload.activationBaseUrl));
+      setInviteSendEmail(data.payload.sendEmail !== false);
+      setInviteSendSms(data.payload.sendSms === true);
+    } catch (error: unknown) {
+      setInviteWebhookErr(error instanceof Error ? error.message : "Failed to load invite webhooks.");
+    }
+  }
+
+  async function saveInviteWebhookSettings() {
+    setInviteWebhookBusy(true);
+    setInviteWebhookErr("");
+    setInviteWebhookOk("");
+    try {
+      const res = await fetch("/api/agency/settings/staff-invite-webhooks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: inviteWebhookEnabled,
+          webhookUrl: s(inviteWebhookUrl),
+          activationBaseUrl: s(inviteActivationBaseUrl),
+          sendEmail: inviteSendEmail,
+          sendSms: inviteSendSms,
+        }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setInviteWebhookOk("Invite webhook settings saved.");
+    } catch (error: unknown) {
+      setInviteWebhookErr(error instanceof Error ? error.message : "Failed to save invite webhooks.");
+    } finally {
+      setInviteWebhookBusy(false);
+    }
+  }
+
+  async function sendInviteWebhookTest() {
+    setInviteWebhookTestBusy(true);
+    setInviteWebhookErr("");
+    setInviteWebhookOk("");
+    try {
+      const res = await fetch("/api/agency/settings/staff-invite-webhooks/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookUrl: s(inviteWebhookUrl) }),
+      });
+      const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setInviteWebhookOk("Test webhook sent successfully.");
+    } catch (error: unknown) {
+      setInviteWebhookErr(error instanceof Error ? error.message : "Failed to send test webhook.");
+    } finally {
+      setInviteWebhookTestBusy(false);
+    }
   }
 
   async function loadTenants() {
@@ -932,6 +1030,11 @@ export default function AgencyHomePage() {
   }, [activeMenu, settingsTenantId]);
 
   useEffect(() => {
+    if (activeMenu !== "settings") return;
+    void loadInviteWebhookSettings();
+  }, [activeMenu]);
+
+  useEffect(() => {
     if (activeMenu === "audit" && s(auditTenantId)) {
       void loadAuditForTenant(auditTenantId);
     }
@@ -957,6 +1060,7 @@ export default function AgencyHomePage() {
     if (!showProfileModal) return;
     setProfileFullName(s(authMe?.fullName));
     setProfileEmail(s(authMe?.email));
+    setProfilePhone(s(authMe?.phone));
     setProfileErr("");
     setProfileOk("");
   }, [showProfileModal, authMe]);
@@ -1002,7 +1106,7 @@ export default function AgencyHomePage() {
     const q = s(agencyUsersSearch).toLowerCase();
     if (!q) return agencyUsersRows;
     return agencyUsersRows.filter((row) =>
-      [row.fullName, row.email, row.globalRoles.join(","), String(row.tenantCount)]
+      [row.fullName, row.email, row.phone, row.globalRoles.join(","), String(row.tenantCount)]
         .map(s)
         .join(" ")
         .toLowerCase()
@@ -2394,6 +2498,12 @@ export default function AgencyHomePage() {
                   />
                   <input
                     className="input"
+                    placeholder="Phone (required)"
+                    value={agencyNewUserPhone}
+                    onChange={(e) => setAgencyNewUserPhone(e.target.value)}
+                  />
+                  <input
+                    className="input"
                     type="password"
                     placeholder="Temp password (optional)"
                     value={agencyNewUserPassword}
@@ -2425,7 +2535,7 @@ export default function AgencyHomePage() {
             <div className="agencySearchRow">
               <input
                 className="input"
-                placeholder="Search agency accounts by name, email, role..."
+                placeholder="Search agency accounts by name, email, phone, role..."
                 value={agencyUsersSearch}
                 onChange={(e) => setAgencyUsersSearch(e.target.value)}
               />
@@ -2441,6 +2551,7 @@ export default function AgencyHomePage() {
                   <tr>
                     <th>Name</th>
                     <th>Email</th>
+                    <th>Phone</th>
                     <th>Global Role</th>
                     <th>Status</th>
                     <th>Tenants</th>
@@ -2451,11 +2562,11 @@ export default function AgencyHomePage() {
                 <tbody>
                   {agencyUsersLoading ? (
                     <tr>
-                      <td colSpan={7}>Loading agency accounts...</td>
+                      <td colSpan={8}>Loading agency accounts...</td>
                     </tr>
                   ) : filteredAgencyUsers.length === 0 ? (
                     <tr>
-                      <td colSpan={7}>No agency accounts found.</td>
+                      <td colSpan={8}>No agency accounts found.</td>
                     </tr>
                   ) : (
                     pagedAgencyUsers.map((row) => (
@@ -2480,6 +2591,18 @@ export default function AgencyHomePage() {
                               const value = e.target.value;
                               setAgencyUsersRows((prev) =>
                                 prev.map((it) => (it.id === row.id ? { ...it, email: value } : it)),
+                              );
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={s(row.phone)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setAgencyUsersRows((prev) =>
+                                prev.map((it) => (it.id === row.id ? { ...it, phone: value } : it)),
                               );
                             }}
                           />
@@ -2961,6 +3084,51 @@ export default function AgencyHomePage() {
             </div>
             {settingsErr ? <div className="errorText">{settingsErr}</div> : null}
             {settingsOk ? <div className="okText">{settingsOk}</div> : null}
+            <div className="agencyDangerBox agencyStaffCreateBox">
+              <h4>Staff Invite Webhooks (GHL)</h4>
+              <p className="mini">Envía eventos de invitación por webhook para automatizar SMS/Email en GHL.</p>
+              <div className="agencySettingsGrid">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Enable webhook automation</span>
+                  <select className="input" value={inviteWebhookEnabled ? "on" : "off"} onChange={(e) => setInviteWebhookEnabled(e.target.value === "on")}>
+                    <option value="on">on</option>
+                    <option value="off">off</option>
+                  </select>
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Webhook URL</span>
+                  <input className="input" value={inviteWebhookUrl} onChange={(e) => setInviteWebhookUrl(e.target.value)} placeholder="https://hooks..." />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Activation Base URL</span>
+                  <input className="input" value={inviteActivationBaseUrl} onChange={(e) => setInviteActivationBaseUrl(e.target.value)} placeholder="https://your-app.com/activate" />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Send Email</span>
+                  <select className="input" value={inviteSendEmail ? "yes" : "no"} onChange={(e) => setInviteSendEmail(e.target.value === "yes")}>
+                    <option value="yes">yes</option>
+                    <option value="no">no</option>
+                  </select>
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Send SMS</span>
+                  <select className="input" value={inviteSendSms ? "yes" : "no"} onChange={(e) => setInviteSendSms(e.target.value === "yes")}>
+                    <option value="yes">yes</option>
+                    <option value="no">no</option>
+                  </select>
+                </label>
+              </div>
+              {inviteWebhookErr ? <div className="errorText">{inviteWebhookErr}</div> : null}
+              {inviteWebhookOk ? <div className="okText">{inviteWebhookOk}</div> : null}
+              <div className="agencyCreateActions agencyCreateActionsSpaced">
+                <button type="button" className="btnPrimary" disabled={inviteWebhookBusy} onClick={() => void saveInviteWebhookSettings()}>
+                  {inviteWebhookBusy ? "Saving..." : "Save webhook settings"}
+                </button>
+                <button type="button" className="btnGhost" disabled={inviteWebhookTestBusy} onClick={() => void sendInviteWebhookTest()}>
+                  {inviteWebhookTestBusy ? "Sending..." : "Send test webhook"}
+                </button>
+              </div>
+            </div>
             <div className="agencySettingsGrid">
               <label className="agencyField">
                 <span className="agencyFieldLabel">Project name</span>
@@ -3203,6 +3371,10 @@ export default function AgencyHomePage() {
                 <label className="agencyField">
                   <span className="agencyFieldLabel">Email</span>
                   <input className="input" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Phone</span>
+                  <input className="input" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} />
                 </label>
               </div>
               {profileErr ? <div className="errorText">{profileErr}</div> : null}

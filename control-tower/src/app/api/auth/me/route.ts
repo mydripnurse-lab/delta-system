@@ -69,6 +69,7 @@ export async function GET(req: Request) {
       id: auth.user.id,
       email: auth.user.email,
       fullName: auth.user.fullName,
+      phone: auth.user.phone,
       globalRoles: auth.user.globalRoles,
     },
     tenants: tenantRows.rows,
