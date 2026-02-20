@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     const nextHash = await hashPassword(password);
-    const q = await client.query<{ id: string }>(
+    const q = await client.query<{ id: string; email: string }>(
       `
         update app.users
         set
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
           locked_until = null,
           is_active = true
         where id = $1
-        returning id
+        returning id, email
       `,
       [userId, nextHash],
     );
@@ -58,6 +58,58 @@ export async function POST(req: Request) {
       await client.query("ROLLBACK");
       return NextResponse.json({ ok: false, error: "User not found." }, { status: 404 });
     }
+
+    const userEmail = s(q.rows[0].email).toLowerCase();
+    if (userEmail) {
+      // Promote pending tenant staff invites for this email after activation.
+      await client.query(
+        `
+          update app.organization_staff
+          set
+            status = 'active',
+            joined_at = coalesce(joined_at, now()),
+            last_active_at = coalesce(last_active_at, now())
+          where lower(email) = lower($1)
+            and status = 'invited'
+        `,
+        [userEmail],
+      );
+    }
+
+    // Promote pending memberships tied directly to this user id.
+    await client.query(
+      `
+        update app.organization_memberships
+        set
+          status = 'active',
+          updated_at = now()
+        where user_id = $1
+          and status = 'invited'
+      `,
+      [userId],
+    );
+
+    // Promote pending project memberships as well (if RBAC projects exists).
+    try {
+      await client.query(
+        `
+          update app.project_memberships
+          set
+            status = 'active',
+            updated_at = now()
+          where user_id = $1
+            and status = 'invited'
+        `,
+        [userId],
+      );
+    } catch (error: unknown) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code?: string }).code || "")
+          : "";
+      if (code !== "42P01") throw error;
+    }
+
     await client.query("COMMIT");
     return NextResponse.json({ ok: true, activated: true });
   } catch (error: unknown) {
