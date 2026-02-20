@@ -140,6 +140,7 @@ type AuthMeUser = {
   email: string;
   fullName?: string | null;
   phone?: string | null;
+  avatarUrl?: string | null;
   globalRoles?: string[];
 };
 
@@ -148,6 +149,7 @@ type AgencyUserRow = {
   email: string;
   fullName?: string | null;
   phone?: string | null;
+  avatarUrl?: string | null;
   isActive: boolean;
   status?: "active" | "invited" | "disabled";
   createdAt: string;
@@ -418,9 +420,12 @@ export default function AgencyHomePage() {
   const [profileFullName, setProfileFullName] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileErr, setProfileErr] = useState("");
   const [profileOk, setProfileOk] = useState("");
+  const [showAgencyUserEditModal, setShowAgencyUserEditModal] = useState(false);
+  const [agencyUserEditRow, setAgencyUserEditRow] = useState<AgencyUserRow | null>(null);
   const [inviteWebhookUrl, setInviteWebhookUrl] = useState("");
   const [inviteActivationBaseUrl, setInviteActivationBaseUrl] = useState("");
   const [inviteWebhookBusy, setInviteWebhookBusy] = useState(false);
@@ -540,6 +545,11 @@ export default function AgencyHomePage() {
     return tenantInitials(label);
   }
 
+  function openAgencyUserEdit(row: AgencyUserRow) {
+    setAgencyUserEditRow({ ...row });
+    setShowAgencyUserEditModal(true);
+  }
+
   async function loadAuthMe() {
     try {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
@@ -551,6 +561,7 @@ export default function AgencyHomePage() {
       setProfileFullName(s(data.user.fullName));
       setProfileEmail(s(data.user.email));
       setProfilePhone(s(data.user.phone));
+      setProfileAvatarUrl(s(data.user.avatarUrl));
     } catch {
       // keep UI functional even if auth profile endpoint fails transiently
     }
@@ -638,7 +649,7 @@ export default function AgencyHomePage() {
   }
 
   async function updateAgencyUserAccount(row: AgencyUserRow) {
-    if (!s(row.id)) return;
+    if (!s(row.id)) return false;
     setAgencyUsersBusy(true);
     setAgencyUsersErr("");
     setAgencyUsersOk("");
@@ -651,6 +662,7 @@ export default function AgencyHomePage() {
           fullName: s(row.fullName),
           email: s(row.email),
           phone: s(row.phone),
+          avatarUrl: s(row.avatarUrl),
           status: row.status || (row.isActive ? "active" : "disabled"),
           globalRoles: role ? [role] : [],
         }),
@@ -660,8 +672,10 @@ export default function AgencyHomePage() {
       setAgencyUsersOk("Agency account updated.");
       await loadAgencyUsers();
       await loadAuthMe();
+      return true;
     } catch (error: unknown) {
       setAgencyUsersErr(error instanceof Error ? error.message : "Failed to update agency account");
+      return false;
     } finally {
       setAgencyUsersBusy(false);
     }
@@ -693,7 +707,12 @@ export default function AgencyHomePage() {
       const res = await fetch("/api/auth/me/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: s(profileFullName), email: s(profileEmail), phone: s(profilePhone) }),
+        body: JSON.stringify({
+          fullName: s(profileFullName),
+          email: s(profileEmail),
+          phone: s(profilePhone),
+          avatarUrl: s(profileAvatarUrl),
+        }),
       });
       const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
       if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
@@ -1064,6 +1083,7 @@ export default function AgencyHomePage() {
     setProfileFullName(s(authMe?.fullName));
     setProfileEmail(s(authMe?.email));
     setProfilePhone(s(authMe?.phone));
+    setProfileAvatarUrl(s(authMe?.avatarUrl));
     setProfileErr("");
     setProfileOk("");
   }, [showProfileModal, authMe]);
@@ -2088,7 +2108,13 @@ export default function AgencyHomePage() {
               className="agencyAccountTrigger"
               onClick={() => setAccountMenuOpen((prev) => !prev)}
             >
-              <span className="agencyProfileAvatar">{accountInitials()}</span>
+              <span className="agencyProfileAvatar">
+                {s(authMe?.avatarUrl) ? (
+                  <img className="agencyProfileAvatarImg" src={s(authMe?.avatarUrl)} alt={accountDisplayName()} />
+                ) : (
+                  accountInitials()
+                )}
+              </span>
               <span className="agencyAccountIdentity">
                 <strong>{accountDisplayName()}</strong>
                 <small>{currentRoleLabel()}</small>
@@ -2527,7 +2553,7 @@ export default function AgencyHomePage() {
               ) : null}
               <div className="agencyCreateActions agencyCreateActionsSpaced">
                 <button type="button" className="btnGhost agencyActionPrimary" disabled={agencyUsersBusy || !agencyCanManageUsers} onClick={() => void createAgencyUserAccount()}>
-                  {agencyUsersBusy ? "Saving..." : "Add agency account"}
+                  {agencyUsersBusy ? "Saving..." : "Add Agency Staff"}
                 </button>
                 <button type="button" className="btnGhost" disabled={agencyUsersLoading} onClick={() => void loadAgencyUsers()}>
                   {agencyUsersLoading ? "Loading..." : "Refresh accounts"}
@@ -2577,78 +2603,25 @@ export default function AgencyHomePage() {
                     pagedAgencyUsers.map((row) => (
                       <tr key={row.id}>
                         <td>
-                          <input
-                            className="input"
-                            value={s(row.fullName)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setAgencyUsersRows((prev) =>
-                                prev.map((it) => (it.id === row.id ? { ...it, fullName: value } : it)),
-                              );
-                            }}
-                          />
+                          <div className="agencyUserIdentityCell">
+                            <span className="agencyUserAvatar">
+                              {s(row.avatarUrl) ? (
+                                <img className="agencyUserAvatarImg" src={s(row.avatarUrl)} alt={s(row.fullName) || s(row.email)} />
+                              ) : (
+                                tenantInitials(s(row.fullName) || s(row.email))
+                              )}
+                            </span>
+                            <span>{s(row.fullName) || "—"}</span>
+                          </div>
                         </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={s(row.email)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setAgencyUsersRows((prev) =>
-                                prev.map((it) => (it.id === row.id ? { ...it, email: value } : it)),
-                              );
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={s(row.phone)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setAgencyUsersRows((prev) =>
-                                prev.map((it) => (it.id === row.id ? { ...it, phone: value } : it)),
-                              );
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            className="input"
-                            value={row.draftGlobalRole || ""}
-                            onChange={(e) => {
-                              const value = e.target.value as AgencyUserRow["draftGlobalRole"];
-                              setAgencyUsersRows((prev) =>
-                                prev.map((it) => (it.id === row.id ? { ...it, draftGlobalRole: value } : it)),
-                              );
-                            }}
-                            disabled={!agencyCanManageUsers}
-                          >
-                            {GLOBAL_ROLE_OPTIONS.map((role) => (
-                              <option key={role || "none"} value={role || ""}>{role || "no global role"}</option>
-                            ))}
-                          </select>
-                        </td>
+                        <td>{s(row.email) || "—"}</td>
+                        <td>{s(row.phone) || "—"}</td>
+                        <td>{s(row.draftGlobalRole || row.globalRoles[0] || "no global role")}</td>
                         <td>
                           <div className="agencyStatusEditor">
                             <span className={staffStatusPillClass(row.status || (row.isActive ? "active" : "disabled"))}>
                               {row.status || (row.isActive ? "active" : "disabled")}
                             </span>
-                            <select
-                              className="input"
-                              value={row.status || (row.isActive ? "active" : "disabled")}
-                              onChange={(e) => {
-                                const value = e.target.value as "active" | "invited" | "disabled";
-                                setAgencyUsersRows((prev) =>
-                                  prev.map((it) => (it.id === row.id ? { ...it, status: value, isActive: value === "active" } : it)),
-                                );
-                              }}
-                              disabled={!agencyCanManageUsers}
-                            >
-                              {AGENCY_USER_STATUS_OPTIONS.map((status) => (
-                                <option key={status} value={status}>{status}</option>
-                              ))}
-                            </select>
                           </div>
                         </td>
                         <td>{formatInt(row.tenantCount)}</td>
@@ -2657,17 +2630,10 @@ export default function AgencyHomePage() {
                           <button
                             type="button"
                             className="btnGhost"
-                            disabled={agencyUsersBusy}
-                            onClick={() =>
-                              openConfirm({
-                                title: "Save agency account changes?",
-                                description: `Apply updates for ${s(row.email) || "this account"}.`,
-                                confirmLabel: "Save",
-                                onConfirm: () => updateAgencyUserAccount(row),
-                              })
-                            }
+                            disabled={agencyUsersBusy || !agencyCanManageUsers}
+                            onClick={() => openAgencyUserEdit(row)}
                           >
-                            Save
+                            Edit
                           </button>
                           <button
                             type="button"
@@ -3362,15 +3328,12 @@ export default function AgencyHomePage() {
 
       {showProfileModal ? (
         <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={() => { if (!profileBusy) setShowProfileModal(false); }}>
-          <div className="agencyModalCard agencyModalCardManage" onClick={(e) => e.stopPropagation()}>
+          <div className="agencyModalCard agencyModalCardProfile" onClick={(e) => e.stopPropagation()}>
             <div className="agencyModalHeader">
               <div>
                 <h3>Profile</h3>
                 <p>Edit your account profile and login email.</p>
               </div>
-              <button type="button" className="agencyModalBtn agencyModalBtnSecondary" disabled={profileBusy} onClick={() => setShowProfileModal(false)}>
-                Close
-              </button>
             </div>
             <div className="agencyCreateFormModal">
               <div className="agencyWizardGrid">
@@ -3386,18 +3349,160 @@ export default function AgencyHomePage() {
                   <span className="agencyFieldLabel">Phone</span>
                   <input className="input" value={profilePhone} onChange={(e) => setProfilePhone(e.target.value)} />
                 </label>
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Profile image URL</span>
+                  <input className="input" value={profileAvatarUrl} onChange={(e) => setProfileAvatarUrl(e.target.value)} placeholder="https://..." />
+                </label>
+                {s(profileAvatarUrl) ? (
+                  <div className="agencyProfilePreview">
+                    <img className="agencyProfilePreviewImg" src={s(profileAvatarUrl)} alt={s(profileFullName) || "Profile preview"} />
+                    <span className="agencyFieldHint">Profile preview</span>
+                  </div>
+                ) : null}
               </div>
               {profileErr ? <div className="errorText">{profileErr}</div> : null}
               {profileOk ? <div className="okText">{profileOk}</div> : null}
-              <div className="agencyCreateActions agencyCreateActionsSpaced">
-                <button
-                  type="button"
-                  className="btnPrimary"
-                  disabled={profileBusy}
-                  onClick={() => void saveProfile()}
-                >
-                  {profileBusy ? "Saving..." : "Save profile"}
-                </button>
+              <div className="agencyModalActionBar">
+                <div className="agencyModalActionMeta">Keep your profile details updated for invites and audit attribution.</div>
+                <div className="agencyModalActionRight">
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnSecondary"
+                    disabled={profileBusy}
+                    onClick={() => setShowProfileModal(false)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnPrimary"
+                    disabled={profileBusy}
+                    onClick={() => void saveProfile()}
+                  >
+                    {profileBusy ? "Saving..." : "Save profile"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showAgencyUserEditModal && agencyUserEditRow ? (
+        <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={() => { if (!agencyUsersBusy) setShowAgencyUserEditModal(false); }}>
+          <div className="agencyModalCard agencyModalCardProfile" onClick={(e) => e.stopPropagation()}>
+            <div className="agencyModalHeader">
+              <div>
+                <h3>Edit Agency Staff</h3>
+                <p>Update profile, role and status for this account.</p>
+              </div>
+            </div>
+            <div className="agencyCreateFormModal">
+              <div className="agencyWizardGrid">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Full name</span>
+                  <input
+                    className="input"
+                    value={s(agencyUserEditRow.fullName)}
+                    onChange={(e) => setAgencyUserEditRow((prev) => (prev ? { ...prev, fullName: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Email</span>
+                  <input
+                    className="input"
+                    value={s(agencyUserEditRow.email)}
+                    onChange={(e) => setAgencyUserEditRow((prev) => (prev ? { ...prev, email: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Phone</span>
+                  <input
+                    className="input"
+                    value={s(agencyUserEditRow.phone)}
+                    onChange={(e) => setAgencyUserEditRow((prev) => (prev ? { ...prev, phone: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Profile image URL</span>
+                  <input
+                    className="input"
+                    value={s(agencyUserEditRow.avatarUrl)}
+                    onChange={(e) => setAgencyUserEditRow((prev) => (prev ? { ...prev, avatarUrl: e.target.value } : prev))}
+                    placeholder="https://..."
+                  />
+                </label>
+                {s(agencyUserEditRow.avatarUrl) ? (
+                  <div className="agencyProfilePreview">
+                    <img className="agencyProfilePreviewImg" src={s(agencyUserEditRow.avatarUrl)} alt={s(agencyUserEditRow.fullName) || "Avatar preview"} />
+                    <span className="agencyFieldHint">Profile preview</span>
+                  </div>
+                ) : null}
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Global role</span>
+                  <select
+                    className="input"
+                    value={agencyUserEditRow.draftGlobalRole || ""}
+                    onChange={(e) =>
+                      setAgencyUserEditRow((prev) =>
+                        prev ? { ...prev, draftGlobalRole: e.target.value as AgencyUserRow["draftGlobalRole"] } : prev,
+                      )
+                    }
+                  >
+                    {GLOBAL_ROLE_OPTIONS.map((role) => (
+                      <option key={role || "none"} value={role || ""}>{role || "no global role"}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Status</span>
+                  <select
+                    className="input"
+                    value={agencyUserEditRow.status || (agencyUserEditRow.isActive ? "active" : "disabled")}
+                    onChange={(e) =>
+                      setAgencyUserEditRow((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              status: e.target.value as "active" | "invited" | "disabled",
+                              isActive: e.target.value === "active",
+                            }
+                          : prev,
+                      )
+                    }
+                  >
+                    {AGENCY_USER_STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {agencyUsersErr ? <div className="errorText">{agencyUsersErr}</div> : null}
+              {agencyUsersOk ? <div className="okText">{agencyUsersOk}</div> : null}
+              <div className="agencyModalActionBar">
+                <div className="agencyModalActionMeta">Changes apply to this agency account globally.</div>
+                <div className="agencyModalActionRight">
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnSecondary"
+                    disabled={agencyUsersBusy}
+                    onClick={() => setShowAgencyUserEditModal(false)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnPrimary"
+                    disabled={agencyUsersBusy}
+                    onClick={async () => {
+                      if (!agencyUserEditRow) return;
+                      const ok = await updateAgencyUserAccount(agencyUserEditRow);
+                      if (ok) setShowAgencyUserEditModal(false);
+                    }}
+                  >
+                    {agencyUsersBusy ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -5922,6 +5922,13 @@ button, input, select { font-family: inherit; }
   background: linear-gradient(180deg, rgba(37,99,235,0.42), rgba(29,78,216,0.25));
 }
 
+.agencyProfileAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
 .agencyAccountIdentity {
   display: inline-flex;
   flex-direction: column;
@@ -6013,6 +6020,10 @@ button, input, select { font-family: inherit; }
 
 .agencyModalCardManage {
   width: min(1080px, 100%);
+}
+
+.agencyModalCardProfile {
+  width: min(980px, 100%);
 }
 
 .agencyModalHeader {
@@ -6329,6 +6340,10 @@ button, input, select { font-family: inherit; }
   min-width: 0;
 }
 
+.agencyFieldFull {
+  grid-column: 1 / -1;
+}
+
 .agencyFieldLabel {
   font-size: 12px;
   font-weight: 700;
@@ -6457,6 +6472,36 @@ button, input, select { font-family: inherit; }
   gap: 8px;
 }
 
+.agencyUserIdentityCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.agencyUserAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.32);
+  background: linear-gradient(180deg, rgba(37,99,235,0.3), rgba(14,116,144,0.2));
+  color: rgba(224,242,254,0.95);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  flex: 0 0 34px;
+  overflow: hidden;
+}
+
+.agencyUserAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .agencyStatusEditor {
   display: grid;
   gap: 6px;
@@ -6505,6 +6550,23 @@ button, input, select { font-family: inherit; }
 .agencyActionPrimary:hover:not(:disabled) {
   background: linear-gradient(180deg, rgba(96,165,250,0.42), rgba(59,130,246,0.28));
   border-color: rgba(147,197,253,0.75);
+}
+
+.agencyProfilePreview {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.agencyProfilePreviewImg {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,0.3);
+  object-fit: cover;
+  background: rgba(15,23,42,0.6);
 }
 
 .agencyDangerBox {

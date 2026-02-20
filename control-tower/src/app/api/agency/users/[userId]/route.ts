@@ -24,6 +24,7 @@ type PatchAgencyUserBody = {
   fullName?: string;
   email?: string;
   phone?: string;
+  avatarUrl?: string;
   status?: "active" | "invited" | "disabled";
   isActive?: boolean;
   globalRoles?: string[];
@@ -49,6 +50,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
   const phone = s(body.phone);
+  const avatarUrl = s(body.avatarUrl);
   const rawStatus = s(body.status).toLowerCase();
   const set: string[] = [];
   const vals: unknown[] = [targetUserId];
@@ -64,6 +66,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (phone || body.phone === "") {
     vals.push(phone || null);
     set.push(`phone = nullif($${vals.length}::text, '')`);
+  }
+  if (avatarUrl || body.avatarUrl === "") {
+    vals.push(avatarUrl || null);
+    set.push(`avatar_url = nullif($${vals.length}::text, '')`);
   }
   if (isAgencyManager && (rawStatus === "active" || rawStatus === "invited" || rawStatus === "disabled")) {
     const isActive = rawStatus === "active";

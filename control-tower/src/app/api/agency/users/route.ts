@@ -48,6 +48,7 @@ export async function GET(req: Request) {
       email: string;
       fullName: string | null;
       phone: string | null;
+      avatarUrl: string | null;
       isActive: boolean;
       status: "active" | "invited" | "disabled";
       createdAt: string;
@@ -61,6 +62,7 @@ export async function GET(req: Request) {
           u.email,
           u.full_name as "fullName",
           u.phone,
+          (to_jsonb(u)->>'avatar_url') as "avatarUrl",
           u.is_active as "isActive",
           coalesce(nullif(u.account_status, ''), case when u.is_active then 'active' else 'disabled' end) as "status",
           u.created_at::text as "createdAt",
@@ -90,6 +92,7 @@ export async function GET(req: Request) {
       id: string;
       email: string;
       fullName: string | null;
+      avatarUrl: string | null;
       isActive: boolean;
       createdAt: string;
       tenantCount: number;
@@ -99,6 +102,7 @@ export async function GET(req: Request) {
           u.id,
           u.email,
           u.full_name as "fullName",
+          (to_jsonb(u)->>'avatar_url') as "avatarUrl",
           u.is_active as "isActive",
           u.created_at::text as "createdAt",
           coalesce(count(distinct om.organization_id), 0)::int as "tenantCount"
@@ -167,14 +171,25 @@ export async function POST(req: Request) {
     const nextHash = password ? await hashPassword(password) : null;
     let created: { rows: Array<{ id: string }> };
     try {
-      created = await client.query<{ id: string }>(
-        `
-          insert into app.users (email, full_name, phone, is_active, account_status, password_hash, password_updated_at)
-          values ($1, nullif($2, ''), nullif($3, ''), $4, $5, $6, case when $6 is null then null else now() end)
-          returning id
-        `,
-        [email, fullName, phone, isActive, status, nextHash],
-      );
+      if (nextHash) {
+        created = await client.query<{ id: string }>(
+          `
+            insert into app.users (email, full_name, phone, is_active, account_status, password_hash, password_updated_at)
+            values ($1, nullif($2, ''), nullif($3, ''), $4, $5, $6::text, now())
+            returning id
+          `,
+          [email, fullName, phone, isActive, status, nextHash],
+        );
+      } else {
+        created = await client.query<{ id: string }>(
+          `
+            insert into app.users (email, full_name, phone, is_active, account_status)
+            values ($1, nullif($2, ''), nullif($3, ''), $4, $5)
+            returning id
+          `,
+          [email, fullName, phone, isActive, status],
+        );
+      }
     } catch (error: unknown) {
       const code = error && typeof error === "object" && "code" in error ? String((error as { code?: string }).code || "") : "";
       if (code !== "42703") throw error;

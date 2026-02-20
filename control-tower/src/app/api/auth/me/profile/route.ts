@@ -12,6 +12,7 @@ type PatchProfileBody = {
   fullName?: string;
   email?: string;
   phone?: string;
+  avatarUrl?: string;
 };
 
 export async function PATCH(req: Request) {
@@ -24,7 +25,8 @@ export async function PATCH(req: Request) {
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
   const phone = s(body.phone);
-  if (!fullName && !email && !phone && body.phone !== "") {
+  const avatarUrl = s(body.avatarUrl);
+  if (!fullName && !email && !phone && body.phone !== "" && !avatarUrl && body.avatarUrl !== "") {
     return NextResponse.json({ ok: false, error: "Nothing to update." }, { status: 400 });
   }
 
@@ -42,6 +44,10 @@ export async function PATCH(req: Request) {
     vals.push(phone || null);
     set.push(`phone = nullif($${vals.length}::text, '')`);
   }
+  if (avatarUrl || body.avatarUrl === "") {
+    vals.push(avatarUrl || null);
+    set.push(`avatar_url = nullif($${vals.length}::text, '')`);
+  }
 
   const pool = getDbPool();
   try {
@@ -50,12 +56,13 @@ export async function PATCH(req: Request) {
       email: string;
       full_name: string | null;
       phone: string | null;
+      avatar_url: string | null;
     }>(
       `
         update app.users
         set ${set.join(", ")}
         where id = $1
-        returning id, email, full_name, phone
+        returning id, email, full_name, phone, avatar_url
       `,
       vals,
     );
@@ -70,6 +77,7 @@ export async function PATCH(req: Request) {
         email: q.rows[0].email,
         fullName: q.rows[0].full_name,
         phone: q.rows[0].phone,
+        avatarUrl: q.rows[0].avatar_url,
       },
     });
   } catch (error: unknown) {
