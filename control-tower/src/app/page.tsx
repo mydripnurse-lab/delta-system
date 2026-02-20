@@ -426,6 +426,8 @@ export default function AgencyHomePage() {
   const [profileOk, setProfileOk] = useState("");
   const [showAgencyUserEditModal, setShowAgencyUserEditModal] = useState(false);
   const [agencyUserEditRow, setAgencyUserEditRow] = useState<AgencyUserRow | null>(null);
+  const [showAgencyStaffEditModal, setShowAgencyStaffEditModal] = useState(false);
+  const [agencyStaffEditRow, setAgencyStaffEditRow] = useState<AgencyStaffRow | null>(null);
   const [inviteWebhookUrl, setInviteWebhookUrl] = useState("");
   const [inviteActivationBaseUrl, setInviteActivationBaseUrl] = useState("");
   const [inviteWebhookBusy, setInviteWebhookBusy] = useState(false);
@@ -548,6 +550,11 @@ export default function AgencyHomePage() {
   function openAgencyUserEdit(row: AgencyUserRow) {
     setAgencyUserEditRow({ ...row });
     setShowAgencyUserEditModal(true);
+  }
+
+  function openAgencyStaffEdit(row: AgencyStaffRow) {
+    setAgencyStaffEditRow({ ...row });
+    setShowAgencyStaffEditModal(true);
   }
 
   async function loadAuthMe() {
@@ -1715,7 +1722,7 @@ export default function AgencyHomePage() {
   }
 
   async function updateAgencyStaffMember(row: AgencyStaffRow) {
-    if (!s(row.tenantId) || !s(row.id)) return;
+    if (!s(row.tenantId) || !s(row.id)) return false;
     setAgencyStaffBusy(true);
     setAgencyStaffErr("");
     setAgencyStaffOk("");
@@ -1737,8 +1744,10 @@ export default function AgencyHomePage() {
       }
       setAgencyStaffOk("Staff member updated.");
       await loadAgencyStaff();
+      return true;
     } catch (error: unknown) {
       setAgencyStaffErr(error instanceof Error ? error.message : "Failed to update staff member");
+      return false;
     } finally {
       setAgencyStaffBusy(false);
     }
@@ -2772,84 +2781,19 @@ export default function AgencyHomePage() {
                       <tr key={`${row.tenantId}-${row.id}`}>
                         <td>{row.tenantName}</td>
                         <td>
-                          <input
-                            className="input"
-                            value={s(row.fullName)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setAgencyStaffRows((prev) =>
-                                prev.map((it) =>
-                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, fullName: value } : it,
-                                ),
-                              );
-                            }}
-                          />
+                          <div className="agencyUserIdentityCell">
+                            <span className="agencyUserAvatar">
+                              {tenantInitials(s(row.fullName) || s(row.email))}
+                            </span>
+                            <span>{s(row.fullName) || "—"}</span>
+                          </div>
                         </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={s(row.email)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setAgencyStaffRows((prev) =>
-                                prev.map((it) =>
-                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, email: value } : it,
-                                ),
-                              );
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={s(row.phone)}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setAgencyStaffRows((prev) =>
-                                prev.map((it) =>
-                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, phone: value } : it,
-                                ),
-                              );
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            className="input"
-                            value={row.role}
-                            onChange={(e) => {
-                              const value = e.target.value as TenantStaffRow["role"];
-                              setAgencyStaffRows((prev) =>
-                                prev.map((it) =>
-                                  it.tenantId === row.tenantId && it.id === row.id ? { ...it, role: value } : it,
-                                ),
-                              );
-                            }}
-                          >
-                            {STAFF_ROLE_OPTIONS.map((role) => (
-                              <option key={role} value={role}>{role}</option>
-                            ))}
-                          </select>
-                        </td>
+                        <td>{s(row.email) || "—"}</td>
+                        <td>{s(row.phone) || "—"}</td>
+                        <td>{s(row.role) || "—"}</td>
                         <td>
                           <div className="agencyStatusEditor">
                             <span className={staffStatusPillClass(row.status)}>{row.status}</span>
-                            <select
-                              className="input"
-                              value={row.status}
-                              onChange={(e) => {
-                                const value = e.target.value as TenantStaffRow["status"];
-                                setAgencyStaffRows((prev) =>
-                                  prev.map((it) =>
-                                    it.tenantId === row.tenantId && it.id === row.id ? { ...it, status: value } : it,
-                                  ),
-                                );
-                              }}
-                            >
-                              {STAFF_STATUS_OPTIONS.map((status) => (
-                                <option key={status} value={status}>{status}</option>
-                              ))}
-                            </select>
                           </div>
                         </td>
                         <td>{s(row.invitedAt) ? new Date(s(row.invitedAt)).toLocaleString() : "—"}</td>
@@ -2859,16 +2803,9 @@ export default function AgencyHomePage() {
                             type="button"
                             className="btnGhost"
                             disabled={agencyStaffBusy}
-                            onClick={() =>
-                              openConfirm({
-                                title: "Save staff changes?",
-                                description: `Apply updates for ${s(row.email) || "this staff member"}.`,
-                                confirmLabel: "Save",
-                                onConfirm: () => updateAgencyStaffMember(row),
-                              })
-                            }
+                            onClick={() => openAgencyStaffEdit(row)}
                           >
-                            Save
+                            Edit
                           </button>
                           <button
                             type="button"
@@ -3112,7 +3049,7 @@ export default function AgencyHomePage() {
             <div className="agencyCreateActions agencyCreateActionsSpaced">
               <button
                 type="button"
-                className="btnPrimary"
+                className="btnGhost agencyActionPrimary"
                 disabled={settingsBusy}
                 onClick={() =>
                   openConfirm({
@@ -3137,7 +3074,7 @@ export default function AgencyHomePage() {
                 <p>Automatizaciones agency-level para invitaciones de staff (SMS/Email via GHL).</p>
               </div>
             </div>
-            <div className="agencyDangerBox agencyStaffCreateBox">
+            <div className="agencyFormPanel agencyWebhookPanel">
               <h4>Staff Invite Webhooks (GHL)</h4>
               <p className="mini">Configura el webhook de Staff Invite y envía un test para validar tu workflow.</p>
               <div className="agencySettingsGrid">
@@ -3159,7 +3096,7 @@ export default function AgencyHomePage() {
               {inviteWebhookErr ? <div className="errorText">{inviteWebhookErr}</div> : null}
               {inviteWebhookOk ? <div className="okText">{inviteWebhookOk}</div> : null}
               <div className="agencyCreateActions agencyCreateActionsSpaced">
-                <button type="button" className="btnPrimary" disabled={inviteWebhookBusy} onClick={() => void saveInviteWebhookSettings()}>
+                <button type="button" className="btnGhost agencyActionPrimary" disabled={inviteWebhookBusy} onClick={() => void saveInviteWebhookSettings()}>
                   {inviteWebhookBusy ? "Saving..." : "Save webhook settings"}
                 </button>
                 <button type="button" className="btnGhost" disabled={inviteWebhookTestBusy} onClick={() => void sendInviteWebhookTest()}>
@@ -3501,6 +3438,102 @@ export default function AgencyHomePage() {
                     }}
                   >
                     {agencyUsersBusy ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showAgencyStaffEditModal && agencyStaffEditRow ? (
+        <div className="agencyModalOverlay" role="dialog" aria-modal="true" onClick={() => { if (!agencyStaffBusy) setShowAgencyStaffEditModal(false); }}>
+          <div className="agencyModalCard agencyModalCardProfile" onClick={(e) => e.stopPropagation()}>
+            <div className="agencyModalHeader">
+              <div>
+                <h3>Edit Project Staff</h3>
+                <p>Update profile, role and status for this project membership.</p>
+              </div>
+            </div>
+            <div className="agencyCreateFormModal">
+              <div className="agencyWizardGrid">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Project</span>
+                  <input className="input" value={s(agencyStaffEditRow.tenantName)} disabled />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Full name</span>
+                  <input
+                    className="input"
+                    value={s(agencyStaffEditRow.fullName)}
+                    onChange={(e) => setAgencyStaffEditRow((prev) => (prev ? { ...prev, fullName: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Email</span>
+                  <input
+                    className="input"
+                    value={s(agencyStaffEditRow.email)}
+                    onChange={(e) => setAgencyStaffEditRow((prev) => (prev ? { ...prev, email: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Phone</span>
+                  <input
+                    className="input"
+                    value={s(agencyStaffEditRow.phone)}
+                    onChange={(e) => setAgencyStaffEditRow((prev) => (prev ? { ...prev, phone: e.target.value } : prev))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Role</span>
+                  <select
+                    className="input"
+                    value={agencyStaffEditRow.role}
+                    onChange={(e) => setAgencyStaffEditRow((prev) => (prev ? { ...prev, role: e.target.value as TenantStaffRow["role"] } : prev))}
+                  >
+                    {STAFF_ROLE_OPTIONS.map((role) => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Status</span>
+                  <select
+                    className="input"
+                    value={agencyStaffEditRow.status}
+                    onChange={(e) => setAgencyStaffEditRow((prev) => (prev ? { ...prev, status: e.target.value as TenantStaffRow["status"] } : prev))}
+                  >
+                    {STAFF_STATUS_OPTIONS.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {agencyStaffErr ? <div className="errorText">{agencyStaffErr}</div> : null}
+              {agencyStaffOk ? <div className="okText">{agencyStaffOk}</div> : null}
+              <div className="agencyModalActionBar">
+                <div className="agencyModalActionMeta">Changes apply only to this project staff membership.</div>
+                <div className="agencyModalActionRight">
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnSecondary"
+                    disabled={agencyStaffBusy}
+                    onClick={() => setShowAgencyStaffEditModal(false)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    className="agencyModalBtn agencyModalBtnPrimary"
+                    disabled={agencyStaffBusy}
+                    onClick={async () => {
+                      if (!agencyStaffEditRow) return;
+                      const ok = await updateAgencyStaffMember(agencyStaffEditRow);
+                      if (ok) setShowAgencyStaffEditModal(false);
+                    }}
+                  >
+                    {agencyStaffBusy ? "Saving..." : "Save changes"}
                   </button>
                 </div>
               </div>
@@ -4529,107 +4562,124 @@ export default function AgencyHomePage() {
 
             {!manageLoading && manageTab === "danger" ? (
               <div className="agencyCreateFormModal">
-                <div className="agencyDangerBox">
-                  <h4>Project lifecycle</h4>
-                  <p>Use these actions to control tenant availability. Archive sets status to disabled.</p>
-                  <div className="agencyCreateActions">
-                    <button
-                      type="button"
-                      className="btnGhost"
-                      disabled={manageBusy || s(manageTenantId) === ""}
-                      onClick={async () => {
-                        setManageBusy(true);
-                        setManageErr("");
-                        setManageOk("");
-                        try {
-                          const res = await fetch(`/api/tenants/${manageTenantId}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ status: "active" }),
-                          });
-                          const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
-                          if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-                          setManageStatus("active");
-                          setManageOk("Project activated.");
-                          await loadTenants();
-                        } catch (error: unknown) {
-                          setManageErr(error instanceof Error ? error.message : "Failed to activate");
-                        } finally {
-                          setManageBusy(false);
-                        }
-                      }}
-                    >
-                      Activate
-                    </button>
-                    <button
-                      type="button"
-                      className="btnGhost"
-                      disabled={manageBusy || s(manageTenantId) === ""}
-                      onClick={async () => {
-                        setManageBusy(true);
-                        setManageErr("");
-                        setManageOk("");
-                        try {
-                          const res = await fetch(`/api/tenants/${manageTenantId}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ status: "disabled" }),
-                          });
-                          const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
-                          if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-                          setManageStatus("disabled");
-                          setManageOk("Project archived (disabled).");
-                          await loadTenants();
-                        } catch (error: unknown) {
-                          setManageErr(error instanceof Error ? error.message : "Failed to archive");
-                        } finally {
-                          setManageBusy(false);
-                        }
-                      }}
-                    >
-                      Archive (disable)
-                    </button>
+                <div className="agencyDangerZoneStack">
+                  <div className="agencyDangerBox agencyDangerBoxSoft">
+                    <div className="agencyDangerSectionHead">
+                      <h4>Project lifecycle</h4>
+                      <span className={staffStatusPillClass(manageStatus || "disabled")}>
+                        {s(manageStatus) || "unknown"}
+                      </span>
+                    </div>
+                    <p>Use these actions to control tenant availability. Archive sets status to disabled.</p>
+                    <div className="agencyDangerActionRow">
+                      <button
+                        type="button"
+                        className="btnGhost agencyDangerCta agencyDangerCtaSafe"
+                        disabled={manageBusy || s(manageTenantId) === ""}
+                        onClick={async () => {
+                          setManageBusy(true);
+                          setManageErr("");
+                          setManageOk("");
+                          try {
+                            const res = await fetch(`/api/tenants/${manageTenantId}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: "active" }),
+                            });
+                            const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+                            if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+                            setManageStatus("active");
+                            setManageOk("Project activated.");
+                            await loadTenants();
+                          } catch (error: unknown) {
+                            setManageErr(error instanceof Error ? error.message : "Failed to activate");
+                          } finally {
+                            setManageBusy(false);
+                          }
+                        }}
+                      >
+                        {manageBusy ? "Working..." : "Activate"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btnGhost agencyDangerCta agencyDangerCtaWarn"
+                        disabled={manageBusy || s(manageTenantId) === ""}
+                        onClick={async () => {
+                          setManageBusy(true);
+                          setManageErr("");
+                          setManageOk("");
+                          try {
+                            const res = await fetch(`/api/tenants/${manageTenantId}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: "disabled" }),
+                            });
+                            const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+                            if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+                            setManageStatus("disabled");
+                            setManageOk("Project archived (disabled).");
+                            await loadTenants();
+                          } catch (error: unknown) {
+                            setManageErr(error instanceof Error ? error.message : "Failed to archive");
+                          } finally {
+                            setManageBusy(false);
+                          }
+                        }}
+                      >
+                        {manageBusy ? "Working..." : "Archive (disable)"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="agencyDangerBox agencyDangerBoxHardDelete">
-                  <h4>Permanent delete</h4>
-                  <p>
-                    This action removes the tenant and related settings/integrations/state files. Type the project slug to confirm.
-                  </p>
-                  <input
-                    className="input"
-                    placeholder={`Type slug: ${manageSlug || "project-slug"}`}
-                    value={manageDeleteText}
-                    onChange={(e) => setManageDeleteText(e.target.value)}
-                  />
-                  <div className="agencyCreateActions">
-                    <button
-                      type="button"
-                      className="btnGhost"
-                      disabled={manageBusy || s(manageDeleteText) !== s(manageSlug)}
-                      onClick={async () => {
-                        if (s(manageDeleteText) !== s(manageSlug)) return;
-                        setManageBusy(true);
-                        setManageErr("");
-                        setManageOk("");
-                        try {
-                          const res = await fetch(`/api/tenants/${manageTenantId}`, {
-                            method: "DELETE",
-                          });
-                          const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
-                          if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-                          setShowManage(false);
-                          resetManageState();
-                          await loadTenants();
-                        } catch (error: unknown) {
-                          setManageErr(error instanceof Error ? error.message : "Failed to delete project");
-                        } finally {
-                          setManageBusy(false);
-                        }
-                      }}
-                    >
-                      Delete project permanently
-                    </button>
+
+                  <div className="agencyDangerBox agencyDangerBoxHardDelete">
+                    <div className="agencyDangerSectionHead">
+                      <h4>Permanent delete</h4>
+                      <span className="agencyDangerBadge">Irreversible</span>
+                    </div>
+                    <p>
+                      This action removes the tenant and related settings/integrations/state files. Type the project slug to confirm.
+                    </p>
+                    <label className="agencyField agencyFieldFull">
+                      <span className="agencyFieldLabel">Confirmation slug</span>
+                      <input
+                        className="input agencyDangerConfirmInput"
+                        placeholder={`Type slug: ${manageSlug || "project-slug"}`}
+                        value={manageDeleteText}
+                        onChange={(e) => setManageDeleteText(e.target.value)}
+                      />
+                    </label>
+                    <div className="agencyDangerActionRow">
+                      <button
+                        type="button"
+                        className="btnGhost agencyDangerCta agencyDangerCtaHard"
+                        disabled={manageBusy || s(manageDeleteText) !== s(manageSlug)}
+                        onClick={async () => {
+                          if (s(manageDeleteText) !== s(manageSlug)) return;
+                          setManageBusy(true);
+                          setManageErr("");
+                          setManageOk("");
+                          try {
+                            const res = await fetch(`/api/tenants/${manageTenantId}`, {
+                              method: "DELETE",
+                            });
+                            const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+                            if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+                            setShowManage(false);
+                            resetManageState();
+                            await loadTenants();
+                          } catch (error: unknown) {
+                            setManageErr(error instanceof Error ? error.message : "Failed to delete project");
+                          } finally {
+                            setManageBusy(false);
+                          }
+                        }}
+                      >
+                        {manageBusy ? "Deleting..." : "Delete project permanently"}
+                      </button>
+                      <span className="agencyFieldHint">
+                        Type <code>{manageSlug || "project-slug"}</code> exactly to unlock delete.
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -6,6 +6,9 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TENANT_ID = String(process.env.TENANT_ID || "").trim();
+const OUT_ROOT =
+    String(process.env.OUT_ROOT_DIR || "").trim() ||
+    process.cwd();
 
 // ---- paths
 const LEGACY_RESOURCES_DIR = path.join(process.cwd(), "resources", "statesFiles");
@@ -15,8 +18,8 @@ const RESOURCES_DIR = String(process.env.STATE_FILES_DIR || "").trim() || (TENAN
 const STATES_OUT_DIR =
     String(process.env.STATES_OUT_DIR || "").trim() ||
     (TENANT_ID
-        ? path.join(process.cwd(), "states", "tenants", TENANT_ID)
-        : path.join(process.cwd(), "states"));
+        ? path.join(OUT_ROOT, "states", "tenants", TENANT_ID)
+        : path.join(OUT_ROOT, "states"));
 const DEFAULT_PUBLIC_STATES_PATH = TENANT_ID
     ? `/states/tenants/${TENANT_ID}`
     : "/states";
@@ -295,7 +298,7 @@ async function buildOneState(chosen, lastmod, host, debug) {
         }
 
         log(`✅ DONE ${stateSlug} | cities ok:${ok} fail:${failed}`);
-        return;
+        return { ok, failed };
     }
 
     // 3B) Normal/Louisiana
@@ -360,6 +363,7 @@ async function buildOneState(chosen, lastmod, host, debug) {
     }
 
     log(`✅ DONE ${stateSlug} | divisions ok:${ok} fail:${failed}`);
+    return { ok, failed };
 }
 
 async function main() {
@@ -403,12 +407,21 @@ async function main() {
     }
 
     // sequential build
+    let hadFatal = false;
+    let totalFailed = 0;
     for (const chosen of batch) {
         try {
-            await buildOneState(chosen, lastmod, host, debug);
+            const result = await buildOneState(chosen, lastmod, host, debug);
+            totalFailed += Number(result?.failed || 0);
         } catch (e) {
+            hadFatal = true;
             log(`❌ Fatal building "${chosen.slug}": ${e?.message || e}`);
         }
+    }
+
+    if (hadFatal || totalFailed > 0) {
+        log(`❌ Build finished with errors. fatal=${hadFatal} failedItems=${totalFailed}`);
+        process.exit(1);
     }
 
     log(`🏁 DONE batch (${batch.length} state(s))`);

@@ -647,9 +647,9 @@ export async function DELETE(_req: Request, ctx: Ctx) {
         insert into app.organization_audit_logs (
           organization_id, actor_type, actor_label, action, entity_type, entity_id, severity, payload
         )
-        values ($1, 'user', 'agency-ui', 'tenant.delete', 'tenant', $1, 'critical', $2::jsonb)
+        values ($1::uuid, 'user', 'agency-ui', 'tenant.delete', 'tenant', $2::text, 'critical', $3::jsonb)
       `,
-      [tenantId, JSON.stringify({ tenantName: exists.rows[0]?.name || null })],
+      [tenantId, tenantId, JSON.stringify({ tenantName: exists.rows[0]?.name || null })],
     );
     await client.query(`delete from app.organizations where id = $1`, [tenantId]);
 

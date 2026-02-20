@@ -312,8 +312,25 @@ button, input, select { font-family: inherit; }
 }
 
 .btnPrimary {
-  background: rgba(96, 165, 250, 0.16);
-  border-color: rgba(96, 165, 250, 0.28);
+  border: 1px solid rgba(96,165,250,0.62);
+  color: #eff6ff;
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: linear-gradient(180deg, rgba(59,130,246,0.38), rgba(37,99,235,0.24));
+  box-shadow: 0 10px 24px rgba(37,99,235,0.2);
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .12s ease, box-shadow .18s ease;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(96,165,250,0.44), rgba(59,130,246,0.3));
+  border-color: rgba(147,197,253,0.78);
+  transform: translateY(-1px);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btnDanger {
@@ -5019,12 +5036,22 @@ button, input, select { font-family: inherit; }
   background: rgba(255,255,255,0.04);
   color: var(--text);
   border-radius: 999px;
-  padding: 8px 12px;
+  padding: 8px 13px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, transform .12s ease;
 }
 
 .btnGhost:hover {
   background: rgba(255,255,255,0.08);
+  border-color: rgba(148,163,184,0.42);
+  transform: translateY(-1px);
+}
+
+.btnGhost:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .agencyMenuPanel {
@@ -6594,6 +6621,99 @@ button, input, select { font-family: inherit; }
 .agencyDangerBoxHardDelete {
   border-color: rgba(239,68,68,0.5);
   background: rgba(127,29,29,0.24);
+}
+
+.agencyDangerZoneStack {
+  display: grid;
+  gap: 14px;
+}
+
+.agencyDangerBoxSoft {
+  background:
+    radial-gradient(460px 140px at 100% -20%, rgba(248,113,113,0.14), transparent 70%),
+    linear-gradient(180deg, rgba(127,29,29,0.16), rgba(127,29,29,0.1));
+  border-color: rgba(248,113,113,0.44);
+}
+
+.agencyDangerSectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.agencyDangerActionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.agencyDangerCta {
+  font-weight: 700;
+}
+
+.agencyDangerCtaSafe {
+  border-color: rgba(16,185,129,0.5);
+  background: rgba(16,185,129,0.14);
+  color: rgba(209,250,229,0.96);
+}
+
+.agencyDangerCtaSafe:hover:not(:disabled) {
+  border-color: rgba(52,211,153,0.68);
+  background: rgba(16,185,129,0.2);
+}
+
+.agencyDangerCtaWarn {
+  border-color: rgba(245,158,11,0.5);
+  background: rgba(245,158,11,0.14);
+  color: rgba(254,240,138,0.96);
+}
+
+.agencyDangerCtaWarn:hover:not(:disabled) {
+  border-color: rgba(251,191,36,0.7);
+  background: rgba(245,158,11,0.22);
+}
+
+.agencyDangerCtaHard {
+  border-color: rgba(248,113,113,0.62);
+  background: linear-gradient(180deg, rgba(220,38,38,0.35), rgba(153,27,27,0.28));
+  color: rgba(255,241,242,0.98);
+  box-shadow: 0 10px 24px rgba(153,27,27,0.25);
+}
+
+.agencyDangerCtaHard:hover:not(:disabled) {
+  border-color: rgba(252,165,165,0.78);
+  background: linear-gradient(180deg, rgba(239,68,68,0.42), rgba(185,28,28,0.34));
+}
+
+.agencyDangerBadge {
+  border: 1px solid rgba(248,113,113,0.56);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(254,226,226,0.98);
+  background: rgba(127,29,29,0.35);
+}
+
+.agencyDangerConfirmInput {
+  border-color: rgba(248,113,113,0.48);
+  background: rgba(127,29,29,0.2);
+}
+
+.agencyDangerConfirmInput:focus {
+  border-color: rgba(252,165,165,0.78);
+  box-shadow: 0 0 0 2px rgba(248,113,113,0.2);
+}
+
+.agencyWebhookPanel {
+  border-color: rgba(96,165,250,0.28);
+  background:
+    radial-gradient(460px 140px at 100% -18%, rgba(59,130,246,0.12), transparent 70%),
+    linear-gradient(180deg, rgba(15,23,42,0.5), rgba(15,23,42,0.3));
 }
 
 @media (max-width: 980px) {
