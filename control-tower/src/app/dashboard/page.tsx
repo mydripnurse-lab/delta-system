@@ -937,6 +937,7 @@ function DashboardHomeContent() {
   const [tenantIdResolved, setTenantIdResolved] = useState(tenantIdFromQuery);
   const [tenantResolveDone, setTenantResolveDone] = useState(Boolean(tenantIdFromQuery));
   const tenantId = tenantIdResolved;
+  const controlTowerHref = tenantId ? `/projects/${encodeURIComponent(tenantId)}` : "/";
   const integrationKeyRaw = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
   const integrationKey = integrationKeyRaw.toLowerCase() === "default" ? "owner" : integrationKeyRaw;
 
@@ -2100,6 +2101,7 @@ function DashboardHomeContent() {
   function dashboardHref(dashboard: string) {
     if (dashboard === "calls") return withTenantHref("/dashboard/calls#ai-playbook");
     if (dashboard === "leads") return withTenantHref("/dashboard/contacts#ai-playbook");
+    if (dashboard === "prospecting") return withTenantHref("/dashboard/prospecting");
     if (dashboard === "conversations") return withTenantHref("/dashboard/conversations#ai-playbook");
     if (dashboard === "transactions") return withTenantHref("/dashboard/transactions#ai-playbook");
     if (dashboard === "appointments") return withTenantHref("/dashboard/appointments#ai-playbook");
@@ -2159,7 +2161,7 @@ function DashboardHomeContent() {
             <button className="smallBtn" type="button" onClick={() => openSectionHelp("executive_filters")} title="Section helper">
               ?
             </button>
-            <Link className="smallBtn" href="/">
+            <Link className="smallBtn" href={controlTowerHref}>
               Back to Control Tower
             </Link>
           </div>
@@ -2419,6 +2421,29 @@ function DashboardHomeContent() {
               </div>
               <div className="moduleActions">
                 <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/contacts")}>Open Leads Dashboard</Link>
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">Prospecting Intelligence</p>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Purpose</div>
+                  <div className="moduleStatValue">Find Similar Businesses</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Coverage</div>
+                  <div className="moduleStatValue">USA + Puerto Rico</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Output</div>
+                  <div className="moduleStatValue">Email + Phone Lead Pool</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/prospecting")}>Open Prospecting Dashboard</Link>
               </div>
             </div>
 

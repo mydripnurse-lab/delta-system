@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import os from "os";
 
 export type AiRole = "user" | "assistant" | "system";
 
@@ -29,6 +30,19 @@ const MAX_EVENTS = 1500;
 const MAX_MESSAGES_PER_AGENT = 200;
 
 function memoryPath() {
+    const explicit = String(process.env.AI_MEMORY_FILE || "").trim();
+    if (explicit) return path.resolve(explicit);
+
+    // Serverless environments (e.g. Vercel) cannot write under /var/task.
+    // Use OS tmp as writable storage.
+    if (
+        process.env.VERCEL === "1" ||
+        process.env.AWS_LAMBDA_FUNCTION_NAME ||
+        process.cwd().startsWith("/var/task")
+    ) {
+        return path.join(os.tmpdir(), "control-tower", "storage", "ai-memory.json");
+    }
+
     return path.join(process.cwd(), "storage", "ai-memory.json");
 }
 

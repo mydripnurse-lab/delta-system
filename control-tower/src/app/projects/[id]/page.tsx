@@ -122,7 +122,7 @@ type TenantDetailResponse = {
   error?: string;
 };
 
-type ProjectTab = "runner" | "sheet" | "activation" | "logs" | "details";
+type ProjectTab = "runner" | "sheet" | "activation" | "logs" | "details" | "webhooks";
 type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values";
 
 type StateDetailResponse = {
@@ -466,6 +466,13 @@ export default function Home() {
   const [tenantBingIndexNowKeyLocation, setTenantBingIndexNowKeyLocation] = useState("");
   const [tenantBingSaving, setTenantBingSaving] = useState(false);
   const [tenantBingMsg, setTenantBingMsg] = useState("");
+  const [tenantProspectingWebhookUrl, setTenantProspectingWebhookUrl] = useState("");
+  const [tenantProspectingWebhookEnabled, setTenantProspectingWebhookEnabled] = useState(true);
+  const [tenantProspectingWebhookBusy, setTenantProspectingWebhookBusy] = useState(false);
+  const [tenantProspectingWebhookTestBusy, setTenantProspectingWebhookTestBusy] = useState(false);
+  const [tenantProspectingWebhookPushBusy, setTenantProspectingWebhookPushBusy] = useState(false);
+  const [tenantProspectingWebhookErr, setTenantProspectingWebhookErr] = useState("");
+  const [tenantProspectingWebhookOk, setTenantProspectingWebhookOk] = useState("");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -674,6 +681,7 @@ export default function Home() {
   const detailsRef = useRef<HTMLElement | null>(null);
   const runnerRef = useRef<HTMLDivElement | null>(null);
   const sheetRef = useRef<HTMLElement | null>(null);
+  const webhooksRef = useRef<HTMLElement | null>(null);
   const logsRef = useRef<HTMLElement | null>(null);
 
   const celebrationParticles = useMemo<CelebrateParticle[]>(() => {
@@ -1001,6 +1009,26 @@ export default function Home() {
     );
   }
 
+  async function loadTenantProspectingWebhookSettings() {
+    if (!routeTenantId) return;
+    setTenantProspectingWebhookErr("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/webhooks/prospecting`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const payload = ((data as any)?.payload || {}) as Record<string, unknown>;
+      setTenantProspectingWebhookUrl(s(payload.webhookUrl));
+      setTenantProspectingWebhookEnabled(payload.enabled !== false);
+    } catch (e: any) {
+      setTenantProspectingWebhookErr(e?.message || "Failed to load webhook settings.");
+    }
+  }
+
   async function saveTenantBingIntegration() {
     if (!routeTenantId) return;
     setTenantBingMsg("");
@@ -1086,6 +1114,10 @@ export default function Home() {
   }, [routeTenantId]);
 
   useEffect(() => {
+    void loadTenantProspectingWebhookSettings();
+  }, [routeTenantId]);
+
+  useEffect(() => {
     const tab = s(searchParams?.get("detailsTab")).toLowerCase();
     if (tab === "business" || tab === "ghl" || tab === "integrations" || tab === "custom_values") {
       setDetailsTab(tab as ProjectDetailsTab);
@@ -1096,6 +1128,87 @@ export default function Home() {
   useEffect(() => {
     hydrateBingFormFromIntegrations(tenantIntegrations);
   }, [tenantIntegrations]);
+
+  async function saveTenantProspectingWebhookSettings() {
+    if (!routeTenantId) return;
+    setTenantProspectingWebhookBusy(true);
+    setTenantProspectingWebhookErr("");
+    setTenantProspectingWebhookOk("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/webhooks/prospecting`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          webhookUrl: s(tenantProspectingWebhookUrl),
+          enabled: tenantProspectingWebhookEnabled,
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      await refreshIntegrationsSnapshot();
+      setTenantProspectingWebhookOk("Webhook settings saved.");
+    } catch (e: any) {
+      setTenantProspectingWebhookErr(e?.message || "Failed to save webhook settings.");
+    } finally {
+      setTenantProspectingWebhookBusy(false);
+    }
+  }
+
+  async function pushApprovedProspectsNow() {
+    if (!routeTenantId) return;
+    setTenantProspectingWebhookOk("");
+    setTenantProspectingWebhookErr("");
+    setTenantProspectingWebhookPushBusy(true);
+    try {
+      const res = await fetch(`/api/dashboard/prospecting/push-ghl`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantId: routeTenantId,
+          maxLeads: 100,
+          statuses: ["validated", "new"],
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const sent = Number((data as any)?.sent || 0);
+      const reason = s((data as any)?.reason);
+      setTenantProspectingWebhookOk(reason || `Approved leads pushed. Sent: ${sent}.`);
+    } catch (e: any) {
+      setTenantProspectingWebhookErr(e?.message || "Failed to push approved leads.");
+    } finally {
+      setTenantProspectingWebhookPushBusy(false);
+    }
+  }
+
+  async function sendProspectingWebhookTest() {
+    if (!routeTenantId) return;
+    setTenantProspectingWebhookTestBusy(true);
+    setTenantProspectingWebhookErr("");
+    setTenantProspectingWebhookOk("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/webhooks/prospecting/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          webhookUrl: s(tenantProspectingWebhookUrl) || undefined,
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      setTenantProspectingWebhookOk("Test webhook sent successfully.");
+    } catch (e: any) {
+      setTenantProspectingWebhookErr(e?.message || "Failed to send test webhook.");
+    } finally {
+      setTenantProspectingWebhookTestBusy(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -1267,6 +1380,34 @@ export default function Home() {
       setTenantDetailErr(e?.message || "Failed to save tenant.");
     } finally {
       setTenantSaving(false);
+    }
+  }
+
+  async function saveTenantAdsWebhookFromWebhooksTab() {
+    if (!routeTenantId) return;
+    setTenantProspectingWebhookErr("");
+    setTenantProspectingWebhookOk("");
+    setTenantProspectingWebhookBusy(true);
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adsAlertsEnabled: tenantAdsAlertsEnabled,
+          adsAlertWebhookUrl: s(tenantAdsAlertWebhookUrl) || undefined,
+          adsAlertSmsEnabled: tenantAdsAlertSmsEnabled,
+          adsAlertSmsTo: s(tenantAdsAlertSmsTo) || undefined,
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      setTenantProspectingWebhookOk("GHL webhook setting saved.");
+    } catch (e: any) {
+      setTenantProspectingWebhookErr(e?.message || "Failed to save GHL webhook setting.");
+    } finally {
+      setTenantProspectingWebhookBusy(false);
     }
   }
 
@@ -1658,6 +1799,7 @@ export default function Home() {
       runner: runnerRef.current,
       sheet: sheetRef.current,
       activation: sheetRef.current,
+      webhooks: webhooksRef.current,
       logs: logsRef.current,
     };
     const target = byTab[tab];
@@ -3382,6 +3524,16 @@ export default function Home() {
           >
             Dashboard - Reports
           </Link>
+          <Link
+            className="smallBtn"
+            href={
+              routeTenantId
+                ? `/dashboard/prospecting?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
+                : "/dashboard/prospecting"
+            }
+          >
+            Dashboard - Prospecting
+          </Link>
         </div>
         <div className="pills">
           <div className="pill">
@@ -3426,6 +3578,13 @@ export default function Home() {
           onClick={() => jumpTo("activation")}
         >
           Activation
+        </button>
+        <button
+          type="button"
+          className={`agencySubnavItem ${activeProjectTab === "webhooks" ? "agencySubnavItemActive" : ""}`}
+          onClick={() => jumpTo("webhooks")}
+        >
+          Webhooks
         </button>
         <button
           type="button"
@@ -3621,40 +3780,8 @@ export default function Home() {
                     <option value="enabled">Enabled</option>
                   </select>
                 </div>
-                <div className="field" style={{ gridColumn: "span 2" }}>
-                  <label>GHL Webhook Ads Notification</label>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      className="input"
-                      value={tenantAdsAlertWebhookUrl}
-                      onChange={(e) => setTenantAdsAlertWebhookUrl(e.target.value)}
-                      placeholder="https://services.leadconnectorhq.com/hooks/..."
-                    />
-                    <button
-                      type="button"
-                      className="smallBtn"
-                      disabled={tenantAdsSampleBusy || !routeTenantId}
-                      onClick={() => void sendProjectAdsWebhookSample()}
-                    >
-                      {tenantAdsSampleBusy ? "Sending..." : "Send sample"}
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              {tenantAdsSampleResult ? (
-                <div className="row" style={{ marginTop: 10 }}>
-                  <div className="field" style={{ flex: 1 }}>
-                    <label>Webhook sample response</label>
-                    <textarea
-                      className="input"
-                      value={tenantAdsSampleResult}
-                      readOnly
-                      rows={10}
-                    />
-                  </div>
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -4328,6 +4455,139 @@ export default function Home() {
           </div>
         </div>
       </section>
+      ) : null}
+
+      {/* Logs */}
+      {activeProjectTab === "webhooks" ? (
+        <section className="card" style={{ marginTop: 12 }} ref={webhooksRef}>
+          <div className="cardHeader">
+            <div>
+              <h2 className="cardTitle">Webhooks</h2>
+              <div className="cardSubtitle">
+                Configure and test tenant webhook endpoints.
+              </div>
+            </div>
+          </div>
+          <div className="cardBody">
+            <div className="agencyFormPanel agencyWebhookPanel">
+              <h4>GHL Webhook Ads Notification</h4>
+              <div className="agencyWizardGrid agencyWizardGridTwo">
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Webhook URL</span>
+                  <input
+                    className="input"
+                    value={tenantAdsAlertWebhookUrl}
+                    onChange={(e) => setTenantAdsAlertWebhookUrl(e.target.value)}
+                    placeholder="https://services.leadconnectorhq.com/hooks/..."
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Ads Alerts Enabled</span>
+                  <select
+                    className="input"
+                    value={tenantAdsAlertsEnabled ? "enabled" : "disabled"}
+                    onChange={(e) => setTenantAdsAlertsEnabled(e.target.value === "enabled")}
+                  >
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Enable SMS signal to GHL</span>
+                  <select
+                    className="input"
+                    value={tenantAdsAlertSmsEnabled ? "enabled" : "disabled"}
+                    onChange={(e) => setTenantAdsAlertSmsEnabled(e.target.value === "enabled")}
+                  >
+                    <option value="disabled">Disabled</option>
+                    <option value="enabled">Enabled</option>
+                  </select>
+                </label>
+              </div>
+              {tenantProspectingWebhookErr ? <div className="errorText">{tenantProspectingWebhookErr}</div> : null}
+              {tenantProspectingWebhookOk ? <div className="okText">{tenantProspectingWebhookOk}</div> : null}
+              <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  className="btnGhost agencyActionPrimary"
+                  disabled={tenantProspectingWebhookBusy}
+                  onClick={() => void saveTenantAdsWebhookFromWebhooksTab()}
+                >
+                  {tenantProspectingWebhookBusy ? "Saving..." : "Save webhook settings"}
+                </button>
+                <button
+                  type="button"
+                  className="btnGhost"
+                  disabled={tenantAdsSampleBusy}
+                  onClick={() => void sendProjectAdsWebhookSample()}
+                >
+                  {tenantAdsSampleBusy ? "Sending..." : "Send test webhook"}
+                </button>
+              </div>
+              {tenantAdsSampleResult ? (
+                <textarea
+                  className="input agencyTextarea"
+                  rows={8}
+                  value={tenantAdsSampleResult}
+                  readOnly
+                  style={{ marginTop: 10 }}
+                />
+              ) : null}
+            </div>
+
+            <div className="agencyFormPanel agencyWebhookPanel" style={{ marginTop: 12 }}>
+              <h4>Prospecting Review Webhook (Manual Approval Flow)</h4>
+              <div className="agencyWizardGrid agencyWizardGridTwo">
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Webhook URL</span>
+                  <input
+                    className="input"
+                    value={tenantProspectingWebhookUrl}
+                    onChange={(e) => setTenantProspectingWebhookUrl(e.target.value)}
+                    placeholder="https://hooks...."
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Enabled</span>
+                  <select
+                    className="input"
+                    value={tenantProspectingWebhookEnabled ? "enabled" : "disabled"}
+                    onChange={(e) => setTenantProspectingWebhookEnabled(e.target.value === "enabled")}
+                  >
+                    <option value="enabled">Enabled</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </label>
+              </div>
+              <div className="agencyCreateActions agencyCreateActionsSpaced" style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  className="btnGhost agencyActionPrimary"
+                  disabled={tenantProspectingWebhookBusy}
+                  onClick={() => void saveTenantProspectingWebhookSettings()}
+                >
+                  {tenantProspectingWebhookBusy ? "Saving..." : "Save webhook settings"}
+                </button>
+                <button
+                  type="button"
+                  className="btnGhost"
+                  disabled={tenantProspectingWebhookTestBusy}
+                  onClick={() => void sendProspectingWebhookTest()}
+                >
+                  {tenantProspectingWebhookTestBusy ? "Sending..." : "Send test webhook"}
+                </button>
+                <button
+                  type="button"
+                  className="btnGhost"
+                  disabled={tenantProspectingWebhookPushBusy}
+                  onClick={() => void pushApprovedProspectsNow()}
+                >
+                  {tenantProspectingWebhookPushBusy ? "Pushing..." : "Push approved leads now"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {/* Logs */}
