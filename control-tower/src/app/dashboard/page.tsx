@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import AgentNotificationHub from "@/components/AgentNotificationHub";
+import TenantOpenclawConfigCard from "@/components/TenantOpenclawConfigCard";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -403,6 +404,8 @@ type CeoInsights = {
     trigger_metric: string;
   }>;
 };
+
+type ExecutePlanItem = NonNullable<CeoInsights["execute_plan"]>[number];
 
 type ChannelName =
   | "Google Ads"
@@ -930,6 +933,10 @@ function DashboardHomeContent() {
   const [actionPdfErr, setActionPdfErr] = useState("");
   const [campaignPdfLoading, setCampaignPdfLoading] = useState(false);
   const [campaignPdfErr, setCampaignPdfErr] = useState("");
+  const [agentRouting, setAgentRouting] = useState<Record<string, string>>({});
+  const [queueBusyKey, setQueueBusyKey] = useState("");
+  const [queueErr, setQueueErr] = useState("");
+  const [queueMsg, setQueueMsg] = useState("");
 
   const computedRange = useMemo(
     () => computeDashboardRange(preset, customStart, customEnd),
@@ -978,6 +985,36 @@ function DashboardHomeContent() {
       cancelled = true;
     };
   }, [tenantIdFromQuery]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAgentRouting() {
+      if (!tenantId) return;
+      try {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/integrations/openclaw`, {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; agents?: Record<string, { agentId?: string; enabled?: boolean }> }
+          | null;
+        if (!res.ok || !json?.ok) return;
+        const agents = (json.agents || {}) as Record<string, { agentId?: string; enabled?: boolean }>;
+        const map: Record<string, string> = {};
+        Object.keys(agents).forEach((k) => {
+          const row = agents[k];
+          const agentId = String(row?.agentId || "").trim();
+          if (row?.enabled !== false && agentId) map[k] = agentId;
+        });
+        if (!cancelled) setAgentRouting(map);
+      } catch {
+        // optional routing config
+      }
+    }
+    void loadAgentRouting();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
 
   function appendTenantParams(qs: URLSearchParams) {
     if (!tenantId) return;
@@ -2118,6 +2155,74 @@ function DashboardHomeContent() {
     return "";
   }
 
+  function actionTypeForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
+    if (dashboard === "leads") return "send_leads_ghl";
+    if (dashboard === "ads" || dashboard === "facebook_ads") return "optimize_ads";
+    return "publish_content";
+  }
+
+  function fallbackAgentIdForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
+    if (dashboard === "leads") return "soul_leads_prospecting";
+    if (dashboard === "ads") return "soul_ads_optimizer";
+    if (dashboard === "facebook_ads") return "soul_facebook_ads";
+    if (dashboard === "calls") return "soul_calls";
+    if (dashboard === "conversations") return "soul_conversations";
+    if (dashboard === "transactions") return "soul_transactions";
+    if (dashboard === "appointments") return "soul_appointments";
+    if (dashboard === "gsc") return "soul_gsc";
+    if (dashboard === "ga") return "soul_ga";
+    return "soul_content_publisher";
+  }
+
+  async function queueExecutePlanItem(p: ExecutePlanItem, idx: number) {
+    setQueueErr("");
+    setQueueMsg("");
+    if (!tenantId) {
+      setQueueErr("Missing tenant context.");
+      return;
+    }
+    const key = `${idx}-${p.dashboard}-${p.action}`;
+    setQueueBusyKey(key);
+    try {
+      const routeKey = p.dashboard;
+      const agentId = agentRouting[routeKey] || fallbackAgentIdForDashboard(p.dashboard);
+      const actionType = actionTypeForDashboard(p.dashboard);
+      const riskLevel = p.priority === "P1" ? "high" : p.priority === "P2" ? "medium" : "low";
+      const expectedImpact = p.priority === "P1" ? "high" : p.priority === "P2" ? "medium" : "low";
+      const payload: Record<string, unknown> = {
+        tenant_id: tenantId,
+        integration_key: integrationKey,
+        dashboard: p.dashboard,
+        recommended_action: p.action,
+        rationale: p.rationale,
+        trigger_metric: p.trigger_metric,
+        source: "overview_execute_plan",
+      };
+      const res = await fetch("/api/agents/proposals", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          organizationId: tenantId,
+          actionType,
+          agentId,
+          dashboardId: p.dashboard,
+          priority: p.priority,
+          riskLevel,
+          expectedImpact,
+          summary: `${p.action} (${p.dashboard})`,
+          payload,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !json?.ok) throw new Error(String(json?.error || "").trim() || `HTTP ${res.status}`);
+      setQueueMsg(`Sent to Notification Hub: ${p.dashboard} · ${p.action}`);
+    } catch (e: unknown) {
+      setQueueErr(e instanceof Error ? e.message : "Failed to send plan item to Notification Hub.");
+    } finally {
+      setQueueBusyKey("");
+    }
+  }
+
   return (
     <div className="shell callsDash ceoDash">
       {loading ? (
@@ -3040,6 +3145,23 @@ function DashboardHomeContent() {
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
+            <h2 className="cardTitle">OpenClaw Routing (Per Tenant)</h2>
+            <div className="cardSubtitle">
+              Configure tenant agent key and map each dashboard to its soul/agent ID.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("ai_ceo_swarm")} title="Section helper">
+              ?
+            </button>
+          </div>
+        </div>
+        <TenantOpenclawConfigCard tenantId={tenantId} />
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
             <h2 className="cardTitle">Action Center</h2>
             <div className="cardSubtitle">
               Playbooks accionables para ejecutar decisiones CEO con impacto estimado.
@@ -3517,9 +3639,16 @@ function DashboardHomeContent() {
               {!!aiInsights.execute_plan?.length && (
                 <div className="aiBlock">
                   <div className="aiBlockTitle">Execute Plan</div>
+                  {queueErr ? (
+                    <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {queueErr}</div>
+                  ) : null}
+                  {queueMsg ? (
+                    <div className="mini" style={{ color: "rgba(74,222,128,0.95)", marginBottom: 8 }}>✓ {queueMsg}</div>
+                  ) : null}
                   <div className="aiOps">
                     {aiInsights.execute_plan.map((p, idx) => {
                       const href = dashboardHref(p.dashboard);
+                      const queueKey = `${idx}-${p.dashboard}-${p.action}`;
                       return (
                         <div className="aiOp" key={idx}>
                           <div className="aiOpHead">
@@ -3537,15 +3666,25 @@ function DashboardHomeContent() {
                             <b>Trigger:</b> {p.trigger_metric}
                           </div>
                           <div style={{ marginTop: 10 }}>
-                            {href ? (
-                              <Link className="btn btnPrimary moduleBtn" href={href}>
-                                Execute in Dashboard
-                              </Link>
-                            ) : (
-                              <button className="btn moduleBtn" disabled>
-                                Pending setup
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {href ? (
+                                <Link className="btn btnPrimary moduleBtn" href={href}>
+                                  Execute in Dashboard
+                                </Link>
+                              ) : (
+                                <button className="btn moduleBtn" disabled>
+                                  Pending setup
+                                </button>
+                              )}
+                              <button
+                                className="btn moduleBtn"
+                                type="button"
+                                disabled={queueBusyKey === queueKey}
+                                onClick={() => void queueExecutePlanItem(p, idx)}
+                              >
+                                {queueBusyKey === queueKey ? "Sending..." : "Send to Hub"}
                               </button>
-                            )}
+                            </div>
                           </div>
                         </div>
                       );

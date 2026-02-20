@@ -5,6 +5,7 @@ import {
   markExecutionStart,
   normalizeActionType,
 } from "@/lib/agentProposalStore";
+import { authorizeTenantAgentRequest } from "@/lib/tenantAgentAuth";
 
 export const runtime = "nodejs";
 
@@ -12,13 +13,6 @@ type JsonMap = Record<string, unknown>;
 
 function s(v: unknown) {
   return String(v ?? "").trim();
-}
-
-function isAuthorized(req: Request) {
-  const expected = s(process.env.AGENT_INTERNAL_API_KEY);
-  if (!expected) return true;
-  const got = s(req.headers.get("x-agent-api-key"));
-  return got && got === expected;
 }
 
 async function postJson(url: string, payload: Record<string, unknown>) {
@@ -39,12 +33,9 @@ async function postJson(url: string, payload: Record<string, unknown>) {
 export async function POST(req: Request) {
   let proposalId = "";
   try {
-    if (!isAuthorized(req)) {
-      return NextResponse.json({ ok: false, error: "Unauthorized agent key." }, { status: 401 });
-    }
     const body = (await req.json().catch(() => null)) as JsonMap | null;
     proposalId = s(body?.proposalId || body?.id);
-    const actor = s(body?.actor || "system:executor");
+    let actor = s(body?.actor || "system:executor");
     if (!proposalId) {
       return NextResponse.json({ ok: false, error: "Missing proposalId" }, { status: 400 });
     }
@@ -53,6 +44,9 @@ export async function POST(req: Request) {
     if (!proposal) {
       return NextResponse.json({ ok: false, error: "Proposal not found." }, { status: 404 });
     }
+    const auth = await authorizeTenantAgentRequest(req, s(proposal.organization_id), "tenant.manage");
+    if ("response" in auth) return auth.response;
+    if (!s(body?.actor)) actor = auth.actor;
     if (s(proposal.status) !== "approved") {
       return NextResponse.json(
         { ok: false, error: `Proposal must be approved before execute (current=${s(proposal.status)}).` },

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { decideProposal, getProposalById } from "@/lib/agentProposalStore";
+import { authorizeTenantAgentRequest } from "@/lib/tenantAgentAuth";
 
 export const runtime = "nodejs";
 
@@ -16,18 +17,8 @@ function decision(v: unknown): "approved" | "rejected" | "" {
   return "";
 }
 
-function isAuthorized(req: Request) {
-  const expected = s(process.env.AGENT_INTERNAL_API_KEY);
-  if (!expected) return true;
-  const got = s(req.headers.get("x-agent-api-key"));
-  return got && got === expected;
-}
-
 export async function POST(req: Request) {
   try {
-    if (!isAuthorized(req)) {
-      return NextResponse.json({ ok: false, error: "Unauthorized agent key." }, { status: 401 });
-    }
     const body = (await req.json().catch(() => null)) as JsonMap | null;
     const proposalId = s(body?.proposalId || body?.id);
     const nextDecision = decision(body?.decision);
@@ -46,11 +37,13 @@ export async function POST(req: Request) {
     if (!current) {
       return NextResponse.json({ ok: false, error: "Proposal not found." }, { status: 404 });
     }
+    const auth = await authorizeTenantAgentRequest(req, s(current.organization_id), "tenant.manage");
+    if ("response" in auth) return auth.response;
 
     const updated = await decideProposal({
       proposalId,
       decision: nextDecision,
-      actor,
+      actor: actor || auth.actor,
       note,
       editedPayload,
     });
@@ -65,4 +58,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

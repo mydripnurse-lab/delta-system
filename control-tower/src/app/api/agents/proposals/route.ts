@@ -8,6 +8,7 @@ import {
   normalizeRisk,
   parseApprovalRequired,
 } from "@/lib/agentProposalStore";
+import { authorizeTenantAgentRequest } from "@/lib/tenantAgentAuth";
 
 export const runtime = "nodejs";
 
@@ -29,23 +30,15 @@ function boolish(v: unknown, fallback = false) {
   return x === "1" || x === "true" || x === "yes" || x === "on" || x === "active";
 }
 
-function isAuthorized(req: Request) {
-  const expected = s(process.env.AGENT_INTERNAL_API_KEY);
-  if (!expected) return true;
-  const got = s(req.headers.get("x-agent-api-key"));
-  return got && got === expected;
-}
-
 export async function GET(req: Request) {
   try {
-    if (!isAuthorized(req)) {
-      return NextResponse.json({ ok: false, error: "Unauthorized agent key." }, { status: 401 });
-    }
     const url = new URL(req.url);
     const organizationId = s(url.searchParams.get("organizationId") || url.searchParams.get("tenantId"));
     if (!organizationId) {
       return NextResponse.json({ ok: false, error: "Missing organizationId" }, { status: 400 });
     }
+    const auth = await authorizeTenantAgentRequest(req, organizationId, "tenant.read");
+    if ("response" in auth) return auth.response;
     const status = asStatus(url.searchParams.get("status"));
     const actionType = normalizeActionType(url.searchParams.get("actionType"));
     const limit = Number(url.searchParams.get("limit") || 50);
@@ -66,9 +59,6 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    if (!isAuthorized(req)) {
-      return NextResponse.json({ ok: false, error: "Unauthorized agent key." }, { status: 401 });
-    }
     const body = (await req.json().catch(() => null)) as JsonMap | null;
     const organizationId = s(body?.organizationId || body?.tenantId);
     const actionType = normalizeActionType(body?.actionType);
@@ -92,6 +82,8 @@ export async function POST(req: Request) {
     if (!summary) {
       return NextResponse.json({ ok: false, error: "Missing summary" }, { status: 400 });
     }
+    const auth = await authorizeTenantAgentRequest(req, organizationId, "tenant.manage");
+    if ("response" in auth) return auth.response;
 
     const riskLevel = normalizeRisk(body?.riskLevel);
     const policyAutoApproved = boolish(body?.policyAutoApproved, riskLevel === "low");
