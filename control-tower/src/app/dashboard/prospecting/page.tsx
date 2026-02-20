@@ -1020,8 +1020,8 @@ function ProspectingDashboardContent() {
           </div>
         </div>
         <div className="cardBody">
-          <div className="moduleGrid">
-            <div className="moduleCard">
+          <div className="prospectingGeoRows">
+            <div className="prospectingGeoRowBlock">
               <p className="l moduleTitle">Top States</p>
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.states || []).slice(0, 8).map((r, idx) => (
@@ -1049,7 +1049,7 @@ function ProspectingDashboardContent() {
               </div>
             </div>
 
-            <div className="moduleCard">
+            <div className="prospectingGeoRowBlock">
               <p className="l moduleTitle">Top Counties</p>
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.counties || []).slice(0, 8).map((r, idx) => (
@@ -1077,7 +1077,7 @@ function ProspectingDashboardContent() {
               </div>
             </div>
 
-            <div className="moduleCard">
+            <div className="prospectingGeoRowBlock">
               <p className="l moduleTitle">Top Cities</p>
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.cities || []).slice(0, 8).map((r, idx) => (
