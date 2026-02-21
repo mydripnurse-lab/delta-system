@@ -45,6 +45,9 @@ function normalizeWorkerResponse(
   fallbackError: string,
 ) {
   const ok = Boolean(payload?.ok);
+  const logs = Array.isArray(payload?.logs)
+    ? (payload?.logs as unknown[]).map((x) => s(x)).filter(Boolean)
+    : [];
   return {
     ok,
     clicked: s(payload?.clicked),
@@ -54,6 +57,7 @@ function normalizeWorkerResponse(
     screenshotUrl: s(payload?.screenshotUrl),
     screenshotDataUrl: s(payload?.screenshotDataUrl),
     logUrl: s(payload?.logUrl),
+    logs,
     workerRaw: payload,
   };
 }
@@ -79,6 +83,7 @@ async function runRemoteDomainBot(input: {
       screenshotUrl: "",
       screenshotDataUrl: "",
       logUrl: "",
+      logs: [],
       workerRaw: null,
     };
   }
@@ -591,6 +596,7 @@ export async function POST(req: Request) {
             screenshotUrl: remote.screenshotUrl,
             screenshotDataUrl: remote.screenshotDataUrl,
             logUrl: remote.logUrl,
+            logs: remote.logs,
             workerRaw: remote.workerRaw,
           },
           { status: 502 },
@@ -606,6 +612,7 @@ export async function POST(req: Request) {
         screenshotUrl: remote.screenshotUrl || undefined,
         screenshotDataUrl: remote.screenshotDataUrl || undefined,
         logUrl: remote.logUrl || undefined,
+        logs: remote.logs,
       });
     }
 

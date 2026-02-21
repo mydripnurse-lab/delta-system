@@ -697,6 +697,7 @@ export default function Home() {
   const [tabSitemapRunDone, setTabSitemapRunDone] = useState(false);
   const [tabSitemapRunStartedAt, setTabSitemapRunStartedAt] = useState("");
   const [domainBotBusy, setDomainBotBusy] = useState(false);
+  const [domainBotLogs, setDomainBotLogs] = useState<string[]>([]);
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -3515,6 +3516,15 @@ export default function Home() {
     openDomainBotByLocId(firstDomainBotLocId);
   }
 
+  function pushDomainBotLog(line: unknown) {
+    const msg = s(line);
+    if (!msg) return;
+    setDomainBotLogs((prev) => {
+      const next = prev.concat(msg);
+      return next.slice(Math.max(0, next.length - 120));
+    });
+  }
+
   async function loadDomainBotHeaders(locId: string) {
     const id = s(locId);
     if (!id || !routeTenantId) return { head: "", footer: "", favicon: "" };
@@ -3829,6 +3839,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const sitemapUrl = s(row?.["Sitemap"]);
 
     setDomainBotBusy(true);
+    setDomainBotLogs([]);
+    pushDomainBotLog(`Start locId=${id}`);
     setTabSitemapStatus({
       kind: detailTab,
       ok: true,
@@ -3847,9 +3859,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       if (!cvRes.ok || !cvData?.ok) {
         throw new Error(s((cvData as any)?.error) || `Custom values HTTP ${cvRes.status}`);
       }
+      pushDomainBotLog("Custom values applied.");
 
       const domainUrlForDns = s(toUrlMaybe(domainToPaste));
       if (domainUrlForDns) {
+        pushDomainBotLog(`DNS upsert start: ${domainUrlForDns}`);
         const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3864,11 +3878,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         if (!dnsRes.ok || !(dnsData as any)?.ok) {
           throw new Error((dnsData as any)?.error || `Cloudflare create failed (HTTP ${dnsRes.status})`);
         }
+        pushDomainBotLog("DNS upsert done.");
       }
 
       const headers = await loadDomainBotHeaders(id);
       const robotsTxtValue = buildRobotsTxt(sitemapUrl);
       const steps = buildDomainBotSteps();
+      pushDomainBotLog(`Worker run start with ${steps.length} steps.`);
 
       const res = await fetch("/api/tools/domain-bot-click", {
         method: "POST",
@@ -3902,13 +3918,23 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             lastResult?: string;
             url?: string;
             screenshotUrl?: string;
+            screenshotDataUrl?: string;
             logUrl?: string;
+            logs?: string[];
+            workerRaw?: { logs?: string[] } | null;
           }
         | null;
+      const workerLogs = Array.isArray(data?.logs)
+        ? data?.logs || []
+        : Array.isArray((data?.workerRaw as any)?.logs)
+          ? ((data?.workerRaw as any)?.logs as string[])
+          : [];
+      workerLogs.forEach((line) => pushDomainBotLog(line));
       if (!res.ok || !data?.ok) {
         const details = s(data?.lastResult);
         throw new Error(`${s(data?.error) || `HTTP ${res.status}`}${details ? ` | ${details}` : ""}`);
       }
+      pushDomainBotLog("Worker run done.");
 
       const markRes = await fetch("/api/sheet/domain-created", {
         method: "POST",
@@ -3925,8 +3951,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       if (!markRes.ok || (markData as any)?.error) {
         throw new Error((markData as any)?.error || `Complete HTTP ${markRes.status}`);
       }
+      pushDomainBotLog("Domain marked as created.");
 
       if (domainUrlForDns) {
+        pushDomainBotLog("DNS delete start.");
         const dnsDeleteRes = await fetch("/api/tools/cloudflare-dns-cname", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3943,6 +3971,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             (dnsDeleteData as any)?.error || `Cloudflare delete failed (HTTP ${dnsDeleteRes.status})`,
           );
         }
+        pushDomainBotLog("DNS delete done.");
       }
 
       setTabSitemapStatus({
@@ -3953,6 +3982,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       await loadOverview();
       if (openState) await openDetail(openState);
     } catch (e: any) {
+      pushDomainBotLog(`ERROR: ${e?.message || "request failed"}`);
       setTabSitemapStatus({
         kind: detailTab,
         ok: false,
@@ -5954,6 +5984,25 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     Copy AutoClick Script
                   </button>
                 </div>
+                {domainBotLogs.length ? (
+                  <div
+                    className="mini"
+                    style={{
+                      marginTop: 10,
+                      maxHeight: 180,
+                      overflow: "auto",
+                      whiteSpace: "pre-wrap",
+                      border: "1px solid var(--line)",
+                      borderRadius: 10,
+                      padding: "8px 10px",
+                      background: "rgba(2,6,23,.35)",
+                    }}
+                  >
+                    {domainBotLogs.map((line, idx) => (
+                      <div key={`db_log_${idx}`}>{line}</div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="drawerHeaderActions">
