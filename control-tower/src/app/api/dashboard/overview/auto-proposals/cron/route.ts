@@ -1,4 +1,4 @@
-import { createProposal } from "@/lib/agentProposalStore";
+import { createProposal, decideProposal } from "@/lib/agentProposalStore";
 import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -31,6 +31,11 @@ type TenantTarget = {
     dedupeHours: number;
     maxPerRun: number;
   };
+  autoApproval: {
+    enabled: boolean;
+    maxRisk: "low" | "medium" | "high";
+    maxPriority: "P1" | "P2" | "P3";
+  };
 };
 
 function s(v: unknown) {
@@ -56,6 +61,12 @@ function normalizePriority(v: unknown): "P1" | "P2" | "P3" {
   const x = s(v).toUpperCase();
   if (x === "P1" || x === "P2" || x === "P3") return x;
   return "P2";
+}
+
+function normalizeRisk(v: unknown): "low" | "medium" | "high" {
+  const x = s(v).toLowerCase();
+  if (x === "low" || x === "medium" || x === "high") return x;
+  return "low";
 }
 
 async function readTenantAgentApiKeys(tenantId: string) {
@@ -181,6 +192,41 @@ function normalizeAutoProposals(raw: unknown) {
   };
 }
 
+function normalizeAutoApproval(raw: unknown) {
+  const input = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    enabled: boolish(input.enabled, false),
+    maxRisk: normalizeRisk(input.maxRisk),
+    maxPriority: normalizePriority(input.maxPriority),
+  };
+}
+
+function riskRank(risk: "low" | "medium" | "high") {
+  if (risk === "low") return 1;
+  if (risk === "medium") return 2;
+  return 3;
+}
+
+function priorityRank(priority: "P1" | "P2" | "P3") {
+  if (priority === "P1") return 1;
+  if (priority === "P2") return 2;
+  return 3;
+}
+
+function shouldAutoApprove(input: {
+  enabled: boolean;
+  maxRisk: "low" | "medium" | "high";
+  maxPriority: "P1" | "P2" | "P3";
+  riskLevel: "low" | "medium" | "high";
+  priority: "P1" | "P2" | "P3";
+}) {
+  if (!input.enabled) return false;
+  return (
+    riskRank(input.riskLevel) <= riskRank(input.maxRisk) &&
+    priorityRank(input.priority) >= priorityRank(input.maxPriority)
+  );
+}
+
 async function fetchJson(url: string, init?: RequestInit) {
   const res = await fetch(url, { cache: "no-store", ...(init || {}) });
   const json = (await res.json().catch(() => null)) as JsonMap | null;
@@ -214,6 +260,7 @@ async function listTargets(singleTenantId: string) {
     tenantId: s(r.organization_id),
     agents: normalizeAgents((r.config || {}).agents),
     autoProposals: normalizeAutoProposals((r.config || {}).autoProposals),
+    autoApproval: normalizeAutoApproval((r.config || {}).autoApproval),
   }));
 }
 
@@ -312,6 +359,7 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
       ok: true,
       autoEnabled: target.autoProposals.enabled,
       generated: 0,
+      autoApproved: 0,
       wouldGenerate: 0,
       deduped: 0,
       skippedDisabled: 0,
@@ -378,7 +426,7 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
           row.wouldGenerate = Number(row.wouldGenerate || 0) + 1;
           continue;
         }
-        await createProposal({
+        const created = await createProposal({
           organizationId: target.tenantId,
           actionType,
           agentId,
@@ -400,6 +448,22 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
           policyAutoApproved: false,
           approvalRequired: true,
         });
+        const autoApprove = shouldAutoApprove({
+          enabled: target.autoApproval.enabled,
+          maxRisk: target.autoApproval.maxRisk,
+          maxPriority: target.autoApproval.maxPriority,
+          riskLevel,
+          priority,
+        });
+        if (autoApprove) {
+          await decideProposal({
+            proposalId: s(created.id),
+            decision: "approved",
+            actor: "system:auto_approval_cron",
+            note: `Auto-approved by tenant policy (maxRisk=${target.autoApproval.maxRisk}, maxPriority=${target.autoApproval.maxPriority}).`,
+          });
+          row.autoApproved = Number(row.autoApproved || 0) + 1;
+        }
         row.generated = Number(row.generated || 0) + 1;
       }
     } catch (e: unknown) {
@@ -414,6 +478,7 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
     dryRun,
     totalTenants: rows.length,
     generated: rows.reduce((acc, r) => acc + Number(r.generated || 0), 0),
+    autoApproved: rows.reduce((acc, r) => acc + Number(r.autoApproved || 0), 0),
     wouldGenerate: rows.reduce((acc, r) => acc + Number(r.wouldGenerate || 0), 0),
     deduped: rows.reduce((acc, r) => acc + Number(r.deduped || 0), 0),
     skippedAutoDisabled: rows.reduce((acc, r) => acc + Number(r.skippedAutoDisabled || 0), 0),

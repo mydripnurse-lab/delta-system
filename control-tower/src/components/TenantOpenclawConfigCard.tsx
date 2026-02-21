@@ -23,6 +23,11 @@ type OpenclawConfigResponse = {
     enabled?: boolean;
     maxPerRun?: number;
   };
+  autoApproval?: {
+    enabled?: boolean;
+    maxRisk?: "low" | "medium" | "high";
+    maxPriority?: "P1" | "P2" | "P3";
+  };
   agents?: Record<string, AgentNode>;
   error?: string;
 };
@@ -68,6 +73,9 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [autoMaxPerRun, setAutoMaxPerRun] = useState("6");
   const [autoExecuteEnabled, setAutoExecuteEnabled] = useState(false);
   const [autoExecuteMaxPerRun, setAutoExecuteMaxPerRun] = useState("4");
+  const [autoApprovalEnabled, setAutoApprovalEnabled] = useState(false);
+  const [autoApprovalMaxRisk, setAutoApprovalMaxRisk] = useState<"low" | "medium" | "high">("low");
+  const [autoApprovalMaxPriority, setAutoApprovalMaxPriority] = useState<"P1" | "P2" | "P3">("P3");
   const [agents, setAgents] = useState<Record<string, AgentNode>>({});
   const [loadedAgents, setLoadedAgents] = useState<Record<string, AgentNode>>({});
   const [loadedOpenclawBaseUrl, setLoadedOpenclawBaseUrl] = useState("");
@@ -77,6 +85,9 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [loadedAutoMaxPerRun, setLoadedAutoMaxPerRun] = useState("6");
   const [loadedAutoExecuteEnabled, setLoadedAutoExecuteEnabled] = useState(false);
   const [loadedAutoExecuteMaxPerRun, setLoadedAutoExecuteMaxPerRun] = useState("4");
+  const [loadedAutoApprovalEnabled, setLoadedAutoApprovalEnabled] = useState(false);
+  const [loadedAutoApprovalMaxRisk, setLoadedAutoApprovalMaxRisk] = useState<"low" | "medium" | "high">("low");
+  const [loadedAutoApprovalMaxPriority, setLoadedAutoApprovalMaxPriority] = useState<"P1" | "P2" | "P3">("P3");
 
   const isDirty = useMemo(() => {
     return (
@@ -87,7 +98,10 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       s(autoDedupeHours) !== s(loadedAutoDedupeHours) ||
       s(autoMaxPerRun) !== s(loadedAutoMaxPerRun) ||
       autoExecuteEnabled !== loadedAutoExecuteEnabled ||
-      s(autoExecuteMaxPerRun) !== s(loadedAutoExecuteMaxPerRun)
+      s(autoExecuteMaxPerRun) !== s(loadedAutoExecuteMaxPerRun) ||
+      autoApprovalEnabled !== loadedAutoApprovalEnabled ||
+      autoApprovalMaxRisk !== loadedAutoApprovalMaxRisk ||
+      autoApprovalMaxPriority !== loadedAutoApprovalMaxPriority
     );
   }, [
     agents,
@@ -106,6 +120,12 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
     loadedAutoExecuteEnabled,
     autoExecuteMaxPerRun,
     loadedAutoExecuteMaxPerRun,
+    autoApprovalEnabled,
+    loadedAutoApprovalEnabled,
+    autoApprovalMaxRisk,
+    loadedAutoApprovalMaxRisk,
+    autoApprovalMaxPriority,
+    loadedAutoApprovalMaxPriority,
   ]);
 
   async function load() {
@@ -132,16 +152,25 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       const nextAutoMaxPerRun = String(json.autoProposals?.maxPerRun ?? 6);
       const nextAutoExecuteEnabled = json.autoExecution?.enabled === true;
       const nextAutoExecuteMaxPerRun = String(json.autoExecution?.maxPerRun ?? 4);
+      const nextAutoApprovalEnabled = json.autoApproval?.enabled === true;
+      const nextAutoApprovalMaxRisk = (json.autoApproval?.maxRisk || "low") as "low" | "medium" | "high";
+      const nextAutoApprovalMaxPriority = (json.autoApproval?.maxPriority || "P3") as "P1" | "P2" | "P3";
       setAutoEnabled(nextAutoEnabled);
       setAutoDedupeHours(nextAutoDedupeHours);
       setAutoMaxPerRun(nextAutoMaxPerRun);
       setAutoExecuteEnabled(nextAutoExecuteEnabled);
       setAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
+      setAutoApprovalEnabled(nextAutoApprovalEnabled);
+      setAutoApprovalMaxRisk(nextAutoApprovalMaxRisk);
+      setAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
       setLoadedAutoEnabled(nextAutoEnabled);
       setLoadedAutoDedupeHours(nextAutoDedupeHours);
       setLoadedAutoMaxPerRun(nextAutoMaxPerRun);
       setLoadedAutoExecuteEnabled(nextAutoExecuteEnabled);
       setLoadedAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
+      setLoadedAutoApprovalEnabled(nextAutoApprovalEnabled);
+      setLoadedAutoApprovalMaxRisk(nextAutoApprovalMaxRisk);
+      setLoadedAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
     } catch (e: unknown) {
@@ -190,6 +219,11 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
             enabled: autoExecuteEnabled,
             maxPerRun: Number(autoExecuteMaxPerRun || 4),
           },
+          autoApproval: {
+            enabled: autoApprovalEnabled,
+            maxRisk: autoApprovalMaxRisk,
+            maxPriority: autoApprovalMaxPriority,
+          },
           agents,
         }),
       });
@@ -208,16 +242,25 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       const nextAutoMaxPerRun = String(json.autoProposals?.maxPerRun ?? 6);
       const nextAutoExecuteEnabled = json.autoExecution?.enabled === true;
       const nextAutoExecuteMaxPerRun = String(json.autoExecution?.maxPerRun ?? 4);
+      const nextAutoApprovalEnabled = json.autoApproval?.enabled === true;
+      const nextAutoApprovalMaxRisk = (json.autoApproval?.maxRisk || "low") as "low" | "medium" | "high";
+      const nextAutoApprovalMaxPriority = (json.autoApproval?.maxPriority || "P3") as "P1" | "P2" | "P3";
       setAutoEnabled(nextAutoEnabled);
       setAutoDedupeHours(nextAutoDedupeHours);
       setAutoMaxPerRun(nextAutoMaxPerRun);
       setAutoExecuteEnabled(nextAutoExecuteEnabled);
       setAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
+      setAutoApprovalEnabled(nextAutoApprovalEnabled);
+      setAutoApprovalMaxRisk(nextAutoApprovalMaxRisk);
+      setAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
       setLoadedAutoEnabled(nextAutoEnabled);
       setLoadedAutoDedupeHours(nextAutoDedupeHours);
       setLoadedAutoMaxPerRun(nextAutoMaxPerRun);
       setLoadedAutoExecuteEnabled(nextAutoExecuteEnabled);
       setLoadedAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
+      setLoadedAutoApprovalEnabled(nextAutoApprovalEnabled);
+      setLoadedAutoApprovalMaxRisk(nextAutoApprovalMaxRisk);
+      setLoadedAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
       if (rotate && s((json as any).apiKey)) {
@@ -326,6 +369,43 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
                 value={autoExecuteMaxPerRun}
                 onChange={(e) => setAutoExecuteMaxPerRun(e.target.value)}
               />
+            </div>
+          </div>
+        </div>
+        <div className="moduleCard">
+          <p className="l moduleTitle">Auto Approval Policy</p>
+          <label className="mini" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+            <input
+              type="checkbox"
+              checked={autoApprovalEnabled}
+              onChange={(e) => setAutoApprovalEnabled(e.target.checked)}
+            />
+            Enabled (approve safe proposals automatically)
+          </label>
+          <div style={{ display: "grid", gap: 8, marginTop: 10, gridTemplateColumns: "1fr 1fr" }}>
+            <div>
+              <div className="mini" style={{ marginBottom: 4 }}>Max risk auto-approved</div>
+              <select
+                className="input"
+                value={autoApprovalMaxRisk}
+                onChange={(e) => setAutoApprovalMaxRisk(e.target.value as "low" | "medium" | "high")}
+              >
+                <option value="low">low</option>
+                <option value="medium">medium</option>
+                <option value="high">high</option>
+              </select>
+            </div>
+            <div>
+              <div className="mini" style={{ marginBottom: 4 }}>Priority scope auto-approved</div>
+              <select
+                className="input"
+                value={autoApprovalMaxPriority}
+                onChange={(e) => setAutoApprovalMaxPriority(e.target.value as "P1" | "P2" | "P3")}
+              >
+                <option value="P3">P3 only</option>
+                <option value="P2">P2 + P3</option>
+                <option value="P1">P1 + P2 + P3</option>
+              </select>
             </div>
           </div>
         </div>

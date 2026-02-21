@@ -40,6 +40,12 @@ type AutoExecutionConfig = {
   maxPerRun: number;
 };
 
+type AutoApprovalConfig = {
+  enabled: boolean;
+  maxRisk: "low" | "medium" | "high";
+  maxPriority: "P1" | "P2" | "P3";
+};
+
 function defaultAgents(): Record<DashboardAgentKey, AgentNode> {
   return {
     central: { enabled: true, agentId: "soul_central_orchestrator" },
@@ -120,6 +126,36 @@ function normalizeAutoExecution(raw: unknown): AutoExecutionConfig {
   };
 }
 
+function normalizeRisk(v: unknown): "low" | "medium" | "high" {
+  const x = s(v).toLowerCase();
+  if (x === "low" || x === "medium" || x === "high") return x;
+  return "low";
+}
+
+function normalizePriority(v: unknown): "P1" | "P2" | "P3" {
+  const x = s(v).toUpperCase();
+  if (x === "P1" || x === "P2" || x === "P3") return x;
+  return "P3";
+}
+
+function defaultAutoApproval(): AutoApprovalConfig {
+  return {
+    enabled: false,
+    maxRisk: "low",
+    maxPriority: "P3",
+  };
+}
+
+function normalizeAutoApproval(raw: unknown): AutoApprovalConfig {
+  const defaults = defaultAutoApproval();
+  const input = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    enabled: boolish(input.enabled, defaults.enabled),
+    maxRisk: normalizeRisk(input.maxRisk ?? defaults.maxRisk),
+    maxPriority: normalizePriority(input.maxPriority ?? defaults.maxPriority),
+  };
+}
+
 function maskKey(raw: string) {
   const v = s(raw);
   if (!v) return "";
@@ -165,6 +201,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const agents = normalizeAgents(cfg.agents);
   const autoProposals = normalizeAutoProposals(cfg.autoProposals);
   const autoExecution = normalizeAutoExecution(cfg.autoExecution);
+  const autoApproval = normalizeAutoApproval(cfg.autoApproval);
   const openclawBaseUrl = s(cfg.openclawBaseUrl);
   const openclawWorkspace = s(cfg.openclawWorkspace);
   return NextResponse.json({
@@ -178,6 +215,7 @@ export async function GET(req: Request, ctx: Ctx) {
     openclawWorkspace,
     autoProposals,
     autoExecution,
+    autoApproval,
     agents,
     updatedAt: row?.updated_at || null,
   });
@@ -227,6 +265,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     openclawWorkspace: s(body.openclawWorkspace) || s(currentCfg.openclawWorkspace),
     autoProposals: normalizeAutoProposals(body.autoProposals || currentCfg.autoProposals),
     autoExecution: normalizeAutoExecution(body.autoExecution || currentCfg.autoExecution),
+    autoApproval: normalizeAutoApproval(body.autoApproval || currentCfg.autoApproval),
     agents: normalizeAgents(body.agents || currentCfg.agents),
   };
   await pool.query(
@@ -257,6 +296,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     openclawWorkspace: s(config.openclawWorkspace),
     autoProposals: config.autoProposals,
     autoExecution: config.autoExecution,
+    autoApproval: config.autoApproval,
     agents: config.agents,
   });
 }
