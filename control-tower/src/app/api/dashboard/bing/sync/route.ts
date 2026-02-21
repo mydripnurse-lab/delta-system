@@ -47,7 +47,25 @@ type TenantBingConfig = {
 
 async function loadTenantBingConfig(tenantId: string, integrationKey: string): Promise<TenantBingConfig> {
   if (!tenantId) throw new Error("Missing tenantId for Bing sync.");
-  const row = await getTenantIntegration(tenantId, "bing_webmaster", integrationKey);
+  const candidateKeys = Array.from(
+    new Set(
+      integrationKey === "owner"
+        ? ["owner", "default"]
+        : integrationKey === "default"
+          ? ["default", "owner"]
+          : [integrationKey, "default", "owner"],
+    ),
+  );
+  let row = null as Awaited<ReturnType<typeof getTenantIntegration>>;
+  let matchedKey = integrationKey;
+  for (const key of candidateKeys) {
+    const hit = await getTenantIntegration(tenantId, "bing_webmaster", key);
+    if (hit) {
+      row = hit;
+      matchedKey = key;
+      break;
+    }
+  }
   if (!row) {
     throw new Error(
       `Missing integration bing_webmaster:${integrationKey} for tenant ${tenantId}. ` +
@@ -80,10 +98,10 @@ async function loadTenantBingConfig(tenantId: string, integrationKey: string): P
   const siteUrls = parseSiteUrls(singleSite, multiRaw);
 
   if (!apiKey) {
-    throw new Error(`Missing Bing API key in config for tenant ${tenantId} (${integrationKey}).`);
+    throw new Error(`Missing Bing API key in config for tenant ${tenantId} (${matchedKey}).`);
   }
   if (!siteUrls.length) {
-    throw new Error(`Missing Bing site URL(s) in config for tenant ${tenantId} (${integrationKey}).`);
+    throw new Error(`Missing Bing site URL(s) in config for tenant ${tenantId} (${matchedKey}).`);
   }
 
   return { apiKey, endpoint, siteUrls };

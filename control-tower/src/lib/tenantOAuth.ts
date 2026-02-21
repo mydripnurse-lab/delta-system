@@ -90,6 +90,18 @@ type ResolveResult = {
   integrationKey: string;
 };
 
+function preferredIntegrationKeys(integrationKey: string) {
+  return Array.from(
+    new Set(
+      integrationKey === "owner"
+        ? ["owner", "default"]
+        : integrationKey === "default"
+          ? ["default", "owner"]
+          : [integrationKey, "default", "owner"],
+    ),
+  );
+}
+
 async function resolveTenantIntegrationInternal(
   input: ResolveInput,
   depth = 0,
@@ -102,15 +114,7 @@ async function resolveTenantIntegrationInternal(
   const integrationKey = s(input.integrationKey) || "default";
   if (!requestedTenantId || !provider) throw new Error("Missing tenantId/provider");
 
-  const candidateKeys = Array.from(
-    new Set(
-      integrationKey === "owner"
-        ? ["owner", "default"]
-        : integrationKey === "default"
-          ? ["default", "owner"]
-          : [integrationKey, "default", "owner"],
-    ),
-  );
+  const candidateKeys = preferredIntegrationKeys(integrationKey);
 
   let resolvedIntegrationKey = integrationKey;
   let requested: TenantIntegrationRow | null = null;
@@ -166,40 +170,66 @@ async function resolveTenantIntegrationInternal(
 
 export async function resolveTenantOAuthConnection(input: ResolveInput): Promise<TenantOAuthConnection> {
   const provider = s(input.provider);
-  const resolved = await resolveTenantIntegrationInternal(input);
-  const requestedConfig = asObject(resolved.requested.config);
-  const effectiveConfig = asObject(resolved.effective.config);
+  const requestedTenantId = s(input.tenantId);
+  const preferred = s(input.integrationKey) || "default";
+  const candidateKeys = preferredIntegrationKeys(preferred);
+  let missingClientFor: string | null = null;
+  let missingRefreshFor: string | null = null;
+  let firstErr: string | null = null;
 
-  const client = pickOAuthClientConfig(requestedConfig) || pickOAuthClientConfig(effectiveConfig);
-  if (!client) {
+  for (const key of candidateKeys) {
+    try {
+      const resolved = await resolveTenantIntegrationInternal({
+        tenantId: requestedTenantId,
+        provider,
+        integrationKey: key,
+      });
+      const requestedConfig = asObject(resolved.requested.config);
+      const effectiveConfig = asObject(resolved.effective.config);
+      const client = pickOAuthClientConfig(requestedConfig) || pickOAuthClientConfig(effectiveConfig);
+      const refreshToken = s(resolved.effective.refreshTokenEnc);
+
+      if (!client) {
+        missingClientFor = resolved.integrationKey;
+        continue;
+      }
+      if (!refreshToken) {
+        missingRefreshFor = resolved.integrationKey;
+        continue;
+      }
+
+      return {
+        requestedTenantId: resolved.requestedTenantId,
+        effectiveTenantId: resolved.effectiveTenantId,
+        provider,
+        integrationKey: resolved.integrationKey,
+        client,
+        refreshToken,
+        accessToken: s(resolved.effective.accessTokenEnc),
+        tokenExpiresAt: s(resolved.effective.tokenExpiresAt) || null,
+        scopes: Array.isArray(resolved.effective.scopes) ? resolved.effective.scopes.map((x) => s(x)).filter(Boolean) : [],
+        externalAccountId: s(resolved.requested.externalAccountId) || s(resolved.effective.externalAccountId) || null,
+        externalPropertyId: s(resolved.requested.externalPropertyId) || s(resolved.effective.externalPropertyId) || null,
+        config: requestedConfig,
+      };
+    } catch (e: unknown) {
+      if (!firstErr) firstErr = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  if (missingClientFor) {
     throw new Error(
-      `Missing OAuth client config for ${provider}:${resolved.integrationKey}.` +
+      `Missing OAuth client config for ${provider}:${missingClientFor}.` +
       " Set config.oauthClient.{clientId,clientSecret,redirectUri}.",
     );
   }
-
-  const refreshToken = s(resolved.effective.refreshTokenEnc);
-  if (!refreshToken) {
+  if (missingRefreshFor) {
     throw new Error(
-      `Missing refresh token for ${provider}:${resolved.integrationKey}.` +
+      `Missing refresh token for ${provider}:${missingRefreshFor}.` +
       " Connect OAuth first or configure sharedFromTenantId.",
     );
   }
-
-  return {
-    requestedTenantId: resolved.requestedTenantId,
-    effectiveTenantId: resolved.effectiveTenantId,
-    provider,
-    integrationKey: resolved.integrationKey,
-    client,
-    refreshToken,
-    accessToken: s(resolved.effective.accessTokenEnc),
-    tokenExpiresAt: s(resolved.effective.tokenExpiresAt) || null,
-    scopes: Array.isArray(resolved.effective.scopes) ? resolved.effective.scopes.map((x) => s(x)).filter(Boolean) : [],
-    externalAccountId: s(resolved.requested.externalAccountId) || s(resolved.effective.externalAccountId) || null,
-    externalPropertyId: s(resolved.requested.externalPropertyId) || s(resolved.effective.externalPropertyId) || null,
-    config: requestedConfig,
-  };
+  throw new Error(firstErr || `Missing integration ${provider}:${preferred} for tenant ${requestedTenantId}`);
 }
 
 export async function getTenantOAuthClientConfig(input: ResolveInput): Promise<OAuthClientConfig> {

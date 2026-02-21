@@ -231,6 +231,51 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
       }
 
       const modules = await runTasksWithConcurrency(tasks, 3);
+      const shouldRetryWithDefaultKey = integrationKey === "owner";
+      const maybeRetryWithDefaultKey = async (
+        moduleKey: string,
+        urlWithOwnerKey: string,
+        timeoutMs: number,
+      ) => {
+        if (!shouldRetryWithDefaultKey) return;
+        const current = (modules[moduleKey] || {}) as Record<string, unknown>;
+        if (current.ok === true && current.skipped !== true) return;
+        const msg = s(current.error).toLowerCase();
+        if (!msg.includes("missing")) return;
+        const fallbackUrl = urlWithOwnerKey.replace("integrationKey=owner", "integrationKey=default");
+        const t0 = Date.now();
+        try {
+          await fetchJson(fallbackUrl, timeoutMs);
+          modules[`${moduleKey}_retry_default`] = { ok: true, ms: Date.now() - t0 };
+          modules[moduleKey] = {
+            ok: true,
+            recovered: true,
+            strategy: "integrationKey_default_fallback",
+            ms: Date.now() - t0,
+          };
+        } catch (e: unknown) {
+          modules[`${moduleKey}_retry_default`] = {
+            ok: false,
+            ms: Date.now() - t0,
+            error: e instanceof Error ? e.message : "request failed",
+          };
+        }
+      };
+      await maybeRetryWithDefaultKey(
+        "gsc_sync",
+        `${origin}/api/dashboard/gsc/sync?${tq}&range=${encodeURIComponent(searchRange)}${force ? "&force=1" : ""}`,
+        30000,
+      );
+      await maybeRetryWithDefaultKey(
+        "bing_sync",
+        `${origin}/api/dashboard/bing/sync?${tq}&range=${encodeURIComponent(searchRange)}${force ? "&force=1" : ""}`,
+        30000,
+      );
+      await maybeRetryWithDefaultKey(
+        "ads_sync",
+        `${origin}/api/dashboard/ads/sync?${tq}&range=${encodeURIComponent(searchRange)}${force ? "&force=1" : ""}`,
+        30000,
+      );
       const isTimeoutFailure = (x: unknown) => {
         const rec = (x || {}) as Record<string, unknown>;
         const ok = rec.ok === true;
