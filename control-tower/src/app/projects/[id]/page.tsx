@@ -3542,6 +3542,75 @@ export default function Home() {
     };
   }
 
+  async function runDomainBotViaExtensionBridge(input: {
+    activationUrl: string;
+    domainToPaste: string;
+    robotsTxt: string;
+    headCode: string;
+    bodyCode: string;
+    faviconUrl: string;
+    pageTypeNeedle?: string;
+  }) {
+    if (typeof window === "undefined") {
+      throw new Error("Browser extension bridge is only available in browser context.");
+    }
+    const requestId = `ct_local_bot_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    return await new Promise<{
+      ok: boolean;
+      error?: string;
+      logs?: string[];
+      href?: string;
+    }>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        window.removeEventListener("message", onMessage);
+        reject(
+          new Error(
+            "Timeout waiting extension response. Verify extension is installed/reloaded and this page matches extension bridge.",
+          ),
+        );
+      }, 25 * 60 * 1000);
+
+      function cleanup() {
+        window.clearTimeout(timeout);
+        window.removeEventListener("message", onMessage);
+      }
+
+      function onMessage(event: MessageEvent) {
+        if (event.source !== window) return;
+        const data = event.data || {};
+        if (data.type !== "DELTA_LOCAL_BOT_RESULT") return;
+        if (s(data.requestId) !== requestId) return;
+        cleanup();
+        if (data.ok) {
+          resolve({
+            ok: true,
+            logs: Array.isArray(data.logs) ? data.logs.map((x: unknown) => s(x)).filter(Boolean) : [],
+          });
+          return;
+        }
+        reject(new Error(s(data.error) || "Local extension bot failed."));
+      }
+
+      window.addEventListener("message", onMessage);
+      window.postMessage(
+        {
+          type: "DELTA_LOCAL_BOT_RUN",
+          requestId,
+          payload: {
+            activationUrl: s(input.activationUrl),
+            domainToPaste: s(input.domainToPaste),
+            robotsTxt: s(input.robotsTxt),
+            headCode: s(input.headCode),
+            bodyCode: s(input.bodyCode),
+            faviconUrl: s(input.faviconUrl),
+            pageTypeNeedle: s(input.pageTypeNeedle) || "Home Page",
+          },
+        },
+        "*",
+      );
+    });
+  }
+
   function buildDomainBotSteps() {
     return [
       {
@@ -3888,61 +3957,21 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const headers = await loadDomainBotHeaders(id);
       const robotsTxtValue = buildRobotsTxt(sitemapUrl);
       const steps = buildDomainBotSteps();
-      pushDomainBotLog(`Worker run start with ${steps.length} steps.`);
-
-      const res = await fetch("/api/tools/domain-bot-click", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          tenantId: routeTenantId,
-          kind: rowKind,
-          locationId: id,
-          mode: "auto",
-          openActivationUrl: activationUrlEffective,
-          steps,
-          variables: {
-            loc_id: id,
-            domain_to_paste: domainToPaste,
-            robots_txt: robotsTxtValue,
-            favicon_url: headers.favicon,
-            head_code: headers.head,
-            body_code: headers.footer,
-          },
-          maxAttempts: 180,
-          intervalMs: 700,
-        }),
+      pushDomainBotLog(`Local extension run start with ${steps.length} mapped steps.`);
+      const local = await runDomainBotViaExtensionBridge({
+        activationUrl: activationUrlEffective,
+        domainToPaste,
+        robotsTxt: robotsTxtValue,
+        faviconUrl: headers.favicon,
+        headCode: headers.head,
+        bodyCode: headers.footer,
+        pageTypeNeedle: "Home Page",
       });
-      const data = (await safeJson(res)) as
-        | {
-            ok?: boolean;
-            mode?: string;
-            clicked?: string;
-            attempts?: number;
-            error?: string;
-            lastResult?: string;
-            url?: string;
-            screenshotUrl?: string;
-            screenshotDataUrl?: string;
-            logUrl?: string;
-            logs?: string[];
-            workerRaw?: { logs?: string[] } | null;
-          }
-        | null;
-      const screenshotDataUrl = s(data?.screenshotDataUrl);
-      if (screenshotDataUrl) {
-        setDomainBotScreenshotDataUrl(screenshotDataUrl);
+      (local.logs || []).forEach((line) => pushDomainBotLog(line));
+      if (!local.ok) {
+        throw new Error(local.error || "Local extension run failed.");
       }
-      const workerLogs = Array.isArray(data?.logs)
-        ? data?.logs || []
-        : Array.isArray((data?.workerRaw as any)?.logs)
-          ? ((data?.workerRaw as any)?.logs as string[])
-          : [];
-      workerLogs.forEach((line) => pushDomainBotLog(line));
-      if (!res.ok || !data?.ok) {
-        const details = s(data?.lastResult);
-        throw new Error(`${s(data?.error) || `HTTP ${res.status}`}${details ? ` | ${details}` : ""}`);
-      }
-      pushDomainBotLog("Worker run done.");
+      pushDomainBotLog("Local extension run done.");
 
       const markRes = await fetch("/api/sheet/domain-created", {
         method: "POST",
@@ -3985,7 +4014,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       setTabSitemapStatus({
         kind: detailTab,
         ok: true,
-        message: `Domain Bot OK (${id}) [${s(data.mode) || "auto"}] → ${s(data.clicked)} in ${Number(data.attempts || 0)} attempts + complete.`,
+        message: `Domain Bot OK (${id}) [local-extension] + complete.`,
       });
       await loadOverview();
       if (openState) await openDetail(openState);
