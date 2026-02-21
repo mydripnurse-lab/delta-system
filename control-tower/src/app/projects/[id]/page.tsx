@@ -3837,10 +3837,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ? s(row?.["City Domain"]) || s(row?.["city domain"])
         : s(row?.["Domain"]) || s(row?.["County Domain"]);
     const sitemapUrl = s(row?.["Sitemap"]);
+    const activationUrlEffective = s(openActivationUrl) || domainBotUrlFromLocId(id);
 
     setDomainBotBusy(true);
     setDomainBotLogs([]);
     pushDomainBotLog(`Start locId=${id}`);
+    pushDomainBotLog(`Activation URL: ${activationUrlEffective || "(missing)"}`);
     setTabSitemapStatus({
       kind: detailTab,
       ok: true,
@@ -3894,7 +3896,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           kind: rowKind,
           locationId: id,
           mode: "auto",
-          openActivationUrl: s(openActivationUrl),
+          openActivationUrl: activationUrlEffective,
           steps,
           variables: {
             loc_id: id,
