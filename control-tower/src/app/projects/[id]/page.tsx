@@ -768,6 +768,7 @@ export default function Home() {
   const detailsRef = useRef<HTMLElement | null>(null);
   const runnerRef = useRef<HTMLDivElement | null>(null);
   const sheetRef = useRef<HTMLElement | null>(null);
+  const activationRef = useRef<HTMLElement | null>(null);
   const webhooksRef = useRef<HTMLElement | null>(null);
   const logsRef = useRef<HTMLElement | null>(null);
 
@@ -2067,7 +2068,7 @@ export default function Home() {
       details: detailsRef.current,
       runner: runnerRef.current,
       sheet: sheetRef.current,
-      activation: sheetRef.current,
+      activation: activationRef.current,
       webhooks: webhooksRef.current,
       logs: logsRef.current,
     };
@@ -2112,6 +2113,40 @@ export default function Home() {
       citiesDomainsActive,
     };
   }, [sheet]);
+
+  const activationKpis = useMemo(() => {
+    const statesInSheet = sheet?.states?.length || 0;
+    const countiesTotal = totals.countiesTotal || 0;
+    const countiesReady = totals.countiesReady || 0;
+    const countiesDomainsActive = totals.countiesDomainsActive || 0;
+    const citiesTotal = totals.citiesTotal || 0;
+    const citiesReady = totals.citiesReady || 0;
+    const citiesDomainsActive = totals.citiesDomainsActive || 0;
+
+    const countySubaccountPct = countiesTotal ? countiesReady / countiesTotal : 0;
+    const countyDomainPct = countiesTotal ? countiesDomainsActive / countiesTotal : 0;
+    const citySubaccountPct = citiesTotal ? citiesReady / citiesTotal : 0;
+    const cityDomainPct = citiesTotal ? citiesDomainsActive / citiesTotal : 0;
+
+    const globalDone = countiesReady + citiesReady + countiesDomainsActive + citiesDomainsActive;
+    const globalTotal = (countiesTotal + citiesTotal) * 2;
+    const globalPct = globalTotal ? globalDone / globalTotal : 0;
+
+    return {
+      statesInSheet,
+      countiesTotal,
+      countiesReady,
+      countiesDomainsActive,
+      citiesTotal,
+      citiesReady,
+      citiesDomainsActive,
+      countySubaccountPct,
+      countyDomainPct,
+      citySubaccountPct,
+      cityDomainPct,
+      globalPct,
+    };
+  }, [sheet, totals]);
 
   const isStateJob = useMemo(() => {
     return job === "build-state-sitemaps" || job === "build-state-index";
@@ -4821,7 +4856,7 @@ export default function Home() {
       ) : null}
 
       {/* Sheet Explorer */}
-      {activeProjectTab === "sheet" || activeProjectTab === "activation" ? (
+      {activeProjectTab === "sheet" ? (
       <section className="card sheetExplorerCard" style={{ marginTop: 14 }} ref={sheetRef}>
         <div className="cardHeader">
           <div>
@@ -4954,6 +4989,123 @@ export default function Home() {
 
           <div className="mini" style={{ marginTop: 10 }}>
             Phase 4+: View → detalle del estado + Domain Activation helper.
+          </div>
+        </div>
+      </section>
+      ) : null}
+
+      {/* Activation */}
+      {activeProjectTab === "activation" ? (
+      <section className="card" style={{ marginTop: 14 }} ref={activationRef}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Activation Command Center</h2>
+            <div className="cardSubtitle">
+              KPIs de rollout y mapa de Subaccount Created / Domain Created.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <div className="badge">States in sheet: {fmtInt(activationKpis.statesInSheet)}</div>
+            <div className="badge">Global completion: {Math.round(activationKpis.globalPct * 100)}%</div>
+            <button className="smallBtn" type="button" onClick={openMap}>
+              Open Full Map
+            </button>
+          </div>
+        </div>
+
+        <div className="cardBody">
+          <div className="moduleGrid">
+            <div className="moduleCard">
+              <div className="moduleTitle">County Subaccounts Created</div>
+              <div className="moduleValue">{fmtInt(activationKpis.countiesReady)}/{fmtInt(activationKpis.countiesTotal)}</div>
+              <div className="moduleLine">{Math.round(activationKpis.countySubaccountPct * 100)}% completed</div>
+            </div>
+            <div className="moduleCard">
+              <div className="moduleTitle">County Domains Active</div>
+              <div className="moduleValue">{fmtInt(activationKpis.countiesDomainsActive)}/{fmtInt(activationKpis.countiesTotal)}</div>
+              <div className="moduleLine">{Math.round(activationKpis.countyDomainPct * 100)}% completed</div>
+            </div>
+            <div className="moduleCard">
+              <div className="moduleTitle">City Subaccounts Created</div>
+              <div className="moduleValue">{fmtInt(activationKpis.citiesReady)}/{fmtInt(activationKpis.citiesTotal)}</div>
+              <div className="moduleLine">{Math.round(activationKpis.citySubaccountPct * 100)}% completed</div>
+            </div>
+            <div className="moduleCard">
+              <div className="moduleTitle">City Domains Active</div>
+              <div className="moduleValue">{fmtInt(activationKpis.citiesDomainsActive)}/{fmtInt(activationKpis.citiesTotal)}</div>
+              <div className="moduleLine">{Math.round(activationKpis.cityDomainPct * 100)}% completed</div>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 12 }}>
+            <div className="cardHeader">
+              <div>
+                <h3 className="cardTitle" style={{ fontSize: 16 }}>US Activation Map</h3>
+                <div className="cardSubtitle">
+                  Click en un estado para ver detalle de progreso.
+                </div>
+              </div>
+              <div className="cardHeaderActions">
+                <button
+                  className={`tabBtn ${mapMetric === "ready" ? "tabBtnActive" : ""}`}
+                  onClick={() => setMapMetric("ready")}
+                  type="button"
+                >
+                  Subaccount Created
+                </button>
+                <button
+                  className={`tabBtn ${mapMetric === "domains" ? "tabBtnActive" : ""}`}
+                  onClick={() => setMapMetric("domains")}
+                  type="button"
+                >
+                  Domain Created
+                </button>
+              </div>
+            </div>
+            <div className="cardBody">
+              <UsaChoroplethProgressMap
+                rows={sheet?.states || []}
+                metric={mapMetric}
+                selectedState={mapSelected}
+                onPick={(name) => setMapSelected(String(name || "").trim())}
+              />
+
+              {selectedStateMetrics ? (
+                <div className="mini" style={{ marginTop: 10 }}>
+                  <b>{mapSelected}</b> · Subaccounts: {Math.round(selectedStateMetrics.readyPct * 100)}% · Domains: {Math.round(selectedStateMetrics.domainsPct * 100)}%
+                </div>
+              ) : (
+                <div className="mini" style={{ marginTop: 10 }}>Select a state on the map to inspect metrics.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="tableWrap" style={{ marginTop: 12 }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th className="th">State</th>
+                  <th className="th">Subaccount Created</th>
+                  <th className="th">Domain Created</th>
+                  <th className="th">Open</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSheetStates.slice(0, 15).map((r) => {
+                  const m = stateMetrics[r.state];
+                  return (
+                    <tr className="tr" key={`act_${r.state}`}>
+                      <td className="td"><b>{r.state}</b></td>
+                      <td className="td">{Math.round((m?.readyPct || 0) * 100)}%</td>
+                      <td className="td">{Math.round((m?.domainsPct || 0) * 100)}%</td>
+                      <td className="td" style={{ textAlign: "right" }}>
+                        <button className="smallBtn" onClick={() => openDetail(r.state)}>View</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
