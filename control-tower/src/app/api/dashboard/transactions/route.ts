@@ -5,6 +5,7 @@ import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSna
 import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type TxRow = {
     id: string;
@@ -20,7 +21,7 @@ type TxRow = {
     __createdMs: number | null;
     state: string;
     city: string;
-    stateFrom: "transaction" | "contact.state" | "unknown";
+    stateFrom: "transaction" | "contact.state" | "contact.custom_field" | "unknown";
     liveMode?: boolean | null;
     contactLifetimeNet?: number;
     contactLifetimeOrders?: number;
@@ -99,6 +100,7 @@ const MAX_RETRIES_429 = 5;
 const SNAPSHOT_TTL_MS = Number(process.env.TRANSACTIONS_SNAPSHOT_TTL_SEC || 900) * 1000;
 const SNAPSHOT_MAX_NEW_PAGES = Math.max(3, Number(process.env.TRANSACTIONS_INCREMENTAL_MAX_PAGES || 12));
 const SNAPSHOT_OVERLAP_MS = Number(process.env.TRANSACTIONS_INCREMENTAL_OVERLAP_MIN || 15) * 60 * 1000;
+const CONTACT_GEO_CONCURRENCY = Math.max(2, Number(process.env.TRANSACTIONS_CONTACT_GEO_CONCURRENCY || 8));
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -260,6 +262,28 @@ function scalarFromUnknown(v: any): string {
     for (const c of cands) {
         const s = scalarFromUnknown(c);
         if (s) return s;
+    }
+    return "";
+}
+
+function firstNonEmpty(...values: unknown[]) {
+    for (const v of values) {
+        const s0 = norm(v);
+        if (s0) return s0;
+    }
+    return "";
+}
+
+function valueFromCustomFields(raw: unknown, kind: "state" | "city") {
+    const list = Array.isArray(raw) ? raw : [];
+    for (const field of list) {
+        if (!field || typeof field !== "object") continue;
+        const key = norm((field as any).key || (field as any).name || (field as any).fieldKey || (field as any).id).toLowerCase();
+        if (!key) continue;
+        if (kind === "state" && !key.includes("state")) continue;
+        if (kind === "city" && !key.includes("city")) continue;
+        const val = firstNonEmpty((field as any).value, (field as any).fieldValue, (field as any).text, (field as any).label);
+        if (val) return val;
     }
     return "";
 }
@@ -856,10 +880,33 @@ async function resolveContactState(contactId: string, ctx?: GhlCtx) {
         const c = (await with429Retry(() =>
             ghlFetchJson(`/contacts/${encodeURIComponent(contactId)}`, { method: "GET", ...ghlCtxOpts(ctx) }),
         )) as any;
-        const state = normalizeStateName(norm(c?.state || c?.address?.state || c?.contact?.state));
-        const city = norm(c?.city || c?.address?.city || c?.contact?.city);
-        if (state) return { state, city, from: "contact.state" as const };
-        return { state: "", city, from: "unknown" as const };
+        const stateBase = normalizeStateName(
+            firstNonEmpty(
+                c?.state,
+                c?.address?.state,
+                c?.contact?.state,
+                c?.contact?.address?.state,
+                c?.location?.state,
+                c?.billingAddress?.state,
+                c?.billing_state,
+            ),
+        );
+        const cityBase = firstNonEmpty(
+            c?.city,
+            c?.address?.city,
+            c?.contact?.city,
+            c?.contact?.address?.city,
+            c?.location?.city,
+            c?.billingAddress?.city,
+            c?.billing_city,
+        );
+        if (stateBase) return { state: stateBase, city: norm(cityBase), from: "contact.state" as const };
+        const stateCf = normalizeStateName(valueFromCustomFields(c?.customFields, "state"));
+        const cityCf = valueFromCustomFields(c?.customFields, "city");
+        const city = norm(cityBase || cityCf);
+        if (stateCf) return { state: stateCf, city, from: "contact.custom_field" as const };
+        if (city) return { state: "", city, from: "unknown" as const };
+        return { state: "", city: "", from: "unknown" as const };
     } catch {
         return { state: "", city: "", from: "unknown" as const };
     }
@@ -1031,11 +1078,25 @@ export async function GET(req: Request) {
         });
 
         const stateCache = new Map<string, { state: string; city: string; from: TxRow["stateFrom"] }>();
-        const missing = rows.filter((r) => !r.state && !!r.contactId);
-        for (const r of missing) {
-            if (stateCache.has(r.contactId)) continue;
-            const resolved = await resolveContactState(r.contactId);
-            stateCache.set(r.contactId, resolved);
+        const missingIds = Array.from(
+            new Set(
+                rows
+                    .filter((r) => !r.state && !!r.contactId)
+                    .map((r) => norm(r.contactId))
+                    .filter(Boolean),
+            ),
+        );
+        if (missingIds.length) {
+            const queue = [...missingIds];
+            const workers = Array.from({ length: Math.min(CONTACT_GEO_CONCURRENCY, queue.length) }, async () => {
+                while (queue.length) {
+                    const cid = queue.shift();
+                    if (!cid || stateCache.has(cid)) continue;
+                    const resolved = await resolveContactState(cid, ghlCtx);
+                    stateCache.set(cid, resolved);
+                }
+            });
+            await Promise.all(workers);
         }
 
         let inferredFromContact = 0;
