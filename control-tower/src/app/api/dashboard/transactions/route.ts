@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAgencyAccessTokenOrThrow, getEffectiveLocationIdOrThrow, ghlFetchJson } from "@/lib/ghlHttp";
-import { normalizeStateName, norm } from "@/lib/ghlState";
+import { inferStateFromText, normalizeStateName, norm } from "@/lib/ghlState";
 import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
 import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
+import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -21,7 +22,8 @@ type TxRow = {
     __createdMs: number | null;
     state: string;
     city: string;
-    stateFrom: "transaction" | "contact.state" | "contact.custom_field" | "unknown";
+    county: string;
+    stateFrom: "transaction" | "transaction.source" | "contact.state" | "contact.custom_field" | "unknown";
     liveMode?: boolean | null;
     contactLifetimeNet?: number;
     contactLifetimeOrders?: number;
@@ -51,6 +53,10 @@ type ApiResponse = {
     };
     byStateCount?: Record<string, number>;
     byStateAmount?: Record<string, number>;
+    byCityCount?: Record<string, number>;
+    byCityAmount?: Record<string, number>;
+    byCountyCount?: Record<string, number>;
+    byCountyAmount?: Record<string, number>;
     rows?: TxRow[];
     cache?: {
         source: "memory" | "snapshot" | "ghl_refresh" | "db_range_cache";
@@ -101,6 +107,16 @@ const SNAPSHOT_TTL_MS = Number(process.env.TRANSACTIONS_SNAPSHOT_TTL_SEC || 900)
 const SNAPSHOT_MAX_NEW_PAGES = Math.max(3, Number(process.env.TRANSACTIONS_INCREMENTAL_MAX_PAGES || 12));
 const SNAPSHOT_OVERLAP_MS = Number(process.env.TRANSACTIONS_INCREMENTAL_OVERLAP_MIN || 15) * 60 * 1000;
 const CONTACT_GEO_CONCURRENCY = Math.max(2, Number(process.env.TRANSACTIONS_CONTACT_GEO_CONCURRENCY || 8));
+const GEO_DIRECTORY_TTL_MS = Number(process.env.TRANSACTIONS_GEO_DIRECTORY_TTL_SEC || 900) * 1000;
+
+type GeoDirectoryCache = {
+    atMs: number;
+    cityStateToCounty: Map<string, string>;
+    cityTokens: Array<{ token: string; value: string }>;
+    countyTokens: Array<{ token: string; value: string }>;
+};
+
+const GEO_DIRECTORY_CACHE_BY_TENANT = new Map<string, GeoDirectoryCache>();
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -244,6 +260,100 @@ function toNum(v: unknown) {
     return Number.isFinite(n) ? n : 0;
 }
 
+function normToken(v: unknown) {
+    return norm(v)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+}
+
+function cityStateKey(city: string, state: string) {
+    const c = normToken(city);
+    const s0 = normToken(normalizeStateName(state));
+    return c && s0 ? `${s0}__${c}` : "";
+}
+
+function pickHeaderIndex(headers: string[], candidates: string[]) {
+    const normalized = headers.map((h) => normToken(h));
+    for (const c of candidates) {
+        const idx = normalized.indexOf(normToken(c));
+        if (idx >= 0) return idx;
+    }
+    return -1;
+}
+
+async function loadGeoDirectory(tenantId: string): Promise<GeoDirectoryCache | null> {
+    const cacheKey = norm(tenantId);
+    if (!cacheKey) return null;
+    const hit = GEO_DIRECTORY_CACHE_BY_TENANT.get(cacheKey);
+    if (hit && Date.now() - hit.atMs <= GEO_DIRECTORY_TTL_MS) return hit;
+
+    try {
+        const cfg = await getTenantSheetConfig(cacheKey);
+        const [cities, counties] = await Promise.all([
+            loadTenantSheetTabIndex({
+                tenantId: cacheKey,
+                spreadsheetId: cfg.spreadsheetId,
+                sheetName: cfg.cityTab,
+                range: "A:AZ",
+            }).catch(() => null),
+            loadTenantSheetTabIndex({
+                tenantId: cacheKey,
+                spreadsheetId: cfg.spreadsheetId,
+                sheetName: cfg.countyTab,
+                range: "A:AZ",
+            }).catch(() => null),
+        ]);
+
+        const cityStateToCounty = new Map<string, string>();
+        const cityTokens = new Map<string, string>();
+        const countyTokens = new Map<string, string>();
+
+        if (cities) {
+            const iState = pickHeaderIndex(cities.headers || [], ["State"]);
+            const iCity = pickHeaderIndex(cities.headers || [], ["City"]);
+            const iCounty = pickHeaderIndex(cities.headers || [], ["County"]);
+            for (const row of cities.rows || []) {
+                const state = normalizeStateName(row?.[iState]);
+                const city = norm(row?.[iCity]);
+                const county = norm(row?.[iCounty]);
+                const k = cityStateKey(city, state);
+                if (k && county) cityStateToCounty.set(k, county);
+                const cityTok = normToken(city);
+                if (cityTok && city) cityTokens.set(cityTok, city);
+                const countyTok = normToken(county);
+                if (countyTok && county) countyTokens.set(countyTok, county);
+            }
+        }
+
+        if (counties) {
+            const iState = pickHeaderIndex(counties.headers || [], ["State"]);
+            const iCounty = pickHeaderIndex(counties.headers || [], ["County"]);
+            for (const row of counties.rows || []) {
+                const state = normalizeStateName(row?.[iState]);
+                const county = norm(row?.[iCounty]);
+                const countyTok = normToken(county);
+                if (countyTok && county) countyTokens.set(countyTok, county);
+                // Keep a pseudo key for state-level county match.
+                if (state && county) cityStateToCounty.set(`${normToken(state)}__${countyTok}`, county);
+            }
+        }
+
+        const out: GeoDirectoryCache = {
+            atMs: Date.now(),
+            cityStateToCounty,
+            cityTokens: Array.from(cityTokens.entries()).map(([token, value]) => ({ token, value })),
+            countyTokens: Array.from(countyTokens.entries()).map(([token, value]) => ({ token, value })),
+        };
+        GEO_DIRECTORY_CACHE_BY_TENANT.set(cacheKey, out);
+        return out;
+    } catch {
+        return null;
+    }
+}
+
 function scalarFromUnknown(v: any): string {
     if (v === null || v === undefined) return "";
     if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
@@ -274,7 +384,7 @@ function firstNonEmpty(...values: unknown[]) {
     return "";
 }
 
-function valueFromCustomFields(raw: unknown, kind: "state" | "city") {
+function valueFromCustomFields(raw: unknown, kind: "state" | "city" | "county") {
     const list = Array.isArray(raw) ? raw : [];
     for (const field of list) {
         if (!field || typeof field !== "object") continue;
@@ -282,6 +392,7 @@ function valueFromCustomFields(raw: unknown, kind: "state" | "city") {
         if (!key) continue;
         if (kind === "state" && !key.includes("state")) continue;
         if (kind === "city" && !key.includes("city")) continue;
+        if (kind === "county" && !key.includes("county")) continue;
         const val = firstNonEmpty((field as any).value, (field as any).fieldValue, (field as any).text, (field as any).label);
         if (val) return val;
     }
@@ -332,6 +443,18 @@ function pickCityFromTx(x: any) {
             x.address?.city ||
             x.customer?.city ||
             x.customer?.address?.city,
+    );
+}
+
+function pickCountyFromTx(x: any) {
+    return norm(
+        x.county ||
+            x.billingCounty ||
+            x.billing_county ||
+            x.billingAddress?.county ||
+            x.address?.county ||
+            x.customer?.county ||
+            x.customer?.address?.county,
     );
 }
 
@@ -508,6 +631,7 @@ function toRow(x: any): TxRow {
         __createdMs: createdMs,
         state: state || "",
         city: pickCityFromTx(x),
+        county: pickCountyFromTx(x),
         stateFrom: state ? "transaction" : "unknown",
         liveMode: pickLiveMode(x),
     };
@@ -874,8 +998,66 @@ async function fetchTransactions(
         : new Error("Unable to fetch transactions.");
 }
 
-async function resolveContactState(contactId: string, ctx?: GhlCtx) {
-    if (!contactId) return { state: "", city: "", from: "unknown" as const };
+function inferCityFromSource(source: string, directory: GeoDirectoryCache | null) {
+    if (!directory) return "";
+    const src = normToken(source);
+    if (!src) return "";
+    let best = "";
+    for (const x of directory.cityTokens) {
+        if (!x.token) continue;
+        const re = new RegExp(`\\b${x.token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+        if (!re.test(src)) continue;
+        if (x.token.length > normToken(best).length) best = x.value;
+    }
+    return best;
+}
+
+function inferCountyFromSource(source: string, directory: GeoDirectoryCache | null) {
+    if (!directory) return "";
+    const src = normToken(source);
+    if (!src) return "";
+    let best = "";
+    for (const x of directory.countyTokens) {
+        if (!x.token) continue;
+        const re = new RegExp(`\\b${x.token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+        if (!re.test(src)) continue;
+        if (x.token.length > normToken(best).length) best = x.value;
+    }
+    return best;
+}
+
+function inferCountyFromCityState(city: string, state: string, directory: GeoDirectoryCache | null) {
+    if (!directory) return "";
+    const key = cityStateKey(city, state);
+    if (!key) return "";
+    return norm(directory.cityStateToCounty.get(key));
+}
+
+function enrichRowGeoFromSource(row: TxRow, directory: GeoDirectoryCache | null) {
+    const source = norm(row.source);
+    if (source && !row.state) {
+        const inferredState = normalizeStateName(inferStateFromText(source));
+        if (inferredState) {
+            row.state = inferredState;
+            row.stateFrom = "transaction.source";
+        }
+    }
+    if (!row.city && source) {
+        const inferredCity = inferCityFromSource(source, directory);
+        if (inferredCity) row.city = inferredCity;
+    }
+    if (!row.county) {
+        const byCityState = inferCountyFromCityState(row.city, row.state, directory);
+        if (byCityState) row.county = byCityState;
+        else if (source) {
+            const bySource = inferCountyFromSource(source, directory);
+            if (bySource) row.county = bySource;
+        }
+    }
+}
+
+async function resolveContactState(contactId: string, ctx?: GhlCtx, directory?: GeoDirectoryCache | null) {
+    if (!contactId) return { state: "", city: "", county: "", from: "unknown" as const };
     try {
         const c = (await with429Retry(() =>
             ghlFetchJson(`/contacts/${encodeURIComponent(contactId)}`, { method: "GET", ...ghlCtxOpts(ctx) }),
@@ -900,15 +1082,37 @@ async function resolveContactState(contactId: string, ctx?: GhlCtx) {
             c?.billingAddress?.city,
             c?.billing_city,
         );
-        if (stateBase) return { state: stateBase, city: norm(cityBase), from: "contact.state" as const };
+        const countyBase = firstNonEmpty(
+            c?.county,
+            c?.address?.county,
+            c?.contact?.county,
+            c?.contact?.address?.county,
+            c?.location?.county,
+            c?.billingAddress?.county,
+            c?.billing_county,
+        );
+        if (stateBase) {
+            const city0 = norm(cityBase);
+            const county0 = norm(countyBase) || inferCountyFromCityState(city0, stateBase, directory || null);
+            return { state: stateBase, city: city0, county: county0, from: "contact.state" as const };
+        }
         const stateCf = normalizeStateName(valueFromCustomFields(c?.customFields, "state"));
         const cityCf = valueFromCustomFields(c?.customFields, "city");
-        const city = norm(cityBase || cityCf);
-        if (stateCf) return { state: stateCf, city, from: "contact.custom_field" as const };
-        if (city) return { state: "", city, from: "unknown" as const };
-        return { state: "", city: "", from: "unknown" as const };
+        const countyCf = valueFromCustomFields(c?.customFields, "county");
+        const source = firstNonEmpty(c?.source, c?.contact?.source, c?.additionalInfo?.source);
+        const stateInferred = normalizeStateName(inferStateFromText(source));
+        const state = stateCf || stateInferred;
+        const city = norm(cityBase || cityCf || inferCityFromSource(source, directory || null));
+        const county =
+            norm(countyBase || countyCf) ||
+            inferCountyFromCityState(city, state, directory || null) ||
+            inferCountyFromSource(source, directory || null);
+        if (stateCf) return { state: stateCf, city, county, from: "contact.custom_field" as const };
+        if (stateInferred) return { state: stateInferred, city, county, from: "transaction.source" as const };
+        if (city || county) return { state: "", city, county, from: "unknown" as const };
+        return { state: "", city: "", county: "", from: "unknown" as const };
     } catch {
-        return { state: "", city: "", from: "unknown" as const };
+        return { state: "", city: "", county: "", from: "unknown" as const };
     }
 }
 
@@ -1077,11 +1281,14 @@ export async function GET(req: Request) {
             return ms >= startMs && ms <= endMs;
         });
 
-        const stateCache = new Map<string, { state: string; city: string; from: TxRow["stateFrom"] }>();
+        const geoDirectory = await loadGeoDirectory(tenantId);
+        for (const r of rows) enrichRowGeoFromSource(r, geoDirectory);
+
+        const stateCache = new Map<string, { state: string; city: string; county: string; from: TxRow["stateFrom"] }>();
         const missingIds = Array.from(
             new Set(
                 rows
-                    .filter((r) => !r.state && !!r.contactId)
+                    .filter((r) => (!r.state || !r.city || !r.county) && !!r.contactId)
                     .map((r) => norm(r.contactId))
                     .filter(Boolean),
             ),
@@ -1092,7 +1299,7 @@ export async function GET(req: Request) {
                 while (queue.length) {
                     const cid = queue.shift();
                     if (!cid || stateCache.has(cid)) continue;
-                    const resolved = await resolveContactState(cid, ghlCtx);
+                    const resolved = await resolveContactState(cid, ghlCtx, geoDirectory);
                     stateCache.set(cid, resolved);
                 }
             });
@@ -1101,17 +1308,28 @@ export async function GET(req: Request) {
 
         let inferredFromContact = 0;
         for (const r of rows) {
-            if (r.state) continue;
             const resolved = stateCache.get(r.contactId);
-            if (!resolved?.state) continue;
-            r.state = normalizeStateName(resolved.state);
-            if (!r.city && resolved.city) r.city = resolved.city;
-            r.stateFrom = resolved.from;
-            inferredFromContact++;
+            if (resolved) {
+                if (!r.state && resolved.state) {
+                    r.state = normalizeStateName(resolved.state);
+                    r.stateFrom = resolved.from;
+                    if (resolved.from === "contact.state" || resolved.from === "contact.custom_field") inferredFromContact++;
+                }
+                if (!r.city && resolved.city) r.city = resolved.city;
+                if (!r.county && resolved.county) r.county = resolved.county;
+            }
+            if (!r.county) {
+                const byCityState = inferCountyFromCityState(r.city, r.state, geoDirectory);
+                if (byCityState) r.county = byCityState;
+            }
         }
 
         const byStateCount: Record<string, number> = {};
         const byStateAmount: Record<string, number> = {};
+        const byCityCount: Record<string, number> = {};
+        const byCityAmount: Record<string, number> = {};
+        const byCountyCount: Record<string, number> = {};
+        const byCountyAmount: Record<string, number> = {};
         let grossAmount = 0;
         let refundedAmount = 0;
         let refundedTransactions = 0;
@@ -1152,6 +1370,22 @@ export async function GET(req: Request) {
             }
 
             const st = normalizeStateName(r.state);
+            const city = norm(r.city);
+            const county = norm(r.county);
+            if (city) {
+                byCityCount[city] = (byCityCount[city] || 0) + 1;
+                if (succeededRevenueLive) byCityAmount[city] = Number(((byCityAmount[city] || 0) + r.amount).toFixed(2));
+            } else {
+                byCityCount.__unknown = (byCityCount.__unknown || 0) + 1;
+                if (succeededRevenueLive) byCityAmount.__unknown = Number(((byCityAmount.__unknown || 0) + r.amount).toFixed(2));
+            }
+            if (county) {
+                byCountyCount[county] = (byCountyCount[county] || 0) + 1;
+                if (succeededRevenueLive) byCountyAmount[county] = Number(((byCountyAmount[county] || 0) + r.amount).toFixed(2));
+            } else {
+                byCountyCount.__unknown = (byCountyCount.__unknown || 0) + 1;
+                if (succeededRevenueLive) byCountyAmount.__unknown = Number(((byCountyAmount.__unknown || 0) + r.amount).toFixed(2));
+            }
             if (!st) {
                 byStateCount.__unknown = (byStateCount.__unknown || 0) + 1;
                 if (succeededRevenueLive) {
@@ -1235,6 +1469,10 @@ export async function GET(req: Request) {
             kpis,
             byStateCount,
             byStateAmount,
+            byCityCount,
+            byCityAmount,
+            byCountyCount,
+            byCountyAmount,
             rows,
             cache: {
                 source: cacheSource,

@@ -31,7 +31,8 @@ type TxRow = {
   __createdMs: number | null;
   state: string;
   city: string;
-  stateFrom: "transaction" | "contact.state" | "unknown";
+  county: string;
+  stateFrom: "transaction" | "transaction.source" | "contact.state" | "contact.custom_field" | "unknown";
   liveMode?: boolean | null;
   contactLifetimeNet?: number;
   contactLifetimeOrders?: number;
@@ -635,6 +636,7 @@ function TransactionsDashboardPageContent() {
           paymentMethod: r.paymentMethod,
           state: r.state,
           city: r.city,
+          county: r.county,
           stateFrom: r.stateFrom,
           createdAt: r.createdAt,
         })),
@@ -1111,6 +1113,7 @@ function TransactionsDashboardPageContent() {
                     <th className="th">State</th>
                     <th className="th">State From</th>
                     <th className="th">City</th>
+                    <th className="th">County</th>
                     <th className="th">Source</th>
                     <th className="th">Transaction ID</th>
                   </tr>
@@ -1129,6 +1132,7 @@ function TransactionsDashboardPageContent() {
                         <td className="td">{r.state || "-"}</td>
                         <td className="td"><span className="mini">{r.stateFrom}</span></td>
                         <td className="td">{r.city || "-"}</td>
+                        <td className="td">{r.county || "-"}</td>
                         <td className="td"><span className="mini">{r.source || "-"}</span></td>
                         <td className="td"><span className="mini">{r.id || "-"}</span></td>
                       </tr>
