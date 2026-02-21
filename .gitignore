@@ -33,6 +33,8 @@ resources/config/google-cloud.json
 !control-tower/package-lock.json
 !control-tower/tsconfig.json
 !control-tower/jsconfig.json
+!control-tower/domain-bot-worker/package.json
+!control-tower/domain-bot-worker/package-lock.json
 !resources/config/business-profile.json
 !resources/config/campaign-factory.config.json
 !resources/config/campaign-landing-map.json
