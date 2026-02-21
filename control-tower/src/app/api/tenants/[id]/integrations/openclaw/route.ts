@@ -27,6 +27,7 @@ type DashboardAgentKey =
 type AgentNode = {
   enabled: boolean;
   agentId: string;
+  displayName?: string;
 };
 
 type AutoProposalsConfig = {
@@ -48,17 +49,17 @@ type AutoApprovalConfig = {
 
 function defaultAgents(): Record<DashboardAgentKey, AgentNode> {
   return {
-    central: { enabled: true, agentId: "soul_central_orchestrator" },
-    calls: { enabled: true, agentId: "soul_calls" },
-    leads: { enabled: true, agentId: "soul_leads_prospecting" },
-    conversations: { enabled: true, agentId: "soul_conversations" },
-    transactions: { enabled: true, agentId: "soul_transactions" },
-    appointments: { enabled: true, agentId: "soul_appointments" },
-    gsc: { enabled: true, agentId: "soul_gsc" },
-    ga: { enabled: true, agentId: "soul_ga" },
-    ads: { enabled: true, agentId: "soul_ads_optimizer" },
-    facebook_ads: { enabled: true, agentId: "soul_facebook_ads" },
-    content: { enabled: true, agentId: "soul_content_publisher" },
+    central: { enabled: true, agentId: "soul_central_orchestrator", displayName: "Central Orchestrator" },
+    calls: { enabled: true, agentId: "soul_calls", displayName: "Call Intelligence Agent" },
+    leads: { enabled: true, agentId: "soul_leads_prospecting", displayName: "Leads Prospecting Agent" },
+    conversations: { enabled: true, agentId: "soul_conversations", displayName: "Conversation Recovery Agent" },
+    transactions: { enabled: true, agentId: "soul_transactions", displayName: "Revenue Intelligence Agent" },
+    appointments: { enabled: true, agentId: "soul_appointments", displayName: "Appointments Intelligence Agent" },
+    gsc: { enabled: true, agentId: "soul_gsc", displayName: "Search Console Agent" },
+    ga: { enabled: true, agentId: "soul_ga", displayName: "Analytics Agent" },
+    ads: { enabled: true, agentId: "soul_ads_optimizer", displayName: "Ads Optimizer Agent" },
+    facebook_ads: { enabled: true, agentId: "soul_facebook_ads", displayName: "Facebook Ads Agent" },
+    content: { enabled: true, agentId: "soul_content_publisher", displayName: "Content Publisher Agent" },
   };
 }
 
@@ -87,6 +88,7 @@ function normalizeAgents(raw: unknown) {
     out[key] = {
       enabled: boolish(row.enabled, defaults[key].enabled),
       agentId: nextId,
+      displayName: s(row.displayName || row.name || row.label) || s(defaults[key].displayName),
     };
   });
   return out;

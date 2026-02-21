@@ -18,6 +18,28 @@ type AgentProposal = {
   execution_error?: string | null;
 };
 
+type ManifestAgentNode = {
+  enabled?: boolean;
+  agentId?: string;
+  displayName?: string;
+  name?: string;
+  label?: string;
+};
+
+const AGENT_NAME_BY_ID: Record<string, string> = {
+  soul_central_orchestrator: "Central Orchestrator",
+  soul_calls: "Call Intelligence Agent",
+  soul_leads_prospecting: "Leads Prospecting Agent",
+  soul_conversations: "Conversation Recovery Agent",
+  soul_transactions: "Revenue Intelligence Agent",
+  soul_appointments: "Appointments Intelligence Agent",
+  soul_gsc: "Search Console Agent",
+  soul_ga: "Analytics Agent",
+  soul_ads_optimizer: "Ads Optimizer Agent",
+  soul_facebook_ads: "Facebook Ads Agent",
+  soul_content_publisher: "Content Publisher Agent",
+};
+
 type Props = {
   tenantId: string;
   onCountsChange?: (counts: { proposed: number; approved: number; rejected: number; executed: number; failed: number }) => void;
@@ -66,6 +88,34 @@ function actionLabel(raw: string) {
   if (v === "optimize_ads") return "Optimize Ads";
   if (v === "publish_content") return "Publish Content";
   return humanizeToken(v);
+}
+
+function firstText(obj: Record<string, unknown>, keys: string[]) {
+  for (const k of keys) {
+    const v = s(obj[k]);
+    if (v) return v;
+  }
+  return "";
+}
+
+function resolveAgentDisplayName(
+  row: AgentProposal,
+  tenantAgentNameById: Record<string, string>,
+) {
+  const p = row.payload || {};
+  const id = s(row.agent_id);
+  const fromTenantConfig = s(tenantAgentNameById[id]);
+  if (fromTenantConfig) return fromTenantConfig;
+  const fromPayload = firstText(p, [
+    "agentName",
+    "agent_name",
+    "recommendedBy",
+    "recommended_by",
+    "recommender",
+    "agent",
+  ]);
+  if (fromPayload) return fromPayload;
+  return AGENT_NAME_BY_ID[id] || humanizeToken(id);
 }
 
 function payloadSummary(payload: Record<string, unknown>) {
@@ -124,6 +174,7 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
   const [statusFilter, setStatusFilter] = useState<"all" | "proposed" | "approved" | "rejected" | "executed" | "failed">("all");
   const [searchText, setSearchText] = useState("");
   const [sortBy, setSortBy] = useState<"date_desc" | "priority_desc" | "risk_desc">("date_desc");
+  const [tenantAgentNameById, setTenantAgentNameById] = useState<Record<string, string>>({});
 
   async function load() {
     if (!tenantId) return;
@@ -153,6 +204,34 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId, statusFilter]);
+
+  useEffect(() => {
+    async function loadAgentNames() {
+      if (!tenantId) {
+        setTenantAgentNameById({});
+        return;
+      }
+      try {
+        const qs = new URLSearchParams({ organizationId: tenantId });
+        const res = await fetch(`/api/agents/manifest?${qs.toString()}`, { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; agents?: Record<string, ManifestAgentNode>; error?: string }
+          | null;
+        if (!res.ok || !json?.ok || !json?.agents) return;
+        const byId: Record<string, string> = {};
+        for (const node of Object.values(json.agents || {})) {
+          const id = s(node?.agentId);
+          if (!id) continue;
+          const name = s(node?.displayName) || s(node?.name) || s(node?.label);
+          if (name) byId[id] = name;
+        }
+        setTenantAgentNameById(byId);
+      } catch {
+        // keep fallback names
+      }
+    }
+    void loadAgentNames();
+  }, [tenantId]);
 
   const counts = useMemo(() => {
     const out = { proposed: 0, approved: 0, rejected: 0, executed: 0, failed: 0 };
@@ -404,13 +483,20 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
         <div className="hubProposalList">
           {sortedItems.map((row) => {
             const payloadHead = payloadSummary(row.payload || {});
+            const recommender = resolveAgentDisplayName(row, tenantAgentNameById);
+            const reasonText = firstText(row.payload || {}, ["rationale", "reason", "why", "insight"]);
+            const triggerText = firstText(row.payload || {}, ["trigger_metric", "triggerMetric", "signal", "alert"]);
             return (
               <article key={row.id} className="hubProposalCard">
                 <div className="hubProposalTop">
                   <div className="hubProposalTitle">
-                    <span>{humanizeToken(row.agent_id)}</span>
+                    <span>{dashboardLabel(row.dashboard_id)}</span>
                     <span className="mini" style={{ opacity: 0.82 }}>
-                      {dashboardLabel(row.dashboard_id)} · {actionLabel(row.action_type)}
+                      {actionLabel(row.action_type)}
+                    </span>
+                    <span className="mini hubAgentReco">
+                      Recommended by <b>{recommender}</b>
+                      <span style={{ opacity: 0.68 }}> · {s(row.agent_id)}</span>
                     </span>
                   </div>
                   <div className="hubProposalBadges">
@@ -435,7 +521,27 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
                   <span>Proposal: {row.id}</span>
                 </div>
 
-                <div className="hubProposalSummary">{renderHighlighted(row.summary, searchText)}</div>
+                <div className="hubProposalSummaryBlock">
+                  <div className="hubBlockLabel">Recommendation</div>
+                  <div className="hubProposalSummary">{renderHighlighted(row.summary, searchText)}</div>
+                </div>
+
+                {reasonText || triggerText ? (
+                  <div className="hubInsightGrid">
+                    {reasonText ? (
+                      <div className="hubInsightCard">
+                        <div className="hubBlockLabel">Why now</div>
+                        <div className="mini">{renderHighlighted(reasonText, searchText)}</div>
+                      </div>
+                    ) : null}
+                    {triggerText ? (
+                      <div className="hubInsightCard">
+                        <div className="hubBlockLabel">Trigger</div>
+                        <div className="mini">{renderHighlighted(triggerText, searchText)}</div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 {row.status === "failed" && row.execution_error ? (
                   <div className="mini" style={{ color: "var(--danger)", marginTop: 6 }}>{row.execution_error}</div>

@@ -7194,6 +7194,11 @@ button, input, select { font-family: inherit; }
   font-size: 16px;
 }
 
+.hubAgentReco {
+  color: rgba(191, 219, 254, 0.92);
+  letter-spacing: 0.1px;
+}
+
 .hubProposalBadges {
   display: flex;
   align-items: center;
@@ -7213,6 +7218,32 @@ button, input, select { font-family: inherit; }
   margin-top: 10px;
   line-height: 1.45;
   color: rgba(244, 248, 255, 0.92);
+}
+
+.hubProposalSummaryBlock {
+  margin-top: 8px;
+}
+
+.hubBlockLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: rgba(148, 163, 184, 0.95);
+  margin-bottom: 4px;
+}
+
+.hubInsightGrid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hubInsightCard {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.32);
+  padding: 8px 9px;
 }
 
 .hubProposalPayloadHead {
@@ -7343,6 +7374,77 @@ button, input, select { font-family: inherit; }
   accent-color: #60a5fa;
 }
 
+.hubSetupToolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.hubSetupRouting {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background:
+    radial-gradient(640px 160px at 96% -30%, rgba(45, 212, 191, 0.08), transparent 72%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.38));
+  padding: 12px;
+}
+
+.hubSetupRoutingTop {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.hubSetupSearch {
+  min-width: 280px;
+  max-width: 460px;
+}
+
+.hubRoutingList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.hubRoutingRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(120px, 0.4fr) minmax(240px, 1fr) minmax(260px, 1fr);
+  gap: 10px;
+  align-items: end;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.hubRoutingLabel {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(243, 244, 246, 0.98);
+}
+
+.hubRoutingToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.hubRoutingField {
+  display: grid;
+  gap: 4px;
+}
+
+.hubRoutingField .input {
+  height: 38px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
 @media (max-width: 980px) {
   .hubSearchInput {
     min-width: 0;
@@ -7354,8 +7456,23 @@ button, input, select { font-family: inherit; }
     padding: 10px;
   }
 
+  .hubInsightGrid {
+    grid-template-columns: 1fr;
+  }
+
   .agencyIntegrationTenantList {
     grid-template-columns: 1fr;
+  }
+
+  .hubSetupSearch {
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .hubRoutingRow {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .agencyWizardLayout {

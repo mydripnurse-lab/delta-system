@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 type AgentNode = {
   enabled: boolean;
   agentId: string;
+  displayName?: string;
 };
 
 type OpenclawConfigResponse = {
@@ -29,6 +30,7 @@ type OpenclawConfigResponse = {
     maxPriority?: "P1" | "P2" | "P3";
   };
   agents?: Record<string, AgentNode>;
+  apiKey?: string;
   error?: string;
 };
 
@@ -88,6 +90,7 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [loadedAutoApprovalEnabled, setLoadedAutoApprovalEnabled] = useState(false);
   const [loadedAutoApprovalMaxRisk, setLoadedAutoApprovalMaxRisk] = useState<"low" | "medium" | "high">("low");
   const [loadedAutoApprovalMaxPriority, setLoadedAutoApprovalMaxPriority] = useState<"P1" | "P2" | "P3">("P3");
+  const [routingSearch, setRoutingSearch] = useState("");
 
   const isDirty = useMemo(() => {
     return (
@@ -191,10 +194,21 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       [key]: {
         enabled: prev[key]?.enabled !== false,
         agentId: s(prev[key]?.agentId),
+        displayName: s(prev[key]?.displayName),
         ...patch,
       },
     }));
   }
+
+  const filteredRoutingRows = useMemo(() => {
+    const q = s(routingSearch).toLowerCase();
+    if (!q) return DASHBOARD_ROWS;
+    return DASHBOARD_ROWS.filter((row) => {
+      const node = agents[row.key] || { enabled: true, agentId: "", displayName: "" };
+      const hay = [row.label, row.key, s(node.agentId), s(node.displayName)].join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  }, [routingSearch, agents]);
 
   async function save(rotate = false) {
     if (!tenantId) return;
@@ -263,8 +277,8 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       setLoadedAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
-      if (rotate && s((json as any).apiKey)) {
-        window.alert(`New tenant API key (save it in OpenClaw):\n\n${s((json as any).apiKey)}`);
+      if (rotate && s(json.apiKey)) {
+        window.alert(`New tenant API key (save it in OpenClaw):\n\n${s(json.apiKey)}`);
       }
       setMsg(rotate ? "API key rotated and config saved." : "OpenClaw config saved.");
     } catch (e: unknown) {
@@ -276,7 +290,7 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
 
   return (
     <div className="cardBody hubSetupBody">
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+      <div className="hubSetupToolbar">
         <div className="badge">Status: {status || "disconnected"}</div>
         <div className="badge">API Key: {hasApiKey ? apiKeyMasked || "configured" : "not configured"}</div>
         {isDirty ? <div className="badge" style={{ borderColor: "rgba(59,130,246,.45)", color: "rgba(191,219,254,.95)" }}>Unsaved changes</div> : null}
@@ -294,7 +308,7 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       {err ? <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {err}</div> : null}
       {msg ? <div className="mini" style={{ color: "rgba(74,222,128,0.95)", marginBottom: 8 }}>✓ {msg}</div> : null}
 
-      <div className="moduleGrid hubSetupGrid" style={{ marginBottom: 10 }}>
+      <div className="moduleGrid hubSetupGrid" style={{ marginBottom: 12 }}>
         <div className="moduleCard">
           <p className="l moduleTitle">OpenClaw Base URL</p>
           <input
@@ -411,41 +425,59 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
         </div>
       </div>
 
-      <div className="tableWrap hubSetupTableWrap">
-        <table className="table hubSetupTable">
-          <thead>
-            <tr>
-              <th>Dashboard</th>
-              <th>Enabled</th>
-              <th>Agent ID (soul)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DASHBOARD_ROWS.map((row) => {
-              const node = agents[row.key] || { enabled: true, agentId: "" };
-              return (
-                <tr key={row.key}>
-                  <td className="mini"><b>{row.label}</b></td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={node.enabled !== false}
-                      onChange={(e) => setAgentField(row.key, { enabled: e.target.checked })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="input"
-                      value={s(node.agentId)}
-                      onChange={(e) => setAgentField(row.key, { agentId: e.target.value })}
-                      placeholder={`soul_${row.key}`}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="hubSetupRouting">
+        <div className="hubSetupRoutingTop">
+          <div>
+            <div className="cardTitle">Agent Routing Matrix</div>
+            <div className="cardSubtitle">Define which agent recommends per dashboard and what name appears in Notification Hub.</div>
+          </div>
+          <input
+            className="input hubSetupSearch"
+            value={routingSearch}
+            onChange={(e) => setRoutingSearch(e.target.value)}
+            placeholder="Search dashboard, agent id, display name..."
+          />
+        </div>
+
+        <div className="hubRoutingList">
+          {filteredRoutingRows.map((row) => {
+            const node = agents[row.key] || { enabled: true, agentId: "", displayName: "" };
+            return (
+              <div key={row.key} className="hubRoutingRow">
+                <div className="hubRoutingInfo">
+                  <div className="hubRoutingLabel">{row.label}</div>
+                  <div className="mini" style={{ opacity: 0.8 }}>key: {row.key}</div>
+                </div>
+                <label className="hubRoutingToggle mini">
+                  <input
+                    type="checkbox"
+                    checked={node.enabled !== false}
+                    onChange={(e) => setAgentField(row.key, { enabled: e.target.checked })}
+                  />
+                  Enabled
+                </label>
+                <div className="hubRoutingField">
+                  <div className="mini">Agent Display Name</div>
+                  <input
+                    className="input"
+                    value={s(node.displayName)}
+                    onChange={(e) => setAgentField(row.key, { displayName: e.target.value })}
+                    placeholder="Appointments Intelligence Agent"
+                  />
+                </div>
+                <div className="hubRoutingField">
+                  <div className="mini">Agent ID (soul)</div>
+                  <input
+                    className="input"
+                    value={s(node.agentId)}
+                    onChange={(e) => setAgentField(row.key, { agentId: e.target.value })}
+                    placeholder={`soul_${row.key}`}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
