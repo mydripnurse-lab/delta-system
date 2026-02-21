@@ -43,6 +43,14 @@ async function runTasksWithConcurrency(
   tasks: Array<{ key: string; url: string; timeoutMs?: number }>,
   limit = 3,
 ) {
+  const classifySkippedError = (message: string) => {
+    const m = s(message).toLowerCase();
+    if (!m) return "";
+    if (m.includes("missing oauth client config")) return "missing_oauth_config";
+    if (m.includes("missing integration")) return "missing_integration";
+    if (m.includes("run /api/dashboard/ads/sync first")) return "missing_ads_cache";
+    return "";
+  };
   const out: Record<string, unknown> = {};
   const queue = [...tasks];
   const workers = Array.from({ length: Math.max(1, Math.min(limit, queue.length)) }, async () => {
@@ -57,10 +65,22 @@ async function runTasksWithConcurrency(
           ms: Date.now() - t0,
         };
       } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "request failed";
+        const skipReason = classifySkippedError(message);
+        if (skipReason) {
+          out[task.key] = {
+            ok: true,
+            skipped: true,
+            reason: skipReason,
+            ms: Date.now() - t0,
+            error: message,
+          };
+          continue;
+        }
         out[task.key] = {
           ok: false,
           ms: Date.now() - t0,
-          error: e instanceof Error ? e.message : "request failed",
+          error: message,
         };
       }
     }
@@ -147,7 +167,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
         {
           key: "appointments_current",
           url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${force ? "&bust=1" : ""}`,
-          timeoutMs: 20000,
+          timeoutMs: 45000,
         },
         {
           key: "transactions_current",
@@ -165,9 +185,9 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
           timeoutMs: 25000,
         },
         {
-          key: "ads_join",
-          url: `${origin}/api/dashboard/ads/join?${tq}&range=${encodeURIComponent(searchRange)}${force ? "&force=1" : ""}`,
-          timeoutMs: 25000,
+          key: "ads_sync",
+          url: `${origin}/api/dashboard/ads/sync?${tq}&range=${encodeURIComponent(searchRange)}${force ? "&force=1" : ""}`,
+          timeoutMs: 30000,
         },
         {
           key: "gsc_sync",
@@ -200,7 +220,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
           {
             key: "appointments_previous",
             url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${force ? "&bust=1" : ""}`,
-            timeoutMs: 20000,
+            timeoutMs: 45000,
           },
           {
             key: "transactions_previous",
@@ -211,6 +231,82 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
       }
 
       const modules = await runTasksWithConcurrency(tasks, 3);
+      const isTimeoutFailure = (x: unknown) => {
+        const rec = (x || {}) as Record<string, unknown>;
+        const ok = rec.ok === true;
+        const err = s(rec.error);
+        return !ok && err.toLowerCase().includes("timeout");
+      };
+      if (isTimeoutFailure(modules.appointments_current)) {
+        const t0 = Date.now();
+        try {
+          await fetchJson(
+            `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}&preferSnapshot=1`,
+            30000,
+          );
+          modules.appointments_current_retry = { ok: true, strategy: "preferSnapshot", ms: Date.now() - t0 };
+          modules.appointments_current = {
+            ok: true,
+            recovered: true,
+            strategy: "preferSnapshot_after_timeout",
+            ms: Date.now() - t0,
+          };
+        } catch (e: unknown) {
+          modules.appointments_current_retry = {
+            ok: false,
+            strategy: "preferSnapshot",
+            ms: Date.now() - t0,
+            error: e instanceof Error ? e.message : "request failed",
+          };
+        }
+      }
+      if (isTimeoutFailure(modules.appointments_previous) && runPrevious && prevStart && prevEnd) {
+        const t0 = Date.now();
+        try {
+          await fetchJson(
+            `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}&preferSnapshot=1`,
+            30000,
+          );
+          modules.appointments_previous_retry = { ok: true, strategy: "preferSnapshot", ms: Date.now() - t0 };
+          modules.appointments_previous = {
+            ok: true,
+            recovered: true,
+            strategy: "preferSnapshot_after_timeout",
+            ms: Date.now() - t0,
+          };
+        } catch (e: unknown) {
+          modules.appointments_previous_retry = {
+            ok: false,
+            strategy: "preferSnapshot",
+            ms: Date.now() - t0,
+            error: e instanceof Error ? e.message : "request failed",
+          };
+        }
+      }
+      const adsSync = (modules.ads_sync || {}) as Record<string, unknown>;
+      if (adsSync.ok === true && adsSync.skipped !== true) {
+        const t0 = Date.now();
+        try {
+          await fetchJson(
+            `${origin}/api/dashboard/ads/join?${tq}&range=${encodeURIComponent(searchRange)}${force ? "&force=1" : ""}`,
+            25000,
+          );
+          modules.ads_join = { ok: true, ms: Date.now() - t0 };
+        } catch (e: unknown) {
+          modules.ads_join = {
+            ok: false,
+            ms: Date.now() - t0,
+            error: e instanceof Error ? e.message : "request failed",
+          };
+        }
+      } else {
+        modules.ads_join = {
+          ok: true,
+          skipped: true,
+          reason: "blocked_by_ads_sync",
+          ms: 0,
+        };
+      }
       row.modules = modules;
       row.ok = Object.values(modules).every((m) => (m as Record<string, unknown>)?.ok === true);
 
