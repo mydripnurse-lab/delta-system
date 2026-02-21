@@ -3555,11 +3555,13 @@ const started=Date.now();
 const timeoutMs=120000;
 while(Date.now()-started<timeoutMs){
   const connect=document.querySelector('#connect-domain-button');
+  const connectFallback=document.querySelector('#connect-domain-button-text, [data-testid="connect-domain-button"], [id*="connect-domain"], button[id*="connect-domain"]');
   const manage=document.querySelector('#manage-domain');
-  if(visible(connect)||visible(manage)) return 'ready';
+  const divider=document.querySelector('[data-testid="connect-domain-divider"]');
+  if(visible(connect)||visible(connectFallback)||visible(manage)||visible(divider)) return 'ready';
   await sleep(350);
 }
-throw new Error('Domain page not ready (#connect-domain-button or #manage-domain not visible)');
+return 'not-ready-soft';
 `,
       },
       {
@@ -3575,10 +3577,10 @@ function visible(el){
   return r.width>0&&r.height>0;
 }
 const started=Date.now();
-const timeoutMs=90000;
+const timeoutMs=180000;
 while(Date.now()-started<timeoutMs){
-  const connect=document.querySelector('#connect-domain-button');
-  const manage=document.querySelector('#manage-domain');
+  const connect=document.querySelector('#connect-domain-button, #connect-domain-button-text, [data-testid="connect-domain-button"], [id*="connect-domain"], button[id*="connect-domain"]');
+  const manage=document.querySelector('#manage-domain, [data-testid="manage-domain"], [id*="manage-domain"], button[id*="manage-domain"]');
   if(visible(connect)){
     window.__ct_connect_flow=true;
     connect.click();
