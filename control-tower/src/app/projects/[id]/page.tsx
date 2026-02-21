@@ -2338,6 +2338,32 @@ export default function Home() {
     return firstPending ? s(firstPending["Domain URL Activation"]) : "";
   }, [filteredDetailRows]);
 
+  const firstDomainBotTarget = useMemo(() => {
+    const row = filteredDetailRows.find(
+      (r) =>
+        !!r.__eligible &&
+        !isTrue(r["Domain Created"]) &&
+        !!s(r["Location Id"]),
+    );
+    if (!row) return null;
+    const kind = detailTab;
+    const locId = s(row["Location Id"]);
+    const activationUrl = s(row["Domain URL Activation"]);
+    const domainToPaste =
+      kind === "cities"
+        ? s(row["City Domain"]) || s(row["city domain"])
+        : s(row["Domain"]) || s(row["County Domain"]);
+    const sitemapUrl = s(row["Sitemap"]);
+    return {
+      row,
+      kind,
+      locId,
+      activationUrl,
+      domainToPaste,
+      sitemapUrl,
+    };
+  }, [filteredDetailRows, detailTab]);
+
   const tabSitemapRunCounts = useMemo(() => {
     let pending = 0;
     let running = 0;
@@ -3489,7 +3515,216 @@ export default function Home() {
     openDomainBotByLocId(firstDomainBotLocId);
   }
 
-  async function runDomainBotForLocId(locId: string, openActivationUrl?: string) {
+  async function loadDomainBotHeaders(locId: string) {
+    const id = s(locId);
+    if (!id || !routeTenantId) return { head: "", footer: "", favicon: "" };
+    const qp = new URLSearchParams({ locId: id, tenantId: routeTenantId });
+    const res = await fetch(`/api/sheet/headers?${qp.toString()}`, { cache: "no-store" });
+    const data = await safeJson(res);
+    if (!res.ok || (data as any)?.error) {
+      throw new Error((data as any)?.error || `Headers HTTP ${res.status}`);
+    }
+    return {
+      head: s((data as any)?.head),
+      footer: s((data as any)?.footer),
+      favicon: s((data as any)?.favicon),
+    };
+  }
+
+  function buildDomainBotSteps() {
+    return [
+      { action: "wait_for_timeout", ms: 1800 },
+      {
+        action: "evaluate",
+        script: `
+const connect=document.querySelector('#connect-domain-button');
+window.__ct_connect_flow=!!connect;
+if(connect) connect.click();
+return window.__ct_connect_flow?'connect-flow':'skip-to-manage';
+`,
+      },
+      {
+        action: "evaluate",
+        script: `
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+if(!window.__ct_connect_flow) return 'skip-connect-flow';
+const click=(sel)=>{
+  const el=document.querySelector(sel);
+  if(!el) throw new Error('Missing selector: '+sel);
+  el.click();
+  return el;
+};
+const fill=(sel,val)=>{
+  const el=document.querySelector(sel);
+  if(!el) throw new Error('Missing selector: '+sel);
+  el.focus();
+  el.value=String(val||'');
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+  el.dispatchEvent(new Event('change',{bubbles:true}));
+  el.blur();
+};
+await sleep(220);
+click('#connect-button-SITES');
+await sleep(220);
+fill('.n-input__input-el','{{domain_to_paste}}');
+await sleep(180);
+click('#add-records');
+await sleep(250);
+click('#submit-manually');
+await sleep(220);
+click('#addedRecord');
+await sleep(180);
+document.querySelector('input[type="radio"][value="website"]')?.click();
+return 'connect-flow-done';
+`,
+      },
+      {
+        action: "evaluate",
+        script: `
+if(!window.__ct_connect_flow) return 'skip-connect-dropdowns';
+const norm=(s)=>(s||'').replace(/\\s+/g,' ').trim().toLowerCase();
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+function findFormItemByLabelContains(labelNeedle){
+  const labels=[...document.querySelectorAll('.n-form-item-label, .n-form-item-label__text')];
+  const labelEl=labels.find(el=>norm(el.textContent).includes(norm(labelNeedle)));
+  if(!labelEl) throw new Error('Label not found: '+labelNeedle);
+  return labelEl.closest('.n-form-item')||labelEl.parentElement?.parentElement?.parentElement;
+}
+function getVisibleMenu(){
+  return [...document.querySelectorAll('.n-base-select-menu')].find(el=>el.offsetParent!==null)||null;
+}
+async function pickFromVirtualMenu(optionNeedle){
+  const menu=getVisibleMenu();
+  if(!menu) throw new Error('No visible dropdown menu');
+  const scroller=menu.querySelector('.v-vl, .v-vl-container, .n-base-select-menu__content')||menu;
+  const seen=new Map();
+  for(let i=0;i<140;i+=1){
+    const options=[...menu.querySelectorAll('.n-base-select-option,[role="option"]')];
+    for(const el of options){
+      const text=(el.textContent||'').replace(/\\s+/g,' ').trim();
+      const title=(el.getAttribute('title')||'').trim();
+      const key=title+'||'+text;
+      if(text||title) seen.set(key,el);
+    }
+    const hit=[...seen.entries()].find(([k])=>norm(k).includes(norm(optionNeedle)));
+    if(hit){ hit[1].click(); return 'picked:'+hit[0]; }
+    const prev=scroller.scrollTop;
+    scroller.scrollTop=prev+Math.max(140,scroller.clientHeight*0.9);
+    await sleep(120);
+    if(scroller.scrollTop===prev) break;
+  }
+  throw new Error('Option not found: '+optionNeedle);
+}
+async function openAndPick(labelNeedle, optionNeedle){
+  const formItem=findFormItemByLabelContains(labelNeedle);
+  const trigger=formItem?.querySelector('.n-base-selection-label,[class*="selection-label"],[tabindex="0"]');
+  if(!trigger) throw new Error('Dropdown trigger not found for '+labelNeedle);
+  trigger.click();
+  await sleep(180);
+  return pickFromVirtualMenu(optionNeedle);
+}
+await openAndPick('Link domain with website','County');
+await sleep(350);
+try{
+  await openAndPick('Select default step/page for Domain','Home Page');
+}catch(_e){
+  await openAndPick('Select product type','Home Page');
+}
+return 'ok';
+`,
+      },
+      {
+        action: "evaluate",
+        script: `
+if(!window.__ct_connect_flow) return 'skip-submit';
+document.querySelector('#submit')?.click();
+return 'submitted';
+`,
+      },
+      { action: "wait_for_selector", selector: "#manage-domain", timeoutMs: 120000 },
+      { action: "click", selector: "#manage-domain", timeoutMs: 15000 },
+      {
+        action: "click",
+        selector: "#domain-hub-connected-product-table-drop-action-dropdown-trigger",
+        timeoutMs: 15000,
+      },
+      {
+        action: "evaluate",
+        script: "[...document.querySelectorAll('.n-dropdown-option-body__label')].find(el=>el.textContent?.trim()==='XML Sitemap')?.click(); return 'ok';",
+      },
+      { action: "click", selector: ".n-collapse-item__header-main", timeoutMs: 15000 },
+      {
+        action: "evaluate",
+        script: `
+const rows=[...document.querySelectorAll('div.flex.my-2.funnel-page')];
+const targets=rows.filter(row=>((row.querySelector('div.ml-2')?.textContent||'').trim().includes('**')));
+let clicked=0;
+targets.forEach(row=>{
+  const cb=row.querySelector('div.n-checkbox[role="checkbox"]');
+  const checked=cb?.getAttribute('aria-checked')==='true';
+  if(cb&&!checked){ cb.click(); clicked+=1; }
+});
+return {totalRows:rows.length,matched:targets.length,clicked};
+`,
+      },
+      { action: "click", selector: "#modal-footer-btn-positive-action", timeoutMs: 15000 },
+      { action: "click", selector: "#modal-footer-btn-positive-action", timeoutMs: 15000 },
+      { action: "click", selector: "#modal-footer-btn-positive-action", timeoutMs: 15000 },
+      {
+        action: "click",
+        selector: "#domain-hub-connected-product-table-drop-action-dropdown-trigger",
+        timeoutMs: 15000,
+      },
+      {
+        action: "evaluate",
+        script: "[...document.querySelectorAll('.n-dropdown-option-body__label')].find(el=>el.textContent?.trim()==='Edit')?.click(); return 'ok';",
+      },
+      { action: "fill", selector: "textarea.n-input__textarea-el", value: "{{robots_txt}}", timeoutMs: 15000 },
+      { action: "click", selector: "#modal-footer-btn-positive-action", timeoutMs: 15000 },
+      { action: "click", selector: "#backButtonv2", timeoutMs: 15000 },
+      { action: "click", selector: "#sb_sites", timeoutMs: 15000 },
+      { action: "click", selector: "#sb_sites", timeoutMs: 15000 },
+      { action: "click", selector: "#table1-drop-action-dropdown-trigger", timeoutMs: 15000 },
+      {
+        action: "evaluate",
+        script: "[...document.querySelectorAll('span')].find(el=>el.textContent?.trim()==='County')?.click(); return 'ok';",
+      },
+      { action: "click", selector: "#table1-drop-action-dropdown-trigger", timeoutMs: 15000 },
+      { action: "click", selector: ".n-dropdown-option-body__label", timeoutMs: 15000 },
+      {
+        action: "evaluate",
+        script: "[...document.querySelectorAll('.hl-text-sm-medium')].find(el=>el.textContent?.trim()==='Settings')?.click(); return 'ok';",
+      },
+      {
+        action: "fill",
+        selector: "#faviconUrl input, .faviconUrl input, .faviconUrl .n-input__input-el",
+        value: "{{favicon_url}}",
+        timeoutMs: 15000,
+      },
+      { action: "fill", selector: "textarea.n-input__textarea-el", value: "{{head_code}}", timeoutMs: 15000 },
+      {
+        action: "fill",
+        selector: "#head-tracking-code textarea.n-input__textarea-el, #head-tracking-code .n-input__textarea-el",
+        value: "{{head_code}}",
+        timeoutMs: 15000,
+      },
+      {
+        action: "fill",
+        selector: "#body-tracking-code textarea.n-input__textarea-el, #body-tracking-code .n-input__textarea-el",
+        value: "{{body_code}}",
+        timeoutMs: 15000,
+      },
+      {
+        action: "click",
+        selector: ".n-button.n-button--primary-type.n-button--medium-type.mt-3",
+        timeoutMs: 15000,
+      },
+      { action: "wait_for_timeout", ms: 1200 },
+      { action: "close_page" },
+    ];
+  }
+
+  async function runDomainBotForLocId(locId: string, openActivationUrl?: string, row?: any) {
     const id = s(locId);
     if (!id) {
       setTabSitemapStatus({
@@ -3507,20 +3742,82 @@ export default function Home() {
       });
       return;
     }
+    if (!routeTenantId) {
+      setTabSitemapStatus({
+        kind: detailTab,
+        ok: false,
+        message: "Missing tenant context for Domain Bot.",
+      });
+      return;
+    }
+
+    const rowKind = detailTab;
+    const domainToPaste =
+      rowKind === "cities"
+        ? s(row?.["City Domain"]) || s(row?.["city domain"])
+        : s(row?.["Domain"]) || s(row?.["County Domain"]);
+    const sitemapUrl = s(row?.["Sitemap"]);
+
     setDomainBotBusy(true);
     setTabSitemapStatus({
       kind: detailTab,
       ok: true,
-      message: `Starting Domain Bot for ${id}...`,
+      message: `Starting Domain Bot for ${id} (custom values + DNS)...`,
     });
     try {
+      const cvRes = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ locId: id, kind: rowKind }),
+        },
+      );
+      const cvData = await safeJson(cvRes);
+      if (!cvRes.ok || !cvData?.ok) {
+        throw new Error(s((cvData as any)?.error) || `Custom values HTTP ${cvRes.status}`);
+      }
+
+      const domainUrlForDns = s(toUrlMaybe(domainToPaste));
+      if (domainUrlForDns) {
+        const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({
+            tenantId: routeTenantId,
+            domainUrl: domainUrlForDns,
+            action: "upsert",
+          }),
+        });
+        const dnsData = await safeJson(dnsRes);
+        if (!dnsRes.ok || !(dnsData as any)?.ok) {
+          throw new Error((dnsData as any)?.error || `Cloudflare create failed (HTTP ${dnsRes.status})`);
+        }
+      }
+
+      const headers = await loadDomainBotHeaders(id);
+      const robotsTxtValue = buildRobotsTxt(sitemapUrl);
+      const steps = buildDomainBotSteps();
+
       const res = await fetch("/api/tools/domain-bot-click", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          tenantId: routeTenantId,
+          kind: rowKind,
           locationId: id,
           mode: "auto",
           openActivationUrl: s(openActivationUrl),
+          steps,
+          variables: {
+            loc_id: id,
+            domain_to_paste: domainToPaste,
+            robots_txt: robotsTxtValue,
+            favicon_url: headers.favicon,
+            head_code: headers.head,
+            body_code: headers.footer,
+          },
           maxAttempts: 180,
           intervalMs: 700,
         }),
@@ -3542,11 +3839,49 @@ export default function Home() {
         const details = s(data?.lastResult);
         throw new Error(`${s(data?.error) || `HTTP ${res.status}`}${details ? ` | ${details}` : ""}`);
       }
+
+      const markRes = await fetch("/api/sheet/domain-created", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({
+          tenantId: routeTenantId || "",
+          locId: id,
+          value: true,
+          kind: rowKind,
+        }),
+      });
+      const markData = await safeJson(markRes);
+      if (!markRes.ok || (markData as any)?.error) {
+        throw new Error((markData as any)?.error || `Complete HTTP ${markRes.status}`);
+      }
+
+      if (domainUrlForDns) {
+        const dnsDeleteRes = await fetch("/api/tools/cloudflare-dns-cname", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({
+            tenantId: routeTenantId,
+            domainUrl: domainUrlForDns,
+            action: "delete",
+          }),
+        });
+        const dnsDeleteData = await safeJson(dnsDeleteRes);
+        if (!dnsDeleteRes.ok || !(dnsDeleteData as any)?.ok) {
+          throw new Error(
+            (dnsDeleteData as any)?.error || `Cloudflare delete failed (HTTP ${dnsDeleteRes.status})`,
+          );
+        }
+      }
+
       setTabSitemapStatus({
         kind: detailTab,
         ok: true,
-        message: `Domain Bot OK (${id}) [${s(data.mode) || "auto"}] → clicked ${s(data.clicked)} in ${Number(data.attempts || 0)} attempts.`,
+        message: `Domain Bot OK (${id}) [${s(data.mode) || "auto"}] → ${s(data.clicked)} in ${Number(data.attempts || 0)} attempts + complete.`,
       });
+      await loadOverview();
+      if (openState) await openDetail(openState);
     } catch (e: any) {
       setTabSitemapStatus({
         kind: detailTab,
@@ -3559,7 +3894,7 @@ export default function Home() {
   }
 
   async function runDomainBotFirst() {
-    if (!firstDomainBotLocId) {
+    if (!firstDomainBotLocId || !firstDomainBotTarget) {
       setTabSitemapStatus({
         kind: detailTab,
         ok: false,
@@ -3567,7 +3902,11 @@ export default function Home() {
       });
       return;
     }
-    await runDomainBotForLocId(firstDomainBotLocId, firstDomainBotActivationUrl);
+    await runDomainBotForLocId(
+      firstDomainBotTarget.locId,
+      firstDomainBotTarget.activationUrl || firstDomainBotActivationUrl,
+      firstDomainBotTarget.row,
+    );
   }
 
   function buildDevasksDomainAutoClickScript() {
@@ -5822,7 +6161,7 @@ export default function Home() {
                                     <div className="rowActions">
                                       <button
                                         className="smallBtn"
-                                        onClick={() => void runDomainBotForLocId(locId, activationUrl)}
+                                        onClick={() => void runDomainBotForLocId(locId, activationUrl, r)}
                                         disabled={!eligible || domainCreated || locId !== firstDomainBotLocId}
                                         title="Open Domain Settings bot page"
                                       >

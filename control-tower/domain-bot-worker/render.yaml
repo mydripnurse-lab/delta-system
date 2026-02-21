@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: domain-bot-worker
+    env: docker
+    rootDir: control-tower/domain-bot-worker
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: WORKER_NAV_TIMEOUT_MS
+        value: "60000"

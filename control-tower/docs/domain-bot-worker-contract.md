@@ -8,6 +8,8 @@ When `DOMAIN_BOT_WORKER_URL` is configured, Control Tower sends this payload:
 {
   "task": "domain-bot-click",
   "provider": "control-tower",
+  "tenantId": "uuid",
+  "kind": "counties",
   "locationId": "abc123",
   "url": "https://app.devasks.com/v2/location/abc123/settings/domain",
   "openActivationUrl": "https://...",
@@ -53,6 +55,10 @@ If `DOMAIN_BOT_WORKER_API_KEY` exists, Control Tower sends:
 
 - `url` defaults to Devasks domain settings URL and is overridden by `openActivationUrl` if present.
 - `steps` and `variables` are passthrough fields for future recipe-based flows (click/fill/select/wait).
+- Current project flow orchestrates:
+  - pre: custom values apply + Cloudflare DNS upsert
+  - run: browser recipe in worker
+  - post: mark domain created + Cloudflare DNS delete
 
 ## Local smoke test (without Playwright)
 
