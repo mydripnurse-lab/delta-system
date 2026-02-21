@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Delta Local Bot</title>
+    <style>
+      body { font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif; margin: 12px; width: 380px; }
+      h1 { font-size: 16px; margin: 0 0 10px; }
+      .f { margin-bottom: 8px; }
+      label { display: block; font-size: 12px; color: #334155; margin-bottom: 4px; }
+      input, textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; }
+      textarea { min-height: 64px; resize: vertical; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      button { padding: 8px 10px; border-radius: 8px; border: 1px solid #0f172a; background: #0f172a; color: #fff; cursor: pointer; font-size: 12px; }
+      button.secondary { background: #fff; color: #0f172a; }
+      .actions { display: flex; gap: 8px; margin-top: 10px; }
+      .status { margin-top: 10px; font-size: 12px; white-space: pre-wrap; color: #0f172a; }
+      .help { font-size: 11px; color: #475569; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>Delta Local Domain Bot</h1>
+
+    <div class="f">
+      <label>Activation URL (optional)</label>
+      <input id="activationUrl" placeholder="https://app.devasks.com/v2/location/.../settings/domain" />
+    </div>
+
+    <div class="f">
+      <label>Domain to paste</label>
+      <input id="domainToPaste" placeholder="buffalo-county-sd.mydripnurse.com" />
+    </div>
+
+    <div class="row">
+      <div class="f">
+        <label>Favicon URL</label>
+        <input id="faviconUrl" placeholder="https://.../favicon.ico" />
+      </div>
+      <div class="f">
+        <label>Page Type keyword</label>
+        <input id="pageTypeNeedle" value="Home Page" />
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Robots.txt</label>
+      <textarea id="robotsTxt"></textarea>
+    </div>
+
+    <div class="f">
+      <label>Head code</label>
+      <textarea id="headCode"></textarea>
+    </div>
+
+    <div class="f">
+      <label>Body/Footer code</label>
+      <textarea id="bodyCode"></textarea>
+    </div>
+
+    <div class="actions">
+      <button id="runBtn">Run Bot</button>
+      <button id="openBtn" class="secondary">Open Activation</button>
+    </div>
+
+    <div class="status" id="status">Ready.</div>
+    <div class="help">El bot corre en tu tab/browser actual (sesión logueada) y muestra un panel de progreso dentro de la página.</div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

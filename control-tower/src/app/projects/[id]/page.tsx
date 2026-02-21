@@ -698,6 +698,7 @@ export default function Home() {
   const [tabSitemapRunStartedAt, setTabSitemapRunStartedAt] = useState("");
   const [domainBotBusy, setDomainBotBusy] = useState(false);
   const [domainBotLogs, setDomainBotLogs] = useState<string[]>([]);
+  const [domainBotScreenshotDataUrl, setDomainBotScreenshotDataUrl] = useState("");
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -3841,6 +3842,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
     setDomainBotBusy(true);
     setDomainBotLogs([]);
+    setDomainBotScreenshotDataUrl("");
     pushDomainBotLog(`Start locId=${id}`);
     pushDomainBotLog(`Activation URL: ${activationUrlEffective || "(missing)"}`);
     setTabSitemapStatus({
@@ -3926,6 +3928,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             workerRaw?: { logs?: string[] } | null;
           }
         | null;
+      const screenshotDataUrl = s(data?.screenshotDataUrl);
+      if (screenshotDataUrl) {
+        setDomainBotScreenshotDataUrl(screenshotDataUrl);
+      }
       const workerLogs = Array.isArray(data?.logs)
         ? data?.logs || []
         : Array.isArray((data?.workerRaw as any)?.logs)
@@ -6003,6 +6009,25 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     {domainBotLogs.map((line, idx) => (
                       <div key={`db_log_${idx}`}>{line}</div>
                     ))}
+                  </div>
+                ) : null}
+                {domainBotScreenshotDataUrl ? (
+                  <div style={{ marginTop: 10 }}>
+                    <div className="mini" style={{ marginBottom: 6 }}>
+                      Worker failure screenshot
+                    </div>
+                    <img
+                      src={domainBotScreenshotDataUrl}
+                      alt="Domain Bot failure screenshot"
+                      style={{
+                        width: "100%",
+                        maxHeight: 260,
+                        objectFit: "contain",
+                        border: "1px solid var(--line)",
+                        borderRadius: 10,
+                        background: "rgba(15,23,42,.5)",
+                      }}
+                    />
                   </div>
                 ) : null}
               </div>
