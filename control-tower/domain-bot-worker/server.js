@@ -111,8 +111,9 @@ async function runSteps(page, steps, variables, outLog) {
         if (!script) return { ok: false, reason: `step-${i + 1}:missing-script` };
         const result = await page.evaluate(
           ({ code, args }) => {
+            const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
             // eslint-disable-next-line no-new-func
-            const fn = new Function("args", code);
+            const fn = new AsyncFunction("args", code);
             return fn(args);
           },
           { code: script, args: step.args || {} },
