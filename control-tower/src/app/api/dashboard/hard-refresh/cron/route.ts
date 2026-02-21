@@ -133,6 +133,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
     const integrationKey = s(body?.integrationKey) || "owner";
     const force = body?.force !== false;
     const appointmentsForceFull = body?.appointmentsForceFull === true;
+    const appointmentsPreferFresh = body?.appointmentsPreferFresh === true;
     const { start, end, preset } = computeRange();
     const { prevStart, prevEnd } = prevPeriodRange(start, end);
     const tenantIds = singleTenantId ? [singleTenantId] : await listActiveTenantIds();
@@ -145,6 +146,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
       const row: Record<string, unknown> = { tenantId, ok: true };
       const tq = `tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`;
       const appointmentsBustQ = appointmentsForceFull && force ? "&bust=1" : "";
+      const appointmentsPreferSnapshotQ = appointmentsPreferFresh ? "" : "&preferSnapshot=1";
       const tasks: Array<{ key: string; url: string; timeoutMs?: number }> = [
         {
           key: "overview_current",
@@ -168,7 +170,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
         },
         {
           key: "appointments_current",
-          url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${appointmentsBustQ}`,
+          url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${appointmentsBustQ}${appointmentsPreferSnapshotQ}`,
           timeoutMs: 45000,
         },
         {
@@ -221,7 +223,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
           },
           {
             key: "appointments_previous",
-            url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${appointmentsBustQ}`,
+            url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${appointmentsBustQ}${appointmentsPreferSnapshotQ}`,
             timeoutMs: 45000,
           },
           {
@@ -385,6 +387,7 @@ export async function GET(req: Request) {
     integrationKey: s(url.searchParams.get("integrationKey")),
     force: s(url.searchParams.get("force")) !== "0",
     appointmentsForceFull: s(url.searchParams.get("appointmentsForceFull")) === "1",
+    appointmentsPreferFresh: s(url.searchParams.get("appointmentsPreferFresh")) === "1",
     secret: s(url.searchParams.get("secret")),
   } as JsonMap;
   return runHardRefresh(req, body);
