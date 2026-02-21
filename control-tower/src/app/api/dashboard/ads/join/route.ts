@@ -102,7 +102,21 @@ export async function GET(req: Request) {
         }
 
         const key = `ads_${tenantId}_${integrationKey}_${range}`;
-        const cached = await readCache(key);
+        const fallbackKey =
+            integrationKey === "owner"
+                ? `ads_${tenantId}_default_${range}`
+                : integrationKey === "default"
+                  ? `ads_${tenantId}_owner_${range}`
+                  : "";
+        let cacheKeyUsed = key;
+        let cached = await readCache(key);
+        if (!cached && fallbackKey) {
+            const fromFallback = await readCache(fallbackKey);
+            if (fromFallback) {
+                cached = fromFallback;
+                cacheKeyUsed = fallbackKey;
+            }
+        }
         if (!cached) {
             return NextResponse.json(
                 { ok: false, error: `No cache for ${key}. Run /api/dashboard/ads/sync first.` },
@@ -285,6 +299,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             ok: true,
+            cacheKeyUsed,
             meta: {
                 ...(meta || {}),
                 customerId: s(meta?.customerId || ""),
