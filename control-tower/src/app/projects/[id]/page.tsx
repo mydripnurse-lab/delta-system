@@ -2325,9 +2325,17 @@ export default function Home() {
         !isTrue(r["Domain Created"]) &&
         !!s(r["Location Id"]),
     );
-    if (firstPending) return s(firstPending["Location Id"]);
-    const firstAny = filteredDetailRows.find((r) => !!s(r["Location Id"]));
-    return firstAny ? s(firstAny["Location Id"]) : "";
+    return firstPending ? s(firstPending["Location Id"]) : "";
+  }, [filteredDetailRows]);
+
+  const firstDomainBotActivationUrl = useMemo(() => {
+    const firstPending = filteredDetailRows.find(
+      (r) =>
+        !!r.__eligible &&
+        !isTrue(r["Domain Created"]) &&
+        !!s(r["Domain URL Activation"]),
+    );
+    return firstPending ? s(firstPending["Domain URL Activation"]) : "";
   }, [filteredDetailRows]);
 
   const tabSitemapRunCounts = useMemo(() => {
@@ -3474,20 +3482,28 @@ export default function Home() {
       setTabSitemapStatus({
         kind: detailTab,
         ok: false,
-        message: "No rows with Location Id in current filter.",
+        message: "No hay cuentas Pending elegibles con Location Id en el filtro actual.",
       });
       return;
     }
     openDomainBotByLocId(firstDomainBotLocId);
   }
 
-  async function runDomainBotForLocId(locId: string) {
+  async function runDomainBotForLocId(locId: string, openActivationUrl?: string) {
     const id = s(locId);
     if (!id) {
       setTabSitemapStatus({
         kind: detailTab,
         ok: false,
         message: "Missing Location Id for Domain Bot.",
+      });
+      return;
+    }
+    if (firstDomainBotLocId && id !== firstDomainBotLocId) {
+      setTabSitemapStatus({
+        kind: detailTab,
+        ok: false,
+        message: `Solo se permite ejecutar bot sobre la primera cuenta Pending: ${firstDomainBotLocId}.`,
       });
       return;
     }
@@ -3501,10 +3517,26 @@ export default function Home() {
       const res = await fetch("/api/tools/domain-bot-click", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ locationId: id, maxAttempts: 180, intervalMs: 700 }),
+        body: JSON.stringify({
+          locationId: id,
+          mode: "auto",
+          openActivationUrl: s(openActivationUrl),
+          maxAttempts: 180,
+          intervalMs: 700,
+        }),
       });
       const data = (await safeJson(res)) as
-        | { ok?: boolean; clicked?: string; attempts?: number; error?: string; lastResult?: string; url?: string }
+        | {
+            ok?: boolean;
+            mode?: string;
+            clicked?: string;
+            attempts?: number;
+            error?: string;
+            lastResult?: string;
+            url?: string;
+            screenshotUrl?: string;
+            logUrl?: string;
+          }
         | null;
       if (!res.ok || !data?.ok) {
         const details = s(data?.lastResult);
@@ -3513,7 +3545,7 @@ export default function Home() {
       setTabSitemapStatus({
         kind: detailTab,
         ok: true,
-        message: `Domain Bot OK (${id}) → clicked ${s(data.clicked)} in ${Number(data.attempts || 0)} attempts.`,
+        message: `Domain Bot OK (${id}) [${s(data.mode) || "auto"}] → clicked ${s(data.clicked)} in ${Number(data.attempts || 0)} attempts.`,
       });
     } catch (e: any) {
       setTabSitemapStatus({
@@ -3531,11 +3563,11 @@ export default function Home() {
       setTabSitemapStatus({
         kind: detailTab,
         ok: false,
-        message: "No rows with Location Id in current filter.",
+        message: "No hay cuentas Pending elegibles con Location Id en el filtro actual.",
       });
       return;
     }
-    await runDomainBotForLocId(firstDomainBotLocId);
+    await runDomainBotForLocId(firstDomainBotLocId, firstDomainBotActivationUrl);
   }
 
   function buildDevasksDomainAutoClickScript() {
@@ -5790,7 +5822,8 @@ export default function Home() {
                                     <div className="rowActions">
                                       <button
                                         className="smallBtn"
-                                        onClick={() => void runDomainBotForLocId(locId)}
+                                        onClick={() => void runDomainBotForLocId(locId, activationUrl)}
+                                        disabled={!eligible || domainCreated || locId !== firstDomainBotLocId}
                                         title="Open Domain Settings bot page"
                                       >
                                         Bot

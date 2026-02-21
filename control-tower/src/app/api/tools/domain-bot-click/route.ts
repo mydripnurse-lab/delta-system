@@ -11,6 +11,124 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+type DomainBotMode = "auto" | "remote" | "local";
+
+type DomainBotRequestBody = {
+  locationId?: string;
+  browserApp?: string;
+  maxAttempts?: number;
+  intervalMs?: number;
+  mode?: DomainBotMode | string;
+  steps?: unknown;
+  variables?: unknown;
+  openActivationUrl?: string;
+};
+
+function safeJsonParse(raw: string) {
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function resolveMode(requested: string, hasWorker: boolean): DomainBotMode {
+  const mode = s(requested).toLowerCase();
+  if (mode === "remote") return "remote";
+  if (mode === "local") return "local";
+  if (mode === "auto") return hasWorker ? "remote" : "local";
+  return hasWorker ? "remote" : "local";
+}
+
+function normalizeWorkerResponse(
+  payload: Record<string, unknown> | null,
+  fallbackError: string,
+) {
+  const ok = Boolean(payload?.ok);
+  return {
+    ok,
+    clicked: s(payload?.clicked),
+    attempts: Number(payload?.attempts || 0),
+    error: s(payload?.error || fallbackError),
+    lastResult: s(payload?.lastResult),
+    screenshotUrl: s(payload?.screenshotUrl),
+    logUrl: s(payload?.logUrl),
+    workerRaw: payload,
+  };
+}
+
+async function runRemoteDomainBot(input: {
+  locationId: string;
+  url: string;
+  maxAttempts: number;
+  intervalMs: number;
+  steps: unknown;
+  variables: unknown;
+  openActivationUrl: string;
+}) {
+  const workerUrl = s(process.env.DOMAIN_BOT_WORKER_URL);
+  if (!workerUrl) {
+    return {
+      ok: false,
+      error:
+        "Missing DOMAIN_BOT_WORKER_URL. Configure a remote browser worker endpoint for production.",
+      clicked: "",
+      attempts: 0,
+      lastResult: "",
+      screenshotUrl: "",
+      logUrl: "",
+      workerRaw: null,
+    };
+  }
+  const apiKey = s(process.env.DOMAIN_BOT_WORKER_API_KEY);
+  const timeoutMs = Math.max(
+    10_000,
+    Math.min(240_000, Number(process.env.DOMAIN_BOT_WORKER_TIMEOUT_MS || 120_000)),
+  );
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  if (apiKey) {
+    headers.authorization = `Bearer ${apiKey}`;
+    headers["x-api-key"] = apiKey;
+  }
+  const payload = {
+    task: "domain-bot-click",
+    provider: "control-tower",
+    locationId: input.locationId,
+    url: input.url,
+    openActivationUrl: input.openActivationUrl,
+    maxAttempts: input.maxAttempts,
+    intervalMs: input.intervalMs,
+    steps: input.steps,
+    variables: input.variables,
+    timestamp: new Date().toISOString(),
+  };
+  try {
+    const res = await fetch(workerUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(timeoutMs),
+      cache: "no-store",
+    });
+    const raw = await res.text();
+    const parsed = safeJsonParse(raw);
+    if (!res.ok) {
+      return normalizeWorkerResponse(
+        parsed,
+        `Worker HTTP ${res.status}${raw ? `: ${raw.slice(0, 240)}` : ""}`,
+      );
+    }
+    return normalizeWorkerResponse(parsed, "Remote worker returned non-json payload.");
+  } catch (error: unknown) {
+    return normalizeWorkerResponse(
+      null,
+      error instanceof Error ? error.message : "Failed to execute remote domain bot.",
+    );
+  }
+}
+
 function escapeAppleScriptString(input: string) {
   return input.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
@@ -432,30 +550,73 @@ async function tryClickButtonsInActiveTab(
 
 export async function POST(req: Request) {
   try {
-    const isMacLocal = process.platform === "darwin" && !process.env.VERCEL;
-    if (!isMacLocal) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "domain-bot-click is only supported on local macOS runtime. Deploy a browser worker for cloud environments.",
-        },
-        { status: 501 },
-      );
-    }
-
-    const body = (await req.json().catch(() => null)) as
-      | { locationId?: string; browserApp?: string; maxAttempts?: number; intervalMs?: number }
-      | null;
+    const body = (await req.json().catch(() => null)) as DomainBotRequestBody | null;
     const locationId = s(body?.locationId);
     if (!locationId) {
       return NextResponse.json({ ok: false, error: "Missing locationId" }, { status: 400 });
     }
 
+    const hasWorker = Boolean(s(process.env.DOMAIN_BOT_WORKER_URL));
+    const mode = resolveMode(s(body?.mode || process.env.DOMAIN_BOT_MODE || "auto"), hasWorker);
     const browserApp = s(body?.browserApp) || "Google Chrome";
     const maxAttempts = Math.max(1, Math.min(240, Number(body?.maxAttempts || 60)));
     const intervalMs = Math.max(150, Math.min(3000, Number(body?.intervalMs || 500)));
-    const url = `https://app.devasks.com/v2/location/${encodeURIComponent(locationId)}/settings/domain`;
+    const defaultUrl = `https://app.devasks.com/v2/location/${encodeURIComponent(locationId)}/settings/domain`;
+    const openActivationUrl = s(body?.openActivationUrl);
+    const url = openActivationUrl || defaultUrl;
+    const steps = body?.steps ?? null;
+    const variables = body?.variables ?? null;
+
+    if (mode === "remote") {
+      const remote = await runRemoteDomainBot({
+        locationId,
+        url,
+        maxAttempts,
+        intervalMs,
+        steps,
+        variables,
+        openActivationUrl,
+      });
+      if (!remote.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            mode,
+            locationId,
+            url,
+            error: remote.error,
+            lastResult: remote.lastResult,
+            screenshotUrl: remote.screenshotUrl,
+            logUrl: remote.logUrl,
+            workerRaw: remote.workerRaw,
+          },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        mode,
+        locationId,
+        url,
+        clicked: remote.clicked || "worker-step-completed",
+        attempts: remote.attempts,
+        screenshotUrl: remote.screenshotUrl || undefined,
+        logUrl: remote.logUrl || undefined,
+      });
+    }
+
+    const isMacLocal = process.platform === "darwin" && !process.env.VERCEL;
+    if (!isMacLocal) {
+      return NextResponse.json(
+        {
+          ok: false,
+          mode,
+          error:
+            "Local mode requires macOS runtime. Configure DOMAIN_BOT_WORKER_URL to run in production browser worker.",
+        },
+        { status: 501 },
+      );
+    }
 
     await openDomainPageInBrowser(browserApp, url);
     await sleep(1200);
@@ -467,6 +628,7 @@ export async function POST(req: Request) {
       if (out.startsWith("clicked:")) {
         return NextResponse.json({
           ok: true,
+          mode: "local",
           locationId,
           browserApp,
           url,
@@ -480,6 +642,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         ok: false,
+        mode: "local",
         locationId,
         browserApp,
         url,
