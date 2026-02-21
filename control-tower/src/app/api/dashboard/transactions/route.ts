@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import path from "path";
 import { getAgencyAccessTokenOrThrow, getEffectiveLocationIdOrThrow, ghlFetchJson } from "@/lib/ghlHttp";
 import { inferStateFromText, normalizeStateName, norm } from "@/lib/ghlState";
 import { loadDashboardSnapshot, saveDashboardSnapshot } from "@/lib/dashboardSnapshots";
@@ -117,6 +119,8 @@ type GeoDirectoryCache = {
 };
 
 const GEO_DIRECTORY_CACHE_BY_TENANT = new Map<string, GeoDirectoryCache>();
+const US_CITY_COUNTY_MAP = new Map<string, string>();
+let US_CITY_COUNTY_LOADED = false;
 
 function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -273,6 +277,51 @@ function cityStateKey(city: string, state: string) {
     const c = normToken(city);
     const s0 = normToken(normalizeStateName(state));
     return c && s0 ? `${s0}__${c}` : "";
+}
+
+function titleCase(v: string) {
+    return norm(v)
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((x) => x.charAt(0).toUpperCase() + x.slice(1))
+        .join(" ");
+}
+
+async function ensureUsCityCountyMapLoaded() {
+    if (US_CITY_COUNTY_LOADED) return;
+    const candidates = [
+        path.resolve(process.cwd(), "../tmp/data/us_cities_states_counties.csv"),
+        path.resolve(process.cwd(), "tmp/data/us_cities_states_counties.csv"),
+        path.resolve(process.cwd(), "../../tmp/data/us_cities_states_counties.csv"),
+    ];
+    for (const p of candidates) {
+        try {
+            const raw = await readFile(p, "utf8");
+            const lines = raw.split(/\r?\n/).filter(Boolean);
+            if (lines.length < 2) continue;
+            const sep = lines[0]?.includes("|") ? "|" : ",";
+            for (let i = 1; i < lines.length; i++) {
+                const parts = lines[i].split(sep);
+                const city = norm(parts[0] || "");
+                const stateShort = norm(parts[1] || "");
+                const stateFull = normalizeStateName(parts[2] || "");
+                const countyRaw = norm(parts[3] || "");
+                const cityAlias = norm(parts[4] || "");
+                const county = titleCase(countyRaw);
+                if (!county) continue;
+                if (city && stateFull) US_CITY_COUNTY_MAP.set(cityStateKey(city, stateFull), county);
+                if (cityAlias && stateFull) US_CITY_COUNTY_MAP.set(cityStateKey(cityAlias, stateFull), county);
+                if (city && stateShort) US_CITY_COUNTY_MAP.set(cityStateKey(city, stateShort), county);
+                if (cityAlias && stateShort) US_CITY_COUNTY_MAP.set(cityStateKey(cityAlias, stateShort), county);
+            }
+            US_CITY_COUNTY_LOADED = true;
+            return;
+        } catch {
+            // try next path
+        }
+    }
+    US_CITY_COUNTY_LOADED = true;
 }
 
 function pickHeaderIndex(headers: string[], candidates: string[]) {
@@ -1027,10 +1076,11 @@ function inferCountyFromSource(source: string, directory: GeoDirectoryCache | nu
 }
 
 function inferCountyFromCityState(city: string, state: string, directory: GeoDirectoryCache | null) {
-    if (!directory) return "";
     const key = cityStateKey(city, state);
     if (!key) return "";
-    return norm(directory.cityStateToCounty.get(key));
+    const fromDirectory = norm(directory?.cityStateToCounty.get(key));
+    if (fromDirectory) return fromDirectory;
+    return norm(US_CITY_COUNTY_MAP.get(key));
 }
 
 function enrichRowGeoFromSource(row: TxRow, directory: GeoDirectoryCache | null) {
@@ -1170,6 +1220,7 @@ export async function GET(req: Request) {
         }
 
         const locationId = await getEffectiveLocationIdOrThrow(ghlCtx);
+        await ensureUsCityCountyMapLoaded();
         const snapshot = await readTxSnapshot(tenantId, locationId);
         const startMs = toMs(start);
         const endMs = toMs(end);

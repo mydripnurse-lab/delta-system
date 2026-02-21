@@ -75,6 +75,19 @@ type TenantCustomValueRow = {
   description?: string | null;
 };
 
+type TenantStateFileRow = {
+  id: string;
+  organization_id: string;
+  state_slug: string;
+  state_name: string;
+  payload: Record<string, unknown>;
+  root_domain: string | null;
+  source: string;
+  generated_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type IntegrationHealthRow = {
   id: string;
   provider: string;
@@ -123,7 +136,7 @@ type TenantDetailResponse = {
 };
 
 type ProjectTab = "runner" | "sheet" | "activation" | "logs" | "details" | "webhooks";
-type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values";
+type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values" | "state_files";
 
 type StateDetailResponse = {
   state: string;
@@ -208,6 +221,65 @@ async function safeJson(res: Response) {
       raw: text.slice(0, 400),
     };
   }
+}
+
+function pickTextFromObj(obj: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const v = s(obj[key]);
+    if (v) return v;
+  }
+  return "";
+}
+
+type StateGeoSearchRow = {
+  state: string;
+  county: string;
+  city: string;
+  countyIndex: number;
+  cityIndex: number;
+  cityPath: string;
+};
+
+function extractStateGeoRows(payload: Record<string, unknown> | null): StateGeoSearchRow[] {
+  if (!payload) return [];
+  const countiesRaw = payload.counties;
+  const counties = Array.isArray(countiesRaw) ? countiesRaw : [];
+  const stateName = pickTextFromObj(payload, ["stateName", "state", "name"]);
+  const rows: StateGeoSearchRow[] = [];
+  for (let i = 0; i < counties.length; i += 1) {
+    const c0 = counties[i];
+    if (!c0 || typeof c0 !== "object" || Array.isArray(c0)) continue;
+    const countyObj = c0 as Record<string, unknown>;
+    const countyName = pickTextFromObj(countyObj, ["countyName", "county", "name"]);
+    const citiesRaw = countyObj.cities;
+    const cities = Array.isArray(citiesRaw) ? citiesRaw : [];
+    if (!cities.length) {
+      rows.push({
+        state: stateName,
+        county: countyName,
+        city: "",
+        countyIndex: i,
+        cityIndex: -1,
+        cityPath: `counties[${i}]`,
+      });
+      continue;
+    }
+    for (let j = 0; j < cities.length; j += 1) {
+      const city0 = cities[j];
+      if (!city0 || typeof city0 !== "object" || Array.isArray(city0)) continue;
+      const cityObj = city0 as Record<string, unknown>;
+      const cityName = pickTextFromObj(cityObj, ["cityName", "city", "name"]);
+      rows.push({
+        state: stateName,
+        county: countyName,
+        city: cityName,
+        countyIndex: i,
+        cityIndex: j,
+        cityPath: `counties[${i}].cities[${j}]`,
+      });
+    }
+  }
+  return rows;
 }
 
 function tsLocal() {
@@ -428,6 +500,18 @@ export default function Home() {
   const [tenantSaveMsg, setTenantSaveMsg] = useState("");
   const [tenantStateSeedLoading, setTenantStateSeedLoading] = useState(false);
   const [tenantStateSeedMsg, setTenantStateSeedMsg] = useState("");
+  const [stateFileSelectedSlug, setStateFileSelectedSlug] = useState("");
+  const [stateFileLoading, setStateFileLoading] = useState(false);
+  const [stateFileSaving, setStateFileSaving] = useState(false);
+  const [stateFileMsg, setStateFileMsg] = useState("");
+  const [stateFileErr, setStateFileErr] = useState("");
+  const [stateFileStateName, setStateFileStateName] = useState("");
+  const [stateFilePayloadText, setStateFilePayloadText] = useState("");
+  const [stateFileMetaUpdatedAt, setStateFileMetaUpdatedAt] = useState("");
+  const [stateFileMetaSource, setStateFileMetaSource] = useState("");
+  const [stateFileSearchState, setStateFileSearchState] = useState("");
+  const [stateFileSearchCounty, setStateFileSearchCounty] = useState("");
+  const [stateFileSearchCity, setStateFileSearchCity] = useState("");
 
   const [tenantName, setTenantName] = useState("");
   const [tenantSlug, setTenantSlug] = useState("");
@@ -810,6 +894,24 @@ export default function Home() {
       ignore = true;
     };
   }, [job, routeTenantId]); // 👈 only depends on job (minimal change)
+
+  useEffect(() => {
+    if (!statesOut.length) {
+      setStateFileSelectedSlug("");
+      return;
+    }
+    setStateFileSelectedSlug((prev) => {
+      const p = s(prev).toLowerCase();
+      if (p && statesOut.includes(p)) return p;
+      return s(statesOut[0]).toLowerCase();
+    });
+  }, [statesOut]);
+
+  useEffect(() => {
+    if (!routeTenantId || detailsTab !== "state_files") return;
+    if (!stateFileSelectedSlug) return;
+    void loadStateFileForEditor(stateFileSelectedSlug);
+  }, [routeTenantId, detailsTab, stateFileSelectedSlug]);
 
   async function loadOverview() {
     setSheetErr("");
@@ -1203,7 +1305,13 @@ export default function Home() {
 
   useEffect(() => {
     const tab = s(searchParams?.get("detailsTab")).toLowerCase();
-    if (tab === "business" || tab === "ghl" || tab === "integrations" || tab === "custom_values") {
+    if (
+      tab === "business" ||
+      tab === "ghl" ||
+      tab === "integrations" ||
+      tab === "custom_values" ||
+      tab === "state_files"
+    ) {
       setDetailsTab(tab as ProjectDetailsTab);
       if (tab && activeProjectTab !== "details") setActiveProjectTab("details");
     }
@@ -1560,6 +1668,80 @@ export default function Home() {
       setTenantDetailErr(e?.message || "Failed to seed tenant state files.");
     } finally {
       setTenantStateSeedLoading(false);
+    }
+  }
+
+  async function loadStateFileForEditor(targetSlug?: string) {
+    if (!routeTenantId) return;
+    const slug = s(targetSlug || stateFileSelectedSlug).toLowerCase();
+    if (!slug) return;
+    setStateFileLoading(true);
+    setStateFileErr("");
+    setStateFileMsg("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/state-files?state=${encodeURIComponent(slug)}`,
+        { cache: "no-store" },
+      );
+      const data = (await safeJson(res)) as { ok?: boolean; row?: TenantStateFileRow; error?: string } | null;
+      if (!res.ok || !data?.ok || !data?.row) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const row = data.row;
+      setStateFileSelectedSlug(s(row.state_slug));
+      setStateFileStateName(s(row.state_name));
+      setStateFilePayloadText(JSON.stringify((row.payload || {}) as Record<string, unknown>, null, 2));
+      setStateFileMetaUpdatedAt(s(row.updated_at));
+      setStateFileMetaSource(s(row.source));
+      setStateFileMsg(`Loaded ${s(row.state_slug)}.`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to load state file.";
+      setStateFileErr(msg);
+    } finally {
+      setStateFileLoading(false);
+    }
+  }
+
+  async function saveStateFileFromEditor() {
+    if (!routeTenantId) return;
+    const slug = s(stateFileSelectedSlug).toLowerCase();
+    if (!slug) {
+      setStateFileErr("Select a state first.");
+      return;
+    }
+    setStateFileSaving(true);
+    setStateFileErr("");
+    setStateFileMsg("");
+    try {
+      const parsed = JSON.parse(stateFilePayloadText || "{}");
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("Payload must be a JSON object.");
+      }
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/state-files?state=${encodeURIComponent(slug)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stateName: s(stateFileStateName) || undefined,
+            payload: parsed,
+          }),
+        },
+      );
+      const data = (await safeJson(res)) as { ok?: boolean; row?: TenantStateFileRow; error?: string } | null;
+      if (!res.ok || !data?.ok || !data?.row) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setStateFileStateName(s(data.row.state_name));
+      setStateFilePayloadText(JSON.stringify((data.row.payload || {}) as Record<string, unknown>, null, 2));
+      setStateFileMetaUpdatedAt(s(data.row.updated_at));
+      setStateFileMetaSource(s(data.row.source));
+      setStateFileMsg(`Saved ${slug}.`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to save state file.";
+      setStateFileErr(msg);
+    } finally {
+      setStateFileSaving(false);
     }
   }
 
@@ -3543,6 +3725,36 @@ export default function Home() {
     return tenantCustomValuesFiltered.slice(start, start + tenantCustomValuesPageSize);
   }, [tenantCustomValuesFiltered, tenantCustomValuesPageSafe]);
 
+  const stateFilePayloadObject = useMemo(() => {
+    const raw = s(stateFilePayloadText);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+      return parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }, [stateFilePayloadText]);
+
+  const stateFileSearchRows = useMemo(() => {
+    const rows = extractStateGeoRows(stateFilePayloadObject);
+    const stQ = s(stateFileSearchState).toLowerCase();
+    const coQ = s(stateFileSearchCounty).toLowerCase();
+    const ciQ = s(stateFileSearchCity).toLowerCase();
+    return rows.filter((row) => {
+      const stateOk = !stQ || s(row.state).toLowerCase().includes(stQ);
+      const countyOk = !coQ || s(row.county).toLowerCase().includes(coQ);
+      const cityOk = !ciQ || s(row.city).toLowerCase().includes(ciQ);
+      return stateOk && countyOk && cityOk;
+    });
+  }, [
+    stateFilePayloadObject,
+    stateFileSearchState,
+    stateFileSearchCounty,
+    stateFileSearchCity,
+  ]);
+
   const runSummary = useMemo(() => {
     const out = { total: runCards.length, running: 0, done: 0, error: 0, stopped: 0 };
     for (const r of runCards) {
@@ -3742,6 +3954,13 @@ export default function Home() {
               onClick={() => setDetailsTab("custom_values")}
             >
               Custom Values
+            </button>
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "state_files" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("state_files")}
+            >
+              State Files
             </button>
           </div>
 
@@ -4016,6 +4235,170 @@ export default function Home() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          ) : null}
+
+          {detailsTab === "state_files" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">State Files Editor</div>
+                <div className="detailsPaneSub">
+                  Edit tenant state JSON directly from production DB, then save.
+                </div>
+              </div>
+
+              <div className="detailsCustomTop">
+                <div className="row" style={{ marginBottom: 10 }}>
+                  <div className="field">
+                    <label>State</label>
+                    <select
+                      className="select"
+                      value={stateFileSelectedSlug}
+                      onChange={(e) => setStateFileSelectedSlug(s(e.target.value).toLowerCase())}
+                    >
+                      {!statesOut.length ? <option value="">No states found</option> : null}
+                      {statesOut.map((st) => (
+                        <option key={st} value={st}>
+                          {formatStateLabel(st)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>State Name</label>
+                    <input
+                      className="input"
+                      value={stateFileStateName}
+                      onChange={(e) => setStateFileStateName(e.target.value)}
+                      placeholder="Florida"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+                  {stateFileMsg ? <span className="badge">{stateFileMsg}</span> : null}
+                  {stateFileMetaUpdatedAt ? (
+                    <span className="badge">
+                      Updated: {new Date(stateFileMetaUpdatedAt).toLocaleString("en-US")}
+                    </span>
+                  ) : null}
+                  {stateFileMetaSource ? <span className="badge">Source: {stateFileMetaSource}</span> : null}
+                </div>
+
+                {stateFileErr ? (
+                  <div className="mini" style={{ color: "var(--danger)", marginBottom: 10 }}>
+                    ❌ {stateFileErr}
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                  <button
+                    type="button"
+                    className="smallBtn"
+                    disabled={!routeTenantId || !stateFileSelectedSlug || stateFileLoading}
+                    onClick={() => void loadStateFileForEditor(stateFileSelectedSlug)}
+                  >
+                    {stateFileLoading ? "Loading..." : "Load State JSON"}
+                  </button>
+                  <button
+                    type="button"
+                    className="smallBtn"
+                    disabled={!routeTenantId || !stateFileSelectedSlug || stateFileSaving}
+                    onClick={() => void saveStateFileFromEditor()}
+                    title="Saves the full JSON payload to DB."
+                  >
+                    {stateFileSaving ? "Saving..." : "Save JSON"}
+                  </button>
+                </div>
+
+                <textarea
+                  className="input agencyTextarea"
+                  rows={20}
+                  value={stateFilePayloadText}
+                  onChange={(e) => setStateFilePayloadText(e.target.value)}
+                  placeholder='{"stateName":"Florida","counties":[]}'
+                  style={{
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    width: "100%",
+                  }}
+                />
+              </div>
+
+              <div className="detailsCustomTop" style={{ marginTop: 12 }}>
+                <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
+                  <div className="detailsPaneTitle">Search by State / County / City</div>
+                  <div className="detailsPaneSub">
+                    Filter entries from current JSON and get the exact JSON path.
+                  </div>
+                </div>
+                <div className="row" style={{ marginBottom: 8 }}>
+                  <div className="field">
+                    <label>State</label>
+                    <input
+                      className="input"
+                      value={stateFileSearchState}
+                      onChange={(e) => setStateFileSearchState(e.target.value)}
+                      placeholder="Florida"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>County</label>
+                    <input
+                      className="input"
+                      value={stateFileSearchCounty}
+                      onChange={(e) => setStateFileSearchCounty(e.target.value)}
+                      placeholder="Brevard"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>City</label>
+                    <input
+                      className="input"
+                      value={stateFileSearchCity}
+                      onChange={(e) => setStateFileSearchCity(e.target.value)}
+                      placeholder="Cocoa"
+                    />
+                  </div>
+                </div>
+                <div className="mini" style={{ marginBottom: 8 }}>
+                  {stateFileSearchRows.length} matches
+                </div>
+
+                <div className="tableWrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th className="th">State</th>
+                        <th className="th">County</th>
+                        <th className="th">City</th>
+                        <th className="th">JSON Path</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {!stateFileSearchRows.length ? (
+                        <tr>
+                          <td className="td" colSpan={4}>
+                            <span className="mini">
+                              No matches in current JSON. Load a state and adjust filters.
+                            </span>
+                          </td>
+                        </tr>
+                      ) : (
+                        stateFileSearchRows.slice(0, 300).map((row, idx) => (
+                          <tr key={`${row.cityPath}:${idx}`} className="tr">
+                            <td className="td">{row.state || "—"}</td>
+                            <td className="td">{row.county || "—"}</td>
+                            <td className="td">{row.city || "—"}</td>
+                            <td className="td">
+                              <code>{row.cityPath}</code>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           ) : null}
