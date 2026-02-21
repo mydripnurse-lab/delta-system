@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 type AgentProposal = {
   id: string;
@@ -68,12 +68,62 @@ function actionLabel(raw: string) {
   return humanizeToken(v);
 }
 
+function payloadSummary(payload: Record<string, unknown>) {
+  const entries = Object.entries(payload || {}).filter(([, v]) => {
+    const t = typeof v;
+    return t === "string" || t === "number" || t === "boolean";
+  });
+  return entries.slice(0, 6).map(([k, v]) => `${k}: ${String(v)}`);
+}
+
+function renderHighlighted(text: string, query: string): ReactNode {
+  const src = String(text || "");
+  const q = s(query).toLowerCase();
+  if (!q) return src;
+  const lower = src.toLowerCase();
+  const out: ReactNode[] = [];
+  let cursor = 0;
+  let hit = lower.indexOf(q, cursor);
+  let key = 0;
+  while (hit !== -1) {
+    if (hit > cursor) out.push(src.slice(cursor, hit));
+    out.push(
+      <mark key={`mk_${key++}`} className="hubMark">
+        {src.slice(hit, hit + q.length)}
+      </mark>,
+    );
+    cursor = hit + q.length;
+    hit = lower.indexOf(q, cursor);
+  }
+  if (cursor < src.length) out.push(src.slice(cursor));
+  return out.length ? out : src;
+}
+
+function priorityRank(v: string) {
+  const x = s(v).toUpperCase();
+  if (x === "P1") return 3;
+  if (x === "P2") return 2;
+  if (x === "P3") return 1;
+  return 0;
+}
+
+function riskRank(v: string) {
+  const x = s(v).toLowerCase();
+  if (x === "high") return 3;
+  if (x === "medium") return 2;
+  if (x === "low") return 1;
+  return 0;
+}
+
 export default function AgentNotificationHub({ tenantId, onCountsChange }: Props) {
   const [items, setItems] = useState<AgentProposal[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState("");
+  const [copiedId, setCopiedId] = useState("");
   const [err, setErr] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "proposed" | "approved" | "rejected" | "executed" | "failed">("all");
+  const [searchText, setSearchText] = useState("");
+  const [sortBy, setSortBy] = useState<"date_desc" | "priority_desc" | "risk_desc">("date_desc");
 
   async function load() {
     if (!tenantId) return;
@@ -116,6 +166,70 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
     onCountsChange?.(counts);
   }, [counts, onCountsChange]);
 
+  const filteredItems = useMemo(() => {
+    const q = s(searchText).toLowerCase();
+    if (!q) return items;
+    return items.filter((row) => {
+      const payloadText = JSON.stringify(row.payload || {}).toLowerCase();
+      const hay = [
+        row.id,
+        row.summary,
+        row.agent_id,
+        row.dashboard_id,
+        row.action_type,
+        row.priority,
+        row.risk_level,
+        row.expected_impact,
+        row.status,
+        payloadText,
+      ]
+        .map((x) => s(x).toLowerCase())
+        .join(" ");
+      return hay.includes(q);
+    });
+  }, [items, searchText]);
+
+  const sortedItems = useMemo(() => {
+    const out = [...filteredItems];
+    out.sort((a, b) => {
+      if (sortBy === "priority_desc") {
+        const p = priorityRank(b.priority) - priorityRank(a.priority);
+        if (p !== 0) return p;
+      }
+      if (sortBy === "risk_desc") {
+        const r = riskRank(b.risk_level) - riskRank(a.risk_level);
+        if (r !== 0) return r;
+      }
+      const ta = new Date(a.created_at).getTime() || 0;
+      const tb = new Date(b.created_at).getTime() || 0;
+      return tb - ta;
+    });
+    return out;
+  }, [filteredItems, sortBy]);
+
+  async function copyPayload(row: AgentProposal) {
+    const text = JSON.stringify(row.payload || {}, null, 2);
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopiedId(row.id);
+      window.setTimeout(() => setCopiedId((prev) => (prev === row.id ? "" : prev)), 1800);
+    } catch {
+      setErr("Failed to copy payload.");
+    }
+  }
+
   async function decide(proposalId: string, decision: "approved" | "rejected") {
     setBusyId(proposalId);
     setErr("");
@@ -134,6 +248,45 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
       await load();
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : `Failed to ${decision} proposal`);
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function approveAndExecute(row: AgentProposal) {
+    setBusyId(row.id);
+    setErr("");
+    try {
+      const approveRes = await fetch("/api/agents/approval", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          proposalId: row.id,
+          decision: "approved",
+          actor: "user:dashboard",
+          note: "Approved and executed from Notification Hub.",
+        }),
+      });
+      const approveJson = (await approveRes.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!approveRes.ok || !approveJson?.ok) {
+        throw new Error(s(approveJson?.error) || `Approve failed (HTTP ${approveRes.status})`);
+      }
+
+      const execRes = await fetch("/api/agents/execute", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          proposalId: row.id,
+          actor: "user:dashboard",
+        }),
+      });
+      const execJson = (await execRes.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!execRes.ok || !execJson?.ok) {
+        throw new Error(s(execJson?.error) || `Execute failed (HTTP ${execRes.status})`);
+      }
+      await load();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Failed to approve + execute");
     } finally {
       setBusyId("");
     }
@@ -200,11 +353,17 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
 
   return (
     <div className="cardBody hubBody">
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+      <div className="hubToolbar">
         <div className="badge">Proposed: {counts.proposed}</div>
         <div className="badge">Approved: {counts.approved}</div>
         <div className="badge">Executed: {counts.executed}</div>
         <div className="badge">Failed: {counts.failed}</div>
+        <input
+          className="input hubSearchInput"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Search by summary, payload, ID, agent..."
+        />
         <select
           className="input"
           value={statusFilter}
@@ -218,6 +377,16 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
           <option value="executed">Executed</option>
           <option value="failed">Failed</option>
         </select>
+        <select
+          className="input"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          style={{ minWidth: 190, height: 34, paddingTop: 0, paddingBottom: 0 }}
+        >
+          <option value="date_desc">Sort: Newest first</option>
+          <option value="priority_desc">Sort: Priority (P1-P3)</option>
+          <option value="risk_desc">Sort: Risk (high-low)</option>
+        </select>
         <button className="smallBtn" type="button" onClick={() => void load()} disabled={loading || !tenantId}>
           {loading ? "Refreshing..." : "Refresh"}
         </button>
@@ -225,35 +394,29 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
 
       {err ? <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>X {err}</div> : null}
 
-      <div className="tableWrap hubTableWrap">
-        <table className="table hubTable">
-          <thead>
-            <tr>
-              <th>Agent</th>
-              <th>Action</th>
-              <th>Status</th>
-              <th>Summary</th>
-              <th>Created</th>
-              <th style={{ width: 280 }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!items.length ? (
-              <tr>
-                <td colSpan={6} className="mini">No agent proposals yet.</td>
-              </tr>
-            ) : (
-              items.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <div className="mini"><b>{humanizeToken(row.agent_id)}</b></div>
-                    <div className="mini" style={{ opacity: 0.8 }}>{dashboardLabel(row.dashboard_id)} · {row.priority}</div>
-                  </td>
-                  <td>
-                    <div className="mini">{actionLabel(row.action_type)}</div>
-                    <div className="mini" style={{ opacity: 0.8 }}>{row.risk_level} risk · {row.expected_impact} impact</div>
-                  </td>
-                  <td>
+      {!sortedItems.length ? (
+        <div className="tableWrap hubTableWrap">
+          <div className="mini" style={{ padding: 12 }}>
+            {items.length ? "No proposals match current filters." : "No agent proposals yet."}
+          </div>
+        </div>
+      ) : (
+        <div className="hubProposalList">
+          {sortedItems.map((row) => {
+            const payloadHead = payloadSummary(row.payload || {});
+            return (
+              <article key={row.id} className="hubProposalCard">
+                <div className="hubProposalTop">
+                  <div className="hubProposalTitle">
+                    <span>{humanizeToken(row.agent_id)}</span>
+                    <span className="mini" style={{ opacity: 0.82 }}>
+                      {dashboardLabel(row.dashboard_id)} · {actionLabel(row.action_type)}
+                    </span>
+                  </div>
+                  <div className="hubProposalBadges">
+                    <span className="badge">{row.priority}</span>
+                    <span className="badge">{row.risk_level} risk</span>
+                    <span className="badge">{row.expected_impact} impact</span>
                     <span
                       className="badge"
                       style={{
@@ -264,49 +427,70 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
                     >
                       {row.status}
                     </span>
-                    {row.status === "failed" && row.execution_error ? (
-                      <div className="mini" style={{ color: "var(--danger)", marginTop: 4 }}>{row.execution_error}</div>
-                    ) : null}
-                  </td>
-                  <td>
-                    <div className="mini">{row.summary}</div>
-                  </td>
-                  <td className="mini">{fmtTs(row.created_at)}</td>
-                  <td>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {row.status === "proposed" ? (
-                        <>
-                          <button className="smallBtn btnPrimary" type="button" disabled={busyId === row.id} onClick={() => void decide(row.id, "approved")}>
-                            Approve
-                          </button>
-                          <button className="smallBtn" type="button" disabled={busyId === row.id} onClick={() => void editAndApprove(row)}>
-                            Edit + Approve
-                          </button>
-                          <button className="smallBtn" type="button" disabled={busyId === row.id} onClick={() => void decide(row.id, "rejected")}>
-                            Reject
-                          </button>
-                        </>
-                      ) : null}
-                      {row.status === "approved" ? (
-                        <button className="smallBtn btnPrimary" type="button" disabled={busyId === row.id} onClick={() => void execute(row.id)}>
-                          Execute
-                        </button>
-                      ) : null}
-                      <button
-                        className="smallBtn"
-                        type="button"
-                        onClick={() => window.alert(JSON.stringify(row.payload || {}, null, 2))}
-                      >
-                        View Payload
+                  </div>
+                </div>
+
+                <div className="hubProposalMeta mini">
+                  <span>Created: {fmtTs(row.created_at)}</span>
+                  <span>Proposal: {row.id}</span>
+                </div>
+
+                <div className="hubProposalSummary">{renderHighlighted(row.summary, searchText)}</div>
+
+                {row.status === "failed" && row.execution_error ? (
+                  <div className="mini" style={{ color: "var(--danger)", marginTop: 6 }}>{row.execution_error}</div>
+                ) : null}
+
+                {payloadHead.length ? (
+                  <div className="hubProposalPayloadHead mini">
+                    {payloadHead.map((line, idx) => (
+                      <span key={`${row.id}_kv_${idx}`} className="hubKvChip">
+                        {renderHighlighted(line, searchText)}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                <details className="hubPayloadDetails">
+                  <summary>View full payload JSON</summary>
+                  <pre>{renderHighlighted(JSON.stringify(row.payload || {}, null, 2), searchText)}</pre>
+                </details>
+
+                <div className="hubProposalActions">
+                  <button
+                    className={`smallBtn ${copiedId === row.id ? "btnPrimary" : ""}`}
+                    type="button"
+                    onClick={() => void copyPayload(row)}
+                  >
+                    {copiedId === row.id ? "Copied JSON" : "Copy Payload JSON"}
+                  </button>
+                  {row.status === "proposed" ? (
+                    <>
+                      <button className="smallBtn btnPrimary" type="button" disabled={busyId === row.id} onClick={() => void approveAndExecute(row)}>
+                        Approve + Execute
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                      <button className="smallBtn btnPrimary" type="button" disabled={busyId === row.id} onClick={() => void decide(row.id, "approved")}>
+                        Approve
+                      </button>
+                      <button className="smallBtn" type="button" disabled={busyId === row.id} onClick={() => void editAndApprove(row)}>
+                        Edit + Approve
+                      </button>
+                      <button className="smallBtn" type="button" disabled={busyId === row.id} onClick={() => void decide(row.id, "rejected")}>
+                        Reject
+                      </button>
+                    </>
+                  ) : null}
+                  {row.status === "approved" ? (
+                    <button className="smallBtn btnPrimary" type="button" disabled={busyId === row.id} onClick={() => void execute(row.id)}>
+                      Execute
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -29,7 +29,7 @@ function NotificationHubPageInner() {
   }, [tenantId, integrationKey]);
 
   return (
-    <div className="shell callsDash ceoDash hubStandalone">
+    <div className="shell callsDash ceoDash">
       <DashboardTopbar
         title="Notification Hub"
         subtitle="Approval queue + agent execution center for this tenant."
