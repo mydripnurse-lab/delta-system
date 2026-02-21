@@ -3533,14 +3533,65 @@ export default function Home() {
 
   function buildDomainBotSteps() {
     return [
-      { action: "wait_for_timeout", ms: 1800 },
+      {
+        action: "wait_for_url_contains",
+        value: "/settings/domain",
+        timeoutMs: 120000,
+      },
+      { action: "wait_for_timeout", ms: 3000 },
       {
         action: "evaluate",
         script: `
-const connect=document.querySelector('#connect-domain-button');
-window.__ct_connect_flow=!!connect;
-if(connect) connect.click();
-return window.__ct_connect_flow?'connect-flow':'skip-to-manage';
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+function visible(el){
+  if(!el) return false;
+  const st=window.getComputedStyle(el);
+  if(!st) return true;
+  if(st.display==='none'||st.visibility==='hidden'||Number(st.opacity||'1')===0) return false;
+  const r=el.getBoundingClientRect();
+  return r.width>0&&r.height>0;
+}
+const started=Date.now();
+const timeoutMs=120000;
+while(Date.now()-started<timeoutMs){
+  const connect=document.querySelector('#connect-domain-button');
+  const manage=document.querySelector('#manage-domain');
+  if(visible(connect)||visible(manage)) return 'ready';
+  await sleep(350);
+}
+throw new Error('Domain page not ready (#connect-domain-button or #manage-domain not visible)');
+`,
+      },
+      {
+        action: "evaluate",
+        script: `
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+function visible(el){
+  if(!el) return false;
+  const st=window.getComputedStyle(el);
+  if(!st) return true;
+  if(st.display==='none'||st.visibility==='hidden'||Number(st.opacity||'1')===0) return false;
+  const r=el.getBoundingClientRect();
+  return r.width>0&&r.height>0;
+}
+const started=Date.now();
+const timeoutMs=90000;
+while(Date.now()-started<timeoutMs){
+  const connect=document.querySelector('#connect-domain-button');
+  const manage=document.querySelector('#manage-domain');
+  if(visible(connect)){
+    window.__ct_connect_flow=true;
+    connect.click();
+    return 'connect-flow';
+  }
+  if(visible(manage)){
+    window.__ct_connect_flow=false;
+    return 'skip-to-manage';
+  }
+  await sleep(350);
+}
+window.__ct_connect_flow=false;
+return 'skip-to-manage-timeout';
 `,
       },
       {
@@ -3548,15 +3599,32 @@ return window.__ct_connect_flow?'connect-flow':'skip-to-manage';
         script: `
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
 if(!window.__ct_connect_flow) return 'skip-connect-flow';
-const click=(sel)=>{
-  const el=document.querySelector(sel);
-  if(!el) throw new Error('Missing selector: '+sel);
+function visible(el){
+  if(!el) return false;
+  const st=window.getComputedStyle(el);
+  if(!st) return true;
+  if(st.display==='none'||st.visibility==='hidden'||Number(st.opacity||'1')===0) return false;
+  const r=el.getBoundingClientRect();
+  return r.width>0&&r.height>0;
+}
+const waitPick=async(selectors,timeoutMs=45000)=>{
+  const started=Date.now();
+  while(Date.now()-started<timeoutMs){
+    for(const sel of selectors){
+      const el=document.querySelector(sel);
+      if(visible(el)) return el;
+    }
+    await sleep(250);
+  }
+  throw new Error('Missing selectors: '+selectors.join(' | '));
+};
+const click=async(selectors)=>{
+  const el=await waitPick(selectors);
   el.click();
   return el;
 };
-const fill=(sel,val)=>{
-  const el=document.querySelector(sel);
-  if(!el) throw new Error('Missing selector: '+sel);
+const fill=async(selectors,val)=>{
+  const el=await waitPick(selectors);
   el.focus();
   el.value=String(val||'');
   el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -3564,15 +3632,15 @@ const fill=(sel,val)=>{
   el.blur();
 };
 await sleep(220);
-click('#connect-button-SITES');
+await click(['#connect-button-SITES','[id*="connect-button-SITES"]']);
 await sleep(220);
-fill('.n-input__input-el','{{domain_to_paste}}');
+await fill(['.n-input__input-el','input[type="text"]','input[type="url"]'],'{{domain_to_paste}}');
 await sleep(180);
-click('#add-records');
+await click(['#add-records','[id*="add-records"]']);
 await sleep(250);
-click('#submit-manually');
+await click(['#submit-manually','[id*="submit-manually"]']);
 await sleep(220);
-click('#addedRecord');
+await click(['#addedRecord','[id*="addedRecord"]']);
 await sleep(180);
 document.querySelector('input[type="radio"][value="website"]')?.click();
 return 'connect-flow-done';
@@ -3641,7 +3709,7 @@ document.querySelector('#submit')?.click();
 return 'submitted';
 `,
       },
-      { action: "wait_for_selector", selector: "#manage-domain", timeoutMs: 120000 },
+      { action: "wait_for_selector", selector: "#manage-domain", timeoutMs: 240000 },
       { action: "click", selector: "#manage-domain", timeoutMs: 15000 },
       {
         action: "click",

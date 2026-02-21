@@ -52,6 +52,7 @@ function normalizeWorkerResponse(
     error: s(payload?.error || fallbackError),
     lastResult: s(payload?.lastResult),
     screenshotUrl: s(payload?.screenshotUrl),
+    screenshotDataUrl: s(payload?.screenshotDataUrl),
     logUrl: s(payload?.logUrl),
     workerRaw: payload,
   };
@@ -76,6 +77,7 @@ async function runRemoteDomainBot(input: {
       attempts: 0,
       lastResult: "",
       screenshotUrl: "",
+      screenshotDataUrl: "",
       logUrl: "",
       workerRaw: null,
     };
@@ -587,6 +589,7 @@ export async function POST(req: Request) {
             error: remote.error,
             lastResult: remote.lastResult,
             screenshotUrl: remote.screenshotUrl,
+            screenshotDataUrl: remote.screenshotDataUrl,
             logUrl: remote.logUrl,
             workerRaw: remote.workerRaw,
           },
@@ -601,6 +604,7 @@ export async function POST(req: Request) {
         clicked: remote.clicked || "worker-step-completed",
         attempts: remote.attempts,
         screenshotUrl: remote.screenshotUrl || undefined,
+        screenshotDataUrl: remote.screenshotDataUrl || undefined,
         logUrl: remote.logUrl || undefined,
       });
     }

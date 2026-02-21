@@ -72,6 +72,7 @@ function pickLocator(page, selector, text) {
 
 async function runSteps(page, steps, variables, outLog) {
   if (!Array.isArray(steps) || steps.length === 0) return { ok: false, reason: "no-steps" };
+  const defaultStepDelayMs = n(process.env.WORKER_STEP_DELAY_MS, 220, 0, 5000);
 
   for (let i = 0; i < steps.length; i += 1) {
     const step = deepRender(steps[i] || {}, variables);
@@ -92,22 +93,26 @@ async function runSteps(page, steps, variables, outLog) {
         if (!target) return { ok: false, reason: `step-${i + 1}:missing-url` };
         await page.goto(target, { waitUntil: "domcontentloaded", timeout });
         outLog.push(`step ${i + 1}: goto ${target}`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "wait_ms") {
         await sleep(n(step.ms, 500, 50, 60_000));
         outLog.push(`step ${i + 1}: wait_ms`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "wait_for_timeout") {
         await sleep(n(step.ms, 500, 50, 60_000));
         outLog.push(`step ${i + 1}: wait_for_timeout`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "wait_for_selector") {
         if (!selector) return { ok: false, reason: `step-${i + 1}:missing-selector` };
         await page.waitForSelector(selector, { timeout, state: "visible" });
         outLog.push(`step ${i + 1}: wait_for_selector ${selector}`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "wait_for_url_contains") {
@@ -119,6 +124,7 @@ async function runSteps(page, steps, variables, outLog) {
           { timeout },
         );
         outLog.push(`step ${i + 1}: wait_for_url_contains ${needle}`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "evaluate") {
@@ -141,6 +147,7 @@ async function runSteps(page, steps, variables, outLog) {
             return { ok: false, reason: `step-${i + 1}:evaluate-expect-failed got=${s(result)}` };
           }
         }
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "close_page") {
@@ -155,26 +162,31 @@ async function runSteps(page, steps, variables, outLog) {
       if (action === "click") {
         await locator.click({ timeout });
         outLog.push(`step ${i + 1}: click`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "fill") {
         await locator.fill(value, { timeout });
         outLog.push(`step ${i + 1}: fill`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "type") {
         await locator.type(value, { timeout });
         outLog.push(`step ${i + 1}: type`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "press") {
         await locator.press(s(step.key) || "Enter", { timeout });
         outLog.push(`step ${i + 1}: press`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
       if (action === "select") {
         await locator.selectOption(value, { timeout });
         outLog.push(`step ${i + 1}: select`);
+        await sleep(n(step.postDelayMs, defaultStepDelayMs, 0, 10000));
         continue;
       }
 
