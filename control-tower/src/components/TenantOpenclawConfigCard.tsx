@@ -14,6 +14,11 @@ type OpenclawConfigResponse = {
   apiKeyMasked?: string;
   openclawBaseUrl?: string;
   openclawWorkspace?: string;
+  autoProposals?: {
+    enabled?: boolean;
+    dedupeHours?: number;
+    maxPerRun?: number;
+  };
   agents?: Record<string, AgentNode>;
   error?: string;
 };
@@ -54,18 +59,40 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [apiKeyMasked, setApiKeyMasked] = useState("");
   const [openclawBaseUrl, setOpenclawBaseUrl] = useState("");
   const [openclawWorkspace, setOpenclawWorkspace] = useState("");
+  const [autoEnabled, setAutoEnabled] = useState(true);
+  const [autoDedupeHours, setAutoDedupeHours] = useState("8");
+  const [autoMaxPerRun, setAutoMaxPerRun] = useState("6");
   const [agents, setAgents] = useState<Record<string, AgentNode>>({});
   const [loadedAgents, setLoadedAgents] = useState<Record<string, AgentNode>>({});
   const [loadedOpenclawBaseUrl, setLoadedOpenclawBaseUrl] = useState("");
   const [loadedOpenclawWorkspace, setLoadedOpenclawWorkspace] = useState("");
+  const [loadedAutoEnabled, setLoadedAutoEnabled] = useState(true);
+  const [loadedAutoDedupeHours, setLoadedAutoDedupeHours] = useState("8");
+  const [loadedAutoMaxPerRun, setLoadedAutoMaxPerRun] = useState("6");
 
   const isDirty = useMemo(() => {
     return (
       JSON.stringify(agents) !== JSON.stringify(loadedAgents) ||
       s(openclawBaseUrl) !== s(loadedOpenclawBaseUrl) ||
-      s(openclawWorkspace) !== s(loadedOpenclawWorkspace)
+      s(openclawWorkspace) !== s(loadedOpenclawWorkspace) ||
+      autoEnabled !== loadedAutoEnabled ||
+      s(autoDedupeHours) !== s(loadedAutoDedupeHours) ||
+      s(autoMaxPerRun) !== s(loadedAutoMaxPerRun)
     );
-  }, [agents, loadedAgents, openclawBaseUrl, loadedOpenclawBaseUrl, openclawWorkspace, loadedOpenclawWorkspace]);
+  }, [
+    agents,
+    loadedAgents,
+    openclawBaseUrl,
+    loadedOpenclawBaseUrl,
+    openclawWorkspace,
+    loadedOpenclawWorkspace,
+    autoEnabled,
+    loadedAutoEnabled,
+    autoDedupeHours,
+    loadedAutoDedupeHours,
+    autoMaxPerRun,
+    loadedAutoMaxPerRun,
+  ]);
 
   async function load() {
     if (!tenantId) return;
@@ -86,6 +113,15 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       setOpenclawWorkspace(s(json.openclawWorkspace));
       setLoadedOpenclawBaseUrl(s(json.openclawBaseUrl));
       setLoadedOpenclawWorkspace(s(json.openclawWorkspace));
+      const nextAutoEnabled = json.autoProposals?.enabled !== false;
+      const nextAutoDedupeHours = String(json.autoProposals?.dedupeHours ?? 8);
+      const nextAutoMaxPerRun = String(json.autoProposals?.maxPerRun ?? 6);
+      setAutoEnabled(nextAutoEnabled);
+      setAutoDedupeHours(nextAutoDedupeHours);
+      setAutoMaxPerRun(nextAutoMaxPerRun);
+      setLoadedAutoEnabled(nextAutoEnabled);
+      setLoadedAutoDedupeHours(nextAutoDedupeHours);
+      setLoadedAutoMaxPerRun(nextAutoMaxPerRun);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
     } catch (e: unknown) {
@@ -125,6 +161,11 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
           rotate,
           openclawBaseUrl,
           openclawWorkspace,
+          autoProposals: {
+            enabled: autoEnabled,
+            dedupeHours: Number(autoDedupeHours || 8),
+            maxPerRun: Number(autoMaxPerRun || 6),
+          },
           agents,
         }),
       });
@@ -138,6 +179,15 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       setOpenclawWorkspace(s(json.openclawWorkspace));
       setLoadedOpenclawBaseUrl(s(json.openclawBaseUrl));
       setLoadedOpenclawWorkspace(s(json.openclawWorkspace));
+      const nextAutoEnabled = json.autoProposals?.enabled !== false;
+      const nextAutoDedupeHours = String(json.autoProposals?.dedupeHours ?? 8);
+      const nextAutoMaxPerRun = String(json.autoProposals?.maxPerRun ?? 6);
+      setAutoEnabled(nextAutoEnabled);
+      setAutoDedupeHours(nextAutoDedupeHours);
+      setAutoMaxPerRun(nextAutoMaxPerRun);
+      setLoadedAutoEnabled(nextAutoEnabled);
+      setLoadedAutoDedupeHours(nextAutoDedupeHours);
+      setLoadedAutoMaxPerRun(nextAutoMaxPerRun);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
       if (rotate && s((json as any).apiKey)) {
@@ -189,6 +239,41 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
             onChange={(e) => setOpenclawWorkspace(e.target.value)}
             placeholder="tenant-xyz"
           />
+        </div>
+        <div className="moduleCard">
+          <p className="l moduleTitle">Auto Proposals</p>
+          <label className="mini" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+            <input
+              type="checkbox"
+              checked={autoEnabled}
+              onChange={(e) => setAutoEnabled(e.target.checked)}
+            />
+            Enabled (semi-autonomous cron per tenant)
+          </label>
+          <div style={{ display: "grid", gap: 8, marginTop: 10, gridTemplateColumns: "1fr 1fr" }}>
+            <div>
+              <div className="mini" style={{ marginBottom: 4 }}>Dedupe Hours (1-72)</div>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={72}
+                value={autoDedupeHours}
+                onChange={(e) => setAutoDedupeHours(e.target.value)}
+              />
+            </div>
+            <div>
+              <div className="mini" style={{ marginBottom: 4 }}>Max proposals/run (1-12)</div>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={12}
+                value={autoMaxPerRun}
+                onChange={(e) => setAutoMaxPerRun(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

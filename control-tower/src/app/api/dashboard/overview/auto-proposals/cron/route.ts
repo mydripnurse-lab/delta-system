@@ -26,6 +26,11 @@ type ExecutePlanItem = {
 type TenantTarget = {
   tenantId: string;
   agents: Record<string, { enabled: boolean; agentId: string }>;
+  autoProposals: {
+    enabled: boolean;
+    dedupeHours: number;
+    maxPerRun: number;
+  };
 };
 
 function s(v: unknown) {
@@ -38,24 +43,77 @@ function boolish(v: unknown, fallback = false) {
   return x === "1" || x === "true" || x === "yes" || x === "on" || x === "active";
 }
 
+function clampInt(v: unknown, min: number, max: number, fallback: number) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  const x = Math.trunc(n);
+  if (x < min) return min;
+  if (x > max) return max;
+  return x;
+}
+
 function normalizePriority(v: unknown): "P1" | "P2" | "P3" {
   const x = s(v).toUpperCase();
   if (x === "P1" || x === "P2" || x === "P3") return x;
   return "P2";
 }
 
-function isAuthorized(req: Request, body?: JsonMap | null) {
+async function readTenantAgentApiKeys(tenantId: string) {
+  const pool = getDbPool();
+  const q = await pool.query<{
+    k1: string | null;
+    k2: string | null;
+    k3: string | null;
+    k4: string | null;
+  }>(
+    `
+      select
+        nullif(config->>'agentApiKey', '') as k1,
+        nullif(config->>'openclawApiKey', '') as k2,
+        nullif(config->>'apiKey', '') as k3,
+        nullif(config->>'webhookSecret', '') as k4
+      from app.organization_integrations
+      where organization_id = $1::uuid
+        and provider in ('custom', 'openai')
+        and integration_key in ('agent', 'default', 'owner')
+      order by
+        case provider when 'custom' then 0 else 1 end,
+        case integration_key when 'agent' then 0 when 'default' then 1 else 2 end
+      limit 3
+    `,
+    [tenantId],
+  );
+  const out = new Set<string>();
+  for (const row of q.rows) {
+    for (const v of [row.k1, row.k2, row.k3, row.k4]) {
+      const key = s(v);
+      if (key) out.add(key);
+    }
+  }
+  return out;
+}
+
+async function isAuthorized(req: Request, body?: JsonMap | null) {
   const vercelCron = s(req.headers.get("x-vercel-cron"));
   if (vercelCron === "1") return true;
   const tokenHeader = s(req.headers.get("x-dashboard-cron-secret"));
   const authHeader = s(req.headers.get("authorization"));
   const bearer = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
   const tokenBody = s(body?.secret);
+  const token = tokenHeader || bearer || tokenBody;
   const expected = s(
     process.env.CRON_SECRET || process.env.DASHBOARD_CRON_SECRET || process.env.PROSPECTING_CRON_SECRET,
   );
+  if (expected && token === expected) return true;
+
+  const singleTenantId = s(body?.tenantId);
+  if (singleTenantId && token) {
+    const tenantKeys = await readTenantAgentApiKeys(singleTenantId);
+    if (tenantKeys.has(token)) return true;
+  }
+
   if (!expected) return true;
-  return tokenHeader === expected || bearer === expected || tokenBody === expected;
+  return false;
 }
 
 function computeRange() {
@@ -114,6 +172,15 @@ function normalizeAgents(raw: unknown) {
   return out;
 }
 
+function normalizeAutoProposals(raw: unknown) {
+  const input = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    enabled: boolish(input.enabled, true),
+    dedupeHours: clampInt(input.dedupeHours, 1, 72, 8),
+    maxPerRun: clampInt(input.maxPerRun, 1, 12, 6),
+  };
+}
+
 async function fetchJson(url: string, init?: RequestInit) {
   const res = await fetch(url, { cache: "no-store", ...(init || {}) });
   const json = (await res.json().catch(() => null)) as JsonMap | null;
@@ -146,6 +213,7 @@ async function listTargets(singleTenantId: string) {
   return (q.rows || []).map<TenantTarget>((r) => ({
     tenantId: s(r.organization_id),
     agents: normalizeAgents((r.config || {}).agents),
+    autoProposals: normalizeAutoProposals((r.config || {}).autoProposals),
   }));
 }
 
@@ -224,14 +292,15 @@ async function buildExecutePlanForTenant(input: {
 }
 
 async function runAutoProposals(req: Request, body?: JsonMap | null) {
-  if (!isAuthorized(req, body)) {
+  if (!(await isAuthorized(req, body))) {
     return Response.json({ ok: false, error: "Unauthorized cron secret." }, { status: 401 });
   }
 
   const singleTenantId = s(body?.tenantId);
   const integrationKey = s(body?.integrationKey) || "owner";
-  const lookbackHours = Math.max(1, Math.min(72, Number(body?.dedupeHours || 8)));
-  const maxPerTenant = Math.max(1, Math.min(12, Number(body?.maxPerTenant || 6)));
+  const globalDedupeHours = clampInt(body?.dedupeHours, 1, 72, 0);
+  const globalMaxPerTenant = clampInt(body?.maxPerTenant, 1, 12, 0);
+  const dryRun = boolish(body?.dryRun, false);
   const { start, end, preset } = computeRange();
   const origin = new URL(req.url).origin;
   const targets = await listTargets(singleTenantId);
@@ -241,13 +310,25 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
     const row: Record<string, unknown> = {
       tenantId: target.tenantId,
       ok: true,
+      autoEnabled: target.autoProposals.enabled,
       generated: 0,
+      wouldGenerate: 0,
       deduped: 0,
       skippedDisabled: 0,
       skippedNoAgent: 0,
+      skippedAutoDisabled: 0,
       errors: [] as string[],
     };
     try {
+      if (!target.autoProposals.enabled) {
+        row.skippedAutoDisabled = 1;
+        rows.push(row);
+        continue;
+      }
+      const lookbackHours = globalDedupeHours || target.autoProposals.dedupeHours;
+      const maxPerTenant = globalMaxPerTenant || target.autoProposals.maxPerRun;
+      row.dedupeHours = lookbackHours;
+      row.maxPerTenant = maxPerTenant;
       const rawPlan = await buildExecutePlanForTenant({
         origin,
         tenantId: target.tenantId,
@@ -293,6 +374,10 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
 
         const riskLevel = priority === "P1" ? "high" : priority === "P2" ? "medium" : "low";
         const expectedImpact = priority === "P1" ? "high" : priority === "P2" ? "medium" : "low";
+        if (dryRun) {
+          row.wouldGenerate = Number(row.wouldGenerate || 0) + 1;
+          continue;
+        }
         await createProposal({
           organizationId: target.tenantId,
           actionType,
@@ -326,11 +411,17 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
 
   return Response.json({
     ok: true,
+    dryRun,
     totalTenants: rows.length,
     generated: rows.reduce((acc, r) => acc + Number(r.generated || 0), 0),
+    wouldGenerate: rows.reduce((acc, r) => acc + Number(r.wouldGenerate || 0), 0),
     deduped: rows.reduce((acc, r) => acc + Number(r.deduped || 0), 0),
-    lookbackHours,
-    maxPerTenant,
+    skippedAutoDisabled: rows.reduce((acc, r) => acc + Number(r.skippedAutoDisabled || 0), 0),
+    defaults: { dedupeHours: 8, maxPerRun: 6 },
+    globalOverrides: {
+      dedupeHours: globalDedupeHours || null,
+      maxPerTenant: globalMaxPerTenant || null,
+    },
     range: { start, end, preset },
     rows,
   });
@@ -343,6 +434,7 @@ export async function GET(req: Request) {
     integrationKey: s(url.searchParams.get("integrationKey")),
     dedupeHours: s(url.searchParams.get("dedupeHours")),
     maxPerTenant: s(url.searchParams.get("maxPerTenant")),
+    dryRun: s(url.searchParams.get("dryRun")),
     secret: s(url.searchParams.get("secret")),
   });
 }
