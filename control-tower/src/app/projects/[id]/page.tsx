@@ -699,6 +699,9 @@ export default function Home() {
   const [domainBotBusy, setDomainBotBusy] = useState(false);
   const [domainBotLogs, setDomainBotLogs] = useState<string[]>([]);
   const [domainBotScreenshotDataUrl, setDomainBotScreenshotDataUrl] = useState("");
+  const [domainBotRunOpen, setDomainBotRunOpen] = useState(false);
+  const [domainBotStopRequested, setDomainBotStopRequested] = useState(false);
+  const domainBotStopRequestedRef = useRef(false);
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -3461,6 +3464,13 @@ export default function Home() {
     });
   }
 
+  function requestStopDomainBot() {
+    if (!domainBotBusy) return;
+    domainBotStopRequestedRef.current = true;
+    setDomainBotStopRequested(true);
+    pushDomainBotLog("Stop requested by user. Waiting safe checkpoint...");
+  }
+
   async function loadDomainBotHeaders(locId: string) {
     const id = s(locId);
     if (!id || !routeTenantId) return { head: "", footer: "", favicon: "" };
@@ -3840,7 +3850,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     openActivationUrl?: string,
     row?: any,
     kindOverride?: "counties" | "cities",
-  ) {
+  ): Promise<boolean> {
     const id = s(locId);
     const rowKind = kindOverride || detailTab;
     if (!id) {
@@ -3849,7 +3859,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ok: false,
         message: "Missing Location Id for Domain Bot.",
       });
-      return;
+      return false;
     }
     if (!routeTenantId) {
       setTabSitemapStatus({
@@ -3857,7 +3867,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ok: false,
         message: "Missing tenant context for Domain Bot.",
       });
-      return;
+      return false;
     }
     const domainToPaste =
       rowKind === "cities"
@@ -3866,9 +3876,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const sitemapUrl = s(row?.["Sitemap"]);
     const activationUrlEffective = s(openActivationUrl) || domainBotUrlFromLocId(id);
 
+    setDomainBotRunOpen(true);
     setDomainBotBusy(true);
     setDomainBotLogs([]);
     setDomainBotScreenshotDataUrl("");
+    const throwIfStopped = () => {
+      if (domainBotStopRequestedRef.current) {
+        throw new Error("Stopped by user.");
+      }
+    };
     pushDomainBotLog(`Start locId=${id}`);
     pushDomainBotLog(`Activation URL: ${activationUrlEffective || "(missing)"}`);
     setTabSitemapStatus({
@@ -3877,6 +3893,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       message: `Starting Domain Bot for ${id} (custom values + DNS)...`,
     });
     try {
+      throwIfStopped();
       const cvRes = await fetch(
         `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values/apply`,
         {
@@ -3892,6 +3909,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       pushDomainBotLog("Custom values applied.");
 
       const domainUrlForDns = s(toUrlMaybe(domainToPaste));
+      throwIfStopped();
       if (domainUrlForDns) {
         pushDomainBotLog(`DNS upsert start: ${domainUrlForDns}`);
         const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
@@ -3911,10 +3929,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         pushDomainBotLog("DNS upsert done.");
       }
 
+      throwIfStopped();
       const headers = await loadDomainBotHeaders(id);
       const robotsTxtValue = buildRobotsTxt(sitemapUrl);
       const steps = buildDomainBotSteps();
       pushDomainBotLog(`Local extension run start with ${steps.length} mapped steps.`);
+      throwIfStopped();
       const local = await runDomainBotViaExtensionBridge({
         activationUrl: activationUrlEffective,
         domainToPaste,
@@ -3930,6 +3950,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       }
       pushDomainBotLog("Local extension run done.");
 
+      throwIfStopped();
       const markRes = await fetch("/api/sheet/domain-created", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3947,6 +3968,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       }
       pushDomainBotLog("Domain marked as created.");
 
+      throwIfStopped();
       if (domainUrlForDns) {
         pushDomainBotLog("DNS delete start.");
         const dnsDeleteRes = await fetch("/api/tools/cloudflare-dns-cname", {
@@ -3975,16 +3997,39 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       });
       await loadOverview();
       if (openState) await openDetail(openState);
+      return true;
     } catch (e: any) {
-      pushDomainBotLog(`ERROR: ${e?.message || "request failed"}`);
-      setTabSitemapStatus({
-        kind: rowKind,
-        ok: false,
-        message: `Domain Bot failed (${id}): ${e?.message || "request failed"}`,
-      });
+      const msg = e?.message || "request failed";
+      if (/stopped by user/i.test(msg)) {
+        pushDomainBotLog("STOPPED by user.");
+        setTabSitemapStatus({
+          kind: rowKind,
+          ok: false,
+          message: `Domain Bot stopped (${id}).`,
+        });
+      } else {
+        pushDomainBotLog(`ERROR: ${msg}`);
+        setTabSitemapStatus({
+          kind: rowKind,
+          ok: false,
+          message: `Domain Bot failed (${id}): ${msg}`,
+        });
+      }
+      return false;
     } finally {
       setDomainBotBusy(false);
     }
+  }
+
+  async function runDomainBotSingle(
+    locId: string,
+    openActivationUrl?: string,
+    row?: any,
+  ) {
+    domainBotStopRequestedRef.current = false;
+    setDomainBotStopRequested(false);
+    setDomainBotRunOpen(true);
+    await runDomainBotForLocId(locId, openActivationUrl, row, detailTab);
   }
 
   async function runDomainBotPendingInCurrentTab() {
@@ -4005,7 +4050,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       return;
     }
 
+    domainBotStopRequestedRef.current = false;
+    setDomainBotStopRequested(false);
+    setDomainBotRunOpen(true);
+
     for (let i = 0; i < queue.length; i += 1) {
+      if (domainBotStopRequestedRef.current) break;
       const item = queue[i];
       setTabSitemapStatus({
         kind: detailTab,
@@ -4014,6 +4064,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       });
       // Sequential run, one account at a time.
       await runDomainBotForLocId(item.locId, item.activationUrl, item.row, detailTab);
+    }
+
+    if (domainBotStopRequestedRef.current) {
+      setTabSitemapStatus({
+        kind: detailTab,
+        ok: false,
+        message: `Domain Bot ${detailTab} stopped by user.`,
+      });
     }
   }
 
@@ -5906,6 +5964,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       ? "Running Bot..."
                       : `Run Pending ${detailTab === "counties" ? "Counties" : "Cities"} (${pendingDomainBotRowsInTab.length})`}
                   </button>
+                  <button
+                    className="smallBtn"
+                    onClick={() => setDomainBotRunOpen(true)}
+                    disabled={!domainBotLogs.length && !domainBotBusy}
+                    title="Ver ejecución del Domain Bot"
+                  >
+                    View Bot Run
+                  </button>
                 </div>
                 {domainBotLogs.length ? (
                   <div
@@ -6222,7 +6288,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                     <div className="rowActions">
                                       <button
                                         className="smallBtn"
-                                        onClick={() => void runDomainBotForLocId(locId, activationUrl, r)}
+                                        onClick={() => void runDomainBotSingle(locId, activationUrl, r)}
                                         disabled={!eligible || domainCreated || domainBotBusy}
                                         title="Open Domain Settings bot page"
                                       >
@@ -6642,6 +6708,106 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {domainBotRunOpen && (
+        <>
+          <div
+            className="modalBackdrop"
+            onClick={() => {
+              if (!domainBotBusy) setDomainBotRunOpen(false);
+            }}
+          />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(980px, calc(100vw - 24px))",
+              height: "min(620px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader">
+              <div>
+                <div className="badge">DOMAIN BOT RUN</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  {openState || "State"} • {detailTab === "counties" ? "Counties" : "Cities"}
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  {domainBotBusy
+                    ? domainBotStopRequested
+                      ? "Stopping requested..."
+                      : "Processing..."
+                    : "Idle"}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span className="badge">{domainBotBusy ? "Running" : "Idle"}</span>
+                {domainBotStopRequested ? (
+                  <span className="badge" style={{ color: "var(--warning)" }}>Stop requested</span>
+                ) : null}
+                <button
+                  className="smallBtn"
+                  onClick={requestStopDomainBot}
+                  disabled={!domainBotBusy || domainBotStopRequested}
+                  title="Stop current bot run safely"
+                >
+                  {domainBotStopRequested ? "Stopping..." : "Stop"}
+                </button>
+                <button
+                  className="smallBtn"
+                  onClick={() => setDomainBotRunOpen(false)}
+                  disabled={domainBotBusy}
+                >
+                  {domainBotBusy ? "Running..." : "Close"}
+                </button>
+              </div>
+            </div>
+
+            <div className="modalBody" style={{ padding: 14 }}>
+              <div className="card" style={{ marginBottom: 10 }}>
+                <div className="cardBody" style={{ padding: 10 }}>
+                  <div
+                    className="mini"
+                    style={{
+                      maxHeight: 300,
+                      overflow: "auto",
+                      whiteSpace: "pre-wrap",
+                      border: "1px solid var(--line)",
+                      borderRadius: 10,
+                      padding: "8px 10px",
+                      background: "rgba(2,6,23,.35)",
+                    }}
+                  >
+                    {domainBotLogs.length
+                      ? domainBotLogs.map((line, idx) => <div key={`dbm_${idx}`}>{line}</div>)
+                      : "No logs yet."}
+                  </div>
+                </div>
+              </div>
+
+              {domainBotScreenshotDataUrl ? (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 10 }}>
+                    <div className="mini" style={{ marginBottom: 6 }}>
+                      Worker failure screenshot
+                    </div>
+                    <img
+                      src={domainBotScreenshotDataUrl}
+                      alt="Domain Bot failure screenshot"
+                      style={{
+                        maxWidth: "100%",
+                        borderRadius: 8,
+                        border: "1px solid var(--line)",
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </>

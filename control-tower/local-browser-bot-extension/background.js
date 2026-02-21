@@ -578,28 +578,106 @@ async function runInTab(tabId, payload) {
 
       async function openActionMenuAndPickExact(optionText, triggerSelector, timeoutMs = 45000) {
         const wanted = norm(optionText);
+        const started = Date.now();
+        let attempt = 0;
+        let lastErr = null;
 
-        await clickSel(triggerSelector, `open action menu -> ${optionText}`, timeoutMs);
-        await sleep(320);
+        const pickVisibleTrigger = () => {
+          const all = [...document.querySelectorAll(triggerSelector)].filter((el) => visible(el));
+          if (!all.length) return null;
+          // Prefer the visible trigger closest to viewport center.
+          const cy = window.innerHeight / 2;
+          const cx = window.innerWidth / 2;
+          all.sort((a, b) => {
+            const ra = a.getBoundingClientRect();
+            const rb = b.getBoundingClientRect();
+            const da = Math.abs((ra.top + ra.height / 2) - cy) + Math.abs((ra.left + ra.width / 2) - cx);
+            const db = Math.abs((rb.top + rb.height / 2) - cy) + Math.abs((rb.left + rb.width / 2) - cx);
+            return da - db;
+          });
+          return all[0];
+        };
 
-        const option = await waitFor(() => {
-          const menu = [...document.querySelectorAll(".v-binder-follower-content")]
-            .find((el) => visible(el) && norm(el.textContent).includes(optionText));
-          if (!menu) return null;
+        while (Date.now() - started < timeoutMs) {
+          attempt += 1;
+          try {
+            // If menu is already open and contains exact option, click it immediately.
+            const alreadyOpenOption = (() => {
+              const menus = [...document.querySelectorAll(".v-binder-follower-content")]
+                .filter((el) => visible(el));
+              for (const menu of menus) {
+                const labels = [...menu.querySelectorAll(".n-dropdown-option-body__label")];
+                for (const label of labels) {
+                  const t = norm(label?.textContent || "");
+                  if (t === wanted) {
+                    const opt = label.closest(".n-dropdown-option") || label;
+                    return { opt, label };
+                  }
+                }
+              }
+              return null;
+            })();
+            if (alreadyOpenOption) {
+              fireSingleNativeClick(alreadyOpenOption.label);
+              await sleep(120);
+              fireSingleNativeClick(alreadyOpenOption.opt);
+              log(`menu pick exact -> ${optionText} (already open)`);
+              await sleep(520);
+              return;
+            }
 
-          const options = [...menu.querySelectorAll(".n-dropdown-option")];
-          for (const opt of options) {
-            if (!visible(opt)) continue;
-            const label = opt.querySelector(".n-dropdown-option-body__label");
-            const t = norm(label?.textContent || "");
-            if (t === wanted) return opt;
+            // Ensure trigger exists/visible and is stable before opening menu.
+            const trigger = await waitFor(() => {
+              const el = pickVisibleTrigger();
+              return visible(el) ? el : null;
+            }, Math.min(12000, timeoutMs), 220, `action menu trigger visible (${triggerSelector})`);
+
+            await sleep(280);
+            fireSingleNativeClick(trigger);
+            log(`open action menu -> ${optionText} (attempt ${attempt})`);
+            await sleep(380);
+
+            const option = await waitFor(() => {
+              const menus = [...document.querySelectorAll(".v-binder-follower-content")]
+                .filter((el) => visible(el));
+              if (!menus.length) return null;
+
+              for (const menu of menus) {
+                const labels = [...menu.querySelectorAll(".n-dropdown-option-body__label")];
+                for (const label of labels) {
+                  const t = norm(label?.textContent || "");
+                  if (t === wanted) {
+                    const opt = label.closest(".n-dropdown-option") || label;
+                    return { opt, label };
+                  }
+                }
+              }
+              return null;
+            }, 8000, 220, `dropdown option exact: ${optionText}`);
+
+            fireSingleNativeClick(option.label);
+            await sleep(120);
+            fireSingleNativeClick(option.opt);
+            log(`menu pick exact -> ${optionText}`);
+            await sleep(520);
+            return;
+          } catch (e) {
+            lastErr = e;
+            // Try to close a stuck menu and retry.
+            try {
+              document.dispatchEvent(
+                new KeyboardEvent("keydown", {
+                  key: "Escape",
+                  code: "Escape",
+                  bubbles: true,
+                }),
+              );
+            } catch {}
+            await sleep(320);
           }
-          return null;
-        }, timeoutMs, 220, `dropdown option exact: ${optionText}`);
+        }
 
-        fireSingleNativeClick(option);
-        log(`menu pick exact -> ${optionText}`);
-        await sleep(500);
+        throw lastErr || new Error(`Timeout: dropdown option exact: ${optionText}`);
       }
 
       async function selectAsteriskPageCheckboxes() {
@@ -1331,8 +1409,9 @@ async function runInTab(tabId, payload) {
         await clickSel("[id*='table1-drop-action-dropdown-trigger']", "table1 dropdown 2");
         const firstAction = document.querySelector(".n-dropdown-option-body__label");
         if (firstAction) {
-          firstAction.click();
-          log("first dropdown action clicked");
+          fireSingleNativeClick(firstAction);
+          log("table1 first dropdown action clicked");
+          await sleep(420);
         }
 
         await clickSettingsTabStrict(45000);
