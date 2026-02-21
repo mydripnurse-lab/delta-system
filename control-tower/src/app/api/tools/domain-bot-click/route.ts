@@ -83,7 +83,7 @@ async function runRemoteDomainBot(input: {
   const apiKey = s(process.env.DOMAIN_BOT_WORKER_API_KEY);
   const timeoutMs = Math.max(
     10_000,
-    Math.min(240_000, Number(process.env.DOMAIN_BOT_WORKER_TIMEOUT_MS || 120_000)),
+    Math.min(900_000, Number(process.env.DOMAIN_BOT_WORKER_TIMEOUT_MS || 420_000)),
   );
   const headers: Record<string, string> = {
     "content-type": "application/json",

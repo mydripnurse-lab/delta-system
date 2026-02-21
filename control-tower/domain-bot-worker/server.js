@@ -18,6 +18,20 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function captureScreenshotDataUrl(page, label) {
+  try {
+    if (!page || page.isClosed()) return "";
+    const shot = await page.screenshot({
+      fullPage: true,
+      type: "jpeg",
+      quality: 60,
+    });
+    return `data:image/jpeg;base64,${shot.toString("base64")}`;
+  } catch (e) {
+    return `capture-failed:${label}:${e instanceof Error ? e.message : String(e)}`;
+  }
+}
+
 function deepRender(value, variables) {
   if (typeof value === "string") {
     return value.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_m, key) =>
@@ -70,6 +84,7 @@ async function runSteps(page, steps, variables, outLog) {
     const value = key ? s(variables?.[key]) : s(rawValue);
 
     if (!action) return { ok: false, reason: `step-${i + 1}:missing-action` };
+    outLog.push(`step ${i + 1}: start ${action}`);
 
     try {
       if (action === "goto") {
@@ -168,6 +183,7 @@ async function runSteps(page, steps, variables, outLog) {
       return {
         ok: false,
         reason: `step-${i + 1}:${action}:failed:${error instanceof Error ? error.message : String(error)}`,
+        screenshotDataUrl: await captureScreenshotDataUrl(page, `step-${i + 1}`),
       };
     }
   }
@@ -259,6 +275,7 @@ app.post("/run", async (req, res) => {
           ok: false,
           error: "Step execution failed",
           lastResult: stepResult.reason,
+          screenshotDataUrl: s(stepResult.screenshotDataUrl),
           attempts: 0,
           clicked: "",
           elapsedMs: Date.now() - startAt,
@@ -278,6 +295,7 @@ app.post("/run", async (req, res) => {
           ok: false,
           error: "Button not found after retries",
           lastResult: result.lastResult,
+          screenshotDataUrl: await captureScreenshotDataUrl(page, "default-flow-not-found"),
           attempts: result.attempts,
           clicked: "",
           elapsedMs: Date.now() - startAt,
@@ -298,6 +316,7 @@ app.post("/run", async (req, res) => {
     return res.status(500).json({
       ok: false,
       error: error instanceof Error ? error.message : String(error),
+      screenshotDataUrl: await captureScreenshotDataUrl(page, "top-level-error"),
       attempts: 0,
       clicked: "",
       elapsedMs: Date.now() - startAt,

@@ -40,7 +40,8 @@ On failure:
 {
   "ok": false,
   "error": "Button not found",
-  "lastResult": "not-found connect=... manage=..."
+  "lastResult": "not-found connect=... manage=...",
+  "screenshotDataUrl": "data:image/jpeg;base64,..."
 }
 ```
 
