@@ -29,6 +29,12 @@ type AgentNode = {
   agentId: string;
 };
 
+type AutoProposalsConfig = {
+  enabled: boolean;
+  dedupeHours: number;
+  maxPerRun: number;
+};
+
 function defaultAgents(): Record<DashboardAgentKey, AgentNode> {
   return {
     central: { enabled: true, agentId: "soul_central_orchestrator" },
@@ -51,6 +57,15 @@ function boolish(v: unknown, fallback = false) {
   return x === "1" || x === "true" || x === "yes" || x === "on" || x === "active";
 }
 
+function clampInt(v: unknown, min: number, max: number, fallback: number) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  const x = Math.trunc(n);
+  if (x < min) return min;
+  if (x > max) return max;
+  return x;
+}
+
 function normalizeAgents(raw: unknown) {
   const defaults = defaultAgents();
   const input = (raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}) as Record<string, unknown>;
@@ -64,6 +79,24 @@ function normalizeAgents(raw: unknown) {
     };
   });
   return out;
+}
+
+function defaultAutoProposals(): AutoProposalsConfig {
+  return {
+    enabled: true,
+    dedupeHours: 8,
+    maxPerRun: 6,
+  };
+}
+
+function normalizeAutoProposals(raw: unknown): AutoProposalsConfig {
+  const defaults = defaultAutoProposals();
+  const input = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    enabled: boolish(input.enabled, defaults.enabled),
+    dedupeHours: clampInt(input.dedupeHours, 1, 72, defaults.dedupeHours),
+    maxPerRun: clampInt(input.maxPerRun, 1, 12, defaults.maxPerRun),
+  };
 }
 
 function maskKey(raw: string) {
@@ -109,6 +142,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const cfg = (row?.config || {}) as Record<string, unknown>;
   const key = s(cfg.agentApiKey || cfg.openclawApiKey || cfg.apiKey);
   const agents = normalizeAgents(cfg.agents);
+  const autoProposals = normalizeAutoProposals(cfg.autoProposals);
   const openclawBaseUrl = s(cfg.openclawBaseUrl);
   const openclawWorkspace = s(cfg.openclawWorkspace);
   return NextResponse.json({
@@ -120,6 +154,7 @@ export async function GET(req: Request, ctx: Ctx) {
     apiKeyMasked: key ? maskKey(key) : "",
     openclawBaseUrl,
     openclawWorkspace,
+    autoProposals,
     agents,
     updatedAt: row?.updated_at || null,
   });
@@ -167,6 +202,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     agentApiKey: finalKey,
     openclawBaseUrl: s(body.openclawBaseUrl) || s(currentCfg.openclawBaseUrl),
     openclawWorkspace: s(body.openclawWorkspace) || s(currentCfg.openclawWorkspace),
+    autoProposals: normalizeAutoProposals(body.autoProposals || currentCfg.autoProposals),
     agents: normalizeAgents(body.agents || currentCfg.agents),
   };
   await pool.query(
@@ -195,6 +231,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     apiKeyMasked: maskKey(finalKey),
     openclawBaseUrl: s(config.openclawBaseUrl),
     openclawWorkspace: s(config.openclawWorkspace),
+    autoProposals: config.autoProposals,
     agents: config.agents,
   });
 }
