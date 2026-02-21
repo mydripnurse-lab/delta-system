@@ -9,6 +9,10 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function asObj(v: unknown): Record<string, unknown> {
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
 type Ctx = { params: Promise<{ id: string }> };
 
 type DashboardAgentKey =
@@ -84,11 +88,19 @@ function normalizeAgents(raw: unknown) {
   const out: Record<DashboardAgentKey, AgentNode> = { ...defaults };
   (Object.keys(defaults) as DashboardAgentKey[]).forEach((key) => {
     const row = (input[key] as Record<string, unknown> | undefined) || {};
+    const identity = asObj(row.identity);
     const nextId = s(row.agentId) || defaults[key].agentId;
     out[key] = {
       enabled: boolish(row.enabled, defaults[key].enabled),
       agentId: nextId,
-      displayName: s(row.displayName || row.name || row.label) || s(defaults[key].displayName),
+      displayName:
+        s(row.displayName) ||
+        s(row.identityName) ||
+        s(identity.displayName) ||
+        s(identity.name) ||
+        s(row.name) ||
+        s(row.label) ||
+        s(defaults[key].displayName),
     };
   });
   return out;

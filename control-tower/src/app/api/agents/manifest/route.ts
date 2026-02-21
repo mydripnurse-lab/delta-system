@@ -8,6 +8,10 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function asObj(v: unknown): Record<string, unknown> {
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
 type AgentNode = {
   enabled: boolean;
   agentId: string;
@@ -43,11 +47,15 @@ function normalizeAgents(raw: unknown): Record<string, AgentNode> {
   const out: Record<string, AgentNode> = {};
   for (const key of Object.keys(defaults)) {
     const row = (input[key] as Record<string, unknown> | undefined) || {};
+    const identity = asObj(row.identity);
     out[key] = {
       enabled: boolish(row.enabled, defaults[key].enabled),
       agentId: s(row.agentId) || defaults[key].agentId,
       displayName:
         s(row.displayName) ||
+        s(row.identityName) ||
+        s(identity.displayName) ||
+        s(identity.name) ||
         s(row.name) ||
         s(row.label) ||
         s(defaults[key].displayName),

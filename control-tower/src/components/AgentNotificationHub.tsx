@@ -22,8 +22,13 @@ type ManifestAgentNode = {
   enabled?: boolean;
   agentId?: string;
   displayName?: string;
+  identityName?: string;
   name?: string;
   label?: string;
+  identity?: {
+    name?: string;
+    displayName?: string;
+  };
 };
 
 const AGENT_NAME_BY_ID: Record<string, string> = {
@@ -222,7 +227,13 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
         for (const node of Object.values(json.agents || {})) {
           const id = s(node?.agentId);
           if (!id) continue;
-          const name = s(node?.displayName) || s(node?.name) || s(node?.label);
+          const name =
+            s(node?.displayName) ||
+            s(node?.identityName) ||
+            s(node?.identity?.displayName) ||
+            s(node?.identity?.name) ||
+            s(node?.name) ||
+            s(node?.label);
           if (name) byId[id] = name;
         }
         setTenantAgentNameById(byId);
