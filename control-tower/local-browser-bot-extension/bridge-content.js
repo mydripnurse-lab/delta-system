@@ -21,35 +21,60 @@ window.addEventListener("message", (event) => {
   }
   if (data.type !== "DELTA_LOCAL_BOT_RUN") return;
 
-  chrome.runtime.sendMessage(
-    {
-      type: "DELTA_LOCAL_BOT_RUN",
-      requestId: data.requestId,
-      payload: data.payload || {},
-    },
-    (response) => {
-      const err = chrome.runtime.lastError;
-      if (err) {
-        window.postMessage(
-          {
-            type: "DELTA_LOCAL_BOT_RESULT",
-            requestId: data.requestId,
-            ok: false,
-            error: err.message || "Bridge runtime error",
-          },
-          "*",
-        );
-        return;
-      }
-
+  try {
+    if (!chrome?.runtime?.id) {
       window.postMessage(
         {
           type: "DELTA_LOCAL_BOT_RESULT",
           requestId: data.requestId,
-          ...(response || { ok: false, error: "No response from extension background." }),
+          ok: false,
+          error: "Extension context invalidated. Reload extension and refresh this page.",
         },
         "*",
       );
-    },
-  );
+      return;
+    }
+
+    chrome.runtime.sendMessage(
+      {
+        type: "DELTA_LOCAL_BOT_RUN",
+        requestId: data.requestId,
+        payload: data.payload || {},
+      },
+      (response) => {
+        const err = chrome.runtime.lastError;
+        if (err) {
+          window.postMessage(
+            {
+              type: "DELTA_LOCAL_BOT_RESULT",
+              requestId: data.requestId,
+              ok: false,
+              error: err.message || "Bridge runtime error",
+            },
+            "*",
+          );
+          return;
+        }
+
+        window.postMessage(
+          {
+            type: "DELTA_LOCAL_BOT_RESULT",
+            requestId: data.requestId,
+            ...(response || { ok: false, error: "No response from extension background." }),
+          },
+          "*",
+        );
+      },
+    );
+  } catch (e) {
+    window.postMessage(
+      {
+        type: "DELTA_LOCAL_BOT_RESULT",
+        requestId: data.requestId,
+        ok: false,
+        error: e instanceof Error ? e.message : "Bridge sendMessage failed",
+      },
+      "*",
+    );
+  }
 });

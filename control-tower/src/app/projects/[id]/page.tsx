@@ -2320,50 +2320,17 @@ export default function Home() {
       });
   }, [detail, detailTab, countyFilter, detailSearch]);
 
-  const firstDomainBotLocId = useMemo(() => {
-    const firstPending = filteredDetailRows.find(
-      (r) =>
-        !!r.__eligible &&
-        !isTrue(r["Domain Created"]) &&
-        !!s(r["Location Id"]),
-    );
-    return firstPending ? s(firstPending["Location Id"]) : "";
-  }, [filteredDetailRows]);
-
-  const firstDomainBotActivationUrl = useMemo(() => {
-    const firstPending = filteredDetailRows.find(
-      (r) =>
-        !!r.__eligible &&
-        !isTrue(r["Domain Created"]) &&
-        !!s(r["Domain URL Activation"]),
-    );
-    return firstPending ? s(firstPending["Domain URL Activation"]) : "";
-  }, [filteredDetailRows]);
-
-  const firstDomainBotTarget = useMemo(() => {
-    const row = filteredDetailRows.find(
-      (r) =>
-        !!r.__eligible &&
-        !isTrue(r["Domain Created"]) &&
-        !!s(r["Location Id"]),
-    );
-    if (!row) return null;
-    const kind = detailTab;
-    const locId = s(row["Location Id"]);
-    const activationUrl = s(row["Domain URL Activation"]);
-    const domainToPaste =
-      kind === "cities"
-        ? s(row["City Domain"]) || s(row["city domain"])
-        : s(row["Domain"]) || s(row["County Domain"]);
-    const sitemapUrl = s(row["Sitemap"]);
-    return {
-      row,
-      kind,
-      locId,
-      activationUrl,
-      domainToPaste,
-      sitemapUrl,
-    };
+  const pendingDomainBotRowsInTab = useMemo(() => {
+    return filteredDetailRows.filter((r) => {
+      const eligible = !!r.__eligible;
+      const domainCreated = isTrue(r["Domain Created"]);
+      const locId = s(r["Location Id"]);
+      const domainToPaste =
+        detailTab === "cities"
+          ? s(r["City Domain"]) || s(r["city domain"])
+          : s(r["Domain"]) || s(r["County Domain"]);
+      return eligible && !domainCreated && !!locId && !!domainToPaste;
+    });
   }, [filteredDetailRows, detailTab]);
 
   const tabSitemapRunCounts = useMemo(() => {
@@ -3485,38 +3452,6 @@ export default function Home() {
     return `${DOMAIN_BOT_BASE_URL}/${encodeURIComponent(id)}/settings/domain`;
   }
 
-  function openDomainBotByLocId(locId: string) {
-    const url = domainBotUrlFromLocId(locId);
-    if (!url) {
-      setTabSitemapStatus({
-        kind: detailTab,
-        ok: false,
-        message: "Missing Location Id for Domain Bot.",
-      });
-      return;
-    }
-    if (typeof window !== "undefined") {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-    setTabSitemapStatus({
-      kind: detailTab,
-      ok: true,
-      message: `Domain Bot opened: ${locId}`,
-    });
-  }
-
-  function openDomainBotFirst() {
-    if (!firstDomainBotLocId) {
-      setTabSitemapStatus({
-        kind: detailTab,
-        ok: false,
-        message: "No hay cuentas Pending elegibles con Location Id en el filtro actual.",
-      });
-      return;
-    }
-    openDomainBotByLocId(firstDomainBotLocId);
-  }
-
   function pushDomainBotLog(line: unknown) {
     const msg = s(line);
     if (!msg) return;
@@ -3900,34 +3835,30 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     ];
   }
 
-  async function runDomainBotForLocId(locId: string, openActivationUrl?: string, row?: any) {
+  async function runDomainBotForLocId(
+    locId: string,
+    openActivationUrl?: string,
+    row?: any,
+    kindOverride?: "counties" | "cities",
+  ) {
     const id = s(locId);
+    const rowKind = kindOverride || detailTab;
     if (!id) {
       setTabSitemapStatus({
-        kind: detailTab,
+        kind: rowKind,
         ok: false,
         message: "Missing Location Id for Domain Bot.",
       });
       return;
     }
-    if (firstDomainBotLocId && id !== firstDomainBotLocId) {
-      setTabSitemapStatus({
-        kind: detailTab,
-        ok: false,
-        message: `Solo se permite ejecutar bot sobre la primera cuenta Pending: ${firstDomainBotLocId}.`,
-      });
-      return;
-    }
     if (!routeTenantId) {
       setTabSitemapStatus({
-        kind: detailTab,
+        kind: rowKind,
         ok: false,
         message: "Missing tenant context for Domain Bot.",
       });
       return;
     }
-
-    const rowKind = detailTab;
     const domainToPaste =
       rowKind === "cities"
         ? s(row?.["City Domain"]) || s(row?.["city domain"])
@@ -3941,7 +3872,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     pushDomainBotLog(`Start locId=${id}`);
     pushDomainBotLog(`Activation URL: ${activationUrlEffective || "(missing)"}`);
     setTabSitemapStatus({
-      kind: detailTab,
+      kind: rowKind,
       ok: true,
       message: `Starting Domain Bot for ${id} (custom values + DNS)...`,
     });
@@ -4038,7 +3969,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       }
 
       setTabSitemapStatus({
-        kind: detailTab,
+        kind: rowKind,
         ok: true,
         message: `Domain Bot OK (${id}) [local-extension] + complete.`,
       });
@@ -4047,7 +3978,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     } catch (e: any) {
       pushDomainBotLog(`ERROR: ${e?.message || "request failed"}`);
       setTabSitemapStatus({
-        kind: detailTab,
+        kind: rowKind,
         ok: false,
         message: `Domain Bot failed (${id}): ${e?.message || "request failed"}`,
       });
@@ -4056,92 +3987,34 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     }
   }
 
-  async function runDomainBotFirst() {
-    if (!firstDomainBotLocId || !firstDomainBotTarget) {
+  async function runDomainBotPendingInCurrentTab() {
+    const queue = pendingDomainBotRowsInTab
+      .map((row) => ({
+        row,
+        locId: s(row["Location Id"]),
+        activationUrl: s(row["Domain URL Activation"]),
+      }))
+      .filter((x) => !!x.locId);
+
+    if (!queue.length) {
       setTabSitemapStatus({
         kind: detailTab,
         ok: false,
-        message: "No hay cuentas Pending elegibles con Location Id en el filtro actual.",
+        message: `No hay ${detailTab} pending elegibles en el filtro actual.`,
       });
       return;
     }
-    await runDomainBotForLocId(
-      firstDomainBotTarget.locId,
-      firstDomainBotTarget.activationUrl || firstDomainBotActivationUrl,
-      firstDomainBotTarget.row,
-    );
-  }
 
-  function buildDevasksDomainAutoClickScript() {
-    return `(() => {
-  const CONNECT_ID = "connect-domain-button";
-  const CONNECT_FALLBACK_ID = "connect-domain-button-text";
-  const MANAGE_ID = "manage-domain";
-  const MAX_ATTEMPTS = 60;
-  const INTERVAL_MS = 500;
-
-  const clickPreferred = () => {
-    const connect =
-      document.querySelector("button#connect-domain-button") ||
-      document.querySelector("button[data-testid='connect-domain-button']") ||
-      document.querySelector("button[aria-label='Connect a domain']") ||
-      document.getElementById(CONNECT_ID);
-    if (connect && typeof connect.click === "function") {
-      connect.click();
-      console.log("[DomainBot] clicked #connect-domain-button");
-      return true;
-    }
-    const connectFallback = document.getElementById(CONNECT_FALLBACK_ID)?.closest("button") || document.getElementById(CONNECT_FALLBACK_ID);
-    if (connectFallback && typeof connectFallback.click === "function") {
-      connectFallback.click();
-      console.log("[DomainBot] clicked #connect-domain-button-text");
-      return true;
-    }
-    const manage = document.getElementById(MANAGE_ID);
-    if (manage && typeof manage.click === "function") {
-      manage.click();
-      console.log("[DomainBot] clicked #manage-domain");
-      return true;
-    }
-    return false;
-  };
-
-  if (clickPreferred()) return;
-
-  let attempts = 0;
-  const timer = setInterval(() => {
-    attempts += 1;
-    if (clickPreferred() || attempts >= MAX_ATTEMPTS) {
-      clearInterval(timer);
-      if (attempts >= MAX_ATTEMPTS) {
-        console.warn("[DomainBot] No matching button found after retries.");
-      }
-    }
-  }, INTERVAL_MS);
-})();`;
-  }
-
-  async function copyDomainBotAutoClickScript() {
-    try {
-      await navigator.clipboard.writeText(buildDevasksDomainAutoClickScript());
+    for (let i = 0; i < queue.length; i += 1) {
+      const item = queue[i];
       setTabSitemapStatus({
         kind: detailTab,
         ok: true,
-        message:
-          "Auto-click script copied. Paste it in Devasks console on the opened domain page.",
+        message: `Domain Bot ${detailTab} pending ${i + 1}/${queue.length} (${item.locId})...`,
       });
-    } catch (e: any) {
-      setTabSitemapStatus({
-        kind: detailTab,
-        ok: false,
-        message: e?.message || "Unable to copy auto-click script.",
-      });
+      // Sequential run, one account at a time.
+      await runDomainBotForLocId(item.locId, item.activationUrl, item.row, detailTab);
     }
-  }
-
-  async function openDomainBotFirstAndCopyScript() {
-    openDomainBotFirst();
-    await copyDomainBotAutoClickScript();
   }
 
   async function retryFailedTabSitemaps(
@@ -6025,26 +5898,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </button>
                   <button
                     className="smallBtn"
-                    onClick={() => void runDomainBotFirst()}
-                    disabled={!firstDomainBotLocId || domainBotBusy}
-                    title="One-click bot: abre Domain Settings y hace click connect/manage."
+                    onClick={() => void runDomainBotPendingInCurrentTab()}
+                    disabled={domainBotBusy || pendingDomainBotRowsInTab.length === 0}
+                    title={`Run Domain Bot para todos los ${detailTab} pending del filtro actual.`}
                   >
-                    {domainBotBusy ? "Running Bot..." : "Run Domain Bot"}
-                  </button>
-                  <button
-                    className="smallBtn"
-                    onClick={() => void openDomainBotFirstAndCopyScript()}
-                    disabled={!firstDomainBotLocId}
-                    title="Abre el primer Domain Bot y copia script para auto-click connect/manage."
-                  >
-                    Open Bot + Copy AutoClick
-                  </button>
-                  <button
-                    className="smallBtn"
-                    onClick={copyDomainBotAutoClickScript}
-                    title="Copia script que hace click en connect-domain-button-text o fallback manage-domain."
-                  >
-                    Copy AutoClick Script
+                    {domainBotBusy
+                      ? "Running Bot..."
+                      : `Run Pending ${detailTab === "counties" ? "Counties" : "Cities"} (${pendingDomainBotRowsInTab.length})`}
                   </button>
                 </div>
                 {domainBotLogs.length ? (
@@ -6363,7 +6223,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                       <button
                                         className="smallBtn"
                                         onClick={() => void runDomainBotForLocId(locId, activationUrl, r)}
-                                        disabled={!eligible || domainCreated || locId !== firstDomainBotLocId}
+                                        disabled={!eligible || domainCreated || domainBotBusy}
                                         title="Open Domain Settings bot page"
                                       >
                                         Bot
