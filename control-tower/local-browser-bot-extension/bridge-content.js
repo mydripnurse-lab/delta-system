@@ -1,6 +1,24 @@
+window.postMessage(
+  {
+    type: "DELTA_LOCAL_BOT_BRIDGE_READY",
+    source: "delta-local-bot-extension",
+  },
+  "*",
+);
+
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
   const data = event.data || {};
+  if (data.type === "DELTA_LOCAL_BOT_BRIDGE_PING") {
+    window.postMessage(
+      {
+        type: "DELTA_LOCAL_BOT_BRIDGE_READY",
+        source: "delta-local-bot-extension",
+      },
+      "*",
+    );
+    return;
+  }
   if (data.type !== "DELTA_LOCAL_BOT_RUN") return;
 
   chrome.runtime.sendMessage(

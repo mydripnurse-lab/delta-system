@@ -3554,6 +3554,32 @@ export default function Home() {
     if (typeof window === "undefined") {
       throw new Error("Browser extension bridge is only available in browser context.");
     }
+    const waitBridgeReady = async () =>
+      await new Promise<void>((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          window.removeEventListener("message", onReady);
+          reject(
+            new Error(
+              "Extension bridge not detected on this page. Reload extension and refresh this tab.",
+            ),
+          );
+        }, 4000);
+
+        function onReady(event: MessageEvent) {
+          if (event.source !== window) return;
+          const data = event.data || {};
+          if (data.type !== "DELTA_LOCAL_BOT_BRIDGE_READY") return;
+          window.clearTimeout(timeout);
+          window.removeEventListener("message", onReady);
+          resolve();
+        }
+
+        window.addEventListener("message", onReady);
+        window.postMessage({ type: "DELTA_LOCAL_BOT_BRIDGE_PING" }, "*");
+      });
+
+    await waitBridgeReady();
+
     const requestId = `ct_local_bot_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     return await new Promise<{
       ok: boolean;
