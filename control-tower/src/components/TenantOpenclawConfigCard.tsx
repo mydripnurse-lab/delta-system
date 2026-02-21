@@ -19,6 +19,10 @@ type OpenclawConfigResponse = {
     dedupeHours?: number;
     maxPerRun?: number;
   };
+  autoExecution?: {
+    enabled?: boolean;
+    maxPerRun?: number;
+  };
   agents?: Record<string, AgentNode>;
   error?: string;
 };
@@ -62,6 +66,8 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [autoEnabled, setAutoEnabled] = useState(true);
   const [autoDedupeHours, setAutoDedupeHours] = useState("8");
   const [autoMaxPerRun, setAutoMaxPerRun] = useState("6");
+  const [autoExecuteEnabled, setAutoExecuteEnabled] = useState(false);
+  const [autoExecuteMaxPerRun, setAutoExecuteMaxPerRun] = useState("4");
   const [agents, setAgents] = useState<Record<string, AgentNode>>({});
   const [loadedAgents, setLoadedAgents] = useState<Record<string, AgentNode>>({});
   const [loadedOpenclawBaseUrl, setLoadedOpenclawBaseUrl] = useState("");
@@ -69,6 +75,8 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [loadedAutoEnabled, setLoadedAutoEnabled] = useState(true);
   const [loadedAutoDedupeHours, setLoadedAutoDedupeHours] = useState("8");
   const [loadedAutoMaxPerRun, setLoadedAutoMaxPerRun] = useState("6");
+  const [loadedAutoExecuteEnabled, setLoadedAutoExecuteEnabled] = useState(false);
+  const [loadedAutoExecuteMaxPerRun, setLoadedAutoExecuteMaxPerRun] = useState("4");
 
   const isDirty = useMemo(() => {
     return (
@@ -77,7 +85,9 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       s(openclawWorkspace) !== s(loadedOpenclawWorkspace) ||
       autoEnabled !== loadedAutoEnabled ||
       s(autoDedupeHours) !== s(loadedAutoDedupeHours) ||
-      s(autoMaxPerRun) !== s(loadedAutoMaxPerRun)
+      s(autoMaxPerRun) !== s(loadedAutoMaxPerRun) ||
+      autoExecuteEnabled !== loadedAutoExecuteEnabled ||
+      s(autoExecuteMaxPerRun) !== s(loadedAutoExecuteMaxPerRun)
     );
   }, [
     agents,
@@ -92,6 +102,10 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
     loadedAutoDedupeHours,
     autoMaxPerRun,
     loadedAutoMaxPerRun,
+    autoExecuteEnabled,
+    loadedAutoExecuteEnabled,
+    autoExecuteMaxPerRun,
+    loadedAutoExecuteMaxPerRun,
   ]);
 
   async function load() {
@@ -116,12 +130,18 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       const nextAutoEnabled = json.autoProposals?.enabled !== false;
       const nextAutoDedupeHours = String(json.autoProposals?.dedupeHours ?? 8);
       const nextAutoMaxPerRun = String(json.autoProposals?.maxPerRun ?? 6);
+      const nextAutoExecuteEnabled = json.autoExecution?.enabled === true;
+      const nextAutoExecuteMaxPerRun = String(json.autoExecution?.maxPerRun ?? 4);
       setAutoEnabled(nextAutoEnabled);
       setAutoDedupeHours(nextAutoDedupeHours);
       setAutoMaxPerRun(nextAutoMaxPerRun);
+      setAutoExecuteEnabled(nextAutoExecuteEnabled);
+      setAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
       setLoadedAutoEnabled(nextAutoEnabled);
       setLoadedAutoDedupeHours(nextAutoDedupeHours);
       setLoadedAutoMaxPerRun(nextAutoMaxPerRun);
+      setLoadedAutoExecuteEnabled(nextAutoExecuteEnabled);
+      setLoadedAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
     } catch (e: unknown) {
@@ -166,6 +186,10 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
             dedupeHours: Number(autoDedupeHours || 8),
             maxPerRun: Number(autoMaxPerRun || 6),
           },
+          autoExecution: {
+            enabled: autoExecuteEnabled,
+            maxPerRun: Number(autoExecuteMaxPerRun || 4),
+          },
           agents,
         }),
       });
@@ -182,12 +206,18 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       const nextAutoEnabled = json.autoProposals?.enabled !== false;
       const nextAutoDedupeHours = String(json.autoProposals?.dedupeHours ?? 8);
       const nextAutoMaxPerRun = String(json.autoProposals?.maxPerRun ?? 6);
+      const nextAutoExecuteEnabled = json.autoExecution?.enabled === true;
+      const nextAutoExecuteMaxPerRun = String(json.autoExecution?.maxPerRun ?? 4);
       setAutoEnabled(nextAutoEnabled);
       setAutoDedupeHours(nextAutoDedupeHours);
       setAutoMaxPerRun(nextAutoMaxPerRun);
+      setAutoExecuteEnabled(nextAutoExecuteEnabled);
+      setAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
       setLoadedAutoEnabled(nextAutoEnabled);
       setLoadedAutoDedupeHours(nextAutoDedupeHours);
       setLoadedAutoMaxPerRun(nextAutoMaxPerRun);
+      setLoadedAutoExecuteEnabled(nextAutoExecuteEnabled);
+      setLoadedAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
       if (rotate && s((json as any).apiKey)) {
@@ -271,6 +301,30 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
                 max={12}
                 value={autoMaxPerRun}
                 onChange={(e) => setAutoMaxPerRun(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="moduleCard">
+          <p className="l moduleTitle">Auto Execution (Approved)</p>
+          <label className="mini" style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+            <input
+              type="checkbox"
+              checked={autoExecuteEnabled}
+              onChange={(e) => setAutoExecuteEnabled(e.target.checked)}
+            />
+            Enabled (execute approved proposals by cron)
+          </label>
+          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+            <div>
+              <div className="mini" style={{ marginBottom: 4 }}>Max executes/run (1-20)</div>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={20}
+                value={autoExecuteMaxPerRun}
+                onChange={(e) => setAutoExecuteMaxPerRun(e.target.value)}
               />
             </div>
           </div>

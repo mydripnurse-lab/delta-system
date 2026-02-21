@@ -35,6 +35,11 @@ type AutoProposalsConfig = {
   maxPerRun: number;
 };
 
+type AutoExecutionConfig = {
+  enabled: boolean;
+  maxPerRun: number;
+};
+
 function defaultAgents(): Record<DashboardAgentKey, AgentNode> {
   return {
     central: { enabled: true, agentId: "soul_central_orchestrator" },
@@ -99,6 +104,22 @@ function normalizeAutoProposals(raw: unknown): AutoProposalsConfig {
   };
 }
 
+function defaultAutoExecution(): AutoExecutionConfig {
+  return {
+    enabled: false,
+    maxPerRun: 4,
+  };
+}
+
+function normalizeAutoExecution(raw: unknown): AutoExecutionConfig {
+  const defaults = defaultAutoExecution();
+  const input = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    enabled: boolish(input.enabled, defaults.enabled),
+    maxPerRun: clampInt(input.maxPerRun, 1, 20, defaults.maxPerRun),
+  };
+}
+
 function maskKey(raw: string) {
   const v = s(raw);
   if (!v) return "";
@@ -143,6 +164,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const key = s(cfg.agentApiKey || cfg.openclawApiKey || cfg.apiKey);
   const agents = normalizeAgents(cfg.agents);
   const autoProposals = normalizeAutoProposals(cfg.autoProposals);
+  const autoExecution = normalizeAutoExecution(cfg.autoExecution);
   const openclawBaseUrl = s(cfg.openclawBaseUrl);
   const openclawWorkspace = s(cfg.openclawWorkspace);
   return NextResponse.json({
@@ -155,6 +177,7 @@ export async function GET(req: Request, ctx: Ctx) {
     openclawBaseUrl,
     openclawWorkspace,
     autoProposals,
+    autoExecution,
     agents,
     updatedAt: row?.updated_at || null,
   });
@@ -203,6 +226,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     openclawBaseUrl: s(body.openclawBaseUrl) || s(currentCfg.openclawBaseUrl),
     openclawWorkspace: s(body.openclawWorkspace) || s(currentCfg.openclawWorkspace),
     autoProposals: normalizeAutoProposals(body.autoProposals || currentCfg.autoProposals),
+    autoExecution: normalizeAutoExecution(body.autoExecution || currentCfg.autoExecution),
     agents: normalizeAgents(body.agents || currentCfg.agents),
   };
   await pool.query(
@@ -232,6 +256,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     openclawBaseUrl: s(config.openclawBaseUrl),
     openclawWorkspace: s(config.openclawWorkspace),
     autoProposals: config.autoProposals,
+    autoExecution: config.autoExecution,
     agents: config.agents,
   });
 }
