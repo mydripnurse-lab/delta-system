@@ -1246,6 +1246,47 @@ async function runInTab(tabId, payload) {
         );
       }
 
+      function hasVisibleLoading() {
+        const loaders = [
+          ...document.querySelectorAll(
+            ".n-base-loading, .n-spin, .n-skeleton, .n-loading, [aria-label='loading']",
+          ),
+        ];
+        return loaders.some((el) => visible(el));
+      }
+
+      async function waitForUiSettle(stage, timeoutMs = 90000) {
+        await sleep(700);
+        try {
+          await waitFor(
+            () => !hasVisibleLoading(),
+            timeoutMs,
+            240,
+            `ui settle (${stage})`,
+          );
+          log(`ui settled -> ${stage}`);
+        } catch {
+          log(`ui settle timeout (soft) -> ${stage}`);
+        }
+        await sleep(520);
+      }
+
+      async function waitForDomainHubActionTriggerReady(timeoutMs = 120000) {
+        await waitFor(() => {
+          const trigger = document.querySelector(
+            "[id*='domain-hub-connected-product-table-drop-action-dropdown-trigger']",
+          );
+          if (!visible(trigger)) return null;
+          const disabled =
+            trigger.hasAttribute("disabled") ||
+            trigger.getAttribute("aria-disabled") === "true" ||
+            trigger.classList.contains("disabled");
+          if (disabled) return null;
+          return trigger;
+        }, timeoutMs, 240, "domain-hub action trigger ready");
+        await sleep(550);
+      }
+
       try {
         log("Run started");
         await waitFor(() => document.readyState === "complete", 120000, 200, "document ready");
@@ -1363,16 +1404,20 @@ async function runInTab(tabId, payload) {
           if (visible(submit)) {
             submit.click();
             log("submit clicked");
+            await waitForUiSettle("after submit", 90000);
           }
         } else {
           log("skip connect flow (manage already visible)");
         }
 
+        await waitForUiSettle("before manage-domain", 90000);
         await clickSel(["[id*='manage-domain']", "[data-testid='manage-domain']", "[id*='manage-domain']", "button[id*='manage-domain']"], "manage-domain", 240000);
+        await waitForUiSettle("after manage-domain click", 120000);
+        await waitForDomainHubActionTriggerReady(120000);
         await openActionMenuAndPickExact(
           "XML Sitemap",
           "[id*='domain-hub-connected-product-table-drop-action-dropdown-trigger']",
-          45000,
+          120000,
         );
 
         const collapse = document.querySelector(".n-collapse-item__header-main");
@@ -1386,11 +1431,13 @@ async function runInTab(tabId, payload) {
         await clickPositiveModalActionStrict("Proceed", 45000);
         await clickPositiveModalActionStrict("Generate & Save", 60000);
         await clickPositiveModalActionStrict("Okay", 60000);
+        await waitForUiSettle("before edit menu", 90000);
+        await waitForDomainHubActionTriggerReady(120000);
 
         await openActionMenuAndPickExact(
           "Edit",
           "[id*='domain-hub-connected-product-table-drop-action-dropdown-trigger']",
-          45000,
+          120000,
         );
 
         if (input.robotsTxt) {
