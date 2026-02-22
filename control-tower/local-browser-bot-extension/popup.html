@@ -21,16 +21,13 @@
         --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
-      html,
-      body {
+      html, body {
         margin: 0;
         padding: 0;
-        width: 420px;
-        min-height: 680px;
+        width: 600px;
+        min-height: 700px;
         font-family: "SF Pro Display", "SF Pro Text", "Avenir Next", "Segoe UI", sans-serif;
         color: var(--text);
         background:
@@ -39,9 +36,7 @@
           linear-gradient(150deg, var(--bg) 0%, var(--bg-2) 100%);
       }
 
-      body {
-        padding: 14px;
-      }
+      body { padding: 14px; }
 
       .shell {
         border: 1px solid var(--stroke);
@@ -58,35 +53,46 @@
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
       }
 
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+      .brand { display: flex; align-items: center; gap: 10px; }
+      .brand img { width: 28px; height: 28px; border-radius: 8px; }
+      .title { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
+      .subtitle { margin: 3px 0 0; font-size: 11px; color: var(--muted); }
+
+      .tabBar {
+        margin-top: 10px;
+        display: inline-flex;
+        gap: 6px;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
       }
 
-      .brand img {
-        width: 28px;
-        height: 28px;
-        border-radius: 8px;
-      }
-
-      .title {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.2px;
-      }
-
-      .subtitle {
-        margin: 3px 0 0;
+      .tabBtn {
+        border: 1px solid transparent;
+        border-radius: 999px;
+        padding: 6px 12px;
         font-size: 11px;
-        color: var(--muted);
+        font-weight: 700;
+        color: #d9e5ff;
+        background: transparent;
+        cursor: pointer;
       }
 
-      .content {
-        padding: 12px;
+      .tabBtn.active {
+        color: #071325;
+        background: linear-gradient(135deg, #57ddff 0%, #63a7ff 45%, #8e99ff 100%);
+      }
+
+      .content { padding: 12px; display: grid; gap: 10px; }
+      .view[hidden] { display: none !important; }
+      #homeView {
         display: grid;
         gap: 10px;
+        grid-template-columns: 1fr 1fr;
+      }
+      #homeView > .card:first-child {
+        grid-column: 1 / -1;
       }
 
       .card {
@@ -105,13 +111,8 @@
         font-weight: 700;
       }
 
-      .field {
-        margin-bottom: 8px;
-      }
-
-      .field:last-child {
-        margin-bottom: 0;
-      }
+      .field { margin-bottom: 8px; }
+      .field:last-child { margin-bottom: 0; }
 
       label {
         display: flex;
@@ -122,13 +123,9 @@
         margin-bottom: 5px;
       }
 
-      .hint {
-        color: var(--muted);
-        font-size: 10px;
-      }
+      .hint { color: var(--muted); font-size: 10px; }
 
-      input,
-      textarea {
+      input, textarea, select {
         width: 100%;
         border: 1px solid rgba(255, 255, 255, 0.16);
         border-radius: 10px;
@@ -137,37 +134,19 @@
         padding: 9px 10px;
         font-size: 12px;
         outline: none;
-        transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
       }
 
-      input::placeholder,
-      textarea::placeholder {
-        color: #8190b1;
-      }
+      input::placeholder, textarea::placeholder { color: #8190b1; }
 
-      input:focus,
-      textarea:focus {
+      input:focus, textarea:focus, select:focus {
         border-color: rgba(77, 210, 255, 0.7);
         box-shadow: 0 0 0 3px rgba(77, 210, 255, 0.16);
       }
 
-      textarea {
-        resize: vertical;
-        min-height: 62px;
-        max-height: 132px;
-      }
-
-      .row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-
-      .actions {
-        display: grid;
-        grid-template-columns: 1.3fr 1fr;
-        gap: 8px;
-      }
+      textarea { resize: vertical; min-height: 62px; max-height: 132px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .actions { display: grid; grid-template-columns: 1.3fr 1fr; gap: 8px; }
+      .actions3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
       button {
         border: 1px solid transparent;
@@ -179,9 +158,8 @@
         transition: transform 120ms ease, filter 120ms ease, border-color 120ms ease;
       }
 
-      button:active {
-        transform: translateY(1px);
-      }
+      button:active { transform: translateY(1px); }
+      button:hover { filter: brightness(1.08); }
 
       #runBtn {
         color: #041225;
@@ -189,14 +167,10 @@
         box-shadow: 0 8px 20px rgba(70, 154, 255, 0.35);
       }
 
-      #openBtn {
+      .secondaryBtn {
         color: #d7e4ff;
         background: rgba(255, 255, 255, 0.05);
         border-color: rgba(255, 255, 255, 0.2);
-      }
-
-      button:hover {
-        filter: brightness(1.08);
       }
 
       .statusWrap {
@@ -226,26 +200,10 @@
         background: rgba(255, 255, 255, 0.04);
       }
 
-      .dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--warning);
-      }
-
-      .dot.running {
-        background: var(--accent);
-        box-shadow: 0 0 0 0 rgba(77, 210, 255, 0.8);
-        animation: pulse 1.5s infinite;
-      }
-
-      .dot.success {
-        background: var(--ok);
-      }
-
-      .dot.error {
-        background: var(--err);
-      }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warning); }
+      .dot.running { background: var(--accent); box-shadow: 0 0 0 0 rgba(77, 210, 255, 0.8); animation: pulse 1.5s infinite; }
+      .dot.success { background: var(--ok); }
+      .dot.error { background: var(--err); }
 
       .statusText {
         margin: 0;
@@ -256,20 +214,21 @@
         word-break: break-word;
       }
 
-      .help {
-        margin: 0;
-        font-size: 10px;
-        color: var(--muted);
-        line-height: 1.4;
+      .kpiRow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+      .kpi {
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 10px;
+        padding: 8px;
+        background: rgba(255,255,255,.03);
       }
+      .kpiLabel { margin: 0 0 4px; font-size: 10px; color: var(--muted); }
+      .kpiValue { margin: 0; font-size: 13px; font-weight: 700; }
+
+      .mini { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
 
       @keyframes pulse {
-        0% {
-          box-shadow: 0 0 0 0 rgba(77, 210, 255, 0.6);
-        }
-        100% {
-          box-shadow: 0 0 0 10px rgba(77, 210, 255, 0);
-        }
+        0% { box-shadow: 0 0 0 0 rgba(77, 210, 255, 0.6); }
+        100% { box-shadow: 0 0 0 10px rgba(77, 210, 255, 0); }
       }
     </style>
   </head>
@@ -280,72 +239,145 @@
           <img src="icon48.png" alt="Delta" />
           <div>
             <h1 class="title">Delta Local Domain Bot</h1>
-            <p class="subtitle">Premium local runner in your logged-in browser</p>
+            <p class="subtitle">Local runner + project context</p>
           </div>
+        </div>
+        <div class="tabBar">
+          <button id="tabHomeBtn" class="tabBtn active" type="button">Home</button>
+          <button id="tabBotBtn" class="tabBtn" type="button">Bot</button>
         </div>
       </div>
 
       <div class="content">
-        <section class="card">
-          <h2>Session</h2>
-          <div class="field">
-            <label for="activationUrl">
-              Activation URL
-              <span class="hint">optional</span>
-            </label>
-            <input id="activationUrl" placeholder="https://app.devasks.com/v2/location/.../settings/domain" />
+        <section id="homeView" class="view">
+          <div class="card">
+            <h2>Workspace</h2>
+            <div class="field">
+              <label for="workspaceBase">Project base URL</label>
+              <input id="workspaceBase" placeholder="https://www.telahagocrecer.com" />
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="homeEmail">Email</label>
+                <input id="homeEmail" type="email" placeholder="you@company.com" />
+              </div>
+              <div class="field">
+                <label for="homePassword">Password</label>
+                <input id="homePassword" type="password" placeholder="********" />
+              </div>
+            </div>
+            <div class="actions3">
+              <button id="refreshHomeBtn" class="secondaryBtn" type="button">Refresh</button>
+              <button id="openDashboardBtn" class="secondaryBtn" type="button">Open Projects</button>
+              <button id="openLoginBtn" class="secondaryBtn" type="button">Open Login</button>
+            </div>
+            <div class="actions" style="margin-top:8px; grid-template-columns:1fr 1fr;">
+              <button id="homeSignInBtn" type="button">Sign In</button>
+              <button id="homeSignOutBtn" class="secondaryBtn" type="button">Sign Out</button>
+            </div>
+            <p id="workspaceStatus" class="mini" style="margin-top:8px;">Ready.</p>
           </div>
-          <div class="field">
-            <label for="domainToPaste">Domain to paste</label>
-            <input id="domainToPaste" placeholder="buffalo-county-sd.mydripnurse.com" />
+
+          <div class="card">
+            <h2>User</h2>
+            <div class="kpiRow">
+              <div class="kpi">
+                <p class="kpiLabel">Name</p>
+                <p id="meName" class="kpiValue">-</p>
+              </div>
+              <div class="kpi" style="grid-column: span 2;">
+                <p class="kpiLabel">Email</p>
+                <p id="meEmail" class="kpiValue">-</p>
+              </div>
+            </div>
+            <p id="meRoles" class="mini" style="margin-top:8px;">Roles: -</p>
+          </div>
+
+          <div class="card">
+            <h2>Tenant + Notifications</h2>
+            <div class="field">
+              <label for="tenantSelect">Tenant</label>
+              <select id="tenantSelect"></select>
+            </div>
+            <div class="actions" style="grid-template-columns:1fr 1fr;">
+              <button id="refreshNotifBtn" class="secondaryBtn" type="button">Refresh Notifications</button>
+              <button id="openTenantBtn" class="secondaryBtn" type="button">Open Tenant</button>
+            </div>
+            <div class="kpiRow" style="margin-top:8px;">
+              <div class="kpi">
+                <p class="kpiLabel">Open</p>
+                <p id="notifOpen" class="kpiValue">0</p>
+              </div>
+              <div class="kpi">
+                <p class="kpiLabel">Total</p>
+                <p id="notifTotal" class="kpiValue">0</p>
+              </div>
+              <div class="kpi">
+                <p class="kpiLabel">Last Gen</p>
+                <p id="notifLast" class="kpiValue" style="font-size:11px;">-</p>
+              </div>
+            </div>
+            <p id="notifError" class="mini" style="margin-top:8px;">-</p>
           </div>
         </section>
 
-        <section class="card">
-          <h2>Domain Setup</h2>
-          <div class="row">
+        <section id="botView" class="view" hidden>
+          <section class="card">
+            <h2>Session</h2>
             <div class="field">
-              <label for="faviconUrl">Favicon URL</label>
-              <input id="faviconUrl" placeholder="https://.../favicon.ico" />
+              <label for="activationUrl">Activation URL <span class="hint">optional</span></label>
+              <input id="activationUrl" placeholder="https://app.devasks.com/v2/location/.../settings/domain" />
             </div>
             <div class="field">
-              <label for="pageTypeNeedle">Page type keyword</label>
-              <input id="pageTypeNeedle" value="Home Page" />
+              <label for="domainToPaste">Domain to paste</label>
+              <input id="domainToPaste" placeholder="buffalo-county-sd.mydripnurse.com" />
             </div>
+          </section>
+
+          <section class="card">
+            <h2>Domain Setup</h2>
+            <div class="row">
+              <div class="field">
+                <label for="faviconUrl">Favicon URL</label>
+                <input id="faviconUrl" placeholder="https://.../favicon.ico" />
+              </div>
+              <div class="field">
+                <label for="pageTypeNeedle">Page type keyword</label>
+                <input id="pageTypeNeedle" value="Home Page" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="robotsTxt">Robots.txt</label>
+              <textarea id="robotsTxt" placeholder="User-agent: *"></textarea>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Tracking</h2>
+            <div class="field">
+              <label for="headCode">Head code</label>
+              <textarea id="headCode" placeholder="<script>...</script>"></textarea>
+            </div>
+            <div class="field">
+              <label for="bodyCode">Body/Footer code</label>
+              <textarea id="bodyCode" placeholder="<script>...</script>"></textarea>
+            </div>
+          </section>
+
+          <div class="actions">
+            <button id="runBtn" type="button">Run Bot</button>
+            <button id="openBtn" class="secondaryBtn" type="button">Open Activation</button>
           </div>
-          <div class="field">
-            <label for="robotsTxt">Robots.txt</label>
-            <textarea id="robotsTxt" placeholder="User-agent: *"></textarea>
+
+          <div class="statusWrap" id="statusWrap">
+            <div class="statusHead">
+              <div class="statusBadge"><span class="dot" id="statusDot"></span><span id="statusMode">Idle</span></div>
+            </div>
+            <p class="statusText" id="status">Ready.</p>
           </div>
+
+          <p class="mini">Runs in your current Chrome session and shows live progress in-page while executing each step.</p>
         </section>
-
-        <section class="card">
-          <h2>Tracking</h2>
-          <div class="field">
-            <label for="headCode">Head code</label>
-            <textarea id="headCode" placeholder="<script>...</script>"></textarea>
-          </div>
-          <div class="field">
-            <label for="bodyCode">Body/Footer code</label>
-            <textarea id="bodyCode" placeholder="<script>...</script>"></textarea>
-          </div>
-        </section>
-
-        <div class="actions">
-          <button id="runBtn">Run Bot</button>
-          <button id="openBtn">Open Activation</button>
-        </div>
-
-        <div class="statusWrap" id="statusWrap">
-          <div class="statusHead">
-            <div class="statusBadge"><span class="dot" id="statusDot"></span><span id="statusMode">Idle</span></div>
-          </div>
-          <p class="statusText" id="status">Ready.</p>
-        </div>
-
-        <p class="help">
-          Runs in your current Chrome session and shows live progress in-page while executing each step.
-        </p>
       </div>
     </div>
 

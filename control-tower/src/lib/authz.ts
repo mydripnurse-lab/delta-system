@@ -119,8 +119,12 @@ async function resolveOrCreateUser(req: Request): Promise<AuthResult> {
   let rawEmail = s(req.headers.get("x-user-email")).toLowerCase();
   let rawName = s(req.headers.get("x-user-name"));
   if (!rawUserId && !rawEmail) {
+    const authHeader = s(req.headers.get("authorization"));
+    const bearer =
+      authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
     const secret = getSessionSecret();
-    const token = readCookieFromHeader(req.headers.get("cookie"), SESSION_COOKIE_NAME);
+    const cookieToken = readCookieFromHeader(req.headers.get("cookie"), SESSION_COOKIE_NAME);
+    const token = bearer || cookieToken;
     if (secret && token) {
       const parsed = verifySessionToken(token, secret);
       if (parsed) {
