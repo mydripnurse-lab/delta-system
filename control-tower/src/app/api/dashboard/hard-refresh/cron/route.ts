@@ -193,7 +193,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
         {
           key: "appointments_current",
           url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&preset=${encodeURIComponent(preset)}${appointmentsBustQ}${appointmentsPreferSnapshotQ}`,
-          timeoutMs: 45000,
+          timeoutMs: 65000,
         },
         {
           key: "transactions_current",
@@ -246,7 +246,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
           {
             key: "appointments_previous",
             url: `${origin}/api/dashboard/appointments?${tq}&start=${encodeURIComponent(prevStart)}&end=${encodeURIComponent(prevEnd)}&preset=${encodeURIComponent(preset)}${appointmentsBustQ}${appointmentsPreferSnapshotQ}`,
-            timeoutMs: 45000,
+            timeoutMs: 65000,
           },
           {
             key: "transactions_previous",

@@ -978,11 +978,21 @@ async function fetchOpportunityById(authToken: string, opportunityId: string) {
   return null;
 }
 
-async function hydrateOpportunityDetailsByIds(authToken: string, opportunityIds: string[]) {
+async function hydrateOpportunityDetailsByIds(
+  authToken: string,
+  opportunityIds: string[],
+  deadlineAtMs?: number,
+) {
   const out = new Map<string, any>();
   const uniqueIds = Array.from(new Set(opportunityIds.map((x) => norm(x)).filter(Boolean)));
   const batchSize = Math.max(1, APPT_CONTACT_CONCURRENCY);
   for (let i = 0; i < uniqueIds.length; i += batchSize) {
+    if (isPastDeadline(deadlineAtMs)) {
+      console.warn(
+        `[appointments] opportunity-details timeout processed=${i}/${uniqueIds.length}`,
+      );
+      break;
+    }
     const batch = uniqueIds.slice(i, i + batchSize);
     const rows = await Promise.all(
       batch.map(async (id) => {
@@ -1322,10 +1332,22 @@ async function fetchPipelineOpportunitiesWide(
   });
 }
 
-async function hydrateContactsForOpportunities(authToken: string, locationId: string, contacts: ContactLite[]) {
+async function hydrateContactsForOpportunities(
+  authToken: string,
+  locationId: string,
+  contacts: ContactLite[],
+  deadlineAtMs?: number,
+) {
   const out: ContactLite[] = [];
   const batchSize = Math.max(1, APPT_CONTACT_CONCURRENCY);
   for (let i = 0; i < contacts.length; i += batchSize) {
+    if (isPastDeadline(deadlineAtMs)) {
+      console.warn(
+        `[appointments] contact-hydration timeout loc=${locationId} processed=${i}/${contacts.length}`,
+      );
+      out.push(...contacts.slice(i));
+      break;
+    }
     const batch = contacts.slice(i, i + batchSize);
     const next = await Promise.all(
       batch.map(async (c) => {
@@ -1369,6 +1391,26 @@ async function refreshLocationRows(
   deadlineAtMs?: number,
   ctx?: GhlCtx,
 ) {
+  if (isPastDeadline(deadlineAtMs)) {
+    const fallbackRows = snapshot?.rows || [];
+    const fallbackLost = snapshot?.lostRows || [];
+    const cov = rowsCoverage(fallbackRows);
+    return {
+      version: 1 as const,
+      locationId,
+      updatedAtMs: Date.now(),
+      newestStartAt: cov.newestIso,
+      oldestStartAt: cov.oldestIso,
+      rows: fallbackRows,
+      lostRows: fallbackLost,
+      lostDiscovery: snapshot?.lostDiscovery || {
+        pipelineIds: [],
+        stageIds: [],
+        discoveredAt: new Date().toISOString(),
+        stageApiRows: 0,
+      },
+    };
+  }
   const directory = await getLocationDirectory(ctx).catch(() => null);
   const authToken = await getLocationTokenFor(locationId, ctx);
   const incremental = !!snapshot && !forceFull;
@@ -1386,7 +1428,12 @@ async function refreshLocationRows(
   let contactsForLost = contacts;
   const contactsWithState = contactsForLost.filter((c) => !!norm(c.state)).length;
   if (!contactsWithState && contactsForLost.length) {
-    contactsForLost = await hydrateContactsForOpportunities(authToken, locationId, contactsForLost);
+    contactsForLost = await hydrateContactsForOpportunities(
+      authToken,
+      locationId,
+      contactsForLost,
+      deadlineAtMs,
+    );
   }
   contactsForLost = contactsForLost.map((c) => {
     const ids = new Set<string>(c.opportunityIds || []);
@@ -1397,7 +1444,11 @@ async function refreshLocationRows(
     return { ...c, opportunityIds: Array.from(ids) };
   });
   const allOpportunityIds = contactsForLost.flatMap((c) => c.opportunityIds || []);
-  const opportunityDetails = await hydrateOpportunityDetailsByIds(authToken, allOpportunityIds);
+  const opportunityDetails = await hydrateOpportunityDetailsByIds(
+    authToken,
+    allOpportunityIds,
+    deadlineAtMs,
+  );
   if (opportunityDetails.size) {
     contactsForLost = contactsForLost.map((c) => {
       const detailed = (c.opportunityIds || [])
@@ -1458,7 +1509,12 @@ async function refreshLocationRows(
         )
       : deriveLostRowsFromContacts(locationId, contactsForLost, snapshot?.lostRows || [], discovered, directory);
   if (!newLostRows.length && contactsForLost.length) {
-    contactsForLost = await hydrateContactsForOpportunities(authToken, locationId, contactsForLost);
+    contactsForLost = await hydrateContactsForOpportunities(
+      authToken,
+      locationId,
+      contactsForLost,
+      deadlineAtMs,
+    );
     discovered = discoverLostPipelineStageIdsFromContacts(contactsForLost);
     if (!discovered.pipelineIds.length || !discovered.stageIds.length) {
       const fromCatalog = await discoverLostIdsFromPipelineCatalog(authToken, locationId);
@@ -1975,6 +2031,16 @@ async function refreshLostRowsStageOnly(
     };
   }
 
+  if (isPastDeadline(deadlineAtMs)) {
+    errors.push(`stage_only_timeout_before_contact_fallback:loc=${locationId}`);
+    return {
+      rows: prevRows,
+      discovery,
+      stageApiRows: 0,
+      errors,
+    };
+  }
+
   // Final fallback: discover from contacts -> opportunityIds -> opportunities/:id
   const contacts = await fetchContactsForLocation(locationId, authToken, {
     maxPages: FULL_SYNC_MAX_CONTACT_PAGES,
@@ -1992,7 +2058,7 @@ async function refreshLostRowsStageOnly(
     return { ...c, opportunityIds: Array.from(ids) };
   });
   const allOppIds = contactsWithOpps.flatMap((c) => c.opportunityIds || []);
-  const details = await hydrateOpportunityDetailsByIds(authToken, allOppIds);
+  const details = await hydrateOpportunityDetailsByIds(authToken, allOppIds, deadlineAtMs);
   if (details.size) {
     contactsWithOpps = contactsWithOpps.map((c) => {
       const detailed = (c.opportunityIds || []).map((id) => details.get(norm(id))).filter(Boolean);
