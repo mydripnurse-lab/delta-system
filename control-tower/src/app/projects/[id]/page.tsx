@@ -445,6 +445,15 @@ type TabSitemapRunItem = {
 
 type TabAction = "inspect" | "discovery" | "bing_indexnow";
 
+type DomainBotRunItem = {
+  key: string;
+  locId: string;
+  rowName: string;
+  domainUrl: string;
+  status: "pending" | "running" | "done" | "failed" | "stopped";
+  error?: string;
+};
+
 /** ---- Progress / Runner UX (client-only) ---- */
 type RunnerTotals = {
   allTotal: number;
@@ -702,6 +711,9 @@ export default function Home() {
   const [domainBotRunOpen, setDomainBotRunOpen] = useState(false);
   const [domainBotStopRequested, setDomainBotStopRequested] = useState(false);
   const domainBotStopRequestedRef = useRef(false);
+  const [domainBotRunItems, setDomainBotRunItems] = useState<DomainBotRunItem[]>([]);
+  const [domainBotRunStartedAt, setDomainBotRunStartedAt] = useState("");
+  const [domainBotRunDone, setDomainBotRunDone] = useState(false);
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -2353,6 +2365,38 @@ export default function Home() {
     return { pending, running, done, failed, total, completed, pct };
   }, [tabSitemapRunItems]);
 
+  const domainBotRunCounts = useMemo(() => {
+    let pending = 0;
+    let running = 0;
+    let done = 0;
+    let failed = 0;
+    let stopped = 0;
+    for (const it of domainBotRunItems) {
+      if (it.status === "pending") pending += 1;
+      else if (it.status === "running") running += 1;
+      else if (it.status === "done") done += 1;
+      else if (it.status === "failed") failed += 1;
+      else if (it.status === "stopped") stopped += 1;
+    }
+    const total = domainBotRunItems.length;
+    const completed = done + failed + stopped;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { pending, running, done, failed, stopped, total, completed, pct };
+  }, [domainBotRunItems]);
+
+  const domainBotRunEtaSec = useMemo(() => {
+    if (!domainBotBusy) return 0;
+    const total = domainBotRunCounts.total;
+    const completed = domainBotRunCounts.completed;
+    if (!domainBotRunStartedAt || !total || completed <= 0) return null;
+    const startedMs = new Date(domainBotRunStartedAt).getTime();
+    if (!Number.isFinite(startedMs) || startedMs <= 0) return null;
+    const elapsedSec = Math.max(1, Math.floor((Date.now() - startedMs) / 1000));
+    const avgPerItem = elapsedSec / completed;
+    const remaining = Math.max(0, total - completed);
+    return Math.round(avgPerItem * remaining);
+  }, [domainBotBusy, domainBotRunCounts, domainBotRunStartedAt]);
+
   // ✅ Puerto Rico metrics (separado)
   const prMetrics = useMemo(() => {
     const rows = sheet?.states || [];
@@ -3850,7 +3894,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     openActivationUrl?: string,
     row?: any,
     kindOverride?: "counties" | "cities",
-  ): Promise<boolean> {
+  ): Promise<{ status: "done" | "failed" | "stopped"; error?: string }> {
     const id = s(locId);
     const rowKind = kindOverride || detailTab;
     if (!id) {
@@ -3859,7 +3903,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ok: false,
         message: "Missing Location Id for Domain Bot.",
       });
-      return false;
+      return { status: "failed", error: "Missing Location Id for Domain Bot." };
     }
     if (!routeTenantId) {
       setTabSitemapStatus({
@@ -3867,7 +3911,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ok: false,
         message: "Missing tenant context for Domain Bot.",
       });
-      return false;
+      return { status: "failed", error: "Missing tenant context for Domain Bot." };
     }
     const domainToPaste =
       rowKind === "cities"
@@ -3997,7 +4041,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       });
       await loadOverview();
       if (openState) await openDetail(openState);
-      return true;
+      return { status: "done" };
     } catch (e: any) {
       const msg = e?.message || "request failed";
       if (/stopped by user/i.test(msg)) {
@@ -4015,7 +4059,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           message: `Domain Bot failed (${id}): ${msg}`,
         });
       }
-      return false;
+      return { status: /stopped by user/i.test(msg) ? "stopped" : "failed", error: msg };
     } finally {
       setDomainBotBusy(false);
     }
@@ -4029,7 +4073,33 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     domainBotStopRequestedRef.current = false;
     setDomainBotStopRequested(false);
     setDomainBotRunOpen(true);
-    await runDomainBotForLocId(locId, openActivationUrl, row, detailTab);
+    setDomainBotRunStartedAt(new Date().toISOString());
+    setDomainBotRunDone(false);
+    const rowName = getTabRowName(detailTab, row) || "Row";
+    const domainUrl = getTabRowDomainUrl(detailTab, row);
+    const key = `${detailTab}:${locId}:${rowName}:${domainUrl}`;
+    setDomainBotRunItems([
+      {
+        key,
+        locId: s(locId),
+        rowName,
+        domainUrl,
+        status: "running",
+      },
+    ]);
+    const out = await runDomainBotForLocId(locId, openActivationUrl, row, detailTab);
+    setDomainBotRunItems((prev) =>
+      prev.map((it) =>
+        it.key === key
+          ? {
+              ...it,
+              status: out.status,
+              error: out.status === "failed" ? out.error || "Run failed." : "",
+            }
+          : it,
+      ),
+    );
+    setDomainBotRunDone(true);
   }
 
   async function runDomainBotPendingInCurrentTab() {
@@ -4053,17 +4123,53 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     domainBotStopRequestedRef.current = false;
     setDomainBotStopRequested(false);
     setDomainBotRunOpen(true);
+    setDomainBotRunStartedAt(new Date().toISOString());
+    setDomainBotRunDone(false);
+    const preparedItems: DomainBotRunItem[] = queue.map((item) => {
+      const rowName = getTabRowName(detailTab, item.row) || "Row";
+      const domainUrl = getTabRowDomainUrl(detailTab, item.row);
+      return {
+        key: `${detailTab}:${item.locId}:${rowName}:${domainUrl}`,
+        locId: item.locId,
+        rowName,
+        domainUrl,
+        status: "pending",
+      };
+    });
+    setDomainBotRunItems(preparedItems);
 
     for (let i = 0; i < queue.length; i += 1) {
       if (domainBotStopRequestedRef.current) break;
       const item = queue[i];
+      setDomainBotRunItems((prev) =>
+        prev.map((it) =>
+          it.locId === item.locId ? { ...it, status: "running", error: "" } : it,
+        ),
+      );
       setTabSitemapStatus({
         kind: detailTab,
         ok: true,
         message: `Domain Bot ${detailTab} pending ${i + 1}/${queue.length} (${item.locId})...`,
       });
       // Sequential run, one account at a time.
-      await runDomainBotForLocId(item.locId, item.activationUrl, item.row, detailTab);
+      const out = await runDomainBotForLocId(
+        item.locId,
+        item.activationUrl,
+        item.row,
+        detailTab,
+      );
+      setDomainBotRunItems((prev) =>
+        prev.map((it) =>
+          it.locId === item.locId
+            ? {
+                ...it,
+                status: out.status,
+                error: out.status === "failed" ? out.error || "Run failed." : "",
+              }
+            : it,
+        ),
+      );
+      if (out.status === "stopped") break;
     }
 
     if (domainBotStopRequestedRef.current) {
@@ -4072,7 +4178,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ok: false,
         message: `Domain Bot ${detailTab} stopped by user.`,
       });
+      setDomainBotRunItems((prev) =>
+        prev.map((it) => (it.status === "pending" ? { ...it, status: "stopped" } : it)),
+      );
     }
+    setDomainBotRunDone(true);
   }
 
   async function retryFailedTabSitemaps(
@@ -5967,50 +6077,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <button
                     className="smallBtn"
                     onClick={() => setDomainBotRunOpen(true)}
-                    disabled={!domainBotLogs.length && !domainBotBusy}
+                    disabled={!domainBotRunItems.length && !domainBotBusy}
                     title="Ver ejecución del Domain Bot"
                   >
                     View Bot Run
                   </button>
                 </div>
-                {domainBotLogs.length ? (
-                  <div
-                    className="mini"
-                    style={{
-                      marginTop: 10,
-                      maxHeight: 180,
-                      overflow: "auto",
-                      whiteSpace: "pre-wrap",
-                      border: "1px solid var(--line)",
-                      borderRadius: 10,
-                      padding: "8px 10px",
-                      background: "rgba(2,6,23,.35)",
-                    }}
-                  >
-                    {domainBotLogs.map((line, idx) => (
-                      <div key={`db_log_${idx}`}>{line}</div>
-                    ))}
-                  </div>
-                ) : null}
-                {domainBotScreenshotDataUrl ? (
-                  <div style={{ marginTop: 10 }}>
-                    <div className="mini" style={{ marginBottom: 6 }}>
-                      Worker failure screenshot
-                    </div>
-                    <img
-                      src={domainBotScreenshotDataUrl}
-                      alt="Domain Bot failure screenshot"
-                      style={{
-                        width: "100%",
-                        maxHeight: 260,
-                        objectFit: "contain",
-                        border: "1px solid var(--line)",
-                        borderRadius: 10,
-                        background: "rgba(15,23,42,.5)",
-                      }}
-                    />
-                  </div>
-                ) : null}
               </div>
 
               <div className="drawerHeaderActions">
@@ -6737,16 +6809,21 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   {openState || "State"} • {detailTab === "counties" ? "Counties" : "Cities"}
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
-                  {domainBotBusy
-                    ? domainBotStopRequested
-                      ? "Stopping requested..."
-                      : "Processing..."
-                    : "Idle"}
+                  Started:{" "}
+                  {domainBotRunStartedAt
+                    ? new Date(domainBotRunStartedAt).toLocaleString()
+                    : "—"}
                 </div>
               </div>
 
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span className="badge">{domainBotBusy ? "Running" : "Idle"}</span>
+                <span className="badge">{domainBotRunCounts.pct}%</span>
+                <span className="badge">
+                  Done {domainBotRunCounts.done}/{domainBotRunCounts.total}
+                </span>
+                <span className="badge" style={{ color: "var(--danger)" }}>
+                  Failed {domainBotRunCounts.failed}
+                </span>
                 {domainBotStopRequested ? (
                   <span className="badge" style={{ color: "var(--warning)" }}>Stop requested</span>
                 ) : null}
@@ -6771,23 +6848,92 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             <div className="modalBody" style={{ padding: 14 }}>
               <div className="card" style={{ marginBottom: 10 }}>
                 <div className="cardBody" style={{ padding: 10 }}>
+                  <div className="mini" style={{ marginBottom: 8 }}>
+                    {domainBotRunDone
+                      ? "Run completed."
+                      : domainBotBusy
+                        ? domainBotStopRequested
+                          ? "Stopping..."
+                          : "Processing..."
+                        : "Idle"}
+                    {" "}• ETA {fmtRelativeSeconds(domainBotRunEtaSec)}
+                  </div>
                   <div
-                    className="mini"
+                    className="progressWrap"
                     style={{
-                      maxHeight: 300,
-                      overflow: "auto",
-                      whiteSpace: "pre-wrap",
-                      border: "1px solid var(--line)",
-                      borderRadius: 10,
-                      padding: "8px 10px",
-                      background: "rgba(2,6,23,.35)",
+                      width: "100%",
+                      height: 10,
+                      borderRadius: 999,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.05)",
+                      overflow: "hidden",
                     }}
                   >
-                    {domainBotLogs.length
-                      ? domainBotLogs.map((line, idx) => <div key={`dbm_${idx}`}>{line}</div>)
-                      : "No logs yet."}
+                    <div
+                      className="progressBar"
+                      style={{
+                        width: `${domainBotRunCounts.pct}%`,
+                        height: "100%",
+                        background:
+                          "linear-gradient(90deg, rgba(96,165,250,0.95), rgba(74,222,128,0.92))",
+                        transition: "width 180ms ease",
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="chips"
+                    style={{ marginTop: 8, display: "flex", gap: 8 }}
+                  >
+                    <span className="badge">Pending {domainBotRunCounts.pending}</span>
+                    <span className="badge">Running {domainBotRunCounts.running}</span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>
+                      Done {domainBotRunCounts.done}
+                    </span>
+                    <span className="badge" style={{ color: "var(--danger)" }}>
+                      Failed {domainBotRunCounts.failed}
+                    </span>
+                    {domainBotRunCounts.stopped > 0 ? (
+                      <span className="badge" style={{ color: "var(--warning)" }}>
+                        Stopped {domainBotRunCounts.stopped}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
+              </div>
+
+              <div className="tableWrap tableScrollX" style={{ maxHeight: 300 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Status</th>
+                      <th className="th">{detailTab === "counties" ? "County" : "City"}</th>
+                      <th className="th">Domain</th>
+                      <th className="th">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {domainBotRunItems.map((it) => (
+                      <tr key={it.key} className="tr">
+                        <td className="td">
+                          {it.status === "done" && <span className="pillOk">Done</span>}
+                          {it.status === "failed" && <span className="pillOff">Failed</span>}
+                          {it.status === "running" && <span className="pillWarn">Running</span>}
+                          {it.status === "pending" && <span className="badge">Pending</span>}
+                          {it.status === "stopped" && (
+                            <span className="badge" style={{ color: "var(--warning)" }}>Stopped</span>
+                          )}
+                        </td>
+                        <td className="td">{it.rowName || "—"}</td>
+                        <td className="td">
+                          <span className="mini">{it.domainUrl || "—"}</span>
+                        </td>
+                        <td className="td">
+                          <span className="mini">{it.error || "—"}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {domainBotScreenshotDataUrl ? (
