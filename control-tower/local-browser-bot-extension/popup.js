@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   selectedTenantId: "delta_selected_tenant_id",
   authToken: "delta_auth_bearer_token",
   authEmail: "delta_auth_email",
+  executionProfile: "delta_execution_profile",
 };
 const DEFAULT_WORKSPACE_BASE = "https://www.telahagocrecer.com";
 const FORCE_WORKSPACE_BASE = true;
@@ -907,6 +908,7 @@ async function initializeHome() {
     STORAGE_KEYS.selectedTenantId,
     STORAGE_KEYS.authEmail,
     STORAGE_KEYS.authToken,
+    STORAGE_KEYS.executionProfile,
   ]);
   const base = FORCE_WORKSPACE_BASE
     ? DEFAULT_WORKSPACE_BASE
@@ -1025,7 +1027,12 @@ async function initializeHome() {
   });
   byId("profilePanel")?.addEventListener("click", (e) => e.stopPropagation());
 
+  byId("executionProfile")?.addEventListener("change", async () => {
+    await persistExecutionProfilePreference();
+  });
+
   const hasToken = !!String(stored?.[STORAGE_KEYS.authToken] || "").trim();
+  await loadExecutionProfilePreference();
   startHomePolling();
   if (hasToken) {
     setStartupStatus("Restoring authenticated context...");
@@ -1048,6 +1055,21 @@ function collectPayload() {
     headCode: byId("headCode").value,
     bodyCode: byId("bodyCode").value,
   };
+}
+
+async function loadExecutionProfilePreference() {
+  const stored = await storageGet([STORAGE_KEYS.executionProfile]);
+  const raw = String(stored?.[STORAGE_KEYS.executionProfile] || "").trim().toLowerCase();
+  const selected = raw === "fast" || raw === "normal" || raw === "safe" ? raw : "safe";
+  const sel = byId("executionProfile");
+  if (sel) sel.value = selected;
+}
+
+async function persistExecutionProfilePreference() {
+  const raw = String(byId("executionProfile")?.value || "safe").trim().toLowerCase();
+  const selected = raw === "fast" || raw === "normal" || raw === "safe" ? raw : "safe";
+  await storageSet({ [STORAGE_KEYS.executionProfile]: selected });
+  setStatus(`Mode saved: ${selected}`, "success");
 }
 
 async function getActiveTab() {

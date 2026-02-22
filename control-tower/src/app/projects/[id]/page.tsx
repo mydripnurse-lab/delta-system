@@ -4172,7 +4172,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       return { status: "done" };
     } catch (e: any) {
       const msg = e?.message || "request failed";
-      if (/stopped by user/i.test(msg)) {
+      if (/stopped by user|activation tab was closed by user|manual close|tab was closed/i.test(msg)) {
         pushDomainBotLog("STOPPED by user.");
         setTabSitemapStatus({
           kind: rowKind,

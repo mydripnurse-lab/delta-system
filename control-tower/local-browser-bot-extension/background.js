@@ -11,6 +11,7 @@ const botRuntime = {
 const EXT_BADGE_STORAGE_KEY = "delta_action_badge_count";
 const EXT_BADGE_SEVERITY_STORAGE_KEY = "delta_action_badge_severity";
 const EXT_BADGE_ALARM = "delta_badge_refresh_alarm";
+const EXT_EXECUTION_PROFILE_KEY = "delta_execution_profile";
 const DEFAULT_WORKSPACE_BASE = "https://www.telahagocrecer.com";
 
 function normalizeSeverity(raw) {
@@ -131,6 +132,9 @@ async function waitTabLoaded(tabId, timeoutMs = 120000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (!tab) {
+      throw new Error("Activation tab was closed by user.");
+    }
     if (tab?.status === "complete") return tab;
     await sleep(280);
   }
@@ -1419,7 +1423,8 @@ async function runInTab(tabId, payload) {
         const finalCheck = getSettingsMismatches(expected);
         if (finalCheck.mismatches.length) {
           setSettingsPersistStatus("fail", finalCheck.mismatches.join(","));
-          throw new Error(`Settings did not persist: ${finalCheck.mismatches.join(", ")}`);
+          log(`WARNING: settings validation mismatch after retries: ${finalCheck.mismatches.join(", ")}`);
+          return false;
         }
         setSettingsPersistStatus("ok");
         return true;
@@ -1798,7 +1803,7 @@ async function runInTab(tabId, payload) {
         if (!hasSettingsPayload) {
           setSettingsPersistStatus("na");
         }
-        await verifySavedSettingsAndRepair(
+        const settingsPersisted = await verifySavedSettingsAndRepair(
           {
             favicon: String(input.faviconUrl || ""),
             head: String(input.headCode || ""),
@@ -1806,9 +1811,12 @@ async function runInTab(tabId, payload) {
           },
           2,
         );
+        if (!settingsPersisted) {
+          log("continuing with warning: final settings verification returned mismatches");
+        }
 
         log("DONE");
-        return { ok: true, logs: allLogs };
+        return { ok: true, logs: allLogs, warnings: settingsPersisted ? [] : ["settings_mismatch"] };
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
         setSettingsPersistStatus("fail");
@@ -1828,6 +1836,39 @@ async function runLocalDomainBot(payload) {
 
   let tabId = null;
   let reused = false;
+  const closeAfterRun = payload?.closeAfterRun !== false;
+  const isTabClosedError = (err) => {
+    const msg = String(err instanceof Error ? err.message : err || "").toLowerCase();
+    return (
+      msg.includes("activation tab was closed by user") ||
+      msg.includes("no tab with id") ||
+      msg.includes("tabs cannot be edited right now") ||
+      msg.includes("tab was closed")
+    );
+  };
+
+  const closeRunSurface = async () => {
+    if (!tabId) return;
+    const targetTabId = tabId;
+    tabId = null;
+    try {
+      await chrome.tabs.remove(targetTabId);
+    } catch {}
+
+    if (!botRuntime.watchWindowId) return;
+    const win = await chrome.windows.get(botRuntime.watchWindowId, { populate: true }).catch(() => null);
+    if (!win) {
+      botRuntime.watchWindowId = null;
+      return;
+    }
+    const remainingTabs = Array.isArray(win.tabs) ? win.tabs.length : 0;
+    if (remainingTabs <= 0) {
+      try {
+        await chrome.windows.remove(win.id);
+      } catch {}
+      botRuntime.watchWindowId = null;
+    }
+  };
 
   if (botRuntime.watchWindowId) {
     const existingWin = await chrome.windows.get(botRuntime.watchWindowId, { populate: true }).catch(() => null);
@@ -1852,22 +1893,54 @@ async function runLocalDomainBot(payload) {
 
   if (!tabId) throw new Error("Could not create activation window/tab.");
 
-  await waitTabLoaded(tabId, 150000);
-  await sleep(reused ? 900 : 1200);
-  const result = await runInTab(tabId, payload);
-  if (result?.ok) {
-    try {
-      await chrome.tabs.remove(tabId);
-    } catch {}
-    if (botRuntime.watchWindowId) {
-      const win = await chrome.windows.get(botRuntime.watchWindowId, { populate: true }).catch(() => null);
-      const remainingTabs = Array.isArray(win?.tabs) ? win.tabs.length : 0;
-      if (!win || remainingTabs === 0) {
-        botRuntime.watchWindowId = null;
+  const resolveExecutionProfile = async () => {
+    const explicit = String(payload?.executionProfile || "").trim().toLowerCase();
+    if (explicit === "fast" || explicit === "normal" || explicit === "safe") return explicit;
+    const stored = await chrome.storage.local.get([EXT_EXECUTION_PROFILE_KEY]);
+    const raw = String(stored?.[EXT_EXECUTION_PROFILE_KEY] || "").trim().toLowerCase();
+    return raw === "fast" || raw === "normal" || raw === "safe" ? raw : "safe";
+  };
+
+  try {
+    const executionProfile = await resolveExecutionProfile();
+    let attempt = 0;
+    while (attempt < 2) {
+      attempt += 1;
+      try {
+        await waitTabLoaded(tabId, 150000);
+        await sleep(reused ? 900 : 1200);
+        return await runInTab(tabId, { ...payload, executionProfile });
+      } catch (err) {
+        if (attempt < 2 && isTabClosedError(err)) {
+          try {
+            if (botRuntime.watchWindowId) {
+              await chrome.windows.remove(botRuntime.watchWindowId);
+            }
+          } catch {}
+          botRuntime.watchWindowId = null;
+          tabId = null;
+          const createdWindow = await chrome.windows.create({
+            url,
+            focused: true,
+            type: "normal",
+          });
+          tabId = createdWindow?.tabs?.[0]?.id || null;
+          botRuntime.watchWindowId = createdWindow?.id || null;
+          reused = false;
+          if (!tabId) {
+            throw new Error("Could not recreate activation window/tab after manual close.");
+          }
+          continue;
+        }
+        throw err;
       }
     }
+    throw new Error("Unexpected bot runner state.");
+  } finally {
+    if (closeAfterRun) {
+      await closeRunSurface();
+    }
   }
-  return result;
 }
 
 function isBridgeInjectableUrl(url) {

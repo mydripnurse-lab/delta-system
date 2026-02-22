@@ -190,6 +190,10 @@ const LOST_BOOKINGS_PIPELINE_ID = String(process.env.APPOINTMENTS_LOST_PIPELINE_
 const LOST_BOOKINGS_STAGE_ID = String(process.env.APPOINTMENTS_LOST_STAGE_ID || "").trim();
 const INCLUDE_SHEET_LOCATIONS = String(process.env.APPOINTMENTS_INCLUDE_SHEET_LOCATIONS || "").trim() === "1";
 const REQUEST_MAX_MS = Math.max(10_000, Number(process.env.APPOINTMENTS_REQUEST_MAX_MS || 45_000));
+const REQUEST_SNAPSHOT_GUARD_MS = Math.max(
+  3_000,
+  Number(process.env.APPOINTMENTS_SNAPSHOT_GUARD_MS || 12_000),
+);
 const SNAPSHOT_RANGE_SLOP_MS = Number(process.env.APPOINTMENTS_RANGE_SLOP_MIN || 15) * 60 * 1000;
 const RANGE_DB_CACHE_TTL_SEC = Math.max(30, Number(process.env.APPOINTMENTS_RANGE_DB_CACHE_TTL_SEC || 300));
 const PLACE_NAME_CORRECTIONS: Record<string, string> = {
@@ -2165,6 +2169,14 @@ export async function GET(req: Request) {
     let refreshedLocations = 0;
     let usedIncremental = false;
     let refreshReason = "";
+    const requestBudgetLeftMs = Math.max(0, deadlineAtMs - Date.now());
+    const forceSnapshotOnly = !bust && requestBudgetLeftMs <= REQUEST_SNAPSHOT_GUARD_MS;
+    if (forceSnapshotOnly) {
+      console.warn(
+        `[appointments] low budget guard enabled remainingMs=${requestBudgetLeftMs} guardMs=${REQUEST_SNAPSHOT_GUARD_MS}`,
+      );
+      refreshReason = "low_budget_snapshot_guard";
+    }
 
     const byLocationRows = new Map<string, ApptRow[]>();
     const byLocationLostRows = new Map<string, LostBookingRow[]>();
@@ -2194,6 +2206,25 @@ export async function GET(req: Request) {
         Array.isArray(snapshot.lostRows) &&
         Date.now() - Number(snapshot.updatedAtMs || 0) <= SNAPSHOT_TTL_MS;
       const covered = snapshotCoversRange(snapshot, startMs, endMs);
+
+      if (forceSnapshotOnly) {
+        if (snapshot) {
+          byLocationRows.set(locationId, snapshot.rows || []);
+          byLocationLostRows.set(locationId, snapshot.lostRows || []);
+          for (const id of snapshot.lostDiscovery?.pipelineIds || []) if (id) discoveredPipelineIds.add(id);
+          for (const id of snapshot.lostDiscovery?.stageIds || []) if (id) discoveredStageIds.add(id);
+          discoveredStageApiRows += Number(snapshot.lostDiscovery?.stageApiRows || 0);
+          snapshotMeta.set(locationId, {
+            updatedAt: new Date(snapshot.updatedAtMs).toISOString(),
+            newest: snapshot.newestStartAt || "",
+            oldest: snapshot.oldestStartAt || "",
+          });
+        } else {
+          byLocationRows.set(locationId, []);
+          byLocationLostRows.set(locationId, []);
+        }
+        continue;
+      }
 
       if (snapshot && !bust && covered && (fresh || preferSnapshot)) {
         byLocationRows.set(locationId, snapshot.rows || []);
