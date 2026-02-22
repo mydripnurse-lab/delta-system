@@ -501,7 +501,7 @@ export default function Home() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const routeTenantId = s(params?.id || "");
-  const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>("runner");
+  const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>("activation");
   const [detailsTab, setDetailsTab] = useState<ProjectDetailsTab>("business");
   const [tenantSummary, setTenantSummary] = useState<TenantSummary | null>(
     null,
@@ -4650,10 +4650,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       <section className="agencySubnav" style={{ marginTop: 12 }}>
         <button
           type="button"
-          className={`agencySubnavItem ${activeProjectTab === "details" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("details")}
+          className={`agencySubnavItem ${activeProjectTab === "activation" ? "agencySubnavItemActive" : ""}`}
+          onClick={() => jumpTo("activation")}
         >
-          Project Details
+          Home
         </button>
         <button
           type="button"
@@ -4671,17 +4671,17 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </button>
         <button
           type="button"
-          className={`agencySubnavItem ${activeProjectTab === "activation" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("activation")}
+          className={`agencySubnavItem ${activeProjectTab === "details" ? "agencySubnavItemActive" : ""}`}
+          onClick={() => jumpTo("details")}
         >
-          Activation
+          Project Details
         </button>
         <button
           type="button"
           className={`agencySubnavItem ${activeProjectTab === "webhooks" ? "agencySubnavItemActive" : ""}`}
           onClick={() => jumpTo("webhooks")}
         >
-          Webhooks
+          Webhook
         </button>
         <button
           type="button"
@@ -5762,9 +5762,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         <section className="card" style={{ marginTop: 14 }} ref={activationRef}>
           <div className="cardHeader">
             <div>
-              <h2 className="cardTitle">Activation Command Center</h2>
+              <h2 className="cardTitle">Overview Command Center</h2>
               <div className="cardSubtitle">
-                KPIs de rollout y mapa de Subaccount Created / Domain Created.
+                Primary rollout overview: subaccount/domain progress and activation map.
               </div>
             </div>
             <div className="cardHeaderActions">

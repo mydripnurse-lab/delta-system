@@ -50,13 +50,93 @@
       .header {
         padding: 14px;
         border-bottom: 1px solid var(--stroke);
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+        background:
+          radial-gradient(120% 140% at 100% -20%, rgba(115, 176, 255, 0.22), rgba(115, 176, 255, 0)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%);
+        position: relative;
+      }
+
+      .headerTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
       }
 
       .brand { display: flex; align-items: center; gap: 10px; }
-      .brand img { width: 28px; height: 28px; border-radius: 8px; }
-      .title { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.2px; }
-      .subtitle { margin: 3px 0 0; font-size: 11px; color: var(--muted); }
+      .brandMarkWrap {
+        position: relative;
+        width: 34px;
+        height: 34px;
+      }
+      .brand img {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.22);
+        box-shadow: 0 6px 20px rgba(57, 120, 255, .35);
+      }
+      .agencyNotifBadge {
+        position: absolute;
+        right: -10px;
+        top: -8px;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.3);
+        background: linear-gradient(135deg, #ff5f77 0%, #ff3f5e 100%);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+      }
+      .agencyNotifBadge[hidden] { display: none !important; }
+      .title { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.1px; }
+      .subtitle { margin: 2px 0 0; font-size: 11px; color: #a9b8d6; }
+
+      .profileChip {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        cursor: pointer;
+        min-width: 210px;
+      }
+      .profileChip[hidden] { display: none !important; }
+      .profileAvatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        object-fit: cover;
+        border: 1px solid rgba(255,255,255,.25);
+      }
+      .profileMeta { display: grid; text-align: left; line-height: 1.1; }
+      .profileName { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 132px; }
+      .profileRole { font-size: 11px; color: var(--muted); text-transform: lowercase; }
+      .profileChevron { margin-left: auto; color: #a9badf; font-size: 11px; }
+
+      .profilePanel {
+        position: absolute;
+        right: 14px;
+        top: 64px;
+        width: 260px;
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 14px;
+        background: rgba(8, 14, 29, 0.97);
+        box-shadow: var(--shadow);
+        padding: 10px;
+        z-index: 25;
+      }
+      .profilePanel[hidden] { display: none !important; }
+      .profilePanelName { margin: 0; font-size: 14px; font-weight: 700; }
+      .profilePanelEmail { margin: 3px 0 8px; font-size: 11px; color: var(--muted); }
 
       .tabBar {
         margin-top: 10px;
@@ -67,6 +147,7 @@
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.12);
       }
+      .tabBar[hidden] { display: none !important; }
 
       .tabBtn {
         border: 1px solid transparent;
@@ -86,13 +167,11 @@
 
       .content { padding: 12px; display: grid; gap: 10px; }
       .view[hidden] { display: none !important; }
-      #homeView {
-        display: grid;
-        gap: 10px;
-        grid-template-columns: 1fr 1fr;
-      }
-      #homeView > .card:first-child {
-        grid-column: 1 / -1;
+      #homeView { display: grid; gap: 10px; }
+      #homeMainView { display: grid; gap: 10px; grid-template-columns: 1fr; }
+      #homeMainView[hidden],
+      #homeAuthView[hidden] {
+        display: none !important;
       }
 
       .card {
@@ -226,6 +305,218 @@
 
       .mini { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
 
+      .authCard { max-width: 100%; }
+      .authHeadline { margin: 0 0 6px; font-size: 44px; letter-spacing: -0.6px; font-weight: 800; }
+      .authCopy { margin: 0 0 14px; color: #b3c0dc; }
+      .authToggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 6px;
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 14px;
+        background: rgba(255,255,255,.02);
+        margin-bottom: 14px;
+      }
+      .authToggleBtn {
+        border-radius: 12px;
+        font-size: 13px;
+        padding: 10px 12px;
+        text-align: center;
+      }
+      .authToggleBtn.active {
+        background: rgba(93,127,203,.45);
+        color: #eef4ff;
+      }
+      .authToggleBtn.disabled {
+        color: #7f8ca9;
+        background: transparent;
+        border-color: transparent;
+        cursor: not-allowed;
+      }
+      .rememberRow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0 12px;
+        font-size: 11px;
+        color: #b7c3de;
+      }
+      .rememberRow input { width: auto; accent-color: #4e84ff; }
+      .primaryWide {
+        width: 100%;
+        border-radius: 14px;
+        padding: 12px;
+        font-size: 15px;
+        color: #f5f9ff;
+        background: linear-gradient(135deg, #3e7dff 0%, #2f64e2 100%);
+      }
+      .homePrimaryActions {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .statStrip {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .quickStat {
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 12px;
+        padding: 10px;
+        background: rgba(255,255,255,.03);
+      }
+      .quickStatLabel {
+        margin: 0 0 4px;
+        font-size: 10px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .quickStatValue {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 800;
+      }
+      .modalWrap {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+      }
+      .modalWrap[hidden] { display: none !important; }
+      .modalBackdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(1, 5, 16, 0.66);
+        backdrop-filter: blur(5px);
+      }
+      .modalCard {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(560px, calc(100vw - 30px));
+        max-height: calc(100vh - 40px);
+        overflow: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,.16);
+        background:
+          radial-gradient(120% 120% at 100% 0%, rgba(112, 192, 255, 0.16), rgba(112, 192, 255, 0)),
+          linear-gradient(160deg, #081228 0%, #0b1730 50%, #081228 100%);
+        box-shadow: var(--shadow);
+        padding: 12px;
+      }
+      .modalHead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .modalTitle {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+      }
+      .modalSub {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .tenantHero {
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 14px;
+        padding: 10px;
+        background: rgba(255,255,255,.03);
+        cursor: pointer;
+      }
+      .tenantHero:hover { border-color: rgba(110, 188, 255, 0.58); }
+      .tenantHeroTop {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .tenantLogo {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid rgba(255,255,255,.2);
+      }
+      .tenantName {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+      }
+      .tenantSlug {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .tenantKpiGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+      }
+      .notifList {
+        display: grid;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .notifItem {
+        border: 1px solid rgba(255,255,255,.13);
+        border-radius: 12px;
+        padding: 9px;
+        background: rgba(255,255,255,.03);
+      }
+      .notifRow {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+      }
+      .notifTitle {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .priorityPill {
+        font-size: 10px;
+        font-weight: 700;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.15);
+        padding: 2px 7px;
+      }
+      .priorityPill.critical, .priorityPill.high { color: #ffd1d9; border-color: rgba(255, 94, 121, 0.45); background: rgba(255, 94, 121, 0.15); }
+      .priorityPill.medium { color: #ffe5b5; border-color: rgba(255, 191, 77, 0.4); background: rgba(255, 191, 77, 0.14); }
+      .priorityPill.low { color: #cde3ff; border-color: rgba(99, 167, 255, 0.35); background: rgba(99, 167, 255, 0.14); }
+      .notifSummary {
+        margin: 6px 0;
+        color: #d6e0f6;
+        font-size: 11px;
+        line-height: 1.4;
+      }
+      .notifActions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .notifFilterRow {
+        display: grid;
+        grid-template-columns: 1fr 140px;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .notifPager {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+      }
+
       @keyframes pulse {
         0% { box-shadow: 0 0 0 0 rgba(77, 210, 255, 0.6); }
         100% { box-shadow: 0 0 0 10px rgba(77, 210, 255, 0); }
@@ -235,89 +526,175 @@
   <body>
     <div class="shell">
       <div class="header">
-        <div class="brand">
-          <img src="icon48.png" alt="Delta" />
-          <div>
-            <h1 class="title">Delta Local Domain Bot</h1>
-            <p class="subtitle">Local runner + project context</p>
+        <div class="headerTop">
+          <div class="brand">
+            <div class="brandMarkWrap">
+              <img src="delta-logo-source.png" alt="Delta System" />
+              <span id="agencyNotifBadge" class="agencyNotifBadge" hidden>0</span>
+            </div>
+            <div>
+              <h1 class="title">Delta System</h1>
+              <p class="subtitle">Control Tower · Local Bot</p>
+            </div>
           </div>
+          <button id="profileChip" class="profileChip" type="button" hidden>
+            <img id="profileChipAvatar" class="profileAvatar" src="icon48.png" alt="Profile" />
+            <div class="profileMeta">
+              <span id="profileChipName" class="profileName">User</span>
+              <span id="profileChipRole" class="profileRole">member</span>
+            </div>
+            <span class="profileChevron">▼</span>
+          </button>
         </div>
-        <div class="tabBar">
+        <div id="profilePanel" class="profilePanel" hidden>
+          <p id="profilePanelName" class="profilePanelName">User</p>
+          <p id="profilePanelEmail" class="profilePanelEmail">-</p>
+          <button id="profileOpenBtn" class="secondaryBtn" type="button" style="width:100%; margin-bottom:8px;">Open Profile</button>
+          <button id="profileSignOutBtn" class="secondaryBtn" type="button" style="width:100%;">Sign Out</button>
+        </div>
+        <div class="tabBar" hidden>
           <button id="tabHomeBtn" class="tabBtn active" type="button">Home</button>
           <button id="tabBotBtn" class="tabBtn" type="button">Bot</button>
+          <button id="tabTenantsBtn" class="tabBtn" type="button">Tenants</button>
+          <button id="tabNotificationsBtn" class="tabBtn" type="button">Notifications</button>
         </div>
       </div>
 
       <div class="content">
         <section id="homeView" class="view">
-          <div class="card">
-            <h2>Workspace</h2>
+          <input id="workspaceBase" type="hidden" />
+
+          <div id="homeAuthView" class="card authCard">
+            <h1 class="authHeadline">Sign In</h1>
+            <p class="authCopy">Built for high-performance teams with security by default.</p>
+            <div class="authToggle">
+              <div class="authToggleBtn active">Sign In</div>
+              <div class="authToggleBtn disabled">Create Account (Coming Soon)</div>
+            </div>
             <div class="field">
-              <label for="workspaceBase">Project base URL</label>
-              <input id="workspaceBase" placeholder="https://www.telahagocrecer.com" />
+              <label for="homeEmail">Email</label>
+              <input id="homeEmail" type="email" placeholder="you@company.com" />
             </div>
-            <div class="row">
-              <div class="field">
-                <label for="homeEmail">Email</label>
-                <input id="homeEmail" type="email" placeholder="you@company.com" />
-              </div>
-              <div class="field">
-                <label for="homePassword">Password</label>
-                <input id="homePassword" type="password" placeholder="********" />
-              </div>
+            <div class="field">
+              <label for="homePassword">Password</label>
+              <input id="homePassword" type="password" placeholder="********" />
             </div>
-            <div class="actions3">
-              <button id="refreshHomeBtn" class="secondaryBtn" type="button">Refresh</button>
-              <button id="openDashboardBtn" class="secondaryBtn" type="button">Open Projects</button>
-              <button id="openLoginBtn" class="secondaryBtn" type="button">Open Login</button>
-            </div>
-            <div class="actions" style="margin-top:8px; grid-template-columns:1fr 1fr;">
-              <button id="homeSignInBtn" type="button">Sign In</button>
-              <button id="homeSignOutBtn" class="secondaryBtn" type="button">Sign Out</button>
-            </div>
-            <p id="workspaceStatus" class="mini" style="margin-top:8px;">Ready.</p>
+            <label class="rememberRow" for="homeRememberMe">
+              <input id="homeRememberMe" type="checkbox" />
+              Remember me (30 days)
+            </label>
+            <button id="homeSignInBtn" class="primaryWide" type="button">Sign In</button>
+            <p data-home-status class="mini" style="margin-top:10px;">Ready.</p>
+            <p class="mini" style="margin-top:8px;">Authorized users only. All actions are governed by permissions and audit controls.</p>
           </div>
 
-          <div class="card">
-            <h2>User</h2>
-            <div class="kpiRow">
-              <div class="kpi">
-                <p class="kpiLabel">Name</p>
-                <p id="meName" class="kpiValue">-</p>
+          <div id="homeMainView" hidden>
+            <div class="card">
+              <h2>Overview</h2>
+              <div class="homePrimaryActions">
+                <button id="refreshHomeBtn" class="secondaryBtn" type="button">Refresh</button>
               </div>
-              <div class="kpi" style="grid-column: span 2;">
-                <p class="kpiLabel">Email</p>
-                <p id="meEmail" class="kpiValue">-</p>
+              <div class="statStrip">
+                <div class="quickStat">
+                  <p class="quickStatLabel">Tenants</p>
+                  <p id="homeTenantCount" class="quickStatValue">0</p>
+                </div>
+                <div class="quickStat">
+                  <p class="quickStatLabel">Open Alerts</p>
+                  <p id="homeNotifOpenTotal" class="quickStatValue">0</p>
+                </div>
+                <div class="quickStat">
+                  <p class="quickStatLabel">Total Alerts</p>
+                  <p id="homeNotifTotalTotal" class="quickStatValue">0</p>
+                </div>
               </div>
+              <div class="actions3" style="margin-top:8px;">
+                <button id="openTenantFromSelectedBtn" class="secondaryBtn" type="button">Open Tenant</button>
+              </div>
+              <p data-home-status class="mini" style="margin-top:8px;">Connected.</p>
             </div>
-            <p id="meRoles" class="mini" style="margin-top:8px;">Roles: -</p>
+            <p id="notifError" class="mini" style="margin:0 2px;">-</p>
           </div>
 
-          <div class="card">
-            <h2>Tenant + Notifications</h2>
-            <div class="field">
-              <label for="tenantSelect">Tenant</label>
-              <select id="tenantSelect"></select>
-            </div>
-            <div class="actions" style="grid-template-columns:1fr 1fr;">
-              <button id="refreshNotifBtn" class="secondaryBtn" type="button">Refresh Notifications</button>
-              <button id="openTenantBtn" class="secondaryBtn" type="button">Open Tenant</button>
-            </div>
-            <div class="kpiRow" style="margin-top:8px;">
-              <div class="kpi">
-                <p class="kpiLabel">Open</p>
-                <p id="notifOpen" class="kpiValue">0</p>
+          <div id="homeModalWrap" class="modalWrap" hidden>
+            <div id="homeModalBackdrop" class="modalBackdrop"></div>
+
+            <section id="tenantsModal" class="modalCard" hidden>
+              <div class="modalHead">
+                <div>
+                  <h3 class="modalTitle">Tenants</h3>
+                  <p class="modalSub">KPI view + quick access to tenant dashboard.</p>
+                </div>
+                <button id="closeTenantsModalBtn" class="secondaryBtn" type="button">Close</button>
               </div>
-              <div class="kpi">
-                <p class="kpiLabel">Total</p>
-                <p id="notifTotal" class="kpiValue">0</p>
+              <div class="field">
+                <label for="tenantModalSelect">Tenant</label>
+                <select id="tenantModalSelect"></select>
               </div>
-              <div class="kpi">
-                <p class="kpiLabel">Last Gen</p>
-                <p id="notifLast" class="kpiValue" style="font-size:11px;">-</p>
+              <article id="tenantHeroCard" class="tenantHero" role="button" tabindex="0">
+                <div class="tenantHeroTop">
+                  <img id="tenantLogo" class="tenantLogo" src="icon48.png" alt="Tenant logo" />
+                  <div>
+                    <h4 id="tenantName" class="tenantName">Tenant</h4>
+                    <p id="tenantSlug" class="tenantSlug">@tenant</p>
+                  </div>
+                </div>
+                <div class="tenantKpiGrid">
+                  <div class="kpi"><p class="kpiLabel">Active States</p><p id="tenantKpiStates" class="kpiValue">0</p></div>
+                  <div class="kpi"><p class="kpiLabel">Subaccounts</p><p id="tenantKpiSubaccounts" class="kpiValue">0</p></div>
+                  <div class="kpi"><p class="kpiLabel">Calls</p><p id="tenantKpiCalls" class="kpiValue">0</p></div>
+                  <div class="kpi"><p class="kpiLabel">Impressions</p><p id="tenantKpiImpressions" class="kpiValue">0</p></div>
+                  <div class="kpi"><p class="kpiLabel">Revenue</p><p id="tenantKpiRevenue" class="kpiValue">$0</p></div>
+                  <div class="kpi"><p class="kpiLabel">Leads</p><p id="tenantKpiLeads" class="kpiValue">0</p></div>
+                </div>
+              </article>
+              <div class="actions3" style="margin-top:8px;">
+                <button id="openTenantCardBtn" class="secondaryBtn" type="button">Open Tenant</button>
               </div>
-            </div>
-            <p id="notifError" class="mini" style="margin-top:8px;">-</p>
+            </section>
+
+            <section id="notificationsModal" class="modalCard" hidden>
+              <div class="modalHead">
+                <div>
+                  <h3 class="modalTitle">Notifications</h3>
+                  <p class="modalSub">Notification Hub queue with action buttons.</p>
+                </div>
+                <button id="closeNotificationsModalBtn" class="secondaryBtn" type="button">Close</button>
+              </div>
+              <div class="field">
+                <label for="notifModalTenantSelect">Tenant</label>
+                <select id="notifModalTenantSelect"></select>
+              </div>
+              <div class="notifFilterRow">
+                <div class="field" style="margin:0;">
+                  <label for="notifModalStatusFilter">Status</label>
+                  <select id="notifModalStatusFilter">
+                    <option value="proposed">Proposed</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="executed">Executed</option>
+                    <option value="failed">Failed</option>
+                    <option value="all">All</option>
+                  </select>
+                </div>
+                <button id="notifApplyFilterBtn" class="secondaryBtn" type="button" style="align-self:end;">Apply</button>
+              </div>
+              <div class="actions">
+                <button id="refreshNotifModalBtn" class="secondaryBtn" type="button">Refresh</button>
+                <button id="openTenantFromNotifBtn" class="secondaryBtn" type="button">Open Tenant</button>
+              </div>
+              <div class="kpiRow" style="margin-top:8px;">
+                <div class="kpi"><p class="kpiLabel">Open</p><p id="notifModalOpen" class="kpiValue">0</p></div>
+                <div class="kpi"><p class="kpiLabel">Total</p><p id="notifModalTotal" class="kpiValue">0</p></div>
+                <div class="kpi"><p class="kpiLabel">Last Gen</p><p id="notifModalLast" class="kpiValue" style="font-size:11px;">-</p></div>
+              </div>
+              <p id="notifModalStatus" class="mini" style="margin-top:8px;">-</p>
+              <div id="notificationsList" class="notifList"></div>
+              <div class="notifPager">
+                <p id="notifPagerInfo" class="mini" style="margin:0;">Showing 0</p>
+                <button id="notifLoadMoreBtn" class="secondaryBtn" type="button">Load more</button>
+              </div>
+            </section>
           </div>
         </section>
 
@@ -331,6 +708,14 @@
             <div class="field">
               <label for="domainToPaste">Domain to paste</label>
               <input id="domainToPaste" placeholder="buffalo-county-sd.mydripnurse.com" />
+            </div>
+            <div class="field">
+              <label for="executionProfile">Execution mode <span class="hint">bot pace</span></label>
+              <select id="executionProfile">
+                <option value="fast">Fast</option>
+                <option value="normal">Normal</option>
+                <option value="safe" selected>Safe</option>
+              </select>
             </div>
           </section>
 

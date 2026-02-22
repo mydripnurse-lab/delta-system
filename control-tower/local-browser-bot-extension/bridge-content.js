@@ -1,15 +1,13 @@
-window.postMessage(
-  {
-    type: "DELTA_LOCAL_BOT_BRIDGE_READY",
-    source: "delta-local-bot-extension",
-  },
-  "*",
-);
+(() => {
+  const bridgeId = `delta-bridge-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  window.__DELTA_LOCAL_BOT_BRIDGE_ACTIVE_ID = bridgeId;
 
-window.addEventListener("message", (event) => {
-  if (event.source !== window) return;
-  const data = event.data || {};
-  if (data.type === "DELTA_LOCAL_BOT_BRIDGE_PING") {
+  function isActiveBridge() {
+    return window.__DELTA_LOCAL_BOT_BRIDGE_ACTIVE_ID === bridgeId;
+  }
+
+  function postReady() {
+    if (!isActiveBridge()) return;
     window.postMessage(
       {
         type: "DELTA_LOCAL_BOT_BRIDGE_READY",
@@ -17,21 +15,23 @@ window.addEventListener("message", (event) => {
       },
       "*",
     );
+  }
+
+  postReady();
+
+  window.addEventListener("message", (event) => {
+  if (!isActiveBridge()) return;
+  if (event.source !== window) return;
+  const data = event.data || {};
+  if (data.type === "DELTA_LOCAL_BOT_BRIDGE_PING") {
+    postReady();
     return;
   }
   if (data.type !== "DELTA_LOCAL_BOT_RUN") return;
 
   try {
     if (!chrome?.runtime?.id) {
-      window.postMessage(
-        {
-          type: "DELTA_LOCAL_BOT_RESULT",
-          requestId: data.requestId,
-          ok: false,
-          error: "Extension context invalidated. Reload extension and refresh this page.",
-        },
-        "*",
-      );
+      // Let a newer injected bridge instance answer; avoid poisoning the request.
       return;
     }
 
@@ -42,8 +42,13 @@ window.addEventListener("message", (event) => {
         payload: data.payload || {},
       },
       (response) => {
+        if (!isActiveBridge()) return;
         const err = chrome.runtime.lastError;
         if (err) {
+          if (/context invalidated/i.test(String(err.message || ""))) {
+            // Stale context: suppress error and allow newest bridge to answer.
+            return;
+          }
           window.postMessage(
             {
               type: "DELTA_LOCAL_BOT_RESULT",
@@ -67,14 +72,18 @@ window.addEventListener("message", (event) => {
       },
     );
   } catch (e) {
+    if (!isActiveBridge()) return;
+    const msg = e instanceof Error ? e.message : "Bridge sendMessage failed";
+    if (/context invalidated/i.test(String(msg))) return;
     window.postMessage(
       {
         type: "DELTA_LOCAL_BOT_RESULT",
         requestId: data.requestId,
         ok: false,
-        error: e instanceof Error ? e.message : "Bridge sendMessage failed",
+        error: msg,
       },
       "*",
     );
   }
-});
+  });
+})();

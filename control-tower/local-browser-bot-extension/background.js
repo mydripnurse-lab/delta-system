@@ -2,6 +2,13 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const botRuntime = {
+  running: false,
+  activeKey: "",
+  activePromise: null,
+  watchWindowId: null,
+};
+
 async function waitTabLoaded(tabId, timeoutMs = 120000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
@@ -19,11 +26,12 @@ async function runInTab(tabId, payload) {
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const norm = (s) => String(s || "").replace(/\s+/g, " ").trim().toLowerCase();
       const allLogs = [];
+      const executionProfile = String(input?.executionProfile || "safe").toLowerCase();
+      const speedFactor =
+        executionProfile === "fast" ? 0.75 : executionProfile === "normal" ? 1 : 1.55;
+      const sleepScaled = (ms) => sleep(Math.max(20, Math.round(Number(ms || 0) * speedFactor)));
 
-      function log(msg) {
-        const line = `[${new Date().toLocaleTimeString()}] ${String(msg)}`;
-        allLogs.push(line);
-
+      function ensureOverlay() {
         let box = document.getElementById("__delta_local_bot_log");
         if (!box) {
           box = document.createElement("div");
@@ -43,13 +51,82 @@ async function runInTab(tabId, payload) {
           box.style.borderRadius = "10px";
           box.style.boxShadow = "0 10px 30px rgba(0,0,0,.35)";
           document.body.appendChild(box);
+        } else {
+          box.innerHTML = "";
         }
+
+        const statusRow = document.createElement("div");
+        statusRow.style.display = "flex";
+        statusRow.style.justifyContent = "space-between";
+        statusRow.style.gap = "8px";
+        statusRow.style.alignItems = "center";
+        statusRow.style.marginBottom = "8px";
+
+        const title = document.createElement("div");
+        title.textContent = "Domain Bot";
+        title.style.fontWeight = "700";
+        title.style.letterSpacing = ".2px";
+
+        const settingsPill = document.createElement("div");
+        settingsPill.id = "__delta_local_bot_settings_persist";
+        settingsPill.style.padding = "2px 8px";
+        settingsPill.style.borderRadius = "999px";
+        settingsPill.style.border = "1px solid rgba(148,163,184,.45)";
+        settingsPill.style.background = "rgba(148,163,184,.18)";
+        settingsPill.style.fontSize = "11px";
+        settingsPill.textContent = "Settings persisted: Pending";
+
+        statusRow.appendChild(title);
+        statusRow.appendChild(settingsPill);
+        box.appendChild(statusRow);
+
+        const logsWrap = document.createElement("div");
+        logsWrap.id = "__delta_local_bot_log_lines";
+        box.appendChild(logsWrap);
+        return { box, logsWrap, settingsPill };
+      }
+
+      const overlay = ensureOverlay();
+
+      function setSettingsPersistStatus(state, detail = "") {
+        const pill = document.getElementById("__delta_local_bot_settings_persist");
+        if (!pill) return;
+        const s = String(state || "").toLowerCase();
+        if (s === "ok") {
+          pill.textContent = `Settings persisted: OK${detail ? ` (${detail})` : ""}`;
+          pill.style.border = "1px solid rgba(57,217,138,.55)";
+          pill.style.background = "rgba(57,217,138,.2)";
+          return;
+        }
+        if (s === "fail") {
+          pill.textContent = `Settings persisted: Failed${detail ? ` (${detail})` : ""}`;
+          pill.style.border = "1px solid rgba(255,94,121,.6)";
+          pill.style.background = "rgba(255,94,121,.2)";
+          return;
+        }
+        if (s === "na") {
+          pill.textContent = "Settings persisted: N/A";
+          pill.style.border = "1px solid rgba(148,163,184,.45)";
+          pill.style.background = "rgba(148,163,184,.16)";
+          return;
+        }
+        pill.textContent = "Settings persisted: Pending";
+        pill.style.border = "1px solid rgba(148,163,184,.45)";
+        pill.style.background = "rgba(148,163,184,.18)";
+      }
+
+      function log(msg) {
+        const line = `[${new Date().toLocaleTimeString()}] ${String(msg)}`;
+        allLogs.push(line);
+
         const d = document.createElement("div");
         d.textContent = line;
-        box.appendChild(d);
-        box.scrollTop = box.scrollHeight;
+        (overlay.logsWrap || overlay.box).appendChild(d);
+        overlay.box.scrollTop = overlay.box.scrollHeight;
         console.log("[DeltaLocalBot]", msg);
       }
+
+      log(`execution profile: ${executionProfile} (x${speedFactor.toFixed(2)})`);
 
       function visible(el) {
         if (!el) return false;
@@ -942,6 +1019,38 @@ async function runInTab(tabId, payload) {
         await sleep(360);
       }
 
+      async function waitForSettingsFormReady(timeoutMs = 90000) {
+        await waitFor(() => {
+          const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
+          if (!card || !visible(card)) return null;
+          const content = card.querySelector("div.hl-card-content");
+          if (!content || !visible(content)) return null;
+          const form = content.querySelector("form#funnel-settings");
+          if (!form || !visible(form)) return null;
+
+          const faviconInput = form.querySelector("div#faviconUrl input, #faviconUrl .n-input__input-el");
+          if (!faviconInput || !visible(faviconInput)) return null;
+          return form;
+        }, timeoutMs, 220, "settings funnel form ready");
+        await sleepScaled(650);
+      }
+
+      async function retryFieldFill(label, fn, attempts = 3) {
+        let lastErr = null;
+        for (let i = 0; i < attempts; i += 1) {
+          try {
+            await fn();
+            if (i > 0) log(`${label} recovered on retry ${i + 1}/${attempts}`);
+            return;
+          } catch (e) {
+            lastErr = e;
+            log(`${label} retry ${i + 1}/${attempts} failed: ${e instanceof Error ? e.message : String(e)}`);
+            await sleepScaled(700 + i * 250);
+          }
+        }
+        throw lastErr || new Error(`${label} failed`);
+      }
+
       async function fillFaviconStrict(value, timeoutMs = 45000) {
         const inputEl = await waitFor(() => {
           const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
@@ -1112,6 +1221,90 @@ async function runInTab(tabId, payload) {
           "body tracking value persisted",
         );
         log(`body tracking strict set len=${String(value || "").length}`);
+      }
+
+      function readSettingsValuesStrict() {
+        const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
+        if (!card || !visible(card)) return null;
+        const form = card.querySelector("form#funnel-settings");
+        if (!form || !visible(form)) return null;
+
+        const favicon =
+          form.querySelector("div#faviconUrl input") ||
+          form.querySelector("#faviconUrl .n-input__input-el") ||
+          null;
+        const head =
+          form.querySelector("#head-tracking-code textarea.n-input__textarea-el") ||
+          form.querySelector("#c-head-tracking-code textarea.n-input__textarea-el") ||
+          null;
+        const body =
+          form.querySelector("#body-tracking-code textarea.n-input__textarea-el") ||
+          form.querySelector("#c-body-tracking-code textarea.n-input__textarea-el") ||
+          null;
+
+        return {
+          favicon: String(favicon?.value || ""),
+          head: String(head?.value || ""),
+          body: String(body?.value || ""),
+        };
+      }
+
+      function sameText(a, b) {
+        return String(a || "").trim() === String(b || "").trim();
+      }
+
+      function getSettingsMismatches(expected) {
+        const current = readSettingsValuesStrict();
+        if (!current) return { current: null, mismatches: ["form-not-ready"] };
+        const out = [];
+        if (typeof expected.favicon === "string" && expected.favicon.length) {
+          if (!sameText(current.favicon, expected.favicon)) out.push("favicon");
+        }
+        if (typeof expected.head === "string" && expected.head.length) {
+          if (!sameText(current.head, expected.head)) out.push("head");
+        }
+        if (typeof expected.body === "string" && expected.body.length) {
+          if (!sameText(current.body, expected.body)) out.push("body");
+        }
+        return { current, mismatches: out };
+      }
+
+      async function verifySavedSettingsAndRepair(expected, attempts = 2) {
+        for (let i = 0; i < attempts; i += 1) {
+          await waitForSettingsFormReady(90000);
+          const check = getSettingsMismatches(expected);
+          if (check.mismatches.length === 0) {
+            log(`settings persisted verified (${i + 1}/${attempts})`);
+            setSettingsPersistStatus("ok");
+            return true;
+          }
+
+          log(`settings mismatch (${i + 1}/${attempts}): ${check.mismatches.join(", ")}`);
+          if (check.mismatches.includes("favicon")) {
+            await retryFieldFill("favicon repair", () => fillFaviconStrict(expected.favicon, 60000), 2);
+            await sleepScaled(350);
+          }
+          if (check.mismatches.includes("head")) {
+            await retryFieldFill("head repair", () => fillHeadTrackingStrict(expected.head, 60000), 2);
+            await sleepScaled(350);
+          }
+          if (check.mismatches.includes("body")) {
+            await retryFieldFill("body repair", () => fillBodyTrackingStrict(expected.body, 60000), 2);
+            await sleepScaled(350);
+          }
+
+          await clickFinalSaveStrict(45000);
+          await waitForUiSettle("post-save repair", 90000);
+          await sleepScaled(500);
+        }
+
+        const finalCheck = getSettingsMismatches(expected);
+        if (finalCheck.mismatches.length) {
+          setSettingsPersistStatus("fail", finalCheck.mismatches.join(","));
+          throw new Error(`Settings did not persist: ${finalCheck.mismatches.join(", ")}`);
+        }
+        setSettingsPersistStatus("ok");
+        return true;
       }
 
       async function clickFinalSaveStrict(timeoutMs = 45000) {
@@ -1296,7 +1489,7 @@ async function runInTab(tabId, payload) {
           320,
           "url /settings/domain",
         );
-        await sleep(3000);
+        await sleepScaled(3000);
 
         const connect = document.querySelector("[id*='connect-domain-button'], [id*='connect-domain-button-text'], [data-testid='connect-domain-button'], [id*='connect-domain'], button[id*='connect-domain']");
         const manage = document.querySelector("[id*='manage-domain'], [data-testid='manage-domain'], [id*='manage-domain'], button[id*='manage-domain']");
@@ -1462,23 +1655,45 @@ async function runInTab(tabId, payload) {
         }
 
         await clickSettingsTabStrict(45000);
+        await waitForSettingsFormReady(90000);
+        await waitForUiSettle("settings form render", 90000);
 
         if (input.faviconUrl) {
-          await fillFaviconStrict(input.faviconUrl, 45000);
+          await retryFieldFill("favicon", () => fillFaviconStrict(input.faviconUrl, 60000), 3);
+          await sleepScaled(450);
         }
         if (input.headCode) {
-          await fillHeadTrackingStrict(input.headCode, 45000);
+          await retryFieldFill("head tracking", () => fillHeadTrackingStrict(input.headCode, 60000), 3);
+          await sleepScaled(450);
         }
         if (input.bodyCode) {
-          await fillBodyTrackingStrict(input.bodyCode, 45000);
+          await retryFieldFill("body tracking", () => fillBodyTrackingStrict(input.bodyCode, 60000), 3);
+          await sleepScaled(450);
         }
 
         await clickFinalSaveStrict(45000);
+        await waitForUiSettle("after final save", 90000);
+        const hasSettingsPayload =
+          !!String(input.faviconUrl || "").trim() ||
+          !!String(input.headCode || "").trim() ||
+          !!String(input.bodyCode || "").trim();
+        if (!hasSettingsPayload) {
+          setSettingsPersistStatus("na");
+        }
+        await verifySavedSettingsAndRepair(
+          {
+            favicon: String(input.faviconUrl || ""),
+            head: String(input.headCode || ""),
+            body: String(input.bodyCode || ""),
+          },
+          2,
+        );
 
         log("DONE");
         return { ok: true, logs: allLogs };
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
+        setSettingsPersistStatus("fail");
         log(`ERROR: ${error}`);
         return { ok: false, error, href: location.href, logs: allLogs };
       }
@@ -1493,30 +1708,123 @@ async function runLocalDomainBot(payload) {
   const url = String(payload?.activationUrl || "").trim();
   if (!url) throw new Error("Missing activationUrl for local bot.");
 
-  // Always open in a dedicated new browser window so user can watch the bot run.
-  const createdWindow = await chrome.windows.create({
-    url,
-    focused: true,
-    type: "normal",
-  });
-  const tabId = createdWindow?.tabs?.[0]?.id;
+  let tabId = null;
+  let reused = false;
+
+  if (botRuntime.watchWindowId) {
+    const existingWin = await chrome.windows.get(botRuntime.watchWindowId, { populate: true }).catch(() => null);
+    const existingTabId = existingWin?.tabs?.[0]?.id || null;
+    if (existingTabId) {
+      await chrome.tabs.update(existingTabId, { url, active: true });
+      await chrome.windows.update(existingWin.id, { focused: true });
+      tabId = existingTabId;
+      reused = true;
+    }
+  }
+
+  if (!tabId) {
+    const createdWindow = await chrome.windows.create({
+      url,
+      focused: true,
+      type: "normal",
+    });
+    tabId = createdWindow?.tabs?.[0]?.id || null;
+    botRuntime.watchWindowId = createdWindow?.id || null;
+  }
+
   if (!tabId) throw new Error("Could not create activation window/tab.");
 
   await waitTabLoaded(tabId, 150000);
-  await sleep(1200);
+  await sleep(reused ? 900 : 1200);
   const result = await runInTab(tabId, payload);
   if (result?.ok) {
     try {
       await chrome.tabs.remove(tabId);
     } catch {}
+    if (botRuntime.watchWindowId) {
+      const win = await chrome.windows.get(botRuntime.watchWindowId, { populate: true }).catch(() => null);
+      const remainingTabs = Array.isArray(win?.tabs) ? win.tabs.length : 0;
+      if (!win || remainingTabs === 0) {
+        botRuntime.watchWindowId = null;
+      }
+    }
   }
   return result;
 }
 
+function isBridgeInjectableUrl(url) {
+  const u = String(url || "");
+  return (
+    /^https:\/\/(?:[^/]+\.)?devasks\.com\//i.test(u) ||
+    /^https:\/\/(?:[^/]+\.)?mydripnurse\.com\//i.test(u) ||
+    /^https:\/\/www\.telahagocrecer\.com\//i.test(u) ||
+    /^https:\/\/(?:[^/]+\.)?telahagocrecer\.com\//i.test(u) ||
+    /^https:\/\/[^/]+\.onrender\.com\//i.test(u) ||
+    /^https:\/\/[^/]+\.vercel\.app\//i.test(u) ||
+    /^http:\/\/localhost(?::\d+)?\//i.test(u) ||
+    /^http:\/\/127\.0\.0\.1(?::\d+)?\//i.test(u)
+  );
+}
+
+async function ensureBridgeInjected(tabId, url) {
+  const targetUrl = String(url || "");
+  if (!tabId || !isBridgeInjectableUrl(targetUrl)) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ["bridge-content.js"],
+    });
+  } catch {
+    // Ignore restricted tabs and transient navigation states.
+  }
+}
+
+async function reinjectBridgeInAllOpenTabs() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    await Promise.all(
+      tabs.map((tab) => ensureBridgeInjected(tab.id, tab.url)),
+    );
+  } catch {
+    // no-op
+  }
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type !== "DELTA_LOCAL_BOT_RUN") return undefined;
+  const payload = message.payload || {};
+  const requestId = String(message.requestId || "").trim();
+  const locationId = String(payload?.locationId || payload?.locId || "").trim();
+  const activationUrl = String(payload?.activationUrl || "").trim();
+  const runKey = requestId || locationId || activationUrl || `run-${Date.now()}`;
 
-  runLocalDomainBot(message.payload || {})
+  if (botRuntime.running) {
+    if (botRuntime.activeKey === runKey && botRuntime.activePromise) {
+      botRuntime.activePromise
+        .then((result) => {
+          sendResponse(result || { ok: false, error: "Empty result from active run." });
+        })
+        .catch((err) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+      return true;
+    }
+
+    sendResponse({
+      ok: false,
+      error: "Bot already running. Wait until current account finishes.",
+    });
+    return true;
+  }
+
+  botRuntime.running = true;
+  botRuntime.activeKey = runKey;
+  botRuntime.activePromise = runLocalDomainBot(payload);
+
+  botRuntime.activePromise
     .then((result) => {
       sendResponse(result || { ok: false, error: "Empty result from runLocalDomainBot." });
     })
@@ -1525,7 +1833,34 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         ok: false,
         error: err instanceof Error ? err.message : String(err),
       });
+    })
+    .finally(() => {
+      botRuntime.running = false;
+      botRuntime.activeKey = "";
+      botRuntime.activePromise = null;
     });
 
   return true;
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  void reinjectBridgeInAllOpenTabs();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  void reinjectBridgeInAllOpenTabs();
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status !== "complete") return;
+  void ensureBridgeInjected(tabId, tab?.url || "");
+});
+
+chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    void ensureBridgeInjected(tabId, tab?.url || "");
+  } catch {
+    // ignore
+  }
 });
