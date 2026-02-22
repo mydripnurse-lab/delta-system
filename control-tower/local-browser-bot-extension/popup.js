@@ -22,6 +22,30 @@ const homeState = {
     lastCount: 0,
   },
 };
+let homePollingTimer = null;
+let startupShownAt = Date.now();
+
+function setStartupStatus(text) {
+  const el = byId("startupStatus");
+  if (!el) return;
+  el.textContent = String(text || "Initializing...");
+}
+
+function showStartupOverlay(text = "Initializing...") {
+  startupShownAt = Date.now();
+  const overlay = byId("startupOverlay");
+  setStartupStatus(text);
+  if (overlay) overlay.hidden = false;
+}
+
+async function hideStartupOverlay(minMs = 780) {
+  const elapsed = Date.now() - startupShownAt;
+  if (elapsed < minMs) {
+    await new Promise((r) => setTimeout(r, minMs - elapsed));
+  }
+  const overlay = byId("startupOverlay");
+  if (overlay) overlay.hidden = true;
+}
 
 function safeParseJson(text) {
   try {
@@ -63,13 +87,11 @@ function setHomeAuthState(isAuthed) {
   const profileChip = byId("profileChip");
   const profilePanel = byId("profilePanel");
   const tabBar = document.querySelector(".tabBar");
-  const modalWrap = byId("homeModalWrap");
   if (authView) authView.hidden = !!isAuthed;
   if (mainView) mainView.hidden = !isAuthed;
   if (profileChip) profileChip.hidden = !isAuthed;
   if (tabBar) tabBar.hidden = !isAuthed;
   if (profilePanel) profilePanel.hidden = true;
-  if (modalWrap) modalWrap.hidden = true;
   if (!isAuthed) setActiveTabView("home");
 }
 
@@ -131,6 +153,32 @@ function formatMoney(v) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(num);
 }
 
+function severityRank(sev) {
+  const s = String(sev || "").toLowerCase();
+  if (s === "high" || s === "critical") return 3;
+  if (s === "medium") return 2;
+  return 1;
+}
+
+function normalizeSeverity(raw) {
+  const s = String(raw || "").toLowerCase();
+  if (s === "critical" || s === "high" || s === "p1") return "high";
+  if (s === "medium" || s === "p2") return "medium";
+  return "low";
+}
+
+function syncExtensionBadgeCount(openCount, severity = "low") {
+  try {
+    chrome.runtime.sendMessage({
+      type: "DELTA_SET_BADGE_COUNT",
+      count: Math.max(0, Number(openCount || 0)),
+      severity: normalizeSeverity(severity),
+    });
+  } catch {
+    // Ignore extension runtime blips while reloading.
+  }
+}
+
 async function storageGet(keys) {
   return await chrome.storage.local.get(keys);
 }
@@ -146,6 +194,8 @@ async function storageRemove(keys) {
 function setPrimaryNavActive(key) {
   const homeView = byId("homeView");
   const botView = byId("botView");
+  const tenantsView = byId("tenantsView");
+  const notificationsView = byId("notificationsView");
   const homeBtn = byId("tabHomeBtn");
   const botBtn = byId("tabBotBtn");
   const tenantsBtn = byId("tabTenantsBtn");
@@ -155,15 +205,16 @@ function setPrimaryNavActive(key) {
   if (botBtn) botBtn.classList.toggle("active", v === "bot");
   if (tenantsBtn) tenantsBtn.classList.toggle("active", v === "tenants");
   if (notificationsBtn) notificationsBtn.classList.toggle("active", v === "notifications");
-  return { homeView, botView };
+  return { homeView, botView, tenantsView, notificationsView };
 }
 
 function setActiveTabView(view) {
-  const { homeView, botView } = setPrimaryNavActive(view);
+  const { homeView, botView, tenantsView, notificationsView } = setPrimaryNavActive(view);
   const v = String(view || "home").toLowerCase();
-  const isHome = v === "home";
-  if (homeView) homeView.hidden = !isHome;
-  if (botView) botView.hidden = isHome;
+  if (homeView) homeView.hidden = v !== "home";
+  if (botView) botView.hidden = v !== "bot";
+  if (tenantsView) tenantsView.hidden = v !== "tenants";
+  if (notificationsView) notificationsView.hidden = v !== "notifications";
 }
 
 async function runFetchInWorkspaceContext(baseUrl, path, request = {}) {
@@ -360,20 +411,26 @@ function updateHomeTotals() {
   byId("homeTenantCount").textContent = String(homeState.tenants.length || 0);
   let totalOpen = 0;
   let totalAll = 0;
+  let maxSev = "low";
   for (const stats of homeState.notificationStatsByTenant.values()) {
     totalOpen += n(stats?.open);
     totalAll += n(stats?.total);
+    const sev = normalizeSeverity(stats?.maxSeverity || "low");
+    if (severityRank(sev) > severityRank(maxSev)) maxSev = sev;
   }
   byId("homeNotifOpenTotal").textContent = formatNumber(totalOpen);
   byId("homeNotifTotalTotal").textContent = formatNumber(totalAll);
+  syncExtensionBadgeCount(totalOpen, maxSev);
   const badge = byId("agencyNotifBadge");
   if (!badge) return;
+  badge.classList.remove("sev-high", "sev-medium", "sev-low");
   if (totalOpen > 0) {
     badge.hidden = false;
-    badge.textContent = totalOpen > 999 ? "999+" : String(totalOpen);
+    badge.textContent = totalOpen > 99 ? "99+" : String(totalOpen);
+    badge.classList.add(maxSev === "high" ? "sev-high" : maxSev === "medium" ? "sev-medium" : "sev-low");
   } else {
     badge.hidden = true;
-    badge.textContent = "0";
+    badge.textContent = "";
   }
 }
 
@@ -382,6 +439,29 @@ function priorityClass(priority) {
   if (p === "p1" || p === "critical" || p === "high") return "critical";
   if (p === "p3" || p === "low") return "low";
   return "medium";
+}
+
+function statusClass(status) {
+  const s = String(status || "").trim().toLowerCase();
+  if (s === "approved") return "approved";
+  if (s === "rejected") return "rejected";
+  if (s === "executed") return "executed";
+  if (s === "failed") return "failed";
+  return "proposed";
+}
+
+function statusLabel(status) {
+  const s = String(status || "").trim().toLowerCase();
+  if (!s) return "proposed";
+  return s;
+}
+
+function formatNotifDate(iso) {
+  const raw = String(iso || "").trim();
+  if (!raw) return "-";
+  const d = new Date(raw);
+  if (!Number.isFinite(d.getTime())) return "-";
+  return d.toLocaleString();
 }
 
 function renderNotificationsList(notifications = [], tenantId = "") {
@@ -401,19 +481,32 @@ function renderNotificationsList(notifications = [], tenantId = "") {
     const status = String(row?.status || "").toLowerCase();
     const actionable = status === "proposed";
     const canExecute = status === "approved";
+    const stClass = statusClass(status);
+    const prClass = priorityClass(row?.priority);
+    const title = String(row?.summary || row?.title || "Notification");
+    const dashboardId = String(row?.dashboard_id || "-");
+    const actionType = String(row?.action_type || "-");
+    const createdAt = formatNotifDate(row?.created_at || row?.createdAt || row?.updated_at || row?.updatedAt);
+    const detail = String(row?.details || row?.message || "").trim();
     const item = document.createElement("article");
-    item.className = "notifItem";
+    item.className = `notifItem status-${stClass}`;
     item.innerHTML = `
       <div class="notifRow">
-        <p class="notifTitle">${String(row?.summary || row?.title || "Notification")}</p>
-        <span class="priorityPill ${priorityClass(row?.priority)}">${String(row?.priority || "medium")}</span>
+        <p class="notifTitle">${title}</p>
+        <span class="statusPill ${stClass}">${statusLabel(status)}</span>
       </div>
-      <p class="notifSummary">${String(row?.dashboard_id || "-")} · ${String(row?.action_type || "-")} · ${String(row?.status || "-")}</p>
-      <div class="notifActions">
-        <button class="secondaryBtn" data-action="approve_execute" data-id="${id}" ${actionable ? "" : "disabled"}>${actionable ? "Approve + Execute" : "Closed"}</button>
-        <button class="secondaryBtn" data-action="approve" data-id="${id}" ${actionable ? "" : "disabled"}>${actionable ? "Approve" : "Closed"}</button>
-        <button class="secondaryBtn" data-action="execute" data-id="${id}" ${canExecute ? "" : "disabled"}>${canExecute ? "Execute" : "Locked"}</button>
-        <button class="secondaryBtn" data-action="reject" data-id="${id}" ${actionable ? "" : "disabled"}>${actionable ? "Reject" : "Closed"}</button>
+      <div class="notifMetaRow">
+        <p class="notifMeta">${dashboardId} · ${actionType}<br>${createdAt}</p>
+        <span class="priorityPill ${prClass}">${String(row?.priority || "medium")}</span>
+      </div>
+      <p class="notifSummary">${detail || `${dashboardId} · ${actionType}`}</p>
+      <div class="notifActionsWrap">
+        <div class="notifActions">
+          <button class="notifBtn notifBtnPrimary" data-action="approve_execute" data-id="${id}" ${actionable ? "" : "disabled"}>${actionable ? "Approve + Execute" : "Closed"}</button>
+          <button class="secondaryBtn notifBtn" data-action="approve" data-id="${id}" ${actionable ? "" : "disabled"}>${actionable ? "Approve" : "Closed"}</button>
+          <button class="secondaryBtn notifBtn" data-action="execute" data-id="${id}" ${canExecute ? "" : "disabled"}>${canExecute ? "Execute" : "Locked"}</button>
+          <button class="secondaryBtn notifBtn notifBtnDanger" data-action="reject" data-id="${id}" ${actionable ? "" : "disabled"}>${actionable ? "Reject" : "Closed"}</button>
+        </div>
       </div>
     `;
     box.appendChild(item);
@@ -452,9 +545,12 @@ async function fetchTenantNotifications(tenantId, opts = {}) {
   }
   const proposals = Array.isArray(data?.proposals) ? data.proposals : [];
   const stats = { proposed: 0, approved: 0, rejected: 0, executed: 0, failed: 0 };
+  let maxSeverity = "low";
   for (const row of proposals) {
     const st = String(row?.status || "").toLowerCase();
     if (st in stats) stats[st] += 1;
+    const sev = normalizeSeverity(row?.priority);
+    if (severityRank(sev) > severityRank(maxSeverity)) maxSeverity = sev;
   }
   return {
     proposals,
@@ -466,6 +562,7 @@ async function fetchTenantNotifications(tenantId, opts = {}) {
       executed: stats.executed,
       failed: stats.failed,
       lastGeneratedAt: proposals[0]?.created_at || "",
+      maxSeverity,
     },
   };
 }
@@ -571,13 +668,17 @@ async function refreshAgencyNotificationTotals() {
   const results = await Promise.all(
     homeState.tenants.map(async (t) => {
       try {
-        const data = await fetchTenantNotifications(String(t.id), { status: "all", limit: 120 });
+        const [allData, openData] = await Promise.all([
+          fetchTenantNotifications(String(t.id), { status: "all", limit: 120 }),
+          fetchTenantNotifications(String(t.id), { status: "proposed", limit: 120 }),
+        ]);
         return {
           tenantId: String(t.id),
           stats: {
-            open: n(data?.stats?.open),
-            total: n(data?.stats?.total),
-            lastGeneratedAt: String(data?.stats?.lastGeneratedAt || ""),
+            open: n(openData?.stats?.total),
+            total: n(allData?.stats?.total),
+            lastGeneratedAt: String(allData?.stats?.lastGeneratedAt || openData?.stats?.lastGeneratedAt || ""),
+            maxSeverity: normalizeSeverity(openData?.stats?.maxSeverity || "low"),
           },
         };
       } catch {
@@ -587,6 +688,7 @@ async function refreshAgencyNotificationTotals() {
             open: 0,
             total: 0,
             lastGeneratedAt: "",
+            maxSeverity: "low",
           },
         };
       }
@@ -600,25 +702,20 @@ async function refreshAgencyNotificationTotals() {
   updateHomeTotals();
 }
 
-function openModal(kind) {
-  const wrap = byId("homeModalWrap");
-  const tenants = byId("tenantsModal");
-  const notifications = byId("notificationsModal");
-  if (!wrap || !tenants || !notifications) return;
-  wrap.hidden = false;
-  tenants.hidden = kind !== "tenants";
-  notifications.hidden = kind !== "notifications";
-}
-
-function closeModal() {
-  const wrap = byId("homeModalWrap");
-  const tenants = byId("tenantsModal");
-  const notifications = byId("notificationsModal");
-  if (wrap) wrap.hidden = true;
-  if (tenants) tenants.hidden = true;
-  if (notifications) notifications.hidden = true;
-  if (byId("botView")?.hidden === false) setPrimaryNavActive("bot");
-  else setPrimaryNavActive("home");
+function startHomePolling() {
+  if (homePollingTimer) clearInterval(homePollingTimer);
+  homePollingTimer = setInterval(async () => {
+    if (!homeState.user || !homeState.tenants.length) return;
+    try {
+      await refreshAgencyNotificationTotals();
+      const activeNotifs = byId("notificationsView")?.hidden === false;
+      if (activeNotifs) {
+        await refreshNotificationsModal();
+      }
+    } catch {
+      // Keep polling quiet; status shown in manual refresh paths.
+    }
+  }, 45000);
 }
 
 async function openTenantLink(tenantId) {
@@ -804,6 +901,7 @@ function setStatus(text, mode = "idle") {
 }
 
 async function initializeHome() {
+  setStartupStatus("Loading workspace...");
   const stored = await storageGet([
     STORAGE_KEYS.workspaceBase,
     STORAGE_KEYS.selectedTenantId,
@@ -815,6 +913,7 @@ async function initializeHome() {
     : ensureWorkspaceBase(stored?.[STORAGE_KEYS.workspaceBase] || "") || DEFAULT_WORKSPACE_BASE;
 
   if (base) {
+    setStartupStatus("Preparing secure session...");
     byId("workspaceBase").value = base;
     await storageSet({ [STORAGE_KEYS.workspaceBase]: base });
   }
@@ -827,19 +926,17 @@ async function initializeHome() {
   byId("tabHomeBtn")?.addEventListener("click", () => setActiveTabView("home"));
   byId("tabBotBtn")?.addEventListener("click", () => setActiveTabView("bot"));
   byId("tabTenantsBtn")?.addEventListener("click", () => {
-    setPrimaryNavActive("tenants");
+    setActiveTabView("tenants");
     const tid = getCurrentTenantId();
     syncTenantDropdowns(tid);
     renderTenantKpis(tid);
-    openModal("tenants");
   });
   byId("tabNotificationsBtn")?.addEventListener("click", async () => {
-    setPrimaryNavActive("notifications");
+    setActiveTabView("notifications");
     const tid = getCurrentTenantId();
     syncTenantDropdowns(tid);
     if (byId("notifModalStatusFilter")) byId("notifModalStatusFilter").value = homeState.notificationsUi.status || "proposed";
     homeState.notificationsUi.limit = homeState.notificationsUi.step;
-    openModal("notifications");
     await refreshNotificationsModal();
   });
 
@@ -862,10 +959,6 @@ async function initializeHome() {
   byId("openTenantFromSelectedBtn")?.addEventListener("click", async () => {
     await openTenantLink(getCurrentTenantId());
   });
-
-  byId("closeTenantsModalBtn")?.addEventListener("click", closeModal);
-  byId("closeNotificationsModalBtn")?.addEventListener("click", closeModal);
-  byId("homeModalBackdrop")?.addEventListener("click", closeModal);
 
   byId("tenantModalSelect")?.addEventListener("change", async (e) => {
     const tenantId = String(e?.target?.value || "").trim();
@@ -933,9 +1026,12 @@ async function initializeHome() {
   byId("profilePanel")?.addEventListener("click", (e) => e.stopPropagation());
 
   const hasToken = !!String(stored?.[STORAGE_KEYS.authToken] || "").trim();
+  startHomePolling();
   if (hasToken) {
+    setStartupStatus("Restoring authenticated context...");
     await refreshHome();
   } else {
+    setStartupStatus("Ready to sign in.");
     setHomeAuthState(false);
     setHomeStatus("Ready. Sign in to load your data.");
   }
@@ -1361,6 +1457,12 @@ byId("runBtn").addEventListener("click", async () => {
   }
 });
 
-initializeHome().catch((e) => {
-  setHomeStatus(`Init error: ${e instanceof Error ? e.message : String(e)}`, "error");
-});
+showStartupOverlay("Launching Delta System...");
+initializeHome()
+  .catch((e) => {
+    setHomeStatus(`Init error: ${e instanceof Error ? e.message : String(e)}`, "error");
+    setStartupStatus("Initialization issue detected.");
+  })
+  .finally(async () => {
+    await hideStartupOverlay(900);
+  });

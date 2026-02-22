@@ -38,6 +38,85 @@
 
       body { padding: 14px; }
 
+      .startupOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 120;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(95% 70% at 100% 0%, rgba(77, 210, 255, 0.16) 0%, rgba(77, 210, 255, 0) 46%),
+          radial-gradient(100% 90% at 0% 100%, rgba(47, 123, 255, 0.2) 0%, rgba(47, 123, 255, 0) 52%),
+          linear-gradient(160deg, #050913 0%, #0a1223 55%, #070d18 100%);
+        transition: opacity 320ms ease, visibility 320ms ease;
+      }
+      .startupOverlay[hidden] {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .startupCore {
+        width: min(300px, calc(100vw - 40px));
+        display: grid;
+        gap: 14px;
+        justify-items: center;
+      }
+      .startupMark {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255,255,255,.03);
+        display: grid;
+        place-items: center;
+        box-shadow: 0 18px 40px rgba(0,0,0,.45);
+      }
+      .startupMark::before {
+        content: "";
+        position: absolute;
+        inset: -9px;
+        border-radius: 26px;
+        border: 1px solid rgba(111, 175, 255, 0.4);
+        animation: startupPulse 1.8s ease-in-out infinite;
+      }
+      .startupMark img {
+        width: 42px;
+        height: 42px;
+        object-fit: contain;
+        filter: drop-shadow(0 6px 16px rgba(78, 158, 255, .45));
+      }
+      .startupTitle {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: .2px;
+      }
+      .startupSub {
+        margin: -8px 0 0;
+        font-size: 12px;
+        color: #a7b7d8;
+      }
+      .startupTrack {
+        width: 100%;
+        height: 4px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,.1);
+      }
+      .startupBar {
+        height: 100%;
+        width: 48%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #57ddff 0%, #63a7ff 55%, #8e99ff 100%);
+        animation: startupSlide 1.2s ease-in-out infinite;
+      }
+      .startupStatus {
+        margin: 0;
+        font-size: 11px;
+        color: #b6c5e3;
+      }
+
       .shell {
         border: 1px solid var(--stroke);
         border-radius: 20px;
@@ -93,7 +172,20 @@
         justify-content: center;
         padding: 0 5px;
       }
+      .agencyNotifBadge.sev-high {
+        background: linear-gradient(135deg, #ff5f77 0%, #ff3f5e 100%);
+      }
+      .agencyNotifBadge.sev-medium {
+        background: linear-gradient(135deg, #ffcb66 0%, #ff9f45 100%);
+      }
+      .agencyNotifBadge.sev-low {
+        background: linear-gradient(135deg, #63a7ff 0%, #8e99ff 100%);
+      }
       .agencyNotifBadge[hidden] { display: none !important; }
+      .profileNotifBadge {
+        right: -6px;
+        top: -6px;
+      }
       .title { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.1px; }
       .subtitle { margin: 2px 0 0; font-size: 11px; color: #a9b8d6; }
 
@@ -462,25 +554,44 @@
       }
       .notifList {
         display: grid;
-        gap: 8px;
+        gap: 10px;
         margin-top: 8px;
       }
       .notifItem {
         border: 1px solid rgba(255,255,255,.13);
-        border-radius: 12px;
-        padding: 9px;
-        background: rgba(255,255,255,.03);
+        border-radius: 14px;
+        padding: 10px;
+        background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
       }
-      .notifRow {
+      .notifItem.status-proposed { border-left: 3px solid #63a7ff; }
+      .notifItem.status-approved { border-left: 3px solid #39d98a; }
+      .notifItem.status-rejected { border-left: 3px solid #ff5e79; }
+      .notifItem.status-executed { border-left: 3px solid #57ddff; }
+      .notifItem.status-failed { border-left: 3px solid #ffbf4d; }
+      .notifRow,
+      .notifMetaRow {
         display: flex;
         justify-content: space-between;
         gap: 8px;
         align-items: center;
       }
+      .notifMetaRow {
+        margin-top: 6px;
+        align-items: flex-start;
+      }
       .notifTitle {
         margin: 0;
         font-size: 13px;
         font-weight: 700;
+        line-height: 1.35;
+        color: #f0f5ff;
+      }
+      .notifMeta {
+        margin: 0;
+        color: #9fb0d3;
+        font-size: 11px;
+        line-height: 1.35;
       }
       .priorityPill {
         font-size: 10px;
@@ -488,20 +599,59 @@
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,.15);
         padding: 2px 7px;
+        white-space: nowrap;
       }
       .priorityPill.critical, .priorityPill.high { color: #ffd1d9; border-color: rgba(255, 94, 121, 0.45); background: rgba(255, 94, 121, 0.15); }
       .priorityPill.medium { color: #ffe5b5; border-color: rgba(255, 191, 77, 0.4); background: rgba(255, 191, 77, 0.14); }
       .priorityPill.low { color: #cde3ff; border-color: rgba(99, 167, 255, 0.35); background: rgba(99, 167, 255, 0.14); }
+      .statusPill {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        text-transform: uppercase;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.18);
+        padding: 2px 7px;
+        white-space: nowrap;
+      }
+      .statusPill.proposed { color: #cfe5ff; border-color: rgba(99,167,255,.45); background: rgba(99,167,255,.12); }
+      .statusPill.approved { color: #d6ffe9; border-color: rgba(57,217,138,.42); background: rgba(57,217,138,.14); }
+      .statusPill.rejected { color: #ffd2da; border-color: rgba(255,94,121,.45); background: rgba(255,94,121,.14); }
+      .statusPill.executed { color: #dcfbff; border-color: rgba(77,210,255,.45); background: rgba(77,210,255,.14); }
+      .statusPill.failed { color: #ffebc5; border-color: rgba(255,191,77,.45); background: rgba(255,191,77,.14); }
       .notifSummary {
-        margin: 6px 0;
+        margin: 7px 0 4px;
         color: #d6e0f6;
         font-size: 11px;
         line-height: 1.4;
       }
-      .notifActions {
+      .notifActionsWrap {
+        margin-top: 8px;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 6px;
+      }
+      .notifActions {
+        display: contents;
+      }
+      .notifBtn {
+        min-height: 32px;
+        padding: 7px 8px;
+      }
+      .notifBtnPrimary {
+        color: #08172b;
+        background: linear-gradient(135deg, #57ddff 0%, #63a7ff 45%, #8e99ff 100%);
+        border-color: rgba(145, 190, 255, 0.55);
+      }
+      .notifBtnDanger {
+        border-color: rgba(255, 94, 121, 0.42);
+        background: rgba(255, 94, 121, 0.14);
+        color: #ffd4dc;
+      }
+      .notifBtn[disabled] {
+        opacity: 0.56;
+        cursor: not-allowed;
+        filter: none;
       }
       .notifFilterRow {
         display: grid;
@@ -521,16 +671,35 @@
         0% { box-shadow: 0 0 0 0 rgba(77, 210, 255, 0.6); }
         100% { box-shadow: 0 0 0 10px rgba(77, 210, 255, 0); }
       }
+      @keyframes startupPulse {
+        0%, 100% { transform: scale(1); opacity: .6; }
+        50% { transform: scale(1.03); opacity: 1; }
+      }
+      @keyframes startupSlide {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(240%); }
+      }
     </style>
   </head>
   <body>
+    <div id="startupOverlay" class="startupOverlay">
+      <div class="startupCore">
+        <div class="startupMark">
+          <img src="delta-logo-source.png" alt="Delta System" />
+        </div>
+        <h2 class="startupTitle">Delta System</h2>
+        <p class="startupSub">Launching secure workspace context</p>
+        <div class="startupTrack"><div class="startupBar"></div></div>
+        <p id="startupStatus" class="startupStatus">Initializing…</p>
+      </div>
+    </div>
+
     <div class="shell">
       <div class="header">
         <div class="headerTop">
           <div class="brand">
             <div class="brandMarkWrap">
               <img src="delta-logo-source.png" alt="Delta System" />
-              <span id="agencyNotifBadge" class="agencyNotifBadge" hidden>0</span>
             </div>
             <div>
               <h1 class="title">Delta System</h1>
@@ -538,7 +707,10 @@
             </div>
           </div>
           <button id="profileChip" class="profileChip" type="button" hidden>
-            <img id="profileChipAvatar" class="profileAvatar" src="icon48.png" alt="Profile" />
+            <div class="brandMarkWrap" style="width:36px;height:36px;">
+              <img id="profileChipAvatar" class="profileAvatar" src="icon48.png" alt="Profile" />
+              <span id="agencyNotifBadge" class="agencyNotifBadge profileNotifBadge" hidden>0</span>
+            </div>
             <div class="profileMeta">
               <span id="profileChipName" class="profileName">User</span>
               <span id="profileChipRole" class="profileRole">member</span>
@@ -616,86 +788,85 @@
             <p id="notifError" class="mini" style="margin:0 2px;">-</p>
           </div>
 
-          <div id="homeModalWrap" class="modalWrap" hidden>
-            <div id="homeModalBackdrop" class="modalBackdrop"></div>
+        </section>
 
-            <section id="tenantsModal" class="modalCard" hidden>
-              <div class="modalHead">
+        <section id="tenantsView" class="view" hidden>
+          <section class="card">
+            <div class="modalHead" style="margin-bottom: 8px;">
+              <div>
+                <h3 class="modalTitle">Tenants</h3>
+                <p class="modalSub">KPI view + quick access to tenant dashboard.</p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="tenantModalSelect">Tenant</label>
+              <select id="tenantModalSelect"></select>
+            </div>
+            <article id="tenantHeroCard" class="tenantHero" role="button" tabindex="0">
+              <div class="tenantHeroTop">
+                <img id="tenantLogo" class="tenantLogo" src="icon48.png" alt="Tenant logo" />
                 <div>
-                  <h3 class="modalTitle">Tenants</h3>
-                  <p class="modalSub">KPI view + quick access to tenant dashboard.</p>
+                  <h4 id="tenantName" class="tenantName">Tenant</h4>
+                  <p id="tenantSlug" class="tenantSlug">@tenant</p>
                 </div>
-                <button id="closeTenantsModalBtn" class="secondaryBtn" type="button">Close</button>
               </div>
-              <div class="field">
-                <label for="tenantModalSelect">Tenant</label>
-                <select id="tenantModalSelect"></select>
+              <div class="tenantKpiGrid">
+                <div class="kpi"><p class="kpiLabel">Active States</p><p id="tenantKpiStates" class="kpiValue">0</p></div>
+                <div class="kpi"><p class="kpiLabel">Subaccounts</p><p id="tenantKpiSubaccounts" class="kpiValue">0</p></div>
+                <div class="kpi"><p class="kpiLabel">Calls</p><p id="tenantKpiCalls" class="kpiValue">0</p></div>
+                <div class="kpi"><p class="kpiLabel">Impressions</p><p id="tenantKpiImpressions" class="kpiValue">0</p></div>
+                <div class="kpi"><p class="kpiLabel">Revenue</p><p id="tenantKpiRevenue" class="kpiValue">$0</p></div>
+                <div class="kpi"><p class="kpiLabel">Leads</p><p id="tenantKpiLeads" class="kpiValue">0</p></div>
               </div>
-              <article id="tenantHeroCard" class="tenantHero" role="button" tabindex="0">
-                <div class="tenantHeroTop">
-                  <img id="tenantLogo" class="tenantLogo" src="icon48.png" alt="Tenant logo" />
-                  <div>
-                    <h4 id="tenantName" class="tenantName">Tenant</h4>
-                    <p id="tenantSlug" class="tenantSlug">@tenant</p>
-                  </div>
-                </div>
-                <div class="tenantKpiGrid">
-                  <div class="kpi"><p class="kpiLabel">Active States</p><p id="tenantKpiStates" class="kpiValue">0</p></div>
-                  <div class="kpi"><p class="kpiLabel">Subaccounts</p><p id="tenantKpiSubaccounts" class="kpiValue">0</p></div>
-                  <div class="kpi"><p class="kpiLabel">Calls</p><p id="tenantKpiCalls" class="kpiValue">0</p></div>
-                  <div class="kpi"><p class="kpiLabel">Impressions</p><p id="tenantKpiImpressions" class="kpiValue">0</p></div>
-                  <div class="kpi"><p class="kpiLabel">Revenue</p><p id="tenantKpiRevenue" class="kpiValue">$0</p></div>
-                  <div class="kpi"><p class="kpiLabel">Leads</p><p id="tenantKpiLeads" class="kpiValue">0</p></div>
-                </div>
-              </article>
-              <div class="actions3" style="margin-top:8px;">
-                <button id="openTenantCardBtn" class="secondaryBtn" type="button">Open Tenant</button>
-              </div>
-            </section>
+            </article>
+            <div class="actions3" style="margin-top:8px;">
+              <button id="openTenantCardBtn" class="secondaryBtn" type="button">Open Tenant</button>
+            </div>
+          </section>
+        </section>
 
-            <section id="notificationsModal" class="modalCard" hidden>
-              <div class="modalHead">
-                <div>
-                  <h3 class="modalTitle">Notifications</h3>
-                  <p class="modalSub">Notification Hub queue with action buttons.</p>
-                </div>
-                <button id="closeNotificationsModalBtn" class="secondaryBtn" type="button">Close</button>
+        <section id="notificationsView" class="view" hidden>
+          <section class="card">
+            <div class="modalHead" style="margin-bottom: 8px;">
+              <div>
+                <h3 class="modalTitle">Notifications</h3>
+                <p class="modalSub">Notification Hub queue with action buttons.</p>
               </div>
-              <div class="field">
-                <label for="notifModalTenantSelect">Tenant</label>
-                <select id="notifModalTenantSelect"></select>
+            </div>
+            <div class="field">
+              <label for="notifModalTenantSelect">Tenant</label>
+              <select id="notifModalTenantSelect"></select>
+            </div>
+            <div class="notifFilterRow">
+              <div class="field" style="margin:0;">
+                <label for="notifModalStatusFilter">Status</label>
+                <select id="notifModalStatusFilter">
+                  <option value="proposed">Proposed</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="executed">Executed</option>
+                  <option value="failed">Failed</option>
+                  <option value="all">All</option>
+                </select>
               </div>
-              <div class="notifFilterRow">
-                <div class="field" style="margin:0;">
-                  <label for="notifModalStatusFilter">Status</label>
-                  <select id="notifModalStatusFilter">
-                    <option value="proposed">Proposed</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="executed">Executed</option>
-                    <option value="failed">Failed</option>
-                    <option value="all">All</option>
-                  </select>
-                </div>
-                <button id="notifApplyFilterBtn" class="secondaryBtn" type="button" style="align-self:end;">Apply</button>
-              </div>
-              <div class="actions">
-                <button id="refreshNotifModalBtn" class="secondaryBtn" type="button">Refresh</button>
-                <button id="openTenantFromNotifBtn" class="secondaryBtn" type="button">Open Tenant</button>
-              </div>
-              <div class="kpiRow" style="margin-top:8px;">
-                <div class="kpi"><p class="kpiLabel">Open</p><p id="notifModalOpen" class="kpiValue">0</p></div>
-                <div class="kpi"><p class="kpiLabel">Total</p><p id="notifModalTotal" class="kpiValue">0</p></div>
-                <div class="kpi"><p class="kpiLabel">Last Gen</p><p id="notifModalLast" class="kpiValue" style="font-size:11px;">-</p></div>
-              </div>
-              <p id="notifModalStatus" class="mini" style="margin-top:8px;">-</p>
-              <div id="notificationsList" class="notifList"></div>
-              <div class="notifPager">
-                <p id="notifPagerInfo" class="mini" style="margin:0;">Showing 0</p>
-                <button id="notifLoadMoreBtn" class="secondaryBtn" type="button">Load more</button>
-              </div>
-            </section>
-          </div>
+              <button id="notifApplyFilterBtn" class="secondaryBtn" type="button" style="align-self:end;">Apply</button>
+            </div>
+            <div class="actions">
+              <button id="refreshNotifModalBtn" class="secondaryBtn" type="button">Refresh</button>
+              <button id="openTenantFromNotifBtn" class="secondaryBtn" type="button">Open Tenant</button>
+            </div>
+            <div class="kpiRow" style="margin-top:8px;">
+              <div class="kpi"><p class="kpiLabel">Open</p><p id="notifModalOpen" class="kpiValue">0</p></div>
+              <div class="kpi"><p class="kpiLabel">Total</p><p id="notifModalTotal" class="kpiValue">0</p></div>
+              <div class="kpi"><p class="kpiLabel">Last Gen</p><p id="notifModalLast" class="kpiValue" style="font-size:11px;">-</p></div>
+            </div>
+            <p id="notifModalStatus" class="mini" style="margin-top:8px;">-</p>
+            <div id="notificationsList" class="notifList"></div>
+            <div class="notifPager">
+              <p id="notifPagerInfo" class="mini" style="margin:0;">Showing 0</p>
+              <button id="notifLoadMoreBtn" class="secondaryBtn" type="button">Load more</button>
+            </div>
+          </section>
         </section>
 
         <section id="botView" class="view" hidden>

@@ -1,4 +1,5 @@
 import { getDbPool } from "@/lib/db";
+import { heartbeatFinish, heartbeatStart } from "@/lib/cronHeartbeat";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -124,14 +125,35 @@ async function listActiveTenantIds() {
 }
 
 async function runHardRefresh(req: Request, body?: JsonMap | null) {
+  const startedAtMs = Date.now();
+  const jobKey = "dashboard_hard_refresh_cron";
+  const endpoint = new URL(req.url).pathname;
   try {
-    if (!isAuthorized(req, body)) {
-      return Response.json({ ok: false, error: "Unauthorized cron secret." }, { status: 401 });
-    }
-
     const singleTenantId = s(body?.tenantId);
     const integrationKey = s(body?.integrationKey) || "owner";
     const force = body?.force !== false;
+    await heartbeatStart({
+      jobKey,
+      endpoint,
+      context: {
+        tenantId: singleTenantId || null,
+        integrationKey,
+        force,
+        method: req.method,
+      },
+    });
+    if (!isAuthorized(req, body)) {
+      const unauthorized = { ok: false, error: "Unauthorized cron secret." };
+      await heartbeatFinish({
+        jobKey,
+        status: "unauthorized",
+        startedAtMs,
+        error: unauthorized.error,
+        result: unauthorized,
+      });
+      return Response.json(unauthorized, { status: 401 });
+    }
+
     const appointmentsForceFull = body?.appointmentsForceFull === true;
     const appointmentsPreferFresh = body?.appointmentsPreferFresh === true;
     const { start, end, preset } = computeRange();
@@ -362,7 +384,7 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
       rows.push(row);
     }
 
-    return Response.json({
+    const result = {
       ok: true,
       force,
       preset,
@@ -371,10 +393,28 @@ async function runHardRefresh(req: Request, body?: JsonMap | null) {
       total: rows.length,
       errors: rows.filter((r) => r.ok !== true).length,
       rows,
+    };
+    await heartbeatFinish({
+      jobKey,
+      status: "ok",
+      startedAtMs,
+      result: {
+        total: result.total,
+        errors: result.errors,
+      },
     });
+    return Response.json(result);
   } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to run dashboard hard refresh cron";
+    await heartbeatFinish({
+      jobKey,
+      status: "error",
+      startedAtMs,
+      error: message,
+      result: { ok: false },
+    });
     return Response.json(
-      { ok: false, error: e instanceof Error ? e.message : "Failed to run dashboard hard refresh cron" },
+      { ok: false, error: message },
       { status: 500 },
     );
   }

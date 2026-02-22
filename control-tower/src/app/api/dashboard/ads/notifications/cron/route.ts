@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { heartbeatFinish, heartbeatStart } from "@/lib/cronHeartbeat";
 import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -28,12 +29,21 @@ type GhlWebhookTarget = {
 };
 
 function ensureAuthorized(req: Request) {
+  const vercelCron = s(req.headers.get("x-vercel-cron"));
+  if (vercelCron === "1") return true;
   const expected = s(process.env.ADS_NOTIF_CRON_KEY);
-  if (!expected) return true;
+  const fallback = s(process.env.CRON_SECRET || process.env.DASHBOARD_CRON_SECRET || process.env.PROSPECTING_CRON_SECRET);
   const provided =
     s(req.headers.get("x-cron-key")) ||
+    (() => {
+      const auth = s(req.headers.get("authorization"));
+      return auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+    })() ||
     s(new URL(req.url).searchParams.get("key"));
-  return provided && provided === expected;
+  if (expected && provided === expected) return true;
+  if (fallback && provided === fallback) return true;
+  if (!expected && !fallback) return true;
+  return false;
 }
 
 async function listTargets(bodyTenantId: string) {
@@ -328,13 +338,34 @@ async function sendGhlWebhookAlerts(payload: {
   };
 }
 
-export async function POST(req: Request) {
+async function runAdsNotificationsCron(req: Request, body: Record<string, unknown>) {
+  const startedAtMs = Date.now();
+  const jobKey = "ads_notifications_cron";
+  const parsedUrl = new URL(req.url);
+  const endpoint = parsedUrl.pathname;
+  await heartbeatStart({
+    jobKey,
+    endpoint,
+    context: {
+      method: req.method,
+      tenantId: s(body.tenantId || "") || null,
+      range: s(body.range || "") || null,
+      force: body.force === true,
+    },
+  });
   try {
     if (!ensureAuthorized(req)) {
-      return NextResponse.json({ ok: false, error: "Unauthorized cron request." }, { status: 401 });
+      const unauthorized = { ok: false, error: "Unauthorized cron request." };
+      await heartbeatFinish({
+        jobKey,
+        status: "unauthorized",
+        startedAtMs,
+        error: unauthorized.error,
+        result: unauthorized,
+      });
+      return NextResponse.json(unauthorized, { status: 401 });
     }
 
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const tenantId = s(body.tenantId || "");
     const range = s(body.range || "last_28_days");
     const force = body.force === true;
@@ -444,7 +475,7 @@ export async function POST(req: Request) {
       };
     }
 
-    return NextResponse.json({
+    const result = {
       ok: true,
       mode: "daily_plus_anomaly",
       generatedAt: new Date().toISOString(),
@@ -456,11 +487,44 @@ export async function POST(req: Request) {
         emailWebhook: emailResult,
         ghlWebhook: ghlResult,
       },
+    };
+    await heartbeatFinish({
+      jobKey,
+      status: "ok",
+      startedAtMs,
+      result: {
+        totalTargets: result.totalTargets,
+        runs: result.runs.length,
+        created: result.runs.reduce((acc, r) => acc + Number(r.created || 0), 0),
+      },
     });
+    return NextResponse.json(result);
   } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to run ads notifications cron";
+    await heartbeatFinish({
+      jobKey,
+      status: "error",
+      startedAtMs,
+      error: message,
+      result: { ok: false },
+    });
     return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : "Failed to run ads notifications cron" },
+      { ok: false, error: message },
       { status: 500 },
     );
   }
+}
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  return runAdsNotificationsCron(req, {
+    tenantId: s(url.searchParams.get("tenantId")),
+    range: s(url.searchParams.get("range")),
+    force: s(url.searchParams.get("force")) === "1" || s(url.searchParams.get("force")) === "true",
+  });
+}
+
+export async function POST(req: Request) {
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  return runAdsNotificationsCron(req, body);
 }

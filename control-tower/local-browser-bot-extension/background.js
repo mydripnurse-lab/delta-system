@@ -8,6 +8,124 @@ const botRuntime = {
   activePromise: null,
   watchWindowId: null,
 };
+const EXT_BADGE_STORAGE_KEY = "delta_action_badge_count";
+const EXT_BADGE_SEVERITY_STORAGE_KEY = "delta_action_badge_severity";
+const EXT_BADGE_ALARM = "delta_badge_refresh_alarm";
+const DEFAULT_WORKSPACE_BASE = "https://www.telahagocrecer.com";
+
+function normalizeSeverity(raw) {
+  const s = String(raw || "").toLowerCase();
+  if (s === "critical" || s === "high" || s === "p1") return "high";
+  if (s === "medium" || s === "p2") return "medium";
+  return "low";
+}
+
+async function applyExtensionBadge(rawCount, rawSeverity = "low") {
+  const count = Math.max(0, Number(rawCount || 0));
+  const severity = normalizeSeverity(rawSeverity);
+  const text = count > 999 ? "999+" : count > 0 ? String(count) : "";
+  await chrome.action.setBadgeText({ text });
+  await chrome.action.setBadgeBackgroundColor({
+    color: severity === "high" ? "#e43f5a" : severity === "medium" ? "#f59e0b" : "#4f7dff",
+  });
+  await chrome.action.setBadgeTextColor({ color: "#ffffff" });
+}
+
+async function hydrateBadgeFromStorage() {
+  try {
+    const st = await chrome.storage.local.get([EXT_BADGE_STORAGE_KEY, EXT_BADGE_SEVERITY_STORAGE_KEY]);
+    await applyExtensionBadge(st?.[EXT_BADGE_STORAGE_KEY] || 0, st?.[EXT_BADGE_SEVERITY_STORAGE_KEY] || "low");
+  } catch {
+    await applyExtensionBadge(0);
+  }
+}
+
+async function apiFetchJson(base, path, token) {
+  const target = new URL(path, base).toString();
+  const res = await fetch(target, {
+    method: "GET",
+    headers: {
+      "content-type": "application/json",
+      Authorization: `Bearer ${String(token || "").trim()}`,
+    },
+    cache: "no-store",
+  });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = JSON.parse(text || "{}");
+  } catch {
+    json = null;
+  }
+  return { ok: res.ok, status: res.status, json };
+}
+
+function severityRank(sev) {
+  const s = normalizeSeverity(sev);
+  if (s === "high") return 3;
+  if (s === "medium") return 2;
+  return 1;
+}
+
+async function refreshBadgeFromApi() {
+  try {
+    const st = await chrome.storage.local.get(["delta_auth_bearer_token", "delta_workspace_base_url"]);
+    const token = String(st?.delta_auth_bearer_token || "").trim();
+    const base = String(st?.delta_workspace_base_url || DEFAULT_WORKSPACE_BASE).trim() || DEFAULT_WORKSPACE_BASE;
+    if (!token || !/^https?:\/\//i.test(base)) {
+      await chrome.storage.local.set({
+        [EXT_BADGE_STORAGE_KEY]: 0,
+        [EXT_BADGE_SEVERITY_STORAGE_KEY]: "low",
+      });
+      await applyExtensionBadge(0, "low");
+      return;
+    }
+
+    const tenantsOut = await apiFetchJson(base, "/api/tenants", token);
+    const rows = tenantsOut?.json?.ok && Array.isArray(tenantsOut?.json?.rows) ? tenantsOut.json.rows : [];
+    if (!rows.length) {
+      await chrome.storage.local.set({
+        [EXT_BADGE_STORAGE_KEY]: 0,
+        [EXT_BADGE_SEVERITY_STORAGE_KEY]: "low",
+      });
+      await applyExtensionBadge(0, "low");
+      return;
+    }
+
+    let totalOpen = 0;
+    let maxSeverity = "low";
+    await Promise.all(
+      rows.map(async (t) => {
+        const tenantId = String(t?.id || "").trim();
+        if (!tenantId) return;
+        const q = new URLSearchParams({
+          organizationId: tenantId,
+          status: "proposed",
+          limit: "120",
+        });
+        try {
+          const out = await apiFetchJson(base, `/api/agents/proposals?${q.toString()}`, token);
+          const proposals = out?.json?.ok && Array.isArray(out?.json?.proposals) ? out.json.proposals : [];
+          totalOpen += proposals.length;
+          for (const p of proposals) {
+            const sev = normalizeSeverity(p?.priority);
+            if (severityRank(sev) > severityRank(maxSeverity)) maxSeverity = sev;
+          }
+        } catch {
+          // keep partial result
+        }
+      }),
+    );
+
+    await chrome.storage.local.set({
+      [EXT_BADGE_STORAGE_KEY]: totalOpen,
+      [EXT_BADGE_SEVERITY_STORAGE_KEY]: maxSeverity,
+    });
+    await applyExtensionBadge(totalOpen, maxSeverity);
+  } catch {
+    // keep existing badge on transient failures
+  }
+}
 
 async function waitTabLoaded(tabId, timeoutMs = 120000) {
   const started = Date.now();
@@ -1791,6 +1909,22 @@ async function reinjectBridgeInAllOpenTabs() {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "DELTA_SET_BADGE_COUNT") {
+    const count = Math.max(0, Number(message?.count || 0));
+    const severity = normalizeSeverity(message?.severity || "low");
+    chrome.storage.local
+      .set({ [EXT_BADGE_STORAGE_KEY]: count, [EXT_BADGE_SEVERITY_STORAGE_KEY]: severity })
+      .then(() => applyExtensionBadge(count, severity))
+      .then(() => sendResponse({ ok: true, count, severity }))
+      .catch((err) =>
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    return true;
+  }
+
   if (message?.type !== "DELTA_LOCAL_BOT_RUN") return undefined;
   const payload = message.payload || {};
   const requestId = String(message.requestId || "").trim();
@@ -1845,10 +1979,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   void reinjectBridgeInAllOpenTabs();
+  void hydrateBadgeFromStorage();
+  chrome.alarms.create(EXT_BADGE_ALARM, { periodInMinutes: 1 });
+  void refreshBadgeFromApi();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   void reinjectBridgeInAllOpenTabs();
+  void hydrateBadgeFromStorage();
+  chrome.alarms.create(EXT_BADGE_ALARM, { periodInMinutes: 1 });
+  void refreshBadgeFromApi();
+});
+
+void hydrateBadgeFromStorage();
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm?.name !== EXT_BADGE_ALARM) return;
+  void refreshBadgeFromApi();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

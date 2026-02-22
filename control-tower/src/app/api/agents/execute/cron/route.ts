@@ -1,4 +1,5 @@
 import { executeApprovedProposal } from "@/lib/agentExecution";
+import { heartbeatFinish, heartbeatStart } from "@/lib/cronHeartbeat";
 import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -143,87 +144,131 @@ async function listApprovedProposalIds(tenantId: string, limit: number) {
 }
 
 async function runAutoExecute(req: Request, body?: JsonMap | null) {
-  if (!(await isAuthorized(req, body))) {
-    return Response.json({ ok: false, error: "Unauthorized cron secret." }, { status: 401 });
-  }
+  const startedAtMs = Date.now();
+  const jobKey = "agents_auto_execute_cron";
+  const endpoint = new URL(req.url).pathname;
 
   const singleTenantId = s(body?.tenantId);
   const globalMaxPerTenant = clampInt(body?.maxPerTenant, 1, 20, 0);
   const globalMaxTotal = clampInt(body?.maxTotal, 1, 200, 50);
   const dryRun = boolish(body?.dryRun, false);
+  await heartbeatStart({
+    jobKey,
+    endpoint,
+    context: {
+      tenantId: singleTenantId || null,
+      dryRun,
+      maxPerTenantOverride: globalMaxPerTenant || null,
+      maxTotalOverride: globalMaxTotal || null,
+    },
+  });
+  if (!(await isAuthorized(req, body))) {
+    const unauthorized = { ok: false, error: "Unauthorized cron secret." };
+    await heartbeatFinish({
+      jobKey,
+      status: "unauthorized",
+      startedAtMs,
+      error: unauthorized.error,
+      result: unauthorized,
+    });
+    return Response.json(unauthorized, { status: 401 });
+  }
   const origin = new URL(req.url).origin;
-  const targets = await listTargets(singleTenantId);
+  try {
+    const targets = await listTargets(singleTenantId);
 
-  const rows: Array<Record<string, unknown>> = [];
-  let executedTotal = 0;
-  for (const target of targets) {
-    const row: Record<string, unknown> = {
-      tenantId: target.tenantId,
-      autoEnabled: target.autoExecution.enabled,
-      approvedFound: 0,
-      executed: 0,
-      wouldExecute: 0,
-      failed: 0,
-      errors: [] as string[],
-    };
-    try {
-      if (!target.autoExecution.enabled) {
-        row.skipped = "auto_execution_disabled";
-        rows.push(row);
-        continue;
-      }
-      if (executedTotal >= globalMaxTotal) {
-        row.skipped = "global_limit_reached";
-        rows.push(row);
-        continue;
-      }
-      const maxPerTenant = globalMaxPerTenant || target.autoExecution.maxPerRun;
-      row.maxPerTenant = maxPerTenant;
-      const remainingGlobal = Math.max(0, globalMaxTotal - executedTotal);
-      const limit = Math.min(maxPerTenant, remainingGlobal);
-      const proposalIds = await listApprovedProposalIds(target.tenantId, limit);
-      row.approvedFound = proposalIds.length;
-      for (const proposalId of proposalIds) {
-        if (dryRun) {
-          row.wouldExecute = Number(row.wouldExecute || 0) + 1;
+    const rows: Array<Record<string, unknown>> = [];
+    let executedTotal = 0;
+    for (const target of targets) {
+      const row: Record<string, unknown> = {
+        tenantId: target.tenantId,
+        autoEnabled: target.autoExecution.enabled,
+        approvedFound: 0,
+        executed: 0,
+        wouldExecute: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+      try {
+        if (!target.autoExecution.enabled) {
+          row.skipped = "auto_execution_disabled";
+          rows.push(row);
           continue;
         }
-        try {
-          await executeApprovedProposal({
-            proposalId,
-            actor: "system:auto_execute_cron",
-            origin,
-          });
-          row.executed = Number(row.executed || 0) + 1;
-          executedTotal += 1;
-        } catch (e: unknown) {
-          row.failed = Number(row.failed || 0) + 1;
-          (row.errors as string[]).push(`${proposalId}: ${e instanceof Error ? e.message : "execution failed"}`);
+        if (executedTotal >= globalMaxTotal) {
+          row.skipped = "global_limit_reached";
+          rows.push(row);
+          continue;
         }
+        const maxPerTenant = globalMaxPerTenant || target.autoExecution.maxPerRun;
+        row.maxPerTenant = maxPerTenant;
+        const remainingGlobal = Math.max(0, globalMaxTotal - executedTotal);
+        const limit = Math.min(maxPerTenant, remainingGlobal);
+        const proposalIds = await listApprovedProposalIds(target.tenantId, limit);
+        row.approvedFound = proposalIds.length;
+        for (const proposalId of proposalIds) {
+          if (dryRun) {
+            row.wouldExecute = Number(row.wouldExecute || 0) + 1;
+            continue;
+          }
+          try {
+            await executeApprovedProposal({
+              proposalId,
+              actor: "system:auto_execute_cron",
+              origin,
+            });
+            row.executed = Number(row.executed || 0) + 1;
+            executedTotal += 1;
+          } catch (e: unknown) {
+            row.failed = Number(row.failed || 0) + 1;
+            (row.errors as string[]).push(`${proposalId}: ${e instanceof Error ? e.message : "execution failed"}`);
+          }
+        }
+      } catch (e: unknown) {
+        row.failed = Number(row.failed || 0) + 1;
+        (row.errors as string[]).push(e instanceof Error ? e.message : "Failed to process tenant");
       }
-    } catch (e: unknown) {
-      row.failed = Number(row.failed || 0) + 1;
-      (row.errors as string[]).push(e instanceof Error ? e.message : "Failed to process tenant");
+      rows.push(row);
     }
-    rows.push(row);
+    const result = {
+      ok: true,
+      dryRun,
+      totalTenants: rows.length,
+      executed: rows.reduce((acc, r) => acc + Number(r.executed || 0), 0),
+      wouldExecute: rows.reduce((acc, r) => acc + Number(r.wouldExecute || 0), 0),
+      failed: rows.reduce((acc, r) => acc + Number(r.failed || 0), 0),
+      skippedDisabled: rows.filter((r) => r.skipped === "auto_execution_disabled").length,
+      skippedGlobalLimit: rows.filter((r) => r.skipped === "global_limit_reached").length,
+      defaults: { maxPerRun: 4, maxTotal: 50 },
+      globalOverrides: {
+        maxPerTenant: globalMaxPerTenant || null,
+        maxTotal: globalMaxTotal || null,
+      },
+      rows,
+    };
+    await heartbeatFinish({
+      jobKey,
+      status: "ok",
+      startedAtMs,
+      result: {
+        totalTenants: result.totalTenants,
+        executed: result.executed,
+        wouldExecute: result.wouldExecute,
+        failed: result.failed,
+      },
+    });
+    return Response.json(result);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to run auto execute cron";
+    await heartbeatFinish({
+      jobKey,
+      status: "error",
+      startedAtMs,
+      error: message,
+      result: { ok: false },
+    });
+    return Response.json({ ok: false, error: message }, { status: 500 });
   }
-
-  return Response.json({
-    ok: true,
-    dryRun,
-    totalTenants: rows.length,
-    executed: rows.reduce((acc, r) => acc + Number(r.executed || 0), 0),
-    wouldExecute: rows.reduce((acc, r) => acc + Number(r.wouldExecute || 0), 0),
-    failed: rows.reduce((acc, r) => acc + Number(r.failed || 0), 0),
-    skippedDisabled: rows.filter((r) => r.skipped === "auto_execution_disabled").length,
-    skippedGlobalLimit: rows.filter((r) => r.skipped === "global_limit_reached").length,
-    defaults: { maxPerRun: 4, maxTotal: 50 },
-    globalOverrides: {
-      maxPerTenant: globalMaxPerTenant || null,
-      maxTotal: globalMaxTotal || null,
-    },
-    rows,
-  });
 }
 
 export async function GET(req: Request) {
