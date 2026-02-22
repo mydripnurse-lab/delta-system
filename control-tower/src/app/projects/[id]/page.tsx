@@ -720,6 +720,7 @@ export default function Home() {
   const [domainBotAccountTimeoutMin, setDomainBotAccountTimeoutMin] = useState(
     DOMAIN_BOT_TIMEOUT_MIN_DEFAULT,
   );
+  const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "pending" | "settings">("");
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -2373,18 +2374,44 @@ export default function Home() {
       });
   }, [detail, detailTab, countyFilter, detailSearch]);
 
+  const pendingDomainBotRowsByKind = useMemo(() => {
+    const compute = (kind: "counties" | "cities") => {
+      if (!detail) return [] as any[];
+      const rows = kind === "counties" ? detail.counties.rows || [] : detail.cities.rows || [];
+      const q0 = detailSearch.trim().toLowerCase();
+      const filtered = rows
+        .filter((r) =>
+          countyFilter === "all"
+            ? true
+            : String(r["County"] || "").trim() === countyFilter,
+        )
+        .filter((r) => {
+          if (!q0) return true;
+          const locId = s(r["Location Id"]).toLowerCase();
+          const county = s(r["County"]).toLowerCase();
+          const city = s(r["City"]).toLowerCase();
+          return locId.includes(q0) || county.includes(q0) || city.includes(q0);
+        });
+      return filtered.filter((r) => {
+        const eligible = !!r.__eligible;
+        const domainCreated = isTrue(r["Domain Created"]);
+        const locId = s(r["Location Id"]);
+        const domainToPaste =
+          kind === "cities"
+            ? s(r["City Domain"]) || s(r["city domain"])
+            : s(r["Domain"]) || s(r["County Domain"]);
+        return eligible && !domainCreated && !!locId && !!domainToPaste;
+      });
+    };
+    return {
+      counties: compute("counties"),
+      cities: compute("cities"),
+    };
+  }, [detail, countyFilter, detailSearch]);
+
   const pendingDomainBotRowsInTab = useMemo(() => {
-    return filteredDetailRows.filter((r) => {
-      const eligible = !!r.__eligible;
-      const domainCreated = isTrue(r["Domain Created"]);
-      const locId = s(r["Location Id"]);
-      const domainToPaste =
-        detailTab === "cities"
-          ? s(r["City Domain"]) || s(r["city domain"])
-          : s(r["Domain"]) || s(r["County Domain"]);
-      return eligible && !domainCreated && !!locId && !!domainToPaste;
-    });
-  }, [filteredDetailRows, detailTab]);
+    return pendingDomainBotRowsByKind[detailTab];
+  }, [pendingDomainBotRowsByKind, detailTab]);
 
   const tabSitemapRunCounts = useMemo(() => {
     let pending = 0;
@@ -3561,7 +3588,7 @@ export default function Home() {
     if (!domainBotBusy) return;
     domainBotStopRequestedRef.current = true;
     setDomainBotStopRequested(true);
-    pushDomainBotLog("Stop requested by user. Waiting safe checkpoint...");
+    pushDomainBotLog("Stop requested. Finishing current account, then stopping queue.");
   }
 
   async function loadDomainBotHeaders(
@@ -4010,11 +4037,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     setDomainBotBusy(true);
     setDomainBotLogs([]);
     setDomainBotScreenshotDataUrl("");
-    const throwIfStopped = () => {
-      if (domainBotStopRequestedRef.current) {
-        throw new Error("Stopped by user.");
-      }
-    };
     pushDomainBotLog(`Start locId=${id}`);
     pushDomainBotLog(`Activation URL: ${activationUrlEffective || "(missing)"}`);
     setTabSitemapStatus({
@@ -4023,7 +4045,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       message: `Starting Domain Bot for ${id} (custom values + DNS)...`,
     });
     try {
-      throwIfStopped();
       ensureAccountTime("custom values start");
       const cvRes = await fetchWithAccountTimeout(
         `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values/apply`,
@@ -4042,7 +4063,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       pushDomainBotLog("Custom values applied.");
 
       const domainUrlForDns = s(toUrlMaybe(domainToPaste));
-      throwIfStopped();
       if (domainUrlForDns) {
         pushDomainBotLog(`DNS upsert start: ${domainUrlForDns}`);
         ensureAccountTime("dns upsert start");
@@ -4068,7 +4088,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         pushDomainBotLog("DNS upsert done.");
       }
 
-      throwIfStopped();
       ensureAccountTime("headers load start");
       const headers = await loadDomainBotHeaders(id, (u, i) =>
         fetchWithAccountTimeout(u, i, "headers load", 90000),
@@ -4076,7 +4095,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const robotsTxtValue = buildRobotsTxt(sitemapUrl);
       const steps = buildDomainBotSteps();
       pushDomainBotLog(`Local extension run start with ${steps.length} mapped steps.`);
-      throwIfStopped();
       ensureAccountTime("local extension run start");
       const local = await runDomainBotViaExtensionBridge({
         activationUrl: activationUrlEffective,
@@ -4094,7 +4112,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       }
       pushDomainBotLog("Local extension run done.");
 
-      throwIfStopped();
       ensureAccountTime("mark created start");
       const markRes = await fetchWithAccountTimeout(
         "/api/sheet/domain-created",
@@ -4118,7 +4135,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       }
       pushDomainBotLog("Domain marked as created.");
 
-      throwIfStopped();
       if (domainUrlForDns) {
         pushDomainBotLog("DNS delete start.");
         ensureAccountTime("dns delete start");
@@ -4220,8 +4236,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     setDomainBotRunDone(true);
   }
 
-  async function runDomainBotPendingInCurrentTab() {
-    const queue = pendingDomainBotRowsInTab
+  async function runDomainBotPendingForKind(kind: "counties" | "cities") {
+    const queue = (pendingDomainBotRowsByKind[kind] || [])
       .map((row) => ({
         row,
         locId: s(row["Location Id"]),
@@ -4231,9 +4247,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
     if (!queue.length) {
       setTabSitemapStatus({
-        kind: detailTab,
+        kind,
         ok: false,
-        message: `No hay ${detailTab} pending elegibles en el filtro actual.`,
+        message: `No hay ${kind} pending elegibles en el filtro actual.`,
       });
       return;
     }
@@ -4245,10 +4261,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     setDomainBotRunDone(false);
     const runAccountTimeoutMs = domainBotAccountTimeoutMs;
     const preparedItems: DomainBotRunItem[] = queue.map((item) => {
-      const rowName = getTabRowName(detailTab, item.row) || "Row";
-      const domainUrl = getTabRowDomainUrl(detailTab, item.row);
+      const rowName = getTabRowName(kind, item.row) || "Row";
+      const domainUrl = getTabRowDomainUrl(kind, item.row);
       return {
-        key: `${detailTab}:${item.locId}:${rowName}:${domainUrl}`,
+        key: `${kind}:${item.locId}:${rowName}:${domainUrl}`,
         locId: item.locId,
         rowName,
         domainUrl,
@@ -4269,16 +4285,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ),
       );
       setTabSitemapStatus({
-        kind: detailTab,
+        kind,
         ok: true,
-        message: `Domain Bot ${detailTab} pending ${i + 1}/${queue.length} (${item.locId})...`,
+        message: `Domain Bot ${kind} pending ${i + 1}/${queue.length} (${item.locId})...`,
       });
       // Sequential run, one account at a time.
       const out = await runDomainBotForLocId(
         item.locId,
         item.activationUrl,
         item.row,
-        detailTab,
+        kind,
         runAccountTimeoutMs,
       );
       setDomainBotRunItems((prev) =>
@@ -4292,20 +4308,28 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             : it,
         ),
       );
+      if (domainBotStopRequestedRef.current) {
+        pushDomainBotLog(`Stop checkpoint reached after ${item.locId}. Queue stopped.`);
+        break;
+      }
       if (out.status === "stopped") break;
     }
 
     if (domainBotStopRequestedRef.current) {
       setTabSitemapStatus({
-        kind: detailTab,
+        kind,
         ok: false,
-        message: `Domain Bot ${detailTab} stopped by user.`,
+        message: `Domain Bot ${kind} stopped after finishing current account.`,
       });
       setDomainBotRunItems((prev) =>
         prev.map((it) => (it.status === "pending" ? { ...it, status: "stopped" } : it)),
       );
     }
     setDomainBotRunDone(true);
+  }
+
+  async function runDomainBotPendingInCurrentTab() {
+    return await runDomainBotPendingForKind(detailTab);
   }
 
   async function retryFailedTabSitemaps(
@@ -6095,149 +6119,44 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     Cities
                   </button>
                 </div>
-                <div className="tabs" style={{ marginTop: 8 }}>
+                <div
+                  className="tabs quickActionsBar"
+                  style={{ marginTop: 10 }}
+                >
                   <button
-                    className="smallBtn"
-                    onClick={() => submitTabAction("counties", "inspect")}
-                    disabled={tabSitemapSubmitting !== ""}
-                    title="Run URL Inspection para todos los counties activos."
+                    className="smallBtn quickActionBtn quickActionBtnBing"
+                    onClick={() => setQuickBotModal("bing")}
+                    title="Bing Index options"
+                    style={{ ["--qa-delay" as any]: "0ms" }}
                   >
-                    {tabSitemapSubmitting === tabRunKey("counties", "inspect")
-                      ? "Inspect Counties..."
-                      : "Inspect Counties"}
+                    Bing Index
                   </button>
                   <button
-                    className="smallBtn"
-                    onClick={() => submitTabAction("cities", "inspect")}
-                    disabled={tabSitemapSubmitting !== ""}
-                    title="Run URL Inspection para todas las cities activas."
+                    className="smallBtn quickActionBtn quickActionBtnGoogle"
+                    onClick={() => setQuickBotModal("google")}
+                    title="Google Index options"
+                    style={{ ["--qa-delay" as any]: "40ms" }}
                   >
-                    {tabSitemapSubmitting === tabRunKey("cities", "inspect")
-                      ? "Inspect Cities..."
-                      : "Inspect Cities"}
+                    Google Index
                   </button>
                   <button
-                    className="smallBtn"
-                    onClick={() => submitTabAction("counties", "discovery")}
-                    disabled={tabSitemapSubmitting !== ""}
-                    title="Enviar sitemap.xml a Google Search Console para todos los counties activos."
+                    className="smallBtn quickActionBtn quickActionBtnPending"
+                    onClick={() => setQuickBotModal("pending")}
+                    title="Run pending Domain Bot"
+                    style={{ ["--qa-delay" as any]: "80ms" }}
                   >
-                    {tabSitemapSubmitting === tabRunKey("counties", "discovery")
-                      ? "Sitemap Counties..."
-                      : "Sitemap Counties"}
+                    Run Pending Counties
                   </button>
                   <button
-                    className="smallBtn"
-                    onClick={() => submitTabAction("cities", "discovery")}
-                    disabled={tabSitemapSubmitting !== ""}
-                    title="Enviar sitemap.xml a Google Search Console para todas las cities activas."
+                    className="smallBtn quickActionBtn quickActionBtnSettings"
+                    onClick={() => setQuickBotModal("settings")}
+                    title="Bot settings"
+                    style={{ ["--qa-delay" as any]: "120ms" }}
                   >
-                    {tabSitemapSubmitting === tabRunKey("cities", "discovery")
-                      ? "Sitemap Cities..."
-                      : "Sitemap Cities"}
-                  </button>
-                  <button
-                    className="smallBtn"
-                    onClick={() => submitTabAction("counties", "bing_indexnow")}
-                    disabled={tabSitemapSubmitting !== ""}
-                    title="Enviar URL principal a Bing IndexNow para todos los counties activos."
-                  >
-                    {tabSitemapSubmitting === tabRunKey("counties", "bing_indexnow")
-                      ? "Bing Counties..."
-                      : "Bing Counties"}
-                  </button>
-                  <button
-                    className="smallBtn"
-                    onClick={() => submitTabAction("cities", "bing_indexnow")}
-                    disabled={tabSitemapSubmitting !== ""}
-                    title="Enviar URL principal a Bing IndexNow para todas las cities activas."
-                  >
-                    {tabSitemapSubmitting === tabRunKey("cities", "bing_indexnow")
-                      ? "Bing Cities..."
-                      : "Bing Cities"}
-                  </button>
-                  <button
-                    className="smallBtn"
-                    onClick={() =>
-                      retryFailedTabSitemaps(detailTab, tabSitemapRunAction)
-                    }
-                    disabled={
-                      tabSitemapSubmitting !== "" ||
-                      !tabSitemapReports[currentTabRunKey] ||
-                      (tabSitemapReports[currentTabRunKey]?.failed || 0) === 0
-                    }
-                    title="Reintenta solo los fallidos del tab actual."
-                  >
-                    {tabSitemapSubmitting === currentTabRunKey
-                      ? "Retry failed..."
-                      : `Retry failed (${tabSitemapReports[currentTabRunKey]?.failed || 0})`}
-                  </button>
-                  <button
-                    className="smallBtn"
-                    onClick={() =>
-                      setTabSitemapShowDetails((p) => ({
-                        ...p,
-                        [currentTabRunKey]: !p[currentTabRunKey],
-                      }))
-                    }
-                    disabled={!currentTabSitemapReport}
-                    title="Ver detalle de resultados por fila."
-                  >
-                    {tabSitemapShowDetails[currentTabRunKey]
-                      ? "Hide details"
-                      : "View details"}
-                  </button>
-                  <div
-                    className="field"
-                    style={{
-                      margin: 0,
-                      minWidth: 148,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                    }}
-                    title={`Per-account timeout (${DOMAIN_BOT_TIMEOUT_MIN_MIN}-${DOMAIN_BOT_TIMEOUT_MIN_MAX} min).`}
-                  >
-                    <label className="mini" style={{ margin: 0, whiteSpace: "nowrap" }}>
-                      Bot timeout (min)
-                    </label>
-                    <input
-                      className="input"
-                      type="number"
-                      min={DOMAIN_BOT_TIMEOUT_MIN_MIN}
-                      max={DOMAIN_BOT_TIMEOUT_MIN_MAX}
-                      step={1}
-                      disabled={domainBotBusy}
-                      value={domainBotAccountTimeoutMin}
-                      onChange={(e) => {
-                        const n = Number(e.target.value);
-                        if (!Number.isFinite(n)) return;
-                        const clamped = Math.max(
-                          DOMAIN_BOT_TIMEOUT_MIN_MIN,
-                          Math.min(DOMAIN_BOT_TIMEOUT_MIN_MAX, Math.round(n)),
-                        );
-                        setDomainBotAccountTimeoutMin(clamped);
-                      }}
-                      style={{ width: 76, minWidth: 76, padding: "6px 8px" }}
-                    />
-                  </div>
-                  <button
-                    className="smallBtn"
-                    onClick={() => void runDomainBotPendingInCurrentTab()}
-                    disabled={domainBotBusy || pendingDomainBotRowsInTab.length === 0}
-                    title={`Run Domain Bot para todos los ${detailTab} pending del filtro actual.`}
-                  >
-                    {domainBotBusy
-                      ? "Running Bot..."
-                      : `Run Pending ${detailTab === "counties" ? "Counties" : "Cities"} (${pendingDomainBotRowsInTab.length})`}
-                  </button>
-                  <button
-                    className="smallBtn"
-                    onClick={() => setDomainBotRunOpen(true)}
-                    disabled={!domainBotRunItems.length && !domainBotBusy}
-                    title="Ver ejecución del Domain Bot"
-                  >
-                    View Bot Run
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7z" stroke="currentColor" strokeWidth="2"/>
+                      <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1 1 0 0 1 0 1.4l-1.2 1.2a1 1 0 0 1-1.4 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1 1 0 0 1-1 1h-1.7a1 1 0 0 1-1-1v-.2a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a1 1 0 0 1-1.4 0l-1.2-1.2a1 1 0 0 1 0-1.4l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a1 1 0 0 1-1-1v-1.7a1 1 0 0 1 1-1h.2a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a1 1 0 0 1 0-1.4l1.2-1.2a1 1 0 0 1 1.4 0l.1.1a1 1 0 0 0 1.1.2h0a1 1 0 0 0 .6-.9V4a1 1 0 0 1 1-1h1.7a1 1 0 0 1 1 1v.2a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a1 1 0 0 1 1.4 0l1.2 1.2a1 1 0 0 1 0 1.4l-.1.1a1 1 0 0 0-.2 1.1v0a1 1 0 0 0 .9.6H20a1 1 0 0 1 1 1v1.7a1 1 0 0 1-1 1h-.2a1 1 0 0 0-.9.6z" stroke="currentColor" strokeWidth="1.4"/>
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -6558,6 +6477,297 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     domain a pegar (<b>City Domain</b> o <b>Domain</b>).
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {quickBotModal !== "" && (
+        <>
+          <div className="modalBackdrop" onClick={() => setQuickBotModal("")} />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(560px, calc(100vw - 24px))",
+              height: "auto",
+              maxHeight: "min(680px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader">
+              <div>
+                <div className="badge">QUICK ACTIONS</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  {quickBotModal === "google" && "Google Index"}
+                  {quickBotModal === "bing" && "Bing Index"}
+                  {quickBotModal === "pending" && "Run Pending"}
+                  {quickBotModal === "settings" && "Bot Settings"}
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  {openState || "State"} • {detailTab === "counties" ? "Counties" : "Cities"}
+                </div>
+              </div>
+              <button className="smallBtn" onClick={() => setQuickBotModal("")} type="button">
+                Close
+              </button>
+            </div>
+
+            <div className="modalBody" style={{ padding: 14, overflowY: "auto" }}>
+              {quickBotModal === "google" && (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 12 }}>
+                    <div className="mini" style={{ marginBottom: 10 }}>
+                      URL Inspection + Sitemap submit flows.
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void submitTabAction("counties", "inspect");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("counties", "inspect")
+                          ? "Inspect Counties..."
+                          : "Inspect Counties"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void submitTabAction("cities", "inspect");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("cities", "inspect")
+                          ? "Inspect Cities..."
+                          : "Inspect Cities"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void submitTabAction("counties", "discovery");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("counties", "discovery")
+                          ? "Sitemap Counties..."
+                          : "Sitemap Counties"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void submitTabAction("cities", "discovery");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("cities", "discovery")
+                          ? "Sitemap Cities..."
+                          : "Sitemap Cities"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {quickBotModal === "bing" && (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 12 }}>
+                    <div className="mini" style={{ marginBottom: 10 }}>
+                      Bing IndexNow actions and failed retry.
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("bing_indexnow");
+                          void submitTabAction("counties", "bing_indexnow");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("counties", "bing_indexnow")
+                          ? "Bing Counties..."
+                          : "Bing Counties"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("bing_indexnow");
+                          void submitTabAction("cities", "bing_indexnow");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("cities", "bing_indexnow")
+                          ? "Bing Cities..."
+                          : "Bing Cities"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("bing_indexnow");
+                          void retryFailedTabSitemaps(detailTab, "bing_indexnow");
+                          setQuickBotModal("");
+                        }}
+                        disabled={
+                          tabSitemapSubmitting !== "" ||
+                          !tabSitemapReports[tabRunKey(detailTab, "bing_indexnow")] ||
+                          (tabSitemapReports[tabRunKey(detailTab, "bing_indexnow")]?.failed || 0) === 0
+                        }
+                      >
+                        Retry Failed ({tabSitemapReports[tabRunKey(detailTab, "bing_indexnow")]?.failed || 0})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() =>
+                          setTabSitemapShowDetails((p) => ({
+                            ...p,
+                            [currentTabRunKey]: !p[currentTabRunKey],
+                          }))
+                        }
+                        disabled={!currentTabSitemapReport}
+                      >
+                        {tabSitemapShowDetails[currentTabRunKey] ? "Hide Details" : "View Details"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {quickBotModal === "pending" && (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        marginBottom: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span className="badge">Pending Counties {pendingDomainBotRowsByKind.counties.length}</span>
+                      <span className="badge">Pending Cities {pendingDomainBotRowsByKind.cities.length}</span>
+                      <span className="badge">Timeout/account {Math.round(domainBotAccountTimeoutMs / 60000)}m</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runDomainBotPendingForKind("counties");
+                          setQuickBotModal("");
+                        }}
+                        disabled={domainBotBusy || pendingDomainBotRowsByKind.counties.length === 0}
+                      >
+                        {domainBotBusy
+                          ? "Running..."
+                          : `Run Pending Counties (${pendingDomainBotRowsByKind.counties.length})`}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runDomainBotPendingForKind("cities");
+                          setQuickBotModal("");
+                        }}
+                        disabled={domainBotBusy || pendingDomainBotRowsByKind.cities.length === 0}
+                      >
+                        {domainBotBusy
+                          ? "Running..."
+                          : `Run Pending Cities (${pendingDomainBotRowsByKind.cities.length})`}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runDomainBotPendingInCurrentTab();
+                          setQuickBotModal("");
+                        }}
+                        disabled={domainBotBusy || pendingDomainBotRowsInTab.length === 0}
+                      >
+                        Run Current Tab ({pendingDomainBotRowsInTab.length})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setDomainBotRunOpen(true);
+                          setQuickBotModal("");
+                        }}
+                        disabled={!domainBotRunItems.length && !domainBotBusy}
+                      >
+                        View Bot Run
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {quickBotModal === "settings" && (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 12 }}>
+                    <div
+                      className="field"
+                      style={{
+                        margin: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <label className="mini" style={{ margin: 0, minWidth: 128 }}>
+                        Bot timeout (min)
+                      </label>
+                      <input
+                        className="input"
+                        type="number"
+                        min={DOMAIN_BOT_TIMEOUT_MIN_MIN}
+                        max={DOMAIN_BOT_TIMEOUT_MIN_MAX}
+                        step={1}
+                        disabled={domainBotBusy}
+                        value={domainBotAccountTimeoutMin}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          if (!Number.isFinite(n)) return;
+                          const clamped = Math.max(
+                            DOMAIN_BOT_TIMEOUT_MIN_MIN,
+                            Math.min(DOMAIN_BOT_TIMEOUT_MIN_MAX, Math.round(n)),
+                          );
+                          setDomainBotAccountTimeoutMin(clamped);
+                        }}
+                        style={{ width: 100, minWidth: 100, padding: "6px 10px" }}
+                      />
+                    </div>
+                    <div className="mini" style={{ marginTop: 10, marginBottom: 8 }}>
+                      Quick selector
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {[15, 25, 35, 45].map((m) => (
+                        <button
+                          key={m}
+                          className="smallBtn"
+                          disabled={domainBotBusy}
+                          onClick={() => setDomainBotAccountTimeoutMin(m)}
+                          style={{
+                            borderRadius: 999,
+                            minWidth: 64,
+                            border:
+                              domainBotAccountTimeoutMin === m
+                                ? "1px solid rgba(74,222,128,.9)"
+                                : undefined,
+                            color:
+                              domainBotAccountTimeoutMin === m ? "var(--ok)" : undefined,
+                          }}
+                        >
+                          {m}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -6993,7 +7203,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   disabled={!domainBotBusy || domainBotStopRequested}
                   title="Stop current bot run safely"
                 >
-                  {domainBotStopRequested ? "Stopping..." : "Stop"}
+                  {domainBotStopRequested ? "Finishing current..." : "Stop"}
                 </button>
                 <button
                   className="smallBtn"
@@ -7013,7 +7223,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       ? "Run completed."
                       : domainBotBusy
                         ? domainBotStopRequested
-                          ? "Stopping..."
+                          ? "Finishing current account..."
                           : "Processing..."
                         : "Idle"}
                     {" "}• ETA {fmtRelativeSeconds(domainBotRunEtaSec)}
