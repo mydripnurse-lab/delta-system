@@ -17,6 +17,9 @@ const JOBS = [
 ];
 const OAUTH_INTEGRATION_KEY = "default";
 const DOMAIN_BOT_BASE_URL = "https://app.devasks.com/v2/location";
+const DOMAIN_BOT_TIMEOUT_MIN_DEFAULT = 35;
+const DOMAIN_BOT_TIMEOUT_MIN_MIN = 5;
+const DOMAIN_BOT_TIMEOUT_MIN_MAX = 120;
 
 type SheetStateRow = {
   state: string;
@@ -714,6 +717,9 @@ export default function Home() {
   const [domainBotRunItems, setDomainBotRunItems] = useState<DomainBotRunItem[]>([]);
   const [domainBotRunStartedAt, setDomainBotRunStartedAt] = useState("");
   const [domainBotRunDone, setDomainBotRunDone] = useState(false);
+  const [domainBotAccountTimeoutMin, setDomainBotAccountTimeoutMin] = useState(
+    DOMAIN_BOT_TIMEOUT_MIN_DEFAULT,
+  );
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -954,6 +960,38 @@ export default function Home() {
   useEffect(() => {
     loadOverview();
   }, [routeTenantId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `ct_domain_bot_timeout_min:${routeTenantId || "global"}`;
+    try {
+      const raw = window.localStorage.getItem(key);
+      const n = Number(raw);
+      if (Number.isFinite(n)) {
+        const clamped = Math.max(
+          DOMAIN_BOT_TIMEOUT_MIN_MIN,
+          Math.min(DOMAIN_BOT_TIMEOUT_MIN_MAX, Math.round(n)),
+        );
+        setDomainBotAccountTimeoutMin(clamped);
+      } else {
+        setDomainBotAccountTimeoutMin(DOMAIN_BOT_TIMEOUT_MIN_DEFAULT);
+      }
+    } catch {
+      setDomainBotAccountTimeoutMin(DOMAIN_BOT_TIMEOUT_MIN_DEFAULT);
+    }
+  }, [routeTenantId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = `ct_domain_bot_timeout_min:${routeTenantId || "global"}`;
+    const clamped = Math.max(
+      DOMAIN_BOT_TIMEOUT_MIN_MIN,
+      Math.min(DOMAIN_BOT_TIMEOUT_MIN_MAX, Math.round(Number(domainBotAccountTimeoutMin) || DOMAIN_BOT_TIMEOUT_MIN_DEFAULT)),
+    );
+    try {
+      window.localStorage.setItem(key, String(clamped));
+    } catch {}
+  }, [routeTenantId, domainBotAccountTimeoutMin]);
 
   async function loadTenantCustomValues() {
     if (!routeTenantId) {
@@ -2397,6 +2435,17 @@ export default function Home() {
     return Math.round(avgPerItem * remaining);
   }, [domainBotBusy, domainBotRunCounts, domainBotRunStartedAt]);
 
+  const domainBotAccountTimeoutMs = useMemo(() => {
+    const min = Math.max(
+      DOMAIN_BOT_TIMEOUT_MIN_MIN,
+      Math.min(
+        DOMAIN_BOT_TIMEOUT_MIN_MAX,
+        Math.round(Number(domainBotAccountTimeoutMin) || DOMAIN_BOT_TIMEOUT_MIN_DEFAULT),
+      ),
+    );
+    return min * 60 * 1000;
+  }, [domainBotAccountTimeoutMin]);
+
   // ✅ Puerto Rico metrics (separado)
   const prMetrics = useMemo(() => {
     const rows = sheet?.states || [];
@@ -3515,11 +3564,15 @@ export default function Home() {
     pushDomainBotLog("Stop requested by user. Waiting safe checkpoint...");
   }
 
-  async function loadDomainBotHeaders(locId: string) {
+  async function loadDomainBotHeaders(
+    locId: string,
+    fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  ) {
     const id = s(locId);
     if (!id || !routeTenantId) return { head: "", footer: "", favicon: "" };
     const qp = new URLSearchParams({ locId: id, tenantId: routeTenantId });
-    const res = await fetch(`/api/sheet/headers?${qp.toString()}`, { cache: "no-store" });
+    const execFetch = fetcher || fetch;
+    const res = await execFetch(`/api/sheet/headers?${qp.toString()}`, { cache: "no-store" });
     const data = await safeJson(res);
     if (!res.ok || (data as any)?.error) {
       throw new Error((data as any)?.error || `Headers HTTP ${res.status}`);
@@ -3539,6 +3592,7 @@ export default function Home() {
     bodyCode: string;
     faviconUrl: string;
     pageTypeNeedle?: string;
+    timeoutMs?: number;
   }) {
     if (typeof window === "undefined") {
       throw new Error("Browser extension bridge is only available in browser context.");
@@ -3583,7 +3637,7 @@ export default function Home() {
             "Timeout waiting extension response. Verify extension is installed/reloaded and this page matches extension bridge.",
           ),
         );
-      }, 25 * 60 * 1000);
+      }, Math.max(10_000, Number(input.timeoutMs) || 25 * 60 * 1000));
 
       function cleanup() {
         window.clearTimeout(timeout);
@@ -3894,6 +3948,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     openActivationUrl?: string,
     row?: any,
     kindOverride?: "counties" | "cities",
+    accountTimeoutMs?: number,
   ): Promise<{ status: "done" | "failed" | "stopped"; error?: string }> {
     const id = s(locId);
     const rowKind = kindOverride || detailTab;
@@ -3919,6 +3974,37 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         : s(row?.["Domain"]) || s(row?.["County Domain"]);
     const sitemapUrl = s(row?.["Sitemap"]);
     const activationUrlEffective = s(openActivationUrl) || domainBotUrlFromLocId(id);
+    const ACCOUNT_TIMEOUT_MS = Math.max(60_000, Number(accountTimeoutMs) || domainBotAccountTimeoutMs);
+    const accountStartedAt = Date.now();
+    const msLeft = () => ACCOUNT_TIMEOUT_MS - (Date.now() - accountStartedAt);
+    const ensureAccountTime = (stage: string) => {
+      const left = msLeft();
+      if (left <= 0) {
+        throw new Error(`Account timeout (${Math.round(ACCOUNT_TIMEOUT_MS / 60000)}m) at ${stage}.`);
+      }
+      return left;
+    };
+    const fetchWithAccountTimeout = async (
+      input: RequestInfo | URL,
+      init: RequestInit | undefined,
+      stage: string,
+      maxTimeoutMs = 120000,
+    ) => {
+      const left = ensureAccountTime(stage);
+      const timeoutMs = Math.max(5000, Math.min(maxTimeoutMs, left));
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(input, { ...(init || {}), signal: controller.signal });
+      } catch (e: any) {
+        if (e?.name === "AbortError") {
+          throw new Error(`Timeout at ${stage} (${Math.ceil(timeoutMs / 1000)}s).`);
+        }
+        throw e;
+      } finally {
+        window.clearTimeout(timer);
+      }
+    };
 
     setDomainBotRunOpen(true);
     setDomainBotBusy(true);
@@ -3938,13 +4024,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     });
     try {
       throwIfStopped();
-      const cvRes = await fetch(
+      ensureAccountTime("custom values start");
+      const cvRes = await fetchWithAccountTimeout(
         `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values/apply`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ locId: id, kind: rowKind }),
         },
+        "custom values",
+        120000,
       );
       const cvData = await safeJson(cvRes);
       if (!cvRes.ok || !cvData?.ok) {
@@ -3956,16 +4045,22 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       throwIfStopped();
       if (domainUrlForDns) {
         pushDomainBotLog(`DNS upsert start: ${domainUrlForDns}`);
-        const dnsRes = await fetch("/api/tools/cloudflare-dns-cname", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({
-            tenantId: routeTenantId,
-            domainUrl: domainUrlForDns,
-            action: "upsert",
-          }),
-        });
+        ensureAccountTime("dns upsert start");
+        const dnsRes = await fetchWithAccountTimeout(
+          "/api/tools/cloudflare-dns-cname",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+            body: JSON.stringify({
+              tenantId: routeTenantId,
+              domainUrl: domainUrlForDns,
+              action: "upsert",
+            }),
+          },
+          "dns upsert",
+          120000,
+        );
         const dnsData = await safeJson(dnsRes);
         if (!dnsRes.ok || !(dnsData as any)?.ok) {
           throw new Error((dnsData as any)?.error || `Cloudflare create failed (HTTP ${dnsRes.status})`);
@@ -3974,11 +4069,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       }
 
       throwIfStopped();
-      const headers = await loadDomainBotHeaders(id);
+      ensureAccountTime("headers load start");
+      const headers = await loadDomainBotHeaders(id, (u, i) =>
+        fetchWithAccountTimeout(u, i, "headers load", 90000),
+      );
       const robotsTxtValue = buildRobotsTxt(sitemapUrl);
       const steps = buildDomainBotSteps();
       pushDomainBotLog(`Local extension run start with ${steps.length} mapped steps.`);
       throwIfStopped();
+      ensureAccountTime("local extension run start");
       const local = await runDomainBotViaExtensionBridge({
         activationUrl: activationUrlEffective,
         domainToPaste,
@@ -3987,6 +4086,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         headCode: headers.head,
         bodyCode: headers.footer,
         pageTypeNeedle: "Home Page",
+        timeoutMs: Math.max(15000, msLeft()),
       });
       (local.logs || []).forEach((line) => pushDomainBotLog(line));
       if (!local.ok) {
@@ -3995,17 +4095,23 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       pushDomainBotLog("Local extension run done.");
 
       throwIfStopped();
-      const markRes = await fetch("/api/sheet/domain-created", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-        body: JSON.stringify({
-          tenantId: routeTenantId || "",
-          locId: id,
-          value: true,
-          kind: rowKind,
-        }),
-      });
+      ensureAccountTime("mark created start");
+      const markRes = await fetchWithAccountTimeout(
+        "/api/sheet/domain-created",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({
+            tenantId: routeTenantId || "",
+            locId: id,
+            value: true,
+            kind: rowKind,
+          }),
+        },
+        "mark created",
+        90000,
+      );
       const markData = await safeJson(markRes);
       if (!markRes.ok || (markData as any)?.error) {
         throw new Error((markData as any)?.error || `Complete HTTP ${markRes.status}`);
@@ -4015,16 +4121,22 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       throwIfStopped();
       if (domainUrlForDns) {
         pushDomainBotLog("DNS delete start.");
-        const dnsDeleteRes = await fetch("/api/tools/cloudflare-dns-cname", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify({
-            tenantId: routeTenantId,
-            domainUrl: domainUrlForDns,
-            action: "delete",
-          }),
-        });
+        ensureAccountTime("dns delete start");
+        const dnsDeleteRes = await fetchWithAccountTimeout(
+          "/api/tools/cloudflare-dns-cname",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            cache: "no-store",
+            body: JSON.stringify({
+              tenantId: routeTenantId,
+              domainUrl: domainUrlForDns,
+              action: "delete",
+            }),
+          },
+          "dns delete",
+          120000,
+        );
         const dnsDeleteData = await safeJson(dnsDeleteRes);
         if (!dnsDeleteRes.ok || !(dnsDeleteData as any)?.ok) {
           throw new Error(
@@ -4087,7 +4199,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         status: "running",
       },
     ]);
-    const out = await runDomainBotForLocId(locId, openActivationUrl, row, detailTab);
+    const out = await runDomainBotForLocId(
+      locId,
+      openActivationUrl,
+      row,
+      detailTab,
+      domainBotAccountTimeoutMs,
+    );
     setDomainBotRunItems((prev) =>
       prev.map((it) =>
         it.key === key
@@ -4125,6 +4243,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     setDomainBotRunOpen(true);
     setDomainBotRunStartedAt(new Date().toISOString());
     setDomainBotRunDone(false);
+    const runAccountTimeoutMs = domainBotAccountTimeoutMs;
     const preparedItems: DomainBotRunItem[] = queue.map((item) => {
       const rowName = getTabRowName(detailTab, item.row) || "Row";
       const domainUrl = getTabRowDomainUrl(detailTab, item.row);
@@ -4141,6 +4260,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     for (let i = 0; i < queue.length; i += 1) {
       if (domainBotStopRequestedRef.current) break;
       const item = queue[i];
+      pushDomainBotLog(
+        `Account timeout reset for ${item.locId} (new ${Math.round(runAccountTimeoutMs / 60000)}m budget).`,
+      );
       setDomainBotRunItems((prev) =>
         prev.map((it) =>
           it.locId === item.locId ? { ...it, status: "running", error: "" } : it,
@@ -4157,6 +4279,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         item.activationUrl,
         item.row,
         detailTab,
+        runAccountTimeoutMs,
       );
       setDomainBotRunItems((prev) =>
         prev.map((it) =>
@@ -6064,6 +6187,40 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       ? "Hide details"
                       : "View details"}
                   </button>
+                  <div
+                    className="field"
+                    style={{
+                      margin: 0,
+                      minWidth: 148,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                    title={`Per-account timeout (${DOMAIN_BOT_TIMEOUT_MIN_MIN}-${DOMAIN_BOT_TIMEOUT_MIN_MAX} min).`}
+                  >
+                    <label className="mini" style={{ margin: 0, whiteSpace: "nowrap" }}>
+                      Bot timeout (min)
+                    </label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={DOMAIN_BOT_TIMEOUT_MIN_MIN}
+                      max={DOMAIN_BOT_TIMEOUT_MIN_MAX}
+                      step={1}
+                      disabled={domainBotBusy}
+                      value={domainBotAccountTimeoutMin}
+                      onChange={(e) => {
+                        const n = Number(e.target.value);
+                        if (!Number.isFinite(n)) return;
+                        const clamped = Math.max(
+                          DOMAIN_BOT_TIMEOUT_MIN_MIN,
+                          Math.min(DOMAIN_BOT_TIMEOUT_MIN_MAX, Math.round(n)),
+                        );
+                        setDomainBotAccountTimeoutMin(clamped);
+                      }}
+                      style={{ width: 76, minWidth: 76, padding: "6px 8px" }}
+                    />
+                  </div>
                   <button
                     className="smallBtn"
                     onClick={() => void runDomainBotPendingInCurrentTab()}
@@ -6818,6 +6975,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span className="badge">{domainBotRunCounts.pct}%</span>
+                <span className="badge">
+                  Timeout/account {Math.round(domainBotAccountTimeoutMs / 60000)}m
+                </span>
                 <span className="badge">
                   Done {domainBotRunCounts.done}/{domainBotRunCounts.total}
                 </span>

@@ -2,8 +2,34 @@ function byId(id) {
   return document.getElementById(id);
 }
 
-function setStatus(text) {
+function setStatus(text, mode = "idle") {
   byId("status").textContent = String(text || "");
+  const modeLabel = byId("statusMode");
+  const dot = byId("statusDot");
+  if (!modeLabel || !dot) return;
+
+  const normalized = String(mode || "idle").toLowerCase();
+  dot.classList.remove("running", "success", "error");
+
+  if (normalized === "running") {
+    modeLabel.textContent = "Running";
+    dot.classList.add("running");
+    return;
+  }
+
+  if (normalized === "success") {
+    modeLabel.textContent = "Done";
+    dot.classList.add("success");
+    return;
+  }
+
+  if (normalized === "error") {
+    modeLabel.textContent = "Error";
+    dot.classList.add("error");
+    return;
+  }
+
+  modeLabel.textContent = "Idle";
 }
 
 function collectPayload() {
@@ -358,20 +384,20 @@ byId("openBtn").addEventListener("click", async () => {
   try {
     const payload = collectPayload();
     if (!payload.activationUrl) {
-      setStatus("Enter Activation URL first.");
+      setStatus("Enter Activation URL first.", "error");
       return;
     }
     await chrome.tabs.create({ url: payload.activationUrl });
-    setStatus("Activation URL opened in new tab.");
+    setStatus("Activation URL opened in new tab.", "success");
   } catch (e) {
-    setStatus(`Open failed: ${e instanceof Error ? e.message : String(e)}`);
+    setStatus(`Open failed: ${e instanceof Error ? e.message : String(e)}`, "error");
   }
 });
 
 byId("runBtn").addEventListener("click", async () => {
   try {
     const payload = collectPayload();
-    setStatus("Preparing tab...");
+    setStatus("Preparing tab...", "running");
     let tab = await getActiveTab();
     if (!tab) throw new Error("No active tab.");
 
@@ -382,11 +408,11 @@ byId("runBtn").addEventListener("click", async () => {
       await new Promise((r) => setTimeout(r, 1200));
     }
 
-    setStatus("Running bot in tab... you can watch it live.");
+    setStatus("Running bot in tab... you can watch it live.", "running");
     const result = await runInTab(tab.id, payload);
-    if (result?.ok) setStatus("Done ✅");
-    else setStatus(`Failed ❌\n${result?.error || "Unknown error"}`);
+    if (result?.ok) setStatus("Done ✅", "success");
+    else setStatus(`Failed ❌\n${result?.error || "Unknown error"}`, "error");
   } catch (e) {
-    setStatus(`Run failed: ${e instanceof Error ? e.message : String(e)}`);
+    setStatus(`Run failed: ${e instanceof Error ? e.message : String(e)}`, "error");
   }
 });
