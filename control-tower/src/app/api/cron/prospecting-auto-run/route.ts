@@ -18,6 +18,11 @@ function resolveAuthCandidates() {
   ].filter(Boolean);
 }
 
+function enforceCronAuth() {
+  const v = s(process.env.ENFORCE_PROSPECTING_CRON_AUTH).toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
 function resolveForwardSecret() {
   return s(
     process.env.PROSPECTING_CRON_SECRET ||
@@ -54,6 +59,7 @@ function authPath(req: Request) {
 }
 
 function isAuthorized(req: Request) {
+  if (!enforceCronAuth()) return true;
   return !!authPath(req);
 }
 
