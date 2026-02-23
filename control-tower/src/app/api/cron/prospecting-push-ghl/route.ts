@@ -12,7 +12,15 @@ function toBool(v: unknown, fallback = false) {
   return x === "1" || x === "true" || x === "yes" || x === "on" || x === "active";
 }
 
-function resolveExpectedSecret() {
+function resolveAuthCandidates() {
+  return [
+    s(process.env.PROSPECTING_CRON_SECRET),
+    s(process.env.CRON_SECRET),
+    s(process.env.DASHBOARD_CRON_SECRET),
+  ].filter(Boolean);
+}
+
+function resolveForwardSecret() {
   return s(
     process.env.PROSPECTING_CRON_SECRET ||
       process.env.CRON_SECRET ||
@@ -32,9 +40,10 @@ function extractToken(req: Request) {
 function isAuthorized(req: Request) {
   const vercelCron = s(req.headers.get("x-vercel-cron"));
   if (vercelCron === "1") return true;
-  const expected = resolveExpectedSecret();
-  if (!expected) return true;
-  return extractToken(req) === expected;
+  const expected = resolveAuthCandidates();
+  if (!expected.length) return true;
+  const token = extractToken(req);
+  return expected.includes(token);
 }
 
 function toInt(v: unknown, fallback: number, min = 1, max = 500) {
@@ -112,7 +121,7 @@ export async function GET(req: Request) {
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
-  const secret = resolveExpectedSecret();
+  const secret = resolveForwardSecret();
   const maxLeads = toInt(url.searchParams.get("maxLeads"), 100, 1, 1000);
   const testOnly = toBool(url.searchParams.get("testOnly"), false);
   const includeAlreadySent = toBool(url.searchParams.get("includeAlreadySent"), false);

@@ -10,7 +10,15 @@ function toBool(v: unknown, fallback = false) {
   return x === "1" || x === "true" || x === "yes" || x === "on" || x === "active";
 }
 
-function resolveExpectedSecret() {
+function resolveAuthCandidates() {
+  return [
+    s(process.env.PROSPECTING_CRON_SECRET),
+    s(process.env.CRON_SECRET),
+    s(process.env.DASHBOARD_CRON_SECRET),
+  ].filter(Boolean);
+}
+
+function resolveForwardSecret() {
   return s(
     process.env.PROSPECTING_CRON_SECRET ||
       process.env.CRON_SECRET ||
@@ -30,9 +38,10 @@ function extractToken(req: Request) {
 function isAuthorized(req: Request) {
   const vercelCron = s(req.headers.get("x-vercel-cron"));
   if (vercelCron === "1") return true;
-  const expected = resolveExpectedSecret();
-  if (!expected) return true;
-  return extractToken(req) === expected;
+  const expected = resolveAuthCandidates();
+  if (!expected.length) return true;
+  const token = extractToken(req);
+  return expected.includes(token);
 }
 
 export async function GET(req: Request) {
@@ -63,7 +72,7 @@ export async function GET(req: Request) {
   };
   if (tenantId) payload.tenantId = tenantId;
 
-  const secret = resolveExpectedSecret();
+  const secret = resolveForwardSecret();
   if (secret) payload.secret = secret;
 
   const endpoint = new URL("/api/dashboard/prospecting/auto-run", url.origin);
