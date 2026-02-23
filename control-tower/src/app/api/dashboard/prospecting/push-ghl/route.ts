@@ -22,6 +22,11 @@ function resolveAuthCandidates() {
   ].filter(Boolean);
 }
 
+function enforceCronAuth() {
+  const v = s(process.env.ENFORCE_PROSPECTING_CRON_AUTH).toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
+
 function extractToken(req: Request, body?: JsonMap | null) {
   const qs = new URL(req.url).searchParams;
   const header = s(req.headers.get("x-prospecting-cron-secret"));
@@ -107,7 +112,7 @@ export async function POST(req: Request) {
     const token = extractToken(req, body);
     const viaVercel = isVercelCronRequest(req);
     const viaSecret = !!(token && expected.includes(token));
-    if (!isInternalCronCall(req) && !viaVercel && expected.length && !viaSecret) {
+    if (enforceCronAuth() && !isInternalCronCall(req) && !viaVercel && expected.length && !viaSecret) {
       console.warn("[prospecting:push-ghl] unauthorized", {
         ua: s(req.headers.get("user-agent")),
         xVercelCron: s(req.headers.get("x-vercel-cron")) || null,
