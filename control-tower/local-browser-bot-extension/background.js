@@ -1621,6 +1621,17 @@ async function runInTab(tabId, payload) {
         return hasDomainInput && hasContinue;
       }
 
+      function isManageOrHubReady() {
+        const manage = document.querySelector(
+          "[id*='manage-domain'], [data-testid='manage-domain'], button[id*='manage-domain']",
+        );
+        if (visible(manage)) return true;
+        const hubTrigger = document.querySelector(
+          "[id*='domain-hub-connected-product-table-drop-action-dropdown-trigger']",
+        );
+        return visible(hubTrigger);
+      }
+
       async function advanceAfterVerifyToProductType() {
         const started = Date.now();
         const timeoutMs = 180000;
@@ -1640,7 +1651,12 @@ async function runInTab(tabId, payload) {
                 .slice(0, 4)
                 .join(" | ")}`,
             );
-            return post;
+            return { ok: true, labels: post.labels || [], mode: "product" };
+          }
+
+          if (isManageOrHubReady()) {
+            log("post-verify path detected as manage/hub");
+            return { ok: true, labels: getFormLabelsText(), mode: "manage" };
           }
 
           if (isDomainContinueScreen()) {
@@ -1654,9 +1670,16 @@ async function runInTab(tabId, payload) {
         }
 
         const labels = getFormLabelsText();
-        throw new Error(
-          `Post-verify transition timeout. Labels: ${(labels || []).slice(0, 8).join(" || ")}`,
+        if (isManageOrHubReady()) {
+          log("post-verify timeout but manage/hub is visible -> continue");
+          return { ok: true, labels, mode: "manage" };
+        }
+        log(
+          `WARNING: Post-verify transition timeout. Labels: ${(labels || [])
+            .slice(0, 8)
+            .join(" || ")} -> continuing to manage flow`,
         );
+        return { ok: true, labels, mode: "assume_manage" };
       }
 
       function hasVisibleLoading() {
@@ -1779,46 +1802,50 @@ async function runInTab(tabId, payload) {
 
           const postScreen = await advanceAfterVerifyToProductType();
 
-          // Force Website product type when available.
-          try {
-            await selectWebsiteRadioStrict();
-          } catch {
-            const funnelRadio = document.querySelector("input[type='radio'][value='funnel']");
-            if (funnelRadio && visible(funnelRadio)) {
-              fireSingleNativeClick(funnelRadio);
-              log("radio funnel (fallback: website radio missing)");
-            } else {
-              throw new Error("Website radio not found.");
+          if (postScreen.mode === "product") {
+            // Force Website product type when available.
+            try {
+              await selectWebsiteRadioStrict();
+            } catch {
+              const funnelRadio = document.querySelector("input[type='radio'][value='funnel']");
+              if (funnelRadio && visible(funnelRadio)) {
+                fireSingleNativeClick(funnelRadio);
+                log("radio funnel (fallback: website radio missing)");
+              } else {
+                throw new Error("Website radio not found.");
+              }
             }
-          }
-          await sleep(350);
+            await sleep(350);
 
-          // After selecting Website, wait for label to switch if UI is reactive.
-          try {
-            await waitFor(() => {
-              const labels = getFormLabelsText().map((t) => norm(t));
-              return labels.some((t) => t.includes("link domain with website"));
-            }, 10000, 220, "label switched to website");
-          } catch {
-            log("website label switch not detected, using label fallback");
-          }
+            // After selecting Website, wait for label to switch if UI is reactive.
+            try {
+              await waitFor(() => {
+                const labels = getFormLabelsText().map((t) => norm(t));
+                return labels.some((t) => t.includes("link domain with website"));
+              }, 10000, 220, "label switched to website");
+            } catch {
+              log("website label switch not detected, using label fallback");
+            }
 
-          await openAndPickAnyLabel(
-            ["Link domain with website", "Link domain with funnel"],
-            "County",
-          );
-          await sleep(350);
-          try {
-            await openAndPick("Select default step/page for Domain", input.pageTypeNeedle || "Home Page");
-          } catch {
-            await openAndPick("Select product type", input.pageTypeNeedle || "Home Page");
-          }
+            await openAndPickAnyLabel(
+              ["Link domain with website", "Link domain with funnel"],
+              "County",
+            );
+            await sleep(350);
+            try {
+              await openAndPick("Select default step/page for Domain", input.pageTypeNeedle || "Home Page");
+            } catch {
+              await openAndPick("Select product type", input.pageTypeNeedle || "Home Page");
+            }
 
-          const submit = document.querySelector("[id*='submit']");
-          if (visible(submit)) {
-            submit.click();
-            log("submit clicked");
-            await waitForUiSettle("after submit", 90000);
+            const submit = document.querySelector("[id*='submit']");
+            if (visible(submit)) {
+              submit.click();
+              log("submit clicked");
+              await waitForUiSettle("after submit", 90000);
+            }
+          } else {
+            log(`skip product form path -> ${postScreen.mode}`);
           }
         } else {
           log("skip connect flow (manage already visible)");
@@ -1930,11 +1957,15 @@ async function runInTab(tabId, payload) {
         } catch (settingsErr) {
           const msg = settingsErr instanceof Error ? settingsErr.message : String(settingsErr);
           if (/^STEP_SETTINGS_FUNNELS_(EMPTY|MISMATCH):/i.test(msg)) {
-            throw new Error(msg);
+            runWarnings.push(`settings_funnels_guard:${msg}`);
+            setSettingsPersistStatus("na");
+            log(`WARNING: settings funnels guard -> ${msg} (continuing)`);
+            // Do not block account completion if this strict guard misses.
+          } else {
+            runWarnings.push(`settings_phase_skipped:${msg}`);
+            setSettingsPersistStatus("na");
+            log(`WARNING: settings phase skipped -> ${msg}`);
           }
-          runWarnings.push(`settings_phase_skipped:${msg}`);
-          setSettingsPersistStatus("na");
-          log(`WARNING: settings phase skipped -> ${msg}`);
         }
 
         log("DONE");

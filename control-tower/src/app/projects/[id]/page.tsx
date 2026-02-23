@@ -2403,6 +2403,18 @@ export default function Home() {
   }, [detail, detailTab, countyFilter, detailSearch]);
 
   const pendingDomainBotRowsByKind = useMemo(() => {
+    const failedByKind = {
+      counties: new Set(
+        domainBotFailures
+          .filter((x) => x.status === "open" && x.kind === "counties")
+          .map((x) => s(x.locId)),
+      ),
+      cities: new Set(
+        domainBotFailures
+          .filter((x) => x.status === "open" && x.kind === "cities")
+          .map((x) => s(x.locId)),
+      ),
+    };
     const compute = (kind: "counties" | "cities") => {
       if (!detail) return [] as any[];
       const rows = kind === "counties" ? detail.counties.rows || [] : detail.cities.rows || [];
@@ -2428,18 +2440,34 @@ export default function Home() {
           kind === "cities"
             ? s(r["City Domain"]) || s(r["city domain"])
             : s(r["Domain"]) || s(r["County Domain"]);
-        return eligible && !domainCreated && !!locId && !!domainToPaste;
+        const isFailed = failedByKind[kind].has(locId);
+        return eligible && !domainCreated && !!locId && !!domainToPaste && !isFailed;
       });
     };
     return {
       counties: compute("counties"),
       cities: compute("cities"),
     };
-  }, [detail, countyFilter, detailSearch]);
+  }, [detail, countyFilter, detailSearch, domainBotFailures]);
 
   const pendingDomainBotRowsInTab = useMemo(() => {
     return pendingDomainBotRowsByKind[detailTab];
   }, [pendingDomainBotRowsByKind, detailTab]);
+
+  const failedLocIdsByKind = useMemo(() => {
+    return {
+      counties: new Set(
+        domainBotFailures
+          .filter((x) => x.status === "open" && x.kind === "counties")
+          .map((x) => s(x.locId)),
+      ),
+      cities: new Set(
+        domainBotFailures
+          .filter((x) => x.status === "open" && x.kind === "cities")
+          .map((x) => s(x.locId)),
+      ),
+    };
+  }, [domainBotFailures]);
 
   const tabSitemapRunCounts = useMemo(() => {
     let pending = 0;
@@ -6582,6 +6610,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             const city = s(r["City"]);
 
                             const domainCreated = isTrue(r["Domain Created"]);
+                            const rowFailed = failedLocIdsByKind[detailTab].has(locId);
                             const activationUrl = s(r["Domain URL Activation"]);
 
                             const domainToPaste =
@@ -6601,9 +6630,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
                             const rowTone = domainCreated
                               ? "rowDomainActive"
-                              : eligible
+                              : rowFailed
                                 ? "rowDomainPending"
-                                : "rowDomainIdle";
+                                : eligible
+                                  ? "rowDomainPending"
+                                  : "rowDomainIdle";
 
                             return (
                               <tr
@@ -6615,6 +6646,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                 <td className="td">
                                   {domainCreated ? (
                                     <span className="pillOk">Active</span>
+                                  ) : rowFailed ? (
+                                    <span className="pillOff">Failed</span>
                                   ) : (
                                     <span className="pillOff">Pending</span>
                                   )}
@@ -6898,6 +6931,19 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         disabled={!domainBotRunItems.length && !domainBotBusy}
                       >
                         View Bot Run
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setDomainBotFailuresOpen(true);
+                          void loadDomainBotFailures(detailTab);
+                          setQuickBotModal("");
+                        }}
+                        disabled={domainBotFailuresLoading}
+                      >
+                        {domainBotFailuresLoading
+                          ? "Loading Failed..."
+                          : `Failed Runs (${domainBotFailures.length})`}
                       </button>
                     </div>
                   </div>
