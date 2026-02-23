@@ -175,6 +175,12 @@ function fmtMoney(v: unknown) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+function fmtPct(v: unknown, digits = 1) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "0%";
+  return `${n.toFixed(digits)}%`;
+}
+
 function fmtDateTime(v: string) {
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return "-";
@@ -837,6 +843,66 @@ function ProspectingDashboardContent() {
     }
     return out;
   }, [signals?.lostBookings, signals?.impressions, leadSummary?.contactable, leadSummary?.total, data?.geoQueue?.cities]);
+  const lostBookings = Number(signals?.lostBookings || 0);
+  const lostBookingValue = Number(signals?.lostBookingValue || 0);
+  const impressions = Number(signals?.impressions || 0);
+  const clicks = Number(signals?.clicks || 0);
+  const leadVolume = Number(signals?.leadVolume || 0);
+  const contactable = Number(leadSummary?.contactable || 0);
+  const totalLeads = Number(leadSummary?.total || 0);
+  const pendingApproval = Number(notifications?.pendingApproval || 0);
+  const unseenNotif = Number(notifications?.unseen || 0);
+  const contactableRate = totalLeads > 0 ? (contactable / totalLeads) * 100 : 0;
+  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  const topState = data?.geoQueue?.states?.[0];
+  const topCounty = data?.geoQueue?.counties?.[0];
+  const topCity = data?.geoQueue?.cities?.[0];
+  const profileMissingCount = Number(profile?.missingFields?.length || 0);
+
+  const primarySignalCards = [
+    {
+      key: "lost-value",
+      title: "Lost Booking Value",
+      value: fmtMoney(lostBookingValue),
+      hint: `${fmtInt(lostBookings)} lost bookings in range`,
+      tone: lostBookingValue >= 5000 ? "critical" : lostBookingValue >= 1500 ? "warning" : "neutral",
+    },
+    {
+      key: "pending-review",
+      title: "Pending For Approval",
+      value: fmtInt(pendingApproval),
+      hint: `Unseen: ${fmtInt(unseenNotif)}`,
+      tone: pendingApproval >= 20 ? "critical" : pendingApproval >= 5 ? "warning" : "neutral",
+    },
+    {
+      key: "contactable-rate",
+      title: "Contactable Lead Ratio",
+      value: fmtPct(contactableRate),
+      hint: `${fmtInt(contactable)} of ${fmtInt(totalLeads)} leads`,
+      tone: contactableRate < 55 ? "critical" : contactableRate < 70 ? "warning" : "success",
+    },
+    {
+      key: "demand",
+      title: "Search Demand (CTR)",
+      value: fmtPct(ctr),
+      hint: `${fmtInt(impressions)} impr · ${fmtInt(clicks)} clicks`,
+      tone: ctr < 3 ? "warning" : "neutral",
+    },
+    {
+      key: "lead-volume",
+      title: "Lead Volume Signal",
+      value: fmtInt(leadVolume),
+      hint: `Pool total: ${fmtInt(totalLeads)}`,
+      tone: leadVolume <= 0 ? "warning" : "neutral",
+    },
+    {
+      key: "profile-readiness",
+      title: "Profile Readiness",
+      value: profileMissingCount ? `${profileMissingCount} missing` : "Ready",
+      hint: "Business profile completeness for agent quality",
+      tone: profileMissingCount >= 3 ? "critical" : profileMissingCount > 0 ? "warning" : "success",
+    },
+  ];
 
   async function generateAiInsights() {
     setAiErr("");
@@ -972,33 +1038,50 @@ function ProspectingDashboardContent() {
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Opportunity Signals</h2>
-            <div className="cardSubtitle">Derived from impressions, lost bookings, and lead flow for this tenant.</div>
+            <div className="cardSubtitle">Priority-ranked inputs used by the prospecting agent and orchestrator decisions.</div>
           </div>
         </div>
         <div className="cardBody">
-          <div className="kpiRow kpiRowWide">
-            <div className="kpi">
-              <p className="n">{fmtInt(signals?.lostBookings)}</p>
-              <p className="l">Lost bookings</p>
-              <div className="mini">Lost value: {fmtMoney(signals?.lostBookingValue)}</div>
+          <div className="prospectingSignalGrid">
+            {primarySignalCards.map((card, idx) => (
+              <article key={card.key} className={`prospectingSignalCard tone-${card.tone}`}>
+                <div className="prospectingSignalHead">
+                  <span className="prospectingSignalRank">P{idx + 1}</span>
+                  <p className="prospectingSignalTitle">{card.title}</p>
+                </div>
+                <p className="prospectingSignalValue">{card.value}</p>
+                <p className="prospectingSignalHint">{card.hint}</p>
+              </article>
+            ))}
+          </div>
+          <div className="prospectingAgentFeed">
+            <div className="prospectingAgentFeedHead">Agent Priority Feed</div>
+            <div className="prospectingAgentFeedItems">
+              <span className="badge">Top state: {topState?.name || "-"}</span>
+              <span className="badge">Top county: {topCounty?.name || "-"}</span>
+              <span className="badge">Top city: {topCity?.name || "-"}</span>
+              <span className="badge">Scope: {profile?.targetGeoScope || "USA + PR"}</span>
+              <span className="badge">Email leads: {fmtInt(leadSummary?.withEmail)}</span>
+              <span className="badge">Phone leads: {fmtInt(leadSummary?.withPhone)}</span>
             </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(signals?.impressions)}</p>
-              <p className="l">Search impressions</p>
-              <div className="mini">Clicks: {fmtInt(signals?.clicks)}</div>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(signals?.leadVolume)}</p>
-              <p className="l">Current leads</p>
-              <div className="mini">Tenant scope: {profile?.targetGeoScope || "USA + PR"}</div>
-            </div>
-            <div className="kpi">
-              <p className="n">{fmtInt(leadSummary?.total)}</p>
-              <p className="l">Leads captured</p>
-              <div className="mini">
-                Contactable: {fmtInt(leadSummary?.contactable)} ({fmtInt(leadSummary?.withEmail)} email / {fmtInt(leadSummary?.withPhone)} phone)
-              </div>
-            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Opportunity Recommendations</h2>
+            <div className="cardSubtitle">Actions generated from bookings, impressions, geo priority, and lead quality signals.</div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
+            <ul className="mini" style={{ margin: 0, paddingLeft: 18 }}>
+              {recommendations.map((rec, idx) => (
+                <li key={`rec-${idx}`} style={{ marginBottom: 8 }}>{rec}</li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
@@ -1332,24 +1415,6 @@ function ProspectingDashboardContent() {
             </div>
           </div>
           {queueMessage ? <div className="mini" style={{ marginTop: 10 }}>{queueMessage}</div> : null}
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Opportunity Recommendations</h2>
-            <div className="cardSubtitle">Actions generated from bookings, impressions, geo priority, and lead quality signals.</div>
-          </div>
-        </div>
-        <div className="cardBody">
-          <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
-            <ul className="mini" style={{ margin: 0, paddingLeft: 18 }}>
-              {recommendations.map((rec, idx) => (
-                <li key={`rec-${idx}`} style={{ marginBottom: 8 }}>{rec}</li>
-              ))}
-            </ul>
-          </div>
         </div>
       </section>
 
