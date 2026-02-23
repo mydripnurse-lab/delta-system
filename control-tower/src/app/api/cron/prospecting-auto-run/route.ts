@@ -64,9 +64,19 @@ function isAuthorized(req: Request) {
 }
 
 export async function GET(req: Request) {
-  void req;
-
   const url = new URL(req.url);
+  if (url.searchParams.get("diag") === "1") {
+    return Response.json({
+      ok: true,
+      route: "prospecting-auto-run",
+      diag: true,
+      version: "cron-wrapper-open-2026-02-23-1",
+      ua: s(req.headers.get("user-agent")) || null,
+      xVercelCron: s(req.headers.get("x-vercel-cron")) || null,
+      xVercelId: s(req.headers.get("x-vercel-id")) ? "present" : null,
+    });
+  }
+
   const tenantId = s(url.searchParams.get("tenantId"));
   const integrationKey = s(url.searchParams.get("integrationKey")) || "owner";
   const batchSize = Number(url.searchParams.get("batchSize") || 6);

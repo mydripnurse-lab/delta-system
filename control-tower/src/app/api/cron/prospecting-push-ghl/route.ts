@@ -137,9 +137,19 @@ async function runPushForTenant(input: {
 }
 
 export async function GET(req: Request) {
-  void req;
-
   const url = new URL(req.url);
+  if (url.searchParams.get("diag") === "1") {
+    return Response.json({
+      ok: true,
+      route: "prospecting-push-ghl",
+      diag: true,
+      version: "cron-wrapper-open-2026-02-23-1",
+      ua: s(req.headers.get("user-agent")) || null,
+      xVercelCron: s(req.headers.get("x-vercel-cron")) || null,
+      xVercelId: s(req.headers.get("x-vercel-id")) ? "present" : null,
+    });
+  }
+
   const tenantId = s(url.searchParams.get("tenantId"));
   const statuses = s(url.searchParams.get("statuses"))
     .split(",")
