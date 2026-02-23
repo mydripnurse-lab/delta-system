@@ -5379,7 +5379,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   {stateFileMsg ? <span className="badge">{stateFileMsg}</span> : null}
                   {stateFileMetaUpdatedAt ? (
                     <span className="badge">
-                      Updated: {new Date(stateFileMetaUpdatedAt).toLocaleString("en-US")}
+                      Updated: {new Date(stateFileMetaUpdatedAt).toLocaleString()}
                     </span>
                   ) : null}
                   {stateFileMetaSource ? <span className="badge">Source: {stateFileMetaSource}</span> : null}

@@ -112,19 +112,17 @@ function startOfBucket(ms: number, granularity: "day" | "week" | "month") {
 }
 
 function bucketLabel(ms: number, granularity: "day" | "week" | "month") {
+    const isoDay = (x: Date) => x.toISOString().slice(0, 10);
     const d = new Date(ms);
     if (granularity === "month") {
-        return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
     }
     if (granularity === "week") {
         const end = new Date(ms);
         end.setDate(end.getDate() + 6);
-        return `${d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" })} - ${end.toLocaleDateString("en-US", {
-            month: "2-digit",
-            day: "2-digit",
-        })}`;
+        return `${isoDay(d)} - ${isoDay(end)}`;
     }
-    return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit" });
+    return isoDay(d);
 }
 
 function isSuccessfulTxStatus(statusRaw: unknown) {

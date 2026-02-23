@@ -59,7 +59,7 @@ function fmtTs(v: unknown) {
   if (!raw) return "—";
   const d = new Date(raw);
   if (!Number.isFinite(d.getTime())) return raw;
-  return d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 function badgeTone(status: string) {

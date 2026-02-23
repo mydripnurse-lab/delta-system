@@ -586,9 +586,11 @@ button, input, select { font-family: inherit; }
 
 .sheetOverviewGrid .kpi {
   min-height: 108px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
-  border-color: rgba(255,255,255,0.14);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.3)),
+    radial-gradient(560px 220px at 100% -30%, rgba(96, 165, 250, 0.08), transparent 65%);
+  border-color: rgba(148, 163, 184, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .sheetOverviewGrid .kpiHero {
@@ -628,15 +630,58 @@ button, input, select { font-family: inherit; }
 }
 
 .kpi {
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  border-radius: var(--radius);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.3)),
+    radial-gradient(560px 220px at 100% -30%, rgba(96, 165, 250, 0.08), transparent 65%);
+  border-radius: 16px;
   padding: 10px 12px;
   min-height: 74px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition:
+    border-color 180ms ease,
+    box-shadow 220ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 220ms ease;
+}
+
+.kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.kpi:hover,
+.kpi:focus-within {
+  transform: translateY(-1px);
+  border-color: rgba(96, 165, 250, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 20px rgba(2, 6, 23, 0.3),
+    0 0 0 1px rgba(59, 130, 246, 0.1);
+}
+
+/* Comparison-aware KPI line */
+.kpi:has(.deltaUp)::before {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.9), rgba(16, 185, 129, 0.8));
+}
+
+.kpi:has(.deltaDown)::before {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.92), rgba(244, 63, 94, 0.82));
 }
 
 .kpi .n {
@@ -3040,12 +3085,15 @@ button, input, select { font-family: inherit; }
 }
 
 .callsDash .kpiDate{
-  border:1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.03);
+  border:1px solid rgba(148, 163, 184, 0.24);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.3)),
+    radial-gradient(560px 220px at 100% -30%, rgba(96, 165, 250, 0.08), transparent 65%);
   border-radius:16px;
   padding:14px;
   min-width:0;
   width: 250px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .callsDash .kpiDate .n{
@@ -3066,11 +3114,14 @@ button, input, select { font-family: inherit; }
 }
 
 .callsDash .kpi{
-  border:1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.03);
+  border:1px solid rgba(148, 163, 184, 0.24);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.3)),
+    radial-gradient(560px 220px at 100% -30%, rgba(96, 165, 250, 0.08), transparent 65%);
   border-radius:16px;
   padding:14px;
   min-width:0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .callsDash .kpi .n{
