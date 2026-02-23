@@ -3450,6 +3450,30 @@ export default function Home() {
     return rows.find((r: any) => s(r["Location Id"]) === target) || null;
   }
 
+  async function verifyDomainCreatedInSheet(
+    stateName: string,
+    kind: "counties" | "cities",
+    locId: string,
+  ): Promise<boolean | null> {
+    const st = s(stateName);
+    const id = s(locId);
+    if (!st || !id) return null;
+    try {
+      const endpoint = routeTenantId
+        ? `/api/sheet/state?name=${encodeURIComponent(st)}&tenantId=${encodeURIComponent(routeTenantId)}`
+        : `/api/sheet/state?name=${encodeURIComponent(st)}`;
+      const res = await fetch(endpoint, { cache: "no-store" });
+      const data = (await safeJson(res)) as StateDetailResponse | any;
+      if (!res.ok || data?.error) return null;
+      const rows = kind === "cities" ? data?.cities?.rows || [] : data?.counties?.rows || [];
+      const row = rows.find((r: any) => s(r["Location Id"]) === id);
+      if (!row) return null;
+      return isTrue(row["Domain Created"]);
+    } catch {
+      return null;
+    }
+  }
+
   async function runTabSitemaps(
     kind: "counties" | "cities",
     action: TabAction,
@@ -4369,6 +4393,19 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         pushDomainBotLog("DNS delete done.");
       }
 
+      const verifyCreated =
+        openState && (rowKind === "counties" || rowKind === "cities")
+          ? await verifyDomainCreatedInSheet(openState, rowKind, id)
+          : null;
+      if (verifyCreated === false) {
+        throw new Error("Post-complete verification failed: Domain Created is still false.");
+      }
+      if (verifyCreated === true) {
+        pushDomainBotLog("Post-complete verification OK (Domain Created=true).");
+      } else {
+        pushDomainBotLog("Post-complete verification skipped (state row not readable).");
+      }
+
       setTabSitemapStatus({
         kind: rowKind,
         ok: true,
@@ -4536,6 +4573,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ),
       );
       if (domainBotStopRequestedRef.current) {
+        if (out.status === "done") {
+          pushDomainBotLog(
+            `STOP_FLOW_OK: ${item.locId} finalized (all steps + complete), queue stop now.`,
+          );
+        }
         pushDomainBotLog(`Stop checkpoint reached after ${item.locId}. Queue stopped.`);
         break;
       }
