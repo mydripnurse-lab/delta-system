@@ -43,6 +43,11 @@ function norm(v: unknown) {
     .toLowerCase();
 }
 
+function isUnknownGeoName(v: unknown) {
+  const x = s(v).trim().toLowerCase();
+  return !x || x === "unknown" || x === "n/a" || x === "na" || x === "null" || x === "undefined" || x === "-";
+}
+
 function toList(raw: unknown) {
   if (Array.isArray(raw)) return raw.map((x) => s(x)).filter(Boolean);
   return s(raw)
@@ -505,6 +510,9 @@ export async function POST(req: Request) {
 
     if (!geoName) {
       return Response.json({ ok: false, error: "Missing geoName" }, { status: 400 });
+    }
+    if (isUnknownGeoName(geoName)) {
+      return Response.json({ ok: false, error: "Invalid geoName: unknown" }, { status: 400 });
     }
 
     const rawSources = ((body?.sources as JsonMap | undefined) || {}) as JsonMap;

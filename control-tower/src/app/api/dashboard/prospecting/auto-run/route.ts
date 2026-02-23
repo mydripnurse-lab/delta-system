@@ -14,6 +14,15 @@ function n(v: unknown) {
   return Number.isFinite(x) ? x : 0;
 }
 
+function norm(v: unknown) {
+  return s(v).replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function isUnknownGeoName(v: unknown) {
+  const x = norm(v);
+  return !x || x === "unknown" || x === "n/a" || x === "na" || x === "null" || x === "undefined" || x === "-";
+}
+
 function resolveAuthCandidates() {
   return [
     s(process.env.PROSPECTING_CRON_SECRET),
@@ -112,7 +121,7 @@ function pickGeoBatch(input: {
     ...input.cities.map((x) => ({ geoType: "city" as const, geoName: s(x.name), priorityScore: n(x.priorityScore) })),
     ...input.counties.map((x) => ({ geoType: "county" as const, geoName: s(x.name), priorityScore: n(x.priorityScore) })),
     ...input.states.map((x) => ({ geoType: "state" as const, geoName: s(x.name), priorityScore: n(x.priorityScore) })),
-  ].filter((x) => x.geoName);
+  ].filter((x) => x.geoName && !isUnknownGeoName(x.geoName));
 
   all.sort((a, b) => b.priorityScore - a.priorityScore);
   const out: GeoCandidate[] = [];
@@ -154,7 +163,12 @@ export async function POST(req: Request) {
         timedOut = true;
         break;
       }
-      const perTenant: Record<string, unknown> = { tenantId, processed: 0, runs: [] as Record<string, unknown>[] };
+      const perTenant: Record<string, unknown> = {
+        tenantId,
+        processed: 0,
+        skippedUnknownGeo: 0,
+        runs: [] as Record<string, unknown>[],
+      };
       try {
         const dashboard = await fetchJson(
           `${origin}/api/dashboard/prospecting?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`,
@@ -179,6 +193,15 @@ export async function POST(req: Request) {
           if (Date.now() >= deadline - 2_000) {
             timedOut = true;
             break;
+          }
+          if (isUnknownGeoName(pick.geoName)) {
+            perTenant.skippedUnknownGeo = n(perTenant.skippedUnknownGeo) + 1;
+            (perTenant.runs as Record<string, unknown>[]).push({
+              geoType: pick.geoType,
+              geoName: pick.geoName,
+              skipped: "unknown-geo",
+            });
+            continue;
           }
           try {
             const run = await fetchJson(`${origin}/api/dashboard/prospecting/run`, {
