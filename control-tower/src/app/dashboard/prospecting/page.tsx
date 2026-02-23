@@ -31,8 +31,29 @@ type ProspectingResponse = {
     highImpressionLowBookingServices: string;
     lostBookingReasons: string;
     prospectingAutoEnabled?: boolean;
+    signalThresholds?: {
+      lostValueCritical: number;
+      lostValueWarning: number;
+      pendingCritical: number;
+      pendingWarning: number;
+      contactableCriticalBelow: number;
+      contactableWarningBelow: number;
+      ctrWarningBelow: number;
+      profileMissingCritical: number;
+      profileMissingWarning: number;
+    };
     servicesList: string[];
     missingFields: string[];
+  };
+  opportunitySignalPriority?: {
+    rows?: Array<{
+      key: string;
+      title: string;
+      valueText: string;
+      hint: string;
+      tone: "critical" | "warning" | "success" | "neutral";
+      priorityScore: number;
+    }>;
   };
   geoQueue?: {
     states: GeoQueueRow[];
@@ -253,6 +274,19 @@ function ProspectingDashboardContent() {
     lostBookingReasons: "",
     prospectingAutoEnabled: false,
   });
+  const [thresholdSaving, setThresholdSaving] = useState(false);
+  const [thresholdMessage, setThresholdMessage] = useState("");
+  const [thresholdDraft, setThresholdDraft] = useState({
+    thresholdLostValueCritical: "5000",
+    thresholdLostValueWarning: "1500",
+    thresholdPendingCritical: "20",
+    thresholdPendingWarning: "5",
+    thresholdContactableCriticalBelow: "55",
+    thresholdContactableWarningBelow: "70",
+    thresholdCtrWarningBelow: "3",
+    thresholdProfileMissingCritical: "3",
+    thresholdProfileMissingWarning: "1",
+  });
 
   const [leadSaving, setLeadSaving] = useState(false);
   const [leadMessage, setLeadMessage] = useState("");
@@ -306,6 +340,7 @@ function ProspectingDashboardContent() {
     setLoading(true);
     setError("");
     setProfileMessage("");
+    setThresholdMessage("");
     setLeadMessage("");
     try {
       const qs = new URLSearchParams({
@@ -331,6 +366,17 @@ function ProspectingDashboardContent() {
         highImpressionLowBookingServices: String(p?.highImpressionLowBookingServices || ""),
         lostBookingReasons: String(p?.lostBookingReasons || ""),
         prospectingAutoEnabled: Boolean(p?.prospectingAutoEnabled),
+      });
+      setThresholdDraft({
+        thresholdLostValueCritical: String(p?.signalThresholds?.lostValueCritical ?? 5000),
+        thresholdLostValueWarning: String(p?.signalThresholds?.lostValueWarning ?? 1500),
+        thresholdPendingCritical: String(p?.signalThresholds?.pendingCritical ?? 20),
+        thresholdPendingWarning: String(p?.signalThresholds?.pendingWarning ?? 5),
+        thresholdContactableCriticalBelow: String(p?.signalThresholds?.contactableCriticalBelow ?? 55),
+        thresholdContactableWarningBelow: String(p?.signalThresholds?.contactableWarningBelow ?? 70),
+        thresholdCtrWarningBelow: String(p?.signalThresholds?.ctrWarningBelow ?? 3),
+        thresholdProfileMissingCritical: String(p?.signalThresholds?.profileMissingCritical ?? 3),
+        thresholdProfileMissingWarning: String(p?.signalThresholds?.profileMissingWarning ?? 1),
       });
       if (!leadDraft.category && p?.businessCategory) {
         setLeadDraft((prev) => ({ ...prev, category: p.businessCategory }));
@@ -434,6 +480,49 @@ function ProspectingDashboardContent() {
       setProfileMessage(e instanceof Error ? e.message : "Failed to save profile fields");
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  async function saveSignalThresholds() {
+    if (!tenantId) return;
+    setThresholdSaving(true);
+    setThresholdMessage("");
+    try {
+      const rows = [
+        { keyName: "prospecting_cfg_lost_value_critical", keyValue: thresholdDraft.thresholdLostValueCritical },
+        { keyName: "prospecting_cfg_lost_value_warning", keyValue: thresholdDraft.thresholdLostValueWarning },
+        { keyName: "prospecting_cfg_pending_critical", keyValue: thresholdDraft.thresholdPendingCritical },
+        { keyName: "prospecting_cfg_pending_warning", keyValue: thresholdDraft.thresholdPendingWarning },
+        { keyName: "prospecting_cfg_contactable_critical_below", keyValue: thresholdDraft.thresholdContactableCriticalBelow },
+        { keyName: "prospecting_cfg_contactable_warning_below", keyValue: thresholdDraft.thresholdContactableWarningBelow },
+        { keyName: "prospecting_cfg_ctr_warning_below", keyValue: thresholdDraft.thresholdCtrWarningBelow },
+        { keyName: "prospecting_cfg_profile_missing_critical", keyValue: thresholdDraft.thresholdProfileMissingCritical },
+        { keyName: "prospecting_cfg_profile_missing_warning", keyValue: thresholdDraft.thresholdProfileMissingWarning },
+      ].map((r) => ({
+        provider: "ghl",
+        scope: "module",
+        module: "custom_values",
+        keyName: r.keyName,
+        keyValue: r.keyValue,
+        valueType: "text",
+        isActive: true,
+      }));
+
+      const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/custom-values`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; upserted?: number } | null;
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error || `HTTP ${res.status}`);
+      }
+      setThresholdMessage(`Thresholds saved (${json.upserted || 0} fields).`);
+      await load();
+    } catch (e: unknown) {
+      setThresholdMessage(e instanceof Error ? e.message : "Failed to save thresholds");
+    } finally {
+      setThresholdSaving(false);
     }
   }
 
@@ -843,66 +932,45 @@ function ProspectingDashboardContent() {
     }
     return out;
   }, [signals?.lostBookings, signals?.impressions, leadSummary?.contactable, leadSummary?.total, data?.geoQueue?.cities]);
-  const lostBookings = Number(signals?.lostBookings || 0);
-  const lostBookingValue = Number(signals?.lostBookingValue || 0);
-  const impressions = Number(signals?.impressions || 0);
-  const clicks = Number(signals?.clicks || 0);
-  const leadVolume = Number(signals?.leadVolume || 0);
-  const contactable = Number(leadSummary?.contactable || 0);
-  const totalLeads = Number(leadSummary?.total || 0);
-  const pendingApproval = Number(notifications?.pendingApproval || 0);
-  const unseenNotif = Number(notifications?.unseen || 0);
-  const contactableRate = totalLeads > 0 ? (contactable / totalLeads) * 100 : 0;
-  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
   const topState = data?.geoQueue?.states?.[0];
   const topCounty = data?.geoQueue?.counties?.[0];
   const topCity = data?.geoQueue?.cities?.[0];
-  const profileMissingCount = Number(profile?.missingFields?.length || 0);
-
-  const primarySignalCards = [
-    {
-      key: "lost-value",
-      title: "Lost Booking Value",
-      value: fmtMoney(lostBookingValue),
-      hint: `${fmtInt(lostBookings)} lost bookings in range`,
-      tone: lostBookingValue >= 5000 ? "critical" : lostBookingValue >= 1500 ? "warning" : "neutral",
-    },
-    {
-      key: "pending-review",
-      title: "Pending For Approval",
-      value: fmtInt(pendingApproval),
-      hint: `Unseen: ${fmtInt(unseenNotif)}`,
-      tone: pendingApproval >= 20 ? "critical" : pendingApproval >= 5 ? "warning" : "neutral",
-    },
-    {
-      key: "contactable-rate",
-      title: "Contactable Lead Ratio",
-      value: fmtPct(contactableRate),
-      hint: `${fmtInt(contactable)} of ${fmtInt(totalLeads)} leads`,
-      tone: contactableRate < 55 ? "critical" : contactableRate < 70 ? "warning" : "success",
-    },
-    {
-      key: "demand",
-      title: "Search Demand (CTR)",
-      value: fmtPct(ctr),
-      hint: `${fmtInt(impressions)} impr · ${fmtInt(clicks)} clicks`,
-      tone: ctr < 3 ? "warning" : "neutral",
-    },
-    {
-      key: "lead-volume",
-      title: "Lead Volume Signal",
-      value: fmtInt(leadVolume),
-      hint: `Pool total: ${fmtInt(totalLeads)}`,
-      tone: leadVolume <= 0 ? "warning" : "neutral",
-    },
-    {
-      key: "profile-readiness",
-      title: "Profile Readiness",
-      value: profileMissingCount ? `${profileMissingCount} missing` : "Ready",
-      hint: "Business profile completeness for agent quality",
-      tone: profileMissingCount >= 3 ? "critical" : profileMissingCount > 0 ? "warning" : "success",
-    },
-  ];
+  const primarySignalCards =
+    (data?.opportunitySignalPriority?.rows || []).length > 0
+      ? (data?.opportunitySignalPriority?.rows || []).map((row) => ({
+          key: row.key,
+          title: row.title,
+          value: row.valueText,
+          hint: row.hint,
+          tone: row.tone,
+        }))
+      : [
+          {
+            key: "lost-value",
+            title: "Lost Booking Value",
+            value: fmtMoney(signals?.lostBookingValue),
+            hint: `${fmtInt(signals?.lostBookings)} lost bookings in range`,
+            tone: "neutral" as const,
+          },
+          {
+            key: "pending-review",
+            title: "Pending For Approval",
+            value: fmtInt(notifications?.pendingApproval),
+            hint: `Unseen: ${fmtInt(notifications?.unseen)}`,
+            tone: "neutral" as const,
+          },
+          {
+            key: "contactable-rate",
+            title: "Contactable Lead Ratio",
+            value: fmtPct(
+              Number(leadSummary?.total || 0) > 0
+                ? (Number(leadSummary?.contactable || 0) / Number(leadSummary?.total || 0)) * 100
+                : 0,
+            ),
+            hint: `${fmtInt(leadSummary?.contactable)} of ${fmtInt(leadSummary?.total)} leads`,
+            tone: "neutral" as const,
+          },
+        ];
 
   async function generateAiInsights() {
     setAiErr("");
@@ -1181,6 +1249,66 @@ function ProspectingDashboardContent() {
             </div>
           ) : null}
           {profileMessage ? <div className="mini" style={{ marginTop: 8 }}>{profileMessage}</div> : null}
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Signal Priority Thresholds (Tenant Config)</h2>
+            <div className="cardSubtitle">Tenant-level ranking rules for P1..P6. Stored in isolated namespace only.</div>
+          </div>
+          <button
+            className="smallBtn agencyActionPrimary"
+            type="button"
+            onClick={() => void saveSignalThresholds()}
+            disabled={thresholdSaving || !tenantId}
+          >
+            {thresholdSaving ? "Saving..." : "Save thresholds"}
+          </button>
+        </div>
+        <div className="cardBody">
+          <div className="agencyFormPanel prospectingFormPanel" style={{ marginTop: 0 }}>
+            <div className="agencyWizardGrid agencyWizardGridTwo">
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Lost Value Critical</span>
+                <input className="input" type="number" min={0} value={thresholdDraft.thresholdLostValueCritical} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdLostValueCritical: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Lost Value Warning</span>
+                <input className="input" type="number" min={0} value={thresholdDraft.thresholdLostValueWarning} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdLostValueWarning: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Pending Critical</span>
+                <input className="input" type="number" min={0} value={thresholdDraft.thresholdPendingCritical} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdPendingCritical: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Pending Warning</span>
+                <input className="input" type="number" min={0} value={thresholdDraft.thresholdPendingWarning} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdPendingWarning: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Contactable Critical Below %</span>
+                <input className="input" type="number" min={0} max={100} value={thresholdDraft.thresholdContactableCriticalBelow} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdContactableCriticalBelow: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Contactable Warning Below %</span>
+                <input className="input" type="number" min={0} max={100} value={thresholdDraft.thresholdContactableWarningBelow} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdContactableWarningBelow: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">CTR Warning Below %</span>
+                <input className="input" type="number" min={0} max={100} step="0.1" value={thresholdDraft.thresholdCtrWarningBelow} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdCtrWarningBelow: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Profile Missing Critical</span>
+                <input className="input" type="number" min={0} value={thresholdDraft.thresholdProfileMissingCritical} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdProfileMissingCritical: e.target.value }))} />
+              </label>
+              <label className="agencyField">
+                <span className="agencyFieldLabel">Profile Missing Warning</span>
+                <input className="input" type="number" min={0} value={thresholdDraft.thresholdProfileMissingWarning} onChange={(e) => setThresholdDraft((p) => ({ ...p, thresholdProfileMissingWarning: e.target.value }))} />
+              </label>
+            </div>
+          </div>
+          {thresholdMessage ? <div className="mini" style={{ marginTop: 8 }}>{thresholdMessage}</div> : null}
         </div>
       </section>
 

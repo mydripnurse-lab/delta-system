@@ -82,6 +82,29 @@ type GeoRow = {
   uniqueContacts: number;
 };
 
+type SignalTone = "critical" | "warning" | "success" | "neutral";
+
+type ProspectingSignalThresholds = {
+  lostValueCritical: number;
+  lostValueWarning: number;
+  pendingCritical: number;
+  pendingWarning: number;
+  contactableCriticalBelow: number;
+  contactableWarningBelow: number;
+  ctrWarningBelow: number;
+  profileMissingCritical: number;
+  profileMissingWarning: number;
+};
+
+type SignalPriorityRow = {
+  key: string;
+  title: string;
+  valueText: string;
+  hint: string;
+  tone: SignalTone;
+  priorityScore: number;
+};
+
 type OpportunityGeoSignals = {
   openCount: number;
   wonCount: number;
@@ -359,6 +382,228 @@ function requiredProfileFields(profile: {
   return missing;
 }
 
+function toFiniteThreshold(raw: string, fallback: number, lo: number, hi: number) {
+  const v = Number(raw);
+  if (!Number.isFinite(v)) return fallback;
+  return clamp(v, lo, hi);
+}
+
+function resolveSignalThresholds(customMap: JsonMap) {
+  return {
+    lostValueCritical: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_lost_value_critical",
+        "prospecting_cfg_lost_value_critical",
+        "ghl.module.custom_values.prospecting_threshold_lost_value_critical",
+        "prospecting_threshold_lost_value_critical",
+      ]),
+      5000,
+      0,
+      1_000_000,
+    ),
+    lostValueWarning: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_lost_value_warning",
+        "prospecting_cfg_lost_value_warning",
+        "ghl.module.custom_values.prospecting_threshold_lost_value_warning",
+        "prospecting_threshold_lost_value_warning",
+      ]),
+      1500,
+      0,
+      1_000_000,
+    ),
+    pendingCritical: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_pending_critical",
+        "prospecting_cfg_pending_critical",
+        "ghl.module.custom_values.prospecting_threshold_pending_critical",
+        "prospecting_threshold_pending_critical",
+      ]),
+      20,
+      0,
+      100_000,
+    ),
+    pendingWarning: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_pending_warning",
+        "prospecting_cfg_pending_warning",
+        "ghl.module.custom_values.prospecting_threshold_pending_warning",
+        "prospecting_threshold_pending_warning",
+      ]),
+      5,
+      0,
+      100_000,
+    ),
+    contactableCriticalBelow: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_contactable_critical_below",
+        "prospecting_cfg_contactable_critical_below",
+        "ghl.module.custom_values.prospecting_threshold_contactable_critical_below",
+        "prospecting_threshold_contactable_critical_below",
+      ]),
+      55,
+      0,
+      100,
+    ),
+    contactableWarningBelow: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_contactable_warning_below",
+        "prospecting_cfg_contactable_warning_below",
+        "ghl.module.custom_values.prospecting_threshold_contactable_warning_below",
+        "prospecting_threshold_contactable_warning_below",
+      ]),
+      70,
+      0,
+      100,
+    ),
+    ctrWarningBelow: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_ctr_warning_below",
+        "prospecting_cfg_ctr_warning_below",
+        "ghl.module.custom_values.prospecting_threshold_ctr_warning_below",
+        "prospecting_threshold_ctr_warning_below",
+      ]),
+      3,
+      0,
+      100,
+    ),
+    profileMissingCritical: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_profile_missing_critical",
+        "prospecting_cfg_profile_missing_critical",
+        "ghl.module.custom_values.prospecting_threshold_profile_missing_critical",
+        "prospecting_threshold_profile_missing_critical",
+      ]),
+      3,
+      0,
+      100,
+    ),
+    profileMissingWarning: toFiniteThreshold(
+      pickCustom(customMap, [
+        "ghl.module.custom_values.prospecting_cfg_profile_missing_warning",
+        "prospecting_cfg_profile_missing_warning",
+        "ghl.module.custom_values.prospecting_threshold_profile_missing_warning",
+        "prospecting_threshold_profile_missing_warning",
+      ]),
+      1,
+      0,
+      100,
+    ),
+  } satisfies ProspectingSignalThresholds;
+}
+
+function buildSignalPriority(args: {
+  thresholds: ProspectingSignalThresholds;
+  lostBookings: number;
+  lostBookingValue: number;
+  impressions: number;
+  clicks: number;
+  leadVolume: number;
+  totalLeads: number;
+  contactable: number;
+  pendingApproval: number;
+  unseenNotif: number;
+  profileMissingCount: number;
+}) {
+  const t = args.thresholds;
+  const contactableRate = args.totalLeads > 0 ? (args.contactable / args.totalLeads) * 100 : 0;
+  const ctr = args.impressions > 0 ? (args.clicks / args.impressions) * 100 : 0;
+
+  const rows: SignalPriorityRow[] = [
+    {
+      key: "lost-value",
+      title: "Lost Booking Value",
+      valueText: `$${Math.round(args.lostBookingValue).toLocaleString()}`,
+      hint: `${Math.round(args.lostBookings).toLocaleString()} lost bookings in range`,
+      tone:
+        args.lostBookingValue >= t.lostValueCritical
+          ? "critical"
+          : args.lostBookingValue >= t.lostValueWarning
+            ? "warning"
+            : "neutral",
+      priorityScore:
+        args.lostBookingValue >= t.lostValueCritical
+          ? 95
+          : args.lostBookingValue >= t.lostValueWarning
+            ? 76
+            : 38 + Math.min(22, Math.round(args.lostBookings / 3)),
+    },
+    {
+      key: "pending-review",
+      title: "Pending For Approval",
+      valueText: Math.round(args.pendingApproval).toLocaleString(),
+      hint: `Unseen: ${Math.round(args.unseenNotif).toLocaleString()}`,
+      tone:
+        args.pendingApproval >= t.pendingCritical
+          ? "critical"
+          : args.pendingApproval >= t.pendingWarning
+            ? "warning"
+            : "neutral",
+      priorityScore:
+        args.pendingApproval >= t.pendingCritical
+          ? 90
+          : args.pendingApproval >= t.pendingWarning
+            ? 72
+            : 28 + Math.min(28, args.pendingApproval * 2),
+    },
+    {
+      key: "contactable-rate",
+      title: "Contactable Lead Ratio",
+      valueText: `${contactableRate.toFixed(1)}%`,
+      hint: `${Math.round(args.contactable).toLocaleString()} of ${Math.round(args.totalLeads).toLocaleString()} leads`,
+      tone:
+        contactableRate < t.contactableCriticalBelow
+          ? "critical"
+          : contactableRate < t.contactableWarningBelow
+            ? "warning"
+            : "success",
+      priorityScore:
+        contactableRate < t.contactableCriticalBelow
+          ? 88
+          : contactableRate < t.contactableWarningBelow
+            ? 68
+            : 30,
+    },
+    {
+      key: "demand",
+      title: "Search Demand (CTR)",
+      valueText: `${ctr.toFixed(1)}%`,
+      hint: `${Math.round(args.impressions).toLocaleString()} impr · ${Math.round(args.clicks).toLocaleString()} clicks`,
+      tone: ctr < t.ctrWarningBelow ? "warning" : "neutral",
+      priorityScore: ctr < t.ctrWarningBelow ? 60 : 34,
+    },
+    {
+      key: "lead-volume",
+      title: "Lead Volume Signal",
+      valueText: Math.round(args.leadVolume).toLocaleString(),
+      hint: `Pool total: ${Math.round(args.totalLeads).toLocaleString()}`,
+      tone: args.leadVolume <= 0 ? "warning" : "neutral",
+      priorityScore: args.leadVolume <= 0 ? 66 : 33,
+    },
+    {
+      key: "profile-readiness",
+      title: "Profile Readiness",
+      valueText: args.profileMissingCount ? `${Math.round(args.profileMissingCount)} missing` : "Ready",
+      hint: "Business profile completeness for agent quality",
+      tone:
+        args.profileMissingCount >= t.profileMissingCritical
+          ? "critical"
+          : args.profileMissingCount >= t.profileMissingWarning
+            ? "warning"
+            : "success",
+      priorityScore:
+        args.profileMissingCount >= t.profileMissingCritical
+          ? 82
+          : args.profileMissingCount >= t.profileMissingWarning
+            ? 58
+            : 24,
+    },
+  ];
+
+  rows.sort((a, b) => b.priorityScore - a.priorityScore);
+  return { rows, contactableRate, ctr };
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -408,6 +653,7 @@ export async function GET(req: Request) {
       "services_offered",
       "service_list",
     ]);
+    const signalThresholds = resolveSignalThresholds(customMap || {});
     const profile = {
       businessName: s(ctxBusiness.businessName) || "My Drip Nurse",
       businessCategory:
@@ -434,6 +680,7 @@ export async function GET(req: Request) {
           ]),
         ).toLowerCase(),
       ),
+      signalThresholds,
     };
 
     const executive = (overview?.executive as JsonMap | undefined) || {};
@@ -496,6 +743,22 @@ export async function GET(req: Request) {
       .sort((a, b) => b.convictionScore - a.convictionScore || s(b.updatedAt).localeCompare(s(a.updatedAt)));
 
     const servicesList = parseServices(profile.servicesOffered);
+    const pendingApproval = leads.filter((x) => s(x.reviewStatus || "pending") === "pending").length;
+    const unseen = leads.filter((x) => s(x.notificationCreatedAt) && !s(x.notificationSeenAt)).length;
+    const profileMissingFields = requiredProfileFields(profile);
+    const signalPriority = buildSignalPriority({
+      thresholds: signalThresholds,
+      lostBookings: lostForRank,
+      lostBookingValue: appointmentsLostValue || n(executive.appointmentsLostValueNow),
+      impressions: n(executive.searchImpressionsNow),
+      clicks: n(executive.searchClicksNow),
+      leadVolume: n(executive.leadsNow),
+      totalLeads: leads.length,
+      contactable,
+      pendingApproval,
+      unseenNotif: unseen,
+      profileMissingCount: profileMissingFields.length,
+    });
 
     return Response.json({
       ok: true,
@@ -511,7 +774,15 @@ export async function GET(req: Request) {
       businessProfile: {
         ...profile,
         servicesList,
-        missingFields: requiredProfileFields(profile),
+        missingFields: profileMissingFields,
+      },
+      opportunitySignalPriority: {
+        rows: signalPriority.rows,
+        thresholds: signalThresholds,
+        computed: {
+          contactableRate: signalPriority.contactableRate,
+          ctr: signalPriority.ctr,
+        },
       },
       customFieldPlan: [
         { key: "business_category", label: "Business Category" },
@@ -522,6 +793,15 @@ export async function GET(req: Request) {
         { key: "high_impression_low_booking_services", label: "High Impression / Low Booking Services" },
         { key: "lost_booking_reasons", label: "Lost Booking Reasons" },
         { key: "prospecting_auto_enabled", label: "Prospecting Auto Enabled" },
+        { key: "prospecting_cfg_lost_value_critical", label: "Threshold: Lost Value Critical" },
+        { key: "prospecting_cfg_lost_value_warning", label: "Threshold: Lost Value Warning" },
+        { key: "prospecting_cfg_pending_critical", label: "Threshold: Pending Approval Critical" },
+        { key: "prospecting_cfg_pending_warning", label: "Threshold: Pending Approval Warning" },
+        { key: "prospecting_cfg_contactable_critical_below", label: "Threshold: Contactable Critical Below %" },
+        { key: "prospecting_cfg_contactable_warning_below", label: "Threshold: Contactable Warning Below %" },
+        { key: "prospecting_cfg_ctr_warning_below", label: "Threshold: CTR Warning Below %" },
+        { key: "prospecting_cfg_profile_missing_critical", label: "Threshold: Profile Missing Critical" },
+        { key: "prospecting_cfg_profile_missing_warning", label: "Threshold: Profile Missing Warning" },
       ],
       geoQueue: {
         states,
@@ -540,8 +820,8 @@ export async function GET(req: Request) {
         rows: leads,
       },
       notifications: {
-        pendingApproval: leads.filter((x) => s(x.reviewStatus || "pending") === "pending").length,
-        unseen: leads.filter((x) => s(x.notificationCreatedAt) && !s(x.notificationSeenAt)).length,
+        pendingApproval,
+        unseen,
         latest: leads
           .filter((x) => s(x.notificationCreatedAt))
           .slice(0, 12)
