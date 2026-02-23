@@ -1632,9 +1632,8 @@ async function runInTab(tabId, payload) {
         return visible(hubTrigger);
       }
 
-      async function advanceAfterVerifyToProductType() {
+      async function advanceAfterVerifyToProductType(timeoutMs = 120000) {
         const started = Date.now();
-        const timeoutMs = 180000;
 
         // First, wait until verification modal is gone.
         await waitFor(() => {
@@ -1680,6 +1679,33 @@ async function runInTab(tabId, payload) {
             .join(" || ")} -> continuing to manage flow`,
         );
         return { ok: true, labels, mode: "assume_manage" };
+      }
+
+      async function advanceAfterVerifyWithRetry(maxRetries = 2) {
+        let lastErr = null;
+        for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+          try {
+            return await advanceAfterVerifyToProductType(120000);
+          } catch (e) {
+            lastErr = e;
+            const msg = e instanceof Error ? e.message : String(e);
+            if (attempt >= maxRetries) break;
+            log(
+              `post-verify failed (attempt ${attempt + 1}/${maxRetries + 1}) -> ${msg}. Retrying from step 7 (addedRecord)...`,
+            );
+            await sleep(700);
+            try {
+              await clickAddedRecordCalmly();
+            } catch (retryErr) {
+              const retryMsg =
+                retryErr instanceof Error ? retryErr.message : String(retryErr);
+              log(`step7 retry click failed: ${retryMsg}`);
+              throw retryErr;
+            }
+            await sleep(1100);
+          }
+        }
+        throw lastErr || new Error("Post-verify transition failed after retries.");
       }
 
       function hasVisibleLoading() {
@@ -1800,7 +1826,7 @@ async function runInTab(tabId, payload) {
             await clickContinueCalmly();
           }
 
-          const postScreen = await advanceAfterVerifyToProductType();
+          const postScreen = await advanceAfterVerifyWithRetry(2);
 
           if (postScreen.mode === "product") {
             // Force Website product type when available.

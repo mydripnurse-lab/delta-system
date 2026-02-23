@@ -2755,13 +2755,13 @@ export default function Home() {
     }, 1550);
   }
 
-  async function loadActiveRuns() {
+  async function loadActiveRuns(): Promise<boolean> {
     try {
       const res = await fetch("/api/run?limit=30", {
         cache: "no-store",
       });
       const data = await safeJson(res);
-      if (!res.ok || !data?.ok || !Array.isArray(data?.runs)) return;
+      if (!res.ok || !data?.ok || !Array.isArray(data?.runs)) return false;
       const filtered = data.runs
         .map((r: any) => ({
           id: String(r?.id || ""),
@@ -2791,15 +2791,47 @@ export default function Home() {
         const exists = filtered.some((r: any) => s(r?.id) === current);
         return exists ? curr : "";
       });
+      return filtered.some(
+        (r: any) => !r.finished && !r.stopped && r.exitCode === null,
+      );
     } catch {
       // ignore background polling errors
+      return false;
     }
   }
 
   useEffect(() => {
-    loadActiveRuns();
-    const id = setInterval(loadActiveRuns, 5000);
-    return () => clearInterval(id);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const schedule = (ms: number) => {
+      if (cancelled) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void tick();
+      }, ms);
+    };
+
+    const tick = async () => {
+      const hasActive = await loadActiveRuns();
+      if (cancelled) return;
+      const delayMs = document.hidden ? 60000 : hasActive ? 5000 : 20000;
+      schedule(delayMs);
+    };
+
+    const onVisibility = () => {
+      if (cancelled) return;
+      schedule(0);
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+    void tick();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [routeTenantId]);
 
   // ✅ Unified runner (supports optional locId/kind)
