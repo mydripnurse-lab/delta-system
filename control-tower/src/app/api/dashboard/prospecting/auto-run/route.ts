@@ -51,8 +51,12 @@ function isInternalCronCall(req: Request) {
   return s(req.headers.get("x-internal-cron-call")) === "1";
 }
 
-async function fetchJson(url: string, init?: RequestInit) {
-  const res = await fetch(url, { cache: "no-store", ...(init || {}) });
+async function fetchJson(url: string, init?: RequestInit, timeoutMs = 55_000) {
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), Math.max(1_000, timeoutMs));
+  const res = await fetch(url, { cache: "no-store", ...(init || {}), signal: ac.signal }).finally(() => {
+    clearTimeout(timer);
+  });
   const json = (await res.json().catch(() => null)) as JsonMap | null;
   if (!res.ok) throw new Error(s(json?.error) || `HTTP ${res.status}`);
   return json || {};
@@ -129,21 +133,33 @@ export async function POST(req: Request) {
 
     const singleTenantId = s(body?.tenantId);
     const integrationKey = s(body?.integrationKey) || "owner";
-    const batchSize = Math.max(1, Math.min(50, Number(body?.batchSize || 6)));
+    const batchSize = Math.max(1, Math.min(50, Number(body?.batchSize || 2)));
     const cooldownMinutes = Math.max(5, Math.min(24 * 60, Number(body?.cooldownMinutes || 180)));
-    const maxResultsPerGeo = Math.max(1, Math.min(50, Number(body?.maxResultsPerGeo || 20)));
+    const maxResultsPerGeo = Math.max(1, Math.min(50, Number(body?.maxResultsPerGeo || 12)));
+    const maxTenants = Math.max(0, Math.min(500, Number(body?.maxTenants || 0)));
+    const maxRuntimeMs = Math.max(30_000, Math.min(295_000, Number(body?.maxRuntimeMs || 240_000)));
+    const startedAt = Date.now();
+    const deadline = startedAt + maxRuntimeMs;
     const sources = ((body?.sources as JsonMap | undefined) || {}) as JsonMap;
     const enrichment = ((body?.enrichment as JsonMap | undefined) || {}) as JsonMap;
 
-    const tenantIds = singleTenantId ? [singleTenantId] : await listAutoEnabledTenants();
+    const allTenantIds = singleTenantId ? [singleTenantId] : await listAutoEnabledTenants();
+    const tenantIds = maxTenants > 0 ? allTenantIds.slice(0, maxTenants) : allTenantIds;
     const origin = new URL(req.url).origin;
     const results: Array<Record<string, unknown>> = [];
+    let timedOut = false;
 
     for (const tenantId of tenantIds) {
+      if (Date.now() >= deadline - 2_000) {
+        timedOut = true;
+        break;
+      }
       const perTenant: Record<string, unknown> = { tenantId, processed: 0, runs: [] as Record<string, unknown>[] };
       try {
         const dashboard = await fetchJson(
           `${origin}/api/dashboard/prospecting?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`,
+          undefined,
+          Math.max(5_000, Math.min(45_000, deadline - Date.now() - 1_000)),
         );
         const geoQueue = (dashboard.geoQueue as JsonMap | undefined) || {};
         const cities = (Array.isArray(geoQueue.cities) ? geoQueue.cities : []) as Array<{ name: string; priorityScore?: number }>;
@@ -160,6 +176,10 @@ export async function POST(req: Request) {
         });
 
         for (const pick of picks) {
+          if (Date.now() >= deadline - 2_000) {
+            timedOut = true;
+            break;
+          }
           try {
             const run = await fetchJson(`${origin}/api/dashboard/prospecting/run`, {
               method: "POST",
@@ -176,7 +196,7 @@ export async function POST(req: Request) {
                 sources,
                 enrichment,
               }),
-            });
+            }, Math.max(5_000, Math.min(60_000, deadline - Date.now() - 1_000)));
             const r = (run.results as JsonMap | undefined) || {};
             await recordGeoRun({
               tenantId,
@@ -226,6 +246,10 @@ export async function POST(req: Request) {
       batchSize,
       cooldownMinutes,
       maxResultsPerGeo,
+      maxTenants: maxTenants || null,
+      maxRuntimeMs,
+      timedOut,
+      elapsedMs: Date.now() - startedAt,
       tenants: results,
     });
   } catch (e: unknown) {

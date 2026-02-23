@@ -281,8 +281,13 @@ async function hasRecentSimilarProposal(input: {
         and action_type = $2
         and dashboard_id = $3
         and summary = $4
-        and status in ('proposed', 'approved', 'executed')
-        and created_at >= now() - make_interval(hours => $5::int)
+        and (
+          status = 'proposed'
+          or (
+            status in ('approved', 'executed')
+            and created_at >= now() - make_interval(hours => $5::int)
+          )
+        )
     `,
     [input.organizationId, input.actionType, input.dashboardId, input.summary, input.lookbackHours],
   );

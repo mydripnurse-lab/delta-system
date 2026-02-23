@@ -79,14 +79,18 @@ export async function GET(req: Request) {
 
   const tenantId = s(url.searchParams.get("tenantId"));
   const integrationKey = s(url.searchParams.get("integrationKey")) || "owner";
-  const batchSize = Number(url.searchParams.get("batchSize") || 6);
+  const batchSize = Number(url.searchParams.get("batchSize") || 2);
   const cooldownMinutes = Number(url.searchParams.get("cooldownMinutes") || 180);
-  const maxResultsPerGeo = Number(url.searchParams.get("maxResultsPerGeo") || 20);
+  const maxResultsPerGeo = Number(url.searchParams.get("maxResultsPerGeo") || 12);
+  const maxTenants = Number(url.searchParams.get("maxTenants") || 3);
+  const maxRuntimeMs = Number(url.searchParams.get("maxRuntimeMs") || 240000);
   const payload: Record<string, unknown> = {
     integrationKey,
     batchSize,
     cooldownMinutes,
     maxResultsPerGeo,
+    maxTenants,
+    maxRuntimeMs,
     sources: {
       googlePlaces: toBool(url.searchParams.get("googlePlaces"), true),
       osmOverpass: toBool(url.searchParams.get("osmOverpass"), true),
