@@ -1,0 +1,32 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/heartbeat",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/dashboard/hard-refresh/cron?force=1",
+      "schedule": "10 6 * * *"
+    },
+    {
+      "path": "/api/dashboard/overview/auto-proposals/cron?maxPerTenant=4&dedupeHours=8",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/agents/execute/cron?maxPerTenant=4&maxTotal=40",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/dashboard/ads/notifications/cron",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/prospecting-auto-run",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/prospecting-push-ghl?tenantId=fce0eb1a-5108-4777-923d-3a8152930f00&maxLeads=100",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

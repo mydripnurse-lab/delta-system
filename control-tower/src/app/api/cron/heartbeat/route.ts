@@ -7,6 +7,8 @@ function s(v: unknown) {
 }
 
 function isAuthorized(req: Request) {
+  const vercelCron = s(req.headers.get("x-vercel-cron"));
+  if (vercelCron === "1") return true;
   const expected = s(
     process.env.CRON_SECRET || process.env.DASHBOARD_CRON_SECRET || process.env.PROSPECTING_CRON_SECRET,
   );
