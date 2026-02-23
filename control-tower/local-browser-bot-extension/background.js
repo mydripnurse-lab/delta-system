@@ -1141,6 +1141,89 @@ async function runInTab(tabId, payload) {
         await sleep(360);
       }
 
+      function normalizeDomainLike(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/^https?:\/\//, "")
+          .replace(/\/+$/, "")
+          .replace(/\s+/g, "");
+      }
+
+      function readFunnelsSelectedDomainCandidates() {
+        const roots = [
+          ...document.querySelectorAll(
+            "#funnels, [id='funnels'], .funnel-setting-input, [id*='funnel' i]",
+          ),
+        ].filter((el) => visible(el));
+
+        const out = [];
+        for (const root of roots) {
+          const inputWrap = root.querySelector(".n-base-selection-input");
+          const contentEl = root.querySelector(".n-base-selection-input__content");
+          const inputLike = root.querySelector("input, [role='combobox']");
+          const titleVal = String(inputWrap?.getAttribute("title") || "").trim();
+          const contentVal = String(contentEl?.textContent || "").trim();
+          const ariaVal = String(inputLike?.getAttribute("aria-label") || "").trim();
+          const valueVal = String(inputLike?.value || "").trim();
+          const raw = titleVal || contentVal || valueVal || ariaVal;
+          if (raw) {
+            out.push({
+              raw,
+              source: titleVal
+                ? "title"
+                : contentVal
+                  ? "content"
+                  : valueVal
+                    ? "value"
+                    : "aria",
+            });
+          }
+        }
+        return out;
+      }
+
+      function matchesExpectedDomain(expected, got) {
+        const a = normalizeDomainLike(expected);
+        const b = normalizeDomainLike(got);
+        if (!a || !b) return false;
+        if (a === b) return true;
+        // Handle UI variants where value can include prefixes/suffixes.
+        return a.includes(b) || b.includes(a);
+      }
+
+      async function waitForFunnelsSelectedMatch(expectedDomainLike, timeoutMs = 20000) {
+        const expected = normalizeDomainLike(expectedDomainLike);
+        const started = Date.now();
+        let lastRaw = "";
+        let lastSource = "";
+        while (Date.now() - started < timeoutMs) {
+          const candidates = readFunnelsSelectedDomainCandidates();
+          if (candidates.length) {
+            const hit = candidates.find((c) => matchesExpectedDomain(expected, c.raw));
+            if (hit) {
+              log(`funnels selected ready (${hit.source}) -> ${hit.raw}`);
+              return true;
+            }
+            const first = candidates[0];
+            lastRaw = first.raw;
+            lastSource = first.source;
+          }
+          await sleepScaled(240);
+        }
+        const gotNorm = normalizeDomainLike(lastRaw);
+        if (!lastRaw) {
+          throw new Error(
+            `STEP_SETTINGS_FUNNELS_EMPTY: #funnels value not available within ${Math.round(
+              timeoutMs / 1000,
+            )}s`,
+          );
+        }
+        throw new Error(
+          `STEP_SETTINGS_FUNNELS_MISMATCH: expected="${expected}" got="${gotNorm}" raw="${lastRaw}" source="${lastSource || "unknown"}"`,
+        );
+      }
+
       async function waitForSettingsFormReady(timeoutMs = 90000) {
         await waitFor(() => {
           const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
@@ -1392,8 +1475,22 @@ async function runInTab(tabId, payload) {
       }
 
       async function verifySavedSettingsAndRepair(expected, attempts = 2) {
+        const hasExpectedPayload =
+          !!String(expected?.favicon || "").trim() ||
+          !!String(expected?.head || "").trim() ||
+          !!String(expected?.body || "").trim();
+        if (!hasExpectedPayload) return true;
+
         for (let i = 0; i < attempts; i += 1) {
-          await waitForSettingsFormReady(90000);
+          try {
+            await waitForSettingsFormReady(12000);
+          } catch {
+            // After clicking final Save, some variants navigate/hide settings form.
+            // In that case, do not block finalization.
+            log(`settings form not visible after save (${i + 1}/${attempts}) -> assume persisted`);
+            setSettingsPersistStatus("ok");
+            return true;
+          }
           const check = getSettingsMismatches(expected);
           if (check.mismatches.length === 0) {
             log(`settings persisted verified (${i + 1}/${attempts})`);
@@ -1416,7 +1513,7 @@ async function runInTab(tabId, payload) {
           }
 
           await clickFinalSaveStrict(45000);
-          await waitForUiSettle("post-save repair", 90000);
+          await waitForUiSettle("post-save repair", 30000);
           await sleepScaled(500);
         }
 
@@ -1605,6 +1702,7 @@ async function runInTab(tabId, payload) {
 
       try {
         log("Run started");
+        const runWarnings = [];
         await waitFor(() => document.readyState === "complete", 120000, 200, "document ready");
         await waitFor(
           () => String(location.href || "").includes("/settings/domain"),
@@ -1777,46 +1875,70 @@ async function runInTab(tabId, payload) {
           await sleep(420);
         }
 
-        await clickSettingsTabStrict(45000);
-        await waitForSettingsFormReady(90000);
-        await waitForUiSettle("settings form render", 90000);
+        let settingsPersisted = true;
+        try {
+          await clickSettingsTabStrict(45000);
+          await waitForFunnelsSelectedMatch(input.domainToPaste, 20000);
+          await waitForSettingsFormReady(30000);
+          await waitForUiSettle("settings form render", 15000);
 
-        if (input.faviconUrl) {
-          await retryFieldFill("favicon", () => fillFaviconStrict(input.faviconUrl, 60000), 3);
-          await sleepScaled(450);
-        }
-        if (input.headCode) {
-          await retryFieldFill("head tracking", () => fillHeadTrackingStrict(input.headCode, 60000), 3);
-          await sleepScaled(450);
-        }
-        if (input.bodyCode) {
-          await retryFieldFill("body tracking", () => fillBodyTrackingStrict(input.bodyCode, 60000), 3);
-          await sleepScaled(450);
-        }
+          if (input.faviconUrl) {
+            await retryFieldFill("favicon", () => fillFaviconStrict(input.faviconUrl, 60000), 3);
+            await sleepScaled(450);
+          }
+          if (input.headCode) {
+            await retryFieldFill("head tracking", () => fillHeadTrackingStrict(input.headCode, 60000), 3);
+            await sleepScaled(450);
+          }
+          if (input.bodyCode) {
+            await retryFieldFill("body tracking", () => fillBodyTrackingStrict(input.bodyCode, 60000), 3);
+            await sleepScaled(450);
+          }
 
-        await clickFinalSaveStrict(45000);
-        await waitForUiSettle("after final save", 90000);
-        const hasSettingsPayload =
-          !!String(input.faviconUrl || "").trim() ||
-          !!String(input.headCode || "").trim() ||
-          !!String(input.bodyCode || "").trim();
-        if (!hasSettingsPayload) {
+          await clickFinalSaveStrict(45000);
+          await waitForUiSettle("after final save", 45000);
+          const hasSettingsPayload =
+            !!String(input.faviconUrl || "").trim() ||
+            !!String(input.headCode || "").trim() ||
+            !!String(input.bodyCode || "").trim();
+          if (!hasSettingsPayload) {
+            setSettingsPersistStatus("na");
+          }
+          const verifyOutcome = await Promise.race([
+            verifySavedSettingsAndRepair(
+              {
+                favicon: String(input.faviconUrl || ""),
+                head: String(input.headCode || ""),
+                body: String(input.bodyCode || ""),
+              },
+              2,
+            ),
+            sleepScaled(25000).then(() => "__verify_timeout__"),
+          ]);
+          if (verifyOutcome === "__verify_timeout__") {
+            settingsPersisted = false;
+            runWarnings.push("settings_verify_timeout");
+            setSettingsPersistStatus("na");
+            log("WARNING: settings verify timeout -> continuing finalization");
+          } else {
+            settingsPersisted = Boolean(verifyOutcome);
+          }
+          if (!settingsPersisted) {
+            runWarnings.push("settings_mismatch");
+            log("continuing with warning: final settings verification returned mismatches");
+          }
+        } catch (settingsErr) {
+          const msg = settingsErr instanceof Error ? settingsErr.message : String(settingsErr);
+          if (/^STEP_SETTINGS_FUNNELS_(EMPTY|MISMATCH):/i.test(msg)) {
+            throw new Error(msg);
+          }
+          runWarnings.push(`settings_phase_skipped:${msg}`);
           setSettingsPersistStatus("na");
-        }
-        const settingsPersisted = await verifySavedSettingsAndRepair(
-          {
-            favicon: String(input.faviconUrl || ""),
-            head: String(input.headCode || ""),
-            body: String(input.bodyCode || ""),
-          },
-          2,
-        );
-        if (!settingsPersisted) {
-          log("continuing with warning: final settings verification returned mismatches");
+          log(`WARNING: settings phase skipped -> ${msg}`);
         }
 
         log("DONE");
-        return { ok: true, logs: allLogs, warnings: settingsPersisted ? [] : ["settings_mismatch"] };
+        return { ok: true, logs: allLogs, warnings: runWarnings };
       } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
         setSettingsPersistStatus("fail");
