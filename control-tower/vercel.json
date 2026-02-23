@@ -25,7 +25,7 @@
       "schedule": "*/30 * * * *"
     },
     {
-      "path": "/api/cron/prospecting-push-ghl?tenantId=fce0eb1a-5108-4777-923d-3a8152930f00&maxLeads=100",
+      "path": "/api/cron/prospecting-push-ghl?maxLeads=100&maxTenants=100",
       "schedule": "*/15 * * * *"
     }
   ]
