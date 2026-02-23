@@ -280,10 +280,11 @@ async function hasRecentSimilarProposal(input: {
       where organization_id = $1::uuid
         and action_type = $2
         and dashboard_id = $3
-        and summary = $4
         and (
           status = 'proposed'
           or (
+            summary = $4
+            and
             status in ('approved', 'executed')
             and created_at >= now() - make_interval(hours => $5::int)
           )
@@ -345,6 +346,8 @@ async function buildExecutePlanForTenant(input: {
 }
 
 async function runAutoProposals(req: Request, body?: JsonMap | null) {
+  let lockClient: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<{ ok?: boolean }> }>; release: () => void } | null = null;
+  let lockHeld = false;
   const startedAtMs = Date.now();
   const jobKey = "overview_auto_proposals_cron";
   const endpoint = new URL(req.url).pathname;
@@ -377,6 +380,27 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
     return Response.json(unauthorized, { status: 401 });
   }
   try {
+    lockClient = (await getDbPool().connect()) as typeof lockClient;
+    const lock = await lockClient.query(
+      "select pg_try_advisory_lock($1::int, $2::int) as ok",
+      [20260223, 2],
+    );
+    lockHeld = !!lock.rows?.[0]?.ok;
+    if (!lockHeld) {
+      const busy = {
+        ok: true,
+        skipped: "lock_busy",
+        message: "Overview auto-proposals cron already in progress.",
+      };
+      await heartbeatFinish({
+        jobKey,
+        status: "ok",
+        startedAtMs,
+        result: busy,
+      });
+      return Response.json(busy);
+    }
+
     const { start, end, preset } = computeRange();
     const origin = new URL(req.url).origin;
     const targets = await listTargets(singleTenantId);
@@ -546,6 +570,19 @@ async function runAutoProposals(req: Request, body?: JsonMap | null) {
       result: { ok: false },
     });
     return Response.json({ ok: false, error: message }, { status: 500 });
+  } finally {
+    try {
+      if (lockHeld && lockClient) {
+        await lockClient.query("select pg_advisory_unlock($1::int, $2::int)", [20260223, 2]);
+      }
+    } catch {
+      // noop
+    }
+    try {
+      lockClient?.release();
+    } catch {
+      // noop
+    }
   }
 }
 

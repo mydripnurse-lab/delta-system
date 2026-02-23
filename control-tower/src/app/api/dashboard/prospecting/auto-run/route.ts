@@ -136,6 +136,8 @@ function pickGeoBatch(input: {
 }
 
 export async function POST(req: Request) {
+  let lockClient: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<{ ok?: boolean }> }>; release: () => void } | null = null;
+  let lockHeld = false;
   try {
     const body = (await req.json().catch(() => null)) as JsonMap | null;
     void req;
@@ -151,6 +153,20 @@ export async function POST(req: Request) {
     const deadline = startedAt + maxRuntimeMs;
     const sources = ((body?.sources as JsonMap | undefined) || {}) as JsonMap;
     const enrichment = ((body?.enrichment as JsonMap | undefined) || {}) as JsonMap;
+
+    lockClient = (await getDbPool().connect()) as typeof lockClient;
+    const lock = await lockClient.query(
+      "select pg_try_advisory_lock($1::int, $2::int) as ok",
+      [20260223, 1],
+    );
+    lockHeld = !!lock.rows?.[0]?.ok;
+    if (!lockHeld) {
+      return Response.json({
+        ok: true,
+        skipped: "lock_busy",
+        message: "Prospecting auto-run already in progress.",
+      });
+    }
 
     const allTenantIds = singleTenantId ? [singleTenantId] : await listAutoEnabledTenants();
     const tenantIds = maxTenants > 0 ? allTenantIds.slice(0, maxTenants) : allTenantIds;
@@ -280,5 +296,18 @@ export async function POST(req: Request) {
       { ok: false, error: e instanceof Error ? e.message : "Failed to auto-run prospecting" },
       { status: 500 },
     );
+  } finally {
+    try {
+      if (lockHeld && lockClient) {
+        await lockClient.query("select pg_advisory_unlock($1::int, $2::int)", [20260223, 1]);
+      }
+    } catch {
+      // noop
+    }
+    try {
+      lockClient?.release();
+    } catch {
+      // noop
+    }
   }
 }
