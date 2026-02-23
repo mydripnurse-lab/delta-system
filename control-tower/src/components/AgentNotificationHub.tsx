@@ -355,24 +355,12 @@ export default function AgentNotificationHub({ tenantId, onCountsChange }: Props
           decision: "approved",
           actor: "user:dashboard",
           note: "Approved and executed from Notification Hub.",
+          executeOnApprove: true,
         }),
       });
       const approveJson = (await approveRes.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
       if (!approveRes.ok || !approveJson?.ok) {
         throw new Error(s(approveJson?.error) || `Approve failed (HTTP ${approveRes.status})`);
-      }
-
-      const execRes = await fetch("/api/agents/execute", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          proposalId: row.id,
-          actor: "user:dashboard",
-        }),
-      });
-      const execJson = (await execRes.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
-      if (!execRes.ok || !execJson?.ok) {
-        throw new Error(s(execJson?.error) || `Execute failed (HTTP ${execRes.status})`);
       }
       await load();
     } catch (e: unknown) {

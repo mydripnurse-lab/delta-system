@@ -14,6 +14,14 @@ function n(v: unknown) {
   return Number.isFinite(x) ? x : 0;
 }
 
+function resolveAuthCandidates() {
+  return [
+    s(process.env.PROSPECTING_CRON_SECRET),
+    s(process.env.CRON_SECRET),
+    s(process.env.DASHBOARD_CRON_SECRET),
+  ].filter(Boolean);
+}
+
 async function fetchJson(url: string, init?: RequestInit) {
   const res = await fetch(url, { cache: "no-store", ...(init || {}) });
   const json = (await res.json().catch(() => null)) as JsonMap | null;
@@ -90,8 +98,8 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => null)) as JsonMap | null;
     const tokenHeader = s(req.headers.get("x-prospecting-cron-secret"));
     const tokenBody = s(body?.secret);
-    const expected = s(process.env.PROSPECTING_CRON_SECRET);
-    if (expected && tokenHeader !== expected && tokenBody !== expected) {
+    const expected = resolveAuthCandidates();
+    if (expected.length && !expected.includes(tokenHeader) && !expected.includes(tokenBody)) {
       return Response.json({ ok: false, error: "Unauthorized cron secret." }, { status: 401 });
     }
 
