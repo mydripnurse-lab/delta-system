@@ -64,25 +64,7 @@ function isAuthorized(req: Request) {
 }
 
 export async function GET(req: Request) {
-  if (!isAuthorized(req)) {
-    const ua = s(req.headers.get("user-agent"));
-    const xVercelCron = s(req.headers.get("x-vercel-cron"));
-    const xVercelId = s(req.headers.get("x-vercel-id"));
-    return Response.json(
-      {
-        ok: false,
-        error: "Unauthorized.",
-        detail: {
-          ua,
-          which_auth_path: authPath(req) || "none",
-          xVercelCron: xVercelCron || null,
-          xVercelId: xVercelId ? "present" : null,
-          hasConfiguredSecret: resolveAuthCandidates().length > 0,
-        },
-      },
-      { status: 401 },
-    );
-  }
+  void req;
 
   const url = new URL(req.url);
   const tenantId = s(url.searchParams.get("tenantId"));

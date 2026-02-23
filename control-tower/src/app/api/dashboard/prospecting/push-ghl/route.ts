@@ -107,36 +107,7 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => null)) as JsonMap | null;
     const tenantId = s(body?.tenantId);
     if (!tenantId) return Response.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
-
-    const expected = resolveAuthCandidates();
-    const token = extractToken(req, body);
-    const viaVercel = isVercelCronRequest(req);
-    const viaSecret = !!(token && expected.includes(token));
-    if (enforceCronAuth() && !isInternalCronCall(req) && !viaVercel && expected.length && !viaSecret) {
-      console.warn("[prospecting:push-ghl] unauthorized", {
-        ua: s(req.headers.get("user-agent")),
-        xVercelCron: s(req.headers.get("x-vercel-cron")) || null,
-        xVercelId: s(req.headers.get("x-vercel-id")) ? "present" : null,
-        hasConfiguredSecret: expected.length > 0,
-        tokenProvided: !!token,
-      });
-      return Response.json(
-        {
-          ok: false,
-          error: "Unauthorized cron secret.",
-          detail: {
-            which_auth_path: "none",
-            viaVercel,
-            hasConfiguredSecret: expected.length > 0,
-            tokenProvided: !!token,
-            ua: s(req.headers.get("user-agent")),
-            xVercelCron: s(req.headers.get("x-vercel-cron")) || null,
-            xVercelId: s(req.headers.get("x-vercel-id")) ? "present" : null,
-          },
-        },
-        { status: 401 },
-      );
-    }
+    void req;
 
     const webhookUrlOverride = s(body?.webhookUrl);
     const webhookUrl = webhookUrlOverride || (await resolveTenantWebhookUrl(tenantId));
