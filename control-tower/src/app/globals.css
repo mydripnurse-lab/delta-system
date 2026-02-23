@@ -7128,12 +7128,11 @@ button, input, select { font-family: inherit; }
 }
 
 .prospectingDash .prospectingGeoList {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   margin-top: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
+  min-width: 0;
 }
 
 .prospectingDash .prospectingGeoRows {
@@ -7154,13 +7153,54 @@ button, input, select { font-family: inherit; }
   align-items: flex-start;
   gap: 10px;
   padding: 12px;
-  min-width: 320px;
-  max-width: 360px;
-  flex: 0 0 320px;
+  min-width: 0;
+  width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.32));
+  min-height: 156px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
+  will-change: transform;
+}
+
+.prospectingDash .prospectingGeoRow:hover,
+.prospectingDash .prospectingGeoRow:focus-within {
+  transform: translateY(-2px);
+  border-color: rgba(96, 165, 250, 0.48);
+  background:
+    linear-gradient(180deg, rgba(18, 28, 52, 0.64), rgba(15, 23, 42, 0.38));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 24px rgba(2, 6, 23, 0.35),
+    0 0 0 1px rgba(59, 130, 246, 0.14);
+}
+
+.prospectingDash .prospectingGeoRow.isSelected {
+  border-color: rgba(96, 165, 250, 0.72);
+  background:
+    linear-gradient(180deg, rgba(21, 45, 92, 0.56), rgba(14, 26, 54, 0.48));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 30px rgba(2, 6, 23, 0.44),
+    0 0 0 1px rgba(96, 165, 250, 0.3);
+}
+
+.prospectingDash .prospectingGeoRow .smallBtn {
+  transition:
+    transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.prospectingDash .prospectingGeoRow .smallBtn:hover {
+  transform: translateY(-1px);
 }
 
 .prospectingDash .prospectingGeoHead {
@@ -7209,6 +7249,12 @@ button, input, select { font-family: inherit; }
   padding: 4px 8px;
 }
 
+@media (max-width: 1560px) {
+  .prospectingDash .prospectingGeoList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1200px) {
   .prospectingDash .prospectingSignalGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7230,9 +7276,8 @@ button, input, select { font-family: inherit; }
   }
 
   .prospectingDash .prospectingGeoRow {
-    min-width: 300px;
-    max-width: 340px;
-    flex-basis: 300px;
+    min-width: 0;
+    width: 100%;
   }
 }
 
@@ -7246,6 +7291,10 @@ button, input, select { font-family: inherit; }
   }
 
   .prospectingDash .prospectingRunnerConfig {
+    grid-template-columns: 1fr;
+  }
+
+  .prospectingDash .prospectingGeoList {
     grid-template-columns: 1fr;
   }
 
@@ -7265,9 +7314,8 @@ button, input, select { font-family: inherit; }
   }
 
   .prospectingDash .prospectingGeoRow {
-    min-width: 86vw;
-    max-width: 86vw;
-    flex-basis: 86vw;
+    min-width: 0;
+    width: 100%;
   }
 }
 

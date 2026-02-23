@@ -735,6 +735,10 @@ function ProspectingDashboardContent() {
     return data.geoQueue.cities.map((x) => x.name);
   }, [data?.geoQueue, runGeoType]);
 
+  function isGeoSelected(type: "state" | "county" | "city", name: string) {
+    return runGeoType === type && runGeoName.trim().toLowerCase() === name.trim().toLowerCase();
+  }
+
   function applyGeoFromQueue(type: "state" | "county" | "city", name: string) {
     setRunGeoType(type);
     setRunGeoName(name);
@@ -1434,14 +1438,20 @@ function ProspectingDashboardContent() {
               <p className="l moduleTitle">Top States</p>
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.states || []).slice(0, 8).map((r, idx) => (
-                  <div key={`state-${r.name}`} className="prospectingGeoRow">
+                  <div key={`state-${r.name}`} className={`prospectingGeoRow${isGeoSelected("state", r.name) ? " isSelected" : ""}`}>
                     <div className="prospectingGeoHead">
                       <div className="prospectingGeoIdentity">
                         <div className="prospectingGeoRank">#{idx + 1}</div>
                         <div className="prospectingGeoName">{r.name}</div>
                       </div>
                       <div className="prospectingGeoActions">
-                        <button className="smallBtn" type="button" onClick={() => applyGeoFromQueue("state", r.name)}>Use</button>
+                        <button
+                          className={`smallBtn${isGeoSelected("state", r.name) ? " agencyActionPrimary" : ""}`}
+                          type="button"
+                          onClick={() => applyGeoFromQueue("state", r.name)}
+                        >
+                          Use
+                        </button>
                         <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("state", r.name)} disabled={queueRunLoading}>Run</button>
                       </div>
                     </div>
@@ -1472,14 +1482,20 @@ function ProspectingDashboardContent() {
               <p className="l moduleTitle">Top Counties</p>
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.counties || []).slice(0, 8).map((r, idx) => (
-                  <div key={`county-${r.name}`} className="prospectingGeoRow">
+                  <div key={`county-${r.name}`} className={`prospectingGeoRow${isGeoSelected("county", r.name) ? " isSelected" : ""}`}>
                     <div className="prospectingGeoHead">
                       <div className="prospectingGeoIdentity">
                         <div className="prospectingGeoRank">#{idx + 1}</div>
                         <div className="prospectingGeoName">{r.name}</div>
                       </div>
                       <div className="prospectingGeoActions">
-                        <button className="smallBtn" type="button" onClick={() => applyGeoFromQueue("county", r.name)}>Use</button>
+                        <button
+                          className={`smallBtn${isGeoSelected("county", r.name) ? " agencyActionPrimary" : ""}`}
+                          type="button"
+                          onClick={() => applyGeoFromQueue("county", r.name)}
+                        >
+                          Use
+                        </button>
                         <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("county", r.name)} disabled={queueRunLoading}>Run</button>
                       </div>
                     </div>
@@ -1509,14 +1525,20 @@ function ProspectingDashboardContent() {
               <p className="l moduleTitle">Top Cities</p>
               <div className="prospectingGeoList">
                 {(data?.geoQueue?.cities || []).slice(0, 8).map((r, idx) => (
-                  <div key={`city-${r.name}`} className="prospectingGeoRow">
+                  <div key={`city-${r.name}`} className={`prospectingGeoRow${isGeoSelected("city", r.name) ? " isSelected" : ""}`}>
                     <div className="prospectingGeoHead">
                       <div className="prospectingGeoIdentity">
                         <div className="prospectingGeoRank">#{idx + 1}</div>
                         <div className="prospectingGeoName">{r.name}</div>
                       </div>
                       <div className="prospectingGeoActions">
-                        <button className="smallBtn" type="button" onClick={() => applyGeoFromQueue("city", r.name)}>Use</button>
+                        <button
+                          className={`smallBtn${isGeoSelected("city", r.name) ? " agencyActionPrimary" : ""}`}
+                          type="button"
+                          onClick={() => applyGeoFromQueue("city", r.name)}
+                        >
+                          Use
+                        </button>
                         <button className="smallBtn" type="button" onClick={() => void runGeoFromQueue("city", r.name)} disabled={queueRunLoading}>Run</button>
                       </div>
                     </div>
