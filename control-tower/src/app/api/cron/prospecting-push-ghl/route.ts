@@ -40,6 +40,8 @@ function extractToken(req: Request) {
 function isVercelCronRequest(req: Request) {
   const vercelCron = s(req.headers.get("x-vercel-cron"));
   if (vercelCron === "1") return true;
+  const vercelId = s(req.headers.get("x-vercel-id"));
+  if (vercelId) return true;
   const ua = s(req.headers.get("user-agent")).toLowerCase();
   return ua.includes("vercel-cron");
 }
@@ -85,6 +87,9 @@ async function runPushForTenant(input: {
   includeUnapproved: boolean;
   statuses: string[];
   secret: string;
+  xVercelCron?: string;
+  xVercelId?: string;
+  userAgent?: string;
 }) {
   const payload: Record<string, unknown> = {
     tenantId: input.tenantId,
@@ -103,6 +108,9 @@ async function runPushForTenant(input: {
     headers: {
       "content-type": "application/json",
       ...(input.secret ? { "x-prospecting-cron-secret": input.secret } : {}),
+      ...(input.xVercelCron ? { "x-vercel-cron": input.xVercelCron } : {}),
+      ...(input.xVercelId ? { "x-vercel-id": input.xVercelId } : {}),
+      ...(input.userAgent ? { "user-agent": input.userAgent } : {}),
     },
     body: JSON.stringify(payload),
   });
@@ -118,7 +126,22 @@ async function runPushForTenant(input: {
 
 export async function GET(req: Request) {
   if (!isAuthorized(req)) {
-    return Response.json({ ok: false, error: "Unauthorized." }, { status: 401 });
+    const ua = s(req.headers.get("user-agent"));
+    const xVercelCron = s(req.headers.get("x-vercel-cron"));
+    const xVercelId = s(req.headers.get("x-vercel-id"));
+    return Response.json(
+      {
+        ok: false,
+        error: "Unauthorized.",
+        detail: {
+          ua,
+          xVercelCron: xVercelCron || null,
+          xVercelId: xVercelId ? "present" : null,
+          hasConfiguredSecret: resolveAuthCandidates().length > 0,
+        },
+      },
+      { status: 401 },
+    );
   }
 
   const url = new URL(req.url);
@@ -132,6 +155,9 @@ export async function GET(req: Request) {
   const testOnly = toBool(url.searchParams.get("testOnly"), false);
   const includeAlreadySent = toBool(url.searchParams.get("includeAlreadySent"), false);
   const includeUnapproved = toBool(url.searchParams.get("includeUnapproved"), false);
+  const fwdXVercelCron = s(req.headers.get("x-vercel-cron"));
+  const fwdXVercelId = s(req.headers.get("x-vercel-id"));
+  const fwdUa = s(req.headers.get("user-agent"));
 
   // Single-tenant mode when tenantId is provided.
   if (tenantId) {
@@ -144,6 +170,9 @@ export async function GET(req: Request) {
       includeUnapproved,
       statuses,
       secret,
+      xVercelCron: fwdXVercelCron,
+      xVercelId: fwdXVercelId,
+      userAgent: fwdUa,
     });
     if (single.body && typeof single.body === "object") {
       return Response.json(single.body, { status: single.status });
@@ -180,6 +209,9 @@ export async function GET(req: Request) {
         includeUnapproved,
         statuses,
         secret,
+        xVercelCron: fwdXVercelCron,
+        xVercelId: fwdXVercelId,
+        userAgent: fwdUa,
       });
       const ok = run.ok;
       if (ok) success += 1;

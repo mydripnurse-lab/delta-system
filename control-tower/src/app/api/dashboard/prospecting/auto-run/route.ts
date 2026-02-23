@@ -22,6 +22,15 @@ function resolveAuthCandidates() {
   ].filter(Boolean);
 }
 
+function isVercelCronRequest(req: Request) {
+  const vercelCron = s(req.headers.get("x-vercel-cron"));
+  if (vercelCron === "1") return true;
+  const vercelId = s(req.headers.get("x-vercel-id"));
+  if (vercelId) return true;
+  const ua = s(req.headers.get("user-agent")).toLowerCase();
+  return ua.includes("vercel-cron");
+}
+
 async function fetchJson(url: string, init?: RequestInit) {
   const res = await fetch(url, { cache: "no-store", ...(init || {}) });
   const json = (await res.json().catch(() => null)) as JsonMap | null;
@@ -99,7 +108,7 @@ export async function POST(req: Request) {
     const tokenHeader = s(req.headers.get("x-prospecting-cron-secret"));
     const tokenBody = s(body?.secret);
     const expected = resolveAuthCandidates();
-    if (expected.length && !expected.includes(tokenHeader) && !expected.includes(tokenBody)) {
+    if (!isVercelCronRequest(req) && expected.length && !expected.includes(tokenHeader) && !expected.includes(tokenBody)) {
       return Response.json({ ok: false, error: "Unauthorized cron secret." }, { status: 401 });
     }
 

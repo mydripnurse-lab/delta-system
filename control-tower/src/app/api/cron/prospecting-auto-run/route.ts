@@ -38,6 +38,8 @@ function extractToken(req: Request) {
 function isVercelCronRequest(req: Request) {
   const vercelCron = s(req.headers.get("x-vercel-cron"));
   if (vercelCron === "1") return true;
+  const vercelId = s(req.headers.get("x-vercel-id"));
+  if (vercelId) return true;
   const ua = s(req.headers.get("user-agent")).toLowerCase();
   return ua.includes("vercel-cron");
 }
@@ -52,7 +54,22 @@ function isAuthorized(req: Request) {
 
 export async function GET(req: Request) {
   if (!isAuthorized(req)) {
-    return Response.json({ ok: false, error: "Unauthorized." }, { status: 401 });
+    const ua = s(req.headers.get("user-agent"));
+    const xVercelCron = s(req.headers.get("x-vercel-cron"));
+    const xVercelId = s(req.headers.get("x-vercel-id"));
+    return Response.json(
+      {
+        ok: false,
+        error: "Unauthorized.",
+        detail: {
+          ua,
+          xVercelCron: xVercelCron || null,
+          xVercelId: xVercelId ? "present" : null,
+          hasConfiguredSecret: resolveAuthCandidates().length > 0,
+        },
+      },
+      { status: 401 },
+    );
   }
 
   const url = new URL(req.url);
@@ -82,12 +99,18 @@ export async function GET(req: Request) {
   if (secret) payload.secret = secret;
 
   const endpoint = new URL("/api/dashboard/prospecting/auto-run", url.origin);
+  const fwdXVercelCron = s(req.headers.get("x-vercel-cron"));
+  const fwdXVercelId = s(req.headers.get("x-vercel-id"));
+  const fwdUa = s(req.headers.get("user-agent"));
   const res = await fetch(endpoint.toString(), {
     method: "POST",
     cache: "no-store",
     headers: {
       "content-type": "application/json",
       ...(secret ? { "x-prospecting-cron-secret": secret } : {}),
+      ...(fwdXVercelCron ? { "x-vercel-cron": fwdXVercelCron } : {}),
+      ...(fwdXVercelId ? { "x-vercel-id": fwdXVercelId } : {}),
+      ...(fwdUa ? { "user-agent": fwdUa } : {}),
     },
     body: JSON.stringify(payload),
   });
