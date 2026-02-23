@@ -37,9 +37,15 @@ function extractToken(req: Request) {
   return header || bearer || query;
 }
 
-function isAuthorized(req: Request) {
+function isVercelCronRequest(req: Request) {
   const vercelCron = s(req.headers.get("x-vercel-cron"));
   if (vercelCron === "1") return true;
+  const ua = s(req.headers.get("user-agent")).toLowerCase();
+  return ua.includes("vercel-cron");
+}
+
+function isAuthorized(req: Request) {
+  if (isVercelCronRequest(req)) return true;
   const expected = resolveAuthCandidates();
   if (!expected.length) return true;
   const token = extractToken(req);
