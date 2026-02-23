@@ -38,6 +38,7 @@ resources/config/google-cloud.json
 !resources/config/business-profile.json
 !resources/config/campaign-factory.config.json
 !resources/config/campaign-landing-map.json
+!control-tower/vercel.json
 
 /data/secrets/
 /data/gsc/
