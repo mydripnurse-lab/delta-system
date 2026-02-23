@@ -22,6 +22,17 @@ function resolveAuthCandidates() {
   ].filter(Boolean);
 }
 
+function extractToken(req: Request, body?: JsonMap | null) {
+  const qs = new URL(req.url).searchParams;
+  const header = s(req.headers.get("x-prospecting-cron-secret"));
+  const dashboardHeader = s(req.headers.get("x-dashboard-cron-secret"));
+  const auth = s(req.headers.get("authorization"));
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  const query = s(qs.get("secret"));
+  const bodyToken = s(body?.secret);
+  return header || dashboardHeader || bearer || query || bodyToken;
+}
+
 function isVercelCronRequest(req: Request) {
   const vercelCron = s(req.headers.get("x-vercel-cron"));
   if (vercelCron === "1") return true;
@@ -105,11 +116,27 @@ function pickGeoBatch(input: {
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => null)) as JsonMap | null;
-    const tokenHeader = s(req.headers.get("x-prospecting-cron-secret"));
-    const tokenBody = s(body?.secret);
     const expected = resolveAuthCandidates();
-    if (!isVercelCronRequest(req) && expected.length && !expected.includes(tokenHeader) && !expected.includes(tokenBody)) {
-      return Response.json({ ok: false, error: "Unauthorized cron secret." }, { status: 401 });
+    const token = extractToken(req, body);
+    const viaVercel = isVercelCronRequest(req);
+    const viaSecret = !!(token && expected.includes(token));
+    if (!viaVercel && expected.length && !viaSecret) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Unauthorized cron secret.",
+          detail: {
+            which_auth_path: "none",
+            viaVercel,
+            hasConfiguredSecret: expected.length > 0,
+            tokenProvided: !!token,
+            ua: s(req.headers.get("user-agent")),
+            xVercelCron: s(req.headers.get("x-vercel-cron")) || null,
+            xVercelId: s(req.headers.get("x-vercel-id")) ? "present" : null,
+          },
+        },
+        { status: 401 },
+      );
     }
 
     const singleTenantId = s(body?.tenantId);

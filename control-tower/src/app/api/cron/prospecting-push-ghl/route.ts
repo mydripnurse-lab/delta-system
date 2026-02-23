@@ -46,12 +46,17 @@ function isVercelCronRequest(req: Request) {
   return ua.includes("vercel-cron");
 }
 
-function isAuthorized(req: Request) {
-  if (isVercelCronRequest(req)) return true;
+function authPath(req: Request) {
+  if (isVercelCronRequest(req)) return "vercel-cron";
   const expected = resolveAuthCandidates();
-  if (!expected.length) return true;
+  if (!expected.length) return "no-secret-configured";
   const token = extractToken(req);
-  return expected.includes(token);
+  if (token && expected.includes(token)) return "secret-match";
+  return "";
+}
+
+function isAuthorized(req: Request) {
+  return !!authPath(req);
 }
 
 function toInt(v: unknown, fallback: number, min = 1, max = 500) {
@@ -135,6 +140,7 @@ export async function GET(req: Request) {
         error: "Unauthorized.",
         detail: {
           ua,
+          which_auth_path: authPath(req) || "none",
           xVercelCron: xVercelCron || null,
           xVercelId: xVercelId ? "present" : null,
           hasConfiguredSecret: resolveAuthCandidates().length > 0,
