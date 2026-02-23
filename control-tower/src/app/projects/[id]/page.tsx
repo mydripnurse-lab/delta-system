@@ -457,6 +457,22 @@ type DomainBotRunItem = {
   error?: string;
 };
 
+type DomainBotFailureItem = {
+  id: number;
+  kind: "counties" | "cities";
+  locId: string;
+  rowName: string;
+  domainUrl: string;
+  activationUrl: string;
+  failedStep: string;
+  errorMessage: string;
+  logs: string[];
+  failCount: number;
+  status: "open" | "resolved" | "ignored";
+  lastSeenAt: string;
+  updatedAt: string;
+};
+
 /** ---- Progress / Runner UX (client-only) ---- */
 type RunnerTotals = {
   allTotal: number;
@@ -717,6 +733,10 @@ export default function Home() {
   const [domainBotRunItems, setDomainBotRunItems] = useState<DomainBotRunItem[]>([]);
   const [domainBotRunStartedAt, setDomainBotRunStartedAt] = useState("");
   const [domainBotRunDone, setDomainBotRunDone] = useState(false);
+  const [domainBotFailuresOpen, setDomainBotFailuresOpen] = useState(false);
+  const [domainBotFailuresLoading, setDomainBotFailuresLoading] = useState(false);
+  const [domainBotFailures, setDomainBotFailures] = useState<DomainBotFailureItem[]>([]);
+  const [domainBotFailuresMsg, setDomainBotFailuresMsg] = useState("");
   const [domainBotAccountTimeoutMin, setDomainBotAccountTimeoutMin] = useState(
     DOMAIN_BOT_TIMEOUT_MIN_DEFAULT,
   );
@@ -961,6 +981,14 @@ export default function Home() {
   useEffect(() => {
     loadOverview();
   }, [routeTenantId]);
+
+  useEffect(() => {
+    if (!routeTenantId) {
+      setDomainBotFailures([]);
+      return;
+    }
+    void loadDomainBotFailures(detailTab);
+  }, [routeTenantId, detailTab]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -2602,6 +2630,10 @@ export default function Home() {
       setActIsActive(true);
       setActMarkDone(true);
       triggerActivationCelebrate();
+      if (actKind === "counties" || actKind === "cities") {
+        void resolveDomainBotFailure(locId, actKind);
+        void loadDomainBotFailures(actKind);
+      }
 
       const keepTab = detailTab;
       await loadOverview();
@@ -3382,6 +3414,14 @@ export default function Home() {
     return s(toUrlMaybe(domainToPaste));
   }
 
+  function getDetailRowByLocId(kind: "counties" | "cities", locId: string) {
+    if (!detail) return null;
+    const rows = kind === "cities" ? detail.cities.rows || [] : detail.counties.rows || [];
+    const target = s(locId);
+    if (!target) return null;
+    return rows.find((r: any) => s(r["Location Id"]) === target) || null;
+  }
+
   async function runTabSitemaps(
     kind: "counties" | "cities",
     action: TabAction,
@@ -3591,6 +3631,133 @@ export default function Home() {
     pushDomainBotLog("Stop requested. Finishing current account, then stopping queue.");
   }
 
+  function inferFailedStep(errorMessage: string, logs: string[]) {
+    const err = s(errorMessage);
+    const m0 = err.match(/(STEP_[A-Z0-9_]+)/);
+    if (m0?.[1]) return m0[1];
+    const m1 = err.match(/(step-\d+:[^:]+:failed)/i);
+    if (m1?.[1]) return m1[1];
+    const m2 = err.match(/Timeout:\s*([^|]+)/i);
+    if (m2?.[1]) return s(m2[1]);
+
+    const lastAction = [...(logs || [])]
+      .reverse()
+      .find((line) =>
+        /(?:click|fill|open|pick|submit|radio|settings|verify|dropdown|modal|save|back)\s*(?:->|strict|exact|flow)/i.test(
+          s(line),
+        ),
+      );
+    return s(lastAction);
+  }
+
+  async function loadDomainBotFailures(kind?: "counties" | "cities") {
+    if (!routeTenantId) return;
+    setDomainBotFailuresLoading(true);
+    setDomainBotFailuresMsg("");
+    try {
+      const qs = new URLSearchParams({ status: "open", limit: "150" });
+      if (kind) qs.set("kind", kind);
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/domain-bot-failures?${qs.toString()}`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const rows = Array.isArray((data as any)?.rows) ? (data as any).rows : [];
+      setDomainBotFailures(
+        rows.map((r: any) => ({
+          id: Number(r.id) || 0,
+          kind: s(r.kind) === "cities" ? "cities" : "counties",
+          locId: s(r.locId),
+          rowName: s(r.rowName),
+          domainUrl: s(r.domainUrl),
+          activationUrl: s(r.activationUrl),
+          failedStep: s(r.failedStep),
+          errorMessage: s(r.errorMessage),
+          logs: Array.isArray(r.logs) ? r.logs.map((x: unknown) => s(x)).filter(Boolean) : [],
+          failCount: Number(r.failCount) || 1,
+          status: s(r.status) === "resolved" ? "resolved" : s(r.status) === "ignored" ? "ignored" : "open",
+          lastSeenAt: s(r.lastSeenAt),
+          updatedAt: s(r.updatedAt),
+        })),
+      );
+    } catch (e: any) {
+      setDomainBotFailuresMsg(e?.message || "Failed to load failed runs");
+    } finally {
+      setDomainBotFailuresLoading(false);
+    }
+  }
+
+  async function updateDomainBotFailureStatus(id: number, action: "resolve" | "ignore" | "reopen") {
+    if (!routeTenantId || !id) return;
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/domain-bot-failures`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      await loadDomainBotFailures(detailTab);
+    } catch (e: any) {
+      setDomainBotFailuresMsg(e?.message || "Failed to update failed run");
+    }
+  }
+
+  async function upsertDomainBotFailure(input: {
+    locId: string;
+    kind: "counties" | "cities";
+    rowName: string;
+    domainUrl: string;
+    activationUrl: string;
+    failedStep: string;
+    errorMessage: string;
+    logs: string[];
+  }) {
+    if (!routeTenantId) return;
+    try {
+      await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/domain-bot-failures`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "failed",
+          locId: s(input.locId),
+          kind: input.kind,
+          rowName: s(input.rowName),
+          domainUrl: s(input.domainUrl),
+          activationUrl: s(input.activationUrl),
+          failedStep: s(input.failedStep),
+          errorMessage: s(input.errorMessage),
+          logs: Array.isArray(input.logs) ? input.logs : [],
+          runSource: "local_extension",
+        }),
+      });
+    } catch {
+      // non-blocking: never break the bot flow because of failure persistence
+    }
+  }
+
+  async function resolveDomainBotFailure(locId: string, kind: "counties" | "cities") {
+    if (!routeTenantId) return;
+    try {
+      await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/domain-bot-failures`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "resolved",
+          locId: s(locId),
+          kind,
+        }),
+      });
+    } catch {
+      // non-blocking
+    }
+  }
+
   async function loadDomainBotHeaders(
     locId: string,
     fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
@@ -3684,7 +3851,15 @@ export default function Home() {
           });
           return;
         }
-        reject(new Error(s(data.error) || "Local extension bot failed."));
+        const err = new Error(s(data.error) || "Local extension bot failed.") as Error & {
+          botLogs?: string[];
+          href?: string;
+        };
+        err.botLogs = Array.isArray(data.logs)
+          ? data.logs.map((x: unknown) => s(x)).filter(Boolean)
+          : [];
+        err.href = s(data.href);
+        reject(err);
       }
 
       window.addEventListener("message", onMessage);
@@ -3979,6 +4154,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   ): Promise<{ status: "done" | "failed" | "stopped"; error?: string }> {
     const id = s(locId);
     const rowKind = kindOverride || detailTab;
+    const rowName = getTabRowName(rowKind, row) || "Row";
+    const rowDomainUrl = getTabRowDomainUrl(rowKind, row);
     if (!id) {
       setTabSitemapStatus({
         kind: rowKind,
@@ -4037,6 +4214,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     setDomainBotBusy(true);
     setDomainBotLogs([]);
     setDomainBotScreenshotDataUrl("");
+    let localRunLogs: string[] = [];
     pushDomainBotLog(`Start locId=${id}`);
     pushDomainBotLog(`Activation URL: ${activationUrlEffective || "(missing)"}`);
     setTabSitemapStatus({
@@ -4106,7 +4284,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         pageTypeNeedle: "Home Page",
         timeoutMs: Math.max(15000, msLeft()),
       });
-      (local.logs || []).forEach((line) => pushDomainBotLog(line));
+      localRunLogs = Array.isArray(local.logs) ? local.logs.map((x) => s(x)).filter(Boolean) : [];
+      localRunLogs.forEach((line) => pushDomainBotLog(line));
       if (!local.ok) {
         throw new Error(local.error || "Local extension run failed.");
       }
@@ -4167,11 +4346,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         ok: true,
         message: `Domain Bot OK (${id}) [local-extension] + complete.`,
       });
+      void resolveDomainBotFailure(id, rowKind);
+      void loadDomainBotFailures(detailTab);
       await loadOverview();
       if (openState) await openDetail(openState);
       return { status: "done" };
     } catch (e: any) {
       const msg = e?.message || "request failed";
+      const errorLogs = Array.isArray(e?.botLogs) ? e.botLogs.map((x: unknown) => s(x)).filter(Boolean) : localRunLogs;
+      const failedStep = inferFailedStep(msg, errorLogs);
       if (/stopped by user|activation tab was closed by user|manual close|tab was closed/i.test(msg)) {
         pushDomainBotLog("STOPPED by user.");
         setTabSitemapStatus({
@@ -4186,8 +4369,24 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           ok: false,
           message: `Domain Bot failed (${id}): ${msg}`,
         });
+        void upsertDomainBotFailure({
+          locId: id,
+          kind: rowKind,
+          rowName,
+          domainUrl: rowDomainUrl || s(toUrlMaybe(domainToPaste)),
+          activationUrl: activationUrlEffective,
+          failedStep,
+          errorMessage: msg,
+          logs: errorLogs,
+        });
+        void loadDomainBotFailures(detailTab);
       }
-      return { status: /stopped by user/i.test(msg) ? "stopped" : "failed", error: msg };
+      return {
+        status: /stopped by user|activation tab was closed by user|manual close|tab was closed/i.test(msg)
+          ? "stopped"
+          : "failed",
+        error: msg,
+      };
     } finally {
       setDomainBotBusy(false);
     }
@@ -7199,6 +7398,17 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 ) : null}
                 <button
                   className="smallBtn"
+                  onClick={() => {
+                    setDomainBotFailuresOpen(true);
+                    void loadDomainBotFailures(detailTab);
+                  }}
+                  disabled={domainBotBusy}
+                  title="Open failed runs"
+                >
+                  Failed Runs ({domainBotFailures.length})
+                </button>
+                <button
+                  className="smallBtn"
                   onClick={requestStopDomainBot}
                   disabled={!domainBotBusy || domainBotStopRequested}
                   title="Stop current bot run safely"
@@ -7324,6 +7534,162 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
                 </div>
               ) : null}
+            </div>
+          </div>
+        </>
+      )}
+
+      {domainBotFailuresOpen && (
+        <>
+          <div
+            className="modalBackdrop"
+            onClick={() => {
+              if (!domainBotBusy) setDomainBotFailuresOpen(false);
+            }}
+          />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(1100px, calc(100vw - 24px))",
+              height: "min(620px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader">
+              <div>
+                <div className="badge">DOMAIN BOT FAILURES</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  Open Failed Runs • {detailTab === "counties" ? "Counties" : "Cities"}
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  Saved failures with step/error. Open account or retry one-by-one.
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  className="smallBtn"
+                  onClick={() => void loadDomainBotFailures(detailTab)}
+                  disabled={domainBotFailuresLoading}
+                >
+                  {domainBotFailuresLoading ? "Refreshing..." : "Refresh"}
+                </button>
+                <button
+                  className="smallBtn"
+                  onClick={() => setDomainBotFailuresOpen(false)}
+                  disabled={domainBotBusy}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="modalBody" style={{ padding: 14 }}>
+              {domainBotFailuresMsg ? (
+                <div className="mini" style={{ color: "var(--danger)", marginBottom: 10 }}>
+                  {domainBotFailuresMsg}
+                </div>
+              ) : null}
+              <div className="tableWrap tableScrollX" style={{ maxHeight: 460 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Status</th>
+                      <th className="th">Kind</th>
+                      <th className="th">Name</th>
+                      <th className="th">Domain</th>
+                      <th className="th">Failed Step</th>
+                      <th className="th">Error</th>
+                      <th className="th">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {domainBotFailures.map((it) => (
+                      <tr key={it.id} className="tr">
+                        <td className="td">
+                          <span className="pillOff">Open</span>
+                          <div className="mini" style={{ marginTop: 4 }}>
+                            x{Math.max(1, Number(it.failCount) || 1)}
+                          </div>
+                        </td>
+                        <td className="td">
+                          <span className="mini">{it.kind}</span>
+                        </td>
+                        <td className="td">{it.rowName || it.locId || "—"}</td>
+                        <td className="td">
+                          <span className="mini">{it.domainUrl || "—"}</span>
+                        </td>
+                        <td className="td">
+                          <span className="mini">{it.failedStep || "—"}</span>
+                        </td>
+                        <td className="td">
+                          <span className="mini">{it.errorMessage || "—"}</span>
+                        </td>
+                        <td className="td">
+                          <div className="rowActions">
+                            <button
+                              className="smallBtn"
+                              onClick={() => {
+                                const u = s(it.activationUrl);
+                                if (u) window.open(u, "_blank", "noopener,noreferrer");
+                              }}
+                              disabled={!s(it.activationUrl)}
+                              title="Open GHL account activation/settings page"
+                            >
+                              Open GHL Account
+                            </button>
+                            <button
+                              className="smallBtn"
+                              onClick={async () => {
+                                const row = getDetailRowByLocId(it.kind, it.locId);
+                                if (!row) {
+                                  setDomainBotFailuresMsg(
+                                    `Row not found in loaded sheet for ${it.locId}. Open the state first.`,
+                                  );
+                                  return;
+                                }
+                                await runDomainBotForLocId(
+                                  it.locId,
+                                  it.activationUrl,
+                                  row,
+                                  it.kind,
+                                  domainBotAccountTimeoutMs,
+                                );
+                                await loadDomainBotFailures(detailTab);
+                              }}
+                              disabled={domainBotBusy}
+                            >
+                              Retry
+                            </button>
+                            <button
+                              className="smallBtn"
+                              onClick={() => void updateDomainBotFailureStatus(it.id, "resolve")}
+                              disabled={domainBotBusy}
+                            >
+                              Resolve
+                            </button>
+                            <button
+                              className="smallBtn"
+                              onClick={() => void updateDomainBotFailureStatus(it.id, "ignore")}
+                              disabled={domainBotBusy}
+                            >
+                              Ignore
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {domainBotFailures.length === 0 ? (
+                      <tr className="tr">
+                        <td className="td" colSpan={7}>
+                          <span className="mini">
+                            {domainBotFailuresLoading ? "Loading..." : "No open failed runs."}
+                          </span>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>
