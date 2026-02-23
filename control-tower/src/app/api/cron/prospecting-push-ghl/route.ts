@@ -161,6 +161,7 @@ export async function GET(req: Request) {
   const testOnly = toBool(url.searchParams.get("testOnly"), false);
   const includeAlreadySent = toBool(url.searchParams.get("includeAlreadySent"), false);
   const includeUnapproved = toBool(url.searchParams.get("includeUnapproved"), false);
+  const incomingIsVercelCron = isVercelCronRequest(req);
   const fwdXVercelCron = s(req.headers.get("x-vercel-cron"));
   const fwdXVercelId = s(req.headers.get("x-vercel-id"));
   const fwdUa = s(req.headers.get("user-agent"));
@@ -176,7 +177,7 @@ export async function GET(req: Request) {
       includeUnapproved,
       statuses,
       secret,
-      xVercelCron: fwdXVercelCron,
+      xVercelCron: fwdXVercelCron || (incomingIsVercelCron ? "1" : ""),
       xVercelId: fwdXVercelId,
       userAgent: fwdUa,
     });
@@ -215,7 +216,7 @@ export async function GET(req: Request) {
         includeUnapproved,
         statuses,
         secret,
-        xVercelCron: fwdXVercelCron,
+        xVercelCron: fwdXVercelCron || (incomingIsVercelCron ? "1" : ""),
         xVercelId: fwdXVercelId,
         userAgent: fwdUa,
       });

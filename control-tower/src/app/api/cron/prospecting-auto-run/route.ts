@@ -105,6 +105,7 @@ export async function GET(req: Request) {
   if (secret) payload.secret = secret;
 
   const endpoint = new URL("/api/dashboard/prospecting/auto-run", url.origin);
+  const incomingIsVercelCron = isVercelCronRequest(req);
   const fwdXVercelCron = s(req.headers.get("x-vercel-cron"));
   const fwdXVercelId = s(req.headers.get("x-vercel-id"));
   const fwdUa = s(req.headers.get("user-agent"));
@@ -115,6 +116,7 @@ export async function GET(req: Request) {
       "content-type": "application/json",
       ...(secret ? { "x-prospecting-cron-secret": secret } : {}),
       ...(fwdXVercelCron ? { "x-vercel-cron": fwdXVercelCron } : {}),
+      ...(!fwdXVercelCron && incomingIsVercelCron ? { "x-vercel-cron": "1" } : {}),
       ...(fwdXVercelId ? { "x-vercel-id": fwdXVercelId } : {}),
       ...(fwdUa ? { "user-agent": fwdUa } : {}),
     },
