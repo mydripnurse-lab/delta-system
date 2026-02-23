@@ -114,6 +114,7 @@ export async function GET(req: Request) {
     cache: "no-store",
     headers: {
       "content-type": "application/json",
+      "x-internal-cron-call": "1",
       ...(secret ? { "x-prospecting-cron-secret": secret } : {}),
       ...(fwdXVercelCron ? { "x-vercel-cron": fwdXVercelCron } : {}),
       ...(!fwdXVercelCron && incomingIsVercelCron ? { "x-vercel-cron": "1" } : {}),

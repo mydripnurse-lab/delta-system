@@ -112,6 +112,7 @@ async function runPushForTenant(input: {
     cache: "no-store",
     headers: {
       "content-type": "application/json",
+      "x-internal-cron-call": "1",
       ...(input.secret ? { "x-prospecting-cron-secret": input.secret } : {}),
       ...(input.xVercelCron ? { "x-vercel-cron": input.xVercelCron } : {}),
       ...(input.xVercelId ? { "x-vercel-id": input.xVercelId } : {}),

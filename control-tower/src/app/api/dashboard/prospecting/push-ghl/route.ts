@@ -42,6 +42,10 @@ function isVercelCronRequest(req: Request) {
   return ua.includes("vercel-cron");
 }
 
+function isInternalCronCall(req: Request) {
+  return s(req.headers.get("x-internal-cron-call")) === "1";
+}
+
 async function resolveTenantWebhookUrl(tenantId: string) {
   const pool = getDbPool();
   const q = await pool.query<{
@@ -103,7 +107,14 @@ export async function POST(req: Request) {
     const token = extractToken(req, body);
     const viaVercel = isVercelCronRequest(req);
     const viaSecret = !!(token && expected.includes(token));
-    if (!viaVercel && expected.length && !viaSecret) {
+    if (!isInternalCronCall(req) && !viaVercel && expected.length && !viaSecret) {
+      console.warn("[prospecting:push-ghl] unauthorized", {
+        ua: s(req.headers.get("user-agent")),
+        xVercelCron: s(req.headers.get("x-vercel-cron")) || null,
+        xVercelId: s(req.headers.get("x-vercel-id")) ? "present" : null,
+        hasConfiguredSecret: expected.length > 0,
+        tokenProvided: !!token,
+      });
       return Response.json(
         {
           ok: false,
