@@ -417,6 +417,6 @@ export async function PATCH(req: Request, ctx: Ctx) {
     autoExecution: config.autoExecution,
     autoApproval: config.autoApproval,
     agents: config.agents,
-    routingBackupAt: s(asObj(config.__routingBackupLatest).at) || null,
+    routingBackupAt: s(asObj((config as Record<string, unknown>).__routingBackupLatest).at) || null,
   });
 }
