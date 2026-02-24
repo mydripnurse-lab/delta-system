@@ -178,7 +178,7 @@ async function createVideo(body: JsonMap) {
     const out = normalizeRunwayPayload(json, model);
     await appendAiEvent({
       agent: "youtube_ads",
-      kind: "video_generation",
+      kind: "insight_run",
       summary: `Runway video requested (${out.status || "queued"})`,
       metadata: {
         model: out.model,
