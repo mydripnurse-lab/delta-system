@@ -5,7 +5,7 @@ import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
-import type { DashboardRangePreset } from "@/lib/dateRangePresets";
+import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
 type RangePreset = DashboardRangePreset;
 
@@ -127,7 +127,7 @@ function downloadCsv(filename: string, headers: string[], rows: Array<Array<unkn
 
 export default function YoutubeAdsDashboardPage() {
   const searchParams = useBrowserSearchParams();
-  const { tenantId } = useResolvedTenantId(searchParams);
+  const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
   const backHref = tenantId
     ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
@@ -155,15 +155,24 @@ export default function YoutubeAdsDashboardPage() {
   const [videoGen, setVideoGen] = useState<RunwayVideoResponse | null>(null);
 
   async function load(force?: boolean) {
+    if (!tenantReady) return;
+    if (!tenantId) {
+      setError("Missing tenant context. Open from Control Tower or use a mapped project domain.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const qs = new URLSearchParams();
-      qs.set("range", preset);
-      if (preset === "custom") {
-        if (start) qs.set("start", start);
-        if (end) qs.set("end", end);
+      const range = computeDashboardRange(preset, start, end);
+      if (!range.start || !range.end) {
+        throw new Error("Missing start/end range values.");
       }
+      const qs = new URLSearchParams();
+      qs.set("preset", preset);
+      qs.set("start", range.start);
+      qs.set("end", range.end);
+      qs.set("tenantId", tenantId);
+      qs.set("integrationKey", integrationKey);
       qs.set("compare", "1");
       if (force) qs.set("force", "1");
       const res = await fetch(`/api/dashboard/overview?${qs.toString()}`, { cache: "no-store" });
@@ -179,10 +188,11 @@ export default function YoutubeAdsDashboardPage() {
   }
 
   useEffect(() => {
+    if (!tenantReady) return;
     if (preset !== "custom") load(false);
     else if (start && end) load(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, start, end]);
+  }, [preset, start, end, tenantReady, tenantId]);
 
   const playbooks = useMemo<YoutubePlaybook[]>(() => {
     const states = (data?.topOpportunitiesGeo?.states || []).slice(0, 6);
