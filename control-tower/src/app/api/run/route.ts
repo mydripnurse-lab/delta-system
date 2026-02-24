@@ -657,9 +657,8 @@ export async function POST(req: Request) {
             }
             if (!s(envMerged.DELTA_CHECKPOINT_DIR)) {
                 envMerged.DELTA_CHECKPOINT_DIR = path.join(
-                    repoRoot,
-                    "scripts",
-                    "checkpoints",
+                    os.tmpdir(),
+                    "ct-checkpoints",
                     "run-delta-system",
                     tenantId || "global",
                 );

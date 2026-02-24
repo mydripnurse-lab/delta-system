@@ -36,9 +36,8 @@ const OUT_ROOT =
 const CHECKPOINT_DIR =
     String(process.env.DELTA_CHECKPOINT_DIR || "").trim() ||
     path.join(
-        process.cwd(),
-        "scripts",
-        "checkpoints",
+        path.dirname(OUT_ROOT),
+        "_checkpoints",
         "run-delta-system",
         TENANT_ID || "global"
     );
