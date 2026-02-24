@@ -205,12 +205,16 @@ export function persistRunEvent(
     linesCount,
     progressJson,
   });
-  scheduleEventFlush(false);
+  const immediate =
+    eventType === "error" ||
+    msg.startsWith("child-close:") ||
+    msg.startsWith("child-stderr-preview:");
+  scheduleEventFlush(immediate);
 }
 
 export function persistRunStopped(runId: string) {
-  scheduleEventFlush(true);
   void writeSafe(async () => {
+    await flushQueuedEvents();
     const pool = getDbPool();
     await pool.query(
       `
@@ -235,8 +239,8 @@ export function persistRunFinished(runId: string, params: {
   progress?: RunProgress | null;
 }) {
   const status = safeStatusFrom(params);
-  scheduleEventFlush(true);
   void writeSafe(async () => {
+    await flushQueuedEvents();
     const pool = getDbPool();
     await pool.query(
       `

@@ -819,6 +819,11 @@ export async function POST(req: Request) {
                                     run.id,
                                     `child-stderr-preview: ${stderrPreview.replace(/\s+/g, " ").trim()}`,
                                 );
+                            } else if (!stderrLines && !stdoutLines) {
+                                appendLine(
+                                    run.id,
+                                    `child-diagnostic: process exited without stdout/stderr output at ${new Date().toISOString()}`,
+                                );
                             }
                         }
                         if (runtimeKilled) {
@@ -885,6 +890,11 @@ export async function POST(req: Request) {
                         appendLine(
                             run.id,
                             `child-stderr-preview: ${stderrPreview.replace(/\s+/g, " ").trim()}`,
+                        );
+                    } else if (!stderrLines && !stdoutLines) {
+                        appendLine(
+                            run.id,
+                            `child-diagnostic: process exited without stdout/stderr output at ${new Date().toISOString()}`,
                         );
                     }
                 }
