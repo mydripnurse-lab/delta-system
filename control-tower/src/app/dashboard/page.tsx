@@ -2497,14 +2497,6 @@ function DashboardHomeContent() {
         </div>
 
         <nav className="agencyGlobalNav agencyGlobalNavRight">
-          <div className="agencyGlobalNavStack">
-            <Link className="agencyGlobalNavItem agencyGlobalNavBackItem" href={controlTowerHref}>
-              ← Back to Home
-            </Link>
-            <Link className="agencyGlobalNavItem agencyGlobalNavItemActive" href={withTenantHref("/dashboard", { integrationKey: "owner" })}>
-              Dashboard
-            </Link>
-          </div>
           <div className="agencyAccountWrap" ref={accountMenuRef}>
             <button
               type="button"
@@ -2554,6 +2546,9 @@ function DashboardHomeContent() {
       <div className="agencyRoot">
         <aside className="agencySidebar">
           <nav className="agencyNav">
+            <Link className="agencyNavItem agencyNavBackItem" href={controlTowerHref}>
+              ← Back to Home
+            </Link>
             {navItems.map((item) => (
               <button
                 key={item.key}

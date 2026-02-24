@@ -6679,19 +6679,6 @@ button, input, select { font-family: inherit; }
   background: rgba(255,255,255,0.05);
 }
 
-.agencyGlobalNavStack {
-  display: grid;
-  gap: 8px;
-}
-
-.agencyGlobalNavBackItem {
-  border-color: rgba(56, 189, 248, 0.42);
-  background:
-    radial-gradient(170px 80px at 14% 22%, rgba(56, 189, 248, 0.2), transparent 74%),
-    rgba(15, 23, 42, 0.42);
-  font-weight: 700;
-}
-
 .agencyLivePill,
 .agencyByPill {
   border: 1px solid rgba(255,255,255,0.14);
