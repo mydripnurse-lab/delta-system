@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
@@ -274,7 +274,6 @@ function rangeFromPreset(preset: KpiRangePreset, customStart: string, customEnd:
 
 export default function AgencyHomePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [tenantRows, setTenantRows] = useState<TenantRow[]>([]);
   const [tenantLoading, setTenantLoading] = useState(false);
   const [tenantErr, setTenantErr] = useState("");
@@ -1049,7 +1048,9 @@ export default function AgencyHomePage() {
   }, []);
 
   useEffect(() => {
-    const panel = s(searchParams?.get("account")).toLowerCase();
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const panel = s(sp.get("account")).toLowerCase();
     if (panel === "profile") {
       setShowProfileModal(true);
       setShowSecurityModal(false);
@@ -1059,7 +1060,7 @@ export default function AgencyHomePage() {
       setShowProfileModal(false);
       setAccountMenuOpen(false);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
