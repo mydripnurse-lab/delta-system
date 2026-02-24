@@ -85,6 +85,49 @@ type RunwayVideoResponse = {
   outputPreviewUrl?: string;
 };
 
+type PromptBuilderState = {
+  objective: "Leads" | "Bookings" | "Retargeting";
+  offer: string;
+  tone: "premium" | "clinical" | "energetic";
+  pacing: "slow" | "balanced" | "fast";
+  visualStyle: "cinematic" | "ugc" | "documentary";
+  camera: "static" | "dynamic" | "mixed";
+  ctaStrength: "soft" | "medium" | "hard";
+  compliance: "strict" | "balanced";
+  useTextOverlay: boolean;
+  showNurse: boolean;
+  showHomeScene: boolean;
+};
+
+type CampaignDraft = {
+  campaignName: string;
+  adGroupName: string;
+  objective: string;
+  dailyBudgetUsd: string;
+  biddingStrategy: string;
+  targetCpaUsd: string;
+  targetRoas: string;
+  startDate: string;
+  endDate: string;
+  region: string;
+  languages: string;
+  inventoryType: string;
+  devices: string;
+  audiences: string;
+  keywords: string;
+  placements: string;
+  finalUrl: string;
+  displayUrl: string;
+  cta: string;
+  headline: string;
+  longHeadline: string;
+  description1: string;
+  description2: string;
+  trackingTemplate: string;
+  utmCampaign: string;
+  utmContent: string;
+};
+
 function fmtInt(v: unknown) {
   const n = Number(v);
   if (!Number.isFinite(n)) return "0";
@@ -125,6 +168,10 @@ function downloadCsv(filename: string, headers: string[], rows: Array<Array<unkn
   URL.revokeObjectURL(url);
 }
 
+function oneLine(v: string) {
+  return s(v).replace(/\s+/g, " ");
+}
+
 export default function YoutubeAdsDashboardPage() {
   const searchParams = useBrowserSearchParams();
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
@@ -154,6 +201,54 @@ export default function YoutubeAdsDashboardPage() {
   const [videoBusy, setVideoBusy] = useState(false);
   const [videoErr, setVideoErr] = useState("");
   const [videoGen, setVideoGen] = useState<RunwayVideoResponse | null>(null);
+
+  const [builder, setBuilder] = useState<PromptBuilderState>({
+    objective: "Leads",
+    offer: "Book same-day mobile IV visit",
+    tone: "premium",
+    pacing: "balanced",
+    visualStyle: "cinematic",
+    camera: "mixed",
+    ctaStrength: "medium",
+    compliance: "strict",
+    useTextOverlay: true,
+    showNurse: true,
+    showHomeScene: true,
+  });
+
+  const [campaign, setCampaign] = useState<CampaignDraft>({
+    campaignName: "MDN YouTube FL Q1",
+    adGroupName: "Florida Intent - Wellness",
+    objective: "Leads",
+    dailyBudgetUsd: "120",
+    biddingStrategy: "Maximize Conversions",
+    targetCpaUsd: "45",
+    targetRoas: "2.5",
+    startDate: "",
+    endDate: "",
+    region: "Florida",
+    languages: "English, Spanish",
+    inventoryType: "Standard Inventory",
+    devices: "All devices",
+    audiences: "In-market Wellness, Custom intent mobile IV, Website visitors 30d",
+    keywords: "mobile iv therapy florida, hydration iv near me, nurse iv service",
+    placements: "youtube.com, health & wellness channels",
+    finalUrl: "https://mydripnurse.com/book",
+    displayUrl: "mydripnurse.com/book",
+    cta: "Book your IV visit",
+    headline: "Feeling low energy in Florida?",
+    longHeadline: "Mobile IV therapy with licensed nurses in Florida",
+    description1: "Same-day appointments. Transparent pricing.",
+    description2: "Book your personalized IV plan in minutes.",
+    trackingTemplate: "{lpurl}?utm_source=youtube&utm_medium=cpc&utm_campaign={_campaign}&utm_content={_creative}",
+    utmCampaign: "youtube_florida_iv_q1",
+    utmContent: "video_a",
+  });
+
+  const [proposalBusy, setProposalBusy] = useState(false);
+  const [proposalErr, setProposalErr] = useState("");
+  const [proposalMsg, setProposalMsg] = useState("");
+  const [youtubeAgentId, setYoutubeAgentId] = useState("soul_youtube_ads");
 
   async function load(force?: boolean) {
     if (!tenantReady) return;
@@ -195,6 +290,22 @@ export default function YoutubeAdsDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset, start, end, tenantReady, tenantId]);
 
+  useEffect(() => {
+    if (!tenantId) return;
+    async function loadAgentRouting() {
+      try {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/integrations/openclaw`, { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as { ok?: boolean; agents?: Record<string, { agentId?: string }> } | null;
+        if (!res.ok || !json?.ok) return;
+        const agentId = s(json?.agents?.youtube_ads?.agentId);
+        if (agentId) setYoutubeAgentId(agentId);
+      } catch {
+        // fallback to default soul id
+      }
+    }
+    void loadAgentRouting();
+  }, [tenantId]);
+
   const playbooks = useMemo<YoutubePlaybook[]>(() => {
     const states = (data?.topOpportunitiesGeo?.states || []).slice(0, 6);
     return states.map((st, idx) => {
@@ -228,11 +339,57 @@ export default function YoutubeAdsDashboardPage() {
     });
   }, [data]);
 
+  function updateBuilder<K extends keyof PromptBuilderState>(key: K, value: PromptBuilderState[K]) {
+    setBuilder((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function updateCampaign<K extends keyof CampaignDraft>(key: K, value: CampaignDraft[K]) {
+    setCampaign((prev) => ({ ...prev, [key]: value }));
+  }
+
+  const builderPrompt = useMemo(() => {
+    const region = campaign.region || playbooks[0]?.region || "Florida";
+    const scriptBase = oneLine(campaign.description1 || playbooks[0]?.script30s || "Mobile IV therapy with licensed nurses.");
+    const pace = builder.pacing === "fast" ? "quick cuts" : builder.pacing === "slow" ? "longer calm shots" : "balanced cuts";
+    const camera = builder.camera === "dynamic" ? "handheld + dolly movement" : builder.camera === "static" ? "stable tripod shots" : "mix static and dynamic camera";
+    const style = builder.visualStyle === "ugc" ? "authentic UGC look" : builder.visualStyle === "documentary" ? "documentary realism" : "premium cinematic commercial";
+    const tone = builder.tone === "clinical" ? "clinical trust-building tone" : builder.tone === "energetic" ? "energetic motivational tone" : "premium wellness tone";
+    const compliance =
+      builder.compliance === "strict"
+        ? "No exaggerated medical claims. Compliance-safe language."
+        : "Avoid explicit claims; keep outcomes realistic.";
+    const overlays = builder.useTextOverlay ? "Minimal text overlays with headline and CTA." : "No text overlays except end card.";
+    const nurse = builder.showNurse ? "Show licensed nurse arrival and setup." : "Focus on lifestyle and result shots.";
+    const home = builder.showHomeScene ? "Start with at-home fatigue scene." : "Skip home fatigue scene.";
+    const cta =
+      builder.ctaStrength === "hard"
+        ? "Strong CTA end card: Book your IV visit now."
+        : builder.ctaStrength === "soft"
+          ? "Soft CTA end card: Learn more and schedule when ready."
+          : "CTA end card: Book your IV visit.";
+
+    return oneLine(
+      `YouTube ad for ${region}. Objective: ${builder.objective}. Offer: ${builder.offer}. ${tone}. ${style}. ${pace}. ${camera}. ${home} ${nurse} Narrative base: ${scriptBase}. ${overlays} ${cta} Aspect ratio ${runwayRatio}. ${compliance}`,
+    );
+  }, [builder, campaign.description1, campaign.region, playbooks, runwayRatio]);
+
   useEffect(() => {
     if (!runwayPrompt && playbooks[0]?.runwayPrompt) {
       setRunwayPrompt(playbooks[0].runwayPrompt);
     }
   }, [playbooks, runwayPrompt]);
+
+  useEffect(() => {
+    if (!campaign.region && playbooks[0]?.region) {
+      updateCampaign("region", playbooks[0].region);
+    }
+  }, [campaign.region, playbooks]);
+
+  useEffect(() => {
+    const u = s(videoGen?.outputUrl);
+    if (!u) return;
+    if (!campaign.headline) updateCampaign("headline", `Feeling low energy in ${campaign.region || "your area"}?`);
+  }, [videoGen?.outputUrl, campaign.headline, campaign.region]);
 
   const stats = {
     leads: Number(data?.executive?.leadsNow || 0),
@@ -338,6 +495,83 @@ export default function YoutubeAdsDashboardPage() {
     }
   }
 
+  async function queueCampaignForApproval() {
+    if (!tenantId) {
+      setProposalErr("Missing tenant context.");
+      return;
+    }
+    setProposalBusy(true);
+    setProposalErr("");
+    setProposalMsg("");
+    try {
+      const payload = {
+        tenant_id: tenantId,
+        integration_key: integrationKey,
+        dashboard: "youtube_ads",
+        source: "youtube_campaign_composer",
+        runway: {
+          model: runwayModel,
+          ratio: runwayRatio,
+          durationSeconds: Number(runwayDuration || 10),
+          prompt: runwayPrompt,
+          seedImageUrl,
+          generationId: s(videoGen?.id),
+          outputUrl: s(videoGen?.outputUrl),
+        },
+        campaign,
+      };
+      const res = await fetch("/api/agents/proposals", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          organizationId: tenantId,
+          actionType: "publish_ads",
+          agentId: youtubeAgentId || "soul_youtube_ads",
+          dashboardId: "youtube_ads",
+          priority: "P2",
+          riskLevel: "medium",
+          expectedImpact: "high",
+          summary: `Publish YouTube campaign draft (${campaign.campaignName || "untitled"})`,
+          payload,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !json?.ok) throw new Error(s(json?.error) || `HTTP ${res.status}`);
+      setProposalMsg("Campaign draft sent to Notification Hub for approval/execution.");
+    } catch (e: unknown) {
+      setProposalErr(e instanceof Error ? e.message : "Failed to queue campaign draft.");
+    } finally {
+      setProposalBusy(false);
+    }
+  }
+
+  function applyPromptBuilder() {
+    setRunwayPrompt(builderPrompt);
+  }
+
+  function applyPlaybookToComposer(pb: YoutubePlaybook) {
+    updateCampaign("region", pb.region);
+    updateCampaign("objective", pb.objective);
+    updateCampaign("dailyBudgetUsd", String(pb.dailyBudget));
+    updateCampaign("cta", pb.cta);
+    updateCampaign("headline", pb.hook);
+    updateCampaign("description1", pb.script15s);
+    updateCampaign("description2", pb.script30s);
+    setRunwayPrompt(pb.runwayPrompt);
+  }
+
+  function downloadVideo() {
+    const url = s(videoGen?.outputUrl);
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(campaign.campaignName || "youtube-ad").replace(/\s+/g, "-").toLowerCase()}.mp4`;
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
   useEffect(() => {
     const status = s(videoGen?.status).toLowerCase();
     const id = s(videoGen?.id);
@@ -352,11 +586,54 @@ export default function YoutubeAdsDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoGen?.id, videoGen?.status]);
 
+  const campaignPayloadPreview = useMemo(() => {
+    return {
+      platform: "youtube_ads",
+      objective: campaign.objective,
+      campaign_name: campaign.campaignName,
+      ad_group_name: campaign.adGroupName,
+      budget: {
+        daily_usd: Number(campaign.dailyBudgetUsd || 0),
+        bidding_strategy: campaign.biddingStrategy,
+        target_cpa_usd: Number(campaign.targetCpaUsd || 0),
+        target_roas: Number(campaign.targetRoas || 0),
+      },
+      schedule: {
+        start_date: campaign.startDate || null,
+        end_date: campaign.endDate || null,
+      },
+      targeting: {
+        geo: campaign.region,
+        languages: campaign.languages,
+        inventory_type: campaign.inventoryType,
+        devices: campaign.devices,
+        audiences: campaign.audiences,
+        keywords: campaign.keywords,
+        placements: campaign.placements,
+      },
+      creative: {
+        video_url: s(videoGen?.outputUrl),
+        final_url: campaign.finalUrl,
+        display_url: campaign.displayUrl,
+        cta: campaign.cta,
+        headline: campaign.headline,
+        long_headline: campaign.longHeadline,
+        description_1: campaign.description1,
+        description_2: campaign.description2,
+      },
+      tracking: {
+        template: campaign.trackingTemplate,
+        utm_campaign: campaign.utmCampaign,
+        utm_content: campaign.utmContent,
+      },
+    };
+  }, [campaign, videoGen?.outputUrl]);
+
   return (
     <div className="shell callsDash gaDash">
       <DashboardTopbar
         title="My Drip Nurse — YouTube Ads + Runway Studio"
-        subtitle="Delta System + Geo opportunity data para crear y renderizar videos publicitarios con Runway Gen 4.5."
+        subtitle="Delta System + OpenClaw + Runway: build, preview and queue YouTube campaigns for approval and future publishing."
         backHref={backHref}
         tenantId={tenantId}
         notificationsHref={notificationsHref}
@@ -469,9 +746,26 @@ export default function YoutubeAdsDashboardPage() {
                     <p className="mini moduleLine"><b>Script 30s:</b> {String(p.script_30s || "-")}</p>
                     <p className="mini moduleLine"><b>CTA:</b> {String(p.cta || "-")}</p>
                     <p className="mini moduleLine"><b>Runway prompt:</b> {String(p.runway_prompt || "-")}</p>
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button className="smallBtn" type="button" onClick={() => setRunwayPrompt(String(p.runway_prompt || ""))}>
-                        Use Prompt in Video Lab
+                        Use Prompt
+                      </button>
+                      <button
+                        className="smallBtn"
+                        type="button"
+                        onClick={() => applyPlaybookToComposer({
+                          region: String(p.region || "Region"),
+                          objective: String(p.objective || "Leads") as YoutubePlaybook["objective"],
+                          dailyBudget: Number(p.budget_daily_usd || 0),
+                          audience: String(p.audience || ""),
+                          hook: String(p.video_hook || ""),
+                          script15s: String(p.script_15s || ""),
+                          script30s: String(p.script_30s || ""),
+                          cta: String(p.cta || "Book now"),
+                          runwayPrompt: String(p.runway_prompt || ""),
+                        })}
+                      >
+                        Apply to Campaign
                       </button>
                     </div>
                   </div>
@@ -482,6 +776,243 @@ export default function YoutubeAdsDashboardPage() {
               Generate AI Playbook para crear guiones de YouTube Ads y prompts listos para Runway.
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Prompt Builder Pro</h2>
+            <div className="cardSubtitle">Builder técnico para producir prompts consistentes y listos para performance YouTube.</div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={applyPromptBuilder}>Apply Builder Prompt</button>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))" }}>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Objective</p>
+              <select className="input" value={builder.objective} onChange={(e) => updateBuilder("objective", e.target.value as PromptBuilderState["objective"])}>
+                <option>Leads</option>
+                <option>Bookings</option>
+                <option>Retargeting</option>
+              </select>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Tone</p>
+              <select className="input" value={builder.tone} onChange={(e) => updateBuilder("tone", e.target.value as PromptBuilderState["tone"])}>
+                <option value="premium">Premium</option>
+                <option value="clinical">Clinical</option>
+                <option value="energetic">Energetic</option>
+              </select>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Pacing</p>
+              <select className="input" value={builder.pacing} onChange={(e) => updateBuilder("pacing", e.target.value as PromptBuilderState["pacing"])}>
+                <option value="slow">Slow</option>
+                <option value="balanced">Balanced</option>
+                <option value="fast">Fast</option>
+              </select>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Visual Style</p>
+              <select className="input" value={builder.visualStyle} onChange={(e) => updateBuilder("visualStyle", e.target.value as PromptBuilderState["visualStyle"])}>
+                <option value="cinematic">Cinematic</option>
+                <option value="ugc">UGC</option>
+                <option value="documentary">Documentary</option>
+              </select>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Camera</p>
+              <select className="input" value={builder.camera} onChange={(e) => updateBuilder("camera", e.target.value as PromptBuilderState["camera"])}>
+                <option value="mixed">Mixed</option>
+                <option value="dynamic">Dynamic</option>
+                <option value="static">Static</option>
+              </select>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Compliance</p>
+              <select className="input" value={builder.compliance} onChange={(e) => updateBuilder("compliance", e.target.value as PromptBuilderState["compliance"])}>
+                <option value="strict">Strict</option>
+                <option value="balanced">Balanced</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+            <input className="input" value={builder.offer} onChange={(e) => updateBuilder("offer", e.target.value)} placeholder="Offer" />
+            <textarea className="input" rows={3} value={builderPrompt} readOnly />
+          </div>
+          <div className="mini" style={{ marginTop: 8, opacity: 0.82 }}>
+            Pro tip: usa Builder Prompt como base, luego ajusta detalles en Runway Prompt con contexto del mercado y señal Delta.
+          </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Runway Gen-4.5 Video Lab</h2>
+            <div className="cardSubtitle">Genera el video creativo y visualízalo directamente en este dashboard.</div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={refreshVideoStatus} disabled={!videoGen?.id || videoBusy}>
+              Refresh Status
+            </button>
+            <button className="smallBtn aiBtn" type="button" onClick={createRunwayVideo} disabled={videoBusy || !runwayPrompt.trim()}>
+              {videoBusy ? "Generating..." : "Generate Video"}
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Model</p>
+              <input className="input" value={runwayModel} onChange={(e) => setRunwayModel(e.target.value)} />
+              <p className="mini" style={{ marginTop: 8, opacity: 0.8 }}>Examples: `gen4.5`, `gen4_turbo`, `veo3.1`.</p>
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Aspect Ratio</p>
+              <input className="input" value={runwayRatio} onChange={(e) => setRunwayRatio(e.target.value)} placeholder="1280:720" />
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Duration (sec)</p>
+              <input className="input" type="number" min={5} max={30} value={runwayDuration} onChange={(e) => setRunwayDuration(e.target.value)} />
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Seed Image URL (optional)</p>
+              <input className="input" value={seedImageUrl} onChange={(e) => setSeedImageUrl(e.target.value)} placeholder="https://.../frame.jpg" />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <p className="l moduleTitle">Runway Prompt</p>
+            <textarea
+              className="input"
+              rows={5}
+              value={runwayPrompt}
+              onChange={(e) => setRunwayPrompt(e.target.value)}
+              placeholder="Describe shot sequence, style, talent, camera movement, overlays and CTA."
+            />
+          </div>
+
+          {videoErr ? <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>X {videoErr}</div> : null}
+          {videoGen ? (
+            <div style={{ marginTop: 10 }}>
+              <div className="mini" style={{ marginBottom: 8 }}>
+                Generation ID: <b>{s(videoGen.id) || "-"}</b> · Status: <b>{s(videoGen.status) || "queued"}</b> · Model: <b>{s(videoGen.model) || runwayModel}</b>
+              </div>
+              {s(videoGen.outputUrl) ? (
+                <div style={{ display: "grid", gap: 10 }}>
+                  <video
+                    src={s(videoGen.outputUrl)}
+                    controls
+                    style={{ width: "100%", maxHeight: 520, borderRadius: 12, border: "1px solid rgba(148,163,184,.25)" }}
+                  />
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button className="smallBtn" type="button" onClick={downloadVideo}>Download Video</button>
+                    <a className="smallBtn" href={s(videoGen.outputUrl)} target="_blank" rel="noreferrer">Open Video URL</a>
+                  </div>
+                </div>
+              ) : (
+                <div className="mini" style={{ opacity: 0.82 }}>Video aún en proceso. Usa `Refresh Status` o espera auto-refresh.</div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">YouTube Ads Campaign Composer</h2>
+            <div className="cardSubtitle">UI completa para campaign setup, preview de creative y payload listo para publicar (vía OpenClaw approval).</div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn aiBtn" type="button" onClick={queueCampaignForApproval} disabled={proposalBusy || !tenantId}>
+              {proposalBusy ? "Queueing..." : "Send to Notification Hub"}
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div className="moduleGrid" style={{ gridTemplateColumns: "1.15fr 1fr" }}>
+            <div className="moduleCard">
+              <p className="l moduleTitle">YouTube Ad Preview</p>
+              <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid rgba(148,163,184,.22)", background: "#0b1220" }}>
+                <div style={{ aspectRatio: "16/9", width: "100%", background: "#000" }}>
+                  {s(videoGen?.outputUrl) ? (
+                    <video src={s(videoGen?.outputUrl)} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", color: "rgba(148,163,184,.9)" }}>No video generated yet</div>
+                  )}
+                </div>
+                <div style={{ padding: 12, background: "rgba(2,6,23,.8)" }}>
+                  <p style={{ margin: 0, fontWeight: 700 }}>{campaign.headline || "Ad headline"}</p>
+                  <p className="mini" style={{ margin: "6px 0 0" }}>{campaign.displayUrl || "display.url"}</p>
+                  <p className="mini" style={{ margin: "6px 0 0", opacity: 0.9 }}>{campaign.description1}</p>
+                  <div style={{ marginTop: 10 }}>
+                    <span className="badge">CTA: {campaign.cta || "Book now"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <p className="l moduleTitle">Campaign Core</p>
+              <div style={{ display: "grid", gap: 8 }}>
+                <input className="input" value={campaign.campaignName} onChange={(e) => updateCampaign("campaignName", e.target.value)} placeholder="Campaign name" />
+                <input className="input" value={campaign.adGroupName} onChange={(e) => updateCampaign("adGroupName", e.target.value)} placeholder="Ad group name" />
+                <select className="input" value={campaign.objective} onChange={(e) => updateCampaign("objective", e.target.value)}>
+                  <option>Leads</option>
+                  <option>Bookings</option>
+                  <option>Retargeting</option>
+                </select>
+                <input className="input" value={campaign.dailyBudgetUsd} onChange={(e) => updateCampaign("dailyBudgetUsd", e.target.value)} placeholder="Daily budget USD" />
+                <input className="input" value={campaign.biddingStrategy} onChange={(e) => updateCampaign("biddingStrategy", e.target.value)} placeholder="Bidding strategy" />
+                <input className="input" value={campaign.targetCpaUsd} onChange={(e) => updateCampaign("targetCpaUsd", e.target.value)} placeholder="Target CPA USD" />
+                <input className="input" value={campaign.targetRoas} onChange={(e) => updateCampaign("targetRoas", e.target.value)} placeholder="Target ROAS" />
+              </div>
+            </div>
+          </div>
+
+          <div className="moduleGrid" style={{ marginTop: 10 }}>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Targeting</p>
+              <div style={{ display: "grid", gap: 8 }}>
+                <input className="input" value={campaign.region} onChange={(e) => updateCampaign("region", e.target.value)} placeholder="Geo target" />
+                <input className="input" value={campaign.languages} onChange={(e) => updateCampaign("languages", e.target.value)} placeholder="Languages" />
+                <input className="input" value={campaign.inventoryType} onChange={(e) => updateCampaign("inventoryType", e.target.value)} placeholder="Inventory type" />
+                <input className="input" value={campaign.devices} onChange={(e) => updateCampaign("devices", e.target.value)} placeholder="Devices" />
+                <textarea className="input" rows={2} value={campaign.audiences} onChange={(e) => updateCampaign("audiences", e.target.value)} placeholder="Audiences" />
+                <textarea className="input" rows={2} value={campaign.keywords} onChange={(e) => updateCampaign("keywords", e.target.value)} placeholder="Keywords" />
+                <textarea className="input" rows={2} value={campaign.placements} onChange={(e) => updateCampaign("placements", e.target.value)} placeholder="Placements" />
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <p className="l moduleTitle">Ad Asset + Tracking</p>
+              <div style={{ display: "grid", gap: 8 }}>
+                <input className="input" value={campaign.finalUrl} onChange={(e) => updateCampaign("finalUrl", e.target.value)} placeholder="Final URL" />
+                <input className="input" value={campaign.displayUrl} onChange={(e) => updateCampaign("displayUrl", e.target.value)} placeholder="Display URL" />
+                <input className="input" value={campaign.cta} onChange={(e) => updateCampaign("cta", e.target.value)} placeholder="CTA" />
+                <input className="input" value={campaign.headline} onChange={(e) => updateCampaign("headline", e.target.value)} placeholder="Headline" />
+                <input className="input" value={campaign.longHeadline} onChange={(e) => updateCampaign("longHeadline", e.target.value)} placeholder="Long headline" />
+                <textarea className="input" rows={2} value={campaign.description1} onChange={(e) => updateCampaign("description1", e.target.value)} placeholder="Description 1" />
+                <textarea className="input" rows={2} value={campaign.description2} onChange={(e) => updateCampaign("description2", e.target.value)} placeholder="Description 2" />
+                <input className="input" value={campaign.trackingTemplate} onChange={(e) => updateCampaign("trackingTemplate", e.target.value)} placeholder="Tracking template" />
+                <input className="input" value={campaign.utmCampaign} onChange={(e) => updateCampaign("utmCampaign", e.target.value)} placeholder="UTM campaign" />
+                <input className="input" value={campaign.utmContent} onChange={(e) => updateCampaign("utmContent", e.target.value)} placeholder="UTM content" />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <p className="l moduleTitle">Publish Payload (future YouTube Ads API)</p>
+            <textarea className="input" rows={12} readOnly value={JSON.stringify(campaignPayloadPreview, null, 2)} />
+          </div>
+
+          {proposalErr ? <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>X {proposalErr}</div> : null}
+          {proposalMsg ? <div className="mini" style={{ color: "rgba(74,222,128,.95)", marginTop: 8 }}>✓ {proposalMsg}</div> : null}
         </div>
       </section>
 
@@ -513,6 +1044,9 @@ export default function YoutubeAdsDashboardPage() {
                 <p className="mini moduleLine"><b>Script 30s:</b> {pb.script30s}</p>
                 <p className="mini moduleLine"><b>CTA:</b> {pb.cta}</p>
                 <p className="mini moduleLine"><b>Runway prompt:</b> {pb.runwayPrompt}</p>
+                <div style={{ marginTop: 8 }}>
+                  <button className="smallBtn" type="button" onClick={() => applyPlaybookToComposer(pb)}>Use in Composer</button>
+                </div>
               </div>
             ))}
           </div>
@@ -523,85 +1057,10 @@ export default function YoutubeAdsDashboardPage() {
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
-            <h2 className="cardTitle">Runway Gen-4.5 Video Lab</h2>
-            <div className="cardSubtitle">Genera el video creativo y visualízalo directamente en este dashboard.</div>
-          </div>
-          <div className="cardHeaderActions">
-            <button className="smallBtn" type="button" onClick={refreshVideoStatus} disabled={!videoGen?.id || videoBusy}>
-              Refresh Status
-            </button>
-            <button className="smallBtn aiBtn" type="button" onClick={createRunwayVideo} disabled={videoBusy || !runwayPrompt.trim()}>
-              {videoBusy ? "Generating..." : "Generate Video"}
-            </button>
-          </div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Model</p>
-              <input className="input" value={runwayModel} onChange={(e) => setRunwayModel(e.target.value)} />
-              <p className="mini" style={{ marginTop: 8, opacity: 0.8 }}>Default recomendado: `gen4.5`.</p>
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Aspect Ratio</p>
-              <input className="input" value={runwayRatio} onChange={(e) => setRunwayRatio(e.target.value)} placeholder="1280:720" />
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Duration (sec)</p>
-              <input className="input" type="number" min={5} max={30} value={runwayDuration} onChange={(e) => setRunwayDuration(e.target.value)} />
-            </div>
-            <div className="moduleCard">
-              <p className="l moduleTitle">Seed Image URL (optional)</p>
-              <input
-                className="input"
-                value={seedImageUrl}
-                onChange={(e) => setSeedImageUrl(e.target.value)}
-                placeholder="https://.../frame.jpg"
-              />
-              <p className="mini" style={{ marginTop: 8, opacity: 0.8 }}>
-                Use this if selected model requires image-to-video.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 10 }}>
-            <p className="l moduleTitle">Runway Prompt</p>
-            <textarea
-              className="input"
-              rows={5}
-              value={runwayPrompt}
-              onChange={(e) => setRunwayPrompt(e.target.value)}
-              placeholder="Describe the shot, style, camera movement, scene details, and CTA overlay..."
-            />
-          </div>
-
-          {videoErr ? <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>X {videoErr}</div> : null}
-          {videoGen ? (
-            <div style={{ marginTop: 10 }}>
-              <div className="mini" style={{ marginBottom: 8 }}>
-                Generation ID: <b>{s(videoGen.id) || "-"}</b> · Status: <b>{s(videoGen.status) || "queued"}</b> · Model: <b>{s(videoGen.model) || runwayModel}</b>
-              </div>
-              {s(videoGen.outputUrl) ? (
-                <video
-                  src={s(videoGen.outputUrl)}
-                  controls
-                  style={{ width: "100%", maxHeight: 520, borderRadius: 12, border: "1px solid rgba(148,163,184,.25)" }}
-                />
-              ) : (
-                <div className="mini" style={{ opacity: 0.82 }}>Video aún en proceso. Usa `Refresh Status` o espera auto-refresh.</div>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
             <h2 className="cardTitle">AI Strategist (YouTube Ads)</h2>
             <div className="cardSubtitle">Agente con memoria compartida para estrategia, scripts y mejoras creativas.</div>
           </div>
-          <div className="badge">shared memory</div>
+          <div className="badge">agent: {youtubeAgentId}</div>
         </div>
         <div className="cardBody">
           <AiAgentChatPanel
@@ -624,6 +1083,9 @@ export default function YoutubeAdsDashboardPage() {
               runwayDuration,
               seedImageUrl,
               runwayGeneration: videoGen,
+              promptBuilder: builder,
+              campaign,
+              payloadPreview: campaignPayloadPreview,
             }}
           />
         </div>

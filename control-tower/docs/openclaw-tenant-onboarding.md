@@ -49,8 +49,20 @@ Create these souls in OpenClaw (IDs must match routing):
 - `soul_central_orchestrator`
 - `soul_leads_prospecting`
 - `soul_ads_optimizer`
+- `soul_youtube_ads`
 - `soul_content_publisher`
 - optional: `soul_calls`, `soul_conversations`, `soul_transactions`, `soul_appointments`, `soul_gsc`, `soul_ga`, `soul_facebook_ads`
+
+Workspace bootstrap template for YouTube Ads soul:
+
+- `docs/openclaw/workspaces/soul_youtube_ads/AGENTS.md`
+- `docs/openclaw/workspaces/soul_youtube_ads/SOUL.md`
+- `docs/openclaw/workspaces/soul_youtube_ads/TOOLS.md`
+- `docs/openclaw/workspaces/soul_youtube_ads/IDENTITY.md`
+- `docs/openclaw/workspaces/soul_youtube_ads/USER.md`
+- `docs/openclaw/workspaces/soul_youtube_ads/HEARTBEAT.md`
+- `docs/openclaw/workspaces/soul_youtube_ads/BOOTSTRAP.md`
+- `docs/openclaw/workspaces/soul_youtube_ads/MEMORY.md`
 
 ## 4) OpenClaw proposal call contract
 
@@ -108,4 +120,3 @@ Other action types are marked executed in queue mode until external executors ar
 - Never reuse API keys across tenants.
 - Each tenant has its own routing + key in DB.
 - Each soul call must include the tenant key and tenant ID.
-
