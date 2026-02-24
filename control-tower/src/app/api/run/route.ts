@@ -510,6 +510,10 @@ export async function POST(req: Request) {
 
     const locId = String(body?.locId || "").trim();
     const kind = String(body?.kind || "").trim(); // "counties" | "cities" | ""
+    const allowConcurrent =
+        body?.allowConcurrent === true ||
+        String(body?.allowConcurrent || "").trim().toLowerCase() === "1" ||
+        String(body?.allowConcurrent || "").trim().toLowerCase() === "true";
 
     // state aquí es metadata + (para jobs que lo usan)
     const rawState = safeStateArg(body?.state);
@@ -544,24 +548,26 @@ export async function POST(req: Request) {
     }
 
     // Avoid duplicate active run for same tenant/job/state/scope.
-    const existingActive = listRuns({ activeOnly: true, limit: 200 }).find((r) => {
-        const m = (r.meta || {}) as Record<string, unknown>;
-        return (
-            s(m.tenantId) === tenantId &&
-            s(m.job) === job &&
-            s(m.state) === metaState &&
-            s(m.locId) === locId &&
-            s(m.kind) === kind
-        );
-    });
-    if (existingActive) {
-        return NextResponse.json(
-            {
-                error: "A run with same Job/State scope is already running.",
-                runId: existingActive.id,
-            },
-            { status: 409 },
-        );
+    if (!allowConcurrent) {
+        const existingActive = listRuns({ activeOnly: true, limit: 200 }).find((r) => {
+            const m = (r.meta || {}) as Record<string, unknown>;
+            return (
+                s(m.tenantId) === tenantId &&
+                s(m.job) === job &&
+                s(m.state) === metaState &&
+                s(m.locId) === locId &&
+                s(m.kind) === kind
+            );
+        });
+        if (existingActive) {
+            return NextResponse.json(
+                {
+                    error: "A run with same Job/State scope is already running.",
+                    runId: existingActive.id,
+                },
+                { status: 409 },
+            );
+        }
     }
 
     const run = createRun({ job, state: metaState, mode, debug, tenantId, locId, kind });

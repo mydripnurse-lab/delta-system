@@ -722,10 +722,13 @@ export default function Home() {
   const [runHistoryOpen, setRunHistoryOpen] = useState(false);
   const [runHistoryRunId, setRunHistoryRunId] = useState("");
   const [runHistoryLoading, setRunHistoryLoading] = useState(false);
+  const [runHistoryLive, setRunHistoryLive] = useState(false);
   const [runHistoryErr, setRunHistoryErr] = useState("");
+  const [allowParallelRuns, setAllowParallelRuns] = useState(false);
   const [runHistoryEvents, setRunHistoryEvents] = useState<
     Array<{ id: number; createdAt: string; eventType: string; message: string }>
   >([]);
+  const runHistoryLastEventIdRef = useRef(0);
   const currentRunIdRef = useRef<string>("");
   const isRunningRef = useRef<boolean>(false);
 
@@ -2996,37 +2999,108 @@ export default function Home() {
     }
   }
 
-  async function openRunHistory(runIdToOpen: string) {
-    const id = s(runIdToOpen);
+  async function loadRunHistoryEvents(idRaw: string, opts?: { initial?: boolean }) {
+    const id = s(idRaw);
     if (!id) return;
-    setRunHistoryOpen(true);
-    setRunHistoryRunId(id);
-    setRunHistoryErr("");
-    setRunHistoryLoading(true);
-    setRunHistoryEvents([]);
+    const initial = !!opts?.initial;
+    if (initial) {
+      setRunHistoryLoading(true);
+      setRunHistoryErr("");
+      setRunHistoryEvents([]);
+      runHistoryLastEventIdRef.current = 0;
+    }
     try {
-      const res = await fetch(`/api/run/${encodeURIComponent(id)}/events?limit=2500`, {
+      const qs = new URLSearchParams();
+      qs.set("limit", initial ? "1200" : "600");
+      if (!initial && runHistoryLastEventIdRef.current > 0) {
+        qs.set("afterId", String(runHistoryLastEventIdRef.current));
+      }
+      if (routeTenantId) {
+        qs.set("tenantId", routeTenantId);
+      }
+      const res = await fetch(`/api/run/${encodeURIComponent(id)}/events?${qs.toString()}`, {
         cache: "no-store",
       });
       const data = await safeJson(res);
       if (!res.ok || !data?.ok) {
         throw new Error(s(data?.error) || `HTTP ${res.status}`);
       }
-      const events = Array.isArray(data?.events) ? data.events : [];
-      setRunHistoryEvents(
-        events.map((it: any) => ({
-          id: Number(it?.id || 0),
-          createdAt: s(it?.createdAt),
-          eventType: s(it?.eventType) || "line",
-          message: s(it?.message),
-        })),
-      );
+      const nextEvents = (Array.isArray(data?.events) ? data.events : []).map((it: any) => ({
+        id: Number(it?.id || 0),
+        createdAt: s(it?.createdAt),
+        eventType: s(it?.eventType) || "line",
+        message: s(it?.message),
+      }));
+      if (initial) {
+        setRunHistoryEvents(nextEvents);
+        runHistoryLastEventIdRef.current = Number(nextEvents[nextEvents.length - 1]?.id || 0);
+      } else if (nextEvents.length > 0) {
+        setRunHistoryEvents((prev) => {
+          const seen = new Set(prev.map((ev) => Number(ev.id || 0)));
+          const merged = [...prev];
+          for (const ev of nextEvents) {
+            const idNum = Number(ev.id || 0);
+            if (seen.has(idNum)) continue;
+            merged.push(ev);
+          }
+          if (merged.length > 5000) {
+            return merged.slice(merged.length - 5000);
+          }
+          return merged;
+        });
+        runHistoryLastEventIdRef.current = Math.max(
+          runHistoryLastEventIdRef.current,
+          Number(nextEvents[nextEvents.length - 1]?.id || 0),
+        );
+      }
+      setRunHistoryErr("");
     } catch (e: any) {
-      setRunHistoryErr(e?.message || "Failed to load run history");
+      if (initial) {
+        setRunHistoryErr(e?.message || "Failed to load run history");
+      }
     } finally {
-      setRunHistoryLoading(false);
+      if (initial) setRunHistoryLoading(false);
     }
   }
+
+  async function openRunHistory(runIdToOpen: string) {
+    const id = s(runIdToOpen);
+    if (!id) return;
+    setRunHistoryOpen(true);
+    setRunHistoryRunId(id);
+    await loadRunHistoryEvents(id, { initial: true });
+  }
+
+  useEffect(() => {
+    if (!runHistoryOpen || !runHistoryRunId) {
+      setRunHistoryLive(false);
+      return;
+    }
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = async () => {
+      if (cancelled) return;
+      const targetRunId = s(runHistoryRunId);
+      if (!targetRunId) return;
+      await loadRunHistoryEvents(targetRunId);
+      if (cancelled) return;
+      const r = activeRuns.find((it) => s(it.id) === targetRunId);
+      const isLive = !!r && !r.finished && !r.stopped && (r.exitCode === null || r.exitCode === undefined);
+      setRunHistoryLive(isLive);
+      const delayMs = document.hidden ? 7000 : isLive ? 1800 : 5000;
+      timer = setTimeout(() => {
+        void tick();
+      }, delayMs);
+    };
+
+    void tick();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [runHistoryOpen, runHistoryRunId, activeRuns, routeTenantId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3043,7 +3117,7 @@ export default function Home() {
     const tick = async () => {
       const hasActive = await loadActiveRuns();
       if (cancelled) return;
-      const delayMs = document.hidden ? 60000 : hasActive ? 5000 : 20000;
+      const delayMs = document.hidden ? 90000 : hasActive ? 8000 : 30000;
       schedule(delayMs);
     };
 
@@ -3070,12 +3144,15 @@ export default function Home() {
     debug?: boolean;
     locId?: string;
     kind?: string;
+    allowConcurrent?: boolean;
   }) {
     const jobKey = s(opts?.job || job);
     const runMode = (s(opts?.mode || mode).toLowerCase() === "dry" ? "dry" : "live") as "live" | "dry";
     const runDebug = typeof opts?.debug === "boolean" ? opts.debug : debug;
     const locId = s(opts?.locId || (isOneLocJob ? runLocId : ""));
     const kind = s(opts?.kind || (isOneLocJob ? runKind : ""));
+    const allowConcurrent =
+      typeof opts?.allowConcurrent === "boolean" ? opts.allowConcurrent : allowParallelRuns;
     const fallbackState = isOneLocJob ? s(openState) || "one" : stateOut;
     const metaState = s(opts?.state || fallbackState) || fallbackState;
 
@@ -3089,10 +3166,11 @@ export default function Home() {
         s(m.kind) === kind
       );
     });
-    if (duplicate) {
+    if (duplicate && !allowConcurrent) {
       pushLog(
-        `⚠ Duplicate blocked: run already active (${duplicate.id}) for same job/state scope.`,
+        `⚠ Duplicate blocked: run already active (${duplicate.id}) for same job/state scope. Attaching...`,
       );
+      await attachToActiveRun(duplicate.id);
       return;
     }
 
@@ -3148,6 +3226,7 @@ export default function Home() {
           locId: locId || "",
           kind: kind || "",
           tenantId: routeTenantId || "",
+          allowConcurrent,
         }),
       });
 
@@ -3160,7 +3239,11 @@ export default function Home() {
       if (!res.ok) {
         const msg = payload?.error || text || `HTTP ${res.status}`;
         if (res.status === 409 && payload?.runId) {
-          setRunId(String(payload.runId));
+          const existingRunId = String(payload.runId);
+          setRunId(existingRunId);
+          pushLog(`ℹ Duplicate blocked: attaching to existing active run ${existingRunId}`);
+          await attachToActiveRun(existingRunId);
+          return;
         }
         throw new Error(msg);
       }
@@ -6311,6 +6394,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             >
               Stop attached
             </button>
+            <label className="mini" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={allowParallelRuns}
+                onChange={(e) => setAllowParallelRuns(e.target.checked)}
+              />
+              Allow parallel runs
+            </label>
             <div className="mini" style={{ alignSelf: "center" }}>
               Job: <b>{selectedJob?.label}</b>{" "}
               {isOneLocJob ? (
@@ -7339,14 +7430,29 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           >
             <div className="modalHeader">
               <div>
-                <div className="badge">RUN HISTORY</div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div className="badge">RUN HISTORY</div>
+                  <div className="badge" style={{ borderColor: runHistoryLive ? "#22c55e" : "rgba(255,255,255,.2)" }}>
+                    {runHistoryLive ? "LIVE" : "IDLE"}
+                  </div>
+                </div>
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
                   {runHistoryRunId || "Run"}
                 </h3>
               </div>
-              <button className="smallBtn" onClick={() => setRunHistoryOpen(false)} type="button">
-                Close
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className="smallBtn"
+                  onClick={() => void loadRunHistoryEvents(runHistoryRunId, { initial: true })}
+                  type="button"
+                  disabled={!runHistoryRunId || runHistoryLoading}
+                >
+                  Refresh
+                </button>
+                <button className="smallBtn" onClick={() => setRunHistoryOpen(false)} type="button">
+                  Close
+                </button>
+              </div>
             </div>
             <div className="modalBody" style={{ padding: 14, overflowY: "auto" }}>
               {runHistoryLoading ? <div className="mini">Loading history...</div> : null}
