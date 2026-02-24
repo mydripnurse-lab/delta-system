@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
-import AgencyZoomPanel from "@/components/AgencyZoomPanel";
+import AgencyMeetingsPanel from "@/components/AgencyMeetingsPanel";
 
 type TenantRow = {
   id: string;
@@ -2395,7 +2395,7 @@ export default function AgencyHomePage() {
       <aside className="agencySidebar">
         <nav className="agencyNav">
           <button className={`agencyNavItem ${activeMenu === "projects" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("projects")}>Projects</button>
-          <button className={`agencyNavItem ${activeMenu === "zoom" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("zoom")}>Zoom</button>
+          <button className={`agencyNavItem ${activeMenu === "meetings" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("meetings")}>Meetings</button>
           <button className={`agencyNavItem ${activeMenu === "staff" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("staff")}>Staff</button>
           <button className={`agencyNavItem ${activeMenu === "integrations" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("integrations")}>Integrations</button>
           <button className={`agencyNavItem ${activeMenu === "settings" ? "agencyNavItemActive" : ""}`} type="button" onClick={() => setActiveMenu("settings")}>App Settings</button>
@@ -2691,7 +2691,7 @@ export default function AgencyHomePage() {
         </section>
         ) : null}
 
-        {activeMenu === "zoom" ? <AgencyZoomPanel /> : null}
+        {activeMenu === "meetings" ? <AgencyMeetingsPanel /> : null}
 
         {activeMenu === "staff" ? (
           <section className="agencyProjectsCard">
