@@ -4928,6 +4928,12 @@ button, input, select { font-family: inherit; }
 }
 
 /* Dashboard Reports premium shell */
+.dashboardPremium {
+  --dash-lux-border: rgba(148, 163, 184, 0.26);
+  --dash-lux-glow: rgba(96, 165, 250, 0.28);
+  --dash-lux-soft: rgba(255, 255, 255, 0.04);
+}
+
 .dashboardPremium .agencyRoot {
   min-height: auto;
   padding: 0;
@@ -4939,12 +4945,16 @@ button, input, select { font-family: inherit; }
   min-height: auto;
   position: sticky;
   top: 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(148,163,184,0.24);
+  border-radius: 22px;
+  border: 1px solid var(--dash-lux-border);
   background:
-    radial-gradient(580px 220px at 0% -28%, rgba(59,130,246,0.16), transparent 70%),
-    linear-gradient(180deg, rgba(10,18,36,0.9), rgba(8,14,28,0.82));
-  box-shadow: 0 24px 52px rgba(2, 6, 23, 0.42), inset 0 1px 0 rgba(255,255,255,0.05);
+    radial-gradient(620px 240px at -4% -24%, rgba(59,130,246,0.18), transparent 72%),
+    radial-gradient(420px 200px at 104% 108%, rgba(15,118,110,0.16), transparent 72%),
+    linear-gradient(180deg, rgba(10,18,36,0.92), rgba(8,14,28,0.86));
+  box-shadow:
+    0 28px 62px rgba(2, 6, 23, 0.45),
+    0 0 0 1px rgba(96,165,250,0.08) inset,
+    inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .dashboardPremium .agencyNav {
@@ -4953,42 +4963,154 @@ button, input, select { font-family: inherit; }
 
 .dashboardPremium .agencyNavItem {
   border-radius: 13px;
-  border: 1px solid rgba(148,163,184,0.26);
-  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--dash-lux-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 680;
+  letter-spacing: 0.01em;
   padding: 11px 13px;
+  transition:
+    transform .24s cubic-bezier(.22,1,.36,1),
+    border-color .2s ease,
+    background .2s ease,
+    box-shadow .24s ease;
 }
 
 .dashboardPremium .agencyNavItem:hover {
-  transform: translateX(3px);
-  border-color: rgba(96,165,250,0.48);
-  background: rgba(59,130,246,0.11);
+  transform: translateX(4px);
+  border-color: rgba(96,165,250,0.55);
+  background: linear-gradient(180deg, rgba(59,130,246,0.2), rgba(30,64,175,0.12));
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.34);
 }
 
 .dashboardPremium .agencyNavItemActive {
-  border-color: rgba(96,165,250,0.72);
-  background: linear-gradient(180deg, rgba(59,130,246,0.3), rgba(30,64,175,0.2));
-  box-shadow: 0 10px 24px rgba(37,99,235,0.22), 0 0 0 1px rgba(147,197,253,0.28) inset;
+  border-color: rgba(125, 211, 252, 0.62);
+  background:
+    radial-gradient(180px 90px at 12% 50%, rgba(96,165,250,0.22), transparent 72%),
+    linear-gradient(180deg, rgba(59,130,246,0.36), rgba(30,64,175,0.26));
+  box-shadow:
+    0 12px 28px rgba(37,99,235,0.24),
+    0 0 0 1px rgba(147,197,253,0.3) inset,
+    0 0 0 0.5px rgba(191,219,254,0.44);
 }
 
 .dashboardPremium .agencyMain .card {
   border-radius: 22px;
-  border: 1px solid rgba(148,163,184,0.25);
+  border: 1px solid var(--dash-lux-border);
   background:
-    radial-gradient(840px 200px at 90% -26%, rgba(59,130,246,0.1), transparent 72%),
-    linear-gradient(180deg, rgba(15,23,42,0.78), rgba(15,23,42,0.56));
-  box-shadow: 0 22px 46px rgba(2, 6, 23, 0.36), inset 0 1px 0 rgba(255,255,255,0.04);
+    radial-gradient(880px 220px at 90% -28%, rgba(59,130,246,0.14), transparent 72%),
+    radial-gradient(420px 200px at 0% 110%, rgba(14,165,233,0.08), transparent 72%),
+    linear-gradient(180deg, rgba(15,23,42,0.8), rgba(15,23,42,0.58));
+  box-shadow:
+    0 24px 54px rgba(2, 6, 23, 0.38),
+    0 0 0 1px rgba(148,163,184,0.08) inset,
+    inset 0 1px 0 rgba(255,255,255,0.04);
+  transition:
+    transform .24s cubic-bezier(.22,1,.36,1),
+    box-shadow .24s ease,
+    border-color .2s ease;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: dashLuxIn .36s cubic-bezier(.22,1,.36,1) forwards;
+}
+
+.dashboardPremium .agencyMain .card:hover {
+  border-color: rgba(125,211,252,0.36);
+  transform: translateY(-2px);
+  box-shadow:
+    0 26px 58px rgba(2, 6, 23, 0.42),
+    0 0 0 1px rgba(96,165,250,0.2) inset,
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.dashboardPremium .agencyMain .card:nth-child(1) { animation-delay: .02s; }
+.dashboardPremium .agencyMain .card:nth-child(2) { animation-delay: .06s; }
+.dashboardPremium .agencyMain .card:nth-child(3) { animation-delay: .1s; }
+.dashboardPremium .agencyMain .card:nth-child(4) { animation-delay: .14s; }
+.dashboardPremium .agencyMain .card:nth-child(5) { animation-delay: .18s; }
+
+@keyframes dashLuxIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .dashboardPremium .agencyGlobalTopbar {
-  border-radius: 24px;
+  border-radius: 26px;
   padding: 16px 18px;
-  border-color: rgba(148,163,184,0.28);
+  border-color: var(--dash-lux-border);
   background:
-    radial-gradient(920px 240px at 82% -26%, rgba(56,189,248,0.14), transparent 72%),
-    linear-gradient(180deg, rgba(15,23,42,0.86), rgba(15,23,42,0.65));
-  box-shadow: 0 24px 56px rgba(2, 6, 23, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+    radial-gradient(920px 260px at 82% -30%, rgba(56,189,248,0.16), transparent 72%),
+    radial-gradient(620px 220px at -8% -20%, rgba(59,130,246,0.14), transparent 72%),
+    linear-gradient(180deg, rgba(15,23,42,0.88), rgba(15,23,42,0.68));
+  box-shadow:
+    0 26px 60px rgba(2, 6, 23, 0.42),
+    0 0 0 1px rgba(148,163,184,0.08) inset,
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.dashboardPremium .agencyGlobalBrand h1 {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.dashboardPremium .agencyGlobalBrand p {
+  font-size: 12px;
+  color: rgba(226,232,240,0.78);
+}
+
+.dashboardPremium .agencyGlobalNavItem,
+.dashboardPremium .agencyLivePill,
+.dashboardPremium .agencyAccountTrigger {
+  border-color: var(--dash-lux-border);
+  background: var(--dash-lux-soft);
+  transition:
+    border-color .2s ease,
+    box-shadow .24s ease,
+    background .2s ease,
+    transform .2s cubic-bezier(.22,1,.36,1);
+}
+
+.dashboardPremium .agencyGlobalNavItem:hover,
+.dashboardPremium .agencyAccountTrigger:hover {
+  border-color: rgba(96,165,250,0.5);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+  transform: translateY(-1px);
+}
+
+.dashboardPremium .agencyGlobalNavItemActive {
+  border-color: rgba(125,211,252,0.65);
+  background:
+    radial-gradient(130px 80px at 8% 50%, rgba(96,165,250,0.22), transparent 72%),
+    linear-gradient(180deg, rgba(59,130,246,0.26), rgba(37,99,235,0.2));
+  box-shadow:
+    0 10px 22px rgba(37,99,235,0.22),
+    0 0 0 1px rgba(147,197,253,0.24) inset;
+}
+
+.dashboardPremium .agencyLivePill {
+  border-color: rgba(74,222,128,0.35);
+}
+
+.dashboardPremium .agencyProfileAvatar {
+  box-shadow: 0 0 0 1px rgba(147,197,253,0.28), 0 8px 16px rgba(2,6,23,0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboardPremium .agencyMain .card {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .dashboardPremium .agencyNavItem,
+  .dashboardPremium .agencyGlobalNavItem,
+  .dashboardPremium .agencyAccountTrigger {
+    transition: none;
+  }
 }
 
 @media (max-width: 1200px) {
