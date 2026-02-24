@@ -52,6 +52,15 @@ type TenantSummary = {
   status: string;
 };
 
+type AuthMeUser = {
+  id: string;
+  email: string;
+  fullName?: string | null;
+  phone?: string | null;
+  avatarUrl?: string | null;
+  globalRoles?: string[];
+};
+
 type TenantIntegrationRow = {
   id: string;
   provider: string;
@@ -218,6 +227,14 @@ function formatStateLabel(raw: string) {
     .split(" ")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
+}
+
+function initialsFromLabel(label: string) {
+  const cleaned = s(label).replace(/\s+/g, " ").trim();
+  if (!cleaned) return "U";
+  const parts = cleaned.split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 }
 
 function fmtInt(value: number) {
@@ -617,6 +634,7 @@ export default function Home() {
   const [tenantGooglePlacesApiKey, setTenantGooglePlacesApiKey] = useState("");
   const [tenantGooglePlacesSaving, setTenantGooglePlacesSaving] = useState(false);
   const [tenantGooglePlacesMsg, setTenantGooglePlacesMsg] = useState("");
+  const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
   const [tenantProspectingWebhookUrl, setTenantProspectingWebhookUrl] = useState("");
   const [tenantProspectingWebhookEnabled, setTenantProspectingWebhookEnabled] = useState(true);
   const [tenantProspectingWebhookBusy, setTenantProspectingWebhookBusy] = useState(false);
@@ -1026,9 +1044,34 @@ export default function Home() {
     }
   }
 
+  function accountDisplayName() {
+    return s(authMe?.fullName) || s(authMe?.email) || "Account";
+  }
+
+  function currentRoleLabel() {
+    const roles = Array.isArray(authMe?.globalRoles) ? authMe.globalRoles : [];
+    if (!roles.length) return "member";
+    return s(roles[0]) || "member";
+  }
+
+  async function loadAuthMe() {
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const data = (await safeJson(res)) as { ok?: boolean; user?: AuthMeUser; error?: string } | null;
+      if (!res.ok || !data?.ok || !data.user) return;
+      setAuthMe(data.user);
+    } catch {
+      // keep project page functional even if profile endpoint is transiently unavailable
+    }
+  }
+
   useEffect(() => {
     loadOverview();
   }, [routeTenantId]);
+
+  useEffect(() => {
+    void loadAuthMe();
+  }, []);
 
   useEffect(() => {
     if (!routeTenantId) {
@@ -5301,90 +5344,101 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           </div>
         </div>
 
-        <div className="topbarActions">
-          <Link className="smallBtn" href="/">
-            Agency View
-          </Link>
-          <Link
-            className="smallBtn"
-            href={
-              routeTenantId
-                ? `/dashboard?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
-                : "/dashboard"
-            }
-          >
-            Dashboard - Reports
-          </Link>
-          <Link
-            className="smallBtn"
-            href={
-              routeTenantId
-                ? `/dashboard/prospecting?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
-                : "/dashboard/prospecting"
-            }
-          >
-            Dashboard - Prospecting
-          </Link>
-        </div>
-        <div className="pills">
-          <div className="pill">
-            <span className="dot" />
-            <span>Live</span>
+        <div className="projectTopbarRight">
+          <div className="topbarActions">
+            <Link className="smallBtn" href="/">
+              Agency View
+            </Link>
+            <Link
+              className="smallBtn"
+              href={
+                routeTenantId
+                  ? `/dashboard?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
+                  : "/dashboard"
+              }
+            >
+              Dashboard - Reports
+            </Link>
+            <Link
+              className="smallBtn"
+              href={
+                routeTenantId
+                  ? `/dashboard/prospecting?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
+                  : "/dashboard/prospecting"
+              }
+            >
+              Dashboard - Prospecting
+            </Link>
           </div>
-          <div className="pill">
-            <span style={{ color: "var(--muted)" }}>Created by</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Axel Castro</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Devasks</span>
+          <div className="pills">
+            <div className="pill">
+              <span className="dot" />
+              <span>Live</span>
+            </div>
+          </div>
+          <div className="projectUserBadge">
+            <span className="projectUserAvatar">
+              {s(authMe?.avatarUrl) ? (
+                <img className="projectUserAvatarImg" src={s(authMe?.avatarUrl)} alt={accountDisplayName()} />
+              ) : (
+                initialsFromLabel(accountDisplayName())
+              )}
+            </span>
+            <span className="projectUserMeta">
+              <strong>{accountDisplayName()}</strong>
+              <small>{currentRoleLabel()}</small>
+            </span>
           </div>
         </div>
       </header>
 
-      <section className="agencySubnav" style={{ marginTop: 12 }}>
-        <button
-          type="button"
-          className={`agencySubnavItem ${activeProjectTab === "activation" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("activation")}
-        >
-          Home
-        </button>
-        <button
-          type="button"
-          className={`agencySubnavItem ${activeProjectTab === "runner" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("runner")}
-        >
-          Runs Center
-        </button>
-        <button
-          type="button"
-          className={`agencySubnavItem ${activeProjectTab === "sheet" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("sheet")}
-        >
-          Sheet Explorer
-        </button>
-        <button
-          type="button"
-          className={`agencySubnavItem ${activeProjectTab === "details" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("details")}
-        >
-          Project Details
-        </button>
-        <button
-          type="button"
-          className={`agencySubnavItem ${activeProjectTab === "webhooks" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("webhooks")}
-        >
-          Webhook
-        </button>
-        <button
-          type="button"
-          className={`agencySubnavItem ${activeProjectTab === "logs" ? "agencySubnavItemActive" : ""}`}
-          onClick={() => jumpTo("logs")}
-        >
-          Logs
-        </button>
-      </section>
+      <div className="projectWorkspace">
+        <aside className="projectSidebar">
+          <button
+            type="button"
+            className={`projectSidebarItem ${activeProjectTab === "activation" ? "projectSidebarItemActive" : ""}`}
+            onClick={() => jumpTo("activation")}
+          >
+            Home
+          </button>
+          <button
+            type="button"
+            className={`projectSidebarItem ${activeProjectTab === "runner" ? "projectSidebarItemActive" : ""}`}
+            onClick={() => jumpTo("runner")}
+          >
+            Run Center
+          </button>
+          <button
+            type="button"
+            className={`projectSidebarItem ${activeProjectTab === "sheet" ? "projectSidebarItemActive" : ""}`}
+            onClick={() => jumpTo("sheet")}
+          >
+            Sheet Explorer
+          </button>
+          <button
+            type="button"
+            className={`projectSidebarItem ${activeProjectTab === "details" ? "projectSidebarItemActive" : ""}`}
+            onClick={() => jumpTo("details")}
+          >
+            Project Details
+          </button>
+          <button
+            type="button"
+            className={`projectSidebarItem ${activeProjectTab === "webhooks" ? "projectSidebarItemActive" : ""}`}
+            onClick={() => jumpTo("webhooks")}
+          >
+            Webhook
+          </button>
+          <button
+            type="button"
+            className={`projectSidebarItem ${activeProjectTab === "logs" ? "projectSidebarItemActive" : ""}`}
+            onClick={() => jumpTo("logs")}
+          >
+            Logs
+          </button>
+        </aside>
+
+        <section className="projectWorkspaceMain">
 
       {activeProjectTab === "details" ? (
       <section className="card" style={{ marginTop: 12 }} ref={detailsRef}>
@@ -7010,6 +7064,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </div>
       </section>
       ) : null}
+        </section>
+      </div>
 
       {/* Drawer: State Detail */}
       {openState && (
