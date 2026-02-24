@@ -891,14 +891,18 @@ async function main() {
         throw new Error("Missing GOOGLE_SHEET_ID in .env");
     }
 
+    console.log("phase:init -> loadTokens start");
     await loadTokens();
+    console.log("phase:init -> loadTokens done");
 
+    console.log(`phase:init -> scanning state files in ${OUT_ROOT}`);
     const states = await listOutStates();
     if (!states.length) {
         throw new Error(
             `No states found in ${OUT_ROOT} (expected scripts/out/<slug>/<slug>.json)`
         );
     }
+    console.log(`phase:init -> states discovered=${states.length}`);
 
     // ✅ Determine targets: UI arg takes precedence
     let targets = [];
@@ -930,7 +934,7 @@ async function main() {
                 : [states.find((s) => s.slug === choice.slug)].filter(Boolean);
     }
 
-    console.log(`\n📄 Loading Google Sheet tab indexes...`);
+    console.log(`\nphase:init -> loading Google Sheet tab indexes...`);
 
     // ✅ IMPORTANT: composite keys
     const countyTabIndex = await loadSheetTabIndex({
@@ -939,6 +943,7 @@ async function main() {
         range: "A:Z",
         keyHeaders: ["State", "County"],
     });
+    console.log(`phase:init -> county tab loaded (${countyTabIndex.rows.length} rows)`);
 
     const cityTabIndex = await loadSheetTabIndex({
         spreadsheetId: SPREADSHEET_ID,
@@ -946,6 +951,7 @@ async function main() {
         range: "A:Z",
         keyHeaders: ["State", "County", "City"],
     });
+    console.log(`phase:init -> city tab loaded (${cityTabIndex.rows.length} rows)`);
 
     // sanity required headers for update
     for (const tab of [countyTabIndex, cityTabIndex]) {

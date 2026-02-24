@@ -659,6 +659,8 @@ export async function POST(req: Request) {
         });
 
         attachProcess(run.id, child);
+        appendLine(run.id, `__RUN_PID__ ${String(child.pid || "")}`);
+        appendLine(run.id, `main: started child pid=${String(child.pid || "")}`);
 
         const rlOut = readline.createInterface({ input: child.stdout });
         const rlErr = readline.createInterface({ input: child.stderr });

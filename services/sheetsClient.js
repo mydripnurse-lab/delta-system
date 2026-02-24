@@ -263,6 +263,7 @@ function toError(label, err) {
 // Retry wrapper (ROBUST to NaN)
 // =====================
 const SHEETS_MAX_RETRIES = toIntSafe(process.env.SHEETS_MAX_RETRIES || "5", 5);
+const SHEETS_FETCH_TIMEOUT_MS = toMsSafe(process.env.SHEETS_FETCH_TIMEOUT_MS || "30000", 30000);
 
 async function withRetries(fn, { label = "sheets-op", scope = "sheets" } = {}) {
     let lastErr = null;
@@ -307,15 +308,32 @@ function encodeRange(range) {
 function buildSheetsRestClient(auth) {
     async function callSheets(url, opts = {}) {
         const accessToken = await getAuthAccessToken(auth);
-        const res = await fetch(url, {
-            method: opts.method || "GET",
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-                ...(opts.headers || {}),
-            },
-            body: opts.body ? JSON.stringify(opts.body) : undefined,
-        });
+        const ctrl = new AbortController();
+        const timeout = setTimeout(() => ctrl.abort("sheets_fetch_timeout"), SHEETS_FETCH_TIMEOUT_MS);
+        let res;
+        try {
+            res = await fetch(url, {
+                method: opts.method || "GET",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                    ...(opts.headers || {}),
+                },
+                body: opts.body ? JSON.stringify(opts.body) : undefined,
+                signal: ctrl.signal,
+            });
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                const timeoutErr = new Error(
+                    `Sheets request timed out after ${SHEETS_FETCH_TIMEOUT_MS}ms`
+                );
+                timeoutErr.code = "ETIMEDOUT";
+                throw timeoutErr;
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeout);
+        }
         const txt = await res.text();
         let json = {};
         try {
