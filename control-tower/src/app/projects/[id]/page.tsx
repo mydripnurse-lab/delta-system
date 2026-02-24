@@ -5318,9 +5318,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   );
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="brand">
+    <main className="agencyShell">
+      <header className="agencyGlobalTopbar">
+        <div className="agencyGlobalBrand">
           {tenantLogoUrl ? (
             <img
               className="logo tenantLogo"
@@ -5328,29 +5328,28 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               alt={tenantSummary?.name ? `${tenantSummary.name} logo` : "Tenant logo"}
             />
           ) : (
-            <div className="logo" />
+            <div className="agencyBrandLogo agencyBrandLogoDelta" />
           )}
           <div>
             <h1>
               {tenantSummary?.name || "Project"} — Delta Control Tower
             </h1>
-            <div className="subtle">
+            <p>
               {tenantSummary?.slug
                 ? `@${tenantSummary.slug}`
                 : routeTenantId
                   ? `tenant ${routeTenantId}`
                   : "tenant pending"}
-            </div>
+            </p>
           </div>
         </div>
 
-        <div className="projectTopbarRight">
-          <div className="topbarActions">
-            <Link className="smallBtn" href="/">
+        <nav className="agencyGlobalNav agencyGlobalNavRight">
+          <Link className="agencyGlobalNavItem" href="/">
               Agency View
-            </Link>
+          </Link>
             <Link
-              className="smallBtn"
+              className="agencyGlobalNavItem"
               href={
                 routeTenantId
                   ? `/dashboard?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
@@ -5360,7 +5359,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               Dashboard - Reports
             </Link>
             <Link
-              className="smallBtn"
+              className="agencyGlobalNavItem"
               href={
                 routeTenantId
                   ? `/dashboard/prospecting?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
@@ -5369,76 +5368,76 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             >
               Dashboard - Prospecting
             </Link>
-          </div>
-          <div className="pills">
-            <div className="pill">
-              <span className="dot" />
+          <div className="agencyLivePill">
+              <span className="agencyLiveDot" />
               <span>Live</span>
-            </div>
           </div>
-          <div className="projectUserBadge">
-            <span className="projectUserAvatar">
+          <button type="button" className="agencyAccountTrigger" title={accountDisplayName()}>
+            <span className="agencyProfileAvatar">
               {s(authMe?.avatarUrl) ? (
-                <img className="projectUserAvatarImg" src={s(authMe?.avatarUrl)} alt={accountDisplayName()} />
+                <img className="agencyProfileAvatarImg" src={s(authMe?.avatarUrl)} alt={accountDisplayName()} />
               ) : (
                 initialsFromLabel(accountDisplayName())
               )}
             </span>
-            <span className="projectUserMeta">
+            <span className="agencyAccountIdentity">
               <strong>{accountDisplayName()}</strong>
               <small>{currentRoleLabel()}</small>
             </span>
-          </div>
-        </div>
+            <span className="agencyAccountCaret" aria-hidden>▾</span>
+          </button>
+        </nav>
       </header>
 
-      <div className="projectWorkspace">
-        <aside className="projectSidebar">
+      <div className="agencyRoot">
+        <aside className="agencySidebar">
+          <nav className="agencyNav">
           <button
             type="button"
-            className={`projectSidebarItem ${activeProjectTab === "activation" ? "projectSidebarItemActive" : ""}`}
+            className={`agencyNavItem ${activeProjectTab === "activation" ? "agencyNavItemActive" : ""}`}
             onClick={() => jumpTo("activation")}
           >
             Home
           </button>
           <button
             type="button"
-            className={`projectSidebarItem ${activeProjectTab === "runner" ? "projectSidebarItemActive" : ""}`}
+            className={`agencyNavItem ${activeProjectTab === "runner" ? "agencyNavItemActive" : ""}`}
             onClick={() => jumpTo("runner")}
           >
             Run Center
           </button>
           <button
             type="button"
-            className={`projectSidebarItem ${activeProjectTab === "sheet" ? "projectSidebarItemActive" : ""}`}
+            className={`agencyNavItem ${activeProjectTab === "sheet" ? "agencyNavItemActive" : ""}`}
             onClick={() => jumpTo("sheet")}
           >
             Sheet Explorer
           </button>
           <button
             type="button"
-            className={`projectSidebarItem ${activeProjectTab === "details" ? "projectSidebarItemActive" : ""}`}
+            className={`agencyNavItem ${activeProjectTab === "details" ? "agencyNavItemActive" : ""}`}
             onClick={() => jumpTo("details")}
           >
             Project Details
           </button>
           <button
             type="button"
-            className={`projectSidebarItem ${activeProjectTab === "webhooks" ? "projectSidebarItemActive" : ""}`}
+            className={`agencyNavItem ${activeProjectTab === "webhooks" ? "agencyNavItemActive" : ""}`}
             onClick={() => jumpTo("webhooks")}
           >
             Webhook
           </button>
           <button
             type="button"
-            className={`projectSidebarItem ${activeProjectTab === "logs" ? "projectSidebarItemActive" : ""}`}
+            className={`agencyNavItem ${activeProjectTab === "logs" ? "agencyNavItemActive" : ""}`}
             onClick={() => jumpTo("logs")}
           >
             Logs
           </button>
+          </nav>
         </aside>
 
-        <section className="projectWorkspaceMain">
+        <section className="agencyMain">
 
       {activeProjectTab === "details" ? (
       <section className="card" style={{ marginTop: 12 }} ref={detailsRef}>
@@ -9272,6 +9271,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           />
         ))}
       </div>
-    </div>
+    </main>
   );
 }
