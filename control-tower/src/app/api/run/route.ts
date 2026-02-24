@@ -426,6 +426,7 @@ async function runPrebuildCounties(args: {
         cwd: args.repoRoot,
         env: args.env,
         stdio: ["pipe", "pipe", "pipe"],
+        detached: process.platform !== "win32",
     });
 
     const rlOut = readline.createInterface({ input: child.stdout });
@@ -654,6 +655,7 @@ export async function POST(req: Request) {
             cwd: repoRoot,
             env: envMerged,
             stdio: ["pipe", "pipe", "pipe"],
+            detached: process.platform !== "win32",
         });
 
         attachProcess(run.id, child);

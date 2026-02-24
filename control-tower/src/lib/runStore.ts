@@ -293,10 +293,31 @@ export function stopRun(id: string) {
 
     try {
         if (r.proc && !r.proc.killed) {
-            r.proc.kill("SIGTERM");
+            const pid = Number(r.proc.pid || 0);
+            if (pid > 0 && process.platform !== "win32") {
+                try {
+                    // Try killing the whole process group first (requires detached spawn).
+                    process.kill(-pid, "SIGTERM");
+                } catch {
+                    r.proc.kill("SIGTERM");
+                }
+            } else {
+                r.proc.kill("SIGTERM");
+            }
             setTimeout(() => {
                 try {
-                    if (r.proc && !r.proc.killed) r.proc.kill("SIGKILL");
+                    if (r.proc && !r.proc.killed) {
+                        const pid2 = Number(r.proc.pid || 0);
+                        if (pid2 > 0 && process.platform !== "win32") {
+                            try {
+                                process.kill(-pid2, "SIGKILL");
+                            } catch {
+                                r.proc.kill("SIGKILL");
+                            }
+                        } else {
+                            r.proc.kill("SIGKILL");
+                        }
+                    }
                 } catch { }
             }, 1200);
         }
@@ -304,5 +325,17 @@ export function stopRun(id: string) {
 
     appendLine(id, "🛑 Stop requested");
     persistRunStopped(id);
+    return true;
+}
+
+export function removeRun(id: string) {
+    const r = runs.get(id);
+    if (!r) return false;
+    try {
+        if (r.proc && !r.proc.killed) {
+            stopRun(id);
+        }
+    } catch {}
+    runs.delete(id);
     return true;
 }

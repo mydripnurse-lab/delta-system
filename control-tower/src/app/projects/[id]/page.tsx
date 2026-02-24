@@ -3401,6 +3401,29 @@ export default function Home() {
     }
   }
 
+  async function deleteRunFromCard(runIdToDelete: string) {
+    const id = s(runIdToDelete);
+    if (!id) return;
+    const confirmDelete = window.confirm(
+      `Delete run ${id} from history?\nThis removes logs/events for this run.`,
+    );
+    if (!confirmDelete) return;
+    try {
+      const res = await fetch(`/api/run/${encodeURIComponent(id)}?forceStop=1`, {
+        method: "DELETE",
+      });
+      const json = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !json?.ok) {
+        throw new Error(s(json?.error) || `HTTP ${res.status}`);
+      }
+      pushLog(`🗑️ Deleted run ${id}`);
+      if (s(runId) === id) setRunId("");
+      await loadActiveRuns();
+    } catch (e: any) {
+      pushLog(`❌ Delete failed for ${id}: ${e?.message || e}`);
+    }
+  }
+
   async function rerunFromCard(r: {
     id: string;
     meta?: {
@@ -6398,14 +6421,30 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         type="button"
                         className="smallBtn"
                         onClick={async () => {
-                          await fetch(`/api/stop/${r.id}`, { method: "POST" });
-                          pushLog(`🛑 Stop requested for ${r.id}`);
-                          loadActiveRuns();
+                          try {
+                            const res = await fetch(`/api/stop/${r.id}`, { method: "POST" });
+                            const json = (await safeJson(res)) as { ok?: boolean; error?: string; forced?: boolean } | null;
+                            if (!res.ok || !json?.ok) {
+                              throw new Error(s(json?.error) || `HTTP ${res.status}`);
+                            }
+                            pushLog(`🛑 Stop requested for ${r.id}${json?.forced ? " (forced-db)" : ""}`);
+                            await loadActiveRuns();
+                          } catch (e: any) {
+                            pushLog(`❌ Stop failed for ${r.id}: ${e?.message || e}`);
+                          }
                         }}
                       >
                         Stop
                       </button>
                     ) : null}
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      onClick={() => void deleteRunFromCard(r.id)}
+                      title="Delete run and persisted events"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </article>
               ))
