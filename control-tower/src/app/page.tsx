@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 
@@ -274,6 +274,7 @@ function rangeFromPreset(preset: KpiRangePreset, customStart: string, customEnd:
 
 export default function AgencyHomePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tenantRows, setTenantRows] = useState<TenantRow[]>([]);
   const [tenantLoading, setTenantLoading] = useState(false);
   const [tenantErr, setTenantErr] = useState("");
@@ -480,6 +481,7 @@ export default function AgencyHomePage() {
   });
   const [activeMenu, setActiveMenu] = useState("projects");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [accountNotificationCount, setAccountNotificationCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const autoSyncRanRef = useRef(false);
   const autoSyncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1045,6 +1047,47 @@ export default function AgencyHomePage() {
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
+
+  useEffect(() => {
+    const panel = s(searchParams?.get("account")).toLowerCase();
+    if (panel === "profile") {
+      setShowProfileModal(true);
+      setShowSecurityModal(false);
+      setAccountMenuOpen(false);
+    } else if (panel === "security") {
+      setShowSecurityModal(true);
+      setShowProfileModal(false);
+      setAccountMenuOpen(false);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAccountNotificationCount() {
+      const tenantId = s(settingsTenantId) || s(tenantRows[0]?.id);
+      if (!tenantId) {
+        if (!cancelled) setAccountNotificationCount(0);
+        return;
+      }
+      try {
+        const qs = new URLSearchParams({
+          organizationId: tenantId,
+          status: "proposed",
+          limit: "200",
+        });
+        const res = await fetch(`/api/agents/proposals?${qs.toString()}`, { cache: "no-store" });
+        const json = (await safeJson(res)) as { ok?: boolean; proposals?: Array<unknown> } | null;
+        if (!res.ok || !json?.ok) throw new Error(`HTTP ${res.status}`);
+        if (!cancelled) setAccountNotificationCount(Array.isArray(json.proposals) ? json.proposals.length : 0);
+      } catch {
+        if (!cancelled) setAccountNotificationCount(0);
+      }
+    }
+    void loadAccountNotificationCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [settingsTenantId, tenantRows]);
 
   useEffect(() => {
     if (!showManage || !s(manageTenantId)) return;
@@ -2297,6 +2340,11 @@ export default function AgencyHomePage() {
               onClick={() => setAccountMenuOpen((prev) => !prev)}
             >
               <span className="agencyProfileAvatar">
+                {accountNotificationCount > 0 ? (
+                  <span className="agencyProfileNotifBadge" aria-label={`${accountNotificationCount} notifications`}>
+                    {accountNotificationCount > 99 ? "99+" : accountNotificationCount}
+                  </span>
+                ) : null}
                 {s(authMe?.avatarUrl) ? (
                   <img className="agencyProfileAvatarImg" src={s(authMe?.avatarUrl)} alt={accountDisplayName()} />
                 ) : (
@@ -2316,6 +2364,21 @@ export default function AgencyHomePage() {
                 </button>
                 <button type="button" className="agencyAccountMenuItem" onClick={() => { setShowSecurityModal(true); setAccountMenuOpen(false); }}>
                   Security
+                </button>
+                <button
+                  type="button"
+                  className="agencyAccountMenuItem agencyAccountMenuItemNotif"
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    const tenantId = s(settingsTenantId) || s(tenantRows[0]?.id);
+                    const href = tenantId
+                      ? `/dashboard/notification-hub?tenantId=${encodeURIComponent(tenantId)}&integrationKey=owner`
+                      : "/dashboard/notification-hub";
+                    window.location.href = href;
+                  }}
+                >
+                  <span>Notifications</span>
+                  <span className="agencyAccountMenuCount">{accountNotificationCount}</span>
                 </button>
                 <button type="button" className="agencyAccountMenuItem" onClick={() => void signOut()}>
                   Sign out

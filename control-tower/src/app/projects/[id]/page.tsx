@@ -564,6 +564,9 @@ export default function Home() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const routeTenantId = s(params?.id || "");
+  const notificationHubHref = routeTenantId
+    ? `/dashboard/notification-hub?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
+    : "/dashboard/notification-hub";
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>("activation");
   const [detailsTab, setDetailsTab] = useState<ProjectDetailsTab>("business");
   const [tenantSummary, setTenantSummary] = useState<TenantSummary | null>(
@@ -635,6 +638,9 @@ export default function Home() {
   const [tenantGooglePlacesSaving, setTenantGooglePlacesSaving] = useState(false);
   const [tenantGooglePlacesMsg, setTenantGooglePlacesMsg] = useState("");
   const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const [tenantProspectingWebhookUrl, setTenantProspectingWebhookUrl] = useState("");
   const [tenantProspectingWebhookEnabled, setTenantProspectingWebhookEnabled] = useState(true);
   const [tenantProspectingWebhookBusy, setTenantProspectingWebhookBusy] = useState(false);
@@ -1054,6 +1060,16 @@ export default function Home() {
     return s(roles[0]) || "member";
   }
 
+  function openAgencyAccountPanel(panel: "profile" | "security") {
+    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/?account=${panel}&returnTo=${returnTo}`;
+  }
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+    window.location.href = "/login";
+  }
+
   async function loadAuthMe() {
     try {
       const res = await fetch("/api/auth/me", { cache: "no-store" });
@@ -1071,6 +1087,49 @@ export default function Home() {
 
   useEffect(() => {
     void loadAuthMe();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadNotificationCount() {
+      if (!routeTenantId) {
+        if (!cancelled) setNotificationCount(0);
+        return;
+      }
+      try {
+        const qs = new URLSearchParams({
+          organizationId: routeTenantId,
+          status: "proposed",
+          limit: "200",
+        });
+        const res = await fetch(`/api/agents/proposals?${qs.toString()}`, { cache: "no-store" });
+        const json = (await safeJson(res)) as { ok?: boolean; proposals?: Array<unknown> } | null;
+        if (!res.ok || !json?.ok) throw new Error(`HTTP ${res.status}`);
+        if (!cancelled) setNotificationCount(Array.isArray(json.proposals) ? json.proposals.length : 0);
+      } catch {
+        if (!cancelled) setNotificationCount(0);
+      }
+    }
+    void loadNotificationCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [routeTenantId]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!accountMenuRef.current) return;
+      if (!accountMenuRef.current.contains(event.target as Node)) setAccountMenuOpen(false);
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setAccountMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   useEffect(() => {
@@ -5368,24 +5427,57 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             >
               Dashboard - Prospecting
             </Link>
+          <Link className="agencyGlobalNavItem" href={notificationHubHref}>
+            Notifications
+            <span className="badge" style={{ marginLeft: 6 }}>{notificationCount}</span>
+          </Link>
           <div className="agencyLivePill">
               <span className="agencyLiveDot" />
               <span>Live</span>
           </div>
-          <button type="button" className="agencyAccountTrigger" title={accountDisplayName()}>
-            <span className="agencyProfileAvatar">
-              {s(authMe?.avatarUrl) ? (
-                <img className="agencyProfileAvatarImg" src={s(authMe?.avatarUrl)} alt={accountDisplayName()} />
-              ) : (
-                initialsFromLabel(accountDisplayName())
-              )}
-            </span>
-            <span className="agencyAccountIdentity">
-              <strong>{accountDisplayName()}</strong>
-              <small>{currentRoleLabel()}</small>
-            </span>
-            <span className="agencyAccountCaret" aria-hidden>▾</span>
-          </button>
+          <div className="agencyAccountWrap" ref={accountMenuRef}>
+            <button
+              type="button"
+              className="agencyAccountTrigger"
+              title={accountDisplayName()}
+              onClick={() => setAccountMenuOpen((prev) => !prev)}
+            >
+              <span className="agencyProfileAvatar">
+                {notificationCount > 0 ? (
+                  <span className="agencyProfileNotifBadge" aria-label={`${notificationCount} notifications`}>
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                ) : null}
+                {s(authMe?.avatarUrl) ? (
+                  <img className="agencyProfileAvatarImg" src={s(authMe?.avatarUrl)} alt={accountDisplayName()} />
+                ) : (
+                  initialsFromLabel(accountDisplayName())
+                )}
+              </span>
+              <span className="agencyAccountIdentity">
+                <strong>{accountDisplayName()}</strong>
+                <small>{currentRoleLabel()}</small>
+              </span>
+              <span className="agencyAccountCaret" aria-hidden>▾</span>
+            </button>
+            {accountMenuOpen ? (
+              <div className="agencyAccountMenu">
+                <button type="button" className="agencyAccountMenuItem" onClick={() => { setAccountMenuOpen(false); openAgencyAccountPanel("profile"); }}>
+                  Profile
+                </button>
+                <button type="button" className="agencyAccountMenuItem" onClick={() => { setAccountMenuOpen(false); openAgencyAccountPanel("security"); }}>
+                  Security
+                </button>
+                <button type="button" className="agencyAccountMenuItem agencyAccountMenuItemNotif" onClick={() => { setAccountMenuOpen(false); window.location.href = notificationHubHref; }}>
+                  <span>Notifications</span>
+                  <span className="agencyAccountMenuCount">{notificationCount}</span>
+                </button>
+                <button type="button" className="agencyAccountMenuItem" onClick={() => void signOut()}>
+                  Sign out
+                </button>
+              </div>
+            ) : null}
+          </div>
         </nav>
       </header>
 

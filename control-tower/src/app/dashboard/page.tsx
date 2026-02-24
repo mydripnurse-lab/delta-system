@@ -966,6 +966,9 @@ function DashboardHomeContent() {
   const [tenantHeaderSlug, setTenantHeaderSlug] = useState("my-drip-nurse");
   const [tenantHeaderLogo, setTenantHeaderLogo] = useState("");
   const [activeNavItem, setActiveNavItem] = useState<"dashboard" | "modules" | "analytics" | "dataops" | "execution">("dashboard");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1079,6 +1082,51 @@ function DashboardHomeContent() {
       cancelled = true;
     };
   }, [tenantId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadNotificationCount() {
+      if (!tenantId) {
+        if (!cancelled) setNotificationCount(0);
+        return;
+      }
+      try {
+        const qs = new URLSearchParams({
+          organizationId: tenantId,
+          status: "proposed",
+          limit: "200",
+        });
+        const res = await fetch(`/api/agents/proposals?${qs.toString()}`, { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; proposals?: Array<unknown>; error?: string }
+          | null;
+        if (!res.ok || !json?.ok) throw new Error(String(json?.error || "").trim() || `HTTP ${res.status}`);
+        if (!cancelled) setNotificationCount(Array.isArray(json.proposals) ? json.proposals.length : 0);
+      } catch {
+        if (!cancelled) setNotificationCount(0);
+      }
+    }
+    void loadNotificationCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, queueMsg]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!accountMenuRef.current) return;
+      if (!accountMenuRef.current.contains(event.target as Node)) setAccountMenuOpen(false);
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setAccountMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   useEffect(() => {
     const audio = new Audio("/audio/dashboard-loading.mp3");
@@ -2408,6 +2456,16 @@ function DashboardHomeContent() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openAgencyAccountPanel(panel: "profile" | "security") {
+    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/?account=${panel}&returnTo=${returnTo}`;
+  }
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+    window.location.href = "/login";
+  }
+
   return (
     <main className="agencyShell callsDash ceoDash dashboardPremium">
       {loading ? (
@@ -2457,20 +2515,49 @@ function DashboardHomeContent() {
             <span className="agencyLiveDot" />
             <span>Live</span>
           </div>
-          <button type="button" className="agencyAccountTrigger" title={accountDisplayName()}>
-            <span className="agencyProfileAvatar">
-              {String(authMe?.avatarUrl || "").trim() ? (
-                <img className="agencyProfileAvatarImg" src={String(authMe?.avatarUrl || "").trim()} alt={accountDisplayName()} />
-              ) : (
-                initialsFromLabel(accountDisplayName())
-              )}
-            </span>
-            <span className="agencyAccountIdentity">
-              <strong>{accountDisplayName()}</strong>
-              <small>{currentRoleLabel()}</small>
-            </span>
-            <span className="agencyAccountCaret" aria-hidden>▾</span>
-          </button>
+          <div className="agencyAccountWrap" ref={accountMenuRef}>
+            <button
+              type="button"
+              className="agencyAccountTrigger"
+              title={accountDisplayName()}
+              onClick={() => setAccountMenuOpen((prev) => !prev)}
+            >
+              <span className="agencyProfileAvatar">
+                {notificationCount > 0 ? (
+                  <span className="agencyProfileNotifBadge" aria-label={`${notificationCount} notifications`}>
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                ) : null}
+                {String(authMe?.avatarUrl || "").trim() ? (
+                  <img className="agencyProfileAvatarImg" src={String(authMe?.avatarUrl || "").trim()} alt={accountDisplayName()} />
+                ) : (
+                  initialsFromLabel(accountDisplayName())
+                )}
+              </span>
+              <span className="agencyAccountIdentity">
+                <strong>{accountDisplayName()}</strong>
+                <small>{currentRoleLabel()}</small>
+              </span>
+              <span className="agencyAccountCaret" aria-hidden>▾</span>
+            </button>
+            {accountMenuOpen ? (
+              <div className="agencyAccountMenu">
+                <button type="button" className="agencyAccountMenuItem" onClick={() => { setAccountMenuOpen(false); openAgencyAccountPanel("profile"); }}>
+                  Profile
+                </button>
+                <button type="button" className="agencyAccountMenuItem" onClick={() => { setAccountMenuOpen(false); openAgencyAccountPanel("security"); }}>
+                  Security
+                </button>
+                <button type="button" className="agencyAccountMenuItem agencyAccountMenuItemNotif" onClick={() => { setAccountMenuOpen(false); window.location.href = notificationHubHref; }}>
+                  <span>Notifications</span>
+                  <span className="agencyAccountMenuCount">{notificationCount}</span>
+                </button>
+                <button type="button" className="agencyAccountMenuItem" onClick={() => void signOut()}>
+                  Sign out
+                </button>
+              </div>
+            ) : null}
+          </div>
         </nav>
       </header>
 
