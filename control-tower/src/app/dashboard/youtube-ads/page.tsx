@@ -85,6 +85,22 @@ type RunwayVideoResponse = {
   outputPreviewUrl?: string;
 };
 
+type CampaignFactoryContext = {
+  landingMap?: {
+    services?: Array<{
+      id?: string;
+      name?: string;
+      description?: string;
+      landingPath?: string;
+      formPath?: string;
+      bookingPath?: string;
+      cta?: string;
+      ctaSecondary?: string;
+    }>;
+  };
+  defaultBaseUrl?: string;
+};
+
 type PromptBuilderState = {
   objective: "Leads" | "Bookings" | "Retargeting";
   offer: string;
@@ -172,6 +188,15 @@ function oneLine(v: string) {
   return s(v).replace(/\s+/g, " ");
 }
 
+function toAbsUrl(base: string, rawPath: string) {
+  const p = s(rawPath);
+  if (!p) return "";
+  if (p.startsWith("http://") || p.startsWith("https://")) return p;
+  const b = s(base).replace(/\/+$/g, "");
+  if (!b) return p.startsWith("/") ? p : `/${p}`;
+  return `${b}/${p.replace(/^\/+/, "")}`;
+}
+
 export default function YoutubeAdsDashboardPage() {
   const searchParams = useBrowserSearchParams();
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
@@ -201,6 +226,8 @@ export default function YoutubeAdsDashboardPage() {
   const [videoBusy, setVideoBusy] = useState(false);
   const [videoErr, setVideoErr] = useState("");
   const [videoGen, setVideoGen] = useState<RunwayVideoResponse | null>(null);
+  const [campaignCtx, setCampaignCtx] = useState<CampaignFactoryContext | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
 
   const [builder, setBuilder] = useState<PromptBuilderState>({
     objective: "Leads",
@@ -275,11 +302,31 @@ export default function YoutubeAdsDashboardPage() {
       const json = (await res.json()) as OverviewResponse;
       if (!res.ok || !json?.ok) throw new Error(json?.error || `HTTP ${res.status}`);
       setData(json);
+      await loadCampaignContext(range.start, range.end, force === true);
     } catch (e: unknown) {
       setData(null);
       setError(e instanceof Error ? e.message : "Failed to load YouTube Ads dashboard");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadCampaignContext(rangeStart: string, rangeEnd: string, force: boolean) {
+    if (!tenantId) return;
+    try {
+      const qs = new URLSearchParams();
+      if (rangeStart) qs.set("start", rangeStart);
+      if (rangeEnd) qs.set("end", rangeEnd);
+      qs.set("tenantId", tenantId);
+      qs.set("integrationKey", integrationKey);
+      qs.set("keywordLimit", "30");
+      if (force) qs.set("force", "1");
+      const res = await fetch(`/api/dashboard/campaign-factory/context?${qs.toString()}`, { cache: "no-store" });
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; context?: CampaignFactoryContext } | null;
+      if (!res.ok || !json?.ok || !json.context) return;
+      setCampaignCtx(json.context);
+    } catch {
+      // Non-blocking for dashboard.
     }
   }
 
@@ -306,8 +353,51 @@ export default function YoutubeAdsDashboardPage() {
     void loadAgentRouting();
   }, [tenantId]);
 
+  const serviceCatalog = useMemo(() => {
+    const base = s(campaignCtx?.defaultBaseUrl) || "https://mydripnurse.com";
+    const services = Array.isArray(campaignCtx?.landingMap?.services) ? campaignCtx?.landingMap?.services : [];
+    return services
+      .map((service) => {
+        const id = s(service?.id);
+        const name = s(service?.name);
+        const landingUrl = toAbsUrl(base, s(service?.landingPath));
+        if (!id || !name || !landingUrl) return null;
+        return {
+          id,
+          name,
+          description: s(service?.description),
+          cta: s(service?.cta) || "Book your IV visit",
+          ctaSecondary: s(service?.ctaSecondary),
+          landingUrl,
+          formUrl: toAbsUrl(base, s(service?.formPath)),
+          bookingUrl: toAbsUrl(base, s(service?.bookingPath)),
+        };
+      })
+      .filter(
+        (
+          row,
+        ): row is {
+          id: string;
+          name: string;
+          description: string;
+          cta: string;
+          ctaSecondary: string;
+          landingUrl: string;
+          formUrl: string;
+          bookingUrl: string;
+        } => Boolean(row),
+      );
+  }, [campaignCtx?.defaultBaseUrl, campaignCtx?.landingMap?.services]);
+
+  const selectedService = useMemo(
+    () => serviceCatalog.find((x) => x.id === selectedServiceId) || null,
+    [serviceCatalog, selectedServiceId],
+  );
+
   const playbooks = useMemo<YoutubePlaybook[]>(() => {
     const states = (data?.topOpportunitiesGeo?.states || []).slice(0, 6);
+    const serviceName = selectedService?.name || "mobile IV therapy";
+    const serviceCta = selectedService?.cta || "Book your IV visit";
     return states.map((st, idx) => {
       const opps = Number(st.opportunities || 0);
       const val = Number(st.value || 0);
@@ -316,13 +406,13 @@ export default function YoutubeAdsDashboardPage() {
       const region = geoName(st.name);
       const hook =
         objective === "Bookings"
-          ? `Need IV therapy in ${region} today?`
+          ? `Need ${serviceName} in ${region} today?`
           : objective === "Leads"
             ? `Feeling low energy in ${region}?`
-            : `Still thinking about booking your IV treatment?`;
-      const script15s = `${hook} My Drip Nurse sends licensed nurses to your location. Same-day support, transparent pricing. Book now.`;
-      const script30s = `${hook} My Drip Nurse serves ${region} with mobile IV therapy for hydration, recovery, and wellness goals. Licensed nurses, easy scheduling, and fast response. Click to get your personalized IV plan and book in minutes.`;
-      const cta = objective === "Retargeting" ? "Finish booking today" : "Book your IV visit";
+            : `Still thinking about booking your ${serviceName}?`;
+      const script15s = `${hook} My Drip Nurse sends licensed nurses to your location. Same-day support, transparent pricing. ${serviceCta}.`;
+      const script30s = `${hook} My Drip Nurse serves ${region} with ${serviceName}. Licensed nurses, easy scheduling, and fast response. Click to get your personalized IV plan and book in minutes.`;
+      const cta = objective === "Retargeting" ? "Finish booking today" : serviceCta;
       const runwayPrompt =
         `Cinematic YouTube ad, ${region}, healthcare wellness tone, mobile IV nurse arrival, clean daylight, realistic people, subtle motion graphics, headline "${hook}", CTA "${cta}", 16:9, premium commercial style.`;
       return {
@@ -337,7 +427,7 @@ export default function YoutubeAdsDashboardPage() {
         runwayPrompt,
       };
     });
-  }, [data]);
+  }, [data, selectedService?.cta, selectedService?.name]);
 
   function updateBuilder<K extends keyof PromptBuilderState>(key: K, value: PromptBuilderState[K]) {
     setBuilder((prev) => ({ ...prev, [key]: value }));
@@ -349,6 +439,7 @@ export default function YoutubeAdsDashboardPage() {
 
   const builderPrompt = useMemo(() => {
     const region = campaign.region || playbooks[0]?.region || "Florida";
+    const serviceName = selectedService?.name || "mobile IV therapy";
     const scriptBase = oneLine(campaign.description1 || playbooks[0]?.script30s || "Mobile IV therapy with licensed nurses.");
     const pace = builder.pacing === "fast" ? "quick cuts" : builder.pacing === "slow" ? "longer calm shots" : "balanced cuts";
     const camera = builder.camera === "dynamic" ? "handheld + dolly movement" : builder.camera === "static" ? "stable tripod shots" : "mix static and dynamic camera";
@@ -369,9 +460,9 @@ export default function YoutubeAdsDashboardPage() {
           : "CTA end card: Book your IV visit.";
 
     return oneLine(
-      `YouTube ad for ${region}. Objective: ${builder.objective}. Offer: ${builder.offer}. ${tone}. ${style}. ${pace}. ${camera}. ${home} ${nurse} Narrative base: ${scriptBase}. ${overlays} ${cta} Aspect ratio ${runwayRatio}. ${compliance}`,
+      `YouTube ad for ${region}. Objective: ${builder.objective}. Offer: ${builder.offer}. Featured service: ${serviceName}. ${tone}. ${style}. ${pace}. ${camera}. ${home} ${nurse} Narrative base: ${scriptBase}. ${overlays} ${cta} Aspect ratio ${runwayRatio}. ${compliance}`,
     );
-  }, [builder, campaign.description1, campaign.region, playbooks, runwayRatio]);
+  }, [builder, campaign.description1, campaign.region, playbooks, runwayRatio, selectedService?.name]);
 
   useEffect(() => {
     if (!runwayPrompt && playbooks[0]?.runwayPrompt) {
@@ -384,6 +475,26 @@ export default function YoutubeAdsDashboardPage() {
       updateCampaign("region", playbooks[0].region);
     }
   }, [campaign.region, playbooks]);
+
+  useEffect(() => {
+    if (!serviceCatalog.length) return;
+    const exists = serviceCatalog.some((x) => x.id === selectedServiceId);
+    if (!exists) {
+      const first = serviceCatalog[0];
+      setSelectedServiceId(first.id);
+      setCampaign((prev) => {
+        const nextFinal = s(prev.finalUrl);
+        const nextDisplay = s(prev.displayUrl);
+        const nextCta = s(prev.cta);
+        return {
+          ...prev,
+          finalUrl: nextFinal || first.bookingUrl || first.formUrl || first.landingUrl,
+          displayUrl: nextDisplay || first.landingUrl.replace(/^https?:\/\//i, ""),
+          cta: nextCta || first.cta,
+        };
+      });
+    }
+  }, [serviceCatalog, selectedServiceId]);
 
   useEffect(() => {
     const u = s(videoGen?.outputUrl);
@@ -519,6 +630,16 @@ export default function YoutubeAdsDashboardPage() {
           outputUrl: s(videoGen?.outputUrl),
         },
         campaign,
+        selectedService: selectedService
+          ? {
+              id: selectedService.id,
+              name: selectedService.name,
+              cta: selectedService.cta,
+              landingUrl: selectedService.landingUrl,
+              formUrl: selectedService.formUrl,
+              bookingUrl: selectedService.bookingUrl,
+            }
+          : null,
       };
       const res = await fetch("/api/agents/proposals", {
         method: "POST",
@@ -558,6 +679,16 @@ export default function YoutubeAdsDashboardPage() {
     updateCampaign("description1", pb.script15s);
     updateCampaign("description2", pb.script30s);
     setRunwayPrompt(pb.runwayPrompt);
+  }
+
+  function applyServiceToComposer() {
+    if (!selectedService) return;
+    updateCampaign("finalUrl", selectedService.bookingUrl || selectedService.formUrl || selectedService.landingUrl);
+    updateCampaign("displayUrl", selectedService.landingUrl.replace(/^https?:\/\//i, ""));
+    updateCampaign("cta", selectedService.cta || "Book your IV visit");
+    if (!campaign.longHeadline) {
+      updateCampaign("longHeadline", `${selectedService.name} with licensed nurses`);
+    }
   }
 
   function downloadVideo() {
@@ -704,6 +835,52 @@ export default function YoutubeAdsDashboardPage() {
             <div className="kpi"><p className="n">{fmtMoney(stats.lostValue)}</p><p className="l">Lost value</p></div>
             <div className="kpi"><p className="n">{fmtMoney(stats.revenue)}</p><p className="l">Revenue</p></div>
           </div>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Products & Services Context</h2>
+            <div className="cardSubtitle">Catalog from tenant Project Details used for CTA and destination URLs.</div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={applyServiceToComposer} disabled={!selectedService}>
+              Apply to Campaign Composer
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          {!serviceCatalog.length ? (
+            <div className="mini">No tenant services found. Add them in Project Details → Products & Services.</div>
+          ) : (
+            <>
+              <div className="row">
+                <div className="field">
+                  <label>Service</label>
+                  <select
+                    className="input"
+                    value={selectedServiceId}
+                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                  >
+                    {serviceCatalog.map((svc) => (
+                      <option key={svc.id} value={svc.id}>
+                        {svc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>CTA</label>
+                  <input className="input" value={selectedService?.cta || ""} readOnly />
+                </div>
+                <div className="field">
+                  <label>Landing URL</label>
+                  <input className="input" value={selectedService?.landingUrl || ""} readOnly />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
@@ -1076,6 +1253,8 @@ export default function YoutubeAdsDashboardPage() {
               attribution: data?.attribution,
               actionCenter: data?.actionCenter,
               campaignPlaybooks: playbooks,
+              productsServices: serviceCatalog,
+              selectedService,
               aiPlaybook,
               runwayPrompt,
               runwayModel,

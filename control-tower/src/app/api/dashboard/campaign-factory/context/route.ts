@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 import { getDbPool } from "@/lib/db";
+import { loadTenantProductsServices } from "@/lib/tenantProductsServices";
 
 export const runtime = "nodejs";
 
@@ -9,18 +10,6 @@ type SheetTabIndex = {
   headers: string[];
   rows: unknown[][];
   headerMap: Map<string, number>;
-};
-
-type LandingService = {
-  id: string;
-  name: string;
-  landingPath: string;
-  formPath?: string;
-  bookingPath?: string;
-};
-
-type LandingMapFile = {
-  services?: LandingService[];
 };
 
 type GscCacheRow = {
@@ -136,29 +125,21 @@ async function loadBusinessProfile() {
   };
 }
 
-async function loadLandingMap() {
-  const mapFile = pickFirstExisting([
-    process.env.CAMPAIGN_LANDING_MAP_FILE || "",
-    path.resolve(process.cwd(), "../resources/config/campaign-landing-map.json"),
-    path.resolve(process.cwd(), "resources/config/campaign-landing-map.json"),
-  ]);
-
-  const raw = (await readJsonIfExists<LandingMapFile>(mapFile)) || { services: [] };
-  const services = Array.isArray(raw.services)
-    ? raw.services
-        .map((x) => ({
-          id: s(x.id),
-          name: s(x.name),
-          landingPath: s(x.landingPath),
-          formPath: s(x.formPath),
-          bookingPath: s(x.bookingPath),
-        }))
-        .filter((x) => x.id && x.name && x.landingPath)
-    : [];
-
+async function loadLandingMap(tenantId?: string) {
+  const loaded = await loadTenantProductsServices(tenantId);
   return {
-    file: mapFile,
-    services,
+    file: loaded.source === "file" ? s((loaded as { file?: string }).file) : "",
+    source: loaded.source,
+    services: loaded.services.map((x) => ({
+      id: s(x.id),
+      name: s(x.name),
+      description: s(x.description),
+      landingPath: s(x.landingPath),
+      formPath: s(x.formPath),
+      bookingPath: s(x.bookingPath),
+      cta: s(x.cta),
+      ctaSecondary: s(x.ctaSecondary),
+    })),
   };
 }
 
@@ -326,7 +307,7 @@ export async function GET(req: Request) {
 
     const [business, landingMap, domains, gsc, tenantBaseUrl] = await Promise.all([
       loadBusinessProfile(),
-      loadLandingMap(),
+      loadLandingMap(tenantId),
       loadSheetDomains(tenantId),
       loadGscTopQueries(keywordLimit, tenantId),
       loadTenantDefaultBaseUrl(tenantId),

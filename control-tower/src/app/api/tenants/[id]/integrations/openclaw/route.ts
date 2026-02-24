@@ -324,7 +324,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (!at) {
       return NextResponse.json({ ok: false, error: "No routing backup found." }, { status: 404 });
     }
-    const restoredCfg = {
+    const restoredCfg: Record<string, unknown> = {
       ...currentCfg,
       openclawBaseUrl: s(snapshot.openclawBaseUrl) || s(currentCfg.openclawBaseUrl),
       openclawWorkspace: s(snapshot.openclawWorkspace) || s(currentCfg.openclawWorkspace),
@@ -333,6 +333,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       autoApproval: normalizeAutoApproval(snapshot.autoApproval || currentCfg.autoApproval),
       agents: normalizeAgents(snapshot.agents || currentCfg.agents),
     };
+    const restoredKey = s(restoredCfg.agentApiKey || restoredCfg.openclawApiKey || restoredCfg.apiKey);
     await pool.query(
       `
         insert into app.organization_integrations (
@@ -356,7 +357,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       provider: "custom",
       integrationKey: "agent",
       status: "connected",
-      apiKeyMasked: maskKey(s(restoredCfg.agentApiKey || restoredCfg.openclawApiKey || restoredCfg.apiKey)),
+      apiKeyMasked: maskKey(restoredKey),
       openclawBaseUrl: s(restoredCfg.openclawBaseUrl),
       openclawWorkspace: s(restoredCfg.openclawWorkspace),
       autoProposals: restoredCfg.autoProposals,

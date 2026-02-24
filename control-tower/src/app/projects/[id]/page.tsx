@@ -78,6 +78,19 @@ type TenantCustomValueRow = {
   description?: string | null;
 };
 
+type TenantProductServiceRow = {
+  id?: string;
+  serviceId: string;
+  name: string;
+  description: string;
+  landingPath: string;
+  formPath: string;
+  bookingPath: string;
+  cta: string;
+  ctaSecondary: string;
+  isActive: boolean;
+};
+
 type TenantStateFileRow = {
   id: string;
   organization_id: string;
@@ -139,7 +152,7 @@ type TenantDetailResponse = {
 };
 
 type ProjectTab = "runner" | "sheet" | "activation" | "logs" | "details" | "webhooks";
-type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values" | "state_files";
+type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values" | "products_services" | "state_files";
 
 type StateDetailResponse = {
   state: string;
@@ -179,6 +192,23 @@ function toUrlMaybe(domainOrUrl: string) {
   if (!d) return "";
   if (d.startsWith("http://") || d.startsWith("https://")) return d;
   return `https://${d}`;
+}
+
+function slugToken(input: string) {
+  return s(input)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 64);
+}
+
+function normalizeRelativePath(input: string) {
+  const raw = s(input);
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  return `/${raw.replace(/^\/+/, "")}`;
 }
 
 function formatStateLabel(raw: string) {
@@ -572,6 +602,12 @@ export default function Home() {
   const [tenantCustomValuesMsg, setTenantCustomValuesMsg] = useState("");
   const [tenantCustomValuesPage, setTenantCustomValuesPage] = useState(1);
   const [tenantCustomValuesSearch, setTenantCustomValuesSearch] = useState("");
+  const [tenantProductsServices, setTenantProductsServices] = useState<TenantProductServiceRow[]>([]);
+  const [tenantProductsServicesLoading, setTenantProductsServicesLoading] = useState(false);
+  const [tenantProductsServicesSaving, setTenantProductsServicesSaving] = useState(false);
+  const [tenantProductsServicesMsg, setTenantProductsServicesMsg] = useState("");
+  const [tenantProductsServicesSearch, setTenantProductsServicesSearch] = useState("");
+  const [tenantProductsServicesPage, setTenantProductsServicesPage] = useState(1);
   const [tenantBingWebmasterApiKey, setTenantBingWebmasterApiKey] = useState("");
   const [tenantBingWebmasterSiteUrl, setTenantBingWebmasterSiteUrl] = useState("");
   const [tenantBingIndexNowKey, setTenantBingIndexNowKey] = useState("");
@@ -1152,6 +1188,151 @@ export default function Home() {
     }
   }
 
+  async function loadTenantProductsServices() {
+    if (!routeTenantId) {
+      setTenantProductsServices([]);
+      return;
+    }
+    setTenantProductsServicesLoading(true);
+    try {
+      const qs = new URLSearchParams({
+        provider: "marketing",
+        scope: "module",
+        module: "products_services",
+      });
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values?${qs.toString()}`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const rows = Array.isArray((data as any)?.rows) ? (data as any).rows : [];
+      const mapped = rows
+        .map((r: any) => {
+          const raw = s(r?.keyValue);
+          let parsed: Record<string, unknown> = {};
+          try {
+            parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+          } catch {
+            parsed = {};
+          }
+          const serviceId = slugToken(s(parsed.id) || s(r?.keyName));
+          const name = s(parsed.name || r?.description || r?.keyName);
+          const landingPath = normalizeRelativePath(s(parsed.landingPath || parsed.landingUrl || parsed.url));
+          if (!serviceId || !name || !landingPath) return null;
+          return {
+            id: s(r?.id),
+            serviceId,
+            name,
+            description: s(parsed.description),
+            landingPath,
+            formPath: normalizeRelativePath(s(parsed.formPath || parsed.formUrl)),
+            bookingPath: normalizeRelativePath(s(parsed.bookingPath || parsed.bookingUrl)),
+            cta: s(parsed.cta || parsed.ctaPrimary),
+            ctaSecondary: s(parsed.ctaSecondary),
+            isActive: r?.isActive !== false,
+          } as TenantProductServiceRow;
+        })
+        .filter((x: TenantProductServiceRow | null): x is TenantProductServiceRow => Boolean(x));
+      setTenantProductsServices(mapped);
+      setTenantProductsServicesPage(1);
+    } catch (e: any) {
+      setTenantProductsServices([]);
+      setTenantDetailErr(e?.message || "Failed to load products/services.");
+    } finally {
+      setTenantProductsServicesLoading(false);
+    }
+  }
+
+  function updateTenantProductsServiceAt(index: number, patch: Partial<TenantProductServiceRow>) {
+    setTenantProductsServices((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    );
+  }
+
+  function addTenantProductsServiceRow() {
+    setTenantProductsServices((prev) => [
+      ...prev,
+      {
+        serviceId: "",
+        name: "",
+        description: "",
+        landingPath: "",
+        formPath: "",
+        bookingPath: "",
+        cta: "",
+        ctaSecondary: "",
+        isActive: true,
+      },
+    ]);
+    setTenantProductsServicesPage(9999);
+  }
+
+  function removeTenantProductsServiceRow(index: number) {
+    setTenantProductsServices((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, isActive: false } : row)),
+    );
+  }
+
+  async function saveTenantProductsServices() {
+    if (!routeTenantId) return;
+    setTenantProductsServicesMsg("");
+    setTenantProductsServicesSaving(true);
+    setTenantDetailErr("");
+    try {
+      const rows = tenantProductsServices
+        .map((row) => {
+          const serviceId = slugToken(row.serviceId || row.name);
+          const name = s(row.name);
+          const landingPath = normalizeRelativePath(row.landingPath);
+          if (!serviceId || !name || !landingPath) return null;
+          return {
+            provider: "marketing",
+            scope: "module",
+            module: "products_services",
+            keyName: serviceId,
+            keyValue: JSON.stringify({
+              id: serviceId,
+              name,
+              description: s(row.description),
+              landingPath,
+              formPath: normalizeRelativePath(row.formPath),
+              bookingPath: normalizeRelativePath(row.bookingPath),
+              cta: s(row.cta),
+              ctaSecondary: s(row.ctaSecondary),
+            }),
+            valueType: "json",
+            isActive: row.isActive !== false,
+            description: name,
+          };
+        })
+        .filter(Boolean);
+
+      if (!rows.length) {
+        throw new Error("Add at least one valid service with name and landing path.");
+      }
+
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      await loadTenantProductsServices();
+      setTenantProductsServicesMsg(`Saved ${Number((data as any)?.upserted || 0)} products/services.`);
+    } catch (e: any) {
+      setTenantProductsServicesMsg("");
+      setTenantDetailErr(e?.message || "Failed to save products/services.");
+    } finally {
+      setTenantProductsServicesSaving(false);
+    }
+  }
+
   function hydrateBingFormFromIntegrations(rows: TenantIntegrationRow[]) {
     const key = "default";
     const pick =
@@ -1394,6 +1575,10 @@ export default function Home() {
   }, [routeTenantId]);
 
   useEffect(() => {
+    void loadTenantProductsServices();
+  }, [routeTenantId]);
+
+  useEffect(() => {
     void loadTenantProspectingWebhookSettings();
   }, [routeTenantId]);
 
@@ -1404,6 +1589,7 @@ export default function Home() {
       tab === "ghl" ||
       tab === "integrations" ||
       tab === "custom_values" ||
+      tab === "products_services" ||
       tab === "state_files"
     ) {
       setDetailsTab(tab as ProjectDetailsTab);
@@ -4846,6 +5032,31 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     return tenantCustomValuesFiltered.slice(start, start + tenantCustomValuesPageSize);
   }, [tenantCustomValuesFiltered, tenantCustomValuesPageSafe]);
 
+  const tenantProductsServicesPageSize = 10;
+  const tenantProductsServicesFiltered = useMemo(() => {
+    const q = s(tenantProductsServicesSearch).toLowerCase();
+    const indexed = tenantProductsServices.map((row, originalIndex) => ({ row, originalIndex }));
+    if (!q) return indexed;
+    return indexed.filter(({ row }) =>
+      [row.serviceId, row.name, row.description, row.landingPath, row.formPath, row.bookingPath, row.cta]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [tenantProductsServices, tenantProductsServicesSearch]);
+  const tenantProductsServicesPages = Math.max(
+    1,
+    Math.ceil(tenantProductsServicesFiltered.length / tenantProductsServicesPageSize),
+  );
+  const tenantProductsServicesPageSafe = Math.min(
+    tenantProductsServicesPages,
+    Math.max(1, tenantProductsServicesPage),
+  );
+  const tenantProductsServicesPagedRows = useMemo(() => {
+    const start = (tenantProductsServicesPageSafe - 1) * tenantProductsServicesPageSize;
+    return tenantProductsServicesFiltered.slice(start, start + tenantProductsServicesPageSize);
+  }, [tenantProductsServicesFiltered, tenantProductsServicesPageSafe]);
+
   const stateFilePayloadObject = useMemo(() => {
     const raw = s(stateFilePayloadText);
     if (!raw) return null;
@@ -5075,6 +5286,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               onClick={() => setDetailsTab("custom_values")}
             >
               Custom Values
+            </button>
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "products_services" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("products_services")}
+            >
+              Products & Services
             </button>
             <button
               type="button"
@@ -5698,6 +5916,189 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           setTenantCustomValuesPage((p) =>
                             Math.min(tenantCustomValuesPages, p + 1),
                           )
+                        }
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {detailsTab === "products_services" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">Products & Services Catalog</div>
+                <div className="detailsPaneSub">
+                  Tenant-scoped services used by Campaign Factory and YouTube Ads CTA/links.
+                </div>
+              </div>
+
+              <div className="detailsCustomTop">
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <input
+                    className="input"
+                    style={{ maxWidth: 360 }}
+                    value={tenantProductsServicesSearch}
+                    onChange={(e) => {
+                      setTenantProductsServicesSearch(e.target.value);
+                      setTenantProductsServicesPage(1);
+                    }}
+                    placeholder="Search services..."
+                  />
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {tenantProductsServicesMsg ? <span className="badge">{tenantProductsServicesMsg}</span> : null}
+                    <button type="button" className="smallBtn" onClick={() => addTenantProductsServiceRow()}>
+                      Add Row
+                    </button>
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={!routeTenantId || tenantProductsServicesSaving || tenantProductsServicesLoading}
+                      onClick={() => void saveTenantProductsServices()}
+                    >
+                      {tenantProductsServicesSaving ? "Saving..." : "Save Products & Services"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="tableWrap detailsCustomTableWrap" style={{ marginTop: 12 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Active</th>
+                      <th className="th">Service ID</th>
+                      <th className="th">Name</th>
+                      <th className="th">Landing</th>
+                      <th className="th">Form</th>
+                      <th className="th">Booking</th>
+                      <th className="th">CTA</th>
+                      <th className="th">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tenantProductsServicesLoading ? (
+                      <tr>
+                        <td className="td" colSpan={8}>
+                          <span className="mini">Loading products/services...</span>
+                        </td>
+                      </tr>
+                    ) : tenantProductsServicesFiltered.length === 0 ? (
+                      <tr>
+                        <td className="td" colSpan={8}>
+                          <span className="mini">No services yet. Add a row and save.</span>
+                        </td>
+                      </tr>
+                    ) : (
+                      tenantProductsServicesPagedRows.map(({ row, originalIndex }) => (
+                        <tr key={`${row.id || row.serviceId || "service"}:${originalIndex}`} className="tr">
+                          <td className="td" style={{ width: 80 }}>
+                            <input
+                              type="checkbox"
+                              checked={row.isActive !== false}
+                              onChange={(e) => updateTenantProductsServiceAt(originalIndex, { isActive: e.target.checked })}
+                            />
+                          </td>
+                          <td className="td" style={{ minWidth: 170 }}>
+                            <input
+                              className="input"
+                              value={row.serviceId}
+                              onChange={(e) =>
+                                updateTenantProductsServiceAt(originalIndex, { serviceId: slugToken(e.target.value) })
+                              }
+                              placeholder="hydration"
+                            />
+                          </td>
+                          <td className="td" style={{ minWidth: 220 }}>
+                            <input
+                              className="input"
+                              value={row.name}
+                              onChange={(e) => updateTenantProductsServiceAt(originalIndex, { name: e.target.value })}
+                              placeholder="Mobile IV Therapy Hydration"
+                            />
+                          </td>
+                          <td className="td" style={{ minWidth: 240 }}>
+                            <input
+                              className="input"
+                              value={row.landingPath}
+                              onChange={(e) => updateTenantProductsServiceAt(originalIndex, { landingPath: e.target.value })}
+                              placeholder="/hydration-mobile-iv-therapy"
+                            />
+                          </td>
+                          <td className="td" style={{ minWidth: 220 }}>
+                            <input
+                              className="input"
+                              value={row.formPath}
+                              onChange={(e) => updateTenantProductsServiceAt(originalIndex, { formPath: e.target.value })}
+                              placeholder="/form-path"
+                            />
+                          </td>
+                          <td className="td" style={{ minWidth: 220 }}>
+                            <input
+                              className="input"
+                              value={row.bookingPath}
+                              onChange={(e) => updateTenantProductsServiceAt(originalIndex, { bookingPath: e.target.value })}
+                              placeholder="/booking-path"
+                            />
+                          </td>
+                          <td className="td" style={{ minWidth: 180 }}>
+                            <input
+                              className="input"
+                              value={row.cta}
+                              onChange={(e) => updateTenantProductsServiceAt(originalIndex, { cta: e.target.value })}
+                              placeholder="Book your IV visit"
+                            />
+                          </td>
+                          <td className="td" style={{ width: 110 }}>
+                            <button
+                              type="button"
+                              className="smallBtn"
+                              onClick={() => removeTenantProductsServiceRow(originalIndex)}
+                            >
+                              Disable
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                {tenantProductsServicesFiltered.length > tenantProductsServicesPageSize ? (
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
+                    <div className="mini">
+                      Showing{" "}
+                      {Math.min(
+                        tenantProductsServicesFiltered.length,
+                        (tenantProductsServicesPageSafe - 1) * tenantProductsServicesPageSize + 1,
+                      )}{" "}
+                      to{" "}
+                      {Math.min(
+                        tenantProductsServicesFiltered.length,
+                        tenantProductsServicesPageSafe * tenantProductsServicesPageSize,
+                      )}{" "}
+                      of {tenantProductsServicesFiltered.length}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        disabled={tenantProductsServicesPageSafe <= 1}
+                        onClick={() => setTenantProductsServicesPage((p) => Math.max(1, p - 1))}
+                      >
+                        Prev
+                      </button>
+                      <span className="badge">
+                        Page {tenantProductsServicesPageSafe} / {tenantProductsServicesPages}
+                      </span>
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        disabled={tenantProductsServicesPageSafe >= tenantProductsServicesPages}
+                        onClick={() =>
+                          setTenantProductsServicesPage((p) => Math.min(tenantProductsServicesPages, p + 1))
                         }
                       >
                         Next

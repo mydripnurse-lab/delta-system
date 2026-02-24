@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { getDbPool } from "@/lib/db";
 import { googleAdsGenerateKeywordIdeas } from "@/lib/ads/adsRest";
+import { loadTenantProductsServices } from "@/lib/tenantProductsServices";
 
 export const runtime = "nodejs";
 
@@ -73,8 +72,6 @@ type KeywordAgg = {
   action: "scale" | "test" | "pause" | "negative" | "monitor";
   reason: string;
 };
-
-let landingMapCache: LandingMap | null = null;
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -159,17 +156,16 @@ function overlapScore(a: string, b: string) {
   return (2 * inter) / (ta.size + tb.size);
 }
 
-async function loadLandingMap() {
-  if (landingMapCache) return landingMapCache;
-  try {
-    const p = path.resolve(process.cwd(), "..", "resources", "config", "campaign-landing-map.json");
-    const raw = await fs.readFile(p, "utf8");
-    landingMapCache = JSON.parse(raw) as LandingMap;
-    return landingMapCache;
-  } catch {
-    landingMapCache = { services: [] };
-    return landingMapCache;
-  }
+async function loadLandingMap(tenantId: string): Promise<LandingMap> {
+  const loaded = await loadTenantProductsServices(tenantId);
+  return {
+    services: loaded.services.map((x) => ({
+      id: s(x.id),
+      landingPath: s(x.landingPath),
+      formPath: s(x.formPath),
+      bookingPath: s(x.bookingPath),
+    })),
+  };
 }
 
 async function loadGeoIndex(tenantId: string): Promise<GeoIndex> {
@@ -355,7 +351,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
     }
 
-    const [landing, geo] = await Promise.all([loadLandingMap(), loadGeoIndex(tenantId)]);
+    const [landing, geo] = await Promise.all([loadLandingMap(tenantId), loadGeoIndex(tenantId)]);
 
     const baseParams = new URLSearchParams();
     baseParams.set("range", range);
