@@ -11,6 +11,9 @@ type MeetingRow = {
   durationMinutes: number;
   roomSlug: string;
   joinUrl: string;
+  hostJoinUrl: string;
+  roomPasscode: string;
+  lobbyEnabled: boolean;
   createdAt: string;
   createdBy: string;
 };
@@ -196,23 +199,22 @@ export default function AgencyMeetingsPanel() {
             </div>
             <div className="agencyZoomMeta">Starts: {formatDateTime(meeting.startsAt)}</div>
             <div className="agencyZoomMeta">Created by: {meeting.createdBy}</div>
+            <div className="agencyZoomMeta">Security: {meeting.lobbyEnabled ? "Lobby on" : "Lobby off"} · PIN {meeting.roomPasscode}</div>
             <div className="agencyZoomLinkWrap">
               <input className="input agencyZoomLinkInput" value={meeting.joinUrl} readOnly />
             </div>
             <div className="agencyZoomActions">
               <button type="button" className="btnGhost" onClick={() => void copyLink(meeting.joinUrl)}>
-                Copy Link
+                Copy Client Link
+              </button>
+              <button type="button" className="btnGhost" onClick={() => void copyLink(meeting.hostJoinUrl)}>
+                Copy Host Link
               </button>
               <a className="btnGhost" href={meeting.joinUrl} target="_blank" rel="noreferrer">
                 Open Client View
               </a>
-              <a
-                className="btnGhost agencyZoomPrimaryBtn"
-                href={`https://meet.jit.si/${encodeURIComponent(meeting.roomSlug)}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Start Call
+              <a className="btnGhost agencyZoomPrimaryBtn" href={meeting.hostJoinUrl} target="_blank" rel="noreferrer">
+                Open Host View
               </a>
               <button type="button" className="btnGhost" disabled={busy} onClick={() => void deleteMeeting(meeting.id)}>
                 Delete

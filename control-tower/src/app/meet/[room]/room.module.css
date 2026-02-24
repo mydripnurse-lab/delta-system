@@ -64,6 +64,17 @@
   font-size: 13px;
 }
 
+.securityPill {
+  margin-top: 12px;
+  display: inline-flex;
+  border: 1px solid rgba(96, 165, 250, 0.42);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: rgba(219, 234, 254, 0.95);
+  background: rgba(30, 64, 175, 0.24);
+}
+
 .info {
   margin-top: 14px;
   display: grid;
@@ -105,9 +116,22 @@
 .frame {
   width: 100%;
   min-height: 72vh;
-  border: 0;
   border-radius: 18px;
-  background: #000;
+  background: #030712;
+  overflow: hidden;
+}
+
+.loadingState,
+.errorState {
+  min-height: 72vh;
+  display: grid;
+  place-items: center;
+  color: rgba(203, 213, 225, 0.96);
+  font-size: 16px;
+}
+
+.errorState {
+  color: rgba(254, 202, 202, 0.98);
 }
 
 @media (max-width: 840px) {

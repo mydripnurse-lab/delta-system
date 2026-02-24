@@ -22,6 +22,14 @@ function randomToken() {
   return Math.random().toString(36).slice(2, 8);
 }
 
+function randomDigits() {
+  return String(100000 + Math.floor(Math.random() * 900000));
+}
+
+function randomHostKey() {
+  return `${randomToken()}${randomToken()}${randomToken()}`.slice(0, 24);
+}
+
 function buildBaseUrl(req: Request) {
   const url = new URL(req.url);
   const xfProto = s(req.headers.get("x-forwarded-proto"));
@@ -62,6 +70,9 @@ export async function GET(req: Request) {
       starts_at: string | null;
       duration_minutes: number;
       room_slug: string;
+      host_key: string;
+      room_passcode: string;
+      lobby_enabled: boolean;
       created_at: string;
       created_by_name: string | null;
     }>(
@@ -74,6 +85,9 @@ export async function GET(req: Request) {
           m.starts_at::text,
           m.duration_minutes,
           m.room_slug,
+          m.host_key,
+          m.room_passcode,
+          m.lobby_enabled,
           m.created_at::text,
           coalesce(nullif(u.full_name, ''), u.email) as created_by_name
         from app.agency_meetings m
@@ -93,9 +107,14 @@ export async function GET(req: Request) {
         startsAt: row.starts_at || "",
         durationMinutes: Number(row.duration_minutes || 45),
         roomSlug: row.room_slug,
+        hostJoinUrl: `${baseUrl}/meet/${encodeURIComponent(row.room_slug)}?agency=${encodeURIComponent("Delta System")}&meeting=${encodeURIComponent(
+          row.title,
+        )}&client=${encodeURIComponent(row.client_name)}&hk=${encodeURIComponent(row.host_key)}`,
         joinUrl: `${baseUrl}/meet/${encodeURIComponent(row.room_slug)}?agency=${encodeURIComponent("Delta System")}&meeting=${encodeURIComponent(
           row.title,
         )}&client=${encodeURIComponent(row.client_name)}${row.client_email ? `&email=${encodeURIComponent(row.client_email)}` : ""}`,
+        roomPasscode: row.room_passcode,
+        lobbyEnabled: Boolean(row.lobby_enabled),
         createdAt: row.created_at,
         createdBy: row.created_by_name || "Agency",
       })),
@@ -105,6 +124,12 @@ export async function GET(req: Request) {
     if (code === "42P01") {
       return NextResponse.json(
         { ok: false, error: "Meetings table is missing. Run DB migration 030_agency_meetings.sql." },
+        { status: 500 },
+      );
+    }
+    if (code === "42703") {
+      return NextResponse.json(
+        { ok: false, error: "Meetings security columns are missing. Run DB migration 031_agency_meetings_security.sql." },
         { status: 500 },
       );
     }
@@ -127,6 +152,8 @@ export async function POST(req: Request) {
   const durationRaw = Number(body.durationMinutes);
   const durationMinutes = Number.isFinite(durationRaw) ? Math.max(15, Math.min(180, Math.round(durationRaw))) : 45;
   const pool = getDbPool();
+  const roomPasscode = randomDigits();
+  const hostKey = randomHostKey();
 
   let created:
     | {
@@ -137,6 +164,9 @@ export async function POST(req: Request) {
         starts_at: string | null;
         duration_minutes: number;
         room_slug: string;
+        host_key: string;
+        room_passcode: string;
+        lobby_enabled: boolean;
         created_at: string;
       }
     | undefined;
@@ -163,9 +193,12 @@ export async function POST(req: Request) {
               starts_at,
               duration_minutes,
               room_slug,
+              host_key,
+              room_passcode,
+              lobby_enabled,
               created_by_user_id
             )
-            values ($1, $2, nullif($3, ''), $4::timestamptz, $5, $6, $7)
+            values ($1, $2, nullif($3, ''), $4::timestamptz, $5, $6, $7, $8, true, $9)
             returning
               id,
               title,
@@ -174,9 +207,12 @@ export async function POST(req: Request) {
               starts_at::text,
               duration_minutes,
               room_slug,
+              host_key,
+              room_passcode,
+              lobby_enabled,
               created_at::text
           `,
-          [title, clientName, clientEmail, startsAt, durationMinutes, roomSlug, auth.user.id],
+          [title, clientName, clientEmail, startsAt, durationMinutes, roomSlug, hostKey, roomPasscode, auth.user.id],
         );
         created = ins.rows[0];
         break;
@@ -193,6 +229,12 @@ export async function POST(req: Request) {
         { status: 500 },
       );
     }
+    if (code === "42703") {
+      return NextResponse.json(
+        { ok: false, error: "Meetings security columns are missing. Run DB migration 031_agency_meetings_security.sql." },
+        { status: 500 },
+      );
+    }
     const message = error instanceof Error ? error.message : "Failed to create meeting.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
@@ -205,6 +247,9 @@ export async function POST(req: Request) {
   const joinUrl = `${baseUrl}/meet/${encodeURIComponent(created.room_slug)}?agency=${encodeURIComponent("Delta System")}&meeting=${encodeURIComponent(
     created.title,
   )}&client=${encodeURIComponent(created.client_name)}${created.client_email ? `&email=${encodeURIComponent(created.client_email)}` : ""}`;
+  const hostJoinUrl = `${baseUrl}/meet/${encodeURIComponent(created.room_slug)}?agency=${encodeURIComponent("Delta System")}&meeting=${encodeURIComponent(
+    created.title,
+  )}&client=${encodeURIComponent(created.client_name)}&hk=${encodeURIComponent(created.host_key)}`;
 
   return NextResponse.json({
     ok: true,
@@ -216,7 +261,10 @@ export async function POST(req: Request) {
       startsAt: created.starts_at || "",
       durationMinutes: Number(created.duration_minutes || 45),
       roomSlug: created.room_slug,
+      hostJoinUrl,
       joinUrl,
+      roomPasscode: created.room_passcode,
+      lobbyEnabled: Boolean(created.lobby_enabled),
       createdAt: created.created_at,
       createdBy: auth.user.fullName || auth.user.email,
     },
