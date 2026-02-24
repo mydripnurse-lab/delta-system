@@ -30,6 +30,7 @@ type OpenclawConfigResponse = {
     maxPriority?: "P1" | "P2" | "P3";
   };
   agents?: Record<string, AgentNode>;
+  routingBackupAt?: string | null;
   apiKey?: string;
   error?: string;
 };
@@ -64,6 +65,9 @@ function cloneAgents(input: Record<string, AgentNode>) {
 export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncingSouls, setSyncingSouls] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [status, setStatus] = useState("disconnected");
@@ -92,6 +96,7 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
   const [loadedAutoApprovalMaxRisk, setLoadedAutoApprovalMaxRisk] = useState<"low" | "medium" | "high">("low");
   const [loadedAutoApprovalMaxPriority, setLoadedAutoApprovalMaxPriority] = useState<"P1" | "P2" | "P3">("P3");
   const [routingSearch, setRoutingSearch] = useState("");
+  const [routingBackupAt, setRoutingBackupAt] = useState("");
 
   const isDirty = useMemo(() => {
     return (
@@ -177,6 +182,7 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       setLoadedAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
+      setRoutingBackupAt(s(json.routingBackupAt));
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Failed to load OpenClaw config.");
     } finally {
@@ -278,6 +284,7 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
       setLoadedAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
       setAgents(cloneAgents(nextAgents));
       setLoadedAgents(cloneAgents(nextAgents));
+      setRoutingBackupAt(s(json.routingBackupAt));
       if (rotate && s(json.apiKey)) {
         window.alert(`New tenant API key (save it in OpenClaw):\n\n${s(json.apiKey)}`);
       }
@@ -289,17 +296,150 @@ export default function TenantOpenclawConfigCard({ tenantId }: Props) {
     }
   }
 
+  async function syncSoulsToOpenclaw() {
+    if (!tenantId) return;
+    setSyncingSouls(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(tenantId)}/integrations/openclaw/sync-souls`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+        },
+      );
+      const json = (await res.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            error?: string;
+            okCount?: number;
+            failCount?: number;
+            rows?: Array<{ dashboardKey?: string; error?: string; ok?: boolean; skipped?: string }>;
+          }
+        | null;
+      if (!res.ok || !json?.ok) {
+        const details = Array.isArray(json?.rows)
+          ? json?.rows
+              .filter((r) => r?.ok === false && s(r?.error))
+              .map((r) => `${s(r?.dashboardKey)}: ${s(r?.error)}`)
+              .slice(0, 4)
+              .join(" | ")
+          : "";
+        throw new Error(
+          [s(json?.error) || `HTTP ${res.status}`, details].filter(Boolean).join(" | "),
+        );
+      }
+      setMsg(`Souls synced to OpenClaw. ok=${Number(json.okCount || 0)} fail=${Number(json.failCount || 0)}`);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Failed to sync souls to OpenClaw.");
+    } finally {
+      setSyncingSouls(false);
+    }
+  }
+
+  async function backupRouting() {
+    if (!tenantId) return;
+    setBackingUp(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/integrations/openclaw`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "backup_routing" }),
+      });
+      const json = (await res.json().catch(() => null)) as OpenclawConfigResponse | null;
+      if (!res.ok || !json?.ok) throw new Error(s(json?.error) || `HTTP ${res.status}`);
+      setRoutingBackupAt(s(json.routingBackupAt));
+      setMsg(`Routing backup saved${s(json.routingBackupAt) ? ` (${s(json.routingBackupAt)})` : ""}.`);
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Failed to backup routing.");
+    } finally {
+      setBackingUp(false);
+    }
+  }
+
+  async function restoreRouting() {
+    if (!tenantId) return;
+    setRestoring(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/integrations/openclaw`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "restore_routing" }),
+      });
+      const json = (await res.json().catch(() => null)) as OpenclawConfigResponse | null;
+      if (!res.ok || !json?.ok) throw new Error(s(json?.error) || `HTTP ${res.status}`);
+      setStatus(s(json.status) || "connected");
+      const nextAgents = (json.agents || {}) as Record<string, AgentNode>;
+      setOpenclawBaseUrl(s(json.openclawBaseUrl));
+      setOpenclawWorkspace(s(json.openclawWorkspace));
+      setLoadedOpenclawBaseUrl(s(json.openclawBaseUrl));
+      setLoadedOpenclawWorkspace(s(json.openclawWorkspace));
+      const nextAutoEnabled = json.autoProposals?.enabled !== false;
+      const nextAutoDedupeHours = String(json.autoProposals?.dedupeHours ?? 8);
+      const nextAutoMaxPerRun = String(json.autoProposals?.maxPerRun ?? 6);
+      const nextAutoExecuteEnabled = json.autoExecution?.enabled === true;
+      const nextAutoExecuteMaxPerRun = String(json.autoExecution?.maxPerRun ?? 4);
+      const nextAutoApprovalEnabled = json.autoApproval?.enabled === true;
+      const nextAutoApprovalMaxRisk = (json.autoApproval?.maxRisk || "low") as "low" | "medium" | "high";
+      const nextAutoApprovalMaxPriority = (json.autoApproval?.maxPriority || "P3") as "P1" | "P2" | "P3";
+      setAutoEnabled(nextAutoEnabled);
+      setAutoDedupeHours(nextAutoDedupeHours);
+      setAutoMaxPerRun(nextAutoMaxPerRun);
+      setAutoExecuteEnabled(nextAutoExecuteEnabled);
+      setAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
+      setAutoApprovalEnabled(nextAutoApprovalEnabled);
+      setAutoApprovalMaxRisk(nextAutoApprovalMaxRisk);
+      setAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
+      setLoadedAutoEnabled(nextAutoEnabled);
+      setLoadedAutoDedupeHours(nextAutoDedupeHours);
+      setLoadedAutoMaxPerRun(nextAutoMaxPerRun);
+      setLoadedAutoExecuteEnabled(nextAutoExecuteEnabled);
+      setLoadedAutoExecuteMaxPerRun(nextAutoExecuteMaxPerRun);
+      setLoadedAutoApprovalEnabled(nextAutoApprovalEnabled);
+      setLoadedAutoApprovalMaxRisk(nextAutoApprovalMaxRisk);
+      setLoadedAutoApprovalMaxPriority(nextAutoApprovalMaxPriority);
+      setAgents(cloneAgents(nextAgents));
+      setLoadedAgents(cloneAgents(nextAgents));
+      setRoutingBackupAt(s(json.routingBackupAt));
+      setMsg("Routing restored from last backup.");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Failed to restore routing backup.");
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   return (
     <div className="cardBody hubSetupBody">
       <div className="hubSetupToolbar">
         <div className="badge">Status: {status || "disconnected"}</div>
         <div className="badge">API Key: {hasApiKey ? apiKeyMasked || "configured" : "not configured"}</div>
+        <div className="badge">Backup: {routingBackupAt ? new Date(routingBackupAt).toLocaleString() : "none"}</div>
         {isDirty ? <div className="badge" style={{ borderColor: "rgba(59,130,246,.45)", color: "rgba(191,219,254,.95)" }}>Unsaved changes</div> : null}
         <button className="smallBtn" type="button" onClick={() => void load()} disabled={loading || saving || !tenantId}>
           {loading ? "Refreshing..." : "Refresh"}
         </button>
         <button className="smallBtn" type="button" onClick={() => void save(true)} disabled={saving || !tenantId}>
           {saving ? "Saving..." : "Rotate API Key"}
+        </button>
+        <button className="smallBtn" type="button" onClick={() => void backupRouting()} disabled={saving || backingUp || !tenantId}>
+          {backingUp ? "Backing up..." : "Backup Routing"}
+        </button>
+        <button className="smallBtn" type="button" onClick={() => void restoreRouting()} disabled={saving || restoring || !tenantId || !routingBackupAt}>
+          {restoring ? "Restoring..." : "Restore Last Backup"}
+        </button>
+        <button
+          className="smallBtn"
+          type="button"
+          onClick={() => void syncSoulsToOpenclaw()}
+          disabled={saving || syncingSouls || backingUp || restoring || !tenantId}
+        >
+          {syncingSouls ? "Syncing..." : "Sync Souls to OpenClaw"}
         </button>
         <button className="smallBtn btnPrimary" type="button" onClick={() => void save(false)} disabled={saving || !tenantId || !isDirty}>
           {saving ? "Saving..." : "Save Routing"}

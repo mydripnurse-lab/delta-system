@@ -52,6 +52,17 @@ type AutoApprovalConfig = {
   maxPriority: "P1" | "P2" | "P3";
 };
 
+type RoutingSnapshot = {
+  at: string;
+  by?: string;
+  openclawBaseUrl: string;
+  openclawWorkspace: string;
+  autoProposals: AutoProposalsConfig;
+  autoExecution: AutoExecutionConfig;
+  autoApproval: AutoApprovalConfig;
+  agents: Record<DashboardAgentKey, AgentNode>;
+};
+
 function defaultAgents(): Record<DashboardAgentKey, AgentNode> {
   return {
     central: { enabled: true, agentId: "soul_central_orchestrator", displayName: "Central Orchestrator" },
@@ -172,6 +183,18 @@ function normalizeAutoApproval(raw: unknown): AutoApprovalConfig {
   };
 }
 
+function makeRoutingSnapshot(cfg: Record<string, unknown>): RoutingSnapshot {
+  return {
+    at: new Date().toISOString(),
+    openclawBaseUrl: s(cfg.openclawBaseUrl),
+    openclawWorkspace: s(cfg.openclawWorkspace),
+    autoProposals: normalizeAutoProposals(cfg.autoProposals),
+    autoExecution: normalizeAutoExecution(cfg.autoExecution),
+    autoApproval: normalizeAutoApproval(cfg.autoApproval),
+    agents: normalizeAgents(cfg.agents),
+  };
+}
+
 function maskKey(raw: string) {
   const v = s(raw);
   if (!v) return "";
@@ -220,6 +243,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const autoApproval = normalizeAutoApproval(cfg.autoApproval);
   const openclawBaseUrl = s(cfg.openclawBaseUrl);
   const openclawWorkspace = s(cfg.openclawWorkspace);
+  const latestSnapshot = asObj(cfg.__routingBackupLatest);
   return NextResponse.json({
     ok: true,
     provider: "custom",
@@ -233,6 +257,7 @@ export async function GET(req: Request, ctx: Ctx) {
     autoExecution,
     autoApproval,
     agents,
+    routingBackupAt: s(latestSnapshot.at) || null,
     updatedAt: row?.updated_at || null,
   });
 }
@@ -248,6 +273,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+  const action = s(body.action).toLowerCase();
   const rotate = s(body.rotate) === "1" || s(body.rotate).toLowerCase() === "true";
   const provided = s(body.apiKey);
   const nextKey = provided || (rotate ? randomBytes(24).toString("base64url") : "");
@@ -264,6 +290,83 @@ export async function PATCH(req: Request, ctx: Ctx) {
     [tenantId],
   );
   const currentCfg = (currentQ.rows[0]?.config || {}) as Record<string, unknown>;
+  const pool = getDbPool();
+
+  if (action === "backup_routing") {
+    const snapshot = makeRoutingSnapshot(currentCfg);
+    snapshot.by = "tenant.manage";
+    const nextCfg = {
+      ...currentCfg,
+      __routingBackupLatest: snapshot,
+    };
+    await pool.query(
+      `
+        insert into app.organization_integrations (
+          organization_id, provider, integration_key, status, auth_type, config, metadata
+        ) values (
+          $1::uuid, 'custom', 'agent', $2, 'api_key', $3::jsonb, '{}'::jsonb
+        )
+        on conflict (organization_id, provider, integration_key)
+        do update set
+          status = excluded.status,
+          auth_type = excluded.auth_type,
+          config = excluded.config,
+          updated_at = now()
+      `,
+      [tenantId, s(currentQ.rows[0] ? "connected" : "disconnected") || "connected", JSON.stringify(nextCfg)],
+    );
+    return NextResponse.json({ ok: true, action: "backup_routing", routingBackupAt: snapshot.at });
+  }
+
+  if (action === "restore_routing") {
+    const snapshot = asObj(currentCfg.__routingBackupLatest);
+    const at = s(snapshot.at);
+    if (!at) {
+      return NextResponse.json({ ok: false, error: "No routing backup found." }, { status: 404 });
+    }
+    const restoredCfg = {
+      ...currentCfg,
+      openclawBaseUrl: s(snapshot.openclawBaseUrl) || s(currentCfg.openclawBaseUrl),
+      openclawWorkspace: s(snapshot.openclawWorkspace) || s(currentCfg.openclawWorkspace),
+      autoProposals: normalizeAutoProposals(snapshot.autoProposals || currentCfg.autoProposals),
+      autoExecution: normalizeAutoExecution(snapshot.autoExecution || currentCfg.autoExecution),
+      autoApproval: normalizeAutoApproval(snapshot.autoApproval || currentCfg.autoApproval),
+      agents: normalizeAgents(snapshot.agents || currentCfg.agents),
+    };
+    await pool.query(
+      `
+        insert into app.organization_integrations (
+          organization_id, provider, integration_key, status, auth_type, config, metadata
+        ) values (
+          $1::uuid, 'custom', 'agent', $2, 'api_key', $3::jsonb, '{}'::jsonb
+        )
+        on conflict (organization_id, provider, integration_key)
+        do update set
+          status = excluded.status,
+          auth_type = excluded.auth_type,
+          config = excluded.config,
+          updated_at = now()
+      `,
+      [tenantId, s(currentQ.rows[0] ? "connected" : "disconnected") || "connected", JSON.stringify(restoredCfg)],
+    );
+    return NextResponse.json({
+      ok: true,
+      action: "restore_routing",
+      restoredFrom: at,
+      provider: "custom",
+      integrationKey: "agent",
+      status: "connected",
+      apiKeyMasked: maskKey(s(restoredCfg.agentApiKey || restoredCfg.openclawApiKey || restoredCfg.apiKey)),
+      openclawBaseUrl: s(restoredCfg.openclawBaseUrl),
+      openclawWorkspace: s(restoredCfg.openclawWorkspace),
+      autoProposals: restoredCfg.autoProposals,
+      autoExecution: restoredCfg.autoExecution,
+      autoApproval: restoredCfg.autoApproval,
+      agents: restoredCfg.agents,
+      routingBackupAt: at,
+    });
+  }
+
   const currentKey = s(currentCfg.agentApiKey || currentCfg.openclawApiKey || currentCfg.apiKey);
   const finalKey = nextKey || currentKey;
   if (!finalKey) {
@@ -273,7 +376,6 @@ export async function PATCH(req: Request, ctx: Ctx) {
     );
   }
 
-  const pool = getDbPool();
   const config = {
     ...currentCfg,
     agentApiKey: finalKey,
@@ -314,5 +416,6 @@ export async function PATCH(req: Request, ctx: Ctx) {
     autoExecution: config.autoExecution,
     autoApproval: config.autoApproval,
     agents: config.agents,
+    routingBackupAt: s(asObj(config.__routingBackupLatest).at) || null,
   });
 }

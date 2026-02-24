@@ -19,6 +19,7 @@ Click:
 
 - `Rotate API Key` (save the new key; this is the tenant key OpenClaw uses)
 - `Save Routing`
+- `Sync Souls to OpenClaw` (attempts to create/update enabled souls in OpenClaw from tenant routing)
 
 This stores config in:
 
