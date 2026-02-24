@@ -35,6 +35,14 @@ declare global {
 
 type RangePreset = DashboardRangePreset;
 
+type AuthMeUser = {
+  id: string;
+  email: string;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  globalRoles?: string[];
+};
+
 type OverviewResponse = {
   ok: boolean;
   error?: string;
@@ -953,6 +961,11 @@ function DashboardHomeContent() {
   const notificationHubHref = tenantId
     ? `/dashboard/notification-hub?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
     : "/dashboard/notification-hub";
+  const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
+  const [tenantHeaderName, setTenantHeaderName] = useState("My Drip Nurse");
+  const [tenantHeaderSlug, setTenantHeaderSlug] = useState("my-drip-nurse");
+  const [tenantHeaderLogo, setTenantHeaderLogo] = useState("");
+  const [activeNavItem, setActiveNavItem] = useState("dashboard");
 
   useEffect(() => {
     let cancelled = false;
@@ -1015,6 +1028,53 @@ function DashboardHomeContent() {
       }
     }
     void loadAgentRouting();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAuthMe() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as { ok?: boolean; user?: AuthMeUser } | null;
+        if (!cancelled && res.ok && json?.ok && json.user) setAuthMe(json.user);
+      } catch {
+        // optional auth metadata for header
+      }
+    }
+    void loadAuthMe();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTenantBranding() {
+      if (!tenantId) return;
+      try {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}`, { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as
+          | {
+              ok?: boolean;
+              tenant?: { name?: string | null; slug?: string | null } | null;
+              settings?: { logo_url?: string | null } | null;
+            }
+          | null;
+        if (!res.ok || !json?.ok || cancelled) return;
+        const name = String(json.tenant?.name || "").trim();
+        const slug = String(json.tenant?.slug || "").trim();
+        const logoUrl = String(json.settings?.logo_url || "").trim();
+        if (name) setTenantHeaderName(name);
+        if (slug) setTenantHeaderSlug(slug);
+        setTenantHeaderLogo(logoUrl);
+      } catch {
+        // optional tenant branding for header
+      }
+    }
+    void loadTenantBranding();
     return () => {
       cancelled = true;
     };
@@ -2314,8 +2374,82 @@ function DashboardHomeContent() {
     }
   }
 
+  function accountDisplayName() {
+    const full = String(authMe?.fullName || "").trim();
+    if (full) return full;
+    const email = String(authMe?.email || "").trim();
+    if (!email) return "Platform User";
+    return email.split("@")[0] || email;
+  }
+
+  function currentRoleLabel() {
+    const roles = Array.isArray(authMe?.globalRoles) ? authMe.globalRoles : [];
+    return String(roles[0] || "tenant_user").trim() || "tenant_user";
+  }
+
+  function initialsFromLabel(label: string) {
+    const cleaned = String(label || "").trim();
+    if (!cleaned) return "U";
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  }
+
+  const navGroups: Array<{ title: string; items: Array<{ key: string; label: string; sectionId: string }> }> = [
+    {
+      title: "Dashboard",
+      items: [
+        { key: "dashboard", label: "CEO KPI Board", sectionId: "sec-dashboard-kpi" },
+        { key: "filters", label: "Executive Filters", sectionId: "sec-filters" },
+      ],
+    },
+    {
+      title: "Modules",
+      items: [
+        { key: "modules", label: "Module Dashboards", sectionId: "sec-modules" },
+      ],
+    },
+    {
+      title: "Analytics",
+      items: [
+        { key: "forecast", label: "Forecast & Targets", sectionId: "sec-forecast" },
+        { key: "health", label: "Business Health Score", sectionId: "sec-business-health" },
+        { key: "geo-score", label: "Geo Business Score", sectionId: "sec-geo-score" },
+        { key: "funnel", label: "Executive Funnel", sectionId: "sec-funnel" },
+        { key: "attribution", label: "Unified Attribution", sectionId: "sec-attribution" },
+      ],
+    },
+    {
+      title: "Data Ops",
+      items: [
+        { key: "pipeline", label: "Pipeline SLA", sectionId: "sec-pipeline-sla" },
+        { key: "quality", label: "Data Quality Center", sectionId: "sec-data-quality" },
+        { key: "top-geo", label: "Top Oportunidades Geo", sectionId: "sec-top-geo" },
+        { key: "alerts", label: "Executive Alerts", sectionId: "sec-alerts" },
+        { key: "cohorts", label: "Cohorts & Retention", sectionId: "sec-cohorts" },
+      ],
+    },
+    {
+      title: "Execution",
+      items: [
+        { key: "action-center", label: "Action Center", sectionId: "sec-action-center" },
+        { key: "growth-ops", label: "Growth Ops Readiness", sectionId: "sec-growth-ops" },
+        { key: "campaign-factory", label: "Phase 1 Campaign Factory", sectionId: "sec-campaign-factory" },
+        { key: "ai-swarm", label: "AI CEO Swarm", sectionId: "sec-ai-swarm" },
+      ],
+    },
+  ];
+
+  function jumpToSection(key: string, sectionId: string) {
+    setActiveNavItem(key);
+    const node = document.getElementById(sectionId);
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
   return (
-    <div className="shell callsDash ceoDash">
+    <main className="agencyShell shell callsDash ceoDash">
       {loading ? (
         <div className="dashLoadingOverlay" aria-live="polite" aria-busy="true">
           <div className="dashLoadingCard">
@@ -2328,34 +2462,83 @@ function DashboardHomeContent() {
         </div>
       ) : null}
 
-      <header className="topbar">
-        <div className="brand">
-          <div className="logo" />
+      <header className="agencyGlobalTopbar">
+        <div className="agencyGlobalBrand">
+          {tenantHeaderLogo ? (
+            <img
+              className="logo tenantLogo"
+              src={tenantHeaderLogo}
+              alt={`${tenantHeaderName} logo`}
+            />
+          ) : (
+            <div className="agencyBrandLogo agencyBrandLogoDelta" />
+          )}
           <div>
-            <h1>My Drip Nurse — Dashboard</h1>
+            <h1>{tenantHeaderName} — Dashboard</h1>
+            <p>@{tenantHeaderSlug || "tenant"}</p>
           </div>
         </div>
 
-        <div className="pills">
-          <DashboardNotificationsPill
-            tenantId={tenantId}
-            href={notificationHubHref}
-          />
-          <div className="pill">
-            <span className="dot" />
+        <nav className="agencyGlobalNav agencyGlobalNavRight">
+          <Link className="agencyGlobalNavItem" href="/">
+            Agency View
+          </Link>
+          <Link className="agencyGlobalNavItem" href={controlTowerHref}>
+            Run Center
+          </Link>
+          <Link className="agencyGlobalNavItem agencyGlobalNavItemActive" href={withTenantHref("/dashboard", { integrationKey: "owner" })}>
+            Dashboard - Reports
+          </Link>
+          <Link className="agencyGlobalNavItem" href={withTenantHref("/dashboard/prospecting", { integrationKey: "owner" })}>
+            Dashboard - Prospecting
+          </Link>
+          <DashboardNotificationsPill tenantId={tenantId} href={notificationHubHref} />
+          <div className="agencyLivePill">
+            <span className="agencyLiveDot" />
             <span>Live</span>
           </div>
-          <div className="pill">
-            <span style={{ color: "var(--muted)" }}>Created by</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Axel Castro</span>
-            <span style={{ opacity: 0.55 }}>•</span>
-            <span>Devasks</span>
-          </div>
-        </div>
+          <button type="button" className="agencyAccountTrigger" title={accountDisplayName()}>
+            <span className="agencyProfileAvatar">
+              {String(authMe?.avatarUrl || "").trim() ? (
+                <img className="agencyProfileAvatarImg" src={String(authMe?.avatarUrl || "").trim()} alt={accountDisplayName()} />
+              ) : (
+                initialsFromLabel(accountDisplayName())
+              )}
+            </span>
+            <span className="agencyAccountIdentity">
+              <strong>{accountDisplayName()}</strong>
+              <small>{currentRoleLabel()}</small>
+            </span>
+            <span className="agencyAccountCaret" aria-hidden>▾</span>
+          </button>
+        </nav>
       </header>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <div className="agencyRoot">
+        <aside className="agencySidebar">
+          <nav className="agencyNav">
+            {navGroups.map((group) => (
+              <div key={group.title}>
+                <div className="mini" style={{ opacity: 0.72, letterSpacing: 0.3, textTransform: "uppercase", margin: "4px 2px" }}>
+                  {group.title}
+                </div>
+                {group.items.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`agencyNavItem ${activeNavItem === item.key ? "agencyNavItemActive" : ""}`}
+                    onClick={() => jumpToSection(item.key, item.sectionId)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        <section className="agencyMain">
+      <section id="sec-filters" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Executive Filters</h2>
@@ -2458,7 +2641,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-dashboard-kpi" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">CEO KPI Board</h2>
@@ -2562,7 +2745,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-modules" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Module Dashboards</h2>
@@ -2868,7 +3051,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-forecast" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Forecast & Targets</h2>
@@ -2922,7 +3105,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-business-health" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Business Health Score</h2>
@@ -3007,7 +3190,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-geo-score" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Geo Business Score</h2>
@@ -3048,7 +3231,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-pipeline-sla" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Pipeline SLA</h2>
@@ -3093,7 +3276,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-data-quality" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Data Quality Center</h2>
@@ -3128,7 +3311,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-top-geo" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Top Oportunidades Por Geografía</h2>
@@ -3169,7 +3352,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-funnel" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Executive Funnel</h2>
@@ -3207,7 +3390,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-alerts" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Executive Alerts</h2>
@@ -3238,7 +3421,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-action-center" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Action Center</h2>
@@ -3306,7 +3489,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-cohorts" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Cohorts & Retention</h2>
@@ -3345,7 +3528,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-attribution" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Unified Attribution</h2>
@@ -3446,7 +3629,7 @@ function DashboardHomeContent() {
         </div>
       </section> */}
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-growth-ops" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Growth Ops Readiness</h2>
@@ -3481,7 +3664,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-campaign-factory" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Phase 1 Campaign Factory</h2>
@@ -3625,7 +3808,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }}>
+      <section id="sec-ai-swarm" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">AI CEO Swarm</h2>
@@ -3792,6 +3975,8 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+        </section>
+      </div>
 
       {helpOpen && activeSectionHelp ? (
         <div
@@ -3941,7 +4126,7 @@ function DashboardHomeContent() {
           </div>
         </div>
       ) : null}
-    </div>
+    </main>
   );
 }
 
