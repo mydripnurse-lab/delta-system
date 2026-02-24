@@ -89,12 +89,14 @@ function normalizeRunwayPayload(payload: unknown, modelFallback: string): Runway
 async function runwayFetch(path: string, init?: RequestInit) {
   const baseUrl = s(process.env.RUNWAY_API_BASE_URL || "https://api.dev.runwayml.com").replace(/\/+$/, "");
   const apiKey = s(process.env.RUNWAY_API_KEY);
+  const apiVersion = s(process.env.RUNWAY_API_VERSION || "2024-11-06");
   const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   const res = await fetch(url, {
     ...init,
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${apiKey}`,
+      "x-runway-version": apiVersion,
       ...(init?.headers || {}),
     },
     cache: "no-store",
