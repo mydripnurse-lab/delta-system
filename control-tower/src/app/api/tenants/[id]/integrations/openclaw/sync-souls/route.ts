@@ -90,10 +90,16 @@ async function fetchTenantOpenclawCfg(tenantId: string) {
   };
 }
 
-async function postOpenclaw(baseUrl: string, path: string, apiKey: string, body: JsonMap) {
+async function postOpenclaw(
+  baseUrl: string,
+  path: string,
+  apiKey: string,
+  body: JsonMap,
+  method: "POST" | "PUT" | "PATCH" = "POST",
+) {
   const url = `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   const res = await fetch(url, {
-    method: "POST",
+    method,
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${apiKey}`,
@@ -124,7 +130,7 @@ async function syncOneSoul(input: {
   node: AgentNode;
 }) {
   const node = input.node;
-  const payloads: Array<{ path: string; body: JsonMap }> = [
+  const payloads: Array<{ path: string; body: JsonMap; methods?: Array<"POST" | "PUT" | "PATCH"> }> = [
     {
       path: "/api/agents/upsert",
       body: {
@@ -139,6 +145,7 @@ async function syncOneSoul(input: {
           dashboard: input.dashboardKey,
         },
       },
+      methods: ["POST", "PUT", "PATCH"],
     },
     {
       path: "/api/agents",
@@ -154,6 +161,23 @@ async function syncOneSoul(input: {
           dashboard: input.dashboardKey,
         },
       },
+      methods: ["POST", "PUT", "PATCH"],
+    },
+    {
+      path: `/api/agents/${encodeURIComponent(node.agentId)}`,
+      body: {
+        id: node.agentId,
+        name: s(node.displayName) || node.agentId,
+        displayName: s(node.displayName) || node.agentId,
+        enabled: true,
+        workspace: input.workspace,
+        metadata: {
+          source: "control_tower_sync_souls",
+          tenantId: input.tenantId,
+          dashboard: input.dashboardKey,
+        },
+      },
+      methods: ["PUT", "PATCH", "POST"],
     },
     {
       path: "/v1/agents/upsert",
@@ -167,6 +191,7 @@ async function syncOneSoul(input: {
           dashboard: input.dashboardKey,
         },
       },
+      methods: ["POST", "PUT", "PATCH"],
     },
     {
       path: "/v1/agents",
@@ -180,21 +205,39 @@ async function syncOneSoul(input: {
           dashboard: input.dashboardKey,
         },
       },
+      methods: ["POST", "PUT", "PATCH"],
+    },
+    {
+      path: `/v1/agents/${encodeURIComponent(node.agentId)}`,
+      body: {
+        id: node.agentId,
+        name: s(node.displayName) || node.agentId,
+        workspace: input.workspace,
+        metadata: {
+          source: "control_tower_sync_souls",
+          tenantId: input.tenantId,
+          dashboard: input.dashboardKey,
+        },
+      },
+      methods: ["PUT", "PATCH", "POST"],
     },
   ];
 
   const errors: string[] = [];
   for (const c of payloads) {
-    const { res, json } = await postOpenclaw(input.baseUrl, c.path, input.apiKey, c.body);
-    if (!res.ok && (res.status === 404 || res.status === 405)) {
-      errors.push(`${c.path}: HTTP ${res.status}`);
-      continue;
+    const methods = c.methods && c.methods.length ? c.methods : (["POST"] as Array<"POST" | "PUT" | "PATCH">);
+    for (const method of methods) {
+      const { res, json } = await postOpenclaw(input.baseUrl, c.path, input.apiKey, c.body, method);
+      if (!res.ok && (res.status === 404 || res.status === 405)) {
+        errors.push(`${method} ${c.path}: HTTP ${res.status}`);
+        continue;
+      }
+      if (!res.ok) {
+        const msg = s((json as JsonMap)?.error || (json as JsonMap)?.message || `HTTP ${res.status}`);
+        return { ok: false, endpoint: `${method} ${c.path}`, error: msg || `HTTP ${res.status}` };
+      }
+      return { ok: true, endpoint: `${method} ${c.path}` };
     }
-    if (!res.ok) {
-      const msg = s((json as JsonMap)?.error || (json as JsonMap)?.message || `HTTP ${res.status}`);
-      return { ok: false, endpoint: c.path, error: msg || `HTTP ${res.status}` };
-    }
-    return { ok: true, endpoint: c.path };
   }
 
   return {
@@ -202,7 +245,7 @@ async function syncOneSoul(input: {
     endpoint: "",
     error:
       errors.join(" | ") ||
-      "No compatible OpenClaw agent upsert endpoint found. Configure a supported API route in OpenClaw.",
+      `No compatible OpenClaw agent upsert endpoint found for base URL ${input.baseUrl}. Use the OpenClaw API host (not WS/Gateway-only host).`,
   };
 }
 
