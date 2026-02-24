@@ -224,11 +224,13 @@ async function syncOneSoul(input: {
   ];
 
   const errors: string[] = [];
+  let methodNotAllowedOrNotFoundCount = 0;
   for (const c of payloads) {
     const methods = c.methods && c.methods.length ? c.methods : (["POST"] as Array<"POST" | "PUT" | "PATCH">);
     for (const method of methods) {
       const { res, json } = await postOpenclaw(input.baseUrl, c.path, input.apiKey, c.body, method);
       if (!res.ok && (res.status === 404 || res.status === 405)) {
+        methodNotAllowedOrNotFoundCount += 1;
         errors.push(`${method} ${c.path}: HTTP ${res.status}`);
         continue;
       }
@@ -243,9 +245,9 @@ async function syncOneSoul(input: {
   return {
     ok: false,
     endpoint: "",
-    error:
-      errors.join(" | ") ||
-      `No compatible OpenClaw agent upsert endpoint found for base URL ${input.baseUrl}. Use the OpenClaw API host (not WS/Gateway-only host).`,
+    error: methodNotAllowedOrNotFoundCount > 0
+      ? `OpenClaw returned 404/405 for all tested write routes on ${input.baseUrl}. This host does not expose agent create/upsert APIs. Create the souls manually in OpenClaw UI (Agents section) or point OpenClaw Base URL to an API host that supports /api/agents* or /v1/agents*.`
+      : `No compatible OpenClaw agent upsert endpoint found for base URL ${input.baseUrl}. Use the OpenClaw API host (not WS/Gateway-only host).`,
   };
 }
 
