@@ -1,5 +1,6 @@
 // src/app/api/stream/[runId]/route.ts
 import { getRun } from "@/lib/runStore";
+import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -64,13 +65,101 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
             const lastEventId = Number(lastEventIdRaw);
             let lastSentLineCount = Number.isFinite(lastEventId) && lastEventId > 0 ? Math.floor(lastEventId) : 0;
 
-            const tick = () => {
+            let lastDbEventId =
+                Number.isFinite(lastEventId) && lastEventId > 0 ? Math.floor(lastEventId) : 0;
+
+            const tick = async () => {
                 const run = getRun(runId);
 
                 if (!run) {
-                    write(sseEvent("end", { runId, ok: false, reason: "not_found" }));
-                    controller.close();
-                    return;
+                    try {
+                        const pool = getDbPool();
+                        const [runQ, evQ] = await Promise.all([
+                            pool.query<{
+                                status: string;
+                                exit_code: number | null;
+                                error: string | null;
+                                stopped: boolean;
+                            }>(
+                                `
+                                  select status, exit_code, error, stopped
+                                  from app.runner_runs
+                                  where run_id = $1
+                                  limit 1
+                                `,
+                                [runId],
+                            ),
+                            pool.query<{
+                                id: number;
+                                event_type: string;
+                                message: string;
+                                payload: unknown;
+                            }>(
+                                `
+                                  select id, event_type, message, payload
+                                  from app.runner_run_events
+                                  where run_id = $1
+                                    and id > $2
+                                  order by id asc
+                                  limit 800
+                                `,
+                                [runId, Math.max(0, lastDbEventId)],
+                            ),
+                        ]);
+
+                        const row = runQ.rows[0];
+                        if (!row) {
+                            write(sseEvent("end", { runId, ok: false, reason: "not_found" }));
+                            controller.close();
+                            return;
+                        }
+
+                        for (const ev of evQ.rows || []) {
+                            const evId = Number(ev.id || 0);
+                            if (!Number.isFinite(evId) || evId <= 0) continue;
+                            const eventType = String(ev.event_type || "line");
+                            if (eventType === "progress") {
+                                const payload =
+                                    ev.payload && typeof ev.payload === "object"
+                                        ? JSON.stringify(ev.payload)
+                                        : String(ev.message || "{}");
+                                write(sseEventWithId(evId, "progress", payload));
+                            } else {
+                                write(sseEventWithId(evId, "line", String(ev.message || "")));
+                            }
+                            lastDbEventId = Math.max(lastDbEventId, evId);
+                        }
+
+                        write(sseEvent("ping", { t: Date.now(), source: "db" }));
+
+                        if (String(row.status || "").toLowerCase() !== "running") {
+                            const status = String(row.status || "").toLowerCase();
+                            const ok = status === "done" || status === "stopped";
+                            write(
+                                sseEvent("end", {
+                                    runId,
+                                    ok,
+                                    status,
+                                    exitCode: row.exit_code ?? null,
+                                    error: row.error ?? null,
+                                    source: "db",
+                                }),
+                            );
+                            controller.close();
+                            return;
+                        }
+
+                        setTimeout(() => {
+                            void tick();
+                        }, 1200);
+                        return;
+                    } catch {
+                        write(sseEvent("ping", { t: Date.now(), source: "db_error" }));
+                        setTimeout(() => {
+                            void tick();
+                        }, 1800);
+                        return;
+                    }
                 }
 
                 // send new lines
@@ -109,10 +198,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
                     return;
                 }
 
-                setTimeout(tick, 800);
+                setTimeout(() => {
+                    void tick();
+                }, 800);
             };
 
-            tick();
+            void tick();
         },
     });
 
