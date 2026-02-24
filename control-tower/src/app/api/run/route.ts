@@ -655,6 +655,21 @@ export async function POST(req: Request) {
             if (!s(envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES)) {
                 envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES = s(process.env.DELTA_RUN_SHEETS_LOAD_MAX_RETRIES || "4");
             }
+            if (!s(envMerged.DELTA_CHECKPOINT_DIR)) {
+                envMerged.DELTA_CHECKPOINT_DIR = path.join(
+                    repoRoot,
+                    "scripts",
+                    "checkpoints",
+                    "run-delta-system",
+                    tenantId || "global",
+                );
+            }
+            if (!s(envMerged.DELTA_CHECKPOINT_ENABLED)) {
+                envMerged.DELTA_CHECKPOINT_ENABLED = "1";
+            }
+            if (!s(envMerged.DELTA_CHECKPOINT_AUTO_RESUME)) {
+                envMerged.DELTA_CHECKPOINT_AUTO_RESUME = "1";
+            }
         }
 
         if (jobNeedsGeneratedOut(job)) {

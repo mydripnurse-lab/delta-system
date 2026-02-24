@@ -33,6 +33,22 @@ const OUT_ROOT =
     (TENANT_ID
         ? path.join(process.cwd(), "scripts", "out", "tenants", TENANT_ID)
         : path.join(process.cwd(), "scripts", "out"));
+const CHECKPOINT_DIR =
+    String(process.env.DELTA_CHECKPOINT_DIR || "").trim() ||
+    path.join(
+        process.cwd(),
+        "scripts",
+        "checkpoints",
+        "run-delta-system",
+        TENANT_ID || "global"
+    );
+const CHECKPOINT_ENABLED = String(process.env.DELTA_CHECKPOINT_ENABLED || "1") !== "0";
+const CHECKPOINT_AUTO_RESUME = String(process.env.DELTA_CHECKPOINT_AUTO_RESUME || "1") !== "0";
+const CHECKPOINT_FLUSH_EVERY = Math.max(
+    1,
+    Number(process.env.DELTA_CHECKPOINT_FLUSH_EVERY || "1")
+);
+const RESET_CHECKPOINTS = String(process.env.DELTA_CHECKPOINT_RESET || "0") === "1";
 
 const CUSTOM_VALUES_SERVICES_FILE = path.join(
     process.cwd(),
@@ -112,6 +128,14 @@ const SHEETS_LOAD_MAX_RETRIES = Math.max(
 const SHEETS_LOAD_RETRY_DELAY_MS = Math.max(
     500,
     Number(process.env.DELTA_SHEETS_LOAD_RETRY_DELAY_MS || "2500")
+);
+const ACCOUNT_PROCESS_TIMEOUT_MS = Math.max(
+    10000,
+    Number(process.env.DELTA_ACCOUNT_PROCESS_TIMEOUT_MS || "180000")
+);
+const ACCOUNT_MAX_RETRIES = Math.max(
+    1,
+    Number(process.env.DELTA_ACCOUNT_MAX_RETRIES || "2")
 );
 const TWILIO_LOOKUP_TIMEOUT_MS = Math.max(
     1000,
@@ -249,6 +273,28 @@ async function loadSheetTabIndexWithRecovery(params) {
     throw lastErr || new Error(`Failed to load sheet tab "${params?.sheetName || ""}"`);
 }
 
+async function processOneAccountWithRecovery(args) {
+    let lastErr = null;
+    for (let attempt = 1; attempt <= ACCOUNT_MAX_RETRIES; attempt++) {
+        try {
+            return await withTimeout(
+                processOneAccount(args),
+                ACCOUNT_PROCESS_TIMEOUT_MS,
+                `Account processing timeout (${ACCOUNT_PROCESS_TIMEOUT_MS}ms)`
+            );
+        } catch (e) {
+            lastErr = e;
+            console.log(
+                `⚠️ Account attempt ${attempt}/${ACCOUNT_MAX_RETRIES} failed: ${e?.message || e}`
+            );
+            if (attempt < ACCOUNT_MAX_RETRIES) {
+                await sleep(1000 * attempt);
+            }
+        }
+    }
+    throw lastErr || new Error("Account processing failed");
+}
+
 let _lastGhlCallAt = 0;
 async function ghlThrottle() {
     const now = Date.now();
@@ -280,6 +326,93 @@ function normalizeNameForMatch(s) {
         .replace(/\s+/g, " ")
         .trim()
         .toLowerCase();
+}
+
+function toCheckpointToken(s) {
+    return String(s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
+function checkpointFileForState(stateSlug) {
+    return path.join(CHECKPOINT_DIR, `${toCheckpointToken(stateSlug) || "unknown-state"}.json`);
+}
+
+function makeCheckpointItemKey({ kind, stateSlug, countyName = "", cityName = "" }) {
+    const state = toCheckpointToken(stateSlug);
+    const county = toCheckpointToken(countyName);
+    const city = toCheckpointToken(cityName);
+    if (kind === "county") return `county|${state}|${county}`;
+    return `city|${state}|${county}|${city}`;
+}
+
+async function ensureCheckpointDir() {
+    if (!CHECKPOINT_ENABLED) return;
+    await fs.mkdir(CHECKPOINT_DIR, { recursive: true });
+}
+
+async function resetCheckpointsIfRequested() {
+    if (!CHECKPOINT_ENABLED || !RESET_CHECKPOINTS) return;
+    await fs.rm(CHECKPOINT_DIR, { recursive: true, force: true }).catch(() => {});
+    await fs.mkdir(CHECKPOINT_DIR, { recursive: true });
+    console.log(`🧹 Checkpoints reset at ${CHECKPOINT_DIR}`);
+}
+
+async function loadStateCheckpoint(stateSlug) {
+    const fallback = {
+        version: 1,
+        tenantId: TENANT_ID || "",
+        stateSlug: String(stateSlug || ""),
+        updatedAt: null,
+        runIdLast: "",
+        processed: {
+            counties: [],
+            cities: [],
+        },
+    };
+    if (!CHECKPOINT_ENABLED || !CHECKPOINT_AUTO_RESUME) return fallback;
+    const filePath = checkpointFileForState(stateSlug);
+    try {
+        const raw = await fs.readFile(filePath, "utf8");
+        const parsed = JSON.parse(raw);
+        return {
+            ...fallback,
+            ...parsed,
+            processed: {
+                counties: Array.isArray(parsed?.processed?.counties)
+                    ? parsed.processed.counties.map((x) => String(x))
+                    : [],
+                cities: Array.isArray(parsed?.processed?.cities)
+                    ? parsed.processed.cities.map((x) => String(x))
+                    : [],
+            },
+        };
+    } catch {
+        return fallback;
+    }
+}
+
+async function saveStateCheckpoint(stateSlug, checkpointState) {
+    if (!CHECKPOINT_ENABLED) return;
+    await ensureCheckpointDir();
+    const filePath = checkpointFileForState(stateSlug);
+    const tmpPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+    const payload = {
+        version: 1,
+        tenantId: TENANT_ID || "",
+        stateSlug: String(stateSlug || ""),
+        updatedAt: new Date().toISOString(),
+        runIdLast: RUN_ID,
+        processed: {
+            counties: Array.from(checkpointState?.countyProcessedSet || []),
+            cities: Array.from(checkpointState?.cityProcessedSet || []),
+        },
+    };
+    await fs.writeFile(tmpPath, JSON.stringify(payload), "utf8");
+    await fs.rename(tmpPath, filePath);
 }
 
 function isStatusTrue(val) {
@@ -632,41 +765,45 @@ async function processOneAccount({
         }
     })();
 
-    // ===== 3) GET LOCATION TOKEN
+    // ===== 3) GET LOCATION TOKEN (only if custom values are enabled)
     let locationToken = null;
-    try {
-        if (isDryRun) {
-            locationToken = "dry-location-token";
-            console.log("🟡 DRY RUN: skipping location token");
-        } else {
-            const tokens = getTokens();
-            const agencyAccessToken = tokens?.access_token;
+    if (ENABLE_CUSTOM_VALUES) {
+        try {
+            if (isDryRun) {
+                locationToken = "dry-location-token";
+                console.log("🟡 DRY RUN: skipping location token");
+            } else {
+                const tokens = getTokens();
+                const agencyAccessToken = tokens?.access_token;
 
-            const companyId =
-                tokens?.companyId ||
-                process.env.GHL_COMPANY_ID ||
-                process.env.COMPANY_ID ||
-                process.env.COMPANYID;
+                const companyId =
+                    tokens?.companyId ||
+                    process.env.GHL_COMPANY_ID ||
+                    process.env.COMPANY_ID ||
+                    process.env.COMPANYID;
 
-            if (!agencyAccessToken) throw new Error("Missing agency access_token in tokenStore");
-            if (!companyId) throw new Error("Missing companyId (tokens.companyId or env)");
+                if (!agencyAccessToken) throw new Error("Missing agency access_token in tokenStore");
+                if (!companyId) throw new Error("Missing companyId (tokens.companyId or env)");
 
-            console.log("🔐 Getting location access token...");
-            const locTok = await getLocationAccessToken({
-                companyId,
-                locationId,
-                agencyAccessToken,
-            });
+                console.log("🔐 Getting location access token...");
+                const locTok = await getLocationAccessToken({
+                    companyId,
+                    locationId,
+                    agencyAccessToken,
+                });
 
-            locationToken = locTok?.access_token;
-            if (!locationToken) {
-                if (DEBUG) console.log("DEBUG locationToken response:", locTok);
-                throw new Error("Location token missing access_token");
+                locationToken = locTok?.access_token;
+                if (!locationToken) {
+                    if (DEBUG) console.log("DEBUG locationToken response:", locTok);
+                    throw new Error("Location token missing access_token");
+                }
+                console.log("✅ Location token OK");
             }
-            console.log("✅ Location token OK");
+        } catch (e) {
+            console.log("❌ Location token failed -> cannot do custom values:", e?.message || e);
         }
-    } catch (e) {
-        console.log("❌ Location token failed -> cannot do custom values:", e?.message || e);
+    } else if (DEBUG) {
+        console.log("⏭️ Skipping location token (custom values disabled)");
     }
 
     // ===== 4) CUSTOM VALUES (disabled by request)
@@ -829,12 +966,46 @@ async function runState({
     console.log(`\n🏁 RUN STATE: ${stateSlug} | counties=${counties.length} | RUN_ID=${RUN_ID}`);
     console.log(`Throttle: GHL_RPM=${GHL_RPM} => min ${MIN_MS_BETWEEN_GHL_CALLS}ms between calls`);
     console.log(`Fast mode: ${FAST_MODE ? "ON" : "OFF"} | CV warmup=${GHL_CV_WARMUP_MS}ms | CV retries=${CV_MAX_RETRIES} | CV initialDelay=${CV_INITIAL_DELAY_MS}ms`);
+    console.log(`Account guards: timeout=${ACCOUNT_PROCESS_TIMEOUT_MS}ms | retries=${ACCOUNT_MAX_RETRIES}`);
     console.log(`Twilio guards: lookup=${TWILIO_LOOKUP_TIMEOUT_MS}ms | close=${TWILIO_CLOSE_TIMEOUT_MS}ms | step=${TWILIO_STEP_TIMEOUT_MS}ms`);
     console.log(`Mode: ${isDryRun ? "DRY" : "LIVE"} | Debug: ${DEBUG ? "ON" : "OFF"}\n`);
 
     let countyCreated = 0;
     let cityCreated = 0;
     let skipped = 0;
+    let resumed = 0;
+    const checkpointRaw = await loadStateCheckpoint(stateSlug);
+    const checkpointState = {
+        countyProcessedSet: new Set(
+            Array.isArray(checkpointRaw?.processed?.counties) ? checkpointRaw.processed.counties : []
+        ),
+        cityProcessedSet: new Set(
+            Array.isArray(checkpointRaw?.processed?.cities) ? checkpointRaw.processed.cities : []
+        ),
+        dirtyCount: 0,
+    };
+    if (CHECKPOINT_ENABLED && CHECKPOINT_AUTO_RESUME) {
+        const hasResumeData =
+            checkpointState.countyProcessedSet.size > 0 || checkpointState.cityProcessedSet.size > 0;
+        if (hasResumeData) {
+            console.log(
+                `🔁 Resume checkpoint loaded (${stateSlug}) counties=${checkpointState.countyProcessedSet.size} cities=${checkpointState.cityProcessedSet.size}`
+            );
+        }
+    }
+
+    async function checkpointMarkDone({ kind, countyName = "", cityName = "" }) {
+        if (!CHECKPOINT_ENABLED) return;
+        const key = makeCheckpointItemKey({ kind, stateSlug, countyName, cityName });
+        const targetSet = kind === "county" ? checkpointState.countyProcessedSet : checkpointState.cityProcessedSet;
+        if (targetSet.has(key)) return;
+        targetSet.add(key);
+        checkpointState.dirtyCount++;
+        if (checkpointState.dirtyCount >= CHECKPOINT_FLUSH_EVERY) {
+            await saveStateCheckpoint(stateSlug, checkpointState);
+            checkpointState.dirtyCount = 0;
+        }
+    }
 
     for (let i = 0; i < counties.length; i++) {
         const county = counties[i];
@@ -844,41 +1015,68 @@ async function runState({
         // PR: no counties
         if (!pr) {
             console.log(`\n🧩 COUNTY ${countyLabel}`);
-
-            // progress: we are about to process a county item
-            emitProgress({
-                totals: progressTotals,
-                done: progressDone,
-                last: { kind: "county", state: stateSlug, county: countyName, action: "start" },
-                message: `🧩 ${countyName} • start`,
+            const countyCheckpointKey = makeCheckpointItemKey({
+                kind: "county",
+                stateSlug,
+                countyName,
             });
-
-            if (county?.body?.name) {
-                const r = await processOneAccount({
-                    entity: { ...county, countyName, type: "county" },
-                    parentCounty: null,
-                    stateSlug,
-                    stateName,
-                    countyTabIndex,
-                    cityTabIndex,
+            const countyAlreadyDone =
+                CHECKPOINT_ENABLED &&
+                CHECKPOINT_AUTO_RESUME &&
+                checkpointState.countyProcessedSet.has(countyCheckpointKey);
+            if (countyAlreadyDone) {
+                resumed++;
+                progressDone.counties += 1;
+                progressDone.all += 1;
+                emitProgress({
+                    totals: progressTotals,
+                    done: progressDone,
+                    last: { kind: "county", state: stateSlug, county: countyName, action: "resume-skip" },
+                    message: `🧩 ${countyName} • resume`,
                 });
-                if (r?.created) countyCreated++;
-                else skipped++;
             } else {
-                console.log(`⚠️ COUNTY missing body -> SKIP create county: ${countyLabel}`);
-                skipped++;
+                // progress: we are about to process a county item
+                emitProgress({
+                    totals: progressTotals,
+                    done: progressDone,
+                    last: { kind: "county", state: stateSlug, county: countyName, action: "start" },
+                    message: `🧩 ${countyName} • start`,
+                });
+
+                if (county?.body?.name) {
+                    try {
+                        const r = await processOneAccountWithRecovery({
+                            entity: { ...county, countyName, type: "county" },
+                            parentCounty: null,
+                            stateSlug,
+                            stateName,
+                            countyTabIndex,
+                            cityTabIndex,
+                        });
+                        if (r?.created) countyCreated++;
+                        else skipped++;
+                        await checkpointMarkDone({ kind: "county", countyName });
+                    } catch (e) {
+                        console.log(`❌ COUNTY failed after retries (${countyName}):`, e?.message || e);
+                        skipped++;
+                    }
+                } else {
+                    console.log(`⚠️ COUNTY missing body -> SKIP create county: ${countyLabel}`);
+                    skipped++;
+                    await checkpointMarkDone({ kind: "county", countyName });
+                }
+
+                // mark county done
+                progressDone.counties += 1;
+                progressDone.all += 1;
+
+                emitProgress({
+                    totals: progressTotals,
+                    done: progressDone,
+                    last: { kind: "county", state: stateSlug, county: countyName, action: "done" },
+                    message: `🧩 ${countyName} • done`,
+                });
             }
-
-            // mark county done
-            progressDone.counties += 1;
-            progressDone.all += 1;
-
-            emitProgress({
-                totals: progressTotals,
-                done: progressDone,
-                last: { kind: "county", state: stateSlug, county: countyName, action: "done" },
-                message: `🧩 ${countyName} • done`,
-            });
         }
 
         const cities = Array.isArray(county?.cities) ? county.cities : [];
@@ -889,6 +1087,24 @@ async function runState({
         for (let c = 0; c < cities.length; c++) {
             const city = cities[c];
             const cityName = city?.cityName || city?.name || "Unknown City";
+            const cityCheckpointKey = makeCheckpointItemKey({
+                kind: "city",
+                stateSlug,
+                countyName,
+                cityName,
+            });
+            if (CHECKPOINT_ENABLED && CHECKPOINT_AUTO_RESUME && checkpointState.cityProcessedSet.has(cityCheckpointKey)) {
+                resumed++;
+                progressDone.cities += 1;
+                progressDone.all += 1;
+                emitProgress({
+                    totals: progressTotals,
+                    done: progressDone,
+                    last: { kind: "city", state: stateSlug, county: countyName, city: cityName, action: "resume-skip" },
+                    message: `🏙️ ${cityName} • resume`,
+                });
+                continue;
+            }
 
             emitProgress({
                 totals: progressTotals,
@@ -900,6 +1116,7 @@ async function runState({
             if (!city?.body?.name) {
                 console.log(`⚠️ CITY missing body -> SKIP: ${cityName}`);
                 skipped++;
+                await checkpointMarkDone({ kind: "city", countyName, cityName });
 
                 // mark city done (even if skipped)
                 progressDone.cities += 1;
@@ -914,17 +1131,23 @@ async function runState({
                 continue;
             }
 
-            const r = await processOneAccount({
-                entity: { ...city, cityName, type: "city" },
-                parentCounty: { ...county, countyName },
-                stateSlug,
-                stateName,
-                countyTabIndex,
-                cityTabIndex,
-            });
-
-            if (r?.created) cityCreated++;
-            else skipped++;
+            let r = null;
+            try {
+                r = await processOneAccountWithRecovery({
+                    entity: { ...city, cityName, type: "city" },
+                    parentCounty: { ...county, countyName },
+                    stateSlug,
+                    stateName,
+                    countyTabIndex,
+                    cityTabIndex,
+                });
+                if (r?.created) cityCreated++;
+                else skipped++;
+                await checkpointMarkDone({ kind: "city", countyName, cityName });
+            } catch (e) {
+                console.log(`❌ CITY failed after retries (${cityName}):`, e?.message || e);
+                skipped++;
+            }
 
             progressDone.cities += 1;
             progressDone.all += 1;
@@ -937,11 +1160,15 @@ async function runState({
             });
         }
     }
+    if (CHECKPOINT_ENABLED && checkpointState.dirtyCount > 0) {
+        await saveStateCheckpoint(stateSlug, checkpointState);
+        checkpointState.dirtyCount = 0;
+    }
 
     console.log(
-        `\n✅ STATE DONE ${stateSlug} | countyCreated=${countyCreated} | cityCreated=${cityCreated} | skipped=${skipped}\n`
+        `\n✅ STATE DONE ${stateSlug} | countyCreated=${countyCreated} | cityCreated=${cityCreated} | skipped=${skipped} | resumed=${resumed}\n`
     );
-    return { countyCreated, cityCreated, skipped };
+    return { countyCreated, cityCreated, skipped, resumed };
 }
 
 // =====================
@@ -1007,6 +1234,13 @@ async function main() {
     console.log("phase:init -> loadTokens start");
     await loadTokens();
     console.log("phase:init -> loadTokens done");
+    if (CHECKPOINT_ENABLED) {
+        await resetCheckpointsIfRequested();
+        await ensureCheckpointDir();
+        console.log(
+            `phase:init -> checkpoint dir=${CHECKPOINT_DIR} resume=${CHECKPOINT_AUTO_RESUME ? "on" : "off"}`
+        );
+    }
 
     console.log(`phase:init -> scanning state files in ${OUT_ROOT}`);
     const states = await listOutStates();
@@ -1106,6 +1340,7 @@ async function main() {
     let totalCounty = 0;
     let totalCity = 0;
     let totalSkipped = 0;
+    let totalResumed = 0;
 
     for (let i = 0; i < targets.length; i++) {
         const t = targets[i];
@@ -1131,6 +1366,7 @@ async function main() {
         totalCounty += summary.countyCreated;
         totalCity += summary.cityCreated;
         totalSkipped += summary.skipped;
+        totalResumed += Number(summary.resumed || 0);
 
         emitProgress({
             totals,
@@ -1144,7 +1380,7 @@ async function main() {
 
     console.log("--------------------------------------------------");
     console.log(
-        `🎉 DONE | counties=${totalCounty} | cities=${totalCity} | skipped=${totalSkipped} | time=${(
+        `🎉 DONE | counties=${totalCounty} | cities=${totalCity} | skipped=${totalSkipped} | resumed=${totalResumed} | time=${(
             elapsedMs / 1000
         ).toFixed(1)}s`
     );
