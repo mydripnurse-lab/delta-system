@@ -12,8 +12,6 @@ const JOBS = [
   { key: "run-delta-system", label: "Run Delta System" },
   { key: "build-state-sitemaps", label: "Create Sitemaps" },
   { key: "build-state-index", label: "Create Search Index" },
-  { key: "update-custom-values", label: "Update Custom Values (From Sheet)" },
-  { key: "update-custom-values-one", label: "Update Custom Values (One)" },
 ];
 const OAUTH_INTEGRATION_KEY = "default";
 const DOMAIN_BOT_BASE_URL = "https://app.devasks.com/v2/location";
@@ -5404,33 +5402,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </div>
 
         <nav className="agencyGlobalNav agencyGlobalNavRight">
-          <Link className="agencyGlobalNavItem" href="/">
-              Agency View
-          </Link>
-            <Link
-              className="agencyGlobalNavItem"
-              href={
-                routeTenantId
-                  ? `/dashboard?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
-                  : "/dashboard"
-              }
-            >
-              Dashboard - Reports
-            </Link>
-            <Link
-              className="agencyGlobalNavItem"
-              href={
-                routeTenantId
-                  ? `/dashboard/prospecting?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
-                  : "/dashboard/prospecting"
-              }
-            >
-              Dashboard - Prospecting
-            </Link>
-          <Link className="agencyGlobalNavItem" href={notificationHubHref}>
-            Notifications
-            <span className="badge" style={{ marginLeft: 6 }}>{notificationCount}</span>
-          </Link>
           <div className="agencyLivePill">
               <span className="agencyLiveDot" />
               <span>Live</span>
@@ -5484,6 +5455,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       <div className="agencyRoot">
         <aside className="agencySidebar">
           <nav className="agencyNav">
+          <Link className="agencyNavItem agencyNavBackItem" href="/">
+            ← Back to Agency
+          </Link>
           <button
             type="button"
             className={`agencyNavItem ${activeProjectTab === "activation" ? "agencyNavItemActive" : ""}`}
@@ -5491,6 +5465,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           >
             Home
           </button>
+          <Link
+            className="agencyNavItem"
+            href={
+              routeTenantId
+                ? `/dashboard?tenantId=${encodeURIComponent(routeTenantId)}&integrationKey=owner`
+                : "/dashboard"
+            }
+          >
+            Dashboard
+          </Link>
           <button
             type="button"
             className={`agencyNavItem ${activeProjectTab === "runner" ? "agencyNavItemActive" : ""}`}

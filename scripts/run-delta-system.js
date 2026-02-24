@@ -54,11 +54,14 @@ const CUSTOM_VALUES_SOCIAL_FILE = path.join(
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const COUNTY_TAB = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
 const CITY_TAB = process.env.GOOGLE_SHEET_CITY_TAB || "Cities";
+const FAST_MODE_CLI =
+    process.argv.includes("--fast") ||
+    String(process.env.DELTA_FAST_MODE || "") === "1";
 
 // Rate limiting (GHL)
-const GHL_RPM = Number(process.env.GHL_RPM || "180");
+const GHL_RPM = Number(process.env.GHL_RPM || (FAST_MODE_CLI ? "300" : "180"));
 const MIN_MS_BETWEEN_GHL_CALLS = Math.ceil(60000 / Math.max(1, GHL_RPM));
-const GHL_CV_WARMUP_MS = Math.max(0, Number(process.env.GHL_CV_WARMUP_MS || "1200"));
+const GHL_CV_WARMUP_MS = Math.max(0, Number(process.env.GHL_CV_WARMUP_MS || (FAST_MODE_CLI ? "0" : "1200")));
 
 // Run meta
 const RUN_ID = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -93,6 +96,19 @@ function argValue(name, fallback = null) {
 }
 
 const STATE_ARG = argValue("state", ""); // if empty -> interactive
+const FAST_MODE = FAST_MODE_CLI;
+
+const ENABLE_TWILIO_CLOSE = String(process.env.DELTA_ENABLE_TWILIO_CLOSE || "1") !== "0";
+// User request: remove "Update Custom Values" from Run Delta System flow.
+const ENABLE_CUSTOM_VALUES = false;
+const CV_MAX_RETRIES = Number(
+    process.env.GHL_CV_MAX_RETRIES ||
+    (FAST_MODE ? "2" : "4")
+);
+const CV_INITIAL_DELAY_MS = Number(
+    process.env.GHL_CV_INITIAL_DELAY_MS ||
+    (FAST_MODE ? "350" : "800")
+);
 
 // =====================
 // PROGRESS (SSE-friendly)
@@ -478,6 +494,9 @@ async function processOneAccount({
         `🚀 Creating ${isCity ? "CITY" : "COUNTY"} -> ${body.name} | key="${sheetKey}"`
     );
 
+    // Start Twilio closure in background after create; do not block GHL token/custom-values path.
+    let twilioStepPromise = Promise.resolve();
+
     let created = null;
     if (isDryRun) {
         created = { id: `dry-${Date.now()}`, name: body.name };
@@ -497,37 +516,48 @@ async function processOneAccount({
         return { skipped: true, reason: "no_location_id" };
     }
 
-    // ===== 2) TWILIO: match & close (64 chars safe)
-    try {
-        if (isDryRun) {
-            console.log("🟡 DRY RUN: skipping Twilio close");
-        } else {
-            const twilioLookupName = String(created?.name || "").slice(0, 64);
+    // ===== 2) TWILIO: match & close (64 chars safe) - non-blocking for faster run
+    twilioStepPromise = (async () => {
+        try {
+            if (!ENABLE_TWILIO_CLOSE) {
+                if (DEBUG) console.log("⏭️ Twilio step disabled (DELTA_ENABLE_TWILIO_CLOSE=0)");
+                return;
+            }
+            if (isDryRun) {
+                if (DEBUG) console.log("🟡 DRY RUN: skipping Twilio close");
+                return;
+            }
 
+            const twilioLookupName = String(created?.name || "").slice(0, 64);
             const twilioAcc = await findTwilioAccountByFriendlyName(twilioLookupName, {
                 exact: true,
-                limit: 200,
+                limit: FAST_MODE ? 60 : 200,
             });
 
             if (!twilioAcc) {
-                console.log("⚠️ Twilio: no match found (first 64 chars):", twilioLookupName);
-            } else {
+                if (DEBUG) console.log("⚠️ Twilio: no match found (first 64 chars):", twilioLookupName);
+                return;
+            }
+
+            if (DEBUG) {
                 console.log("✅ Twilio match:", {
                     sid: twilioAcc.sid,
                     friendlyName: twilioAcc.friendlyName,
                     status: twilioAcc.status,
                 });
+            }
 
-                const closed = await closeTwilioAccount(twilioAcc.sid);
+            const closed = await closeTwilioAccount(twilioAcc.sid);
+            if (DEBUG) {
                 console.log("🧨 Twilio CLOSED:", {
                     sid: closed?.sid || twilioAcc.sid,
                     status: closed?.status,
                 });
             }
+        } catch (e) {
+            console.log("⚠️ Twilio step failed (continuing):", e?.message || e);
         }
-    } catch (e) {
-        console.log("⚠️ Twilio step failed (continuing):", e?.message || e);
-    }
+    })();
 
     // ===== 3) GET LOCATION TOKEN
     let locationToken = null;
@@ -566,8 +596,8 @@ async function processOneAccount({
         console.log("❌ Location token failed -> cannot do custom values:", e?.message || e);
     }
 
-    // ===== 4) CUSTOM VALUES
-    if (locationToken) {
+    // ===== 4) CUSTOM VALUES (disabled by request)
+    if (locationToken && ENABLE_CUSTOM_VALUES) {
         try {
             if (GHL_CV_WARMUP_MS > 0) {
                 await sleep(GHL_CV_WARMUP_MS);
@@ -576,16 +606,14 @@ async function processOneAccount({
             const ghlCustomValuesArr = await getCustomValuesWithRetry({
                 locationId,
                 locationToken,
-                maxRetries: Number(process.env.GHL_CV_MAX_RETRIES || "4"),
-                initialDelayMs: Number(process.env.GHL_CV_INITIAL_DELAY_MS || "800"),
+                maxRetries: CV_MAX_RETRIES,
+                initialDelayMs: CV_INITIAL_DELAY_MS,
             });
 
             console.log(`📦 Custom Values extracted count=${ghlCustomValuesArr.length}`);
 
             const byNorm = buildCustomValueIndex(ghlCustomValuesArr);
-
             const baseDesired = await getBaseCustomValues();
-
             const desired = [
                 ...baseDesired,
                 ...buildExtraCustomValues({ entity, parentCounty, stateName }),
@@ -600,7 +628,6 @@ async function processOneAccount({
             for (const item of desired) {
                 const wantName = String(item.name || "").trim();
                 const wantKey = normalizeNameForMatch(wantName);
-
                 const match = byNorm.get(wantKey);
 
                 if (!match) {
@@ -672,6 +699,9 @@ async function processOneAccount({
         console.log("⚠️ Sheet update failed:", e?.message || e);
     }
 
+    // Ensure Twilio async step finishes before moving to next account.
+    await twilioStepPromise;
+
     return { created: true, locationId };
 }
 
@@ -717,6 +747,7 @@ async function runState({
 
     console.log(`\n🏁 RUN STATE: ${stateSlug} | counties=${counties.length} | RUN_ID=${RUN_ID}`);
     console.log(`Throttle: GHL_RPM=${GHL_RPM} => min ${MIN_MS_BETWEEN_GHL_CALLS}ms between calls`);
+    console.log(`Fast mode: ${FAST_MODE ? "ON" : "OFF"} | CV warmup=${GHL_CV_WARMUP_MS}ms | CV retries=${CV_MAX_RETRIES} | CV initialDelay=${CV_INITIAL_DELAY_MS}ms`);
     console.log(`Mode: ${isDryRun ? "DRY" : "LIVE"} | Debug: ${DEBUG ? "ON" : "OFF"}\n`);
 
     let countyCreated = 0;
