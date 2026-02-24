@@ -673,10 +673,31 @@ export async function POST(req: Request) {
         const syncLogs: string[] = [];
         const idleTimeoutMin = Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN || 25));
         const idleTimeoutMs = idleTimeoutMin * 60_000;
+        const maxRuntimeMin = Math.max(idleTimeoutMin, Number(process.env.RUNNER_MAX_RUNTIME_MIN || 180));
+        const maxRuntimeMs = maxRuntimeMin * 60_000;
+        const startedAt = Date.now();
         let lastActivityAt = Date.now();
         let idleKilled = false;
+        let runtimeKilled = false;
         const idleTicker = setInterval(() => {
             if (closed) return;
+            const elapsedMs = Date.now() - startedAt;
+            if (elapsedMs >= maxRuntimeMs) {
+                runtimeKilled = true;
+                appendLine(
+                    run.id,
+                    `⏱️ Max runtime exceeded (${maxRuntimeMin}m). Sending SIGTERM to child...`,
+                );
+                try {
+                    child.kill("SIGTERM");
+                } catch {}
+                setTimeout(() => {
+                    try {
+                        if (!closed && !child.killed) child.kill("SIGKILL");
+                    } catch {}
+                }, 2000);
+                return;
+            }
             const idleMs = Date.now() - lastActivityAt;
             if (idleMs < idleTimeoutMs) return;
             idleKilled = true;
@@ -745,7 +766,12 @@ export async function POST(req: Request) {
                     stopIdleTicker();
                     if (!closed) {
                         closed = true;
-                        if (idleKilled) {
+                        if (runtimeKilled) {
+                            errorRun(
+                                run.id,
+                                new Error(`Run killed by max-runtime after ${maxRuntimeMin}m.`),
+                            );
+                        } else if (idleKilled) {
                             errorRun(
                                 run.id,
                                 new Error(`Run killed by idle-timeout after ${idleTimeoutMin}m without log activity.`),
@@ -795,7 +821,12 @@ export async function POST(req: Request) {
             stopIdleTicker();
             if (!closed) {
                 closed = true;
-                if (idleKilled) {
+                if (runtimeKilled) {
+                    errorRun(
+                        run.id,
+                        new Error(`Run killed by max-runtime after ${maxRuntimeMin}m.`),
+                    );
+                } else if (idleKilled) {
                     errorRun(
                         run.id,
                         new Error(`Run killed by idle-timeout after ${idleTimeoutMin}m without log activity.`),

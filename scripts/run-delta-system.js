@@ -101,6 +101,18 @@ const FAST_MODE = FAST_MODE_CLI;
 const ENABLE_TWILIO_CLOSE = String(process.env.DELTA_ENABLE_TWILIO_CLOSE || "1") !== "0";
 // User request: remove "Update Custom Values" from Run Delta System flow.
 const ENABLE_CUSTOM_VALUES = false;
+const TWILIO_LOOKUP_TIMEOUT_MS = Math.max(
+    1000,
+    Number(process.env.DELTA_TWILIO_LOOKUP_TIMEOUT_MS || (FAST_MODE ? "8000" : "12000"))
+);
+const TWILIO_CLOSE_TIMEOUT_MS = Math.max(
+    1000,
+    Number(process.env.DELTA_TWILIO_CLOSE_TIMEOUT_MS || (FAST_MODE ? "8000" : "12000"))
+);
+const TWILIO_STEP_TIMEOUT_MS = Math.max(
+    1000,
+    Number(process.env.DELTA_TWILIO_STEP_TIMEOUT_MS || (FAST_MODE ? "12000" : "18000"))
+);
 const CV_MAX_RETRIES = Number(
     process.env.GHL_CV_MAX_RETRIES ||
     (FAST_MODE ? "2" : "4")
@@ -182,6 +194,24 @@ function emitProgressEnd({ totals, done, ok, error }) {
 // =====================
 function sleep(ms) {
     return new Promise((r) => setTimeout(r, ms));
+}
+
+async function withTimeout(promise, timeoutMs, timeoutMessage) {
+    let timeout = null;
+    try {
+        return await Promise.race([
+            promise,
+            new Promise((_, reject) => {
+                timeout = setTimeout(() => {
+                    const err = new Error(timeoutMessage || `Operation timed out after ${timeoutMs}ms`);
+                    err.code = "ETIMEDOUT";
+                    reject(err);
+                }, timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timeout) clearTimeout(timeout);
+    }
 }
 
 let _lastGhlCallAt = 0;
@@ -529,10 +559,14 @@ async function processOneAccount({
             }
 
             const twilioLookupName = String(created?.name || "").slice(0, 64);
-            const twilioAcc = await findTwilioAccountByFriendlyName(twilioLookupName, {
-                exact: true,
-                limit: FAST_MODE ? 60 : 200,
-            });
+            const twilioAcc = await withTimeout(
+                findTwilioAccountByFriendlyName(twilioLookupName, {
+                    exact: true,
+                    limit: FAST_MODE ? 60 : 200,
+                }),
+                TWILIO_LOOKUP_TIMEOUT_MS,
+                `Twilio lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${twilioLookupName}"`
+            );
 
             if (!twilioAcc) {
                 if (DEBUG) console.log("⚠️ Twilio: no match found (first 64 chars):", twilioLookupName);
@@ -547,7 +581,11 @@ async function processOneAccount({
                 });
             }
 
-            const closed = await closeTwilioAccount(twilioAcc.sid);
+            const closed = await withTimeout(
+                closeTwilioAccount(twilioAcc.sid),
+                TWILIO_CLOSE_TIMEOUT_MS,
+                `Twilio close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
+            );
             if (DEBUG) {
                 console.log("🧨 Twilio CLOSED:", {
                     sid: closed?.sid || twilioAcc.sid,
@@ -700,7 +738,15 @@ async function processOneAccount({
     }
 
     // Ensure Twilio async step finishes before moving to next account.
-    await twilioStepPromise;
+    try {
+        await withTimeout(
+            twilioStepPromise,
+            TWILIO_STEP_TIMEOUT_MS,
+            `Twilio step timeout (${TWILIO_STEP_TIMEOUT_MS}ms) for locationId=${locationId}`
+        );
+    } catch (e) {
+        console.log("⚠️ Twilio step timeout/failed (continuing):", e?.message || e);
+    }
 
     return { created: true, locationId };
 }
@@ -748,6 +794,7 @@ async function runState({
     console.log(`\n🏁 RUN STATE: ${stateSlug} | counties=${counties.length} | RUN_ID=${RUN_ID}`);
     console.log(`Throttle: GHL_RPM=${GHL_RPM} => min ${MIN_MS_BETWEEN_GHL_CALLS}ms between calls`);
     console.log(`Fast mode: ${FAST_MODE ? "ON" : "OFF"} | CV warmup=${GHL_CV_WARMUP_MS}ms | CV retries=${CV_MAX_RETRIES} | CV initialDelay=${CV_INITIAL_DELAY_MS}ms`);
+    console.log(`Twilio guards: lookup=${TWILIO_LOOKUP_TIMEOUT_MS}ms | close=${TWILIO_CLOSE_TIMEOUT_MS}ms | step=${TWILIO_STEP_TIMEOUT_MS}ms`);
     console.log(`Mode: ${isDryRun ? "DRY" : "LIVE"} | Debug: ${DEBUG ? "ON" : "OFF"}\n`);
 
     let countyCreated = 0;

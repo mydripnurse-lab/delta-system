@@ -14,6 +14,15 @@ type RunProgress = {
   updatedAt: number;
 };
 
+type QueuedRunEvent = {
+  runId: string;
+  eventType: string;
+  message: string;
+  payloadJson: string | null;
+  linesCount: number;
+  progressJson: string | null;
+};
+
 function s(v: unknown) {
   return String(v ?? "").trim();
 }
@@ -35,6 +44,88 @@ async function writeSafe(fn: () => Promise<void>) {
     await fn();
   } catch {
     // Keep runner resilient even if DB is temporarily unavailable.
+  }
+}
+
+const EVENT_BATCH_SIZE = Math.max(25, Number(process.env.RUN_HISTORY_EVENT_BATCH_SIZE || 250));
+const EVENT_FLUSH_MS = Math.max(80, Number(process.env.RUN_HISTORY_EVENT_FLUSH_MS || 250));
+const EVENT_QUEUE_MAX = Math.max(1000, Number(process.env.RUN_HISTORY_EVENT_QUEUE_MAX || 20000));
+
+const eventQueue: QueuedRunEvent[] = [];
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let flushing = false;
+
+function scheduleEventFlush(immediate = false) {
+  if (flushTimer) return;
+  flushTimer = setTimeout(
+    () => {
+      flushTimer = null;
+      void flushQueuedEvents();
+    },
+    immediate ? 0 : EVENT_FLUSH_MS,
+  );
+}
+
+async function flushQueuedEvents() {
+  if (flushing) return;
+  if (!eventQueue.length) return;
+  flushing = true;
+  try {
+    const pool = getDbPool();
+    while (eventQueue.length) {
+      const batch = eventQueue.splice(0, EVENT_BATCH_SIZE);
+      if (!batch.length) break;
+
+      const placeholders: string[] = [];
+      const values: Array<string | null> = [];
+      let i = 0;
+      for (const ev of batch) {
+        const base = i * 4;
+        placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}::jsonb)`);
+        values.push(ev.runId, ev.eventType, ev.message, ev.payloadJson);
+        i++;
+      }
+
+      await pool.query(
+        `
+          insert into app.runner_run_events (run_id, event_type, message, payload)
+          values ${placeholders.join(", ")}
+        `,
+        values,
+      );
+
+      const lastByRun = new Map<
+        string,
+        { lastLine: string; linesCount: number; progressJson: string | null }
+      >();
+      for (const ev of batch) {
+        const prev = lastByRun.get(ev.runId);
+        lastByRun.set(ev.runId, {
+          lastLine: ev.message,
+          linesCount: ev.linesCount > 0 ? ev.linesCount : prev?.linesCount || 0,
+          progressJson: ev.progressJson ?? prev?.progressJson ?? null,
+        });
+      }
+
+      for (const [runId, row] of lastByRun.entries()) {
+        await pool.query(
+          `
+            update app.runner_runs
+               set updated_at = now(),
+                   last_line = $2,
+                   lines_count = case when $3 > 0 then $3 else lines_count end,
+                   progress = coalesce($4::jsonb, progress)
+             where run_id = $1
+          `,
+          [runId, row.lastLine, row.linesCount, row.progressJson],
+        );
+      }
+    }
+  } catch {
+    // Keep runner resilient even if DB is temporarily unavailable.
+  } finally {
+    flushing = false;
+    if (eventQueue.length) scheduleEventFlush(true);
   }
 }
 
@@ -96,33 +187,29 @@ export function persistRunEvent(
 ) {
   const eventType = s(opts?.eventType || "line") || "line";
   const msg = String(message ?? "");
-  const payload = opts?.payload ?? null;
   const linesCount = Number(opts?.linesCount ?? 0);
   const progress = opts?.progress ?? null;
-  void writeSafe(async () => {
-    const pool = getDbPool();
-    await pool.query(
-      `
-        insert into app.runner_run_events (run_id, event_type, message, payload)
-        values ($1, $2, $3, $4::jsonb)
-      `,
-      [runId, eventType, msg, payload ? JSON.stringify(payload) : null],
-    );
-    await pool.query(
-      `
-        update app.runner_runs
-           set updated_at = now(),
-               last_line = $2,
-               lines_count = case when $3 > 0 then $3 else lines_count end,
-               progress = coalesce($4::jsonb, progress)
-         where run_id = $1
-      `,
-      [runId, msg, linesCount, progress ? JSON.stringify(progress) : null],
-    );
+  const payloadJson = opts?.payload ? JSON.stringify(opts.payload) : null;
+  const progressJson = progress ? JSON.stringify(progress) : null;
+
+  if (eventQueue.length >= EVENT_QUEUE_MAX && eventType === "line") {
+    // Prefer dropping plain line noise over pressure-collapsing the runner.
+    return;
+  }
+
+  eventQueue.push({
+    runId,
+    eventType,
+    message: msg,
+    payloadJson,
+    linesCount,
+    progressJson,
   });
+  scheduleEventFlush(false);
 }
 
 export function persistRunStopped(runId: string) {
+  scheduleEventFlush(true);
   void writeSafe(async () => {
     const pool = getDbPool();
     await pool.query(
@@ -148,6 +235,7 @@ export function persistRunFinished(runId: string, params: {
   progress?: RunProgress | null;
 }) {
   const status = safeStatusFrom(params);
+  scheduleEventFlush(true);
   void writeSafe(async () => {
     const pool = getDbPool();
     await pool.query(
@@ -261,4 +349,3 @@ export async function listRunsFromDb(opts?: {
     progress: (r.progress as Record<string, unknown> | null) || null,
   }));
 }
-
