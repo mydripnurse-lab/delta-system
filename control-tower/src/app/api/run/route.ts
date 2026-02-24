@@ -698,6 +698,9 @@ export async function POST(req: Request) {
         const rlOut = readline.createInterface({ input: child.stdout });
         const rlErr = readline.createInterface({ input: child.stderr });
         const syncLogs: string[] = [];
+        let stdoutLines = 0;
+        let stderrLines = 0;
+        let stderrPreview = "";
         const idleTimeoutMin = Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN || 25));
         const idleTimeoutMs = idleTimeoutMin * 60_000;
         const maxRuntimeMin = Math.max(idleTimeoutMin, Number(process.env.RUNNER_MAX_RUNTIME_MIN || 180));
@@ -771,8 +774,21 @@ export async function POST(req: Request) {
             if (syncRequested) syncLogs.push(line);
         };
 
-        rlOut.on("line", onLine);
-        rlErr.on("line", onLine);
+        rlOut.on("line", (line) => {
+            if (String(line || "").trim()) stdoutLines++;
+            onLine(line);
+        });
+        rlErr.on("line", (line) => {
+            if (String(line || "").trim()) stderrLines++;
+            onLine(line);
+        });
+        child.stderr.on("data", (chunk: Buffer | string) => {
+            if (stderrPreview.length >= 3000) return;
+            const txt = String(chunk || "");
+            if (!txt) return;
+            stderrPreview += txt;
+            if (stderrPreview.length > 3000) stderrPreview = stderrPreview.slice(0, 3000);
+        });
 
         const waitChild = () =>
             new Promise<number>((resolve) => {
@@ -793,6 +809,18 @@ export async function POST(req: Request) {
                     stopIdleTicker();
                     if (!closed) {
                         closed = true;
+                        if ((code ?? 0) !== 0) {
+                            appendLine(
+                                run.id,
+                                `child-close: exit=${code ?? 0} stdoutLines=${stdoutLines} stderrLines=${stderrLines}`,
+                            );
+                            if (!stderrLines && stderrPreview.trim()) {
+                                appendLine(
+                                    run.id,
+                                    `child-stderr-preview: ${stderrPreview.replace(/\s+/g, " ").trim()}`,
+                                );
+                            }
+                        }
                         if (runtimeKilled) {
                             errorRun(
                                 run.id,
@@ -848,6 +876,18 @@ export async function POST(req: Request) {
             stopIdleTicker();
             if (!closed) {
                 closed = true;
+                if ((child.exitCode ?? 0) !== 0) {
+                    appendLine(
+                        run.id,
+                        `child-close: exit=${child.exitCode ?? 0} stdoutLines=${stdoutLines} stderrLines=${stderrLines}`,
+                    );
+                    if (!stderrLines && stderrPreview.trim()) {
+                        appendLine(
+                            run.id,
+                            `child-stderr-preview: ${stderrPreview.replace(/\s+/g, " ").trim()}`,
+                        );
+                    }
+                }
                 if (runtimeKilled) {
                     errorRun(
                         run.id,
