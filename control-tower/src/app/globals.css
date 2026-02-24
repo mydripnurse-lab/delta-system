@@ -4927,6 +4927,76 @@ button, input, select { font-family: inherit; }
   max-width: 900px;
 }
 
+/* Dashboard Reports premium shell */
+.dashboardPremium .agencyRoot {
+  min-height: auto;
+  padding: 0;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+}
+
+.dashboardPremium .agencySidebar {
+  min-height: auto;
+  position: sticky;
+  top: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(148,163,184,0.24);
+  background:
+    radial-gradient(580px 220px at 0% -28%, rgba(59,130,246,0.16), transparent 70%),
+    linear-gradient(180deg, rgba(10,18,36,0.9), rgba(8,14,28,0.82));
+  box-shadow: 0 24px 52px rgba(2, 6, 23, 0.42), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.dashboardPremium .agencyNav {
+  gap: 10px;
+}
+
+.dashboardPremium .agencyNavItem {
+  border-radius: 13px;
+  border: 1px solid rgba(148,163,184,0.26);
+  background: rgba(255,255,255,0.02);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 11px 13px;
+}
+
+.dashboardPremium .agencyNavItem:hover {
+  transform: translateX(3px);
+  border-color: rgba(96,165,250,0.48);
+  background: rgba(59,130,246,0.11);
+}
+
+.dashboardPremium .agencyNavItemActive {
+  border-color: rgba(96,165,250,0.72);
+  background: linear-gradient(180deg, rgba(59,130,246,0.3), rgba(30,64,175,0.2));
+  box-shadow: 0 10px 24px rgba(37,99,235,0.22), 0 0 0 1px rgba(147,197,253,0.28) inset;
+}
+
+.dashboardPremium .agencyMain .card {
+  border-radius: 22px;
+  border: 1px solid rgba(148,163,184,0.25);
+  background:
+    radial-gradient(840px 200px at 90% -26%, rgba(59,130,246,0.1), transparent 72%),
+    linear-gradient(180deg, rgba(15,23,42,0.78), rgba(15,23,42,0.56));
+  box-shadow: 0 22px 46px rgba(2, 6, 23, 0.36), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.dashboardPremium .agencyGlobalTopbar {
+  border-radius: 24px;
+  padding: 16px 18px;
+  border-color: rgba(148,163,184,0.28);
+  background:
+    radial-gradient(920px 240px at 82% -26%, rgba(56,189,248,0.14), transparent 72%),
+    linear-gradient(180deg, rgba(15,23,42,0.86), rgba(15,23,42,0.65));
+  box-shadow: 0 24px 56px rgba(2, 6, 23, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+@media (max-width: 1200px) {
+  .dashboardPremium .agencyRoot {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Shared AI chat panel */
 .aiChatCard {
   border: 1px solid rgba(255, 255, 255, 0.10);

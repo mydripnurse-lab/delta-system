@@ -965,7 +965,7 @@ function DashboardHomeContent() {
   const [tenantHeaderName, setTenantHeaderName] = useState("My Drip Nurse");
   const [tenantHeaderSlug, setTenantHeaderSlug] = useState("my-drip-nurse");
   const [tenantHeaderLogo, setTenantHeaderLogo] = useState("");
-  const [activeNavItem, setActiveNavItem] = useState("dashboard");
+  const [activeNavItem, setActiveNavItem] = useState<"dashboard" | "modules" | "analytics" | "dataops" | "execution">("dashboard");
 
   useEffect(() => {
     let cancelled = false;
@@ -2395,61 +2395,21 @@ function DashboardHomeContent() {
     return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
   }
 
-  const navGroups: Array<{ title: string; items: Array<{ key: string; label: string; sectionId: string }> }> = [
-    {
-      title: "Dashboard",
-      items: [
-        { key: "dashboard", label: "CEO KPI Board", sectionId: "sec-dashboard-kpi" },
-        { key: "filters", label: "Executive Filters", sectionId: "sec-filters" },
-      ],
-    },
-    {
-      title: "Modules",
-      items: [
-        { key: "modules", label: "Module Dashboards", sectionId: "sec-modules" },
-      ],
-    },
-    {
-      title: "Analytics",
-      items: [
-        { key: "forecast", label: "Forecast & Targets", sectionId: "sec-forecast" },
-        { key: "health", label: "Business Health Score", sectionId: "sec-business-health" },
-        { key: "geo-score", label: "Geo Business Score", sectionId: "sec-geo-score" },
-        { key: "funnel", label: "Executive Funnel", sectionId: "sec-funnel" },
-        { key: "attribution", label: "Unified Attribution", sectionId: "sec-attribution" },
-      ],
-    },
-    {
-      title: "Data Ops",
-      items: [
-        { key: "pipeline", label: "Pipeline SLA", sectionId: "sec-pipeline-sla" },
-        { key: "quality", label: "Data Quality Center", sectionId: "sec-data-quality" },
-        { key: "top-geo", label: "Top Oportunidades Geo", sectionId: "sec-top-geo" },
-        { key: "alerts", label: "Executive Alerts", sectionId: "sec-alerts" },
-        { key: "cohorts", label: "Cohorts & Retention", sectionId: "sec-cohorts" },
-      ],
-    },
-    {
-      title: "Execution",
-      items: [
-        { key: "action-center", label: "Action Center", sectionId: "sec-action-center" },
-        { key: "growth-ops", label: "Growth Ops Readiness", sectionId: "sec-growth-ops" },
-        { key: "campaign-factory", label: "Phase 1 Campaign Factory", sectionId: "sec-campaign-factory" },
-        { key: "ai-swarm", label: "AI CEO Swarm", sectionId: "sec-ai-swarm" },
-      ],
-    },
+  const navItems: Array<{ key: "dashboard" | "modules" | "analytics" | "dataops" | "execution"; label: string }> = [
+    { key: "dashboard", label: "Dashboard" },
+    { key: "modules", label: "Modules" },
+    { key: "analytics", label: "Analytics" },
+    { key: "dataops", label: "Data Ops" },
+    { key: "execution", label: "Execution" },
   ];
 
-  function jumpToSection(key: string, sectionId: string) {
+  function jumpToSection(key: "dashboard" | "modules" | "analytics" | "dataops" | "execution") {
     setActiveNavItem(key);
-    const node = document.getElementById(sectionId);
-    if (node) {
-      node.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
-    <main className="agencyShell shell callsDash ceoDash">
+    <main className="agencyShell callsDash ceoDash dashboardPremium">
       {loading ? (
         <div className="dashLoadingOverlay" aria-live="polite" aria-busy="true">
           <div className="dashLoadingCard">
@@ -2517,22 +2477,15 @@ function DashboardHomeContent() {
       <div className="agencyRoot">
         <aside className="agencySidebar">
           <nav className="agencyNav">
-            {navGroups.map((group) => (
-              <div key={group.title}>
-                <div className="mini" style={{ opacity: 0.72, letterSpacing: 0.3, textTransform: "uppercase", margin: "4px 2px" }}>
-                  {group.title}
-                </div>
-                {group.items.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={`agencyNavItem ${activeNavItem === item.key ? "agencyNavItemActive" : ""}`}
-                    onClick={() => jumpToSection(item.key, item.sectionId)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+            {navItems.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`agencyNavItem ${activeNavItem === item.key ? "agencyNavItemActive" : ""}`}
+                onClick={() => jumpToSection(item.key)}
+              >
+                {item.label}
+              </button>
             ))}
           </nav>
         </aside>
@@ -2641,6 +2594,7 @@ function DashboardHomeContent() {
         </div>
       </section>
 
+      {activeNavItem === "dashboard" ? (
       <section id="sec-dashboard-kpi" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -2744,7 +2698,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "modules" ? (
       <section id="sec-modules" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3050,7 +3006,11 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "analytics" || activeNavItem === "dataops" || activeNavItem === "execution" ? (
+      <>
+      {activeNavItem === "analytics" ? (
       <section id="sec-forecast" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3104,7 +3064,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "analytics" ? (
       <section id="sec-business-health" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3189,7 +3151,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "analytics" ? (
       <section id="sec-geo-score" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3230,7 +3194,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "dataops" ? (
       <section id="sec-pipeline-sla" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3275,7 +3241,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "dataops" ? (
       <section id="sec-data-quality" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3310,7 +3278,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "dataops" ? (
       <section id="sec-top-geo" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3351,7 +3321,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "analytics" ? (
       <section id="sec-funnel" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3389,7 +3361,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "dataops" ? (
       <section id="sec-alerts" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3420,7 +3394,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "execution" ? (
       <section id="sec-action-center" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3488,7 +3464,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "dataops" ? (
       <section id="sec-cohorts" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3527,7 +3505,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "analytics" ? (
       <section id="sec-attribution" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3563,6 +3543,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
+      </>
+      ) : null}
 
 
 
@@ -3629,6 +3612,7 @@ function DashboardHomeContent() {
         </div>
       </section> */}
 
+      {activeNavItem === "execution" ? (
       <section id="sec-growth-ops" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3663,7 +3647,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "execution" ? (
       <section id="sec-campaign-factory" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3807,7 +3793,9 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeNavItem === "execution" ? (
       <section id="sec-ai-swarm" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3975,6 +3963,7 @@ function DashboardHomeContent() {
           </div>
         </div>
       </section>
+      ) : null}
         </section>
       </div>
 
