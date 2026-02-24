@@ -398,7 +398,7 @@ type CeoInsights = {
   execute_plan?: Array<{
     priority: "P1" | "P2" | "P3";
     action: string;
-    dashboard: "calls" | "leads" | "prospecting" | "conversations" | "transactions" | "appointments" | "gsc" | "ga" | "ads" | "facebook_ads";
+    dashboard: "calls" | "leads" | "prospecting" | "conversations" | "transactions" | "appointments" | "gsc" | "ga" | "ads" | "facebook_ads" | "youtube_ads";
     rationale: string;
     trigger_metric: string;
   }>;
@@ -631,7 +631,7 @@ const SECTION_HELP: Record<string, SectionHelp> = {
   growth_ops_readiness: {
     title: "Growth Ops Readiness",
     summary: "Estado de integraciones y preparación para escalar marketing.",
-    kpis: ["GSC status", "Facebook integration", "Keyword Planner readiness"],
+    kpis: ["GSC status", "Facebook integration", "YouTube Ads/Runway readiness", "Keyword Planner readiness"],
     why: "Aclara qué habilitadores técnicos faltan para optimización avanzada.",
   },
   campaign_factory: {
@@ -1150,6 +1150,7 @@ function DashboardHomeContent() {
           "gsc_strategist",
           "ga_strategist",
           "ads_strategist",
+          "youtube_ads_strategist",
         ],
         objective:
           "Maximize growth efficiency with clear CEO-level decisions and cross-agent orchestration.",
@@ -1161,6 +1162,10 @@ function DashboardHomeContent() {
           facebook_ads: {
             status: "not_configured",
             note: "Facebook Ads setup is pending.",
+          },
+          youtube_ads: {
+            status: "ready",
+            note: "YouTube Ads dashboard is live with Runway video generation.",
           },
           keyword_planner: {
             status: "planned",
@@ -2154,12 +2159,13 @@ function DashboardHomeContent() {
     if (dashboard === "ga") return withTenantHref("/dashboard/ga#ai-playbook", { integrationKey: "default" });
     if (dashboard === "ads") return withTenantHref("/dashboard/ads#ai-playbook", { integrationKey: "default" });
     if (dashboard === "facebook_ads") return withTenantHref("/dashboard/facebook-ads#ai-playbook");
+    if (dashboard === "youtube_ads") return withTenantHref("/dashboard/youtube-ads#ai-playbook");
     return "";
   }
 
   function actionTypeForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
     if (dashboard === "leads" || dashboard === "prospecting") return "send_leads_ghl";
-    if (dashboard === "ads" || dashboard === "facebook_ads") return "optimize_ads";
+    if (dashboard === "ads" || dashboard === "facebook_ads" || dashboard === "youtube_ads") return "optimize_ads";
     return "publish_content";
   }
 
@@ -2167,6 +2173,7 @@ function DashboardHomeContent() {
     if (dashboard === "leads" || dashboard === "prospecting") return "soul_leads_prospecting";
     if (dashboard === "ads") return "soul_ads_optimizer";
     if (dashboard === "facebook_ads") return "soul_facebook_ads";
+    if (dashboard === "youtube_ads") return "soul_youtube_ads";
     if (dashboard === "calls") return "soul_calls";
     if (dashboard === "conversations") return "soul_conversations";
     if (dashboard === "transactions") return "soul_transactions";
@@ -2754,6 +2761,25 @@ function DashboardHomeContent() {
               </div>
               <div className="moduleActions">
                 <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/facebook-ads")}>Open Facebook Dashboard</Link>
+              </div>
+            </div>
+
+            <div className="moduleCard">
+              <div className="moduleTop">
+                <p className="l moduleTitle">YouTube Ads + Runway</p>
+              </div>
+              <div className="moduleStats">
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Status</div>
+                  <div className="moduleStatValue">Studio Live</div>
+                </div>
+                <div className="moduleStat">
+                  <div className="mini moduleStatLabel">Source</div>
+                  <div className="moduleStatValue">Overview + Geo + Runway</div>
+                </div>
+              </div>
+              <div className="moduleActions">
+                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/youtube-ads")}>Open YouTube Dashboard</Link>
               </div>
             </div>
           </div>

@@ -550,6 +550,39 @@ button, input, select { font-family: inherit; }
   border-color: rgba(248,113,113,0.45);
 }
 
+.runHistoryList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.runHistoryItem {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(10, 18, 38, 0.65), rgba(10, 18, 38, 0.35)),
+    radial-gradient(120% 120% at 0% 0%, rgba(43,167,255,0.10), transparent 55%);
+}
+
+.runHistoryMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.runHistoryMessage {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.95);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 @media (max-width: 980px) {
   .runCenterFilters {
     grid-template-columns: 1fr;

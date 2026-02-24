@@ -10,6 +10,7 @@ import { getDbPool } from "@/lib/db";
 import { getTenantIntegration, upsertTenantIntegration } from "@/lib/tenantIntegrations";
 import { getAgencyAccessTokenOrThrow } from "@/lib/ghlHttp";
 import { getTenantSheetConfig } from "@/lib/tenantSheetConfig";
+import { listRunsFromDb } from "@/lib/runHistoryStore";
 
 import {
     createRun,
@@ -29,8 +30,14 @@ export async function GET(req: Request) {
     const activeOnly = activeParam === "1" || activeParam === "true" || activeParam === "yes";
     const limitRaw = Number(url.searchParams.get("limit") || 50);
     const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(200, limitRaw)) : 50;
-    const runs = listRuns({ activeOnly, limit });
-    return NextResponse.json({ ok: true, runs });
+    const tenantId = String(url.searchParams.get("tenantId") || "").trim();
+    try {
+      const runs = await listRunsFromDb({ activeOnly, limit, tenantId });
+      return NextResponse.json({ ok: true, source: "db", runs });
+    } catch {
+      const runs = listRuns({ activeOnly, limit });
+      return NextResponse.json({ ok: true, source: "memory", runs });
+    }
 }
 
 function exists(p: string) {

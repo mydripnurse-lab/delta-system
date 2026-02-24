@@ -1,6 +1,13 @@
 // src/lib/runStore.ts
 import { EventEmitter } from "events";
 import type { ChildProcess } from "child_process";
+import {
+    persistRunCmd,
+    persistRunCreated,
+    persistRunEvent,
+    persistRunFinished,
+    persistRunStopped,
+} from "@/lib/runHistoryStore";
 
 export type RunMeta = {
     job?: string;
@@ -44,11 +51,10 @@ type GlobalRunStore = {
 };
 
 declare global {
-    // eslint-disable-next-line no-var
     var __RUN_STORE__: GlobalRunStore | undefined;
 }
 
-const g = globalThis as any;
+const g = globalThis as typeof globalThis & { __RUN_STORE__?: GlobalRunStore };
 
 if (!g.__RUN_STORE__) {
     g.__RUN_STORE__ = {
@@ -86,6 +92,7 @@ export function createRun(meta: RunMeta = {}) {
     };
 
     runs.set(id, rec);
+    persistRunCreated(id, meta, rec.createdAt);
     return rec;
 }
 
@@ -102,8 +109,10 @@ export function listRuns(opts?: { activeOnly?: boolean; limit?: number }) {
         .sort((a, b) => b.createdAt - a.createdAt)
         .slice(0, limit)
         .map((r) => ({
+            status: !r.finished ? "running" : r.stopped ? "stopped" : (r.exitCode ?? 0) === 0 && !r.error ? "done" : "error",
             id: r.id,
             createdAt: r.createdAt,
+            updatedAt: r.progress?.updatedAt || r.createdAt,
             meta: r.meta,
             stopped: r.stopped,
             finished: r.finished,
@@ -120,6 +129,7 @@ export function setRunMetaCmd(id: string, cmd: string) {
     const r = runs.get(id);
     if (!r) return;
     r.meta.cmd = cmd;
+    persistRunCmd(id, cmd);
 }
 
 export function appendLine(id: string, line: string) {
@@ -204,6 +214,12 @@ export function appendLine(id: string, line: string) {
     if (r.lines.length > 5000) r.lines = r.lines.slice(-4000);
 
     r.emitter.emit("line", msg);
+    persistRunEvent(id, msg, {
+        eventType: payload ? "progress" : "line",
+        payload,
+        linesCount: r.lines.length,
+        progress: r.progress || null,
+    });
 }
 
 /**
@@ -239,6 +255,15 @@ export function endRun(id: string, exitCode: number | null) {
     }
 
     r.emitter.emit("end", r.exitCode ?? 0);
+    persistRunFinished(id, {
+        finished: true,
+        stopped: !!r.stopped,
+        exitCode: r.exitCode,
+        error: r.error || null,
+        linesCount: r.lines.length,
+        lastLine: r.lines.length ? r.lines[r.lines.length - 1] : "",
+        progress: r.progress || null,
+    });
 }
 
 export function errorRun(id: string, err: unknown) {
@@ -248,6 +273,7 @@ export function errorRun(id: string, err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     r.error = msg;
     appendLine(id, `❌ ${msg}`);
+    persistRunEvent(id, `❌ ${msg}`, { eventType: "error", linesCount: r.lines.length, progress: r.progress || null });
 
     // ✅ HARDEN: if already finished, don't double-close
     if (r.finished) return;
@@ -277,5 +303,6 @@ export function stopRun(id: string) {
     } catch { }
 
     appendLine(id, "🛑 Stop requested");
+    persistRunStopped(id);
     return true;
 }

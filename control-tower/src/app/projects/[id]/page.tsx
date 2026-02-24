@@ -644,11 +644,13 @@ export default function Home() {
   const esRef = useRef<EventSource | null>(null);
   const sseRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sseRetryCountRef = useRef(0);
-  const MAX_SSE_RETRIES = 8;
+  const MAX_SSE_RETRY_WAIT_MS = 20000;
   const [activeRuns, setActiveRuns] = useState<
     Array<{
       id: string;
       createdAt: number;
+      updatedAt?: number;
+      status?: string;
       meta?: {
         job?: string;
         state?: string;
@@ -681,6 +683,13 @@ export default function Home() {
     "all" | "running" | "done" | "error" | "stopped"
   >("all");
   const [runCardSearch, setRunCardSearch] = useState("");
+  const [runHistoryOpen, setRunHistoryOpen] = useState(false);
+  const [runHistoryRunId, setRunHistoryRunId] = useState("");
+  const [runHistoryLoading, setRunHistoryLoading] = useState(false);
+  const [runHistoryErr, setRunHistoryErr] = useState("");
+  const [runHistoryEvents, setRunHistoryEvents] = useState<
+    Array<{ id: number; createdAt: string; eventType: string; message: string }>
+  >([]);
   const currentRunIdRef = useRef<string>("");
   const isRunningRef = useRef<boolean>(false);
 
@@ -2757,7 +2766,10 @@ export default function Home() {
 
   async function loadActiveRuns(): Promise<boolean> {
     try {
-      const res = await fetch("/api/run?limit=30", {
+      const qs = new URLSearchParams();
+      qs.set("limit", "250");
+      if (routeTenantId) qs.set("tenantId", routeTenantId);
+      const res = await fetch(`/api/run?${qs.toString()}`, {
         cache: "no-store",
       });
       const data = await safeJson(res);
@@ -2766,6 +2778,8 @@ export default function Home() {
         .map((r: any) => ({
           id: String(r?.id || ""),
           createdAt: Number(r?.createdAt || 0),
+          updatedAt: Number(r?.updatedAt || 0),
+          status: s(r?.status || ""),
           meta: r?.meta || {},
           linesCount: Number(r?.linesCount || 0),
           lastLine: String(r?.lastLine || ""),
@@ -2778,12 +2792,8 @@ export default function Home() {
           error: r?.error ? String(r.error) : null,
           progress: r?.progress || null,
         }))
-        .filter((r: any) =>
-          routeTenantId
-            ? s(r?.meta?.tenantId) === s(routeTenantId)
-            : true,
-        )
-        .slice(0, 12);
+        .filter((r: any) => (routeTenantId ? s(r?.meta?.tenantId) === s(routeTenantId) : true))
+        .slice(0, 250);
       setActiveRuns(filtered);
       setRunId((curr) => {
         const current = s(curr);
@@ -2797,6 +2807,38 @@ export default function Home() {
     } catch {
       // ignore background polling errors
       return false;
+    }
+  }
+
+  async function openRunHistory(runIdToOpen: string) {
+    const id = s(runIdToOpen);
+    if (!id) return;
+    setRunHistoryOpen(true);
+    setRunHistoryRunId(id);
+    setRunHistoryErr("");
+    setRunHistoryLoading(true);
+    setRunHistoryEvents([]);
+    try {
+      const res = await fetch(`/api/run/${encodeURIComponent(id)}/events?limit=2500`, {
+        cache: "no-store",
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      const events = Array.isArray(data?.events) ? data.events : [];
+      setRunHistoryEvents(
+        events.map((it: any) => ({
+          id: Number(it?.id || 0),
+          createdAt: s(it?.createdAt),
+          eventType: s(it?.eventType) || "line",
+          message: s(it?.message),
+        })),
+      );
+    } catch (e: any) {
+      setRunHistoryErr(e?.message || "Failed to load run history");
+    } finally {
+      setRunHistoryLoading(false);
     }
   }
 
@@ -3116,21 +3158,10 @@ export default function Home() {
             return;
 
           const nextAttempt = sseRetryCountRef.current + 1;
-          if (nextAttempt > MAX_SSE_RETRIES) {
-            pushLog("❌ SSE retry limit reached. Detaching run.");
-            setIsRunning(false);
-            setRunId((curr) => (s(curr) === s(targetRunId) ? "" : curr));
-            setProgress((p) => ({
-              ...p,
-              status: "error",
-              message: "SSE disconnected (retry limit reached)",
-            }));
-            return;
-          }
           sseRetryCountRef.current = nextAttempt;
-          const waitMs = Math.min(10000, 1000 * Math.pow(1.6, nextAttempt - 1));
+          const waitMs = Math.min(MAX_SSE_RETRY_WAIT_MS, 1000 * Math.pow(1.35, nextAttempt - 1));
           pushLog(
-            `⚠ SSE disconnected. Reconnecting in ${(waitMs / 1000).toFixed(1)}s (attempt ${nextAttempt})...`,
+            `⚠ SSE disconnected. Reconnecting in ${(waitMs / 1000).toFixed(1)}s (attempt ${nextAttempt}, persistent)...`,
           );
           setProgress((p) => ({
             ...p,
@@ -3235,20 +3266,9 @@ export default function Home() {
       } catch {}
       if (!isRunningRef.current || currentRunIdRef.current !== id) return;
       const nextAttempt = sseRetryCountRef.current + 1;
-      if (nextAttempt > MAX_SSE_RETRIES) {
-        pushLog("❌ SSE retry limit reached. Detaching run.");
-        setIsRunning(false);
-        setRunId((curr) => (s(curr) === s(id) ? "" : curr));
-        setProgress((p) => ({
-          ...p,
-          status: "error",
-          message: "SSE disconnected (retry limit reached)",
-        }));
-        return;
-      }
       sseRetryCountRef.current = nextAttempt;
-      const waitMs = Math.min(10000, 1000 * Math.pow(1.6, nextAttempt - 1));
-      setProgress((p) => ({ ...p, message: "SSE reconnecting…" }));
+      const waitMs = Math.min(MAX_SSE_RETRY_WAIT_MS, 1000 * Math.pow(1.35, nextAttempt - 1));
+      setProgress((p) => ({ ...p, message: "SSE reconnecting…", status: "running" }));
       sseRetryTimerRef.current = setTimeout(() => {
         void attachToActiveRun(id);
       }, waitMs);
@@ -4752,7 +4772,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           : `${p.doneCities}`
         : "—";
       const status = r.finished
-        ? r.exitCode === 0
+        ? (s(r.status).toLowerCase() === "stopped" || r.stopped)
+          ? "stopped"
+          : r.exitCode === 0
           ? "done"
           : "error"
         : r.stopped
@@ -5828,6 +5850,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             <span className="badge">Done: {runSummary.done}</span>
             <span className="badge">Stopped: {runSummary.stopped}</span>
             <span className="badge">Error: {runSummary.error}</span>
+            <span className="badge">History: persisted</span>
           </div>
 
           <div className="runCenterFilters">
@@ -5878,6 +5901,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <span>Elapsed: <b>{r.elapsed}</b></span>
                     <span>Counties: <b>{r.countiesLabel}</b></span>
                     <span>Cities: <b>{r.citiesLabel}</b></span>
+                    <span>Updated: <b>{r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}</b></span>
                   </div>
 
                   <div className="runCardMsg mini">{r.message}</div>
@@ -5896,6 +5920,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       onClick={() => attachToActiveRun(r.id)}
                     >
                       Attach
+                    </button>
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      onClick={() => void openRunHistory(r.id)}
+                    >
+                      View history
                     </button>
                     {!r.finished ? (
                       <button
@@ -6784,6 +6815,59 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {runHistoryOpen && (
+        <>
+          <div className="modalBackdrop" onClick={() => setRunHistoryOpen(false)} />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(1240px, calc(100vw - 24px))",
+              height: "auto",
+              maxHeight: "min(860px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader">
+              <div>
+                <div className="badge">RUN HISTORY</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  {runHistoryRunId || "Run"}
+                </h3>
+              </div>
+              <button className="smallBtn" onClick={() => setRunHistoryOpen(false)} type="button">
+                Close
+              </button>
+            </div>
+            <div className="modalBody" style={{ padding: 14, overflowY: "auto" }}>
+              {runHistoryLoading ? <div className="mini">Loading history...</div> : null}
+              {runHistoryErr ? (
+                <div className="mini" style={{ color: "#ff808f" }}>
+                  {runHistoryErr}
+                </div>
+              ) : null}
+              {!runHistoryLoading && !runHistoryErr && runHistoryEvents.length === 0 ? (
+                <div className="mini">No persisted events for this run.</div>
+              ) : null}
+              {!runHistoryLoading && !runHistoryErr && runHistoryEvents.length > 0 ? (
+                <div className="runHistoryList">
+                  {runHistoryEvents.map((ev) => (
+                    <div key={`${ev.id}-${ev.createdAt}`} className="runHistoryItem">
+                      <div className="runHistoryMeta">
+                        <span className="badge">#{ev.id}</span>
+                        <span className="mini">{new Date(ev.createdAt).toLocaleString()}</span>
+                        <span className="badge">{ev.eventType}</span>
+                      </div>
+                      <pre className="runHistoryMessage">{ev.message}</pre>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </>

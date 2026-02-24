@@ -19,7 +19,8 @@ type ExecutePlanItem = {
     | "gsc"
     | "ga"
     | "ads"
-    | "facebook_ads";
+    | "facebook_ads"
+    | "youtube_ads";
   rationale: string;
   trigger_metric: string;
 };
@@ -137,7 +138,7 @@ function computeRange() {
 
 function actionTypeForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
   if (dashboard === "leads" || dashboard === "prospecting") return "send_leads_ghl" as const;
-  if (dashboard === "ads" || dashboard === "facebook_ads") return "optimize_ads" as const;
+  if (dashboard === "ads" || dashboard === "facebook_ads" || dashboard === "youtube_ads") return "optimize_ads" as const;
   return "publish_content" as const;
 }
 
@@ -145,6 +146,7 @@ function fallbackAgentIdForDashboard(dashboard: ExecutePlanItem["dashboard"]) {
   if (dashboard === "leads" || dashboard === "prospecting") return "soul_leads_prospecting";
   if (dashboard === "ads") return "soul_ads_optimizer";
   if (dashboard === "facebook_ads") return "soul_facebook_ads";
+  if (dashboard === "youtube_ads") return "soul_youtube_ads";
   if (dashboard === "calls") return "soul_calls";
   if (dashboard === "conversations") return "soul_conversations";
   if (dashboard === "transactions") return "soul_transactions";
@@ -166,6 +168,7 @@ function defaultAgents() {
     ga: { enabled: true, agentId: "soul_ga" },
     ads: { enabled: true, agentId: "soul_ads_optimizer" },
     facebook_ads: { enabled: true, agentId: "soul_facebook_ads" },
+    youtube_ads: { enabled: true, agentId: "soul_youtube_ads" },
     content: { enabled: true, agentId: "soul_content_publisher" },
   } satisfies Record<string, { enabled: boolean; agentId: string }>;
 }
@@ -325,11 +328,13 @@ async function buildExecutePlanForTenant(input: {
       "gsc_strategist",
       "ga_strategist",
       "ads_strategist",
+      "youtube_ads_strategist",
     ],
     objective: "Maximize growth efficiency with clear CEO-level decisions and cross-agent orchestration.",
     readiness: {
       gsc: { status: "test_mode_pending_approval", note: "GSC is pending approval to move out of test mode." },
       facebook_ads: { status: "not_configured", note: "Facebook Ads setup is pending." },
+      youtube_ads: { status: "ready", note: "YouTube Ads dashboard is available with Runway video generation." },
       keyword_planner: {
         status: "planned",
         note: "Google Ads Keyword Planner integration is planned for campaign recommendation automation.",

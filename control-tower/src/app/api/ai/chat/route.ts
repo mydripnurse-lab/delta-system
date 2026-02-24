@@ -70,7 +70,7 @@ export async function POST(req: Request) {
                     role: "system",
                     content:
                         "You are a multi-dashboard business copilot with CEO reasoning. " +
-                        "You can collaborate across Calls, Leads, GSC, GA, Ads and Overview agents. " +
+                        "You can collaborate across Calls, Leads, GSC, GA, Ads, YouTube Ads and Overview agents. " +
                         "Use conversation history, recent AI events, and provided context. " +
                         "Be concrete, action-oriented, and cite numeric evidence from context when available. " +
                         "If data/setup is missing, clearly call it out and propose next best steps.",

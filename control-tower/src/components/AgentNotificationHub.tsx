@@ -42,6 +42,7 @@ const AGENT_NAME_BY_ID: Record<string, string> = {
   soul_ga: "Analytics Agent",
   soul_ads_optimizer: "Ads Optimizer Agent",
   soul_facebook_ads: "Facebook Ads Agent",
+  soul_youtube_ads: "YouTube Ads Agent",
   soul_content_publisher: "Content Publisher Agent",
 };
 
@@ -80,6 +81,7 @@ function humanizeToken(raw: string) {
 function dashboardLabel(raw: string) {
   const v = s(raw).toLowerCase();
   if (v === "facebook_ads") return "Facebook Ads";
+  if (v === "youtube_ads") return "YouTube Ads";
   if (v === "gsc") return "GSC";
   if (v === "ga") return "GA";
   if (v === "prospecting") return "Prospecting";

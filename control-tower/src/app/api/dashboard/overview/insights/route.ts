@@ -85,7 +85,7 @@ export async function POST(req: Request) {
                             action: { type: "string" },
                             dashboard: {
                                 type: "string",
-                                enum: ["calls", "leads", "prospecting", "conversations", "transactions", "appointments", "gsc", "ga", "ads", "facebook_ads"],
+                                enum: ["calls", "leads", "prospecting", "conversations", "transactions", "appointments", "gsc", "ga", "ads", "facebook_ads", "youtube_ads"],
                             },
                             rationale: { type: "string" },
                             trigger_metric: { type: "string" },
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
                     role: "system",
                     content:
                         "You are the CEO and board strategist for a multi-dashboard growth stack. " +
-                        "Act as a swarm coordinator across specialist agents: Calls, Leads, Conversations, Transactions, Appointments, GSC, GA, Ads. " +
+                        "Act as a swarm coordinator across specialist agents: Calls, Leads, Conversations, Transactions, Appointments, GSC, GA, Ads, YouTube Ads. " +
                         "Make executive decisions with direct business impact. " +
                         "Return an execution-first board meeting narrative and concrete plan items with priorities. " +
                         "Use only provided data. Never invent metrics.",

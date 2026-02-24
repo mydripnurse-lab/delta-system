@@ -29,11 +29,12 @@ type DashboardKey =
   | "ga"
   | "ads"
   | "facebook_ads"
+  | "youtube_ads"
   | "content";
 
 function mapDashboardToActionType(dashboard: DashboardKey) {
   if (dashboard === "leads" || dashboard === "prospecting") return "send_leads_ghl" as const;
-  if (dashboard === "ads" || dashboard === "facebook_ads") return "optimize_ads" as const;
+  if (dashboard === "ads" || dashboard === "facebook_ads" || dashboard === "youtube_ads") return "optimize_ads" as const;
   return "publish_content" as const;
 }
 
@@ -41,6 +42,7 @@ function mapDashboardToAgent(dashboard: DashboardKey) {
   if (dashboard === "leads" || dashboard === "prospecting") return "soul_leads_prospecting";
   if (dashboard === "ads") return "soul_ads_optimizer";
   if (dashboard === "facebook_ads") return "soul_facebook_ads";
+  if (dashboard === "youtube_ads") return "soul_youtube_ads";
   if (dashboard === "calls") return "soul_calls";
   if (dashboard === "conversations") return "soul_conversations";
   if (dashboard === "transactions") return "soul_transactions";
@@ -128,6 +130,7 @@ export async function POST(req: Request) {
       "ga",
       "ads",
       "facebook_ads",
+      "youtube_ads",
       "content",
       "central",
     ];

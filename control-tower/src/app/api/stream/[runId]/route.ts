@@ -2,13 +2,23 @@
 import { getRun } from "@/lib/runStore";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 function sseLine(str: string) {
     return `${str}\n`;
 }
 
-function sseEvent(event: string, data: any) {
+function sseEvent(event: string, data: unknown) {
     return (
+        sseLine(`event: ${event}`) +
+        sseLine(`data: ${typeof data === "string" ? data : JSON.stringify(data)}`) +
+        sseLine("")
+    );
+}
+
+function sseEventWithId(eventId: number, event: string, data: unknown) {
+    return (
+        sseLine(`id: ${eventId}`) +
         sseLine(`event: ${event}`) +
         sseLine(`data: ${typeof data === "string" ? data : JSON.stringify(data)}`) +
         sseLine("")
@@ -33,7 +43,7 @@ function parseProgressLine(line: string): { kind: "progress"; json: string } | n
     return null;
 }
 
-export async function GET(_req: Request, ctx: { params: Promise<{ runId: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ runId: string }> }) {
     const { runId } = await ctx.params;
 
     if (!runId) return new Response("Missing runId", { status: 400 });
@@ -50,7 +60,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ runId: string 
             // hello
             write(sseEvent("hello", { runId }));
 
-            let lastSentLineCount = 0;
+            const lastEventIdRaw = String(req.headers.get("last-event-id") || "").trim();
+            const lastEventId = Number(lastEventIdRaw);
+            let lastSentLineCount = Number.isFinite(lastEventId) && lastEventId > 0 ? Math.floor(lastEventId) : 0;
 
             const tick = () => {
                 const run = getRun(runId);
@@ -63,14 +75,19 @@ export async function GET(_req: Request, ctx: { params: Promise<{ runId: string 
 
                 // send new lines
                 const lines = run.lines || [];
+                if (lastSentLineCount > lines.length) {
+                    // If server rotated old in-memory lines, resume from available tail.
+                    lastSentLineCount = Math.max(0, lines.length - 1);
+                }
                 for (let i = lastSentLineCount; i < lines.length; i++) {
                     const line = String(lines[i] ?? "");
+                    const eventId = i + 1;
 
                     const p = parseProgressLine(line);
                     if (p) {
-                        write(sseEvent("progress", p.json));
+                        write(sseEventWithId(eventId, "progress", p.json));
                     } else {
-                        write(sseEvent("line", line));
+                        write(sseEventWithId(eventId, "line", line));
                     }
                 }
                 lastSentLineCount = lines.length;

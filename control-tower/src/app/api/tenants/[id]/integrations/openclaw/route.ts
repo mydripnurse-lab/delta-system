@@ -26,6 +26,7 @@ type DashboardAgentKey =
   | "ga"
   | "ads"
   | "facebook_ads"
+  | "youtube_ads"
   | "content";
 
 type AgentNode = {
@@ -63,6 +64,7 @@ function defaultAgents(): Record<DashboardAgentKey, AgentNode> {
     ga: { enabled: true, agentId: "soul_ga", displayName: "Analytics Agent" },
     ads: { enabled: true, agentId: "soul_ads_optimizer", displayName: "Ads Optimizer Agent" },
     facebook_ads: { enabled: true, agentId: "soul_facebook_ads", displayName: "Facebook Ads Agent" },
+    youtube_ads: { enabled: true, agentId: "soul_youtube_ads", displayName: "YouTube Ads Agent" },
     content: { enabled: true, agentId: "soul_content_publisher", displayName: "Content Publisher Agent" },
   };
 }
