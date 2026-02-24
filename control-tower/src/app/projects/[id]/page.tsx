@@ -5402,10 +5402,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </div>
 
         <nav className="agencyGlobalNav agencyGlobalNavRight">
-          <div className="agencyLivePill">
-              <span className="agencyLiveDot" />
-              <span>Live</span>
-          </div>
           <div className="agencyAccountWrap" ref={accountMenuRef}>
             <button
               type="button"

@@ -4,7 +4,6 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
-import DashboardNotificationsPill from "@/components/DashboardNotificationsPill";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
 
@@ -2498,22 +2497,13 @@ function DashboardHomeContent() {
         </div>
 
         <nav className="agencyGlobalNav agencyGlobalNavRight">
-          <Link className="agencyGlobalNavItem" href="/">
-            Agency View
-          </Link>
-          <Link className="agencyGlobalNavItem" href={controlTowerHref}>
-            Run Center
-          </Link>
-          <Link className="agencyGlobalNavItem agencyGlobalNavItemActive" href={withTenantHref("/dashboard", { integrationKey: "owner" })}>
-            Dashboard - Reports
-          </Link>
-          <Link className="agencyGlobalNavItem" href={withTenantHref("/dashboard/prospecting", { integrationKey: "owner" })}>
-            Dashboard - Prospecting
-          </Link>
-          <DashboardNotificationsPill tenantId={tenantId} href={notificationHubHref} />
-          <div className="agencyLivePill">
-            <span className="agencyLiveDot" />
-            <span>Live</span>
+          <div className="agencyGlobalNavStack">
+            <Link className="agencyGlobalNavItem agencyGlobalNavBackItem" href={controlTowerHref}>
+              ← Back to Home
+            </Link>
+            <Link className="agencyGlobalNavItem agencyGlobalNavItemActive" href={withTenantHref("/dashboard", { integrationKey: "owner" })}>
+              Dashboard
+            </Link>
           </div>
           <div className="agencyAccountWrap" ref={accountMenuRef}>
             <button
