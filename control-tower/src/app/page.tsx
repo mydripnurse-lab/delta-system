@@ -2279,7 +2279,7 @@ export default function AgencyHomePage() {
   }
 
   return (
-    <main className="agencyShell">
+    <main className="agencyShell dashboardPremium">
       <header className="agencyGlobalTopbar">
         <div className="agencyGlobalBrand">
           <div className="agencyBrandLogo agencyBrandLogoDelta" />

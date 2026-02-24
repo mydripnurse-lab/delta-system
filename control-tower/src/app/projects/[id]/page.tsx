@@ -5318,7 +5318,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   );
 
   return (
-    <main className="agencyShell">
+    <main className="agencyShell dashboardPremium">
       <header className="agencyGlobalTopbar">
         <div className="agencyGlobalBrand">
           {tenantLogoUrl ? (
