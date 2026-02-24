@@ -125,7 +125,7 @@ export default function ClientMeetingRoomPage() {
           height: "100%",
           userInfo: { displayName: host ? "Delta Host" : client },
           configOverwrite: {
-            prejoinPageEnabled: true,
+            prejoinPageEnabled: false,
             disableDeepLinking: true,
             startWithAudioMuted: false,
             startWithVideoMuted: false,
