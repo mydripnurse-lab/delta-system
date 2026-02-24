@@ -56,8 +56,9 @@ const COUNTY_TAB = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
 const CITY_TAB = process.env.GOOGLE_SHEET_CITY_TAB || "Cities";
 
 // Rate limiting (GHL)
-const GHL_RPM = Number(process.env.GHL_RPM || "80");
+const GHL_RPM = Number(process.env.GHL_RPM || "180");
 const MIN_MS_BETWEEN_GHL_CALLS = Math.ceil(60000 / Math.max(1, GHL_RPM));
+const GHL_CV_WARMUP_MS = Math.max(0, Number(process.env.GHL_CV_WARMUP_MS || "1200"));
 
 // Run meta
 const RUN_ID = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -225,6 +226,18 @@ function toCustomValuesArray(json, labelForErrors) {
             name: String(x.name).trim(),
             value: x.value === undefined || x.value === null ? "" : String(x.value),
         }));
+}
+
+let _baseCustomValuesCache = null;
+async function getBaseCustomValues() {
+    if (_baseCustomValuesCache) return _baseCustomValuesCache;
+    const servicesJson = await readJson(CUSTOM_VALUES_SERVICES_FILE);
+    const socialJson = await readJson(CUSTOM_VALUES_SOCIAL_FILE);
+    _baseCustomValuesCache = [
+        ...toCustomValuesArray(servicesJson, "mobile-iv-therapy.json"),
+        ...toCustomValuesArray(socialJson, "meta.json"),
+    ];
+    return _baseCustomValuesCache;
 }
 
 async function listOutStates() {
@@ -556,11 +569,14 @@ async function processOneAccount({
     // ===== 4) CUSTOM VALUES
     if (locationToken) {
         try {
+            if (GHL_CV_WARMUP_MS > 0) {
+                await sleep(GHL_CV_WARMUP_MS);
+            }
             console.log("📥 #5 GET Custom Values from GHL (with retry)...");
             const ghlCustomValuesArr = await getCustomValuesWithRetry({
                 locationId,
                 locationToken,
-                maxRetries: Number(process.env.GHL_CV_MAX_RETRIES || "6"),
+                maxRetries: Number(process.env.GHL_CV_MAX_RETRIES || "4"),
                 initialDelayMs: Number(process.env.GHL_CV_INITIAL_DELAY_MS || "800"),
             });
 
@@ -568,12 +584,10 @@ async function processOneAccount({
 
             const byNorm = buildCustomValueIndex(ghlCustomValuesArr);
 
-            const servicesJson = await readJson(CUSTOM_VALUES_SERVICES_FILE);
-            const socialJson = await readJson(CUSTOM_VALUES_SOCIAL_FILE);
+            const baseDesired = await getBaseCustomValues();
 
             const desired = [
-                ...toCustomValuesArray(servicesJson, "mobile-iv-therapy.json"),
-                ...toCustomValuesArray(socialJson, "meta.json"),
+                ...baseDesired,
                 ...buildExtraCustomValues({ entity, parentCounty, stateName }),
             ];
 

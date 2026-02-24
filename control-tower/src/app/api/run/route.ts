@@ -661,8 +661,36 @@ export async function POST(req: Request) {
         const rlOut = readline.createInterface({ input: child.stdout });
         const rlErr = readline.createInterface({ input: child.stderr });
         const syncLogs: string[] = [];
+        const idleTimeoutMin = Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN || 25));
+        const idleTimeoutMs = idleTimeoutMin * 60_000;
+        let lastActivityAt = Date.now();
+        let idleKilled = false;
+        const idleTicker = setInterval(() => {
+            if (closed) return;
+            const idleMs = Date.now() - lastActivityAt;
+            if (idleMs < idleTimeoutMs) return;
+            idleKilled = true;
+            appendLine(
+                run.id,
+                `⏱️ Idle timeout exceeded (${idleTimeoutMin}m without logs). Sending SIGTERM to child...`,
+            );
+            try {
+                child.kill("SIGTERM");
+            } catch {}
+            setTimeout(() => {
+                try {
+                    if (!closed && !child.killed) child.kill("SIGKILL");
+                } catch {}
+            }, 2000);
+        }, 5000);
+        const stopIdleTicker = () => {
+            try {
+                clearInterval(idleTicker);
+            } catch {}
+        };
 
         const onLine = (line: string) => {
+            lastActivityAt = Date.now();
             const tokenUpdate = parseTokenUpdateLine(line);
             if (tokenUpdate && tenantId && tenantRunEnv?.ghlProvider) {
                 appendLine(run.id, "token-refresh detected (ghl) -> persisting to DB...");
@@ -691,6 +719,7 @@ export async function POST(req: Request) {
         const waitChild = () =>
             new Promise<number>((resolve) => {
                 child.on("error", (err) => {
+                    stopIdleTicker();
                     errorRun(run.id, err);
                     if (!closed) {
                         closed = true;
@@ -703,8 +732,15 @@ export async function POST(req: Request) {
                     resolve(1);
                 });
                 child.on("close", (code) => {
+                    stopIdleTicker();
                     if (!closed) {
                         closed = true;
+                        if (idleKilled) {
+                            errorRun(
+                                run.id,
+                                new Error(`Run killed by idle-timeout after ${idleTimeoutMin}m without log activity.`),
+                            );
+                        }
                         try {
                             rlOut.close();
                             rlErr.close();
@@ -733,6 +769,7 @@ export async function POST(req: Request) {
         }
 
         child.on("error", (err) => {
+            stopIdleTicker();
             errorRun(run.id, err);
             if (!closed) {
                 closed = true;
@@ -745,8 +782,15 @@ export async function POST(req: Request) {
         });
 
         child.on("close", () => {
+            stopIdleTicker();
             if (!closed) {
                 closed = true;
+                if (idleKilled) {
+                    errorRun(
+                        run.id,
+                        new Error(`Run killed by idle-timeout after ${idleTimeoutMin}m without log activity.`),
+                    );
+                }
                 try {
                     rlOut.close();
                     rlErr.close();
