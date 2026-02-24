@@ -147,9 +147,10 @@ export default function YoutubeAdsDashboardPage() {
   const [end, setEnd] = useState("");
 
   const [runwayPrompt, setRunwayPrompt] = useState("");
-  const [runwayModel, setRunwayModel] = useState("gen4_5_turbo");
-  const [runwayRatio, setRunwayRatio] = useState("16:9");
+  const [runwayModel, setRunwayModel] = useState("gen4.5");
+  const [runwayRatio, setRunwayRatio] = useState("1280:720");
   const [runwayDuration, setRunwayDuration] = useState("10");
+  const [seedImageUrl, setSeedImageUrl] = useState("");
   const [videoBusy, setVideoBusy] = useState(false);
   const [videoErr, setVideoErr] = useState("");
   const [videoGen, setVideoGen] = useState<RunwayVideoResponse | null>(null);
@@ -324,6 +325,7 @@ export default function YoutubeAdsDashboardPage() {
           ratio: runwayRatio,
           durationSeconds: Number(runwayDuration || 10),
           prompt: runwayPrompt,
+          seedImageUrl,
         }),
       });
       const json = (await res.json()) as RunwayVideoResponse;
@@ -538,15 +540,27 @@ export default function YoutubeAdsDashboardPage() {
             <div className="moduleCard">
               <p className="l moduleTitle">Model</p>
               <input className="input" value={runwayModel} onChange={(e) => setRunwayModel(e.target.value)} />
-              <p className="mini" style={{ marginTop: 8, opacity: 0.8 }}>Default recomendado: `gen4_5_turbo`.</p>
+              <p className="mini" style={{ marginTop: 8, opacity: 0.8 }}>Default recomendado: `gen4.5`.</p>
             </div>
             <div className="moduleCard">
               <p className="l moduleTitle">Aspect Ratio</p>
-              <input className="input" value={runwayRatio} onChange={(e) => setRunwayRatio(e.target.value)} placeholder="16:9" />
+              <input className="input" value={runwayRatio} onChange={(e) => setRunwayRatio(e.target.value)} placeholder="1280:720" />
             </div>
             <div className="moduleCard">
               <p className="l moduleTitle">Duration (sec)</p>
               <input className="input" type="number" min={5} max={30} value={runwayDuration} onChange={(e) => setRunwayDuration(e.target.value)} />
+            </div>
+            <div className="moduleCard">
+              <p className="l moduleTitle">Seed Image URL (optional)</p>
+              <input
+                className="input"
+                value={seedImageUrl}
+                onChange={(e) => setSeedImageUrl(e.target.value)}
+                placeholder="https://.../frame.jpg"
+              />
+              <p className="mini" style={{ marginTop: 8, opacity: 0.8 }}>
+                Use this if selected model requires image-to-video.
+              </p>
             </div>
           </div>
 
@@ -608,6 +622,7 @@ export default function YoutubeAdsDashboardPage() {
               runwayModel,
               runwayRatio,
               runwayDuration,
+              seedImageUrl,
               runwayGeneration: videoGen,
             }}
           />
