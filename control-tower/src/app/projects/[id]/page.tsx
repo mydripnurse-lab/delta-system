@@ -3063,12 +3063,21 @@ export default function Home() {
   }, [routeTenantId]);
 
   // ✅ Unified runner (supports optional locId/kind)
-  async function run(opts?: { job?: string; locId?: string; kind?: string }) {
+  async function run(opts?: {
+    job?: string;
+    state?: string;
+    mode?: "live" | "dry";
+    debug?: boolean;
+    locId?: string;
+    kind?: string;
+  }) {
     const jobKey = s(opts?.job || job);
+    const runMode = (s(opts?.mode || mode).toLowerCase() === "dry" ? "dry" : "live") as "live" | "dry";
+    const runDebug = typeof opts?.debug === "boolean" ? opts.debug : debug;
     const locId = s(opts?.locId || (isOneLocJob ? runLocId : ""));
     const kind = s(opts?.kind || (isOneLocJob ? runKind : ""));
-    const metaState =
-      jobKey === "update-custom-values-one" ? s(openState) || "one" : stateOut;
+    const fallbackState = isOneLocJob ? s(openState) || "one" : stateOut;
+    const metaState = s(opts?.state || fallbackState) || fallbackState;
 
     const duplicate = activeRuns.find((r) => {
       const m = r.meta || {};
@@ -3119,7 +3128,7 @@ export default function Home() {
 
     try {
       pushLog(
-        `▶ Starting job="${jobKey}" state="${metaState}" mode="${mode}" debug="${debug ? "on" : "off"}"${
+        `▶ Starting job="${jobKey}" state="${metaState}" mode="${runMode}" debug="${runDebug ? "on" : "off"}"${
           locId ? ` extra={locId:"${locId}",kind:"${kind || "auto"}"}` : ""
         }...`,
       );
@@ -3134,8 +3143,8 @@ export default function Home() {
         body: JSON.stringify({
           job: jobKey,
           state: metaState, // ✅ PRO
-          mode,
-          debug,
+          mode: runMode,
+          debug: runDebug,
           locId: locId || "",
           kind: kind || "",
           tenantId: routeTenantId || "",
@@ -3390,6 +3399,51 @@ export default function Home() {
         status: "error",
       }));
     }
+  }
+
+  async function rerunFromCard(r: {
+    id: string;
+    meta?: {
+      job?: string;
+      state?: string;
+      mode?: string;
+      debug?: boolean;
+      locId?: string;
+      kind?: string;
+    };
+  }) {
+    const m = r.meta || {};
+    const jobKey = s(m.job);
+    if (!jobKey) {
+      pushLog(`❌ Cannot re-run ${r.id}: missing job in metadata`);
+      return;
+    }
+    const state = s(m.state) || "all";
+    const modeValue = s(m.mode).toLowerCase() === "dry" ? "dry" : "live";
+    const debugValue = m.debug === true;
+    const locIdValue = s(m.locId);
+    const kindValue = s(m.kind);
+
+    setJob(jobKey);
+    if (modeValue === "dry" || modeValue === "live") setMode(modeValue as "live" | "dry");
+    setDebug(debugValue);
+    if (jobKey === "update-custom-values-one") {
+      setRunLocId(locIdValue);
+      setRunKind(
+        kindValue === "counties" || kindValue === "cities" ? kindValue : "",
+      );
+    } else {
+      setStateOut(state || "all");
+    }
+
+    await run({
+      job: jobKey,
+      state,
+      mode: modeValue as "live" | "dry",
+      debug: debugValue,
+      locId: locIdValue,
+      kind: kindValue,
+    });
   }
 
   async function attachToActiveRun(targetRunId: string) {
@@ -6329,6 +6383,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     >
                       View history
                     </button>
+                    {r.finished ? (
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        onClick={() => void rerunFromCard(r)}
+                        title="Run again with the same job/state/mode/debug/locId/kind"
+                      >
+                        Re-run
+                      </button>
+                    ) : null}
                     {!r.finished ? (
                       <button
                         type="button"
