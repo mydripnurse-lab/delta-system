@@ -1,0 +1,121 @@
+.shell {
+  min-height: 100vh;
+  padding: 20px;
+  background:
+    radial-gradient(900px 340px at 12% -10%, rgba(56, 189, 248, 0.24), transparent 65%),
+    radial-gradient(900px 360px at 88% -20%, rgba(239, 68, 68, 0.22), transparent 70%),
+    linear-gradient(160deg, #06080f 0%, #101826 50%, #05070d 100%);
+  color: #f8fafc;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroBackdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      120deg,
+      rgba(148, 163, 184, 0.03) 0,
+      rgba(148, 163, 184, 0.03) 2px,
+      transparent 2px,
+      transparent 26px
+    );
+  pointer-events: none;
+}
+
+.headerCard {
+  position: relative;
+  z-index: 1;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 18px;
+  margin-bottom: 14px;
+  background:
+    radial-gradient(220px 120px at 10% -20%, rgba(59, 130, 246, 0.25), transparent 75%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.42);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand img {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: rgba(2, 6, 23, 0.34);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.brand p {
+  margin: 2px 0 0 0;
+  color: rgba(203, 213, 225, 0.94);
+  font-size: 13px;
+}
+
+.info {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.info > div {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.38);
+}
+
+.info span {
+  display: block;
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.info strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.meetingPanel {
+  position: relative;
+  z-index: 1;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  padding: 10px;
+  background:
+    radial-gradient(1200px 420px at 100% -40%, rgba(15, 23, 42, 0.7), transparent 64%),
+    rgba(2, 6, 23, 0.62);
+  backdrop-filter: blur(8px);
+}
+
+.frame {
+  width: 100%;
+  min-height: 72vh;
+  border: 0;
+  border-radius: 18px;
+  background: #000;
+}
+
+@media (max-width: 840px) {
+  .info {
+    grid-template-columns: 1fr;
+  }
+
+  .frame {
+    min-height: 68vh;
+  }
+}

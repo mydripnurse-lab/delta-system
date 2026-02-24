@@ -5547,6 +5547,112 @@ button, input, select { font-family: inherit; }
   color: rgba(191,219,254,0.98);
 }
 
+.agencyZoomBoard {
+  background:
+    radial-gradient(840px 280px at 0% -30%, rgba(56, 189, 248, 0.16), transparent 70%),
+    radial-gradient(860px 340px at 100% -30%, rgba(248, 113, 113, 0.14), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+}
+
+.agencyZoomHero {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background:
+    radial-gradient(320px 120px at 5% -20%, rgba(14, 165, 233, 0.24), transparent 74%),
+    rgba(2, 6, 23, 0.38);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.agencyZoomHero h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.agencyZoomHero p {
+  margin: 6px 0 0 0;
+  color: rgba(203, 213, 225, 0.9);
+}
+
+.agencyZoomCreateGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.agencyZoomPrimaryBtn {
+  border-color: rgba(59,130,246,0.48);
+  background:
+    radial-gradient(160px 70px at 20% 10%, rgba(59,130,246,0.28), transparent 72%),
+    rgba(30,64,175,0.2);
+}
+
+.agencyZoomPrimaryBtn:hover {
+  border-color: rgba(96,165,250,0.72);
+  background:
+    radial-gradient(170px 80px at 20% 10%, rgba(59,130,246,0.38), transparent 74%),
+    rgba(30,64,175,0.28);
+}
+
+.agencyZoomList {
+  display: grid;
+  gap: 10px;
+}
+
+.agencyZoomCard {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(220px 110px at 10% -25%, rgba(59,130,246,0.15), transparent 74%),
+    rgba(2, 6, 23, 0.42);
+}
+
+.agencyZoomCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.agencyZoomCardTop h4 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.agencyZoomCardTop p {
+  margin: 4px 0 0 0;
+  color: rgba(148, 163, 184, 0.96);
+}
+
+.agencyZoomMeta {
+  color: rgba(191, 219, 254, 0.92);
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.agencyZoomLinkWrap {
+  margin-bottom: 10px;
+}
+
+.agencyZoomLinkInput {
+  width: 100%;
+  font-size: 13px;
+}
+
+.agencyZoomActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .projectWorkspace {
   margin-top: 14px;
   display: grid;
@@ -8375,6 +8481,10 @@ button, input, select { font-family: inherit; }
   }
 
   .agencyWizardPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agencyZoomCreateGrid {
     grid-template-columns: 1fr;
   }
 
