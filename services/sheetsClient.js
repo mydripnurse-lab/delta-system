@@ -265,6 +265,29 @@ function toError(label, err) {
 const SHEETS_MAX_RETRIES = toIntSafe(process.env.SHEETS_MAX_RETRIES || "5", 5);
 const SHEETS_FETCH_TIMEOUT_MS = toMsSafe(process.env.SHEETS_FETCH_TIMEOUT_MS || "30000", 30000);
 
+function getSheetsAuthTimeoutMs() {
+    // Keep default 0 to avoid changing dashboard behavior unless explicitly enabled.
+    return toMsSafe(process.env.SHEETS_AUTH_TIMEOUT_MS || "0", 0);
+}
+
+async function withTimeout(promise, timeoutMs, label = "operation") {
+    let timer = null;
+    try {
+        return await Promise.race([
+            promise,
+            new Promise((_, reject) => {
+                timer = setTimeout(() => {
+                    const err = new Error(`${label} timed out after ${timeoutMs}ms`);
+                    err.code = "ETIMEDOUT";
+                    reject(err);
+                }, timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
 async function withRetries(fn, { label = "sheets-op", scope = "sheets" } = {}) {
     let lastErr = null;
 
@@ -292,8 +315,15 @@ async function withRetries(fn, { label = "sheets-op", scope = "sheets" } = {}) {
 // Google Client
 // =====================
 async function getAuthAccessToken(auth) {
-    const client = await auth.getClient();
-    const tokenRes = await client.getAccessToken();
+    const authTimeoutMs = getSheetsAuthTimeoutMs();
+    const client =
+        authTimeoutMs > 0
+            ? await withTimeout(auth.getClient(), authTimeoutMs, "GoogleAuth.getClient")
+            : await auth.getClient();
+    const tokenRes =
+        authTimeoutMs > 0
+            ? await withTimeout(client.getAccessToken(), authTimeoutMs, "GoogleAuth.getAccessToken")
+            : await client.getAccessToken();
     if (!tokenRes) throw new Error("Failed to obtain Google access token for Sheets.");
     if (typeof tokenRes === "string") return tokenRes;
     const token = tokenRes?.token || tokenRes?.access_token || "";

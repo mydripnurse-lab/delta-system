@@ -101,6 +101,18 @@ const FAST_MODE = FAST_MODE_CLI;
 const ENABLE_TWILIO_CLOSE = String(process.env.DELTA_ENABLE_TWILIO_CLOSE || "1") !== "0";
 // User request: remove "Update Custom Values" from Run Delta System flow.
 const ENABLE_CUSTOM_VALUES = false;
+const SHEETS_LOAD_TIMEOUT_MS = Math.max(
+    5000,
+    Number(process.env.DELTA_SHEETS_LOAD_TIMEOUT_MS || "90000")
+);
+const SHEETS_LOAD_MAX_RETRIES = Math.max(
+    1,
+    Number(process.env.DELTA_SHEETS_LOAD_MAX_RETRIES || "4")
+);
+const SHEETS_LOAD_RETRY_DELAY_MS = Math.max(
+    500,
+    Number(process.env.DELTA_SHEETS_LOAD_RETRY_DELAY_MS || "2500")
+);
 const TWILIO_LOOKUP_TIMEOUT_MS = Math.max(
     1000,
     Number(process.env.DELTA_TWILIO_LOOKUP_TIMEOUT_MS || (FAST_MODE ? "8000" : "12000"))
@@ -212,6 +224,29 @@ async function withTimeout(promise, timeoutMs, timeoutMessage) {
     } finally {
         if (timeout) clearTimeout(timeout);
     }
+}
+
+async function loadSheetTabIndexWithRecovery(params) {
+    let lastErr = null;
+    for (let attempt = 1; attempt <= SHEETS_LOAD_MAX_RETRIES; attempt++) {
+        try {
+            return await withTimeout(
+                loadSheetTabIndex(params),
+                SHEETS_LOAD_TIMEOUT_MS,
+                `Load sheet timeout (${SHEETS_LOAD_TIMEOUT_MS}ms) for tab "${params?.sheetName || ""}"`
+            );
+        } catch (e) {
+            lastErr = e;
+            const msg = e?.message || e;
+            console.log(
+                `⚠️ Sheet load attempt ${attempt}/${SHEETS_LOAD_MAX_RETRIES} failed (${params?.sheetName}): ${msg}`
+            );
+            if (attempt < SHEETS_LOAD_MAX_RETRIES) {
+                await sleep(SHEETS_LOAD_RETRY_DELAY_MS * attempt);
+            }
+        }
+    }
+    throw lastErr || new Error(`Failed to load sheet tab "${params?.sheetName || ""}"`);
 }
 
 let _lastGhlCallAt = 0;
@@ -1013,23 +1048,30 @@ async function main() {
     }
 
     console.log(`\nphase:init -> loading Google Sheet tab indexes...`);
+    console.log(
+        `phase:init -> sheets load timeout=${SHEETS_LOAD_TIMEOUT_MS}ms retries=${SHEETS_LOAD_MAX_RETRIES}`
+    );
 
     // ✅ IMPORTANT: composite keys
-    const countyTabIndex = await loadSheetTabIndex({
-        spreadsheetId: SPREADSHEET_ID,
-        sheetName: COUNTY_TAB,
-        range: "A:Z",
-        keyHeaders: ["State", "County"],
-    });
+    const countyLoadStartedAt = Date.now();
+    const countyTabIndex = await loadSheetTabIndexWithRecovery({
+            spreadsheetId: SPREADSHEET_ID,
+            sheetName: COUNTY_TAB,
+            range: "A:Z",
+            keyHeaders: ["State", "County"],
+        });
     console.log(`phase:init -> county tab loaded (${countyTabIndex.rows.length} rows)`);
+    console.log(`phase:init -> county load duration=${Date.now() - countyLoadStartedAt}ms`);
 
-    const cityTabIndex = await loadSheetTabIndex({
-        spreadsheetId: SPREADSHEET_ID,
-        sheetName: CITY_TAB,
-        range: "A:Z",
-        keyHeaders: ["State", "County", "City"],
-    });
+    const cityLoadStartedAt = Date.now();
+    const cityTabIndex = await loadSheetTabIndexWithRecovery({
+            spreadsheetId: SPREADSHEET_ID,
+            sheetName: CITY_TAB,
+            range: "A:Z",
+            keyHeaders: ["State", "County", "City"],
+        });
     console.log(`phase:init -> city tab loaded (${cityTabIndex.rows.length} rows)`);
+    console.log(`phase:init -> city load duration=${Date.now() - cityLoadStartedAt}ms`);
 
     // sanity required headers for update
     for (const tab of [countyTabIndex, cityTabIndex]) {

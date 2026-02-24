@@ -645,6 +645,18 @@ export async function POST(req: Request) {
             envMerged.STATE = rawState;
         }
 
+        if (job === "run-delta-system") {
+            if (!s(envMerged.SHEETS_AUTH_TIMEOUT_MS)) {
+                envMerged.SHEETS_AUTH_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_AUTH_TIMEOUT_MS || "25000");
+            }
+            if (!s(envMerged.DELTA_SHEETS_LOAD_TIMEOUT_MS)) {
+                envMerged.DELTA_SHEETS_LOAD_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_LOAD_TIMEOUT_MS || "90000");
+            }
+            if (!s(envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES)) {
+                envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES = s(process.env.DELTA_RUN_SHEETS_LOAD_MAX_RETRIES || "4");
+            }
+        }
+
         if (jobNeedsGeneratedOut(job)) {
             await runPrebuildCounties({
                 repoRoot,
