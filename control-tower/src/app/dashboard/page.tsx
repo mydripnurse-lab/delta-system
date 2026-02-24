@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
@@ -936,6 +936,8 @@ function DashboardHomeContent() {
   const [queueBusyKey, setQueueBusyKey] = useState("");
   const [queueErr, setQueueErr] = useState("");
   const [queueMsg, setQueueMsg] = useState("");
+  const loadingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const loadingFadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const computedRange = useMemo(
     () => computeDashboardRange(preset, customStart, customEnd),
@@ -1017,6 +1019,86 @@ function DashboardHomeContent() {
       cancelled = true;
     };
   }, [tenantId]);
+
+  useEffect(() => {
+    const audio = new Audio("/audio/dashboard-loading.mp3");
+    audio.preload = "auto";
+    audio.loop = true;
+    audio.volume = 0;
+    loadingAudioRef.current = audio;
+
+    return () => {
+      if (loadingFadeTimerRef.current) {
+        clearInterval(loadingFadeTimerRef.current);
+        loadingFadeTimerRef.current = null;
+      }
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {}
+      loadingAudioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const audio = loadingAudioRef.current;
+    if (!audio) return;
+
+    const fadeMs = 500;
+    const stepMs = 25;
+    const steps = Math.max(1, Math.floor(fadeMs / stepMs));
+
+    const clearFade = () => {
+      if (loadingFadeTimerRef.current) {
+        clearInterval(loadingFadeTimerRef.current);
+        loadingFadeTimerRef.current = null;
+      }
+    };
+
+    const fadeTo = (targetVolume: number, onDone?: () => void) => {
+      clearFade();
+      const start = Number(audio.volume || 0);
+      const delta = targetVolume - start;
+      let i = 0;
+      loadingFadeTimerRef.current = setInterval(() => {
+        i += 1;
+        const pct = Math.min(1, i / steps);
+        const next = start + delta * pct;
+        audio.volume = Math.max(0, Math.min(1, next));
+        if (pct >= 1) {
+          clearFade();
+          if (onDone) onDone();
+        }
+      }, stepMs);
+    };
+
+    if (loading) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 0;
+        const playPromise = audio.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(() => {});
+        }
+        fadeTo(1);
+      } catch {
+        // autoplay can be blocked by browser policy
+      }
+      return;
+    }
+
+    fadeTo(0, () => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {}
+    });
+
+    return () => {
+      clearFade();
+    };
+  }, [loading]);
 
   function appendTenantParams(qs: URLSearchParams) {
     if (!tenantId) return;
