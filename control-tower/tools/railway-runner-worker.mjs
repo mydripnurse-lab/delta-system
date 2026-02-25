@@ -209,6 +209,10 @@ async function runInWorker(payload) {
   const debug = !!payload.debug;
   const state = s(payload.state || "all");
   const tenantId = s(payload.tenantId);
+  await appendEvent(runId, `worker: runInWorker start job=${job} state=${state} mode=${mode}`);
+  console.log(
+    `[railway-runner-worker] runInWorker start runId=${runId} job=${job} state=${state} mode=${mode}`,
+  );
   const envOverrides = payload.env && typeof payload.env === "object" ? payload.env : {};
   const repoRoots = findRepoRoots(REPO_ROOT);
   const scriptPath = resolveScriptPath(repoRoots, job);
@@ -232,6 +236,7 @@ async function runInWorker(payload) {
     `${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
   );
   if (tenantId && jobUsesState(job)) {
+    await appendEvent(runId, `worker: loading state files from DB tenant=${tenantId}`);
     const seeded = await materializeTenantStateFilesFromDb(tenantId);
     tempStateFilesDir = seeded.dir;
     env.STATE_FILES_DIR = seeded.dir;
