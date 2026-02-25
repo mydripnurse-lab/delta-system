@@ -646,6 +646,13 @@ export async function POST(req: Request) {
         }
 
         if (job === "run-delta-system") {
+            envMerged.GHL_FETCH_TIMEOUT_MS = s(process.env.DELTA_RUN_GHL_FETCH_TIMEOUT_MS || "12000");
+            envMerged.GHL_FETCH_MAX_RETRIES = s(process.env.DELTA_RUN_GHL_FETCH_MAX_RETRIES || "1");
+            envMerged.GHL_FETCH_RETRY_BASE_MS = s(process.env.DELTA_RUN_GHL_FETCH_RETRY_BASE_MS || "400");
+            envMerged.GHL_FETCH_RETRY_MAX_MS = s(process.env.DELTA_RUN_GHL_FETCH_RETRY_MAX_MS || "1500");
+            envMerged.DELTA_ACCOUNT_PROCESS_TIMEOUT_MS = s(
+                process.env.DELTA_RUN_ACCOUNT_PROCESS_TIMEOUT_MS || "120000",
+            );
             if (!s(envMerged.SHEETS_AUTH_TIMEOUT_MS)) {
                 envMerged.SHEETS_AUTH_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_AUTH_TIMEOUT_MS || "25000");
             }
@@ -706,7 +713,10 @@ export async function POST(req: Request) {
         let stdoutLines = 0;
         let stderrLines = 0;
         let stderrPreview = "";
-        const idleTimeoutMin = Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN || 25));
+        const idleTimeoutMin =
+            job === "run-delta-system"
+                ? Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN_RUN_DELTA || 10))
+                : Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN || 25));
         const idleTimeoutMs = idleTimeoutMin * 60_000;
         const maxRuntimeMin = Math.max(idleTimeoutMin, Number(process.env.RUNNER_MAX_RUNTIME_MIN || 180));
         const maxRuntimeMs = maxRuntimeMin * 60_000;

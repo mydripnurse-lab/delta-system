@@ -13,6 +13,7 @@ import { ghlFetch } from "../services/ghlClient.js";
 
 import {
     findTwilioAccountByFriendlyName,
+    listSubaccounts,
     closeTwilioAccount,
 } from "../services/twilioClient.js";
 
@@ -350,6 +351,7 @@ function toBoolishTRUE() {
 }
 
 let LAST_SUCCESSFUL_LOCATION_NAME = "";
+let LAST_TWILIO_MATCH = { sid: "", friendlyName: "", status: "" };
 
 function isTwilioSubaccountLimitError(e) {
     const status = Number(e?.status ?? e?.code ?? 0);
@@ -369,39 +371,85 @@ function isTwilioSubaccountLimitError(e) {
 async function tryFreeTwilioCapacityFromPreviousAccount() {
     if (!ENABLE_TWILIO_CLOSE) return false;
     const previousName = String(LAST_SUCCESSFUL_LOCATION_NAME || "").trim();
-    if (!previousName) {
-        console.log("⚠️ Twilio capacity recovery skipped: no previous successful account name.");
-        return false;
-    }
+    const lastSid = String(LAST_TWILIO_MATCH?.sid || "").trim();
 
-    const lookupName = previousName.slice(0, 64);
-    console.log(`🧯 Twilio capacity recovery: checking previous account "${lookupName}"...`);
+    console.log(
+        `🧯 Twilio capacity recovery: previousName="${previousName || "n/a"}" lastSid="${lastSid || "n/a"}"`
+    );
     try {
-        const twilioAcc = await withTimeout(
-            findTwilioAccountByFriendlyName(lookupName, {
-                exact: true,
-                limit: FAST_MODE ? 60 : 200,
-            }),
-            TWILIO_LOOKUP_TIMEOUT_MS,
-            `Twilio recovery lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
-        );
-
-        if (!twilioAcc) {
-            console.log("⚠️ Twilio capacity recovery: previous account not found.");
-            return false;
-        }
-        if (String(twilioAcc.status || "").toLowerCase() === "closed") {
-            console.log(`ℹ️ Twilio capacity recovery: previous account already closed (sid=${twilioAcc.sid}).`);
+        // 1) Best candidate: last Twilio SID observed in this run.
+        if (lastSid) {
+            const closed = await withTimeout(
+                closeTwilioAccount(lastSid),
+                TWILIO_CLOSE_TIMEOUT_MS,
+                `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${lastSid}`
+            );
+            console.log(
+                `✅ Twilio capacity recovery: closed last matched sid=${closed?.sid || lastSid} status=${closed?.status || "closed"}`
+            );
             return true;
         }
 
+        // 2) Try by previous successful friendly name.
+        if (previousName) {
+            const lookupName = previousName.slice(0, 64);
+            const twilioAcc =
+                (await withTimeout(
+                    findTwilioAccountByFriendlyName(lookupName, {
+                        exact: true,
+                        limit: FAST_MODE ? 60 : 200,
+                    }),
+                    TWILIO_LOOKUP_TIMEOUT_MS,
+                    `Twilio recovery lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
+                )) ||
+                (await withTimeout(
+                    findTwilioAccountByFriendlyName(lookupName, {
+                        exact: false,
+                        limit: FAST_MODE ? 80 : 250,
+                    }),
+                    TWILIO_LOOKUP_TIMEOUT_MS,
+                    `Twilio recovery fuzzy lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
+                ));
+
+            if (twilioAcc?.sid) {
+                const closed = await withTimeout(
+                    closeTwilioAccount(String(twilioAcc.sid)),
+                    TWILIO_CLOSE_TIMEOUT_MS,
+                    `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
+                );
+                console.log(
+                    `✅ Twilio capacity recovery: closed by previous name sid=${closed?.sid || twilioAcc.sid} status=${closed?.status || "closed"}`
+                );
+                return true;
+            }
+        }
+
+        // 3) Fallback: close one active eligible subaccount.
+        const subs = await withTimeout(
+            listSubaccounts({ limit: FAST_MODE ? 80 : 300 }),
+            TWILIO_LOOKUP_TIMEOUT_MS,
+            `Twilio recovery list timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms)`
+        );
+        const active = (Array.isArray(subs) ? subs : []).filter(
+            (a) => String(a?.status || "").toLowerCase() === "active"
+        );
+        const eligible =
+            active.find((a) =>
+                String(a?.friendlyName || "").toLowerCase().includes("my drip nurse")
+            ) || active[0];
+
+        if (!eligible?.sid) {
+            console.log("⚠️ Twilio capacity recovery: no active subaccount available to close.");
+            return false;
+        }
+
         const closed = await withTimeout(
-            closeTwilioAccount(String(twilioAcc.sid || "")),
+            closeTwilioAccount(String(eligible.sid)),
             TWILIO_CLOSE_TIMEOUT_MS,
-            `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
+            `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${eligible.sid}`
         );
         console.log(
-            `✅ Twilio capacity recovery: closed previous account sid=${closed?.sid || twilioAcc.sid} status=${closed?.status || "closed"}`
+            `✅ Twilio capacity recovery: closed fallback active sid=${closed?.sid || eligible.sid} name="${eligible?.friendlyName || ""}" status=${closed?.status || "closed"}`
         );
         return true;
     } catch (e) {
@@ -873,6 +921,11 @@ async function processOneAccount({
                     status: twilioAcc.status,
                 });
             }
+            LAST_TWILIO_MATCH = {
+                sid: String(twilioAcc.sid || ""),
+                friendlyName: String(twilioAcc.friendlyName || ""),
+                status: String(twilioAcc.status || ""),
+            };
 
             const closed = await withTimeout(
                 closeTwilioAccount(twilioAcc.sid),

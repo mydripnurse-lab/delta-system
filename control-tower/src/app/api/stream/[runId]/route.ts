@@ -5,6 +5,7 @@ import { getDbPool } from "@/lib/db";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 const STREAM_DB_ONLY = String(process.env.RUN_STREAM_DB_ONLY || "1") === "1";
+const STREAM_HEARTBEAT_IDLE_MS = Math.max(15_000, Number(process.env.RUN_STREAM_HEARTBEAT_IDLE_MS || 60_000));
 
 function sseLine(str: string) {
     return `${str}\n`;
@@ -135,7 +136,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
 
                         if ((evQ.rows || []).length === 0) {
                             const idleMs = Date.now() - lastVisibleLineAt;
-                            if (idleMs >= 30_000) {
+                            if (idleMs >= STREAM_HEARTBEAT_IDLE_MS) {
                                 write(sseEvent("line", `runner-heartbeat: waiting for next log (${Math.round(idleMs / 1000)}s idle)`));
                                 lastVisibleLineAt = Date.now();
                             }
@@ -195,7 +196,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
 
                 if (lines.length === 0) {
                     const idleMs = Date.now() - lastVisibleLineAt;
-                    if (idleMs >= 30_000) {
+                    if (idleMs >= STREAM_HEARTBEAT_IDLE_MS) {
                         write(sseEvent("line", `runner-heartbeat: waiting for next log (${Math.round(idleMs / 1000)}s idle)`));
                         lastVisibleLineAt = Date.now();
                     }
