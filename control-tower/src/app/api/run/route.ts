@@ -187,6 +187,11 @@ function s(v: unknown) {
     return String(v ?? "").trim();
 }
 
+function envNum(name: string, fallback: number) {
+    const raw = Number(process.env[name]);
+    return Number.isFinite(raw) ? raw : fallback;
+}
+
 function asObj(v: unknown) {
     return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
@@ -650,6 +655,7 @@ export async function POST(req: Request) {
 
         const cmd = `node ${args.map((a) => JSON.stringify(a)).join(" ")}`;
         setRunMetaCmd(run.id, cmd);
+        appendLine(run.id, `cmd=${cmd}`);
 
         const repoEnv = loadRepoEnv(repoRoot);
         let tenantRunEnv: TenantRunEnvResult | null = null;
@@ -696,6 +702,7 @@ export async function POST(req: Request) {
         }
 
         if (job === "run-delta-system") {
+            envMerged.DELTA_NON_INTERACTIVE = "1";
             envMerged.GHL_FETCH_TIMEOUT_MS = s(process.env.DELTA_RUN_GHL_FETCH_TIMEOUT_MS || "12000");
             envMerged.GHL_FETCH_MAX_RETRIES = s(process.env.DELTA_RUN_GHL_FETCH_MAX_RETRIES || "1");
             envMerged.GHL_FETCH_RETRY_BASE_MS = s(process.env.DELTA_RUN_GHL_FETCH_RETRY_BASE_MS || "400");
@@ -779,15 +786,43 @@ export async function POST(req: Request) {
         let stderrPreview = "";
         const idleTimeoutMin =
             job === "run-delta-system"
-                ? Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN_RUN_DELTA || 10))
-                : Math.max(5, Number(process.env.RUNNER_IDLE_TIMEOUT_MIN || 25));
+                ? Math.max(
+                      5,
+                      envNum(
+                          "RUNNER_IDLE_TIMEOUT_MIN_RUN_DELTA",
+                          envNum("RUNNER_IDLE_TIMEOUT_MIN", 90),
+                      ),
+                  )
+                : Math.max(5, envNum("RUNNER_IDLE_TIMEOUT_MIN", 25));
         const idleTimeoutMs = idleTimeoutMin * 60_000;
-        const maxRuntimeMin = Math.max(idleTimeoutMin, Number(process.env.RUNNER_MAX_RUNTIME_MIN || 180));
+        const maxRuntimeMin =
+            job === "run-delta-system"
+                ? Math.max(
+                      idleTimeoutMin,
+                      envNum(
+                          "RUNNER_MAX_RUNTIME_MIN_RUN_DELTA",
+                          envNum("RUNNER_MAX_RUNTIME_MIN", 1800),
+                      ),
+                  )
+                : Math.max(idleTimeoutMin, envNum("RUNNER_MAX_RUNTIME_MIN", 180));
         const maxRuntimeMs = maxRuntimeMin * 60_000;
         const runnerHeartbeatEnabled = String(process.env.RUNNER_HEARTBEAT_LOG_ENABLED || "0") === "1";
+        const effectiveRunnerHeartbeatEnabled =
+            job === "run-delta-system"
+                ? String(process.env.RUNNER_HEARTBEAT_LOG_ENABLED || "1") === "1"
+                : runnerHeartbeatEnabled;
         const runnerHeartbeatEveryMs = Math.max(
             15_000,
-            Number(process.env.RUNNER_HEARTBEAT_LOG_EVERY_MS || "60000"),
+            job === "run-delta-system"
+                ? envNum(
+                      "RUNNER_HEARTBEAT_LOG_EVERY_MS_RUN_DELTA",
+                      envNum("RUNNER_HEARTBEAT_LOG_EVERY_MS", 30_000),
+                  )
+                : envNum("RUNNER_HEARTBEAT_LOG_EVERY_MS", 60_000),
+        );
+        appendLine(
+            run.id,
+            `runner-limits: idleTimeoutMin=${idleTimeoutMin} maxRuntimeMin=${maxRuntimeMin} heartbeatEveryMs=${runnerHeartbeatEveryMs}`,
         );
         const startedAt = Date.now();
         let lastActivityAt = Date.now();
@@ -797,7 +832,7 @@ export async function POST(req: Request) {
         const idleTicker = setInterval(() => {
             if (closed) return;
             const now = Date.now();
-            if (runnerHeartbeatEnabled && now - lastRunnerHeartbeatAt >= runnerHeartbeatEveryMs) {
+            if (effectiveRunnerHeartbeatEnabled && now - lastRunnerHeartbeatAt >= runnerHeartbeatEveryMs) {
                 lastRunnerHeartbeatAt = now;
                 appendLine(
                     run.id,

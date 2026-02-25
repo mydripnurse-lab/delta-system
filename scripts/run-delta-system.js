@@ -102,8 +102,11 @@ function argValue(name, fallback = null) {
     return fallback;
 }
 
-const STATE_ARG = argValue("state", ""); // if empty -> interactive
+const STATE_ENV_FALLBACK = String(process.env.DELTA_STATE || process.env.STATE || "").trim();
+const STATE_ARG = argValue("state", STATE_ENV_FALLBACK); // env fallback for non-interactive runners
 const FAST_MODE = FAST_MODE_CLI;
+const NON_INTERACTIVE =
+    String(process.env.DELTA_NON_INTERACTIVE || "") === "1" || !process.stdin.isTTY;
 
 const ENABLE_TWILIO_CLOSE = String(process.env.DELTA_ENABLE_TWILIO_CLOSE || "1") !== "0";
 const SHEETS_LOAD_TIMEOUT_MS = Math.max(
@@ -1386,6 +1389,9 @@ async function main() {
     let targets = [];
 
     const parsedArg = parseStateArgIntoSlugs(STATE_ARG);
+    console.log(
+        `phase:init -> state source=${parsedArg ? "arg/env" : "interactive"} value="${STATE_ARG || ""}" nonInteractive=${NON_INTERACTIVE ? "yes" : "no"}`
+    );
     if (parsedArg) {
         if (parsedArg.mode === "all") {
             targets = states;
@@ -1403,6 +1409,11 @@ async function main() {
         }
     } else {
         // fallback interactive
+        if (NON_INTERACTIVE) {
+            throw new Error(
+                "Missing state selection for non-interactive run. Pass --state=<slug|all> or set DELTA_STATE/STATE."
+            );
+        }
         const choice = await promptStateChoice(states);
         if (!choice) throw new Error("State not found / invalid selection.");
 

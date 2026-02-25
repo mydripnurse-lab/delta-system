@@ -533,6 +533,12 @@ type RunnerProgress = {
   etaSec: number | null;
   status: "idle" | "running" | "stopping" | "done" | "error";
 };
+type RunFlowStepStatus = "pending" | "running" | "done" | "error";
+type RunFlowStatus = {
+  createDb: RunFlowStepStatus;
+  createJson: RunFlowStepStatus;
+  runDelta: RunFlowStepStatus;
+};
 
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
@@ -871,6 +877,11 @@ export default function Home() {
     etaSec: null,
     status: "idle",
   });
+  const [runFlowStatus, setRunFlowStatus] = useState<RunFlowStatus>({
+    createDb: "pending",
+    createJson: "pending",
+    runDelta: "pending",
+  });
 
   // ✅ Map modal
   const [mapOpen, setMapOpen] = useState(false);
@@ -958,6 +969,66 @@ export default function Home() {
     setLogs((p) =>
       p.length > 4000 ? p.slice(-3500).concat(msg) : p.concat(msg),
     );
+  }
+
+  function resetRunFlowStatus() {
+    setRunFlowStatus({
+      createDb: "pending",
+      createJson: "pending",
+      runDelta: "pending",
+    });
+  }
+
+  function updateRunFlowFromLine(rawLine: string) {
+    const line = s(rawLine).toLowerCase();
+    if (!line) return;
+    setRunFlowStatus((prev) => {
+      const next: RunFlowStatus = { ...prev };
+
+      if (line.includes("prebuild: create-db (build-sheet-rows): start")) {
+        if (next.createDb !== "done") next.createDb = "running";
+        if (next.createJson === "running") next.createJson = "pending";
+        if (next.runDelta === "running") next.runDelta = "pending";
+      }
+      if (line.includes("prebuild: create-db (build-sheet-rows): done")) {
+        next.createDb = "done";
+      }
+      if (line.includes("prebuild: generating state output json (build-counties)")) {
+        if (next.createDb !== "done") next.createDb = "done";
+        if (next.createJson !== "done") next.createJson = "running";
+      }
+      if (line.includes("prebuild: build-counties done.")) {
+        next.createDb = "done";
+        next.createJson = "done";
+      }
+      if (
+        line.includes("main: started child pid=") ||
+        line.includes("phase:init ->") ||
+        line.includes("🚀 run start") ||
+        line.includes("🏁 run state:")
+      ) {
+        next.createDb = "done";
+        if (next.createJson !== "done") next.createJson = "done";
+        if (next.runDelta !== "done") next.runDelta = "running";
+      }
+
+      if (line.includes("create-db (build-sheet-rows) failed")) {
+        next.createDb = "error";
+      }
+      if (line.includes("prebuild build-counties failed") || line.includes("build-counties failed with exit code")) {
+        next.createJson = "error";
+      }
+      if (
+        line.includes("fatal:") ||
+        line.includes("process exited with code") ||
+        line.includes("child-close: exit=")
+      ) {
+        if (next.runDelta === "running" || (next.createDb === "done" && next.createJson === "done")) {
+          next.runDelta = "error";
+        }
+      }
+      return next;
+    });
   }
 
   function shouldIgnoreRuntimeNoise(raw: string) {
@@ -3306,6 +3377,7 @@ export default function Home() {
     }
 
     setLogs([]);
+    resetRunFlowStatus();
     runStartedAtRef.current = Date.now();
     sseRetryCountRef.current = 0;
     sseLastEventIdRef.current = 0;
@@ -3451,6 +3523,7 @@ export default function Home() {
           ) {
             return;
           }
+          updateRunFlowFromLine(raw);
           pushLog(raw);
         };
 
@@ -3544,6 +3617,15 @@ export default function Home() {
 
           setIsRunning(false);
           setRunId((curr) => (s(curr) === s(targetRunId) ? "" : curr));
+          setRunFlowStatus((prev) => {
+            if (data?.ok === false) {
+              if (prev.runDelta === "running") return { ...prev, runDelta: "error" };
+              if (prev.createJson === "running") return { ...prev, createJson: "error" };
+              if (prev.createDb === "running") return { ...prev, createDb: "error" };
+              return { ...prev, runDelta: "error" };
+            }
+            return { createDb: "done", createJson: "done", runDelta: "done" };
+          });
           setProgress((p) => ({
             ...p,
             pct: data?.ok === false ? p.pct : 1,
@@ -3595,6 +3677,11 @@ export default function Home() {
     } catch (e: any) {
       pushLog(`❌ /api/run failed: ${e?.message || e}`);
       setIsRunning(false);
+      setRunFlowStatus((prev) => {
+        if (prev.createDb === "running") return { ...prev, createDb: "error" };
+        if (prev.createJson === "running") return { ...prev, createJson: "error" };
+        return { ...prev, runDelta: "error" };
+      });
       setProgress((p) => ({
         ...p,
         message: `Error: ${e?.message || e}`,
@@ -3706,6 +3793,7 @@ export default function Home() {
 
     setRunId(id);
     setIsRunning(true);
+    resetRunFlowStatus();
     if (!runStartedAtRef.current) runStartedAtRef.current = Date.now();
     pushLog(`🔎 Attaching to active run ${id}...`);
     // Reuse existing run() stream logic by opening /api/stream directly here.
@@ -3727,6 +3815,7 @@ export default function Home() {
       const raw = String(ev.data ?? "");
       if (!raw || raw === "__HB__" || raw === "__END__") return;
       if (shouldIgnoreRuntimeNoise(raw)) return;
+      updateRunFlowFromLine(raw);
       pushLog(raw);
     });
     es.addEventListener("end", (ev: MessageEvent) => {
@@ -3744,6 +3833,15 @@ export default function Home() {
       } catch {}
       setIsRunning(false);
       setRunId((curr) => (s(curr) === s(id) ? "" : curr));
+      setRunFlowStatus((prev) => {
+        if (data?.ok === false) {
+          if (prev.runDelta === "running") return { ...prev, runDelta: "error" };
+          if (prev.createJson === "running") return { ...prev, createJson: "error" };
+          if (prev.createDb === "running") return { ...prev, createDb: "error" };
+          return { ...prev, runDelta: "error" };
+        }
+        return { createDb: "done", createJson: "done", runDelta: "done" };
+      });
       setProgress((p) => ({
         ...p,
         pct: data?.ok === false ? p.pct : 1,
@@ -5396,40 +5494,42 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
   const runFlowSteps = useMemo(() => {
     const clamp = (n: number) => Math.max(0, Math.min(1, n));
-    const pctRaw = Number(progress.pct);
-    let base = Number.isFinite(pctRaw) ? clamp(pctRaw) : 0;
-    if (progress.status === "done") base = 1;
-    if (progress.status === "idle") base = 0;
-    if ((progress.status === "error" || progress.status === "stopping") && base <= 0) base = 0.04;
-    if (isRunning && base <= 0) base = 0.04;
+    const pct = clamp(Number(progress.pct) || 0);
+    const progressByStatus = (status: RunFlowStepStatus, runningFill = 0.6) => {
+      if (status === "done") return 1;
+      if (status === "running") return runningFill;
+      if (status === "error") return 1;
+      return 0;
+    };
 
-    const ranges = [
-      { start: 0.0, end: 0.34 },
-      { start: 0.28, end: 0.68 },
-      { start: 0.62, end: 1.0 },
+    return [
+      {
+        key: "create-db",
+        label: "1. Create DB",
+        status: runFlowStatus.createDb,
+        progress: progressByStatus(runFlowStatus.createDb, 0.62),
+      },
+      {
+        key: "create-json",
+        label: "2. Create Subaccount Json",
+        status: runFlowStatus.createJson,
+        progress: progressByStatus(runFlowStatus.createJson, 0.62),
+      },
+      {
+        key: "run-delta",
+        label: "3. Run Delta System",
+        status: runFlowStatus.runDelta,
+        progress:
+          runFlowStatus.runDelta === "done"
+            ? 1
+            : runFlowStatus.runDelta === "running"
+              ? Math.max(0.08, pct)
+              : runFlowStatus.runDelta === "error"
+                ? 1
+                : 0,
+      },
     ];
-
-    const steps = [
-      { key: "create-db", label: "1. Create DB", progress: 0, complete: false, active: false },
-      { key: "create-json", label: "2. Create Subaccount Json", progress: 0, complete: false, active: false },
-      { key: "run-delta", label: "3. Run Delta System", progress: 0, complete: false, active: false },
-    ];
-
-    for (let i = 0; i < steps.length; i += 1) {
-      const r = ranges[i];
-      const stepProgress = clamp((base - r.start) / Math.max(0.001, r.end - r.start));
-      steps[i].progress = stepProgress;
-      steps[i].complete = stepProgress >= 1 || progress.status === "done";
-      steps[i].active = isRunning && stepProgress > 0 && stepProgress < 1;
-    }
-
-    if (isRunning && !steps.some((s0) => s0.active) && !steps.every((s0) => s0.complete)) {
-      const firstPending = steps.find((s0) => !s0.complete);
-      if (firstPending) firstPending.active = true;
-    }
-
-    return steps;
-  }, [isRunning, progress.pct, progress.status]);
+  }, [progress.pct, runFlowStatus]);
 
   const runSummary = useMemo(() => {
     const out = { total: runCards.length, running: 0, done: 0, error: 0, stopped: 0 };
@@ -6605,7 +6705,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               {runFlowSteps.map((step, idx) => (
                 <div key={step.key} className="runFlowStepWrap">
                   <span
-                    className={`runFlowStep ${step.complete ? "runFlowStepDone" : step.active ? "runFlowStepLoading runFlowStepActive" : "runFlowStepPending"}`}
+                    className={`runFlowStep ${
+                      step.status === "done"
+                        ? "runFlowStepDone"
+                        : step.status === "running"
+                          ? "runFlowStepLoading runFlowStepActive"
+                          : step.status === "error"
+                            ? "runFlowStepError"
+                            : "runFlowStepPending"
+                    }`}
                     style={{ ["--step-progress" as any]: `${Math.round(step.progress * 100)}%` }}
                   >
                     <span className="runFlowStepFill" aria-hidden />
