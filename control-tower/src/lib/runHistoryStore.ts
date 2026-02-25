@@ -54,6 +54,7 @@ const EVENT_QUEUE_MAX = Math.max(1000, Number(process.env.RUN_HISTORY_EVENT_QUEU
 const eventQueue: QueuedRunEvent[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let flushing = false;
+let flushFailureCount = 0;
 
 function scheduleEventFlush(immediate = false) {
   if (flushTimer) return;
@@ -76,56 +77,70 @@ async function flushQueuedEvents() {
       const batch = eventQueue.splice(0, EVENT_BATCH_SIZE);
       if (!batch.length) break;
 
-      const placeholders: string[] = [];
-      const values: Array<string | null> = [];
-      let i = 0;
-      for (const ev of batch) {
-        const base = i * 4;
-        placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}::jsonb)`);
-        values.push(ev.runId, ev.eventType, ev.message, ev.payloadJson);
-        i++;
-      }
+      try {
+        const placeholders: string[] = [];
+        const values: Array<string | null> = [];
+        let i = 0;
+        for (const ev of batch) {
+          const base = i * 4;
+          placeholders.push(`($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}::jsonb)`);
+          values.push(ev.runId, ev.eventType, ev.message, ev.payloadJson);
+          i++;
+        }
 
-      await pool.query(
-        `
-          insert into app.runner_run_events (run_id, event_type, message, payload)
-          values ${placeholders.join(", ")}
-        `,
-        values,
-      );
-
-      const lastByRun = new Map<
-        string,
-        { lastLine: string; linesCount: number; progressJson: string | null }
-      >();
-      for (const ev of batch) {
-        const prev = lastByRun.get(ev.runId);
-        lastByRun.set(ev.runId, {
-          lastLine: ev.message,
-          linesCount: ev.linesCount > 0 ? ev.linesCount : prev?.linesCount || 0,
-          progressJson: ev.progressJson ?? prev?.progressJson ?? null,
-        });
-      }
-
-      for (const [runId, row] of lastByRun.entries()) {
         await pool.query(
           `
-            update app.runner_runs
-               set updated_at = now(),
-                   last_line = $2,
-                   lines_count = case when $3 > 0 then $3 else lines_count end,
-                   progress = coalesce($4::jsonb, progress)
-             where run_id = $1
+            insert into app.runner_run_events (run_id, event_type, message, payload)
+            values ${placeholders.join(", ")}
           `,
-          [runId, row.lastLine, row.linesCount, row.progressJson],
         );
+
+        const lastByRun = new Map<
+          string,
+          { lastLine: string; linesCount: number; progressJson: string | null }
+        >();
+        for (const ev of batch) {
+          const prev = lastByRun.get(ev.runId);
+          lastByRun.set(ev.runId, {
+            lastLine: ev.message,
+            linesCount: ev.linesCount > 0 ? ev.linesCount : prev?.linesCount || 0,
+            progressJson: ev.progressJson ?? prev?.progressJson ?? null,
+          });
+        }
+
+        for (const [runId, row] of lastByRun.entries()) {
+          await pool.query(
+            `
+              update app.runner_runs
+                 set updated_at = now(),
+                     last_line = $2,
+                     lines_count = case when $3 > 0 then $3 else lines_count end,
+                     progress = coalesce($4::jsonb, progress)
+               where run_id = $1
+            `,
+            [runId, row.lastLine, row.linesCount, row.progressJson],
+          );
+        }
+        flushFailureCount = 0;
+      } catch {
+        // Requeue failed batch at the front preserving order.
+        eventQueue.unshift(...batch);
+        throw new Error("run_history_flush_failed");
       }
     }
   } catch {
     // Keep runner resilient even if DB is temporarily unavailable.
+    flushFailureCount++;
   } finally {
     flushing = false;
-    if (eventQueue.length) scheduleEventFlush(true);
+    if (eventQueue.length) {
+      const retryDelay = Math.min(5000, Math.max(EVENT_FLUSH_MS, 250 * Math.pow(2, Math.min(5, flushFailureCount))));
+      if (flushTimer) clearTimeout(flushTimer);
+      flushTimer = setTimeout(() => {
+        flushTimer = null;
+        void flushQueuedEvents();
+      }, retryDelay);
+    }
   }
 }
 

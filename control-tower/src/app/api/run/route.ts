@@ -706,10 +706,19 @@ export async function POST(req: Request) {
         const maxRuntimeMs = maxRuntimeMin * 60_000;
         const startedAt = Date.now();
         let lastActivityAt = Date.now();
+        let lastRunnerHeartbeatAt = 0;
         let idleKilled = false;
         let runtimeKilled = false;
         const idleTicker = setInterval(() => {
             if (closed) return;
+            const now = Date.now();
+            if (now - lastRunnerHeartbeatAt >= 30_000) {
+                lastRunnerHeartbeatAt = now;
+                appendLine(
+                    run.id,
+                    `runner-heartbeat: child pid=${String(child.pid || "")} alive=${child.killed ? "no" : "yes"}`,
+                );
+            }
             const elapsedMs = Date.now() - startedAt;
             if (elapsedMs >= maxRuntimeMs) {
                 runtimeKilled = true;
