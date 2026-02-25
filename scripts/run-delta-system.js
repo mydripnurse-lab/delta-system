@@ -100,6 +100,14 @@ const SHEETS_LOAD_TIMEOUT_MS = Math.max(
     5000,
     Number(process.env.DELTA_SHEETS_LOAD_TIMEOUT_MS || "90000")
 );
+const COUNTY_SHEETS_LOAD_TIMEOUT_MS = Math.max(
+    5000,
+    Number(process.env.DELTA_COUNTY_SHEETS_LOAD_TIMEOUT_MS || String(SHEETS_LOAD_TIMEOUT_MS))
+);
+const CITY_SHEETS_LOAD_TIMEOUT_MS = Math.max(
+    5000,
+    Number(process.env.DELTA_CITY_SHEETS_LOAD_TIMEOUT_MS || "180000")
+);
 const SHEETS_LOAD_MAX_RETRIES = Math.max(
     1,
     Number(process.env.DELTA_SHEETS_LOAD_MAX_RETRIES || "4")
@@ -108,6 +116,7 @@ const SHEETS_LOAD_RETRY_DELAY_MS = Math.max(
     500,
     Number(process.env.DELTA_SHEETS_LOAD_RETRY_DELAY_MS || "2500")
 );
+const SHEETS_LOAD_PARALLEL = String(process.env.DELTA_SHEETS_LOAD_PARALLEL || "0") === "1";
 const ACCOUNT_PROCESS_TIMEOUT_MS = Math.max(
     10000,
     Number(process.env.DELTA_ACCOUNT_PROCESS_TIMEOUT_MS || "300000")
@@ -273,13 +282,15 @@ async function closeTwilioAccountWithRetry(sid, reasonLabel = "twilio-close") {
 }
 
 async function loadSheetTabIndexWithRecovery(params) {
+    const timeoutMs =
+        params?.sheetName === CITY_TAB ? CITY_SHEETS_LOAD_TIMEOUT_MS : COUNTY_SHEETS_LOAD_TIMEOUT_MS;
     let lastErr = null;
     for (let attempt = 1; attempt <= SHEETS_LOAD_MAX_RETRIES; attempt++) {
         try {
             return await withTimeout(
                 loadSheetTabIndex(params),
-                SHEETS_LOAD_TIMEOUT_MS,
-                `Load sheet timeout (${SHEETS_LOAD_TIMEOUT_MS}ms) for tab "${params?.sheetName || ""}"`
+                timeoutMs,
+                `Load sheet timeout (${timeoutMs}ms) for tab "${params?.sheetName || ""}"`
             );
         } catch (e) {
             lastErr = e;
@@ -1153,39 +1164,64 @@ async function main() {
 
     console.log(`\nphase:init -> loading Google Sheet tab indexes...`);
     console.log(
-        `phase:init -> sheets load timeout=${SHEETS_LOAD_TIMEOUT_MS}ms retries=${SHEETS_LOAD_MAX_RETRIES}`
+        `phase:init -> sheets load timeout county=${COUNTY_SHEETS_LOAD_TIMEOUT_MS}ms city=${CITY_SHEETS_LOAD_TIMEOUT_MS}ms retries=${SHEETS_LOAD_MAX_RETRIES} parallel=${SHEETS_LOAD_PARALLEL ? "on" : "off"}`
     );
 
     // ✅ IMPORTANT: composite keys
-    console.log(`phase:init -> loading tabs in parallel (county+city)...`);
     const countyLoadStartedAt = Date.now();
     const cityLoadStartedAt = Date.now();
-    const [countyTabIndex, cityTabIndex] = await Promise.all([
-        (async () => {
-            console.log(`phase:init -> county tab start (${COUNTY_TAB})`);
-            const county = await loadSheetTabIndexWithRecovery({
-                spreadsheetId: SPREADSHEET_ID,
-                sheetName: COUNTY_TAB,
-                range: "A:Z",
-                keyHeaders: ["State", "County"],
-            });
-            console.log(`phase:init -> county tab loaded (${county.rows.length} rows)`);
-            console.log(`phase:init -> county load duration=${Date.now() - countyLoadStartedAt}ms`);
-            return county;
-        })(),
-        (async () => {
-            console.log(`phase:init -> city tab start (${CITY_TAB})`);
-            const city = await loadSheetTabIndexWithRecovery({
-                spreadsheetId: SPREADSHEET_ID,
-                sheetName: CITY_TAB,
-                range: "A:Z",
-                keyHeaders: ["State", "County", "City"],
-            });
-            console.log(`phase:init -> city tab loaded (${city.rows.length} rows)`);
-            console.log(`phase:init -> city load duration=${Date.now() - cityLoadStartedAt}ms`);
-            return city;
-        })(),
-    ]);
+    let countyTabIndex = null;
+    let cityTabIndex = null;
+    if (SHEETS_LOAD_PARALLEL) {
+        console.log(`phase:init -> loading tabs in parallel (county+city)...`);
+        [countyTabIndex, cityTabIndex] = await Promise.all([
+            (async () => {
+                console.log(`phase:init -> county tab start (${COUNTY_TAB})`);
+                const county = await loadSheetTabIndexWithRecovery({
+                    spreadsheetId: SPREADSHEET_ID,
+                    sheetName: COUNTY_TAB,
+                    range: "A:Z",
+                    keyHeaders: ["State", "County"],
+                });
+                console.log(`phase:init -> county tab loaded (${county.rows.length} rows)`);
+                console.log(`phase:init -> county load duration=${Date.now() - countyLoadStartedAt}ms`);
+                return county;
+            })(),
+            (async () => {
+                console.log(`phase:init -> city tab start (${CITY_TAB})`);
+                const city = await loadSheetTabIndexWithRecovery({
+                    spreadsheetId: SPREADSHEET_ID,
+                    sheetName: CITY_TAB,
+                    range: "A:Z",
+                    keyHeaders: ["State", "County", "City"],
+                });
+                console.log(`phase:init -> city tab loaded (${city.rows.length} rows)`);
+                console.log(`phase:init -> city load duration=${Date.now() - cityLoadStartedAt}ms`);
+                return city;
+            })(),
+        ]);
+    } else {
+        console.log(`phase:init -> loading tabs sequentially (stable mode)...`);
+        console.log(`phase:init -> county tab start (${COUNTY_TAB})`);
+        countyTabIndex = await loadSheetTabIndexWithRecovery({
+            spreadsheetId: SPREADSHEET_ID,
+            sheetName: COUNTY_TAB,
+            range: "A:Z",
+            keyHeaders: ["State", "County"],
+        });
+        console.log(`phase:init -> county tab loaded (${countyTabIndex.rows.length} rows)`);
+        console.log(`phase:init -> county load duration=${Date.now() - countyLoadStartedAt}ms`);
+
+        console.log(`phase:init -> city tab start (${CITY_TAB})`);
+        cityTabIndex = await loadSheetTabIndexWithRecovery({
+            spreadsheetId: SPREADSHEET_ID,
+            sheetName: CITY_TAB,
+            range: "A:Z",
+            keyHeaders: ["State", "County", "City"],
+        });
+        console.log(`phase:init -> city tab loaded (${cityTabIndex.rows.length} rows)`);
+        console.log(`phase:init -> city load duration=${Date.now() - cityLoadStartedAt}ms`);
+    }
 
     // sanity required headers for update
     for (const tab of [countyTabIndex, cityTabIndex]) {

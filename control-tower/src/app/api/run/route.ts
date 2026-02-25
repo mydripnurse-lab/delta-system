@@ -657,7 +657,7 @@ export async function POST(req: Request) {
                 envMerged.SHEETS_AUTH_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_AUTH_TIMEOUT_MS || "25000");
             }
             if (!s(envMerged.SHEETS_FETCH_TIMEOUT_MS)) {
-                envMerged.SHEETS_FETCH_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_FETCH_TIMEOUT_MS || "20000");
+                envMerged.SHEETS_FETCH_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_FETCH_TIMEOUT_MS || "30000");
             }
             if (!s(envMerged.SHEETS_MAX_RETRIES)) {
                 envMerged.SHEETS_MAX_RETRIES = s(process.env.DELTA_RUN_SHEETS_MAX_RETRIES || "2");
