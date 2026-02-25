@@ -124,6 +124,14 @@ const TWILIO_CLOSE_TIMEOUT_MS = Math.max(
     1000,
     Number(process.env.DELTA_TWILIO_CLOSE_TIMEOUT_MS || (FAST_MODE ? "8000" : "12000"))
 );
+const TWILIO_CLOSE_MAX_RETRIES = Math.max(
+    0,
+    Number(process.env.DELTA_TWILIO_CLOSE_MAX_RETRIES || "1")
+);
+const TWILIO_CLOSE_RETRY_DELAY_MS = Math.max(
+    250,
+    Number(process.env.DELTA_TWILIO_CLOSE_RETRY_DELAY_MS || "900")
+);
 const TWILIO_STEP_TIMEOUT_MS = Math.max(
     1000,
     Number(process.env.DELTA_TWILIO_STEP_TIMEOUT_MS || (FAST_MODE ? "12000" : "18000"))
@@ -223,6 +231,45 @@ async function withTimeout(promise, timeoutMs, timeoutMessage) {
     } finally {
         if (timeout) clearTimeout(timeout);
     }
+}
+
+function formatTwilioErr(e) {
+    const msg = String(e?.message || e || "unknown error");
+    const st = Number(e?.status ?? e?.code);
+    const status = Number.isFinite(st) ? st : null;
+    const detail =
+        e?.data && typeof e.data === "object"
+            ? String(e.data?.message || e.data?.error?.message || JSON.stringify(e.data)).slice(0, 500)
+            : "";
+    if (status && detail) return `${msg} | status=${status} | detail=${detail}`;
+    if (status) return `${msg} | status=${status}`;
+    return msg;
+}
+
+async function closeTwilioAccountWithRetry(sid, reasonLabel = "twilio-close") {
+    const targetSid = String(sid || "").trim();
+    if (!targetSid) throw new Error("Missing Twilio SID to close");
+    let lastErr = null;
+    const maxAttempts = 1 + TWILIO_CLOSE_MAX_RETRIES;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await withTimeout(
+                closeTwilioAccount(targetSid),
+                TWILIO_CLOSE_TIMEOUT_MS,
+                `Twilio close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${targetSid}`
+            );
+        } catch (e) {
+            lastErr = e;
+            const formatted = formatTwilioErr(e);
+            console.log(
+                `⚠️ Twilio close attempt ${attempt}/${maxAttempts} failed (${reasonLabel}) sid=${targetSid}: ${formatted}`
+            );
+            if (attempt < maxAttempts) {
+                await sleep(TWILIO_CLOSE_RETRY_DELAY_MS * attempt);
+            }
+        }
+    }
+    throw lastErr || new Error(`Twilio close failed sid=${targetSid}`);
 }
 
 async function loadSheetTabIndexWithRecovery(params) {
@@ -364,10 +411,9 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
                         );
                         return true;
                     }
-                    const closed = await withTimeout(
-                        closeTwilioAccount(String(twilioAcc.sid)),
-                        TWILIO_CLOSE_TIMEOUT_MS,
-                        `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
+                    const closed = await closeTwilioAccountWithRetry(
+                        String(twilioAcc.sid),
+                        "capacity-recovery-by-name"
                     );
                 console.log(
                     `✅ Twilio capacity recovery: closed by previous name sid=${closed?.sid || twilioAcc.sid} status=${closed?.status || "closed"}`
@@ -395,10 +441,9 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
             return false;
         }
 
-        const closed = await withTimeout(
-            closeTwilioAccount(String(eligible.sid)),
-            TWILIO_CLOSE_TIMEOUT_MS,
-            `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${eligible.sid}`
+        const closed = await closeTwilioAccountWithRetry(
+            String(eligible.sid),
+            "capacity-recovery-fallback"
         );
         console.log(
             `✅ Twilio capacity recovery: closed fallback active sid=${closed?.sid || eligible.sid} name="${eligible?.friendlyName || ""}" status=${closed?.status || "closed"}`
@@ -685,10 +730,9 @@ async function processOneAccount({
                 });
             }
 
-            const closed = await withTimeout(
-                closeTwilioAccount(twilioAcc.sid),
-                TWILIO_CLOSE_TIMEOUT_MS,
-                `Twilio close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
+            const closed = await closeTwilioAccountWithRetry(
+                twilioAcc.sid,
+                "normal-post-create"
             );
             if (DEBUG) {
                 console.log("🧨 Twilio CLOSED:", {
