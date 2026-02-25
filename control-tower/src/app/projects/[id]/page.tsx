@@ -5394,6 +5394,43 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     stateFileSearchCity,
   ]);
 
+  const runFlowSteps = useMemo(() => {
+    const clamp = (n: number) => Math.max(0, Math.min(1, n));
+    const pctRaw = Number(progress.pct);
+    let base = Number.isFinite(pctRaw) ? clamp(pctRaw) : 0;
+    if (progress.status === "done") base = 1;
+    if (progress.status === "idle") base = 0;
+    if ((progress.status === "error" || progress.status === "stopping") && base <= 0) base = 0.04;
+    if (isRunning && base <= 0) base = 0.04;
+
+    const ranges = [
+      { start: 0.0, end: 0.34 },
+      { start: 0.28, end: 0.68 },
+      { start: 0.62, end: 1.0 },
+    ];
+
+    const steps = [
+      { key: "create-db", label: "1. Create DB", progress: 0, complete: false, active: false },
+      { key: "create-json", label: "2. Create Subaccount Json", progress: 0, complete: false, active: false },
+      { key: "run-delta", label: "3. Run Delta System", progress: 0, complete: false, active: false },
+    ];
+
+    for (let i = 0; i < steps.length; i += 1) {
+      const r = ranges[i];
+      const stepProgress = clamp((base - r.start) / Math.max(0.001, r.end - r.start));
+      steps[i].progress = stepProgress;
+      steps[i].complete = stepProgress >= 1 || progress.status === "done";
+      steps[i].active = isRunning && stepProgress > 0 && stepProgress < 1;
+    }
+
+    if (isRunning && !steps.some((s0) => s0.active) && !steps.every((s0) => s0.complete)) {
+      const firstPending = steps.find((s0) => !s0.complete);
+      if (firstPending) firstPending.active = true;
+    }
+
+    return steps;
+  }, [isRunning, progress.pct, progress.status]);
+
   const runSummary = useMemo(() => {
     const out = { total: runCards.length, running: 0, done: 0, error: 0, stopped: 0 };
     for (const r of runCards) {
@@ -6451,7 +6488,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           <div>
             <h2 className="cardTitle">Runs Center</h2>
             <div className="cardSubtitle">
-              Ejecuta el pipeline de provisioning con progreso en vivo, ETA y control total por corrida.
+              Execute the provisioning pipeline with live progress, ETA, and full run control.
             </div>
           </div>
           <div className="cardHeaderActions">
@@ -6463,13 +6500,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </div>
 
         <div className="cardBody">
-          <div className="runFlowStrip" aria-label="Run pipeline">
-            <span className="runFlowStep runFlowStepActive">1. Create DB</span>
-            <span className="runFlowArrow">→</span>
-            <span className="runFlowStep runFlowStepActive">2. Create Subaccount Json</span>
-            <span className="runFlowArrow">→</span>
-            <span className="runFlowStep runFlowStepActive">3. Run Delta System</span>
-          </div>
           <p className="runFlowNote">
             Pipeline enforced for <b>Run Delta System</b>: it now executes Create DB first, then Create Subaccount Json, and only then starts live creation.
           </p>
@@ -6570,18 +6600,37 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             </div>
           ) : null}
 
+          <div className="runFlowStrip" aria-label="Run pipeline">
+            <div className="runFlowTrack">
+              {runFlowSteps.map((step, idx) => (
+                <div key={step.key} className="runFlowStepWrap">
+                  <span
+                    className={`runFlowStep ${step.complete ? "runFlowStepDone" : step.active ? "runFlowStepLoading runFlowStepActive" : "runFlowStepPending"}`}
+                    style={{ ["--step-progress" as any]: `${Math.round(step.progress * 100)}%` }}
+                  >
+                    <span className="runFlowStepFill" aria-hidden />
+                    <span className="runFlowStepLabel">{step.label}</span>
+                  </span>
+                  {idx < runFlowSteps.length - 1 ? <span className="runFlowArrow">→</span> : null}
+                </div>
+              ))}
+            </div>
+            <div className="runFlowActions">
+              <button className="btn btnPrimary" onClick={() => run()} title="Run">
+                Start Run
+              </button>
+              <button
+                className="btn btnDanger"
+                onClick={stop}
+                disabled={!runId}
+                title={!runId ? "No active runId" : "Stop"}
+              >
+                Stop Attached
+              </button>
+            </div>
+          </div>
+
           <div className="actions runPrimaryActions">
-            <button className="btn btnPrimary" onClick={() => run()} title="Run">
-              Start Run
-            </button>
-            <button
-              className="btn btnDanger"
-              onClick={stop}
-              disabled={!runId}
-              title={!runId ? "No active runId" : "Stop"}
-            >
-              Stop Attached
-            </button>
             <label className="mini" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <input
                 type="checkbox"
