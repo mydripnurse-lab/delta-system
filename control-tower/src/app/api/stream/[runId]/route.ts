@@ -4,6 +4,7 @@ import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
+const STREAM_DB_ONLY = String(process.env.RUN_STREAM_DB_ONLY || "1") === "1";
 
 function sseLine(str: string) {
     return `${str}\n`;
@@ -70,7 +71,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
             let lastVisibleLineAt = Date.now();
 
             const tick = async () => {
-                const run = getRun(runId);
+                const run = STREAM_DB_ONLY ? null : getRun(runId);
 
                 if (!run) {
                     try {

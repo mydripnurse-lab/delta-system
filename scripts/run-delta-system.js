@@ -1412,25 +1412,35 @@ async function main() {
     );
 
     // ✅ IMPORTANT: composite keys
+    console.log(`phase:init -> loading tabs in parallel (county+city)...`);
     const countyLoadStartedAt = Date.now();
-    const countyTabIndex = await loadSheetTabIndexWithRecovery({
-            spreadsheetId: SPREADSHEET_ID,
-            sheetName: COUNTY_TAB,
-            range: "A:Z",
-            keyHeaders: ["State", "County"],
-        });
-    console.log(`phase:init -> county tab loaded (${countyTabIndex.rows.length} rows)`);
-    console.log(`phase:init -> county load duration=${Date.now() - countyLoadStartedAt}ms`);
-
     const cityLoadStartedAt = Date.now();
-    const cityTabIndex = await loadSheetTabIndexWithRecovery({
-            spreadsheetId: SPREADSHEET_ID,
-            sheetName: CITY_TAB,
-            range: "A:Z",
-            keyHeaders: ["State", "County", "City"],
-        });
-    console.log(`phase:init -> city tab loaded (${cityTabIndex.rows.length} rows)`);
-    console.log(`phase:init -> city load duration=${Date.now() - cityLoadStartedAt}ms`);
+    const [countyTabIndex, cityTabIndex] = await Promise.all([
+        (async () => {
+            console.log(`phase:init -> county tab start (${COUNTY_TAB})`);
+            const county = await loadSheetTabIndexWithRecovery({
+                spreadsheetId: SPREADSHEET_ID,
+                sheetName: COUNTY_TAB,
+                range: "A:Z",
+                keyHeaders: ["State", "County"],
+            });
+            console.log(`phase:init -> county tab loaded (${county.rows.length} rows)`);
+            console.log(`phase:init -> county load duration=${Date.now() - countyLoadStartedAt}ms`);
+            return county;
+        })(),
+        (async () => {
+            console.log(`phase:init -> city tab start (${CITY_TAB})`);
+            const city = await loadSheetTabIndexWithRecovery({
+                spreadsheetId: SPREADSHEET_ID,
+                sheetName: CITY_TAB,
+                range: "A:Z",
+                keyHeaders: ["State", "County", "City"],
+            });
+            console.log(`phase:init -> city tab loaded (${city.rows.length} rows)`);
+            console.log(`phase:init -> city load duration=${Date.now() - cityLoadStartedAt}ms`);
+            return city;
+        })(),
+    ]);
 
     // sanity required headers for update
     for (const tab of [countyTabIndex, cityTabIndex]) {

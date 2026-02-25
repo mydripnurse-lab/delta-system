@@ -649,11 +649,17 @@ export async function POST(req: Request) {
             if (!s(envMerged.SHEETS_AUTH_TIMEOUT_MS)) {
                 envMerged.SHEETS_AUTH_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_AUTH_TIMEOUT_MS || "25000");
             }
+            if (!s(envMerged.SHEETS_FETCH_TIMEOUT_MS)) {
+                envMerged.SHEETS_FETCH_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_FETCH_TIMEOUT_MS || "20000");
+            }
+            if (!s(envMerged.SHEETS_MAX_RETRIES)) {
+                envMerged.SHEETS_MAX_RETRIES = s(process.env.DELTA_RUN_SHEETS_MAX_RETRIES || "2");
+            }
             if (!s(envMerged.DELTA_SHEETS_LOAD_TIMEOUT_MS)) {
                 envMerged.DELTA_SHEETS_LOAD_TIMEOUT_MS = s(process.env.DELTA_RUN_SHEETS_LOAD_TIMEOUT_MS || "90000");
             }
             if (!s(envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES)) {
-                envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES = s(process.env.DELTA_RUN_SHEETS_LOAD_MAX_RETRIES || "4");
+                envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES = s(process.env.DELTA_RUN_SHEETS_LOAD_MAX_RETRIES || "2");
             }
             if (!s(envMerged.DELTA_CHECKPOINT_DIR)) {
                 envMerged.DELTA_CHECKPOINT_DIR = path.join(
