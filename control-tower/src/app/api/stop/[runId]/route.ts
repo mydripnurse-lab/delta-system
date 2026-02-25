@@ -41,11 +41,45 @@ function killPid(pid: number) {
     return killed;
 }
 
+function workerHeaders() {
+    const headers: Record<string, string> = {
+        "content-type": "application/json",
+    };
+    const key = String(process.env.RUNNER_WORKER_API_KEY || "").trim();
+    if (key) {
+        headers.authorization = `Bearer ${key}`;
+        headers["x-api-key"] = key;
+    }
+    return headers;
+}
+
+async function stopRemoteWorker(runId: string) {
+    const workerUrl = String(process.env.RUNNER_WORKER_URL || "").trim();
+    if (!workerUrl) return { attempted: false, ok: false, message: "worker_not_configured" };
+    const timeoutMs = Math.max(5_000, Number(process.env.RUNNER_WORKER_STOP_TIMEOUT_MS || 20_000));
+    const url = workerUrl.replace(/\/run\/?$/, "/stop");
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: workerHeaders(),
+            body: JSON.stringify({ runId, source: "control-tower", timestamp: new Date().toISOString() }),
+            signal: AbortSignal.timeout(timeoutMs),
+            cache: "no-store",
+        });
+        const raw = await res.text().catch(() => "");
+        const ok = res.ok && (!raw || raw.includes('"ok":true'));
+        return { attempted: true, ok, message: raw || `HTTP ${res.status}` };
+    } catch (e: unknown) {
+        return { attempted: true, ok: false, message: e instanceof Error ? e.message : String(e) };
+    }
+}
+
 export async function POST(_req: Request, ctx: { params: Promise<{ runId: string }> }) {
     const { runId } = await ctx.params;
 
     if (!runId) return NextResponse.json({ ok: false, error: "Missing runId" }, { status: 400 });
 
+    const remoteStop = await stopRemoteWorker(runId);
     const run = getRun(runId);
     if (!run) {
         // Fallback: run may exist only in DB (different worker/process).
@@ -84,6 +118,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ runId: string
             forced: true,
             pid: pid || null,
             killed,
+            remoteStop,
             note: killed
                 ? "Run was not attached in memory. Process killed by PID and marked as stopped in DB."
                 : "Run was not attached in memory. Marked as stopped in DB.",
@@ -91,5 +126,5 @@ export async function POST(_req: Request, ctx: { params: Promise<{ runId: string
     }
 
     const ok = stopRun(runId);
-    return NextResponse.json({ ok: !!ok, runId, forced: false });
+    return NextResponse.json({ ok: !!ok, runId, forced: false, remoteStop });
 }

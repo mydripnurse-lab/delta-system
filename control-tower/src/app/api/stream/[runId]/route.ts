@@ -7,6 +7,9 @@ export const maxDuration = 300;
 const STREAM_DB_ONLY = String(process.env.RUN_STREAM_DB_ONLY || "1") === "1";
 const STREAM_HEARTBEAT_IDLE_MS = Math.max(15_000, Number(process.env.RUN_STREAM_HEARTBEAT_IDLE_MS || 60_000));
 const STREAM_IDLE_LINE_ENABLED = String(process.env.RUN_STREAM_IDLE_LINE_ENABLED || "0") === "1";
+const STREAM_TICK_MS = Math.max(250, Number(process.env.RUN_STREAM_TICK_MS || 800));
+const STREAM_DB_TICK_MS = Math.max(250, Number(process.env.RUN_STREAM_DB_TICK_MS || 1200));
+const STREAM_DB_ERROR_TICK_MS = Math.max(500, Number(process.env.RUN_STREAM_DB_ERROR_TICK_MS || 1800));
 const STREAM_NOT_FOUND_GRACE_TICKS = Math.max(
     1,
     Number(process.env.RUN_STREAM_NOT_FOUND_GRACE_TICKS || 25),
@@ -132,7 +135,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
                             if (notFoundTicks < STREAM_NOT_FOUND_GRACE_TICKS) {
                                 setTimeout(() => {
                                     void tick();
-                                }, 1200);
+                                }, STREAM_DB_TICK_MS);
                                 return;
                             }
                             write(
@@ -195,13 +198,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
 
                         setTimeout(() => {
                             void tick();
-                        }, 1200);
+                        }, STREAM_DB_TICK_MS);
                         return;
                     } catch {
                         write(sseEvent("ping", { t: Date.now(), source: "db_error" }));
                         setTimeout(() => {
                             void tick();
-                        }, 1800);
+                        }, STREAM_DB_ERROR_TICK_MS);
                         return;
                     }
                 }
@@ -253,7 +256,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
 
                 setTimeout(() => {
                     void tick();
-                }, 800);
+                }, STREAM_TICK_MS);
             };
 
             void tick();

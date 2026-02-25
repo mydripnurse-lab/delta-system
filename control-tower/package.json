@@ -6,6 +6,7 @@
     "dev": "\"$npm_node_execpath\" ./node_modules/next/dist/bin/next dev --webpack -p 3001",
     "build": "\"$npm_node_execpath\" ./node_modules/next/dist/bin/next build",
     "start": "\"$npm_node_execpath\" ./node_modules/next/dist/bin/next start -p 3001",
+    "worker:runner": "node ./tools/railway-runner-worker.mjs",
     "lint": "eslint",
     "db:migrate": "node ./tools/migrate.mjs",
     "db:seed:state-templates": "node ./tools/seed-state-templates-to-db.mjs",

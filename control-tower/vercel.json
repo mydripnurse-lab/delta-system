@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "src/app/api/stream/[runId]/route.ts": {
+      "maxDuration": 300
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/heartbeat",

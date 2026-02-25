@@ -318,6 +318,15 @@ Ejemplos usados por modulos pesados:
 ```env
 DASH_CACHE_DIR=./storage/cache
 TRANSACTIONS_MAX_PAGES=200
+
+## 12) Runs largos en Railway (recomendado)
+
+Si `run-delta-system` puede tardar horas, usa worker remoto en Railway para no depender del ciclo de vida de Vercel Functions.
+
+Guia completa:
+
+- `docs/railway-runner-worker.md`
+
 TRANSACTIONS_PAGE_DELAY_MS=250
 SHEETS_WRITE_DELAY_MS=1200
 SHEETS_LOG=1

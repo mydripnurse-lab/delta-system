@@ -229,6 +229,46 @@ function parseTokenUpdateLine(line: string) {
     }
 }
 
+function buildWorkerHeaders() {
+    const headers: Record<string, string> = {
+        "content-type": "application/json",
+    };
+    const apiKey = s(process.env.RUNNER_WORKER_API_KEY);
+    if (apiKey) {
+        headers.authorization = `Bearer ${apiKey}`;
+        headers["x-api-key"] = apiKey;
+    }
+    return headers;
+}
+
+async function delegateRunToWorker(input: {
+    runId: string;
+    workerUrl: string;
+    payload: Record<string, unknown>;
+}) {
+    const timeoutMs = Math.max(10_000, Math.min(120_000, envNum("RUNNER_WORKER_DELEGATE_TIMEOUT_MS", 30_000)));
+    const res = await fetch(input.workerUrl, {
+        method: "POST",
+        headers: buildWorkerHeaders(),
+        body: JSON.stringify(input.payload),
+        signal: AbortSignal.timeout(timeoutMs),
+        cache: "no-store",
+    });
+    const raw = await res.text().catch(() => "");
+    let parsed: Record<string, unknown> | null = null;
+    try {
+        parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+    } catch {
+        parsed = null;
+    }
+    if (!res.ok || !parsed?.ok) {
+        throw new Error(
+            `Worker delegate failed (HTTP ${res.status}): ${s(parsed?.error) || raw.slice(0, 400) || "unknown error"}`,
+        );
+    }
+    return parsed;
+}
+
 function jobNeedsSheet(job: string) {
     return (
         job === "run-delta-system" ||
@@ -677,6 +717,15 @@ export async function POST(req: Request) {
             KIND: kind || "",
             TENANT_ID: tenantId || "",
         };
+        const delegatedEnv: Record<string, string> = {
+            ...repoEnv,
+            ...(tenantRunEnv?.env || {}),
+            MODE: mode,
+            DEBUG: debug ? "1" : "0",
+            LOC_ID: locId || "",
+            KIND: kind || "",
+            TENANT_ID: tenantId || "",
+        };
 
         let tempStateFilesDir = "";
         const tempOutRoot = path.join(
@@ -699,6 +748,8 @@ export async function POST(req: Request) {
         if (!isOneLocJob(job) && jobUsesState(job)) {
             envMerged.DELTA_STATE = rawState;
             envMerged.STATE = rawState;
+            delegatedEnv.DELTA_STATE = rawState;
+            delegatedEnv.STATE = rawState;
         }
 
         if (job === "run-delta-system") {
@@ -738,6 +789,73 @@ export async function POST(req: Request) {
             }
             if (!s(envMerged.DELTA_CHECKPOINT_AUTO_RESUME)) {
                 envMerged.DELTA_CHECKPOINT_AUTO_RESUME = "1";
+            }
+            Object.assign(delegatedEnv, {
+                DELTA_NON_INTERACTIVE: envMerged.DELTA_NON_INTERACTIVE || "1",
+                GHL_FETCH_TIMEOUT_MS: envMerged.GHL_FETCH_TIMEOUT_MS || "",
+                GHL_FETCH_MAX_RETRIES: envMerged.GHL_FETCH_MAX_RETRIES || "",
+                GHL_FETCH_RETRY_BASE_MS: envMerged.GHL_FETCH_RETRY_BASE_MS || "",
+                GHL_FETCH_RETRY_MAX_MS: envMerged.GHL_FETCH_RETRY_MAX_MS || "",
+                DELTA_ACCOUNT_PROCESS_TIMEOUT_MS: envMerged.DELTA_ACCOUNT_PROCESS_TIMEOUT_MS || "",
+                SHEETS_AUTH_TIMEOUT_MS: envMerged.SHEETS_AUTH_TIMEOUT_MS || "",
+                SHEETS_FETCH_TIMEOUT_MS: envMerged.SHEETS_FETCH_TIMEOUT_MS || "",
+                SHEETS_MAX_RETRIES: envMerged.SHEETS_MAX_RETRIES || "",
+                DELTA_SHEETS_LOAD_TIMEOUT_MS: envMerged.DELTA_SHEETS_LOAD_TIMEOUT_MS || "",
+                DELTA_SHEETS_LOAD_MAX_RETRIES: envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES || "",
+                DELTA_CHECKPOINT_ENABLED: envMerged.DELTA_CHECKPOINT_ENABLED || "1",
+                DELTA_CHECKPOINT_AUTO_RESUME: envMerged.DELTA_CHECKPOINT_AUTO_RESUME || "1",
+            });
+            if (s(envMerged.DELTA_CHECKPOINT_DIR)) {
+                delegatedEnv.DELTA_CHECKPOINT_DIR = s(envMerged.DELTA_CHECKPOINT_DIR);
+            }
+        }
+
+        const workerUrl = s(process.env.RUNNER_WORKER_URL);
+        const shouldDelegate =
+            !syncRequested &&
+            !!workerUrl &&
+            String(process.env.RUNNER_REMOTE_ENABLED || "1") === "1" &&
+            (String(process.env.RUNNER_REMOTE_JOBS || "run-delta-system")
+                .split(",")
+                .map((x) => s(x))
+                .filter(Boolean)
+                .includes(job));
+        if (shouldDelegate) {
+            appendLine(run.id, `runner: delegating to remote worker -> ${workerUrl}`);
+            try {
+                const delegated = await delegateRunToWorker({
+                    runId: run.id,
+                    workerUrl,
+                    payload: {
+                        task: "runner-job",
+                        provider: "control-tower",
+                        runId: run.id,
+                        job,
+                        mode,
+                        debug,
+                        state: rawState,
+                        tenantId,
+                        locId,
+                        kind,
+                        env: delegatedEnv,
+                        timestamp: new Date().toISOString(),
+                    },
+                });
+                appendLine(run.id, `runner: remote accepted (worker runId=${s(delegated.runId) || run.id})`);
+                if (tempStateFilesDir) {
+                    await fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
+                }
+                if (tempOutRoot) {
+                    await fsp.rm(tempOutRoot, { recursive: true, force: true }).catch(() => {});
+                }
+                return NextResponse.json({ runId: run.id, sync: false, delegated: true, worker: true });
+            } catch (e: unknown) {
+                const fallbackLocal = String(process.env.RUNNER_REMOTE_FALLBACK_LOCAL || "1") === "1";
+                appendLine(
+                    run.id,
+                    `runner: remote delegate failed (${e instanceof Error ? e.message : String(e)})${fallbackLocal ? " -> fallback local runner" : ""}`,
+                );
+                if (!fallbackLocal) throw e;
             }
         }
 
