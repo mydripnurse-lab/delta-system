@@ -3731,51 +3731,6 @@ export default function Home() {
     }
   }
 
-  async function rerunFromCard(r: {
-    id: string;
-    meta?: {
-      job?: string;
-      state?: string;
-      mode?: string;
-      debug?: boolean;
-      locId?: string;
-      kind?: string;
-    };
-  }) {
-    const m = r.meta || {};
-    const jobKey = s(m.job);
-    if (!jobKey) {
-      pushLog(`❌ Cannot re-run ${r.id}: missing job in metadata`);
-      return;
-    }
-    const state = s(m.state) || "all";
-    const modeValue = s(m.mode).toLowerCase() === "dry" ? "dry" : "live";
-    const debugValue = m.debug === true;
-    const locIdValue = s(m.locId);
-    const kindValue = s(m.kind);
-
-    setJob(jobKey);
-    if (modeValue === "dry" || modeValue === "live") setMode(modeValue as "live" | "dry");
-    setDebug(debugValue);
-    if (jobKey === "update-custom-values-one") {
-      setRunLocId(locIdValue);
-      setRunKind(
-        kindValue === "counties" || kindValue === "cities" ? kindValue : "",
-      );
-    } else {
-      setStateOut(state || "all");
-    }
-
-    await run({
-      job: jobKey,
-      state,
-      mode: modeValue as "live" | "dry",
-      debug: debugValue,
-      locId: locIdValue,
-      kind: kindValue,
-    });
-  }
-
   async function attachToActiveRun(targetRunId: string) {
     const id = s(targetRunId);
     if (!id) return;
@@ -6723,7 +6678,29 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </div>
               ))}
             </div>
-            <div className="runFlowActions">
+          </div>
+
+          <div className="actions runPrimaryActions">
+            <div className="runPrimaryMain">
+              <label className="mini" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={allowParallelRuns}
+                  onChange={(e) => setAllowParallelRuns(e.target.checked)}
+                />
+                Allow parallel runs
+              </label>
+              <div className="mini runExecutionMeta" style={{ alignSelf: "center" }}>
+                Job: <b>{selectedJob?.label}</b>{" "}
+                {isOneLocJob ? (
+                  <>• locId: <b>{runLocId || "—"}</b></>
+                ) : (
+                  <>• State: <b>{stateOut === "all" ? "ALL" : formatStateLabel(stateOut)}</b></>
+                )}{" "}
+                • Mode: <b>{mode}</b>
+              </div>
+            </div>
+            <div className="runPrimaryButtons">
               <button className="btn btnPrimary" onClick={() => run()} title="Run">
                 Start Run
               </button>
@@ -6735,26 +6712,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               >
                 Stop Attached
               </button>
-            </div>
-          </div>
-
-          <div className="actions runPrimaryActions">
-            <label className="mini" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <input
-                type="checkbox"
-                checked={allowParallelRuns}
-                onChange={(e) => setAllowParallelRuns(e.target.checked)}
-              />
-              Allow parallel runs
-            </label>
-            <div className="mini runExecutionMeta" style={{ alignSelf: "center" }}>
-              Job: <b>{selectedJob?.label}</b>{" "}
-              {isOneLocJob ? (
-                <>• locId: <b>{runLocId || "—"}</b></>
-              ) : (
-                <>• State: <b>{stateOut === "all" ? "ALL" : formatStateLabel(stateOut)}</b></>
-              )}{" "}
-              • Mode: <b>{mode}</b>
             </div>
           </div>
 
@@ -6810,15 +6767,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
 
                   <div className="runCardMeta mini">
+                    <span>Status: <b>{r.status}</b></span>
                     <span>Done: <b>{r.doneLabel}</b></span>
-                    <span>ETA: <b>{r.eta}</b></span>
                     <span>Elapsed: <b>{r.elapsed}</b></span>
-                    <span>Counties: <b>{r.countiesLabel}</b></span>
-                    <span>Cities: <b>{r.citiesLabel}</b></span>
+                    <span>ETA: <b>{r.eta}</b></span>
                     <span>Updated: <b>{r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}</b></span>
                   </div>
-
-                  <div className="runCardMsg mini">{r.message}</div>
 
                   <div className="runCardBar" aria-hidden>
                     <div
@@ -6831,48 +6785,30 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <button
                       type="button"
                       className="smallBtn"
-                      onClick={() => attachToActiveRun(r.id)}
+                      onClick={() => void openRunHistory(r.id)}
                     >
-                      Attach
+                      View History
                     </button>
                     <button
                       type="button"
                       className="smallBtn"
-                      onClick={() => void openRunHistory(r.id)}
-                    >
-                      View history
-                    </button>
-                    {r.finished ? (
-                      <button
-                        type="button"
-                        className="smallBtn"
-                        onClick={() => void rerunFromCard(r)}
-                        title="Run again with the same job/state/mode/debug/locId/kind"
-                      >
-                        Re-run
-                      </button>
-                    ) : null}
-                    {!r.finished ? (
-                      <button
-                        type="button"
-                        className="smallBtn"
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`/api/stop/${r.id}`, { method: "POST" });
-                            const json = (await safeJson(res)) as { ok?: boolean; error?: string; forced?: boolean } | null;
-                            if (!res.ok || !json?.ok) {
-                              throw new Error(s(json?.error) || `HTTP ${res.status}`);
-                            }
-                            pushLog(`🛑 Stop requested for ${r.id}${json?.forced ? " (forced-db)" : ""}`);
-                            await loadActiveRuns();
-                          } catch (e: any) {
-                            pushLog(`❌ Stop failed for ${r.id}: ${e?.message || e}`);
+                      disabled={r.finished}
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/stop/${r.id}`, { method: "POST" });
+                          const json = (await safeJson(res)) as { ok?: boolean; error?: string; forced?: boolean } | null;
+                          if (!res.ok || !json?.ok) {
+                            throw new Error(s(json?.error) || `HTTP ${res.status}`);
                           }
-                        }}
-                      >
-                        Stop
-                      </button>
-                    ) : null}
+                          pushLog(`🛑 Stop requested for ${r.id}${json?.forced ? " (forced-db)" : ""}`);
+                          await loadActiveRuns();
+                        } catch (e: any) {
+                          pushLog(`❌ Stop failed for ${r.id}: ${e?.message || e}`);
+                        }
+                      }}
+                    >
+                      Stop
+                    </button>
                     <button
                       type="button"
                       className="smallBtn"

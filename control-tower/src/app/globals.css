@@ -613,11 +613,30 @@ button, input, select { font-family: inherit; }
 }
 
 .runPrimaryActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 12px;
   padding: 8px 12px;
   border: 1px solid rgba(96, 165, 250, 0.18);
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.44);
+}
+
+.runPrimaryMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.runPrimaryButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .runExecutionMeta {
@@ -645,14 +664,14 @@ button, input, select { font-family: inherit; }
 
 .runCardsGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
 .runCard {
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 10px;
+  padding: 12px;
   background:
     linear-gradient(180deg, rgba(8, 20, 40, 0.56), rgba(8, 20, 40, 0.38)),
     radial-gradient(130% 120% at 0% 0%, rgba(43, 167, 255, 0.10), transparent 58%);
@@ -778,6 +797,18 @@ button, input, select { font-family: inherit; }
   }
   .runPrimaryActions {
     padding: 10px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .runPrimaryMain {
+    width: 100%;
+  }
+  .runPrimaryButtons {
+    width: 100%;
+    margin-left: 0;
+  }
+  .runPrimaryButtons .btn {
+    flex: 1 1 0;
   }
 }
 
