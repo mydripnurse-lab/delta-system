@@ -873,6 +873,14 @@ button, input, select { font-family: inherit; }
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+.runHistoryHumanText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(241, 245, 249, 0.96);
+  font-weight: 500;
+}
+
 @keyframes runStepShimmer {
   0% { background-position: 180% 0; }
   100% { background-position: -40% 0; }

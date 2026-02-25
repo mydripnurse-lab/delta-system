@@ -5489,6 +5489,165 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     });
   }, [runCards, runCardSearch, runCardStatusFilter]);
 
+  const runHistorySimple = useMemo(() => {
+    const summary = {
+      state: "",
+      createdAccounts: 0,
+      updatedRows: 0,
+      skippedTrue: 0,
+      resumedItems: 0,
+      errors: 0,
+      phaseCreateDbDone: false,
+      phaseCreateJsonDone: false,
+      phaseRunDeltaStarted: false,
+      finishedOk: false,
+      finishedWithError: false,
+    };
+
+    const timeline: Array<{
+      id: number;
+      createdAt: string;
+      text: string;
+      tone: "info" | "ok" | "warn" | "error";
+    }> = [];
+
+    const pushStep = (
+      ev: { id: number; createdAt: string },
+      text: string,
+      tone: "info" | "ok" | "warn" | "error" = "info",
+    ) => {
+      timeline.push({ id: ev.id, createdAt: ev.createdAt, text, tone });
+    };
+
+    for (const ev of runHistoryEvents) {
+      const raw = s(ev.message);
+      if (!raw) continue;
+      if (shouldIgnoreRuntimeNoise(raw)) continue;
+
+      const line = raw.toLowerCase();
+      if (line.startsWith("__progress")) continue;
+
+      if (line.includes("prebuild: create-db (build-sheet-rows): start")) {
+        pushStep(ev, "Empezó el paso 1: crear base inicial (Counties + Cities).");
+        continue;
+      }
+      if (line.includes("prebuild: create-db (build-sheet-rows): done")) {
+        summary.phaseCreateDbDone = true;
+        pushStep(ev, "Terminó el paso 1: base inicial lista.", "ok");
+        continue;
+      }
+      if (line.includes("prebuild: generating state output json (build-counties)")) {
+        pushStep(ev, "Empezó el paso 2: preparar JSON del estado.");
+        continue;
+      }
+      if (line.includes("prebuild: build-counties done")) {
+        summary.phaseCreateJsonDone = true;
+        pushStep(ev, "Terminó el paso 2: JSON del estado creado.", "ok");
+        continue;
+      }
+      if (line.includes("🏁 run state:")) {
+        summary.phaseRunDeltaStarted = true;
+        const m = raw.match(/RUN STATE:\s*([^\|]+)/i);
+        const stateRaw = s(m?.[1]);
+        if (stateRaw) summary.state = formatStateLabel(stateRaw);
+        pushStep(ev, `Empezó el paso 3: ejecutar Delta en ${summary.state || "el estado seleccionado"}.`, "ok");
+        continue;
+      }
+      if (line.includes("🏙️  cities for")) {
+        const m = raw.match(/Cities for\s+\[[^\]]+\]\s+(.+?):\s*(\d+)/i);
+        const county = s(m?.[1]);
+        const total = Number(m?.[2] || 0);
+        if (county && Number.isFinite(total) && total > 0) {
+          pushStep(ev, `Ahora revisa ciudades de ${county} (${total} ciudades).`);
+        } else {
+          pushStep(ev, "Ahora está revisando ciudades de un county.");
+        }
+        continue;
+      }
+      if (line.includes("🧾 sheet updated")) {
+        summary.updatedRows += 1;
+        continue;
+      }
+      if (line.includes("🚀 creating county ->") || line.includes("🚀 creating city ->")) {
+        summary.createdAccounts += 1;
+        continue;
+      }
+      if (line.includes("⏭️ skip status true")) {
+        summary.skippedTrue += 1;
+        continue;
+      }
+      if (
+        line.includes("resume-db-done") ||
+        line.includes("resume-db-busy") ||
+        line.includes("resume-skip")
+      ) {
+        summary.resumedItems += 1;
+        continue;
+      }
+      if (line.includes("✅ state done")) {
+        pushStep(ev, "Terminó el estado actual correctamente.", "ok");
+        continue;
+      }
+      if (line.includes("🎉 done |")) {
+        summary.finishedOk = true;
+        const c = raw.match(/counties=(\d+)/i);
+        const ci = raw.match(/cities=(\d+)/i);
+        const totalCreated = Number(c?.[1] || 0) + Number(ci?.[1] || 0);
+        if (Number.isFinite(totalCreated) && totalCreated > 0) {
+          summary.createdAccounts = Math.max(summary.createdAccounts, totalCreated);
+        }
+        pushStep(ev, "Run completado con éxito.", "ok");
+        continue;
+      }
+      if (line.includes("🏁 end") && line.includes("\"ok\":false")) {
+        summary.finishedWithError = true;
+        summary.errors += 1;
+        pushStep(ev, "El run terminó con error.", "error");
+        continue;
+      }
+
+      if (
+        line.includes("❌") ||
+        line.includes(" failed") ||
+        line.includes("fatal:") ||
+        line.includes("error")
+      ) {
+        summary.errors += 1;
+        if (
+          line.includes("/api/run failed") ||
+          line.includes("worker delegate failed") ||
+          line.includes("script not found")
+        ) {
+          pushStep(ev, "Falló el inicio del run por un error de conexión o configuración.", "error");
+        } else {
+          pushStep(ev, "Se detectó un error durante la ejecución.", "error");
+        }
+        continue;
+      }
+    }
+
+    if (timeline.length === 0 && runHistoryEvents.length > 0) {
+      const first = runHistoryEvents[0];
+      const last = runHistoryEvents[runHistoryEvents.length - 1];
+      timeline.push({
+        id: Number(first?.id || 1),
+        createdAt: s(first?.createdAt),
+        text: "El run inició, pero aún no hay eventos resumibles en lenguaje simple.",
+        tone: "info",
+      });
+      if (Number(last?.id || 0) !== Number(first?.id || 0)) {
+        timeline.push({
+          id: Number(last?.id || 2),
+          createdAt: s(last?.createdAt),
+          text: "Sigue avanzando. Puedes refrescar para ver más hitos.",
+          tone: "info",
+        });
+      }
+    }
+
+    return { summary, timeline };
+  }, [runHistoryEvents]);
+
   const tenantCustomValuesPageSize = 20;
   const tenantCustomValuesFiltered = useMemo(() => {
     const q = s(tenantCustomValuesSearch).toLowerCase();
@@ -7908,18 +8067,81 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <div className="mini">No persisted events for this run.</div>
               ) : null}
               {!runHistoryLoading && !runHistoryErr && runHistoryEvents.length > 0 ? (
-                <div className="runHistoryList">
-                  {runHistoryEvents.map((ev) => (
-                    <div key={`${ev.id}-${ev.createdAt}`} className="runHistoryItem">
-                      <div className="runHistoryMeta">
-                        <span className="badge">#{ev.id}</span>
-                        <span className="mini">{new Date(ev.createdAt).toLocaleString()}</span>
-                        <span className="badge">{ev.eventType}</span>
+                <>
+                  <div className="card" style={{ marginBottom: 12 }}>
+                    <div className="cardBody" style={{ padding: 12 }}>
+                      <div className="mini" style={{ marginBottom: 10, fontSize: 13 }}>
+                        Historial explicado: qué hizo el sistema en palabras simples.
                       </div>
-                      <pre className="runHistoryMessage">{ev.message}</pre>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <span className="badge">Estado: {runHistorySimple.summary.state || "No detectado aún"}</span>
+                        <span className="badge">Cuentas creadas: {fmtInt(runHistorySimple.summary.createdAccounts)}</span>
+                        <span className="badge">Filas actualizadas: {fmtInt(runHistorySimple.summary.updatedRows)}</span>
+                        <span className="badge">Omitidas (ya en TRUE): {fmtInt(runHistorySimple.summary.skippedTrue)}</span>
+                        <span className="badge">Reanudadas: {fmtInt(runHistorySimple.summary.resumedItems)}</span>
+                        <span
+                          className="badge"
+                          style={{
+                            borderColor:
+                              runHistorySimple.summary.errors > 0 || runHistorySimple.summary.finishedWithError
+                                ? "rgba(248,113,113,.55)"
+                                : "rgba(34,197,94,.45)",
+                          }}
+                        >
+                          {runHistorySimple.summary.errors > 0 || runHistorySimple.summary.finishedWithError
+                            ? `Errores: ${fmtInt(runHistorySimple.summary.errors)}`
+                            : runHistorySimple.summary.finishedOk
+                              ? "Resultado: completado"
+                              : "Resultado: en progreso"}
+                        </span>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+
+                  <div className="runHistoryList">
+                    {runHistorySimple.timeline.map((ev) => (
+                      <div key={`${ev.id}-${ev.createdAt}`} className="runHistoryItem">
+                        <div className="runHistoryMeta">
+                          <span className="mini">{new Date(ev.createdAt).toLocaleString()}</span>
+                          <span
+                            className="badge"
+                            style={{
+                              borderColor:
+                                ev.tone === "ok"
+                                  ? "rgba(34,197,94,.45)"
+                                  : ev.tone === "warn"
+                                    ? "rgba(251,191,36,.55)"
+                                    : ev.tone === "error"
+                                      ? "rgba(248,113,113,.55)"
+                                      : "rgba(148,163,184,.45)",
+                            }}
+                          >
+                            {ev.tone === "ok" ? "OK" : ev.tone === "warn" ? "Atención" : ev.tone === "error" ? "Error" : "Info"}
+                          </span>
+                        </div>
+                        <div className="runHistoryHumanText">{ev.text}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <details style={{ marginTop: 12 }}>
+                    <summary className="mini" style={{ cursor: "pointer" }}>
+                      Ver log técnico completo
+                    </summary>
+                    <div className="runHistoryList" style={{ marginTop: 10 }}>
+                      {runHistoryEvents.map((ev) => (
+                        <div key={`${ev.id}-${ev.createdAt}`} className="runHistoryItem">
+                          <div className="runHistoryMeta">
+                            <span className="badge">#{ev.id}</span>
+                            <span className="mini">{new Date(ev.createdAt).toLocaleString()}</span>
+                            <span className="badge">{ev.eventType}</span>
+                          </div>
+                          <pre className="runHistoryMessage">{ev.message}</pre>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </>
               ) : null}
             </div>
           </div>
