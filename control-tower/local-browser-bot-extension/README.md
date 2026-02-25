@@ -32,3 +32,16 @@ Option B (triggered from Control Tower `Run Domain Bot` button):
 - This bot runs in your own browser tab, so your login + 2FA session is reused.
 - If a selector changes in Devasks UI, update logic in `popup.js`.
 - Control Tower pre/post (custom values, DNS upsert/delete, complete) is still handled by the project flow.
+
+## Chrome Web Store Packaging (important)
+
+- Upload a clean extension zip that contains only runtime files:
+  - `manifest.json`
+  - `background.js`
+  - `bridge-content.js`
+  - `popup.html`
+  - `popup.js`
+  - `icon16.png`, `icon32.png`, `icon48.png`, `icon128.png`
+- Do not include old `*.zip` files inside the uploaded package.
+- In this repo, a clean package was generated at:
+  - `control-tower/local-browser-bot-extension/dist/delta-local-domain-bot-clean-v1.0.18.zip`

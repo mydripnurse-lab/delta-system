@@ -22,6 +22,16 @@ import {
     updateRowByHeaders,
     makeCompositeKey,
 } from "../services/sheetsClient.js";
+import {
+    runDeltaDbEnabled,
+    initRunDeltaItemState,
+    claimRunDeltaItem,
+    markRunDeltaItemCreated,
+    markRunDeltaItemDone,
+    markRunDeltaItemFailed,
+} from "../services/runDeltaItemState.js";
+
+let RUN_DELTA_DB_ACTIVE = runDeltaDbEnabled();
 
 // =====================
 // PATHS / CONFIG
@@ -373,6 +383,7 @@ function toBoolishTRUE() {
 }
 
 let LAST_SUCCESSFUL_LOCATION_NAME = "";
+const TWILIO_RECOVERY_CLOSED_SIDS = new Set();
 
 function isTwilioSubaccountLimitError(e) {
     const status = Number(e?.status ?? e?.code ?? 0);
@@ -415,37 +426,49 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
                     `Twilio recovery fuzzy lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
                 ));
 
-                if (twilioAcc?.sid) {
-                    if (String(twilioAcc.status || "").toLowerCase() === "closed") {
-                        console.log(
-                            `ℹ️ Twilio capacity recovery: previous account already closed (sid=${twilioAcc.sid}).`
-                        );
-                        return true;
-                    }
+            if (twilioAcc?.sid) {
+                const sid = String(twilioAcc.sid);
+                if (String(twilioAcc.status || "").toLowerCase() === "closed") {
+                    console.log(
+                        `ℹ️ Twilio capacity recovery: previous account already closed (sid=${sid}). Trying another active subaccount...`
+                    );
+                } else if (!TWILIO_RECOVERY_CLOSED_SIDS.has(sid)) {
                     const closed = await closeTwilioAccountWithRetry(
-                        String(twilioAcc.sid),
+                        sid,
                         "capacity-recovery-by-name"
                     );
-                console.log(
-                    `✅ Twilio capacity recovery: closed by previous name sid=${closed?.sid || twilioAcc.sid} status=${closed?.status || "closed"}`
-                );
-                return true;
+                    TWILIO_RECOVERY_CLOSED_SIDS.add(String(closed?.sid || sid));
+                    console.log(
+                        `✅ Twilio capacity recovery: closed by previous name sid=${closed?.sid || sid} status=${closed?.status || "closed"}`
+                    );
+                    return true;
+                }
             }
         }
 
-        // 2) Fallback: close one active eligible subaccount.
+        // 2) Fallback: close one active eligible subaccount (not already closed in this run).
         const subs = await withTimeout(
-            listSubaccounts({ limit: FAST_MODE ? 80 : 300 }),
+            listSubaccounts({ limit: FAST_MODE ? 120 : 400 }),
             TWILIO_LOOKUP_TIMEOUT_MS,
             `Twilio recovery list timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms)`
         );
-        const active = (Array.isArray(subs) ? subs : []).filter(
-            (a) => String(a?.status || "").toLowerCase() === "active"
-        );
-        const eligible =
-            active.find((a) =>
-                String(a?.friendlyName || "").toLowerCase().includes("my drip nurse")
-            ) || active[0];
+        const active = (Array.isArray(subs) ? subs : [])
+            .filter((a) => String(a?.status || "").toLowerCase() === "active")
+            .filter((a) => !TWILIO_RECOVERY_CLOSED_SIDS.has(String(a?.sid || "")));
+
+        // Prefer tenant brand accounts, then most recently created.
+        active.sort((a, b) => {
+            const aName = String(a?.friendlyName || "").toLowerCase();
+            const bName = String(b?.friendlyName || "").toLowerCase();
+            const aPreferred = aName.includes("my drip nurse") ? 1 : 0;
+            const bPreferred = bName.includes("my drip nurse") ? 1 : 0;
+            if (aPreferred !== bPreferred) return bPreferred - aPreferred;
+            const aTs = new Date(a?.dateCreated || a?.date_created || 0).getTime() || 0;
+            const bTs = new Date(b?.dateCreated || b?.date_created || 0).getTime() || 0;
+            return bTs - aTs;
+        });
+
+        const eligible = active[0];
 
         if (!eligible?.sid) {
             console.log("⚠️ Twilio capacity recovery: no active subaccount available to close.");
@@ -456,6 +479,7 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
             String(eligible.sid),
             "capacity-recovery-fallback"
         );
+        TWILIO_RECOVERY_CLOSED_SIDS.add(String(closed?.sid || eligible.sid));
         console.log(
             `✅ Twilio capacity recovery: closed fallback active sid=${closed?.sid || eligible.sid} name="${eligible?.friendlyName || ""}" status=${closed?.status || "closed"}`
         );
@@ -623,6 +647,7 @@ async function processOneAccount({
     stateName,
     countyTabIndex,
     cityTabIndex,
+    dbItemState = null,
 }) {
     const isCity = entity.type === "city";
     const tabIndex = isCity ? cityTabIndex : countyTabIndex;
@@ -670,6 +695,14 @@ async function processOneAccount({
     if (isDryRun) {
         created = { id: `dry-${Date.now()}`, name: body.name };
         console.log("🟡 DRY RUN: skipping GHL create");
+    } else if (dbItemState?.existingLocationId) {
+        created = {
+            id: String(dbItemState.existingLocationId),
+            name: String(dbItemState.existingAccountName || body.name || ""),
+        };
+        console.log(
+            `♻️ Reusing existing location from DB state -> locationId=${created.id} account="${created.name}"`
+        );
     } else {
         const maxAttempts = 1 + MAX_SUBACCOUNT_RECOVERY_RETRIES;
         let createErr = null;
@@ -697,6 +730,15 @@ async function processOneAccount({
             }
         }
         if (createErr) throw createErr;
+        if (RUN_DELTA_DB_ACTIVE && dbItemState?.key) {
+            await markRunDeltaItemCreated({
+                key: dbItemState.key,
+                locationId: String(created?.id || ""),
+                accountName: String(created?.name || body?.name || ""),
+            }).catch(() => {});
+            dbItemState.existingLocationId = String(created?.id || "");
+            dbItemState.existingAccountName = String(created?.name || body?.name || "");
+        }
     }
 
     const locationId = created?.id;
@@ -804,6 +846,64 @@ async function processOneAccount({
     return { created: true, locationId };
 }
 
+async function reconcileSheetFromDbDone({
+    isCity,
+    tabIndex,
+    stateName,
+    countyName,
+    cityName = "",
+    locationId = "",
+    accountName = "",
+}) {
+    const keyHeaders = isCity ? ["State", "County", "City"] : ["State", "County"];
+    const keyValuesMap = isCity
+        ? { State: stateName, County: countyName, City: cityName }
+        : { State: stateName, County: countyName };
+    const sheetKey = makeCompositeKey(keyHeaders, keyValuesMap);
+    const rowInfo = tabIndex.mapByKeyValue.get(sheetKey);
+    if (!rowInfo) return;
+
+    const statusIdx = tabIndex.headerMap.get("Status");
+    const accountIdx = tabIndex.headerMap.get("Account Name");
+    const locationIdx = tabIndex.headerMap.get("Location Id");
+    const statusVal = rowInfo.row?.[statusIdx];
+    const rowAccount = accountIdx === undefined ? "" : String(rowInfo.row?.[accountIdx] || "").trim();
+    const rowLocation = locationIdx === undefined ? "" : String(rowInfo.row?.[locationIdx] || "").trim();
+    const desiredAccount = String(accountName || "").trim();
+    const desiredLocation = String(locationId || "").trim();
+
+    const updates = {};
+    if (!isStatusTrue(statusVal)) updates.Status = toBoolishTRUE();
+    if (desiredAccount && !rowAccount) updates["Account Name"] = desiredAccount;
+    if (desiredLocation && !rowLocation) updates["Location Id"] = desiredLocation;
+
+    if (!Object.keys(updates).length) return;
+
+    if (!isDryRun) {
+        await updateRowByHeaders({
+            spreadsheetId: SPREADSHEET_ID,
+            sheetName: tabIndex.sheetName,
+            headers: tabIndex.headers,
+            rowNumber: rowInfo.rowNumber,
+            updatesByHeader: updates,
+        });
+    }
+
+    if (rowInfo.row && statusIdx !== undefined && updates.Status !== undefined) {
+        rowInfo.row[statusIdx] = updates.Status;
+    }
+    if (rowInfo.row && accountIdx !== undefined && updates["Account Name"] !== undefined) {
+        rowInfo.row[accountIdx] = updates["Account Name"];
+    }
+    if (rowInfo.row && locationIdx !== undefined && updates["Location Id"] !== undefined) {
+        rowInfo.row[locationIdx] = updates["Location Id"];
+    }
+
+    console.log(
+        `🔁 DB resume reconciled Sheet (${tabIndex.sheetName}) row=${rowInfo.rowNumber} key="${sheetKey}" -> ${Object.keys(updates).join(", ")}`
+    );
+}
+
 // =====================
 // STATE scope counting for progress totals
 // =====================
@@ -896,6 +996,52 @@ async function runState({
         // PR: no counties
         if (!pr) {
             console.log(`\n🧩 COUNTY ${countyLabel}`);
+            const dbItemState = { key: "", existingLocationId: "", existingAccountName: "" };
+            if (RUN_DELTA_DB_ACTIVE) {
+                const claimed = await claimRunDeltaItem({
+                    runId: RUN_ID,
+                    stateSlug,
+                    kind: "county",
+                    countyName,
+                }).catch(() => ({ action: "claimed", key: "" }));
+                dbItemState.key = String(claimed?.key || "");
+                dbItemState.existingLocationId = String(claimed?.locationId || "");
+                dbItemState.existingAccountName = String(claimed?.accountName || "");
+                if (claimed?.action === "done") {
+                    await reconcileSheetFromDbDone({
+                        isCity: false,
+                        tabIndex: countyTabIndex,
+                        stateName,
+                        countyName,
+                        locationId: dbItemState.existingLocationId,
+                        accountName: dbItemState.existingAccountName,
+                    }).catch((e) => {
+                        console.log(`⚠️ DB resume county reconcile failed (${countyName}): ${e?.message || e}`);
+                    });
+                    resumed++;
+                    progressDone.counties += 1;
+                    progressDone.all += 1;
+                    emitProgress({
+                        totals: progressTotals,
+                        done: progressDone,
+                        last: { kind: "county", state: stateSlug, county: countyName, action: "resume-db-done" },
+                        message: `🧩 ${countyName} • resume-db`,
+                    });
+                    continue;
+                }
+                if (claimed?.action === "busy") {
+                    resumed++;
+                    progressDone.counties += 1;
+                    progressDone.all += 1;
+                    emitProgress({
+                        totals: progressTotals,
+                        done: progressDone,
+                        last: { kind: "county", state: stateSlug, county: countyName, action: "resume-db-busy" },
+                        message: `🧩 ${countyName} • busy`,
+                    });
+                    continue;
+                }
+            }
             const countyCheckpointKey = makeCheckpointItemKey({
                 kind: "county",
                 stateSlug,
@@ -933,16 +1079,37 @@ async function runState({
                             stateName,
                             countyTabIndex,
                             cityTabIndex,
+                            dbItemState,
                         });
                         if (r?.created) countyCreated++;
                         else skipped++;
+                        if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                            await markRunDeltaItemDone({
+                                key: dbItemState.key,
+                                locationId: String(r?.locationId || dbItemState.existingLocationId || ""),
+                                accountName: String(dbItemState.existingAccountName || ""),
+                                note: String(r?.reason || ""),
+                            }).catch(() => {});
+                        }
                         await checkpointMarkDone({ kind: "county", countyName });
                     } catch (e) {
                         console.log(`❌ COUNTY failed after retries (${countyName}):`, formatErrWithDetails(e));
+                        if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                            await markRunDeltaItemFailed({
+                                key: dbItemState.key,
+                                errorMessage: formatErrWithDetails(e),
+                            }).catch(() => {});
+                        }
                         skipped++;
                     }
                 } else {
                     console.log(`⚠️ COUNTY missing body -> SKIP create county: ${countyLabel}`);
+                    if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                        await markRunDeltaItemDone({
+                            key: dbItemState.key,
+                            note: "missing_body",
+                        }).catch(() => {});
+                    }
                     skipped++;
                     await checkpointMarkDone({ kind: "county", countyName });
                 }
@@ -968,6 +1135,54 @@ async function runState({
         for (let c = 0; c < cities.length; c++) {
             const city = cities[c];
             const cityName = city?.cityName || city?.name || "Unknown City";
+            const dbItemState = { key: "", existingLocationId: "", existingAccountName: "" };
+            if (RUN_DELTA_DB_ACTIVE) {
+                const claimed = await claimRunDeltaItem({
+                    runId: RUN_ID,
+                    stateSlug,
+                    kind: "city",
+                    countyName,
+                    cityName,
+                }).catch(() => ({ action: "claimed", key: "" }));
+                dbItemState.key = String(claimed?.key || "");
+                dbItemState.existingLocationId = String(claimed?.locationId || "");
+                dbItemState.existingAccountName = String(claimed?.accountName || "");
+                if (claimed?.action === "done") {
+                    await reconcileSheetFromDbDone({
+                        isCity: true,
+                        tabIndex: cityTabIndex,
+                        stateName,
+                        countyName,
+                        cityName,
+                        locationId: dbItemState.existingLocationId,
+                        accountName: dbItemState.existingAccountName,
+                    }).catch((e) => {
+                        console.log(`⚠️ DB resume city reconcile failed (${cityName}): ${e?.message || e}`);
+                    });
+                    resumed++;
+                    progressDone.cities += 1;
+                    progressDone.all += 1;
+                    emitProgress({
+                        totals: progressTotals,
+                        done: progressDone,
+                        last: { kind: "city", state: stateSlug, county: countyName, city: cityName, action: "resume-db-done" },
+                        message: `🏙️ ${cityName} • resume-db`,
+                    });
+                    continue;
+                }
+                if (claimed?.action === "busy") {
+                    resumed++;
+                    progressDone.cities += 1;
+                    progressDone.all += 1;
+                    emitProgress({
+                        totals: progressTotals,
+                        done: progressDone,
+                        last: { kind: "city", state: stateSlug, county: countyName, city: cityName, action: "resume-db-busy" },
+                        message: `🏙️ ${cityName} • busy`,
+                    });
+                    continue;
+                }
+            }
             const cityCheckpointKey = makeCheckpointItemKey({
                 kind: "city",
                 stateSlug,
@@ -996,6 +1211,12 @@ async function runState({
 
             if (!city?.body?.name) {
                 console.log(`⚠️ CITY missing body -> SKIP: ${cityName}`);
+                if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                    await markRunDeltaItemDone({
+                        key: dbItemState.key,
+                        note: "missing_body",
+                    }).catch(() => {});
+                }
                 skipped++;
                 await checkpointMarkDone({ kind: "city", countyName, cityName });
 
@@ -1021,12 +1242,27 @@ async function runState({
                     stateName,
                     countyTabIndex,
                     cityTabIndex,
+                    dbItemState,
                 });
                 if (r?.created) cityCreated++;
                 else skipped++;
+                if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                    await markRunDeltaItemDone({
+                        key: dbItemState.key,
+                        locationId: String(r?.locationId || dbItemState.existingLocationId || ""),
+                        accountName: String(dbItemState.existingAccountName || ""),
+                        note: String(r?.reason || ""),
+                    }).catch(() => {});
+                }
                 await checkpointMarkDone({ kind: "city", countyName, cityName });
             } catch (e) {
                 console.log(`❌ CITY failed after retries (${cityName}):`, formatErrWithDetails(e));
+                if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                    await markRunDeltaItemFailed({
+                        key: dbItemState.key,
+                        errorMessage: formatErrWithDetails(e),
+                    }).catch(() => {});
+                }
                 skipped++;
             }
 
@@ -1115,6 +1351,20 @@ async function main() {
     console.log("phase:init -> loadTokens start");
     await loadTokens();
     console.log("phase:init -> loadTokens done");
+    if (RUN_DELTA_DB_ACTIVE) {
+        try {
+            await initRunDeltaItemState();
+            RUN_DELTA_DB_ACTIVE = true;
+            console.log("phase:init -> run delta item state (db) enabled");
+        } catch (e) {
+            RUN_DELTA_DB_ACTIVE = false;
+            console.log(
+                `⚠️ phase:init -> run delta item state init failed (continuing without db-state): ${e?.message || e}`
+            );
+        }
+    } else {
+        console.log("phase:init -> run delta item state (db) disabled");
+    }
     if (CHECKPOINT_ENABLED) {
         await resetCheckpointsIfRequested();
         await ensureCheckpointDir();
