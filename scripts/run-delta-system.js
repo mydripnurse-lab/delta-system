@@ -109,6 +109,8 @@ const NON_INTERACTIVE =
     String(process.env.DELTA_NON_INTERACTIVE || "") === "1" || !process.stdin.isTTY;
 
 const ENABLE_TWILIO_CLOSE = String(process.env.DELTA_ENABLE_TWILIO_CLOSE || "1") !== "0";
+const PREDELETE_TWILIO_BEFORE_GHL_CREATE =
+    String(process.env.DELTA_PREDELETE_TWILIO_BEFORE_GHL || "1") !== "0";
 const SHEETS_LOAD_TIMEOUT_MS = Math.max(
     5000,
     Number(process.env.DELTA_SHEETS_LOAD_TIMEOUT_MS || "90000")
@@ -493,6 +495,44 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
     }
 }
 
+async function closeLatestActiveTwilioSubaccountBeforeCreate() {
+    if (!ENABLE_TWILIO_CLOSE || !PREDELETE_TWILIO_BEFORE_GHL_CREATE) return false;
+    try {
+        const subs = await withTimeout(
+            listSubaccounts({ limit: FAST_MODE ? 120 : 400 }),
+            TWILIO_LOOKUP_TIMEOUT_MS,
+            `Twilio pre-delete list timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms)`
+        );
+        const active = (Array.isArray(subs) ? subs : [])
+            .filter((a) => String(a?.status || "").toLowerCase() === "active")
+            .filter((a) => !TWILIO_RECOVERY_CLOSED_SIDS.has(String(a?.sid || "")));
+
+        // "ultima activa": newest by creation date.
+        active.sort((a, b) => {
+            const aTs = new Date(a?.dateCreated || a?.date_created || 0).getTime() || 0;
+            const bTs = new Date(b?.dateCreated || b?.date_created || 0).getTime() || 0;
+            return bTs - aTs;
+        });
+
+        const latest = active[0];
+        if (!latest?.sid) {
+            console.log("ℹ️ Twilio pre-delete: no active subaccount to close.");
+            return false;
+        }
+
+        const sid = String(latest.sid);
+        const closed = await closeTwilioAccountWithRetry(sid, "pre-delete-before-ghl-create");
+        TWILIO_RECOVERY_CLOSED_SIDS.add(String(closed?.sid || sid));
+        console.log(
+            `✅ Twilio pre-delete: closed latest active sid=${closed?.sid || sid} name="${latest?.friendlyName || ""}" status=${closed?.status || "closed"}`
+        );
+        return true;
+    } catch (e) {
+        console.log("⚠️ Twilio pre-delete failed (continuing with normal flow):", e?.message || e);
+        return false;
+    }
+}
+
 function formatErrWithDetails(e) {
     const msg = String(e?.message || e || "unknown error");
     const st = Number(e?.status ?? e?.code);
@@ -707,6 +747,9 @@ async function processOneAccount({
             `♻️ Reusing existing location from DB state -> locationId=${created.id} account="${created.name}"`
         );
     } else {
+        // Always try to free one Twilio slot before GHL create (best-effort, non-blocking).
+        await closeLatestActiveTwilioSubaccountBeforeCreate();
+
         const maxAttempts = 1 + MAX_SUBACCOUNT_RECOVERY_RETRIES;
         let createErr = null;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {

@@ -877,7 +877,7 @@ export default function Home() {
     etaSec: null,
     status: "idle",
   });
-  const [runFlowStatus, setRunFlowStatus] = useState<RunFlowStatus>({
+  const [, setRunFlowStatus] = useState<RunFlowStatus>({
     createDb: "pending",
     createJson: "pending",
     runDelta: "pending",
@@ -5447,45 +5447,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     stateFileSearchCity,
   ]);
 
-  const runFlowSteps = useMemo(() => {
-    const clamp = (n: number) => Math.max(0, Math.min(1, n));
-    const pct = clamp(Number(progress.pct) || 0);
-    const progressByStatus = (status: RunFlowStepStatus, runningFill = 0.6) => {
-      if (status === "done") return 1;
-      if (status === "running") return runningFill;
-      if (status === "error") return 1;
-      return 0;
-    };
-
-    return [
-      {
-        key: "create-db",
-        label: "1. Create DB",
-        status: runFlowStatus.createDb,
-        progress: progressByStatus(runFlowStatus.createDb, 0.62),
-      },
-      {
-        key: "create-json",
-        label: "2. Create Subaccount Json",
-        status: runFlowStatus.createJson,
-        progress: progressByStatus(runFlowStatus.createJson, 0.62),
-      },
-      {
-        key: "run-delta",
-        label: "3. Run Delta System",
-        status: runFlowStatus.runDelta,
-        progress:
-          runFlowStatus.runDelta === "done"
-            ? 1
-            : runFlowStatus.runDelta === "running"
-              ? Math.max(0.08, pct)
-              : runFlowStatus.runDelta === "error"
-                ? 1
-                : 0,
-      },
-    ];
-  }, [progress.pct, runFlowStatus]);
-
   const runSummary = useMemo(() => {
     const out = { total: runCards.length, running: 0, done: 0, error: 0, stopped: 0 };
     for (const r of runCards) {
@@ -6655,31 +6616,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             </div>
           ) : null}
 
-          <div className="runFlowStrip" aria-label="Run pipeline">
-            <div className="runFlowTrack">
-              {runFlowSteps.map((step, idx) => (
-                <div key={step.key} className="runFlowStepWrap">
-                  <span
-                    className={`runFlowStep ${
-                      step.status === "done"
-                        ? "runFlowStepDone"
-                        : step.status === "running"
-                          ? "runFlowStepLoading runFlowStepActive"
-                          : step.status === "error"
-                            ? "runFlowStepError"
-                            : "runFlowStepPending"
-                    }`}
-                    style={{ ["--step-progress" as any]: `${Math.round(step.progress * 100)}%` }}
-                  >
-                    <span className="runFlowStepFill" aria-hidden />
-                    <span className="runFlowStepLabel">{step.label}</span>
-                  </span>
-                  {idx < runFlowSteps.length - 1 ? <span className="runFlowArrow">→</span> : null}
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="actions runPrimaryActions">
             <div className="runPrimaryMain">
               <label className="mini" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -6757,10 +6693,69 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   key={r.id}
                   className={`runCard runCardStatus${r.status.charAt(0).toUpperCase()}${r.status.slice(1)}`}
                 >
+                  {(() => {
+                    const msg = s(r.message).toLowerCase();
+                    let createDbStatus: "pending" | "running" | "done" | "error" = "pending";
+                    let createJsonStatus: "pending" | "running" | "done" | "error" = "pending";
+                    let runDeltaStatus: "pending" | "running" | "done" | "error" = "pending";
+
+                    if (r.status === "done") {
+                      createDbStatus = "done";
+                      createJsonStatus = "done";
+                      runDeltaStatus = "done";
+                    } else if (r.status === "error" || r.status === "stopped") {
+                      if (msg.includes("create-db (build-sheet-rows): start")) {
+                        createDbStatus = "error";
+                      } else if (
+                        msg.includes("generating state output json (build-counties)") ||
+                        msg.includes("build-counties")
+                      ) {
+                        createDbStatus = "done";
+                        createJsonStatus = "error";
+                      } else {
+                        createDbStatus = "done";
+                        createJsonStatus = "done";
+                        runDeltaStatus = "error";
+                      }
+                    } else if (msg.includes("create-db (build-sheet-rows): start")) {
+                      createDbStatus = "running";
+                    } else if (msg.includes("create-db (build-sheet-rows): done")) {
+                      createDbStatus = "done";
+                    } else if (msg.includes("generating state output json (build-counties)")) {
+                      createDbStatus = "done";
+                      createJsonStatus = "running";
+                    } else if (msg.includes("prebuild: build-counties done.")) {
+                      createDbStatus = "done";
+                      createJsonStatus = "done";
+                    } else if (
+                      msg.includes("main: started child pid=") ||
+                      msg.includes("phase:init ->") ||
+                      msg.includes("🏁 run state:") ||
+                      msg.includes("running")
+                    ) {
+                      createDbStatus = "done";
+                      createJsonStatus = "done";
+                      runDeltaStatus = "running";
+                    } else {
+                      createDbStatus = "done";
+                      createJsonStatus = "done";
+                      runDeltaStatus = "running";
+                    }
+
+                    const stepClasses = (status: "pending" | "running" | "done" | "error") =>
+                      status === "done"
+                        ? "runFlowStepDone"
+                        : status === "running"
+                          ? "runFlowStepLoading runFlowStepActive"
+                          : status === "error"
+                            ? "runFlowStepError"
+                            : "runFlowStepPending";
+
+                    return (
+                      <>
                   <div className="runCardHead">
                     <div className="runCardTitle">
-                      <b>{s(r.meta?.job) || "run"}</b>
-                      <span className="mini runCardSubline">state: {formatStateLabel(r.stateLabel) || "ALL"}</span>
+                      <b>{formatStateLabel(r.stateLabel) || "ALL"}</b>
                       <span className="mini runCardSubline runCardRunId">runId: {r.id}</span>
                     </div>
                     <span className="badge runCardPct">{r.pct}%</span>
@@ -6776,11 +6771,27 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <span className="runMetaPill">Updated: <b>{r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}</b></span>
                   </div>
 
-                  <div className="runCardBar" aria-hidden>
-                    <div
-                      className={`runCardBarFill runCardBarFill${r.status.charAt(0).toUpperCase()}${r.status.slice(1)}`}
-                      style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }}
-                    />
+                  <div className="runCardFlowTrack" aria-hidden>
+                    <div className="runFlowStepWrap">
+                      <span className={`runFlowStep ${stepClasses(createDbStatus)}`}>
+                        <span className="runFlowStepFill" aria-hidden style={{ width: `${createDbStatus === "running" ? 68 : createDbStatus === "done" ? 100 : createDbStatus === "error" ? 100 : 0}%` }} />
+                        <span className="runFlowStepLabel">1. Create DB</span>
+                      </span>
+                      <span className="runFlowArrow">→</span>
+                    </div>
+                    <div className="runFlowStepWrap">
+                      <span className={`runFlowStep ${stepClasses(createJsonStatus)}`}>
+                        <span className="runFlowStepFill" aria-hidden style={{ width: `${createJsonStatus === "running" ? 68 : createJsonStatus === "done" ? 100 : createJsonStatus === "error" ? 100 : 0}%` }} />
+                        <span className="runFlowStepLabel">2. Create Subaccount Json</span>
+                      </span>
+                      <span className="runFlowArrow">→</span>
+                    </div>
+                    <div className="runFlowStepWrap">
+                      <span className={`runFlowStep ${stepClasses(runDeltaStatus)}`}>
+                        <span className="runFlowStepFill" aria-hidden style={{ width: `${runDeltaStatus === "running" ? Math.max(9, Math.min(100, r.pct)) : runDeltaStatus === "done" ? 100 : runDeltaStatus === "error" ? 100 : 0}%` }} />
+                        <span className="runFlowStepLabel">3. Run Delta System</span>
+                      </span>
+                    </div>
                   </div>
 
                   <div className="runCardActions">
@@ -6820,6 +6831,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       Delete
                     </button>
                   </div>
+                      </>
+                    );
+                  })()}
                 </article>
               ))
             )}
