@@ -32,6 +32,7 @@ type AuthUser = {
   fullName: string | null;
   phone: string | null;
   avatarUrl: string | null;
+  preferredLocale: string | null;
   globalRoles: AppRole[];
 };
 
@@ -146,18 +147,18 @@ async function resolveOrCreateUser(req: Request): Promise<AuthResult> {
 
   const byId = !!userId;
   const query = byId
-    ? `select u.id, u.email, u.full_name, u.phone, (to_jsonb(u)->>'avatar_url') as avatar_url, u.is_active from app.users u where u.id = $1 limit 1`
-    : `select u.id, u.email, u.full_name, u.phone, (to_jsonb(u)->>'avatar_url') as avatar_url, u.is_active from app.users u where lower(u.email) = lower($1) limit 1`;
+    ? `select u.id, u.email, u.full_name, u.phone, (to_jsonb(u)->>'avatar_url') as avatar_url, (to_jsonb(u)->>'preferred_locale') as preferred_locale, u.is_active from app.users u where u.id = $1 limit 1`
+    : `select u.id, u.email, u.full_name, u.phone, (to_jsonb(u)->>'avatar_url') as avatar_url, (to_jsonb(u)->>'preferred_locale') as preferred_locale, u.is_active from app.users u where lower(u.email) = lower($1) limit 1`;
   const val = byId ? userId : email;
-  const existing = await pool.query<{ id: string; email: string; full_name: string | null; phone: string | null; avatar_url: string | null; is_active: boolean }>(query, [val]);
+  const existing = await pool.query<{ id: string; email: string; full_name: string | null; phone: string | null; avatar_url: string | null; preferred_locale: string | null; is_active: boolean }>(query, [val]);
 
   let user = existing.rows[0] || null;
   if (!user && !byId && autoCreate) {
-    const inserted = await pool.query<{ id: string; email: string; full_name: string | null; phone: string | null; avatar_url: string | null; is_active: boolean }>(
+    const inserted = await pool.query<{ id: string; email: string; full_name: string | null; phone: string | null; avatar_url: string | null; preferred_locale: string | null; is_active: boolean }>(
       `
-        insert into app.users (email, full_name, phone, is_active)
-        values ($1, nullif($2, ''), null, true)
-        returning id, email, full_name, phone, avatar_url, is_active
+        insert into app.users (email, full_name, phone, preferred_locale, is_active)
+        values ($1, nullif($2, ''), null, 'en-US', true)
+        returning id, email, full_name, phone, avatar_url, preferred_locale, is_active
       `,
       [email, rawName],
     );
@@ -200,6 +201,7 @@ async function resolveOrCreateUser(req: Request): Promise<AuthResult> {
       fullName: user.full_name,
       phone: user.phone,
       avatarUrl: user.avatar_url,
+      preferredLocale: user.preferred_locale,
       globalRoles,
     },
   };

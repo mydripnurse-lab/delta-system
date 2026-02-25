@@ -167,6 +167,7 @@ type AuthMeUser = {
   fullName?: string | null;
   phone?: string | null;
   avatarUrl?: string | null;
+  preferredLocale?: string | null;
   globalRoles?: string[];
 };
 
@@ -204,6 +205,11 @@ const AGENCY_USER_STATUS_OPTIONS: Array<"active" | "invited" | "disabled"> = ["a
 const GLOBAL_ROLE_OPTIONS: Array<AgencyUserRow["draftGlobalRole"]> = ["", "agency_admin", "analytics", "platform_admin"];
 const TABLE_PAGE_SIZE = 12;
 type KpiRangePreset = "7d" | "28d" | "3m" | "6m" | "1y" | "custom";
+const PROFILE_LOCALE_OPTIONS = [
+  { value: "en-US", label: "English (US)" },
+  { value: "es-PR", label: "Spanish (PR)" },
+  { value: "es-ES", label: "Spanish (ES)" },
+] as const;
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -451,6 +457,9 @@ export default function AgencyHomePage() {
   const [profileEmail, setProfileEmail] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState("");
+  const [profilePreferredLocale, setProfilePreferredLocale] = useState("en-US");
+  const [profileApplyLocaleToTenant, setProfileApplyLocaleToTenant] = useState(false);
+  const [profileTenantId, setProfileTenantId] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileErr, setProfileErr] = useState("");
   const [profileOk, setProfileOk] = useState("");
@@ -611,6 +620,7 @@ export default function AgencyHomePage() {
       setProfileEmail(s(data.user.email));
       setProfilePhone(s(data.user.phone));
       setProfileAvatarUrl(s(data.user.avatarUrl));
+      setProfilePreferredLocale(s(data.user.preferredLocale) || "en-US");
     } catch {
       // keep UI functional even if auth profile endpoint fails transiently
     }
@@ -761,11 +771,29 @@ export default function AgencyHomePage() {
           email: s(profileEmail),
           phone: s(profilePhone),
           avatarUrl: s(profileAvatarUrl),
+          preferredLocale: s(profilePreferredLocale) || "en-US",
         }),
       });
       const data = (await safeJson(res)) as { ok?: boolean; error?: string } | null;
       if (!res.ok || !data?.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      setProfileOk("Profile updated.");
+      if (profileApplyLocaleToTenant && s(profileTenantId)) {
+        const tenantRes = await fetch(`/api/tenants/${encodeURIComponent(s(profileTenantId))}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            locale: s(profilePreferredLocale) || "en-US",
+          }),
+        });
+        const tenantData = (await safeJson(tenantRes)) as { ok?: boolean; error?: string } | null;
+        if (!tenantRes.ok || !tenantData?.ok) {
+          throw new Error(tenantData?.error || `Failed to update tenant language (HTTP ${tenantRes.status})`);
+        }
+      }
+      setProfileOk(
+        profileApplyLocaleToTenant && s(profileTenantId)
+          ? "Profile and tenant language updated."
+          : "Profile updated.",
+      );
       await loadAuthMe();
       if (activeMenu === "staff" && agencyUsersLoadedOnce) {
         await loadAgencyUsers();
@@ -1020,6 +1048,12 @@ export default function AgencyHomePage() {
   }, []);
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+    const locale = s(authMe?.preferredLocale) || "en-US";
+    document.documentElement.lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
+  }, [authMe?.preferredLocale]);
+
+  useEffect(() => {
     if (!tenantKpiPrefsReady) return;
     if (!autoSyncRanRef.current) return;
     if (tenantKpiPreset === "custom" && (!s(tenantKpiStart) || !s(tenantKpiEnd))) return;
@@ -1052,6 +1086,11 @@ export default function AgencyHomePage() {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams(window.location.search);
     const panel = s(sp.get("account")).toLowerCase();
+    const profileTenantFromQuery = s(sp.get("tenantId"));
+    if (profileTenantFromQuery) {
+      setProfileTenantId(profileTenantFromQuery);
+      setProfileApplyLocaleToTenant(true);
+    }
     if (panel === "profile") {
       setShowProfileModal(true);
       setShowSecurityModal(false);
@@ -1176,9 +1215,14 @@ export default function AgencyHomePage() {
     setProfileEmail(s(authMe?.email));
     setProfilePhone(s(authMe?.phone));
     setProfileAvatarUrl(s(authMe?.avatarUrl));
+    setProfilePreferredLocale(s(authMe?.preferredLocale) || "en-US");
+    if (!s(profileTenantId)) {
+      const fallbackTenantId = s(settingsTenantId) || s(manageTenantId) || s(tenantRows[0]?.id);
+      if (fallbackTenantId) setProfileTenantId(fallbackTenantId);
+    }
     setProfileErr("");
     setProfileOk("");
-  }, [showProfileModal, authMe]);
+  }, [showProfileModal, authMe, profileTenantId, settingsTenantId, manageTenantId, tenantRows]);
 
   useEffect(() => {
     if (!showSecurityModal) return;
@@ -2698,7 +2742,7 @@ export default function AgencyHomePage() {
             <div className="agencyProjectsHeader">
               <div>
                 <h2>Staff</h2>
-                <p>Tenant staff + Agency accounts (usuarios globales) en una sola vista.</p>
+                <p>Tenant staff + agency accounts (global users) in one unified view.</p>
               </div>
               <div className="agencyProjectsHeaderRight">
                 <div className="agencyTopActions agencyTopActionsMinimal">
@@ -2767,7 +2811,7 @@ export default function AgencyHomePage() {
             {staffScopeTab === "agency" ? (
             <div className="agencyFormPanel agencyStaffCreateBox">
               <h4>Agency Accounts</h4>
-              <p className="mini">Usuarios globales del agency. Aquí puedes editar tu cuenta y borrar cuentas creadas.</p>
+              <p className="mini">Global agency users. You can edit your account and remove created accounts here.</p>
               {agencyCanManageUsers ? (
                 <div className="agencyWizardGrid agencyWizardGridFour">
                   <input
@@ -3180,7 +3224,7 @@ export default function AgencyHomePage() {
             <div className="agencyProjectsHeader">
               <div>
                 <h2>App Settings</h2>
-                <p>Configuración central del proyecto: identidad, locale y contacto.</p>
+                <p>Central project settings: identity, locale and contact details.</p>
               </div>
               <div className="agencyTopActions agencyTopActionsMinimal">
                 <select className="input agencyTenantSelect" value={settingsTenantId} onChange={(e) => setSettingsTenantId(e.target.value)}>
@@ -3270,7 +3314,7 @@ export default function AgencyHomePage() {
             </div>
             <div className="agencyFormPanel agencyWebhookPanel">
               <h4>Staff Invite Webhooks (GHL)</h4>
-              <p className="mini">Configura el webhook de Staff Invite y envía un test para validar tu workflow.</p>
+              <p className="mini">Configure the staff invite webhook and send a test payload to validate your workflow.</p>
               <div className="agencySettingsGrid">
                 <label className="agencyField">
                   <span className="agencyFieldLabel">Webhook URL</span>
@@ -3286,7 +3330,7 @@ export default function AgencyHomePage() {
                   />
                 </label>
               </div>
-              <p className="mini">Si dejas Activation Base URL vacío, el sistema usa automáticamente `APP_URL/activate`.</p>
+              <p className="mini">If Activation Base URL is empty, the system automatically uses `APP_URL/activate`.</p>
               {inviteWebhookErr ? <div className="errorText">{inviteWebhookErr}</div> : null}
               {inviteWebhookOk ? <div className="okText">{inviteWebhookOk}</div> : null}
               <div className="agencyCreateActions agencyCreateActionsSpaced">
@@ -3306,7 +3350,7 @@ export default function AgencyHomePage() {
             <div className="agencyProjectsHeader">
               <div>
                 <h2>Billing</h2>
-                <p>Resumen financiero operativo del agency con export rápido.</p>
+                <p>Operational financial summary for the agency with quick export.</p>
               </div>
               <div className="agencyTopActions agencyTopActionsMinimal">
                 <button type="button" className="btnGhost" onClick={exportBillingCsv}>Export CSV</button>
@@ -3358,7 +3402,7 @@ export default function AgencyHomePage() {
             <div className="agencyProjectsHeader">
               <div>
                 <h2>Audit Logs</h2>
-                <p>Historial de cambios y acciones por proyecto.</p>
+                <p>Change and action history by project.</p>
               </div>
               <div className="agencyTopActions agencyTopActionsMinimal">
                 <select className="input agencyTenantSelect" value={auditTenantId} onChange={(e) => setAuditTenantId(e.target.value)}>
@@ -3484,6 +3528,46 @@ export default function AgencyHomePage() {
                   <span className="agencyFieldLabel">Profile image URL</span>
                   <input className="input" value={profileAvatarUrl} onChange={(e) => setProfileAvatarUrl(e.target.value)} placeholder="https://..." />
                 </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Language</span>
+                  <select className="input" value={profilePreferredLocale} onChange={(e) => setProfilePreferredLocale(e.target.value)}>
+                    {PROFILE_LOCALE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <span className="agencyFieldHint">This is your default language across the app.</span>
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Apply language to tenant</span>
+                  <select
+                    className="input"
+                    value={profileApplyLocaleToTenant ? "yes" : "no"}
+                    onChange={(e) => setProfileApplyLocaleToTenant(e.target.value === "yes")}
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </label>
+                {profileApplyLocaleToTenant ? (
+                  <label className="agencyField agencyFieldFull">
+                    <span className="agencyFieldLabel">Tenant</span>
+                    <select
+                      className="input"
+                      value={profileTenantId}
+                      onChange={(e) => setProfileTenantId(e.target.value)}
+                      disabled={tenantRows.length === 0}
+                    >
+                      {tenantRows.length === 0 ? (
+                        <option value="">No tenant available</option>
+                      ) : (
+                        tenantRows.map((tenant) => (
+                          <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
+                        ))
+                      )}
+                    </select>
+                    <span className="agencyFieldHint">Updates `locale` on the selected tenant settings.</span>
+                  </label>
+                ) : null}
                 {s(profileAvatarUrl) ? (
                   <div className="agencyProfilePreview">
                     <img className="agencyProfilePreviewImg" src={s(profileAvatarUrl)} alt={s(profileFullName) || "Profile preview"} />
@@ -3958,7 +4042,7 @@ export default function AgencyHomePage() {
             <div className="agencyModalHeader">
               <div>
                 <h3>New Project Setup</h3>
-                <p>Configura identidad, locale y conexión principal del tenant.</p>
+                <p>Configure tenant identity, locale, and primary connection.</p>
               </div>
               <button
                 type="button"
@@ -4126,7 +4210,7 @@ export default function AgencyHomePage() {
                                   checked={newAdsAlertsEnabled}
                                   onChange={(e) => setNewAdsAlertsEnabled(e.target.checked)}
                                 />
-                                <span className="agencyFieldHint">Activa o desactiva alertas AI para este tenant.</span>
+                                <span className="agencyFieldHint">Enable or disable AI alerts for this tenant.</span>
                               </div>
                             </label>
                             <label className="agencyField">
@@ -4137,7 +4221,7 @@ export default function AgencyHomePage() {
                                   checked={newAdsAlertSmsEnabled}
                                   onChange={(e) => setNewAdsAlertSmsEnabled(e.target.checked)}
                                 />
-                                <span className="agencyFieldHint">Envía `action.sendSms=true`; GHL decide el destino.</span>
+                                <span className="agencyFieldHint">Sends `action.sendSms=true`; GHL decides the destination.</span>
                               </div>
                             </label>
                           </div>
@@ -4459,7 +4543,7 @@ export default function AgencyHomePage() {
                             checked={manageAdsAlertSmsEnabled}
                             onChange={(e) => setManageAdsAlertSmsEnabled(e.target.checked)}
                           />
-                          <span className="agencyFieldHint">Envía `action.sendSms=true`; GHL decide el destino.</span>
+                          <span className="agencyFieldHint">Sends `action.sendSms=true`; GHL decides the destination.</span>
                         </div>
                       </label>
                       <div className="agencyField agencyFieldFull">
@@ -4525,7 +4609,7 @@ export default function AgencyHomePage() {
                           value={manageGoogleServiceAccountJson}
                           onChange={(e) => setManageGoogleServiceAccountJson(e.target.value)}
                         />
-                        <span className="agencyFieldHint">Se guarda por tenant en DB. Si está vacío, se usa el keyfile path configurado.</span>
+                        <span className="agencyFieldHint">Stored per tenant in DB. If empty, the configured keyfile path is used.</span>
                       </label>
                     </div>
                   ) : null}
@@ -4546,7 +4630,7 @@ export default function AgencyHomePage() {
                 <div className="agencyDangerBox agencyStaffCreateBox">
                   <h4>Bing Webmaster (tenant)</h4>
                   <p className="agencyDangerHint">
-                    Guarda la API key y los sitios en DB (`bing_webmaster:default`). El dashboard de Bing usa esta integración.
+                    Saves API key and site URLs in DB (`bing_webmaster:default`). The Bing dashboard reads this integration.
                   </p>
                   <div className="agencyWizardGrid agencyWizardGridTwo">
                     <label className="agencyField">

@@ -449,6 +449,56 @@ async function runPrebuildCounties(args: {
     appendLine(args.runId, "prebuild: build-counties done.");
 }
 
+async function runPreStepJob(args: {
+    repoRoot: string;
+    runId: string;
+    mode: "live" | "dry";
+    debug: boolean;
+    state: string;
+    env: NodeJS.ProcessEnv;
+    stepJobKey: string;
+    stepLabel: string;
+    outputPrefix: string;
+}) {
+    const stepScript = resolveScriptPath(findRepoRoots(args.repoRoot), args.stepJobKey).scriptPath;
+    if (!stepScript) {
+        throw new Error(`${args.stepLabel} failed: script "${args.stepJobKey}" not found.`);
+    }
+
+    appendLine(args.runId, `${args.stepLabel}: start`);
+    const stepArgs = [stepScript, `--mode=${args.mode}`, `--debug=${args.debug ? "1" : "0"}`];
+    if (args.state) {
+        stepArgs.push(`--state=${args.state}`);
+        stepArgs.push(args.state);
+    }
+
+    const child = spawn(process.execPath, stepArgs, {
+        cwd: args.repoRoot,
+        env: args.env,
+        stdio: ["pipe", "pipe", "pipe"],
+        detached: process.platform !== "win32",
+    });
+
+    const rlOut = readline.createInterface({ input: child.stdout });
+    const rlErr = readline.createInterface({ input: child.stderr });
+    rlOut.on("line", (line) => appendLine(args.runId, `[${args.outputPrefix}] ${line}`));
+    rlErr.on("line", (line) => appendLine(args.runId, `[${args.outputPrefix}] ${line}`));
+
+    const exitCode = await new Promise<number>((resolve) => {
+        child.on("error", () => resolve(1));
+        child.on("close", (code) => resolve(code ?? 1));
+    });
+    try {
+        rlOut.close();
+        rlErr.close();
+    } catch {}
+
+    if (exitCode !== 0) {
+        throw new Error(`${args.stepLabel} failed with exit code ${exitCode}.`);
+    }
+    appendLine(args.runId, `${args.stepLabel}: done`);
+}
+
 async function persistTenantGhlTokenUpdate(input: {
     tenantId: string;
     provider: "ghl" | "custom";
@@ -684,6 +734,20 @@ export async function POST(req: Request) {
             }
         }
 
+        if (job === "run-delta-system") {
+            await runPreStepJob({
+                repoRoot,
+                runId: run.id,
+                mode,
+                debug,
+                state: rawState,
+                env: envMerged,
+                stepJobKey: "build-sheet-rows",
+                stepLabel: "prebuild: create-db (build-sheet-rows)",
+                outputPrefix: "create-db",
+            });
+        }
+
         if (jobNeedsGeneratedOut(job)) {
             await runPrebuildCounties({
                 repoRoot,
@@ -720,6 +784,11 @@ export async function POST(req: Request) {
         const idleTimeoutMs = idleTimeoutMin * 60_000;
         const maxRuntimeMin = Math.max(idleTimeoutMin, Number(process.env.RUNNER_MAX_RUNTIME_MIN || 180));
         const maxRuntimeMs = maxRuntimeMin * 60_000;
+        const runnerHeartbeatEnabled = String(process.env.RUNNER_HEARTBEAT_LOG_ENABLED || "0") === "1";
+        const runnerHeartbeatEveryMs = Math.max(
+            15_000,
+            Number(process.env.RUNNER_HEARTBEAT_LOG_EVERY_MS || "60000"),
+        );
         const startedAt = Date.now();
         let lastActivityAt = Date.now();
         let lastRunnerHeartbeatAt = 0;
@@ -728,7 +797,7 @@ export async function POST(req: Request) {
         const idleTicker = setInterval(() => {
             if (closed) return;
             const now = Date.now();
-            if (now - lastRunnerHeartbeatAt >= 30_000) {
+            if (runnerHeartbeatEnabled && now - lastRunnerHeartbeatAt >= runnerHeartbeatEveryMs) {
                 lastRunnerHeartbeatAt = now;
                 appendLine(
                     run.id,

@@ -71,6 +71,7 @@ export async function GET(req: Request) {
       fullName: auth.user.fullName,
       phone: auth.user.phone,
       avatarUrl: auth.user.avatarUrl,
+      preferredLocale: auth.user.preferredLocale,
       globalRoles: auth.user.globalRoles,
     },
     tenants: tenantRows.rows,

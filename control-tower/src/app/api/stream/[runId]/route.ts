@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 const STREAM_DB_ONLY = String(process.env.RUN_STREAM_DB_ONLY || "1") === "1";
 const STREAM_HEARTBEAT_IDLE_MS = Math.max(15_000, Number(process.env.RUN_STREAM_HEARTBEAT_IDLE_MS || 60_000));
+const STREAM_IDLE_LINE_ENABLED = String(process.env.RUN_STREAM_IDLE_LINE_ENABLED || "0") === "1";
 
 function sseLine(str: string) {
     return `${str}\n`;
@@ -63,8 +64,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
             // hello
             write(sseEvent("hello", { runId }));
 
+            const url = new URL(req.url);
+            const afterEventIdRaw = String(url.searchParams.get("afterEventId") || "").trim();
             const lastEventIdRaw = String(req.headers.get("last-event-id") || "").trim();
-            const lastEventId = Number(lastEventIdRaw);
+            const lastEventId = Number(afterEventIdRaw || lastEventIdRaw);
             let lastSentLineCount = Number.isFinite(lastEventId) && lastEventId > 0 ? Math.floor(lastEventId) : 0;
 
             let lastDbEventId =
@@ -134,7 +137,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
                             lastDbEventId = Math.max(lastDbEventId, evId);
                         }
 
-                        if ((evQ.rows || []).length === 0) {
+                        if (STREAM_IDLE_LINE_ENABLED && (evQ.rows || []).length === 0) {
                             const idleMs = Date.now() - lastVisibleLineAt;
                             if (idleMs >= STREAM_HEARTBEAT_IDLE_MS) {
                                 write(sseEvent("line", `runner-heartbeat: waiting for next log (${Math.round(idleMs / 1000)}s idle)`));
@@ -194,7 +197,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
                 }
                 lastSentLineCount = lines.length;
 
-                if (lines.length === 0) {
+                if (STREAM_IDLE_LINE_ENABLED && lines.length === 0) {
                     const idleMs = Date.now() - lastVisibleLineAt;
                     if (idleMs >= STREAM_HEARTBEAT_IDLE_MS) {
                         write(sseEvent("line", `runner-heartbeat: waiting for next log (${Math.round(idleMs / 1000)}s idle)`));

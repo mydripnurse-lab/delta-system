@@ -8,11 +8,14 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+const ALLOWED_LOCALES = new Set(["en-US", "es-PR", "es-ES"]);
+
 type PatchProfileBody = {
   fullName?: string;
   email?: string;
   phone?: string;
   avatarUrl?: string;
+  preferredLocale?: string;
 };
 
 export async function PATCH(req: Request) {
@@ -26,7 +29,11 @@ export async function PATCH(req: Request) {
   const email = s(body.email).toLowerCase();
   const phone = s(body.phone);
   const avatarUrl = s(body.avatarUrl);
-  if (!fullName && !email && !phone && body.phone !== "" && !avatarUrl && body.avatarUrl !== "") {
+  const preferredLocale = s(body.preferredLocale);
+  if (body.preferredLocale !== undefined && preferredLocale && !ALLOWED_LOCALES.has(preferredLocale)) {
+    return NextResponse.json({ ok: false, error: "Invalid preferredLocale" }, { status: 400 });
+  }
+  if (!fullName && !email && !phone && body.phone !== "" && !avatarUrl && body.avatarUrl !== "" && !preferredLocale) {
     return NextResponse.json({ ok: false, error: "Nothing to update." }, { status: 400 });
   }
 
@@ -48,6 +55,10 @@ export async function PATCH(req: Request) {
     vals.push(avatarUrl || null);
     set.push(`avatar_url = nullif($${vals.length}::text, '')`);
   }
+  if (preferredLocale) {
+    vals.push(preferredLocale);
+    set.push(`preferred_locale = nullif($${vals.length}::text, '')`);
+  }
 
   const pool = getDbPool();
   try {
@@ -57,12 +68,13 @@ export async function PATCH(req: Request) {
       full_name: string | null;
       phone: string | null;
       avatar_url: string | null;
+      preferred_locale: string | null;
     }>(
       `
         update app.users
         set ${set.join(", ")}
         where id = $1
-        returning id, email, full_name, phone, avatar_url
+        returning id, email, full_name, phone, avatar_url, preferred_locale
       `,
       vals,
     );
@@ -78,6 +90,7 @@ export async function PATCH(req: Request) {
         fullName: q.rows[0].full_name,
         phone: q.rows[0].phone,
         avatarUrl: q.rows[0].avatar_url,
+        preferredLocale: q.rows[0].preferred_locale,
       },
     });
   } catch (error: unknown) {

@@ -7,8 +7,6 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 
 const JOBS = [
-  { key: "build-sheet-rows", label: "Create DB" },
-  { key: "build-counties", label: "Create Subaccount Json" },
   { key: "run-delta-system", label: "Run Delta System" },
   { key: "build-state-sitemaps", label: "Create Sitemaps" },
   { key: "build-state-index", label: "Create Search Index" },
@@ -56,6 +54,7 @@ type AuthMeUser = {
   fullName?: string | null;
   phone?: string | null;
   avatarUrl?: string | null;
+  preferredLocale?: string | null;
   globalRoles?: string[];
 };
 
@@ -702,6 +701,7 @@ export default function Home() {
   const esRef = useRef<EventSource | null>(null);
   const sseRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sseRetryCountRef = useRef(0);
+  const sseLastEventIdRef = useRef(0);
   const MAX_SSE_RETRY_WAIT_MS = 20000;
   const [activeRuns, setActiveRuns] = useState<
     Array<{
@@ -960,6 +960,23 @@ export default function Home() {
     );
   }
 
+  function shouldIgnoreRuntimeNoise(raw: string) {
+    const line = s(raw);
+    if (!line) return true;
+    return (
+      line.startsWith("runner-heartbeat:") ||
+      line.startsWith("__RUN_PID__")
+    );
+  }
+
+  function rememberSseEventCursor(ev: MessageEvent) {
+    const raw = s((ev as any)?.lastEventId);
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > sseLastEventIdRef.current) {
+      sseLastEventIdRef.current = n;
+    }
+  }
+
   useEffect(() => {
     currentRunIdRef.current = runId;
   }, [runId]);
@@ -1060,7 +1077,8 @@ export default function Home() {
 
   function openAgencyAccountPanel(panel: "profile" | "security") {
     const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.href = `/?account=${panel}&returnTo=${returnTo}`;
+    const tenantQuery = routeTenantId ? `&tenantId=${encodeURIComponent(routeTenantId)}` : "";
+    window.location.href = `/?account=${panel}&returnTo=${returnTo}${tenantQuery}`;
   }
 
   async function signOut() {
@@ -1086,6 +1104,12 @@ export default function Home() {
   useEffect(() => {
     void loadAuthMe();
   }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const locale = s(authMe?.preferredLocale) || s(tenantLocale) || "en-US";
+    document.documentElement.lang = locale.toLowerCase().startsWith("es") ? "es" : "en";
+  }, [authMe?.preferredLocale, tenantLocale]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3125,12 +3149,14 @@ export default function Home() {
       if (!res.ok || !data?.ok) {
         throw new Error(s(data?.error) || `HTTP ${res.status}`);
       }
-      const nextEvents = (Array.isArray(data?.events) ? data.events : []).map((it: any) => ({
-        id: Number(it?.id || 0),
-        createdAt: s(it?.createdAt),
-        eventType: s(it?.eventType) || "line",
-        message: s(it?.message),
-      }));
+      const nextEvents = (Array.isArray(data?.events) ? data.events : [])
+        .map((it: any) => ({
+          id: Number(it?.id || 0),
+          createdAt: s(it?.createdAt),
+          eventType: s(it?.eventType) || "line",
+          message: s(it?.message),
+        }))
+        .filter((it: any) => !shouldIgnoreRuntimeNoise(it?.message));
       if (initial) {
         setRunHistoryEvents(nextEvents);
         runHistoryLastEventIdRef.current = Number(nextEvents[nextEvents.length - 1]?.id || 0);
@@ -3282,6 +3308,7 @@ export default function Home() {
     setLogs([]);
     runStartedAtRef.current = Date.now();
     sseRetryCountRef.current = 0;
+    sseLastEventIdRef.current = 0;
     if (sseRetryTimerRef.current) {
       clearTimeout(sseRetryTimerRef.current);
       sseRetryTimerRef.current = null;
@@ -3392,7 +3419,14 @@ export default function Home() {
           sseRetryTimerRef.current = null;
         }
 
-        const es = new EventSource(`/api/stream/${targetRunId}`);
+        const qs = new URLSearchParams();
+        if (sseLastEventIdRef.current > 0) {
+          qs.set("afterEventId", String(sseLastEventIdRef.current));
+        }
+        const streamUrl = qs.size
+          ? `/api/stream/${targetRunId}?${qs.toString()}`
+          : `/api/stream/${targetRunId}`;
+        const es = new EventSource(streamUrl);
         esRef.current = es;
 
         const onHello = (ev: MessageEvent) => {
@@ -3406,8 +3440,10 @@ export default function Home() {
         };
 
         const onLine = (ev: MessageEvent) => {
+          rememberSseEventCursor(ev);
           const raw = String(ev.data ?? "");
           if (!raw || raw === "__HB__" || raw === "__END__") return;
+          if (shouldIgnoreRuntimeNoise(raw)) return;
           if (
             raw.startsWith("__PROGRESS__ ") ||
             raw.startsWith("__PROGRESS_INIT__ ") ||
@@ -3419,6 +3455,7 @@ export default function Home() {
         };
 
         const onProgress = (ev: MessageEvent) => {
+          rememberSseEventCursor(ev);
           let data: any = null;
           try {
             data = JSON.parse(String(ev.data ?? ""));
@@ -3665,21 +3702,31 @@ export default function Home() {
       sseRetryTimerRef.current = null;
     }
     sseRetryCountRef.current = 0;
+    sseLastEventIdRef.current = 0;
 
     setRunId(id);
     setIsRunning(true);
     if (!runStartedAtRef.current) runStartedAtRef.current = Date.now();
     pushLog(`🔎 Attaching to active run ${id}...`);
     // Reuse existing run() stream logic by opening /api/stream directly here.
-    const es = new EventSource(`/api/stream/${id}`);
+    const qs = new URLSearchParams();
+    if (sseLastEventIdRef.current > 0) {
+      qs.set("afterEventId", String(sseLastEventIdRef.current));
+    }
+    const streamUrl = qs.size
+      ? `/api/stream/${id}?${qs.toString()}`
+      : `/api/stream/${id}`;
+    const es = new EventSource(streamUrl);
     esRef.current = es;
     es.addEventListener("hello", (ev: MessageEvent) => {
       pushLog(`🟢 SSE connected: ${ev.data}`);
       setProgress((p) => ({ ...p, status: "running", message: "Running…" }));
     });
     es.addEventListener("line", (ev: MessageEvent) => {
+      rememberSseEventCursor(ev);
       const raw = String(ev.data ?? "");
       if (!raw || raw === "__HB__" || raw === "__END__") return;
+      if (shouldIgnoreRuntimeNoise(raw)) return;
       pushLog(raw);
     });
     es.addEventListener("end", (ev: MessageEvent) => {
@@ -3996,8 +4043,8 @@ export default function Home() {
         ok: false,
         message:
           mode === "retry"
-            ? "No hay filas fallidas para reintentar."
-            : "No hay filas activas con domain válido en este tab.",
+            ? "No failed rows to retry."
+            : "No active rows with a valid domain in this tab.",
       });
       setTabSitemapSubmitting("");
       return;
@@ -5011,7 +5058,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       setTabSitemapStatus({
         kind,
         ok: false,
-        message: `No hay ${kind} pending elegibles en el filtro actual.`,
+        message: `No eligible pending ${kind} rows in the current filter.`,
       });
       return;
     }
@@ -5109,7 +5156,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       setTabSitemapStatus({
         kind,
         ok: false,
-        message: "No hay ejecución previa para reintentar.",
+        message: "No previous run available to retry.",
       });
       return;
     }
@@ -5118,7 +5165,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       setTabSitemapStatus({
         kind,
         ok: true,
-        message: "No hay fallos pendientes.",
+        message: "No pending failures.",
       });
       return;
     }
@@ -6404,11 +6451,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           <div>
             <h2 className="cardTitle">Runs Center</h2>
             <div className="cardSubtitle">
-              Ejecuta y monitorea jobs por tenant con progreso individual, ETA y control por run.
+              Ejecuta el pipeline de provisioning con progreso en vivo, ETA y control total por corrida.
             </div>
           </div>
           <div className="cardHeaderActions">
-            <div className="badge">{runId ? `attached: ${runId}` : "no attachment"}</div>
+            <div className="badge">{runId ? `Attached · ${runId}` : "No active attachment"}</div>
             <button className="smallBtn" onClick={loadActiveRuns}>
               Refresh runs
             </button>
@@ -6416,7 +6463,18 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </div>
 
         <div className="cardBody">
-          <div className="row">
+          <div className="runFlowStrip" aria-label="Run pipeline">
+            <span className="runFlowStep runFlowStepActive">1. Create DB</span>
+            <span className="runFlowArrow">→</span>
+            <span className="runFlowStep runFlowStepActive">2. Create Subaccount Json</span>
+            <span className="runFlowArrow">→</span>
+            <span className="runFlowStep runFlowStepActive">3. Run Delta System</span>
+          </div>
+          <p className="runFlowNote">
+            Pipeline enforced for <b>Run Delta System</b>: it now executes Create DB first, then Create Subaccount Json, and only then starts live creation.
+          </p>
+          <div className="runControlPanel">
+          <div className="row runControlGrid">
             <div className="field">
               <label>Job</label>
               <select
@@ -6430,6 +6488,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </option>
                 ))}
               </select>
+              <div className="runFieldHint">Use Run Delta System for full provisioning flow.</div>
             </div>
 
             <div className="field">
@@ -6452,6 +6511,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </option>
                 ))}
               </select>
+              <div className="runFieldHint">ALL processes the full state; you can limit to a specific state.</div>
             </div>
 
             <div className="field">
@@ -6464,6 +6524,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <option value="dry">Dry Run</option>
                 <option value="live">Live Run</option>
               </select>
+              <div className="runFieldHint">Dry validates the flow without writes; Live creates/updates records.</div>
             </div>
 
             <div className="field">
@@ -6476,7 +6537,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <option value="on">ON</option>
                 <option value="off">OFF</option>
               </select>
+              <div className="runFieldHint">Keep ON only for troubleshooting; OFF reduces log noise.</div>
             </div>
+          </div>
           </div>
 
           {isOneLocJob ? (
@@ -6507,9 +6570,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             </div>
           ) : null}
 
-          <div className="actions">
+          <div className="actions runPrimaryActions">
             <button className="btn btnPrimary" onClick={() => run()} title="Run">
-              Run
+              Start Run
             </button>
             <button
               className="btn btnDanger"
@@ -6517,7 +6580,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               disabled={!runId}
               title={!runId ? "No active runId" : "Stop"}
             >
-              Stop attached
+              Stop Attached
             </button>
             <label className="mini" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
               <input
@@ -6527,7 +6590,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               />
               Allow parallel runs
             </label>
-            <div className="mini" style={{ alignSelf: "center" }}>
+            <div className="mini runExecutionMeta" style={{ alignSelf: "center" }}>
               Job: <b>{selectedJob?.label}</b>{" "}
               {isOneLocJob ? (
                 <>• locId: <b>{runLocId || "—"}</b></>
@@ -6539,12 +6602,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           </div>
 
           <div className="runCenterSummary">
-            <span className="badge">Total: {runSummary.total}</span>
-            <span className="badge">Running: {runSummary.running}</span>
-            <span className="badge">Done: {runSummary.done}</span>
-            <span className="badge">Stopped: {runSummary.stopped}</span>
-            <span className="badge">Error: {runSummary.error}</span>
-            <span className="badge">History: persisted</span>
+            <span className="badge runCenterBadge">Total: {runSummary.total}</span>
+            <span className="badge runCenterBadge">Running: {runSummary.running}</span>
+            <span className="badge runCenterBadge">Done: {runSummary.done}</span>
+            <span className="badge runCenterBadge">Stopped: {runSummary.stopped}</span>
+            <span className="badge runCenterBadge">Error: {runSummary.error}</span>
+            <span className="badge runCenterBadge">History: persisted</span>
           </div>
 
           <div className="runCenterFilters">
@@ -8749,7 +8812,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <div style={{ minWidth: 0 }}>
                   <div className="sectionTitle">DOMAIN TO PASTE</div>
                   <div className="sectionHint">
-                    Click to copy (pégalo en GHL field{" "}
+                    Click to copy (paste into the GHL{" "}
                     <span className="kbd">Domain</span>)
                   </div>
 
@@ -8768,7 +8831,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       </div>
                     </div>
                     <div className="copyFieldSub">
-                      Tip: si pega raro, haz click nuevamente (clipboard).
+                      Tip: if paste fails, click again to recopy from clipboard.
                     </div>
                   </div>
 
@@ -8868,44 +8931,42 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             Abre <span className="kbd">Open Activation</span>.
                           </li>
                           <li>
-                            Pega el domain en el campo de{" "}
+                            Paste the domain in the{" "}
                             <span className="kbd">Domain</span>.
                           </li>
                           <li>
-                            Haz click en <span className="kbd">Continue</span>.
+                            Click <span className="kbd">Continue</span>.
                           </li>
                           <li>
-                            Haz click en{" "}
+                            Click{" "}
                             <span className="kbd">Add record manually</span>.
                           </li>
                           <li>
-                            Haz click en{" "}
-                            <span className="kbd">Verify records</span> y espera
-                            propagación.
+                            Click <span className="kbd">Verify records</span> and wait for propagation.
                           </li>
                           <li>
-                            Haz click en <span className="kbd">Website</span>.
+                            Click <span className="kbd">Website</span>.
                           </li>
                           <li>
-                            En{" "}
+                            In{" "}
                             <span className="kbd">
                               Link domain with website
                             </span>{" "}
-                            selecciona <span className="kbd">County</span>.
+                            select <span className="kbd">County</span>.
                           </li>
                           <li>
-                            En{" "}
+                            In{" "}
                             <span className="kbd">
                               Select default step/page for Domain
                             </span>{" "}
-                            selecciona <span className="kbd">** Home Page</span>
+                            select <span className="kbd">** Home Page</span>
                             .
                           </li>
                           <li>
-                            Haz click en{" "}
+                            Click{" "}
                             <span className="kbd">Proceed to finish</span>.
                           </li>
-                          <li>Valida que el site responda.</li>
+                          <li>Validate that the site responds correctly.</li>
                         </ol>
                       </div>
                     )}
@@ -8915,7 +8976,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <div style={{ padding: 12 }}>
                         <div className="sectionTitle">Sitemap</div>
                         <div className="sectionHint" style={{ marginTop: 6 }}>
-                          Genera el sitemap en GHL.
+                          Generate the sitemap in GHL.
                         </div>
 
                         <div className="miniCardGrid" style={{ marginTop: 10 }}>
@@ -8959,7 +9020,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                 type="button"
                                 onClick={verifySitemap}
                                 disabled={!actSitemapUrl || actSitemapChecking}
-                                title="Verifica que el sitemap esté activo y que coincida con este dominio."
+                                title="Verify that the sitemap is live and matches this domain."
                               >
                                 {actSitemapChecking ? "Checking..." : "Verify"}
                               </button>
@@ -8985,7 +9046,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           >
                             {actSitemapVerify.ok ? (
                               <>
-                                {verified ? "Verificado" : "No existe o no se"}
+                                {verified ? "Verified" : "Not found or does not match"}
                                 {actSitemapVerify.responseStatus
                                   ? ` • status: ${actSitemapVerify.responseStatus}`
                                   : ""}
@@ -9006,37 +9067,36 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
                         <ol className="stepsList" style={{ marginTop: 10 }}>
                           <li>
-                            Haz click en <span className="kbd">Manage</span>.
+                            Click <span className="kbd">Manage</span>.
                           </li>
                           <li>
-                            Haz click en <span className="kbd">⋮</span>.
+                            Click <span className="kbd">⋮</span>.
                           </li>
                           <li>
-                            Haz click en{" "}
+                            Click{" "}
                             <span className="kbd">&lt;&gt; XML Sitemap</span>.
                           </li>
                           <li>
-                            Abre County y marca el checkbox solamente en las
-                            paginas que contengan{" "}
-                            <span className="kbd">**</span> al principio.
+                            Open County and check only pages that start with{" "}
+                            <span className="kbd">**</span>.
                           </li>
                           <li>
-                            Haz click en <span className="kbd">Proceed</span>.
+                            Click <span className="kbd">Proceed</span>.
                           </li>
                           <li>
-                            Haz click en{" "}
+                            Click{" "}
                             <span className="kbd">Generate & Save</span>.
                           </li>
                           <li>
-                            Haz click en{" "}
+                            Click{" "}
                             <span className="kbd">Generate & Save</span>.
                           </li>
                           <li>
-                            Haz click en <span className="kbd">Okay</span>.
+                            Click <span className="kbd">Okay</span>.
                           </li>
                           <li>
-                            Valida el sitemap a traves del boton que dice{" "}
-                            <span className="kbd">Open</span> en esta ventana.
+                            Validate sitemap using the{" "}
+                            <span className="kbd">Open</span> button in this panel.
                           </li>
                         </ol>
                       </div>
@@ -9052,7 +9112,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               className="sectionHint"
                               style={{ marginTop: 6 }}
                             >
-                              Genera el file robots.txt
+                              Generate the `robots.txt` file.
                             </div>
                           </div>
 
@@ -9067,21 +9127,20 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
                         <ol className="stepsList" style={{ marginTop: 10 }}>
                           <li>
-                            Haz click en <span className="kbd">⋮</span>.
+                            Click <span className="kbd">⋮</span>.
                           </li>
                           <li>
-                            Haz click en <span className="kbd">Edit</span>.
+                            Click <span className="kbd">Edit</span>.
                           </li>
                           <li>
-                            En <span className="kbd">Robots.txt code</span> haz
-                            paste del codigo.
+                            In <span className="kbd">Robots.txt code</span>, paste the code.
                           </li>
                           <li>
-                            Haz click en <span className="kbd">Save</span>.
+                            Click <span className="kbd">Save</span>.
                           </li>
                           <li>
-                            Valida en el browser que{" "}
-                            <span className="kbd">/robots.txt</span> responda
+                            Validate in the browser that{" "}
+                            <span className="kbd">/robots.txt</span> returns
                             200 OK.
                           </li>
                         </ol>
@@ -9191,8 +9250,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <div className="badge">VISUALIZATION</div>
                 <h3 className="mapModalTitle">US Progress Map</h3>
                 <div className="mini" style={{ marginTop: 6 }}>
-                  Vista rápida por estado para priorizar producción y dominios
-                  activos.
+                  Quick state view to prioritize production and active domains.
                 </div>
               </div>
 
