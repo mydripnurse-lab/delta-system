@@ -50,6 +50,7 @@ async function writeSafe(fn: () => Promise<void>) {
 const EVENT_BATCH_SIZE = Math.max(25, Number(process.env.RUN_HISTORY_EVENT_BATCH_SIZE || 250));
 const EVENT_FLUSH_MS = Math.max(80, Number(process.env.RUN_HISTORY_EVENT_FLUSH_MS || 250));
 const EVENT_QUEUE_MAX = Math.max(1000, Number(process.env.RUN_HISTORY_EVENT_QUEUE_MAX || 20000));
+const USE_EVENT_QUEUE = String(process.env.RUN_HISTORY_USE_QUEUE || "0") === "1";
 
 const eventQueue: QueuedRunEvent[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -207,6 +208,31 @@ export function persistRunEvent(
   const payloadJson = opts?.payload ? JSON.stringify(opts.payload) : null;
   const progressJson = progress ? JSON.stringify(progress) : null;
 
+  if (!USE_EVENT_QUEUE) {
+    void writeSafe(async () => {
+      const pool = getDbPool();
+      await pool.query(
+        `
+          insert into app.runner_run_events (run_id, event_type, message, payload)
+          values ($1, $2, $3, $4::jsonb)
+        `,
+        [runId, eventType, msg, payloadJson],
+      );
+      await pool.query(
+        `
+          update app.runner_runs
+             set updated_at = now(),
+                 last_line = $2,
+                 lines_count = case when $3 > 0 then $3 else lines_count end,
+                 progress = coalesce($4::jsonb, progress)
+           where run_id = $1
+        `,
+        [runId, msg, linesCount, progressJson],
+      );
+    });
+    return;
+  }
+
   if (eventQueue.length >= EVENT_QUEUE_MAX && eventType === "line") {
     // Prefer dropping plain line noise over pressure-collapsing the runner.
     return;
@@ -229,7 +255,7 @@ export function persistRunEvent(
 
 export function persistRunStopped(runId: string) {
   void writeSafe(async () => {
-    await flushQueuedEvents();
+    if (USE_EVENT_QUEUE) await flushQueuedEvents();
     const pool = getDbPool();
     await pool.query(
       `
@@ -255,7 +281,7 @@ export function persistRunFinished(runId: string, params: {
 }) {
   const status = safeStatusFrom(params);
   void writeSafe(async () => {
-    await flushQueuedEvents();
+    if (USE_EVENT_QUEUE) await flushQueuedEvents();
     const pool = getDbPool();
     await pool.query(
       `

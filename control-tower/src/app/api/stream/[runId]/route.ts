@@ -67,6 +67,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
 
             let lastDbEventId =
                 Number.isFinite(lastEventId) && lastEventId > 0 ? Math.floor(lastEventId) : 0;
+            let lastVisibleLineAt = Date.now();
 
             const tick = async () => {
                 const run = getRun(runId);
@@ -126,8 +127,17 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
                                 write(sseEventWithId(evId, "progress", payload));
                             } else {
                                 write(sseEventWithId(evId, "line", String(ev.message || "")));
+                                lastVisibleLineAt = Date.now();
                             }
                             lastDbEventId = Math.max(lastDbEventId, evId);
+                        }
+
+                        if ((evQ.rows || []).length === 0) {
+                            const idleMs = Date.now() - lastVisibleLineAt;
+                            if (idleMs >= 30_000) {
+                                write(sseEvent("line", `runner-heartbeat: waiting for next log (${Math.round(idleMs / 1000)}s idle)`));
+                                lastVisibleLineAt = Date.now();
+                            }
                         }
 
                         write(sseEvent("ping", { t: Date.now(), source: "db" }));
@@ -177,9 +187,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
                         write(sseEventWithId(eventId, "progress", p.json));
                     } else {
                         write(sseEventWithId(eventId, "line", line));
+                        lastVisibleLineAt = Date.now();
                     }
                 }
                 lastSentLineCount = lines.length;
+
+                if (lines.length === 0) {
+                    const idleMs = Date.now() - lastVisibleLineAt;
+                    if (idleMs >= 30_000) {
+                        write(sseEvent("line", `runner-heartbeat: waiting for next log (${Math.round(idleMs / 1000)}s idle)`));
+                        lastVisibleLineAt = Date.now();
+                    }
+                }
 
                 // heartbeat
                 write(sseEvent("ping", { t: Date.now() }));
