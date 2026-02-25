@@ -3342,6 +3342,7 @@ export default function Home() {
     locId?: string;
     kind?: string;
     allowConcurrent?: boolean;
+    rerun?: boolean;
   }) {
     const jobKey = s(opts?.job || job);
     const runMode = (s(opts?.mode || mode).toLowerCase() === "dry" ? "dry" : "live") as "live" | "dry";
@@ -3374,12 +3375,14 @@ export default function Home() {
     // Guardrail: do not re-run same state when another run for that state is running or stopped.
     if (!isOneLocJob) {
       const targetState = s(metaState).toLowerCase();
+      const rerunRequested = !!opts?.rerun;
       const stateBlockedBy = activeRuns.find((r) => {
         const m = r.meta || {};
         if (s(m.tenantId) !== s(routeTenantId)) return false;
         if (s(m.state).toLowerCase() !== targetState) return false;
         const isStopped = r.stopped || s(r.status).toLowerCase() === "stopped";
         const isRunning = !r.finished && !isStopped;
+        if (rerunRequested) return isRunning;
         return isStopped || isRunning;
       });
 
@@ -3453,6 +3456,7 @@ export default function Home() {
           kind: kind || "",
           tenantId: routeTenantId || "",
           allowConcurrent,
+          rerun: !!opts?.rerun,
         }),
       });
 
@@ -6811,21 +6815,37 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 >
                   {(() => {
                     const msg = s(r.message).toLowerCase();
+                    const lastLine = s(r.lastLine).toLowerCase();
+                    const signal = `${msg} ${lastLine}`;
                     let createDbStatus: "pending" | "running" | "done" | "error" = "pending";
                     let createJsonStatus: "pending" | "running" | "done" | "error" = "pending";
                     let runDeltaStatus: "pending" | "running" | "done" | "error" = "pending";
+
+                    const inCreateDb =
+                      signal.includes("prebuild: create-db (build-sheet-rows): start") ||
+                      signal.includes("[create-db]");
+                    const createDbDone = signal.includes("prebuild: create-db (build-sheet-rows): done");
+                    const inCreateJson =
+                      signal.includes("prebuild: generating state output json (build-counties)") ||
+                      signal.includes("[prebuild]");
+                    const createJsonDone = signal.includes("prebuild: build-counties done");
+                    const inRunDelta =
+                      signal.includes("__run_pid__") ||
+                      signal.includes("main: started child pid=") ||
+                      signal.includes("phase:init ->") ||
+                      signal.includes("🏁 run state:") ||
+                      signal.includes("runner-heartbeat:") ||
+                      signal.includes("🧩 county") ||
+                      signal.includes("🏙️");
 
                     if (r.status === "done") {
                       createDbStatus = "done";
                       createJsonStatus = "done";
                       runDeltaStatus = "done";
                     } else if (r.status === "error" || r.status === "stopped") {
-                      if (msg.includes("create-db (build-sheet-rows): start")) {
+                      if (inCreateDb && !createDbDone) {
                         createDbStatus = "error";
-                      } else if (
-                        msg.includes("generating state output json (build-counties)") ||
-                        msg.includes("build-counties")
-                      ) {
+                      } else if ((inCreateJson || createDbDone) && !createJsonDone && !inRunDelta) {
                         createDbStatus = "done";
                         createJsonStatus = "error";
                       } else {
@@ -6833,29 +6853,17 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         createJsonStatus = "done";
                         runDeltaStatus = "error";
                       }
-                    } else if (msg.includes("create-db (build-sheet-rows): start")) {
+                    } else if (inCreateDb && !createDbDone) {
                       createDbStatus = "running";
-                    } else if (msg.includes("create-db (build-sheet-rows): done")) {
-                      createDbStatus = "done";
-                    } else if (msg.includes("generating state output json (build-counties)")) {
+                    } else if ((inCreateJson || createDbDone) && !createJsonDone && !inRunDelta) {
                       createDbStatus = "done";
                       createJsonStatus = "running";
-                    } else if (msg.includes("prebuild: build-counties done.")) {
-                      createDbStatus = "done";
-                      createJsonStatus = "done";
-                    } else if (
-                      msg.includes("main: started child pid=") ||
-                      msg.includes("phase:init ->") ||
-                      msg.includes("🏁 run state:") ||
-                      msg.includes("running")
-                    ) {
+                    } else if (inRunDelta || createJsonDone) {
                       createDbStatus = "done";
                       createJsonStatus = "done";
                       runDeltaStatus = "running";
                     } else {
-                      createDbStatus = "done";
-                      createJsonStatus = "done";
-                      runDeltaStatus = "running";
+                      createDbStatus = "running";
                     }
 
                     const stepClasses = (status: "pending" | "running" | "done" | "error") =>
@@ -6911,6 +6919,26 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
 
                   <div className="runCardActions">
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={!r.finished}
+                      title={r.finished ? "Run again (reprocess Status=false rows)" : "Finish current run first"}
+                      onClick={() =>
+                        void run({
+                          job: s(r.meta?.job) || job,
+                          state: s(r.meta?.state) || r.stateLabel,
+                          mode: s(r.meta?.mode).toLowerCase() === "dry" ? "dry" : "live",
+                          debug: !!r.meta?.debug,
+                          locId: s(r.meta?.locId),
+                          kind: s(r.meta?.kind),
+                          allowConcurrent: false,
+                          rerun: true,
+                        })
+                      }
+                    >
+                      Rerun
+                    </button>
                     <button
                       type="button"
                       className="smallBtn"

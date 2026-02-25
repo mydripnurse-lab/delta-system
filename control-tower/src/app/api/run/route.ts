@@ -609,6 +609,10 @@ export async function POST(req: Request) {
         body?.allowConcurrent === true ||
         String(body?.allowConcurrent || "").trim().toLowerCase() === "1" ||
         String(body?.allowConcurrent || "").trim().toLowerCase() === "true";
+    const rerunRequested =
+        body?.rerun === true ||
+        String(body?.rerun || "").trim().toLowerCase() === "1" ||
+        String(body?.rerun || "").trim().toLowerCase() === "true";
 
     // state aquí es metadata + (para jobs que lo usan)
     const rawState = safeStateArg(body?.state);
@@ -646,6 +650,8 @@ export async function POST(req: Request) {
     if (!allowConcurrent) {
         const existingActive = listRuns({ activeOnly: true, limit: 200 }).find((r) => {
             const m = (r.meta || {}) as Record<string, unknown>;
+            // Rerun should not be blocked by a just-stopped in-memory run.
+            if (rerunRequested && r.stopped) return false;
             return (
                 s(m.tenantId) === tenantId &&
                 s(m.job) === job &&
@@ -672,6 +678,7 @@ export async function POST(req: Request) {
     try {
         appendLine(run.id, `🟢 created runId=${run.id}`);
         appendLine(run.id, `job=${job} state=${metaState} mode=${mode} debug=${debug}`);
+        if (rerunRequested) appendLine(run.id, "rerun=true (force reprocess Status=false rows)");
         if (locId) appendLine(run.id, `locId=${locId} kind=${kind || "auto"}`);
         if (tenantId) appendLine(run.id, `tenantId=${tenantId}`);
 
@@ -790,6 +797,12 @@ export async function POST(req: Request) {
             if (!s(envMerged.DELTA_CHECKPOINT_AUTO_RESUME)) {
                 envMerged.DELTA_CHECKPOINT_AUTO_RESUME = "1";
             }
+            if (rerunRequested) {
+                // Force full re-evaluation of sheet rows so every Status=false item is processed again.
+                envMerged.DELTA_CHECKPOINT_RESET = "1";
+                envMerged.DELTA_DB_PROGRESS_ENABLED = "0";
+                envMerged.DELTA_CHECKPOINT_AUTO_RESUME = "0";
+            }
             Object.assign(delegatedEnv, {
                 DELTA_NON_INTERACTIVE: envMerged.DELTA_NON_INTERACTIVE || "1",
                 GHL_FETCH_TIMEOUT_MS: envMerged.GHL_FETCH_TIMEOUT_MS || "",
@@ -804,6 +817,8 @@ export async function POST(req: Request) {
                 DELTA_SHEETS_LOAD_MAX_RETRIES: envMerged.DELTA_SHEETS_LOAD_MAX_RETRIES || "",
                 DELTA_CHECKPOINT_ENABLED: envMerged.DELTA_CHECKPOINT_ENABLED || "1",
                 DELTA_CHECKPOINT_AUTO_RESUME: envMerged.DELTA_CHECKPOINT_AUTO_RESUME || "1",
+                DELTA_CHECKPOINT_RESET: envMerged.DELTA_CHECKPOINT_RESET || "",
+                DELTA_DB_PROGRESS_ENABLED: envMerged.DELTA_DB_PROGRESS_ENABLED || "",
             });
             if (s(envMerged.DELTA_CHECKPOINT_DIR)) {
                 delegatedEnv.DELTA_CHECKPOINT_DIR = s(envMerged.DELTA_CHECKPOINT_DIR);

@@ -1043,6 +1043,7 @@ async function runState({
         if (!pr) {
             console.log(`\n🧩 COUNTY ${countyLabel}`);
             const dbItemState = { key: "", existingLocationId: "", existingAccountName: "" };
+            let countyHandledFromDbResume = false;
             if (RUN_DELTA_DB_ACTIVE) {
                 const claimed = await claimRunDeltaItem({
                     runId: RUN_ID,
@@ -1073,7 +1074,7 @@ async function runState({
                         last: { kind: "county", state: stateSlug, county: countyName, action: "resume-db-done" },
                         message: `🧩 ${countyName} • resume-db`,
                     });
-                    continue;
+                    countyHandledFromDbResume = true;
                 }
                 if (claimed?.action === "busy") {
                     resumed++;
@@ -1085,91 +1086,93 @@ async function runState({
                         last: { kind: "county", state: stateSlug, county: countyName, action: "resume-db-busy" },
                         message: `🧩 ${countyName} • busy`,
                     });
-                    continue;
+                    countyHandledFromDbResume = true;
                 }
             }
-            const countyCheckpointKey = makeCheckpointItemKey({
-                kind: "county",
-                stateSlug,
-                countyName,
-            });
-            const countyAlreadyDone =
-                CHECKPOINT_ENABLED &&
-                CHECKPOINT_AUTO_RESUME &&
-                checkpointState.countyProcessedSet.has(countyCheckpointKey);
-            if (countyAlreadyDone) {
-                resumed++;
-                progressDone.counties += 1;
-                progressDone.all += 1;
-                emitProgress({
-                    totals: progressTotals,
-                    done: progressDone,
-                    last: { kind: "county", state: stateSlug, county: countyName, action: "resume-skip" },
-                    message: `🧩 ${countyName} • resume`,
+            if (!countyHandledFromDbResume) {
+                const countyCheckpointKey = makeCheckpointItemKey({
+                    kind: "county",
+                    stateSlug,
+                    countyName,
                 });
-            } else {
-                // progress: we are about to process a county item
-                emitProgress({
-                    totals: progressTotals,
-                    done: progressDone,
-                    last: { kind: "county", state: stateSlug, county: countyName, action: "start" },
-                    message: `🧩 ${countyName} • start`,
-                });
+                const countyAlreadyDone =
+                    CHECKPOINT_ENABLED &&
+                    CHECKPOINT_AUTO_RESUME &&
+                    checkpointState.countyProcessedSet.has(countyCheckpointKey);
+                if (countyAlreadyDone) {
+                    resumed++;
+                    progressDone.counties += 1;
+                    progressDone.all += 1;
+                    emitProgress({
+                        totals: progressTotals,
+                        done: progressDone,
+                        last: { kind: "county", state: stateSlug, county: countyName, action: "resume-skip" },
+                        message: `🧩 ${countyName} • resume`,
+                    });
+                } else {
+                    // progress: we are about to process a county item
+                    emitProgress({
+                        totals: progressTotals,
+                        done: progressDone,
+                        last: { kind: "county", state: stateSlug, county: countyName, action: "start" },
+                        message: `🧩 ${countyName} • start`,
+                    });
 
-                if (county?.body?.name) {
-                    try {
-                        const r = await processOneAccountWithRecovery({
-                            entity: { ...county, countyName, type: "county" },
-                            parentCounty: null,
-                            stateSlug,
-                            stateName,
-                            countyTabIndex,
-                            cityTabIndex,
-                            dbItemState,
-                        });
-                        if (r?.created) countyCreated++;
-                        else skipped++;
+                    if (county?.body?.name) {
+                        try {
+                            const r = await processOneAccountWithRecovery({
+                                entity: { ...county, countyName, type: "county" },
+                                parentCounty: null,
+                                stateSlug,
+                                stateName,
+                                countyTabIndex,
+                                cityTabIndex,
+                                dbItemState,
+                            });
+                            if (r?.created) countyCreated++;
+                            else skipped++;
+                            if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                                await markRunDeltaItemDone({
+                                    key: dbItemState.key,
+                                    locationId: String(r?.locationId || dbItemState.existingLocationId || ""),
+                                    accountName: String(dbItemState.existingAccountName || ""),
+                                    note: String(r?.reason || ""),
+                                }).catch(() => {});
+                            }
+                            await checkpointMarkDone({ kind: "county", countyName });
+                        } catch (e) {
+                            console.log(`❌ COUNTY failed after retries (${countyName}):`, formatErrWithDetails(e));
+                            if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                                await markRunDeltaItemFailed({
+                                    key: dbItemState.key,
+                                    errorMessage: formatErrWithDetails(e),
+                                }).catch(() => {});
+                            }
+                            skipped++;
+                        }
+                    } else {
+                        console.log(`⚠️ COUNTY missing body -> SKIP create county: ${countyLabel}`);
                         if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
                             await markRunDeltaItemDone({
                                 key: dbItemState.key,
-                                locationId: String(r?.locationId || dbItemState.existingLocationId || ""),
-                                accountName: String(dbItemState.existingAccountName || ""),
-                                note: String(r?.reason || ""),
-                            }).catch(() => {});
-                        }
-                        await checkpointMarkDone({ kind: "county", countyName });
-                    } catch (e) {
-                        console.log(`❌ COUNTY failed after retries (${countyName}):`, formatErrWithDetails(e));
-                        if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
-                            await markRunDeltaItemFailed({
-                                key: dbItemState.key,
-                                errorMessage: formatErrWithDetails(e),
+                                note: "missing_body",
                             }).catch(() => {});
                         }
                         skipped++;
+                        await checkpointMarkDone({ kind: "county", countyName });
                     }
-                } else {
-                    console.log(`⚠️ COUNTY missing body -> SKIP create county: ${countyLabel}`);
-                    if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
-                        await markRunDeltaItemDone({
-                            key: dbItemState.key,
-                            note: "missing_body",
-                        }).catch(() => {});
-                    }
-                    skipped++;
-                    await checkpointMarkDone({ kind: "county", countyName });
+
+                    // mark county done
+                    progressDone.counties += 1;
+                    progressDone.all += 1;
+
+                    emitProgress({
+                        totals: progressTotals,
+                        done: progressDone,
+                        last: { kind: "county", state: stateSlug, county: countyName, action: "done" },
+                        message: `🧩 ${countyName} • done`,
+                    });
                 }
-
-                // mark county done
-                progressDone.counties += 1;
-                progressDone.all += 1;
-
-                emitProgress({
-                    totals: progressTotals,
-                    done: progressDone,
-                    last: { kind: "county", state: stateSlug, county: countyName, action: "done" },
-                    message: `🧩 ${countyName} • done`,
-                });
             }
         }
 
