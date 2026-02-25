@@ -403,11 +403,21 @@ const server = createServer(async (req, res) => {
       const job = s(body.job);
       if (!runId || !job) return json(res, 400, { ok: false, error: "Missing runId/job" });
       if (activeRuns.has(runId)) return json(res, 200, { ok: true, accepted: true, runId, duplicated: true });
+      console.log(`[railway-runner-worker] accepted runId=${runId} job=${job}`);
       await upsertRunRow(body);
       await appendEvent(runId, `worker: accepted run ${runId} job=${job}`);
-      void runInWorker(body).catch(() => {});
+      void runInWorker(body).catch((err) => {
+        console.error(
+          `[railway-runner-worker] run failed runId=${runId}:`,
+          err instanceof Error ? err.message : String(err),
+        );
+      });
       return json(res, 200, { ok: true, accepted: true, runId });
     } catch (e) {
+      console.error(
+        "[railway-runner-worker] /run request failed:",
+        e instanceof Error ? e.message : String(e),
+      );
       return json(res, 500, { ok: false, error: e instanceof Error ? e.message : String(e) });
     }
   }
