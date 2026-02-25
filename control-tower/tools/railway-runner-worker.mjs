@@ -138,6 +138,7 @@ async function upsertRunRow(payload) {
 
 async function appendEvent(runId, message, eventType = "line", payload = null) {
   const msg = s(message);
+  const progressJson = payload && eventType === "progress" ? JSON.stringify(payload) : null;
   await pool.query(
     `insert into app.runner_run_events (run_id, event_type, message, payload) values ($1, $2, $3, $4::jsonb)`,
     [runId, eventType, msg, payload ? JSON.stringify(payload) : null],
@@ -149,11 +150,67 @@ async function appendEvent(runId, message, eventType = "line", payload = null) {
              last_line = $2,
              lines_count = (
                select count(*)::int from app.runner_run_events where run_id = $1
-             )
+             ),
+             progress = coalesce($3::jsonb, progress)
        where run_id = $1
     `,
-    [runId, msg],
+    [runId, msg, progressJson],
   );
+}
+
+function parseProgressPayloadFromLine(line) {
+  const raw = String(line ?? "");
+  const prefixes = ["__PROGRESS_INIT__ ", "__PROGRESS__ ", "__PROGRESS_END__ "];
+  for (const prefix of prefixes) {
+    if (!raw.startsWith(prefix)) continue;
+    const json = raw.slice(prefix.length);
+    try {
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function normalizeWorkerProgress(payload, runStartedAtMs) {
+  const asNum = (v, fallback = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const totals = payload && typeof payload.totals === "object" ? payload.totals : {};
+  const done = payload && typeof payload.done === "object" ? payload.done : {};
+  const totalAll = asNum(totals.all, 0);
+  const doneAll = asNum(done.all, 0);
+  const rawPct = asNum(payload?.pct, totalAll > 0 ? (doneAll / totalAll) * 100 : 0);
+  const pctFraction = rawPct > 1 ? rawPct / 100 : rawPct;
+  const updatedAt = Date.now();
+  const elapsedSec = Math.max(1, Math.floor((updatedAt - runStartedAtMs) / 1000));
+  const rate = doneAll > 0 ? doneAll / elapsedSec : 0;
+  const remaining = Math.max(0, totalAll - doneAll);
+  const etaSec = rate > 0 ? Math.round(remaining / rate) : null;
+  const last = payload && typeof payload.last === "object" ? payload.last : {};
+  const kind = s(last.kind);
+  const lastMessage =
+    kind === "state"
+      ? `State ${s(last.state)} • ${s(last.action)}`
+      : kind === "county"
+        ? `County ${s(last.county)} • ${s(last.action)}`
+        : kind === "city"
+          ? `City ${s(last.city)} • ${s(last.action)}`
+          : "Running";
+  return {
+    pct: Math.max(0, Math.min(1, pctFraction)),
+    doneAll,
+    doneCounties: asNum(done.counties, 0),
+    doneCities: asNum(done.cities, 0),
+    totalAll,
+    totalCounties: asNum(totals.counties, 0),
+    totalCities: asNum(totals.cities, 0),
+    lastMessage,
+    etaSec,
+    updatedAt,
+  };
 }
 
 async function finishRun(runId, params) {
@@ -289,6 +346,7 @@ async function runInWorker(payload) {
 }
 
 async function spawnAndPipe(runId, args, env, cwd, trackStop = false) {
+  const startedAtMs = Date.now();
   const child = spawn(process.execPath, args, {
     cwd,
     env,
@@ -303,10 +361,22 @@ async function spawnAndPipe(runId, args, env, cwd, trackStop = false) {
   const rlOut = readline.createInterface({ input: child.stdout });
   const rlErr = readline.createInterface({ input: child.stderr });
   rlOut.on("line", (line) => {
-    void appendEvent(runId, line, line.startsWith("__PROGRESS") ? "progress" : "line");
+    const progressPayload = parseProgressPayloadFromLine(line);
+    if (progressPayload) {
+      const normalized = normalizeWorkerProgress(progressPayload, startedAtMs);
+      void appendEvent(runId, line, "progress", normalized);
+      return;
+    }
+    void appendEvent(runId, line, "line");
   });
   rlErr.on("line", (line) => {
-    void appendEvent(runId, line, line.startsWith("__PROGRESS") ? "progress" : "line");
+    const progressPayload = parseProgressPayloadFromLine(line);
+    if (progressPayload) {
+      const normalized = normalizeWorkerProgress(progressPayload, startedAtMs);
+      void appendEvent(runId, line, "progress", normalized);
+      return;
+    }
+    void appendEvent(runId, line, "line");
   });
   const exitCode = await new Promise((resolve, reject) => {
     child.on("error", reject);
