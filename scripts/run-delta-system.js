@@ -8,7 +8,7 @@ import path from "path";
 import readline from "readline/promises";
 import { stdin as input, stdout as output } from "process";
 
-import { loadTokens, getTokens } from "../services/tokenStore.js";
+import { loadTokens } from "../services/tokenStore.js";
 import { ghlFetch } from "../services/ghlClient.js";
 
 import {
@@ -16,8 +16,6 @@ import {
     listSubaccounts,
     closeTwilioAccount,
 } from "../services/twilioClient.js";
-
-import { getLocationAccessToken } from "../services/ghlLocationToken.js";
 
 import {
     loadSheetTabIndex,
@@ -50,22 +48,6 @@ const CHECKPOINT_FLUSH_EVERY = Math.max(
 );
 const RESET_CHECKPOINTS = String(process.env.DELTA_CHECKPOINT_RESET || "0") === "1";
 
-const CUSTOM_VALUES_SERVICES_FILE = path.join(
-    process.cwd(),
-    "resources",
-    "customValues",
-    "services",
-    "mobile-iv-therapy.json"
-);
-
-const CUSTOM_VALUES_SOCIAL_FILE = path.join(
-    process.cwd(),
-    "resources",
-    "customValues",
-    "socialMedia",
-    "meta.json"
-);
-
 // Sheets
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const COUNTY_TAB = process.env.GOOGLE_SHEET_COUNTY_TAB || "Counties";
@@ -77,7 +59,6 @@ const FAST_MODE_CLI =
 // Rate limiting (GHL)
 const GHL_RPM = Number(process.env.GHL_RPM || (FAST_MODE_CLI ? "300" : "180"));
 const MIN_MS_BETWEEN_GHL_CALLS = Math.ceil(60000 / Math.max(1, GHL_RPM));
-const GHL_CV_WARMUP_MS = Math.max(0, Number(process.env.GHL_CV_WARMUP_MS || (FAST_MODE_CLI ? "0" : "1200")));
 
 // Run meta
 const RUN_ID = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -115,8 +96,6 @@ const STATE_ARG = argValue("state", ""); // if empty -> interactive
 const FAST_MODE = FAST_MODE_CLI;
 
 const ENABLE_TWILIO_CLOSE = String(process.env.DELTA_ENABLE_TWILIO_CLOSE || "1") !== "0";
-// User request: remove "Update Custom Values" from Run Delta System flow.
-const ENABLE_CUSTOM_VALUES = false;
 const SHEETS_LOAD_TIMEOUT_MS = Math.max(
     5000,
     Number(process.env.DELTA_SHEETS_LOAD_TIMEOUT_MS || "90000")
@@ -152,14 +131,6 @@ const TWILIO_STEP_TIMEOUT_MS = Math.max(
 const MAX_SUBACCOUNT_RECOVERY_RETRIES = Math.max(
     0,
     Number(process.env.DELTA_MAX_SUBACCOUNT_RECOVERY_RETRIES || "1")
-);
-const CV_MAX_RETRIES = Number(
-    process.env.GHL_CV_MAX_RETRIES ||
-    (FAST_MODE ? "2" : "4")
-);
-const CV_INITIAL_DELAY_MS = Number(
-    process.env.GHL_CV_INITIAL_DELAY_MS ||
-    (FAST_MODE ? "350" : "800")
 );
 
 // =====================
@@ -339,19 +310,11 @@ function isPR(stateSlug, stateName) {
     return s === "puerto-rico" || n.includes("puerto rico");
 }
 
-function ensureHttps(domainOrUrl) {
-    const v = String(domainOrUrl || "").trim();
-    if (!v) return "";
-    if (v.startsWith("http://") || v.startsWith("https://")) return v;
-    return `https://${v.replace(/^\/+/, "")}`;
-}
-
 function toBoolishTRUE() {
     return "TRUE";
 }
 
 let LAST_SUCCESSFUL_LOCATION_NAME = "";
-let LAST_TWILIO_MATCH = { sid: "", friendlyName: "", status: "" };
 
 function isTwilioSubaccountLimitError(e) {
     const status = Number(e?.status ?? e?.code ?? 0);
@@ -371,26 +334,9 @@ function isTwilioSubaccountLimitError(e) {
 async function tryFreeTwilioCapacityFromPreviousAccount() {
     if (!ENABLE_TWILIO_CLOSE) return false;
     const previousName = String(LAST_SUCCESSFUL_LOCATION_NAME || "").trim();
-    const lastSid = String(LAST_TWILIO_MATCH?.sid || "").trim();
-
-    console.log(
-        `🧯 Twilio capacity recovery: previousName="${previousName || "n/a"}" lastSid="${lastSid || "n/a"}"`
-    );
+    console.log(`🧯 Twilio capacity recovery: previousName="${previousName || "n/a"}"`);
     try {
-        // 1) Best candidate: last Twilio SID observed in this run.
-        if (lastSid) {
-            const closed = await withTimeout(
-                closeTwilioAccount(lastSid),
-                TWILIO_CLOSE_TIMEOUT_MS,
-                `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${lastSid}`
-            );
-            console.log(
-                `✅ Twilio capacity recovery: closed last matched sid=${closed?.sid || lastSid} status=${closed?.status || "closed"}`
-            );
-            return true;
-        }
-
-        // 2) Try by previous successful friendly name.
+        // 1) Try by previous successful friendly name (same 64-char strategy as normal flow).
         if (previousName) {
             const lookupName = previousName.slice(0, 64);
             const twilioAcc =
@@ -411,12 +357,18 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
                     `Twilio recovery fuzzy lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
                 ));
 
-            if (twilioAcc?.sid) {
-                const closed = await withTimeout(
-                    closeTwilioAccount(String(twilioAcc.sid)),
-                    TWILIO_CLOSE_TIMEOUT_MS,
-                    `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
-                );
+                if (twilioAcc?.sid) {
+                    if (String(twilioAcc.status || "").toLowerCase() === "closed") {
+                        console.log(
+                            `ℹ️ Twilio capacity recovery: previous account already closed (sid=${twilioAcc.sid}).`
+                        );
+                        return true;
+                    }
+                    const closed = await withTimeout(
+                        closeTwilioAccount(String(twilioAcc.sid)),
+                        TWILIO_CLOSE_TIMEOUT_MS,
+                        `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
+                    );
                 console.log(
                     `✅ Twilio capacity recovery: closed by previous name sid=${closed?.sid || twilioAcc.sid} status=${closed?.status || "closed"}`
                 );
@@ -424,7 +376,7 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
             }
         }
 
-        // 3) Fallback: close one active eligible subaccount.
+        // 2) Fallback: close one active eligible subaccount.
         const subs = await withTimeout(
             listSubaccounts({ limit: FAST_MODE ? 80 : 300 }),
             TWILIO_LOOKUP_TIMEOUT_MS,
@@ -456,14 +408,6 @@ async function tryFreeTwilioCapacityFromPreviousAccount() {
         console.log("⚠️ Twilio capacity recovery failed:", e?.message || e);
         return false;
     }
-}
-
-function normalizeNameForMatch(s) {
-    return String(s || "")
-        .replace(/\u00A0/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .toLowerCase();
 }
 
 function formatErrWithDetails(e) {
@@ -577,35 +521,6 @@ async function readJson(filePath) {
     return JSON.parse(raw);
 }
 
-function toCustomValuesArray(json, labelForErrors) {
-    const arr = json?.customValues;
-    if (!Array.isArray(arr)) {
-        const keys = Object.keys(json || {});
-        throw new Error(
-            `❌ ${labelForErrors} NO tiene estructura { customValues: [...] }.\n` +
-            `Keys detectadas: ${keys.join(", ")}`
-        );
-    }
-    return arr
-        .filter((x) => x && String(x.name || "").trim() !== "")
-        .map((x) => ({
-            name: String(x.name).trim(),
-            value: x.value === undefined || x.value === null ? "" : String(x.value),
-        }));
-}
-
-let _baseCustomValuesCache = null;
-async function getBaseCustomValues() {
-    if (_baseCustomValuesCache) return _baseCustomValuesCache;
-    const servicesJson = await readJson(CUSTOM_VALUES_SERVICES_FILE);
-    const socialJson = await readJson(CUSTOM_VALUES_SOCIAL_FILE);
-    _baseCustomValuesCache = [
-        ...toCustomValuesArray(servicesJson, "mobile-iv-therapy.json"),
-        ...toCustomValuesArray(socialJson, "meta.json"),
-    ];
-    return _baseCustomValuesCache;
-}
-
 async function listOutStates() {
     const entries = await fs.readdir(OUT_ROOT, { withFileTypes: true }).catch(() => []);
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
@@ -641,158 +556,6 @@ function getCountyLabelFrom(obj) {
     return "";
 }
 
-// =====================
-// Custom Values helpers
-// =====================
-function getEntityDomain(entity, parentCounty) {
-    if (entity?.type === "county") return entity?.countyDomain || entity?.parishDomain || "";
-    if (entity?.type === "city")
-        return (
-            entity?.cityDomain ||
-            parentCounty?.countyDomain ||
-            parentCounty?.parishDomain ||
-            ""
-        );
-    return "";
-}
-
-function buildExtraCustomValues({ entity, parentCounty, stateName }) {
-    const isCity = entity?.type === "city";
-    const countyName = getCountyLabelFrom(parentCounty) || getCountyLabelFrom(entity) || "";
-    const countyDomain =
-        parentCounty?.countyDomain ||
-        parentCounty?.parishDomain ||
-        entity?.countyDomain ||
-        entity?.parishDomain ||
-        "";
-
-    const nameAndState = isCity
-        ? `${entity?.cityName || ""} ${stateName || ""}`.trim()
-        : `${getCountyLabelFrom(entity) || ""} ${stateName || ""}`.trim();
-
-    const websiteDomain = getEntityDomain(entity, parentCounty);
-    const websiteUrl = ensureHttps(websiteDomain);
-
-    return [
-        { name: "Business - County Domain", value: ensureHttps(countyDomain) },
-        { name: "Business - County Name", value: String(countyName || "") },
-        { name: "County Name And State", value: String(nameAndState || "") },
-        { name: "Website Favicon", value: "https://sitemaps.mydripnurse.com/favicon.ico" },
-        { name: "Website Url", value: websiteUrl },
-        { name: "Pixel ID", value: String(process.env.FACEBOOK_PIXEL || "") },
-        { name: "Access Token", value: String(process.env.FACEBOOK_ACCESS_TOKEN || "") },
-        { name: "Business - Email", value: String(process.env.BUSINESS_EMAIL || "") },
-        { name: "Business - Phone", value: String(process.env.DEFAULT_PHONE || "1 (833) 381-0071") },
-    ];
-}
-
-function extractCustomValuesFromAny(res) {
-    if (!res) return [];
-    const candidates = [
-        res?.customValues,
-        res?.data?.customValues,
-        res?.Data?.customValues,
-        res?.data?.data?.customValues,
-        res?.data?.Data?.customValues,
-        res?.Data?.data?.customValues,
-    ];
-    for (const c of candidates) {
-        if (Array.isArray(c)) return c;
-    }
-    return [];
-}
-
-function buildCustomValueIndex(ghlCustomValuesArr) {
-    const byNorm = new Map();
-    for (const cv of ghlCustomValuesArr) {
-        const name = String(cv?.name || "").trim();
-        const id = cv?.id;
-        if (!name || !id) continue;
-        const key = normalizeNameForMatch(name);
-        if (!byNorm.has(key)) {
-            byNorm.set(key, {
-                id,
-                name,
-                fieldKey: cv?.fieldKey,
-                value: cv?.value ?? "",
-            });
-        }
-    }
-    return byNorm;
-}
-
-// =====================
-// GHL API wrappers
-// =====================
-async function ghlGetCustomValues({ locationId, locationToken }) {
-    await ghlThrottle();
-    return ghlFetch(`/locations/${locationId}/customValues`, {
-        method: "GET",
-        headers: {
-            Authorization: `Bearer ${locationToken}`,
-            Version: "2021-07-28",
-        },
-    });
-}
-
-async function ghlUpdateCustomValue({
-    locationId,
-    locationToken,
-    customValueId,
-    value,
-    customValueName,
-}) {
-    await ghlThrottle();
-    const safeValue = value === undefined || value === null ? "" : String(value);
-
-    return ghlFetch(`/locations/${locationId}/customValues/${customValueId}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${locationToken}`,
-            Version: "2021-07-28",
-        },
-        body: JSON.stringify({ name: customValueName, value: safeValue }),
-    });
-}
-
-// ✅ Retry wrapper para race-condition de GHL (customValues provision async)
-async function getCustomValuesWithRetry({
-    locationId,
-    locationToken,
-    maxRetries = 6,
-    initialDelayMs = 800,
-}) {
-    let attempt = 0;
-    let delay = initialDelayMs;
-
-    while (attempt < maxRetries) {
-        attempt++;
-
-        const res = await ghlGetCustomValues({ locationId, locationToken });
-        const arr = extractCustomValuesFromAny(res);
-
-        if (Array.isArray(arr) && arr.length > 0) {
-            if (DEBUG) {
-                console.log(`✅ Custom Values ready after attempt ${attempt} (count=${arr.length})`);
-            }
-            return arr;
-        }
-
-        if (attempt < maxRetries) {
-            if (DEBUG) {
-                console.log(`⏳ Custom Values empty (attempt ${attempt}/${maxRetries}) → waiting ${delay}ms`);
-            }
-            await sleep(delay);
-            delay = Math.min(Math.ceil(delay * 1.6), 5000);
-        }
-    }
-
-    if (DEBUG) {
-        console.log(`⚠️ Custom Values still empty after ${maxRetries} attempts (locationId=${locationId})`);
-    }
-    return [];
-}
 
 // =====================
 // CORE: process one entity (county/city)
@@ -921,11 +684,6 @@ async function processOneAccount({
                     status: twilioAcc.status,
                 });
             }
-            LAST_TWILIO_MATCH = {
-                sid: String(twilioAcc.sid || ""),
-                friendlyName: String(twilioAcc.friendlyName || ""),
-                status: String(twilioAcc.status || ""),
-            };
 
             const closed = await withTimeout(
                 closeTwilioAccount(twilioAcc.sid),
@@ -943,117 +701,7 @@ async function processOneAccount({
         }
     })();
 
-    // ===== 3) GET LOCATION TOKEN (only if custom values are enabled)
-    let locationToken = null;
-    if (ENABLE_CUSTOM_VALUES) {
-        try {
-            if (isDryRun) {
-                locationToken = "dry-location-token";
-                console.log("🟡 DRY RUN: skipping location token");
-            } else {
-                const tokens = getTokens();
-                const agencyAccessToken = tokens?.access_token;
-
-                const companyId =
-                    tokens?.companyId ||
-                    process.env.GHL_COMPANY_ID ||
-                    process.env.COMPANY_ID ||
-                    process.env.COMPANYID;
-
-                if (!agencyAccessToken) throw new Error("Missing agency access_token in tokenStore");
-                if (!companyId) throw new Error("Missing companyId (tokens.companyId or env)");
-
-                console.log("🔐 Getting location access token...");
-                const locTok = await getLocationAccessToken({
-                    companyId,
-                    locationId,
-                    agencyAccessToken,
-                });
-
-                locationToken = locTok?.access_token;
-                if (!locationToken) {
-                    if (DEBUG) console.log("DEBUG locationToken response:", locTok);
-                    throw new Error("Location token missing access_token");
-                }
-                console.log("✅ Location token OK");
-            }
-        } catch (e) {
-            console.log("❌ Location token failed -> cannot do custom values:", e?.message || e);
-        }
-    } else if (DEBUG) {
-        console.log("⏭️ Skipping location token (custom values disabled)");
-    }
-
-    // ===== 4) CUSTOM VALUES (disabled by request)
-    if (locationToken && ENABLE_CUSTOM_VALUES) {
-        try {
-            if (GHL_CV_WARMUP_MS > 0) {
-                await sleep(GHL_CV_WARMUP_MS);
-            }
-            console.log("📥 #5 GET Custom Values from GHL (with retry)...");
-            const ghlCustomValuesArr = await getCustomValuesWithRetry({
-                locationId,
-                locationToken,
-                maxRetries: CV_MAX_RETRIES,
-                initialDelayMs: CV_INITIAL_DELAY_MS,
-            });
-
-            console.log(`📦 Custom Values extracted count=${ghlCustomValuesArr.length}`);
-
-            const byNorm = buildCustomValueIndex(ghlCustomValuesArr);
-            const baseDesired = await getBaseCustomValues();
-            const desired = [
-                ...baseDesired,
-                ...buildExtraCustomValues({ entity, parentCounty, stateName }),
-            ];
-
-            console.log(`✍️ #6 Updating Custom Values: desired=${desired.length}`);
-
-            let updated = 0;
-            let skippedNoMatch = 0;
-            let failed = 0;
-
-            for (const item of desired) {
-                const wantName = String(item.name || "").trim();
-                const wantKey = normalizeNameForMatch(wantName);
-                const match = byNorm.get(wantKey);
-
-                if (!match) {
-                    skippedNoMatch++;
-                    if (DEBUG) console.log(`🔎 NO MATCH: "${wantName}" (norm="${wantKey}")`);
-                    continue;
-                }
-
-                if (DEBUG) console.log(`🔗 MATCH "${wantName}" -> "${match.name}" (id=${match.id})`);
-
-                try {
-                    if (!isDryRun) {
-                        await ghlUpdateCustomValue({
-                            locationId,
-                            locationToken,
-                            customValueId: match.id,
-                            value: item.value,
-                            customValueName: wantName,
-                        });
-                    }
-                    updated++;
-                } catch (e) {
-                    failed++;
-                    console.error(
-                        `❌ Failed custom value "${wantName}" (id=${match.id}) ->`,
-                        e?.message || e
-                    );
-                }
-            }
-
-            console.log(`✅ Custom Values updated=${updated} | no-match=${skippedNoMatch} | failed=${failed}`);
-        } catch (e) {
-            console.log("⚠️ Custom values step failed (continuing):", e?.message || e);
-            if (DEBUG) console.dir(e, { depth: 6 });
-        }
-    }
-
-    // ===== 5) UPDATE GOOGLE SHEET
+    // ===== 3) UPDATE GOOGLE SHEET
     try {
         const updates = {
             "Account Name": String(created?.name || body?.name || ""),
@@ -1143,7 +791,7 @@ async function runState({
 
     console.log(`\n🏁 RUN STATE: ${stateSlug} | counties=${counties.length} | RUN_ID=${RUN_ID}`);
     console.log(`Throttle: GHL_RPM=${GHL_RPM} => min ${MIN_MS_BETWEEN_GHL_CALLS}ms between calls`);
-    console.log(`Fast mode: ${FAST_MODE ? "ON" : "OFF"} | CV warmup=${GHL_CV_WARMUP_MS}ms | CV retries=${CV_MAX_RETRIES} | CV initialDelay=${CV_INITIAL_DELAY_MS}ms`);
+    console.log(`Fast mode: ${FAST_MODE ? "ON" : "OFF"}`);
     console.log(`Account guards: timeout=${ACCOUNT_PROCESS_TIMEOUT_MS}ms | retries=${ACCOUNT_MAX_RETRIES}`);
     console.log(`Twilio guards: lookup=${TWILIO_LOOKUP_TIMEOUT_MS}ms | close=${TWILIO_CLOSE_TIMEOUT_MS}ms | step=${TWILIO_STEP_TIMEOUT_MS}ms`);
     console.log(`Mode: ${isDryRun ? "DRY" : "LIVE"} | Debug: ${DEBUG ? "ON" : "OFF"}\n`);
