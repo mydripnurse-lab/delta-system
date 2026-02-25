@@ -6760,23 +6760,25 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <div className="runCardHead">
                     <div className="runCardTitle">
                       <b>{s(r.meta?.job) || "run"}</b>
-                      <span className="mini">state: {formatStateLabel(r.stateLabel) || "ALL"}</span>
-                      <span className="mini">runId: {r.id}</span>
+                      <span className="mini runCardSubline">state: {formatStateLabel(r.stateLabel) || "ALL"}</span>
+                      <span className="mini runCardSubline runCardRunId">runId: {r.id}</span>
                     </div>
-                    <span className="badge">{r.pct}%</span>
+                    <span className="badge runCardPct">{r.pct}%</span>
                   </div>
 
                   <div className="runCardMeta mini">
-                    <span>Status: <b>{r.status}</b></span>
-                    <span>Done: <b>{r.doneLabel}</b></span>
-                    <span>Elapsed: <b>{r.elapsed}</b></span>
-                    <span>ETA: <b>{r.eta}</b></span>
-                    <span>Updated: <b>{r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}</b></span>
+                    <span className={`runMetaPill runMetaStatus runMetaStatus${r.status.charAt(0).toUpperCase()}${r.status.slice(1)}`}>
+                      Status: <b>{r.status}</b>
+                    </span>
+                    <span className="runMetaPill">Done: <b>{r.doneLabel}</b></span>
+                    <span className="runMetaPill">Elapsed: <b>{r.elapsed}</b></span>
+                    <span className="runMetaPill">ETA: <b>{r.eta}</b></span>
+                    <span className="runMetaPill">Updated: <b>{r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}</b></span>
                   </div>
 
                   <div className="runCardBar" aria-hidden>
                     <div
-                      className="runCardBarFill"
+                      className={`runCardBarFill runCardBarFill${r.status.charAt(0).toUpperCase()}${r.status.slice(1)}`}
                       style={{ width: `${Math.max(0, Math.min(100, r.pct))}%` }}
                     />
                   </div>
