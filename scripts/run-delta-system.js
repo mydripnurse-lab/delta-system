@@ -148,6 +148,10 @@ const TWILIO_STEP_TIMEOUT_MS = Math.max(
     1000,
     Number(process.env.DELTA_TWILIO_STEP_TIMEOUT_MS || (FAST_MODE ? "12000" : "18000"))
 );
+const MAX_SUBACCOUNT_RECOVERY_RETRIES = Math.max(
+    0,
+    Number(process.env.DELTA_MAX_SUBACCOUNT_RECOVERY_RETRIES || "1")
+);
 const CV_MAX_RETRIES = Number(
     process.env.GHL_CV_MAX_RETRIES ||
     (FAST_MODE ? "2" : "4")
@@ -343,6 +347,67 @@ function ensureHttps(domainOrUrl) {
 
 function toBoolishTRUE() {
     return "TRUE";
+}
+
+let LAST_SUCCESSFUL_LOCATION_NAME = "";
+
+function isTwilioSubaccountLimitError(e) {
+    const status = Number(e?.status ?? e?.code ?? 0);
+    const msg = String(e?.message || "");
+    const detail =
+        e?.data && typeof e.data === "object"
+            ? String(e.data?.error?.message || e.data?.message || JSON.stringify(e.data))
+            : "";
+    const haystack = `${msg} ${detail}`.toLowerCase();
+    return (
+        status === 400 &&
+        (haystack.includes("maximum number of subaccounts") ||
+            haystack.includes("reached maximum number of subaccounts"))
+    );
+}
+
+async function tryFreeTwilioCapacityFromPreviousAccount() {
+    if (!ENABLE_TWILIO_CLOSE) return false;
+    const previousName = String(LAST_SUCCESSFUL_LOCATION_NAME || "").trim();
+    if (!previousName) {
+        console.log("⚠️ Twilio capacity recovery skipped: no previous successful account name.");
+        return false;
+    }
+
+    const lookupName = previousName.slice(0, 64);
+    console.log(`🧯 Twilio capacity recovery: checking previous account "${lookupName}"...`);
+    try {
+        const twilioAcc = await withTimeout(
+            findTwilioAccountByFriendlyName(lookupName, {
+                exact: true,
+                limit: FAST_MODE ? 60 : 200,
+            }),
+            TWILIO_LOOKUP_TIMEOUT_MS,
+            `Twilio recovery lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
+        );
+
+        if (!twilioAcc) {
+            console.log("⚠️ Twilio capacity recovery: previous account not found.");
+            return false;
+        }
+        if (String(twilioAcc.status || "").toLowerCase() === "closed") {
+            console.log(`ℹ️ Twilio capacity recovery: previous account already closed (sid=${twilioAcc.sid}).`);
+            return true;
+        }
+
+        const closed = await withTimeout(
+            closeTwilioAccount(String(twilioAcc.sid || "")),
+            TWILIO_CLOSE_TIMEOUT_MS,
+            `Twilio recovery close timeout (${TWILIO_CLOSE_TIMEOUT_MS}ms) sid=${twilioAcc.sid}`
+        );
+        console.log(
+            `✅ Twilio capacity recovery: closed previous account sid=${closed?.sid || twilioAcc.sid} status=${closed?.status || "closed"}`
+        );
+        return true;
+    } catch (e) {
+        console.log("⚠️ Twilio capacity recovery failed:", e?.message || e);
+        return false;
+    }
 }
 
 function normalizeNameForMatch(s) {
@@ -739,12 +804,32 @@ async function processOneAccount({
         created = { id: `dry-${Date.now()}`, name: body.name };
         console.log("🟡 DRY RUN: skipping GHL create");
     } else {
-        await ghlThrottle();
-        created = await ghlFetch("/locations/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-        });
+        const maxAttempts = 1 + MAX_SUBACCOUNT_RECOVERY_RETRIES;
+        let createErr = null;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                await ghlThrottle();
+                created = await ghlFetch("/locations/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                });
+                createErr = null;
+                break;
+            } catch (e) {
+                createErr = e;
+                if (attempt >= maxAttempts || !isTwilioSubaccountLimitError(e)) {
+                    break;
+                }
+                console.log(
+                    `⚠️ Subaccount limit detected on create (attempt ${attempt}/${maxAttempts}). Recovering capacity from previous Twilio account...`
+                );
+                const recovered = await tryFreeTwilioCapacityFromPreviousAccount();
+                if (!recovered) break;
+                await sleep(1200);
+            }
+        }
+        if (createErr) throw createErr;
     }
 
     const locationId = created?.id;
@@ -752,6 +837,7 @@ async function processOneAccount({
         console.log("❌ No locationId returned -> STOP this account");
         return { skipped: true, reason: "no_location_id" };
     }
+    LAST_SUCCESSFUL_LOCATION_NAME = String(created?.name || body?.name || LAST_SUCCESSFUL_LOCATION_NAME || "");
 
     // ===== 2) TWILIO: match & close (64 chars safe) - non-blocking for faster run
     twilioStepPromise = (async () => {
