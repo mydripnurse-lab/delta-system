@@ -3371,6 +3371,33 @@ export default function Home() {
       return;
     }
 
+    // Guardrail: do not re-run same state when another run for that state is running or stopped.
+    if (!isOneLocJob) {
+      const targetState = s(metaState).toLowerCase();
+      const stateBlockedBy = activeRuns.find((r) => {
+        const m = r.meta || {};
+        if (s(m.tenantId) !== s(routeTenantId)) return false;
+        if (s(m.state).toLowerCase() !== targetState) return false;
+        const isStopped = r.stopped || s(r.status).toLowerCase() === "stopped";
+        const isRunning = !r.finished && !isStopped;
+        return isStopped || isRunning;
+      });
+
+      if (stateBlockedBy) {
+        const blockedStopped =
+          !!stateBlockedBy.stopped || s(stateBlockedBy.status).toLowerCase() === "stopped";
+        pushLog(
+          `⛔ State blocked: "${formatStateLabel(metaState)}" already has run ${stateBlockedBy.id} in ${
+            blockedStopped ? "stopped" : "running"
+          } state.`,
+        );
+        if (!blockedStopped) {
+          await attachToActiveRun(stateBlockedBy.id);
+        }
+        return;
+      }
+    }
+
     if (jobKey === "update-custom-values-one" && !locId) {
       pushLog("❌ Missing locId for update-custom-values-one");
       return;
@@ -3599,6 +3626,39 @@ export default function Home() {
             data = JSON.parse(String(ev.data ?? ""));
           } catch {}
 
+          const transientEnd =
+            data?.reason === "not_found" ||
+            data?.status === "running" ||
+            data?.source === "db_error";
+          if (
+            transientEnd &&
+            isRunningRef.current &&
+            currentRunIdRef.current === targetRunId
+          ) {
+            const nextAttempt = sseRetryCountRef.current + 1;
+            sseRetryCountRef.current = nextAttempt;
+            const waitMs = Math.min(
+              MAX_SSE_RETRY_WAIT_MS,
+              1000 * Math.pow(1.35, nextAttempt - 1),
+            );
+            pushLog(
+              `⚠ SSE end transitorio (${s(data?.reason || data?.status || "unknown")}). Reintentando en ${(waitMs / 1000).toFixed(1)}s (attempt ${nextAttempt})...`,
+            );
+            setProgress((p) => ({
+              ...p,
+              message: "SSE reconnecting…",
+              status: "running",
+            }));
+            if (sseRetryTimerRef.current) {
+              clearTimeout(sseRetryTimerRef.current);
+              sseRetryTimerRef.current = null;
+            }
+            sseRetryTimerRef.current = setTimeout(() => {
+              connectStream(targetRunId, true);
+            }, waitMs);
+            return;
+          }
+
           const ms = runStartedAtRef.current
             ? Date.now() - runStartedAtRef.current
             : null;
@@ -3692,12 +3752,40 @@ export default function Home() {
 
   async function stop() {
     if (!runId) return;
+    const stoppingId = s(runId);
 
     setProgress((p) => ({ ...p, message: "Stopping…", status: "stopping" }));
+    setIsRunning(false);
+    runStartedAtRef.current = null;
 
     try {
-      await fetch(`/api/stop/${runId}`, { method: "POST" });
+      esRef.current?.close();
+    } catch {}
+    esRef.current = null;
+    if (sseRetryTimerRef.current) {
+      clearTimeout(sseRetryTimerRef.current);
+      sseRetryTimerRef.current = null;
+    }
+
+    const nowMs = Date.now();
+    setActiveRuns((prev) =>
+      prev.map((r) =>
+        s(r.id) === stoppingId
+          ? {
+              ...r,
+              status: "stopped",
+              stopped: true,
+              finished: true,
+              updatedAt: nowMs,
+            }
+          : r,
+      ),
+    );
+
+    try {
+      await fetch(`/api/stop/${stoppingId}`, { method: "POST" });
       pushLog("🛑 Stop requested");
+      await loadActiveRuns();
     } catch {
       pushLog("❌ Stop failed (network)");
       setProgress((p) => ({
@@ -3778,6 +3866,29 @@ export default function Home() {
       try {
         data = JSON.parse(String(ev.data ?? ""));
       } catch {}
+
+      const transientEnd =
+        data?.reason === "not_found" ||
+        data?.status === "running" ||
+        data?.source === "db_error";
+      if (transientEnd && isRunningRef.current && currentRunIdRef.current === id) {
+        const nextAttempt = sseRetryCountRef.current + 1;
+        sseRetryCountRef.current = nextAttempt;
+        const waitMs = Math.min(MAX_SSE_RETRY_WAIT_MS, 1000 * Math.pow(1.35, nextAttempt - 1));
+        pushLog(
+          `⚠ SSE end transitorio (${s(data?.reason || data?.status || "unknown")}). Reintentando en ${(waitMs / 1000).toFixed(1)}s (attempt ${nextAttempt})...`,
+        );
+        setProgress((p) => ({ ...p, message: "SSE reconnecting…", status: "running" }));
+        if (sseRetryTimerRef.current) {
+          clearTimeout(sseRetryTimerRef.current);
+          sseRetryTimerRef.current = null;
+        }
+        sseRetryTimerRef.current = setTimeout(() => {
+          void attachToActiveRun(id);
+        }, waitMs);
+        return;
+      }
+
       pushLog(
         `🏁 END ${
           typeof data === "object" ? JSON.stringify(data) : String(data)
@@ -5326,6 +5437,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         : r.stopped
           ? "stopped"
           : "running";
+      const createdAtMs = Number(r.createdAt || 0);
+      const endedAtMs =
+        status === "running"
+          ? Date.now()
+          : Number(r.updatedAt || r.createdAt || Date.now());
       const stateLabel = s(r.meta?.state) || "all";
       return {
         ...r,
@@ -5341,7 +5457,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             ? formatDuration(Math.max(0, Number(p.etaSec || 0)))
             : "—",
         elapsed: formatDuration(
-          Math.max(0, Math.floor((Date.now() - Number(r.createdAt || 0)) / 1000)),
+          Math.max(0, Math.floor((endedAtMs - createdAtMs) / 1000)),
         ),
         message:
           s(p?.lastMessage) || s(r.lastLine) || (status === "running" ? "Running…" : "Idle"),

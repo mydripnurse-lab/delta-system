@@ -7,6 +7,10 @@ export const maxDuration = 300;
 const STREAM_DB_ONLY = String(process.env.RUN_STREAM_DB_ONLY || "1") === "1";
 const STREAM_HEARTBEAT_IDLE_MS = Math.max(15_000, Number(process.env.RUN_STREAM_HEARTBEAT_IDLE_MS || 60_000));
 const STREAM_IDLE_LINE_ENABLED = String(process.env.RUN_STREAM_IDLE_LINE_ENABLED || "0") === "1";
+const STREAM_NOT_FOUND_GRACE_TICKS = Math.max(
+    1,
+    Number(process.env.RUN_STREAM_NOT_FOUND_GRACE_TICKS || 25),
+);
 
 function sseLine(str: string) {
     return `${str}\n`;
@@ -73,6 +77,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
             let lastDbEventId =
                 Number.isFinite(lastEventId) && lastEventId > 0 ? Math.floor(lastEventId) : 0;
             let lastVisibleLineAt = Date.now();
+            let notFoundTicks = 0;
 
             const tick = async () => {
                 const run = STREAM_DB_ONLY ? null : getRun(runId);
@@ -115,10 +120,34 @@ export async function GET(req: Request, ctx: { params: Promise<{ runId: string }
 
                         const row = runQ.rows[0];
                         if (!row) {
-                            write(sseEvent("end", { runId, ok: false, reason: "not_found" }));
+                            notFoundTicks += 1;
+                            write(
+                                sseEvent("ping", {
+                                    t: Date.now(),
+                                    source: "db_not_found",
+                                    missCount: notFoundTicks,
+                                    graceTicks: STREAM_NOT_FOUND_GRACE_TICKS,
+                                }),
+                            );
+                            if (notFoundTicks < STREAM_NOT_FOUND_GRACE_TICKS) {
+                                setTimeout(() => {
+                                    void tick();
+                                }, 1200);
+                                return;
+                            }
+                            write(
+                                sseEvent("end", {
+                                    runId,
+                                    ok: false,
+                                    reason: "not_found",
+                                    missCount: notFoundTicks,
+                                    graceTicks: STREAM_NOT_FOUND_GRACE_TICKS,
+                                }),
+                            );
                             controller.close();
                             return;
                         }
+                        notFoundTicks = 0;
 
                         for (const ev of evQ.rows || []) {
                             const evId = Number(ev.id || 0);
