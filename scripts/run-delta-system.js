@@ -130,7 +130,7 @@ const SHEETS_LOAD_RETRY_DELAY_MS = Math.max(
 );
 const ACCOUNT_PROCESS_TIMEOUT_MS = Math.max(
     10000,
-    Number(process.env.DELTA_ACCOUNT_PROCESS_TIMEOUT_MS || "180000")
+    Number(process.env.DELTA_ACCOUNT_PROCESS_TIMEOUT_MS || "300000")
 );
 const ACCOUNT_MAX_RETRIES = Math.max(
     1,
@@ -273,6 +273,25 @@ async function loadSheetTabIndexWithRecovery(params) {
 }
 
 async function processOneAccountWithRecovery(args) {
+    const isRetriableStatus = (status) =>
+        status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+    const statusFromErr = (e) => {
+        const s = Number(e?.status ?? e?.code);
+        return Number.isFinite(s) ? s : null;
+    };
+    const formatError = (e) => {
+        const msg = String(e?.message || e || "unknown error");
+        const st = statusFromErr(e);
+        const data = e?.data;
+        const detail =
+            data && typeof data === "object"
+                ? String(data?.error?.message || data?.message || JSON.stringify(data)).slice(0, 500)
+                : "";
+        if (st && detail) return `${msg} | status=${st} | detail=${detail}`;
+        if (st) return `${msg} | status=${st}`;
+        return msg;
+    };
+
     let lastErr = null;
     for (let attempt = 1; attempt <= ACCOUNT_MAX_RETRIES; attempt++) {
         try {
@@ -283,9 +302,16 @@ async function processOneAccountWithRecovery(args) {
             );
         } catch (e) {
             lastErr = e;
+            const status = statusFromErr(e);
+            const retriable = status === null ? true : isRetriableStatus(status);
+            const formatted = formatError(e);
             console.log(
-                `⚠️ Account attempt ${attempt}/${ACCOUNT_MAX_RETRIES} failed: ${e?.message || e}`
+                `⚠️ Account attempt ${attempt}/${ACCOUNT_MAX_RETRIES} failed: ${formatted}`
             );
+            if (!retriable) {
+                console.log(`⏭️ Account retry skipped (non-retriable status ${status})`);
+                throw e;
+            }
             if (attempt < ACCOUNT_MAX_RETRIES) {
                 await sleep(1000 * attempt);
             }
@@ -325,6 +351,20 @@ function normalizeNameForMatch(s) {
         .replace(/\s+/g, " ")
         .trim()
         .toLowerCase();
+}
+
+function formatErrWithDetails(e) {
+    const msg = String(e?.message || e || "unknown error");
+    const st = Number(e?.status ?? e?.code);
+    const status = Number.isFinite(st) ? st : null;
+    const data = e?.data;
+    const detail =
+        data && typeof data === "object"
+            ? String(data?.error?.message || data?.message || JSON.stringify(data)).slice(0, 500)
+            : "";
+    if (status && detail) return `${msg} | status=${status} | detail=${detail}`;
+    if (status) return `${msg} | status=${status}`;
+    return msg;
 }
 
 function toCheckpointToken(s) {
@@ -1056,7 +1096,7 @@ async function runState({
                         else skipped++;
                         await checkpointMarkDone({ kind: "county", countyName });
                     } catch (e) {
-                        console.log(`❌ COUNTY failed after retries (${countyName}):`, e?.message || e);
+                        console.log(`❌ COUNTY failed after retries (${countyName}):`, formatErrWithDetails(e));
                         skipped++;
                     }
                 } else {
@@ -1144,7 +1184,7 @@ async function runState({
                 else skipped++;
                 await checkpointMarkDone({ kind: "city", countyName, cityName });
             } catch (e) {
-                console.log(`❌ CITY failed after retries (${cityName}):`, e?.message || e);
+                console.log(`❌ CITY failed after retries (${cityName}):`, formatErrWithDetails(e));
                 skipped++;
             }
 
