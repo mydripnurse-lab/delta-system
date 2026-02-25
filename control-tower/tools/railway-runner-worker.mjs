@@ -213,45 +213,46 @@ async function runInWorker(payload) {
   console.log(
     `[railway-runner-worker] runInWorker start runId=${runId} job=${job} state=${state} mode=${mode}`,
   );
-  const envOverrides = payload.env && typeof payload.env === "object" ? payload.env : {};
-  const repoRoots = findRepoRoots(REPO_ROOT);
-  const scriptPath = resolveScriptPath(repoRoots, job);
-  if (!scriptPath) {
-    throw new Error(`Script not found for job="${job}" from repoRoot=${REPO_ROOT}`);
-  }
-
-  const env = {
-    ...process.env,
-    ...envOverrides,
-    MODE: mode,
-    DEBUG: debug ? "1" : "0",
-    TENANT_ID: tenantId,
-  };
-
   let tempStateFilesDir = "";
-  const tempOutRoot = path.join(
-    os.tmpdir(),
-    "ct-out",
-    tenantId || "global",
-    `${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
-  );
-  if (tenantId && jobUsesState(job)) {
-    await appendEvent(runId, `worker: loading state files from DB tenant=${tenantId}`);
-    const seeded = await materializeTenantStateFilesFromDb(tenantId);
-    tempStateFilesDir = seeded.dir;
-    env.STATE_FILES_DIR = seeded.dir;
-    await appendEvent(runId, `state-files source=db materialized=${seeded.count} dir=${seeded.dir}`);
-  }
-  await fsp.mkdir(tempOutRoot, { recursive: true });
-  env.OUT_ROOT_DIR = tempOutRoot;
-  await appendEvent(runId, `out-root dir=${tempOutRoot}`);
-
+  let tempOutRoot = "";
   const cleanup = async () => {
     if (tempStateFilesDir) await fsp.rm(tempStateFilesDir, { recursive: true, force: true }).catch(() => {});
     if (tempOutRoot) await fsp.rm(tempOutRoot, { recursive: true, force: true }).catch(() => {});
   };
 
   try {
+    const envOverrides = payload.env && typeof payload.env === "object" ? payload.env : {};
+    const repoRoots = findRepoRoots(REPO_ROOT);
+    const scriptPath = resolveScriptPath(repoRoots, job);
+    if (!scriptPath) {
+      throw new Error(`Script not found for job="${job}" from repoRoot=${REPO_ROOT}`);
+    }
+
+    const env = {
+      ...process.env,
+      ...envOverrides,
+      MODE: mode,
+      DEBUG: debug ? "1" : "0",
+      TENANT_ID: tenantId,
+    };
+
+    tempOutRoot = path.join(
+      os.tmpdir(),
+      "ct-out",
+      tenantId || "global",
+      `${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    );
+    if (tenantId && jobUsesState(job)) {
+      await appendEvent(runId, `worker: loading state files from DB tenant=${tenantId}`);
+      const seeded = await materializeTenantStateFilesFromDb(tenantId);
+      tempStateFilesDir = seeded.dir;
+      env.STATE_FILES_DIR = seeded.dir;
+      await appendEvent(runId, `state-files source=db materialized=${seeded.count} dir=${seeded.dir}`);
+    }
+    await fsp.mkdir(tempOutRoot, { recursive: true });
+    env.OUT_ROOT_DIR = tempOutRoot;
+    await appendEvent(runId, `out-root dir=${tempOutRoot}`);
+
     if (job === "run-delta-system") {
       const preCreateDb = resolveScriptPath(repoRoots, "build-sheet-rows");
       const preBuildCounties = resolveScriptPath(repoRoots, "build-counties");
