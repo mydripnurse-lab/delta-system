@@ -19,6 +19,14 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function resolveBlobToken() {
+  return s(
+    process.env.BLOB_READ_WRITE_TOKEN ||
+      process.env.VERCEL_BLOB_READ_WRITE_TOKEN ||
+      process.env.SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN,
+  );
+}
+
 function kebabToken(input: string) {
   return s(input)
     .normalize("NFD")
@@ -296,6 +304,26 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   try {
+    const blobToken = resolveBlobToken();
+    if (!blobToken) {
+      const envKeys = Object.keys(process.env)
+        .filter((k) => /BLOB/i.test(k))
+        .sort();
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Missing Blob token. Expected one of: BLOB_READ_WRITE_TOKEN, VERCEL_BLOB_READ_WRITE_TOKEN, SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN.",
+          debug: {
+            blobEnvKeysPresent: envKeys,
+            nodeEnv: s(process.env.NODE_ENV),
+            vercelEnv: s(process.env.VERCEL_ENV),
+          },
+        },
+        { status: 500 },
+      );
+    }
+
     const pool = getDbPool();
     const cfgQ = await pool.query<{ key_value: string | null }>(
       `
@@ -378,6 +406,7 @@ export async function POST(req: Request, ctx: Ctx) {
 
       const blobPath = `search-builder/${tenantId}/${folder}/${fileName}`;
       const uploaded = await put(blobPath, html, {
+        token: blobToken,
         access: "public",
         contentType: "text/html; charset=utf-8",
         addRandomSuffix: false,
@@ -404,6 +433,7 @@ export async function POST(req: Request, ctx: Ctx) {
     };
 
     await put(`search-builder/${tenantId}/${folder}/_search-builder-manifest.json`, JSON.stringify(manifest, null, 2), {
+      token: blobToken,
       access: "public",
       contentType: "application/json; charset=utf-8",
       addRandomSuffix: false,
