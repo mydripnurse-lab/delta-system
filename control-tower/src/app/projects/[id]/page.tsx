@@ -7104,8 +7104,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <button
                       type="button"
                       className="smallBtn runCardActionBtn"
-                      disabled={!r.finished}
-                      title={r.finished ? "Run again (reprocess Status=false rows)" : "Finish current run first"}
+                      disabled={r.status !== "done"}
+                      title={r.status === "done" ? "Run again (reprocess Status=false rows)" : "Rerun only available when run is done"}
                       onClick={() => {
                         const rerunJob = s(r.meta?.job);
                         if (!rerunJob) {

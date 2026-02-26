@@ -105,7 +105,7 @@ export function listRuns(opts?: { activeOnly?: boolean; limit?: number }) {
     const activeOnly = !!opts?.activeOnly;
     const limit = Math.max(1, Number(opts?.limit || 50));
     const items = Array.from(runs.values())
-        .filter((r) => (activeOnly ? !r.finished : true))
+        .filter((r) => (activeOnly ? !r.finished && !r.stopped : true))
         .sort((a, b) => b.createdAt - a.createdAt)
         .slice(0, limit)
         .map((r) => ({

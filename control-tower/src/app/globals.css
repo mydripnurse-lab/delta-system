@@ -918,34 +918,24 @@ button, input, select { font-family: inherit; }
   transform: translateY(0);
 }
 
-.runCardActionBtn::after {
-  content: "";
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  width: 0;
-  height: 0;
-  opacity: 0;
-  border-top: 0 solid transparent;
-  border-right: 0 solid transparent;
-  transition: width .2s ease, height .2s ease, opacity .2s ease, border-color .2s ease;
-  pointer-events: none;
+.runCardActionBtnStop:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.95);
+  background:
+    linear-gradient(180deg, rgba(120, 76, 15, 0.42), rgba(96, 57, 12, 0.32)),
+    radial-gradient(120% 140% at 15% 0%, rgba(252, 211, 77, 0.2), transparent 58%);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.28),
+    0 10px 20px rgba(146, 64, 14, 0.28);
 }
 
-.runCardActionBtnStop:hover:not(:disabled)::after {
-  width: 11px;
-  height: 11px;
-  opacity: 0.92;
-  border-top: 2px solid rgba(251, 191, 36, 0.95);
-  border-right: 2px solid rgba(251, 191, 36, 0.95);
-}
-
-.runCardActionBtnDelete:hover:not(:disabled)::after {
-  width: 11px;
-  height: 11px;
-  opacity: 0.92;
-  border-top: 2px solid rgba(248, 113, 113, 0.96);
-  border-right: 2px solid rgba(248, 113, 113, 0.96);
+.runCardActionBtnDelete:hover:not(:disabled) {
+  border-color: rgba(248, 113, 113, 0.96);
+  background:
+    linear-gradient(180deg, rgba(120, 24, 40, 0.44), rgba(103, 16, 34, 0.34)),
+    radial-gradient(120% 140% at 15% 0%, rgba(252, 165, 165, 0.2), transparent 58%);
+  box-shadow:
+    0 0 0 1px rgba(248, 113, 113, 0.3),
+    0 10px 20px rgba(127, 29, 29, 0.3);
 }
 
 @keyframes runStepShimmer {

@@ -458,6 +458,23 @@ async function stopRunById(runId) {
       active.child.kill("SIGTERM");
     }
   } catch {}
+  setTimeout(() => {
+    const stillActive = activeRuns.get(runId);
+    if (!stillActive?.child) return;
+    try {
+      const pid = Number(stillActive.child.pid || 0);
+      if (pid > 0 && process.platform !== "win32") {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          stillActive.child.kill("SIGKILL");
+        }
+      } else {
+        stillActive.child.kill("SIGKILL");
+      }
+      void appendEvent(runId, "🧨 Stop escalation: SIGKILL sent (remote worker)");
+    } catch {}
+  }, 2500);
   return { ok: true, stopped: true };
 }
 

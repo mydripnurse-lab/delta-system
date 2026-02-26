@@ -111,6 +111,8 @@ const NON_INTERACTIVE =
 const ENABLE_TWILIO_CLOSE = String(process.env.DELTA_ENABLE_TWILIO_CLOSE || "1") !== "0";
 const PREDELETE_TWILIO_BEFORE_GHL_CREATE =
     String(process.env.DELTA_PREDELETE_TWILIO_BEFORE_GHL || "1") !== "0";
+const TWILIO_CLOSE_ON_STOP =
+    String(process.env.DELTA_STOP_CLOSE_TWILIO || "1") !== "0";
 const SHEETS_LOAD_TIMEOUT_MS = Math.max(
     5000,
     Number(process.env.DELTA_SHEETS_LOAD_TIMEOUT_MS || "90000")
@@ -389,6 +391,7 @@ function toBoolishTRUE() {
 
 let LAST_SUCCESSFUL_LOCATION_NAME = "";
 const TWILIO_RECOVERY_CLOSED_SIDS = new Set();
+let STOP_SIGNAL_HANDLING = false;
 
 function isTwilioSubaccountLimitError(e) {
     const status = Number(e?.status ?? e?.code ?? 0);
@@ -531,6 +534,68 @@ async function closeLatestActiveTwilioSubaccountBeforeCreate() {
         console.log("⚠️ Twilio pre-delete failed (continuing with normal flow):", e?.message || e);
         return false;
     }
+}
+
+async function closeTwilioOnStopBestEffort(signalName = "SIGTERM") {
+    if (!ENABLE_TWILIO_CLOSE || !TWILIO_CLOSE_ON_STOP) return;
+    try {
+        const previousName = String(LAST_SUCCESSFUL_LOCATION_NAME || "").trim();
+        if (previousName) {
+            const lookupName = previousName.slice(0, 64);
+            const byName =
+                (await withTimeout(
+                    findTwilioAccountByFriendlyName(lookupName, { exact: true, limit: FAST_MODE ? 60 : 200 }),
+                    TWILIO_LOOKUP_TIMEOUT_MS,
+                    `Twilio stop-close lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
+                )) ||
+                (await withTimeout(
+                    findTwilioAccountByFriendlyName(lookupName, { exact: false, limit: FAST_MODE ? 80 : 250 }),
+                    TWILIO_LOOKUP_TIMEOUT_MS,
+                    `Twilio stop-close fuzzy lookup timeout (${TWILIO_LOOKUP_TIMEOUT_MS}ms) for "${lookupName}"`
+                ));
+
+            if (byName?.sid) {
+                const sid = String(byName.sid);
+                if (String(byName.status || "").toLowerCase() !== "closed") {
+                    const closed = await closeTwilioAccountWithRetry(
+                        sid,
+                        `stop-close-by-last-successful-name (${signalName})`
+                    );
+                    TWILIO_RECOVERY_CLOSED_SIDS.add(String(closed?.sid || sid));
+                    console.log(
+                        `✅ Twilio stop-close: closed sid=${closed?.sid || sid} name="${byName?.friendlyName || ""}" status=${closed?.status || "closed"}`
+                    );
+                    return;
+                }
+            }
+        }
+
+        const closedLatest = await closeLatestActiveTwilioSubaccountBeforeCreate();
+        if (closedLatest) {
+            console.log(`✅ Twilio stop-close: closed latest active subaccount (${signalName})`);
+        } else {
+            console.log(`ℹ️ Twilio stop-close: no active subaccount to close (${signalName})`);
+        }
+    } catch (e) {
+        console.log(`⚠️ Twilio stop-close failed (${signalName}):`, e?.message || e);
+    }
+}
+
+function installStopSignalHandlers() {
+    const onStopSignal = async (signalName) => {
+        if (STOP_SIGNAL_HANDLING) return;
+        STOP_SIGNAL_HANDLING = true;
+        console.log(`🛑 Stop signal received: ${signalName}. Running Twilio close safeguard...`);
+        await closeTwilioOnStopBestEffort(signalName);
+        process.exit(130);
+    };
+
+    process.on("SIGTERM", () => {
+        void onStopSignal("SIGTERM");
+    });
+    process.on("SIGINT", () => {
+        void onStopSignal("SIGINT");
+    });
 }
 
 function formatErrWithDetails(e) {
@@ -1610,6 +1675,8 @@ async function main() {
 
     emitProgressEnd({ totals, done, ok: true });
 }
+
+installStopSignalHandlers();
 
 main().catch((e) => {
     console.error("❌ Fatal:", e?.message || e);
