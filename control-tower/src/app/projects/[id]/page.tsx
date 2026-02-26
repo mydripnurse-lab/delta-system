@@ -16,6 +16,20 @@ const DOMAIN_BOT_TIMEOUT_MIN_DEFAULT = 35;
 const DOMAIN_BOT_TIMEOUT_MIN_MIN = 5;
 const DOMAIN_BOT_TIMEOUT_MIN_MAX = 120;
 const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
+const SEARCH_BUILDER_FONT_OPTIONS = [
+  { key: "lato", label: "Lato", family: "Lato", importUrl: "https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" },
+  { key: "inter", label: "Inter", family: "Inter", importUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" },
+  { key: "poppins", label: "Poppins", family: "Poppins", importUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" },
+  { key: "montserrat", label: "Montserrat", family: "Montserrat", importUrl: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" },
+  { key: "oswald", label: "Oswald", family: "Oswald", importUrl: "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" },
+  { key: "raleway", label: "Raleway", family: "Raleway", importUrl: "https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&display=swap" },
+  { key: "nunito", label: "Nunito", family: "Nunito", importUrl: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" },
+  { key: "dm_sans", label: "DM Sans", family: "DM Sans", importUrl: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" },
+  { key: "plus_jakarta_sans", label: "Plus Jakarta Sans", family: "Plus Jakarta Sans", importUrl: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" },
+  { key: "manrope", label: "Manrope", family: "Manrope", importUrl: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" },
+  { key: "rubik", label: "Rubik", family: "Rubik", importUrl: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" },
+  { key: "merriweather", label: "Merriweather", family: "Merriweather", importUrl: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap" },
+] as const;
 
 type SheetStateRow = {
   state: string;
@@ -114,6 +128,19 @@ type SearchBuilderProject = {
   searchPlaceholder: string;
   defaultBookingPath: string;
   buttonPosition: "left" | "center" | "right";
+  fontKey: string;
+  buttonRadius: number;
+  buttonPaddingY: number;
+  buttonPaddingX: number;
+  buttonFontSize: number;
+  buttonFontWeight: number;
+  buttonShadow: number;
+  modalRadius: number;
+  modalWidth: number;
+  modalHeight: number;
+  modalBackdropOpacity: number;
+  modalHeaderHeight: number;
+  inputRadius: number;
   updatedAt?: string;
 };
 
@@ -810,6 +837,19 @@ export default function Home() {
   const [searchBuilderSearchTitle, setSearchBuilderSearchTitle] = useState("Choose your location");
   const [searchBuilderSearchSubtitle, setSearchBuilderSearchSubtitle] = useState("Search by State, County/Parish, or City. Then click Book Now.");
   const [searchBuilderSearchPlaceholder, setSearchBuilderSearchPlaceholder] = useState("Choose your City, State, or Country");
+  const [searchBuilderFontKey, setSearchBuilderFontKey] = useState("lato");
+  const [searchBuilderButtonRadius, setSearchBuilderButtonRadius] = useState(999);
+  const [searchBuilderButtonPaddingY, setSearchBuilderButtonPaddingY] = useState(12);
+  const [searchBuilderButtonPaddingX, setSearchBuilderButtonPaddingX] = useState(22);
+  const [searchBuilderButtonFontSize, setSearchBuilderButtonFontSize] = useState(15);
+  const [searchBuilderButtonFontWeight, setSearchBuilderButtonFontWeight] = useState(800);
+  const [searchBuilderButtonShadow, setSearchBuilderButtonShadow] = useState(18);
+  const [searchBuilderModalRadius, setSearchBuilderModalRadius] = useState(16);
+  const [searchBuilderModalWidth, setSearchBuilderModalWidth] = useState(800);
+  const [searchBuilderModalHeight, setSearchBuilderModalHeight] = useState(680);
+  const [searchBuilderModalBackdropOpacity, setSearchBuilderModalBackdropOpacity] = useState(55);
+  const [searchBuilderModalHeaderHeight, setSearchBuilderModalHeaderHeight] = useState(56);
+  const [searchBuilderInputRadius, setSearchBuilderInputRadius] = useState(10);
   const [searchBuilderProjects, setSearchBuilderProjects] = useState<SearchBuilderProject[]>([]);
   const [searchBuilderProjectsLoading, setSearchBuilderProjectsLoading] = useState(false);
   const [searchBuilderActiveSearchId, setSearchBuilderActiveSearchId] = useState("");
@@ -2115,6 +2155,19 @@ export default function Home() {
       searchPlaceholder: "Choose your City, State, or Country",
       defaultBookingPath: "/",
       buttonPosition: "center" as const,
+      fontKey: "lato",
+      buttonRadius: 999,
+      buttonPaddingY: 12,
+      buttonPaddingX: 22,
+      buttonFontSize: 15,
+      buttonFontWeight: 800,
+      buttonShadow: 18,
+      modalRadius: 16,
+      modalWidth: 800,
+      modalHeight: 680,
+      modalBackdropOpacity: 55,
+      modalHeaderHeight: 56,
+      inputRadius: 10,
     };
   }
 
@@ -2138,6 +2191,23 @@ export default function Home() {
     setSearchBuilderSearchPlaceholder(
       s(project.searchPlaceholder) || "Choose your City, State, or Country",
     );
+    setSearchBuilderFontKey(
+      SEARCH_BUILDER_FONT_OPTIONS.some((f) => f.key === s(project.fontKey))
+        ? s(project.fontKey)
+        : "lato",
+    );
+    setSearchBuilderButtonRadius(Number(project.buttonRadius || 999));
+    setSearchBuilderButtonPaddingY(Number(project.buttonPaddingY || 12));
+    setSearchBuilderButtonPaddingX(Number(project.buttonPaddingX || 22));
+    setSearchBuilderButtonFontSize(Number(project.buttonFontSize || 15));
+    setSearchBuilderButtonFontWeight(Number(project.buttonFontWeight || 800));
+    setSearchBuilderButtonShadow(Number(project.buttonShadow || 18));
+    setSearchBuilderModalRadius(Number(project.modalRadius || 16));
+    setSearchBuilderModalWidth(Number(project.modalWidth || 800));
+    setSearchBuilderModalHeight(Number(project.modalHeight || 680));
+    setSearchBuilderModalBackdropOpacity(Number(project.modalBackdropOpacity || 55));
+    setSearchBuilderModalHeaderHeight(Number(project.modalHeaderHeight || 56));
+    setSearchBuilderInputRadius(Number(project.inputRadius || 10));
     setSearchBuilderButtonPosition(
       s(project.buttonPosition) === "left" || s(project.buttonPosition) === "right"
         ? (s(project.buttonPosition) as "left" | "right")
@@ -2165,6 +2235,19 @@ export default function Home() {
       searchPlaceholder: s(searchBuilderSearchPlaceholder) || fallback.searchPlaceholder,
       defaultBookingPath: "/",
       buttonPosition: searchBuilderButtonPosition,
+      fontKey: s(searchBuilderFontKey) || fallback.fontKey,
+      buttonRadius: Number(searchBuilderButtonRadius) || fallback.buttonRadius,
+      buttonPaddingY: Number(searchBuilderButtonPaddingY) || fallback.buttonPaddingY,
+      buttonPaddingX: Number(searchBuilderButtonPaddingX) || fallback.buttonPaddingX,
+      buttonFontSize: Number(searchBuilderButtonFontSize) || fallback.buttonFontSize,
+      buttonFontWeight: Number(searchBuilderButtonFontWeight) || fallback.buttonFontWeight,
+      buttonShadow: Number(searchBuilderButtonShadow) || fallback.buttonShadow,
+      modalRadius: Number(searchBuilderModalRadius) || fallback.modalRadius,
+      modalWidth: Number(searchBuilderModalWidth) || fallback.modalWidth,
+      modalHeight: Number(searchBuilderModalHeight) || fallback.modalHeight,
+      modalBackdropOpacity: Number(searchBuilderModalBackdropOpacity) || fallback.modalBackdropOpacity,
+      modalHeaderHeight: Number(searchBuilderModalHeaderHeight) || fallback.modalHeaderHeight,
+      inputRadius: Number(searchBuilderInputRadius) || fallback.inputRadius,
     };
   }
 
@@ -2338,6 +2421,15 @@ export default function Home() {
       if (!indexRes.ok || !indexData?.ok) {
         throw new Error(s(indexData?.error) || `Search index failed (HTTP ${indexRes.status})`);
       }
+      const indexCount = Number(indexData?.index?.itemsCount || indexData?.index?.count || 0);
+      if (indexCount <= 0) {
+        const statesCount = Number(indexData?.index?.count || 0);
+        const statesWithPayload = Number(indexData?.index?.statesWithPayload || 0);
+        throw new Error(
+          `Search index is empty (items=0). states=${statesCount}, statesWithPayload=${statesWithPayload}. ` +
+            `Seed/sync organization_state_files payload for this tenant, then publish again.`,
+        );
+      }
 
       const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/publish`, {
         method: "POST",
@@ -2350,7 +2442,6 @@ export default function Home() {
       }
       const manifest = (data?.manifest || null) as SearchBuilderManifest | null;
       const total = Number(data?.generated || manifest?.count || 0);
-      const indexCount = Number(indexData?.index?.count || 0);
       setSearchBuilderMsg(`Search index + publish completed (${indexCount} states, ${total} files).`);
       if (manifest) {
         setSearchBuilderLastPublish({
@@ -6144,6 +6235,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     () => searchBuilderProjects.find((p) => s(p.id) === s(searchBuilderActiveSearchId)) || null,
     [searchBuilderProjects, searchBuilderActiveSearchId],
   );
+  const selectedSearchBuilderFont = useMemo(
+    () => SEARCH_BUILDER_FONT_OPTIONS.find((f) => f.key === s(searchBuilderFontKey)) || SEARCH_BUILDER_FONT_OPTIONS[0],
+    [searchBuilderFontKey],
+  );
 
   function buildEmbedCodeForArtifact(artifact: {
     name: string;
@@ -6154,6 +6249,19 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const modalTitle = s(searchBuilderModalTitle) || `${companyLabel} Locations`;
     const btnColor = s(searchBuilderButtonColor) || "#044c5c";
     const headerColor = s(searchBuilderHeaderColor) || "#a4d8e4";
+    const fontImport = s(selectedSearchBuilderFont.importUrl);
+    const fontFamily = s(selectedSearchBuilderFont.family) || "Lato";
+    const btnRadius = Math.max(0, Number(searchBuilderButtonRadius) || 999);
+    const btnPadY = Math.max(6, Number(searchBuilderButtonPaddingY) || 12);
+    const btnPadX = Math.max(8, Number(searchBuilderButtonPaddingX) || 22);
+    const btnFontSize = Math.max(10, Number(searchBuilderButtonFontSize) || 15);
+    const btnFontWeight = Math.max(300, Number(searchBuilderButtonFontWeight) || 800);
+    const btnShadow = Math.max(0, Number(searchBuilderButtonShadow) || 18);
+    const modalRadius = Math.max(0, Number(searchBuilderModalRadius) || 16);
+    const modalWidth = Math.max(360, Number(searchBuilderModalWidth) || 800);
+    const modalHeight = Math.max(360, Number(searchBuilderModalHeight) || 680);
+    const backdropOpacity = Math.max(0, Math.min(95, Number(searchBuilderModalBackdropOpacity) || 55));
+    const headerHeight = Math.max(40, Number(searchBuilderModalHeaderHeight) || 56);
     const align =
       searchBuilderButtonPosition === "left"
         ? "left"
@@ -6162,22 +6270,25 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           : "center";
     const iframeSrc = escapeHtmlAttr(artifact.iframeSrc);
     return `<!-- ${companyLabel} ${artifact.name} Embed -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${escapeHtmlAttr(fontImport)}" rel="stylesheet">
 <style>
-.ct-book-wrap { font-family: Lato, system-ui, -apple-system, Segoe UI, Roboto, Arial; text-align: ${align}; }
-.ct-book-btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 999px; border: 0; cursor: pointer; font-weight: 800; font-size: 16px; background: ${btnColor}; color: #fff; box-shadow: 0 14px 30px rgba(0,0,0,.18); text-decoration: none; transition: transform .08s ease, filter .12s ease; }
+.ct-book-wrap { font-family: ${escapeHtmlAttr(fontFamily)}, system-ui, -apple-system, Segoe UI, Roboto, Arial; text-align: ${align}; }
+.ct-book-btn { display: inline-flex; align-items: center; justify-content: center; padding: ${btnPadY}px ${btnPadX}px; border-radius: ${btnRadius}px; border: 0; cursor: pointer; font-weight: ${btnFontWeight}; font-size: ${btnFontSize}px; background: ${btnColor}; color: #fff; box-shadow: 0 ${Math.round(btnShadow * 0.8)}px ${Math.round(btnShadow * 2)}px rgba(0,0,0,.22); text-decoration: none; transition: transform .08s ease, filter .12s ease; }
 .ct-book-btn:hover { filter: brightness(1.06); }
 .ct-book-btn:active { transform: translateY(1px); }
 .ct-modal-toggle { position: absolute !important; opacity: 0 !important; pointer-events: none !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; }
-.ct-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 999999; display: none; }
+.ct-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,${(backdropOpacity / 100).toFixed(2)}); z-index: 999999; display: none; }
 .ct-modal { position: fixed; inset: 0; z-index: 1000000; display: none; align-items: center; justify-content: center; padding: 18px; }
 .ct-modal-toggle:checked ~ .ct-modal-backdrop, .ct-modal-toggle:checked ~ .ct-modal { display: flex; }
-.ct-modal-card { width: min(800px, 96vw); height: min(680px, 86vh); background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 26px 70px rgba(0,0,0,.35); display: flex; flex-direction: column; }
-.ct-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px; border-bottom: 1px solid rgba(0,0,0,.08); background: ${headerColor}; }
+.ct-modal-card { width: min(${modalWidth}px, 96vw); height: min(${modalHeight}px, 86vh); background: #fff; border-radius: ${modalRadius}px; overflow: hidden; box-shadow: 0 26px 70px rgba(0,0,0,.35); display: flex; flex-direction: column; }
+.ct-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 0 14px; height: ${headerHeight}px; border-bottom: 1px solid rgba(0,0,0,.08); background: ${headerColor}; }
 .ct-modal-title { font-size: 18px; font-weight: 800; color: #0b1b2a; }
 .ct-modal-close { width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); cursor: pointer; background: #fff; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; }
 .ct-modal-body { flex: 1; background: #fff; }
 .ct-iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
-@media (max-width: 640px){ .ct-modal-card{ width: 98vw; height: 90vh; border-radius: 16px; } }
+@media (max-width: 640px){ .ct-modal-card{ width: 98vw; height: 90vh; border-radius: ${Math.max(10, Math.min(modalRadius, 18))}px; } }
 </style>
 
 <div class="ct-book-wrap">
@@ -6208,28 +6319,40 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const safeStatesIndex = escapeHtmlAttr(artifact.statesIndexUrl);
     const safeBookPath = escapeHtmlAttr(artifact.bookingPath || "/");
     const safePrimary = escapeHtmlAttr(searchBuilderButtonColor || "#044c5c");
+    const safeFontFamily = escapeHtmlAttr(selectedSearchBuilderFont.family || "Lato");
+    const safeFontImport = escapeHtmlAttr(selectedSearchBuilderFont.importUrl || "");
+    const inputRadius = Math.max(0, Number(searchBuilderInputRadius) || 10);
+    const modalRadius = Math.max(0, Number(searchBuilderModalRadius) || 14);
+    const buttonRadius = Math.max(0, Number(searchBuilderButtonRadius) || 12);
+    const buttonPadY = Math.max(6, Number(searchBuilderButtonPaddingY) || 12);
+    const buttonPadX = Math.max(8, Number(searchBuilderButtonPaddingX) || 14);
+    const buttonFontWeight = Math.max(300, Number(searchBuilderButtonFontWeight) || 700);
+    const buttonFontSize = Math.max(10, Number(searchBuilderButtonFontSize) || 14);
     return `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${safeTitle}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="${safeFontImport}" rel="stylesheet">
     <style>
       :root { --bg:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --primary:${safePrimary}; }
-      body { margin:0; font-family: Lato, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:transparent; color:var(--text); }
+      body { margin:0; font-family: ${safeFontFamily}, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:transparent; color:var(--text); }
       .wrap { padding:28px; background:var(--bg); }
       h1 { margin:0 0 16px 0; font-size:34px; line-height:1.1; }
       .sub { margin:0 0 18px 0; color:var(--muted); font-size:14px; }
       .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-      .input { flex:1 1 420px; min-width:280px; border:2px solid #2563eb33; border-radius:14px; padding:14px 16px; font-size:18px; outline:none; }
-      .panel { margin-top:16px; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+      .input { flex:1 1 420px; min-width:280px; border:2px solid #2563eb33; border-radius:${inputRadius}px; padding:14px 16px; font-size:18px; outline:none; }
+      .panel { margin-top:16px; border:1px solid var(--border); border-radius:${modalRadius}px; overflow:hidden; }
       .list { max-height:360px; overflow:auto; background:#fff; }
       .item { padding:12px 14px; border-top:1px solid var(--border); cursor:pointer; }
       .item:hover { background:#f8fafc; }
       .item:first-child { border-top:0; }
       .title { font-weight:650; }
       .footer { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-top:1px solid var(--border); background:#fff; gap:12px; flex-wrap:wrap; }
-      .btn { appearance:none; border:0; border-radius:12px; padding:12px 14px; font-weight:700; cursor:pointer; }
+      .btn { appearance:none; border:0; border-radius:${buttonRadius}px; padding:${buttonPadY}px ${buttonPadX}px; font-weight:${buttonFontWeight}; font-size:${buttonFontSize}px; cursor:pointer; }
       .btn.primary { background:var(--primary); color:#fff; }
       .btn.ghost { background:#f1f5f9; color:#0f172a; }
       .selected { color:var(--muted); font-size:13px; }
@@ -8517,6 +8640,62 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <label>Search Placeholder</label>
                     <input className="input" value={searchBuilderSearchPlaceholder} onChange={(e) => setSearchBuilderSearchPlaceholder(e.target.value)} />
                   </div>
+                  <div className="field">
+                    <label>Google Font</label>
+                    <select className="select" value={searchBuilderFontKey} onChange={(e) => setSearchBuilderFontKey(e.target.value)}>
+                      {SEARCH_BUILDER_FONT_OPTIONS.map((f) => (
+                        <option key={f.key} value={f.key}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Button Radius</label>
+                    <input className="input" type="number" min={0} max={999} value={searchBuilderButtonRadius} onChange={(e) => setSearchBuilderButtonRadius(Number(e.target.value) || 0)} />
+                  </div>
+                  <div className="field">
+                    <label>Button Padding Y</label>
+                    <input className="input" type="number" min={6} max={32} value={searchBuilderButtonPaddingY} onChange={(e) => setSearchBuilderButtonPaddingY(Number(e.target.value) || 12)} />
+                  </div>
+                  <div className="field">
+                    <label>Button Padding X</label>
+                    <input className="input" type="number" min={8} max={60} value={searchBuilderButtonPaddingX} onChange={(e) => setSearchBuilderButtonPaddingX(Number(e.target.value) || 22)} />
+                  </div>
+                  <div className="field">
+                    <label>Button Font Size</label>
+                    <input className="input" type="number" min={10} max={30} value={searchBuilderButtonFontSize} onChange={(e) => setSearchBuilderButtonFontSize(Number(e.target.value) || 15)} />
+                  </div>
+                  <div className="field">
+                    <label>Button Font Weight</label>
+                    <input className="input" type="number" min={300} max={900} step={100} value={searchBuilderButtonFontWeight} onChange={(e) => setSearchBuilderButtonFontWeight(Number(e.target.value) || 800)} />
+                  </div>
+                  <div className="field">
+                    <label>Button Shadow</label>
+                    <input className="input" type="number" min={0} max={80} value={searchBuilderButtonShadow} onChange={(e) => setSearchBuilderButtonShadow(Number(e.target.value) || 0)} />
+                  </div>
+                  <div className="field">
+                    <label>Modal Radius</label>
+                    <input className="input" type="number" min={0} max={40} value={searchBuilderModalRadius} onChange={(e) => setSearchBuilderModalRadius(Number(e.target.value) || 16)} />
+                  </div>
+                  <div className="field">
+                    <label>Modal Width</label>
+                    <input className="input" type="number" min={360} max={1400} value={searchBuilderModalWidth} onChange={(e) => setSearchBuilderModalWidth(Number(e.target.value) || 800)} />
+                  </div>
+                  <div className="field">
+                    <label>Modal Height</label>
+                    <input className="input" type="number" min={360} max={1100} value={searchBuilderModalHeight} onChange={(e) => setSearchBuilderModalHeight(Number(e.target.value) || 680)} />
+                  </div>
+                  <div className="field">
+                    <label>Backdrop Opacity (%)</label>
+                    <input className="input" type="number" min={0} max={95} value={searchBuilderModalBackdropOpacity} onChange={(e) => setSearchBuilderModalBackdropOpacity(Number(e.target.value) || 55)} />
+                  </div>
+                  <div className="field">
+                    <label>Header Height</label>
+                    <input className="input" type="number" min={40} max={120} value={searchBuilderModalHeaderHeight} onChange={(e) => setSearchBuilderModalHeaderHeight(Number(e.target.value) || 56)} />
+                  </div>
+                  <div className="field">
+                    <label>Input Radius</label>
+                    <input className="input" type="number" min={0} max={30} value={searchBuilderInputRadius} onChange={(e) => setSearchBuilderInputRadius(Number(e.target.value) || 10)} />
+                  </div>
                 </div>
 
                 <div className="row" style={{ marginTop: 8 }}>
@@ -8539,76 +8718,102 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </div>
 
                 <div style={{ marginTop: 12 }}>
-                  <div className="mini" style={{ marginBottom: 8 }}>Button + modal preview</div>
+                  <div className="mini" style={{ marginBottom: 8 }}>Button + modal previews</div>
+                  <link rel="preconnect" href="https://fonts.googleapis.com" />
+                  <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                  <link href={selectedSearchBuilderFont.importUrl} rel="stylesheet" />
                   <div
                     style={{
-                      width: "100%",
-                      padding: 16,
-                      borderRadius: 14,
-                      border: "1px solid rgba(255,255,255,.12)",
-                      background: "rgba(0,0,0,.15)",
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                      gap: 12,
                     }}
                   >
                     <div
                       style={{
-                        textAlign:
-                          searchBuilderButtonPosition === "left"
-                            ? "left"
-                            : searchBuilderButtonPosition === "right"
-                              ? "right"
-                              : "center",
+                        padding: 16,
+                        borderRadius: 14,
+                        border: "1px solid rgba(255,255,255,.12)",
+                        background: "rgba(0,0,0,.15)",
+                        fontFamily: `${selectedSearchBuilderFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial`,
                       }}
                     >
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          padding: "12px 22px",
-                          borderRadius: 999,
-                          fontWeight: 800,
-                          fontSize: 15,
-                          background: s(searchBuilderButtonColor) || "#044c5c",
-                          color: "#fff",
-                        }}
-                      >
-                        {s(searchBuilderButtonText) || "Book Now"}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 12,
-                        width: "100%",
-                        maxWidth: 780,
-                        height: 250,
-                        borderRadius: 16,
-                        overflow: "hidden",
-                        background: "#fff",
-                        boxShadow: "0 16px 40px rgba(0,0,0,.25)",
-                      }}
-                    >
+                      <div className="mini" style={{ marginBottom: 8 }}>Button Preview</div>
                       <div
                         style={{
-                          height: 56,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "0 14px",
-                          background: s(searchBuilderHeaderColor) || "#a4d8e4",
-                          borderBottom: "1px solid rgba(0,0,0,.08)",
+                          textAlign:
+                            searchBuilderButtonPosition === "left"
+                              ? "left"
+                              : searchBuilderButtonPosition === "right"
+                                ? "right"
+                                : "center",
                         }}
                       >
-                        <strong style={{ color: "#0b1b2a" }}>{s(searchBuilderModalTitle) || "Locations"}</strong>
-                        <span style={{ width: 34, height: 34, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(0,0,0,.12)", background: "#fff" }}>x</span>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: `${searchBuilderButtonPaddingY}px ${searchBuilderButtonPaddingX}px`,
+                            borderRadius: searchBuilderButtonRadius,
+                            fontWeight: searchBuilderButtonFontWeight,
+                            fontSize: searchBuilderButtonFontSize,
+                            background: s(searchBuilderButtonColor) || "#044c5c",
+                            color: "#fff",
+                            boxShadow: `0 ${Math.round(searchBuilderButtonShadow * 0.8)}px ${Math.round(searchBuilderButtonShadow * 2)}px rgba(0,0,0,.22)`,
+                          }}
+                        >
+                          {s(searchBuilderButtonText) || "Book Now"}
+                        </span>
                       </div>
-                      <div style={{ height: "calc(100% - 56px)", padding: 12 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 6 }}>{s(searchBuilderSearchTitle) || "Choose your location"}</div>
-                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>{s(searchBuilderSearchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now."}</div>
-                        <input
-                          readOnly
-                          value={s(searchBuilderSearchPlaceholder) || "Choose your City, State, or Country"}
-                          style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px", fontSize: 13 }}
-                        />
+                    </div>
+
+                    <div
+                      style={{
+                        padding: 16,
+                        borderRadius: 14,
+                        border: "1px solid rgba(255,255,255,.12)",
+                        background: "rgba(0,0,0,.15)",
+                        fontFamily: `${selectedSearchBuilderFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial`,
+                      }}
+                    >
+                      <div className="mini" style={{ marginBottom: 8 }}>Modal Preview</div>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: 280,
+                          borderRadius: searchBuilderModalRadius,
+                          overflow: "hidden",
+                          background: "#fff",
+                          boxShadow: "0 16px 40px rgba(0,0,0,.25)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: searchBuilderModalHeaderHeight,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "0 14px",
+                            background: s(searchBuilderHeaderColor) || "#a4d8e4",
+                            borderBottom: "1px solid rgba(0,0,0,.08)",
+                          }}
+                        >
+                          <strong style={{ color: "#0b1b2a" }}>{s(searchBuilderModalTitle) || "Locations"}</strong>
+                          <span style={{ width: 34, height: 34, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(0,0,0,.12)", background: "#fff" }}>x</span>
+                        </div>
+                        <div style={{ height: `calc(100% - ${searchBuilderModalHeaderHeight}px)`, padding: 12 }}>
+                          <div style={{ fontWeight: 700, marginBottom: 6 }}>{s(searchBuilderSearchTitle) || "Choose your location"}</div>
+                          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>{s(searchBuilderSearchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now."}</div>
+                          <input
+                            readOnly
+                            value={s(searchBuilderSearchPlaceholder) || "Choose your City, State, or Country"}
+                            style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: searchBuilderInputRadius, padding: "10px 12px", fontSize: 13 }}
+                          />
+                          <div className="mini" style={{ marginTop: 10 }}>
+                            Width {searchBuilderModalWidth}px • Height {searchBuilderModalHeight}px • Backdrop {searchBuilderModalBackdropOpacity}%
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

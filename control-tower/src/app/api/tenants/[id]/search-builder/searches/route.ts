@@ -28,6 +28,31 @@ function normalizeColor(input: unknown, fallback: string) {
   return fallback;
 }
 
+function n(input: unknown, fallback: number, min: number, max: number) {
+  const v = Number(input);
+  if (!Number.isFinite(v)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(v)));
+}
+
+function normalizeFontKey(input: unknown) {
+  const key = s(input).toLowerCase();
+  const allowed = new Set([
+    "lato",
+    "inter",
+    "poppins",
+    "montserrat",
+    "oswald",
+    "raleway",
+    "nunito",
+    "dm_sans",
+    "plus_jakarta_sans",
+    "manrope",
+    "rubik",
+    "merriweather",
+  ]);
+  return allowed.has(key) ? key : "lato";
+}
+
 function kebabToken(input: string) {
   return s(input)
     .normalize("NFD")
@@ -64,6 +89,19 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     buttonPosition: ["left", "center", "right"].includes(s(input?.buttonPosition).toLowerCase())
       ? s(input?.buttonPosition).toLowerCase()
       : "center",
+    fontKey: normalizeFontKey(input?.fontKey),
+    buttonRadius: n(input?.buttonRadius, 999, 0, 999),
+    buttonPaddingY: n(input?.buttonPaddingY, 12, 6, 32),
+    buttonPaddingX: n(input?.buttonPaddingX, 22, 8, 60),
+    buttonFontSize: n(input?.buttonFontSize, 15, 10, 30),
+    buttonFontWeight: n(input?.buttonFontWeight, 800, 300, 900),
+    buttonShadow: n(input?.buttonShadow, 18, 0, 80),
+    modalRadius: n(input?.modalRadius, 16, 0, 40),
+    modalWidth: n(input?.modalWidth, 800, 360, 1400),
+    modalHeight: n(input?.modalHeight, 680, 360, 1100),
+    modalBackdropOpacity: n(input?.modalBackdropOpacity, 55, 0, 95),
+    modalHeaderHeight: n(input?.modalHeaderHeight, 56, 40, 120),
+    inputRadius: n(input?.inputRadius, 10, 0, 30),
   };
 }
 

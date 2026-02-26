@@ -49,8 +49,65 @@ type FlatIndexItem = {
   cityDomain: string;
 };
 
+function isObj(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
 function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndexItem[] {
   if (!payload) return [];
+  const out: FlatIndexItem[] = [];
+  const seen = new Set<string>();
+  let visited = 0;
+
+  function pushItem(item: FlatIndexItem) {
+    const key = `${item.label}|${item.cityDomain}|${item.countyDomain}`.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(item);
+  }
+
+  function scanNode(node: unknown, stateHint: string, countyHint: string) {
+    if (visited > 20000) return;
+    visited += 1;
+    if (Array.isArray(node)) {
+      for (const item of node) scanNode(item, stateHint, countyHint);
+      return;
+    }
+    if (!isObj(node)) return;
+    const state = pickText(node, ["stateName", "state", "State", "name"]) || stateHint;
+    const county = pickText(node, ["countyName", "parishName", "County", "county", "parish", "name"]) || countyHint;
+    const city = pickText(node, ["cityName", "City", "city"]);
+    const countyDomain = pickText(node, ["countyDomain", "parishDomain", "county_domain", "parish_domain", "Domain", "domain"]);
+    const cityDomain = pickText(node, ["cityDomain", "city_domain", "City Domain"]);
+
+    if (city) {
+      const suffix = county ? ` (${county})` : "";
+      pushItem({
+        label: `${city}, ${state || ""}${suffix}`.trim(),
+        search: normalizeText(`${city} ${county} ${state}`),
+        state,
+        county,
+        city,
+        countyDomain,
+        cityDomain,
+      });
+    } else if (county) {
+      pushItem({
+        label: `${county}, ${state || ""}`.replace(/\s+,/g, ",").trim(),
+        search: normalizeText(`${county} ${state}`),
+        state,
+        county,
+        city: "",
+        countyDomain,
+        cityDomain: "",
+      });
+    }
+
+    for (const value of Object.values(node)) {
+      if (value && typeof value === "object") scanNode(value, state, county);
+    }
+  }
+
   const stateName = pickText(payload, ["stateName", "state", "name"]);
   const rowsRaw = payload.rows;
   const rows = Array.isArray(rowsRaw) ? rowsRaw : [];
@@ -78,57 +135,7 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
     }
     if (outRows.length) return outRows;
   }
-
-  const countiesRaw = payload.counties ?? payload.items;
-  const counties = Array.isArray(countiesRaw) ? countiesRaw : [];
-  const out: FlatIndexItem[] = [];
-
-  for (const c0 of counties) {
-    if (!c0 || typeof c0 !== "object" || Array.isArray(c0)) continue;
-    const countyObj = c0 as Record<string, unknown>;
-    const countyName = pickText(countyObj, ["countyName", "parishName", "county", "name"]);
-    const countyDomain = pickText(countyObj, [
-      "countyDomain",
-      "parishDomain",
-      "county_domain",
-      "parish_domain",
-      "domain",
-    ]);
-    const citiesRaw = countyObj.cities;
-    const cities = Array.isArray(citiesRaw) ? citiesRaw : [];
-
-    if (!cities.length && countyName) {
-      const label = `${countyName}, ${stateName || ""}`.replace(/\s+,/g, ",").trim();
-      out.push({
-        label,
-        search: normalizeText(`${countyName} ${stateName}`),
-        state: stateName,
-        county: countyName,
-        city: "",
-        countyDomain,
-        cityDomain: "",
-      });
-      continue;
-    }
-
-    for (const city0 of cities) {
-      if (!city0 || typeof city0 !== "object" || Array.isArray(city0)) continue;
-      const cityObj = city0 as Record<string, unknown>;
-      const cityName = pickText(cityObj, ["cityName", "city", "name"]);
-      const cityDomain = pickText(cityObj, ["cityDomain", "city_domain", "domain"]);
-      if (!cityName) continue;
-      const suffix = countyName ? ` (${countyName})` : "";
-      out.push({
-        label: `${cityName}, ${stateName || ""}${suffix}`.trim(),
-        search: normalizeText(`${cityName} ${countyName} ${stateName}`),
-        state: stateName,
-        county: countyName,
-        city: cityName,
-        countyDomain,
-        cityDomain,
-      });
-    }
-  }
+  scanNode(payload, stateName, "");
 
   return out;
 }
@@ -218,6 +225,7 @@ export async function POST(req: Request, ctx: Ctx) {
       stateName: s(r.state_name),
       stateFileUrl: `/embedded/state/${tenantId}/${s(r.state_slug)}.json`,
     }));
+    const statesWithPayload = q.rows.filter((r) => isObj(r.payload)).length;
     const items = q.rows.flatMap((r) => flattenStatePayload(r.payload || null));
 
     const payload = {
@@ -226,6 +234,7 @@ export async function POST(req: Request, ctx: Ctx) {
       state,
       generatedAt: new Date().toISOString(),
       count: states.length,
+      statesWithPayload,
       itemsCount: items.length,
       states,
       items,

@@ -10,7 +10,6 @@ const PROVIDER = "custom";
 const SEARCH_SCOPE = "module";
 const SEARCHES_MODULE = "search_builder_searches";
 const SEARCH_PUBLISH_MODULE = "search_builder_searches_publish";
-const SEARCH_INDEXES_MODULE = "search_builder_indexes";
 const SEARCH_FILES_MODULE = "search_builder_files";
 const SERVICES_MODULE = "products_services";
 const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
@@ -55,6 +54,49 @@ function normalizeColor(input: unknown, fallback: string) {
   return fallback;
 }
 
+function n(input: unknown, fallback: number, min: number, max: number) {
+  const v = Number(input);
+  if (!Number.isFinite(v)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(v)));
+}
+
+function normalizeFontKey(input: unknown) {
+  const key = s(input).toLowerCase();
+  const allowed = new Set([
+    "lato",
+    "inter",
+    "poppins",
+    "montserrat",
+    "oswald",
+    "raleway",
+    "nunito",
+    "dm_sans",
+    "plus_jakarta_sans",
+    "manrope",
+    "rubik",
+    "merriweather",
+  ]);
+  return allowed.has(key) ? key : "lato";
+}
+
+function fontMeta(fontKey: string) {
+  const m: Record<string, { family: string; importUrl: string }> = {
+    lato: { family: "Lato", importUrl: "https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" },
+    inter: { family: "Inter", importUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" },
+    poppins: { family: "Poppins", importUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" },
+    montserrat: { family: "Montserrat", importUrl: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" },
+    oswald: { family: "Oswald", importUrl: "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" },
+    raleway: { family: "Raleway", importUrl: "https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&display=swap" },
+    nunito: { family: "Nunito", importUrl: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" },
+    dm_sans: { family: "DM Sans", importUrl: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" },
+    plus_jakarta_sans: { family: "Plus Jakarta Sans", importUrl: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" },
+    manrope: { family: "Manrope", importUrl: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" },
+    rubik: { family: "Rubik", importUrl: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" },
+    merriweather: { family: "Merriweather", importUrl: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap" },
+  };
+  return m[fontKey] || m.lato;
+}
+
 function normalizeSearchBuilderConfig(input: Record<string, unknown> | null | undefined) {
   return {
     id: s(input?.id),
@@ -73,6 +115,19 @@ function normalizeSearchBuilderConfig(input: Record<string, unknown> | null | un
       s(input?.searchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now.",
     searchPlaceholder: s(input?.searchPlaceholder) || "Choose your City, State, or Country",
     defaultBookingPath: normalizePath(input?.defaultBookingPath || "/"),
+    fontKey: normalizeFontKey(input?.fontKey),
+    buttonRadius: n(input?.buttonRadius, 999, 0, 999),
+    buttonPaddingY: n(input?.buttonPaddingY, 12, 6, 32),
+    buttonPaddingX: n(input?.buttonPaddingX, 22, 8, 60),
+    buttonFontSize: n(input?.buttonFontSize, 15, 10, 30),
+    buttonFontWeight: n(input?.buttonFontWeight, 800, 300, 900),
+    buttonShadow: n(input?.buttonShadow, 18, 0, 80),
+    modalRadius: n(input?.modalRadius, 16, 0, 40),
+    modalWidth: n(input?.modalWidth, 800, 360, 1400),
+    modalHeight: n(input?.modalHeight, 680, 360, 1100),
+    modalBackdropOpacity: n(input?.modalBackdropOpacity, 55, 0, 95),
+    modalHeaderHeight: n(input?.modalHeaderHeight, 56, 40, 120),
+    inputRadius: n(input?.inputRadius, 10, 0, 30),
   };
 }
 
@@ -128,6 +183,15 @@ function buildSearchFileHtml(args: {
   subtitle: string;
   placeholder: string;
   primaryColor: string;
+  fontFamily: string;
+  fontImportUrl: string;
+  inputRadius: number;
+  buttonRadius: number;
+  buttonPaddingY: number;
+  buttonPaddingX: number;
+  buttonFontSize: number;
+  buttonFontWeight: number;
+  modalRadius: number;
 }) {
   const safeTitle = htmlEscape(args.title);
   const safeSubtitle = htmlEscape(args.subtitle);
@@ -135,28 +199,33 @@ function buildSearchFileHtml(args: {
   const safeStatesIndex = htmlEscape(args.statesIndexUrl);
   const safeBookPath = htmlEscape(args.bookingPath);
   const safePrimary = htmlEscape(args.primaryColor);
+  const safeFontFamily = htmlEscape(args.fontFamily);
+  const safeFontImportUrl = htmlEscape(args.fontImportUrl);
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${safeTitle}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="${safeFontImportUrl}" rel="stylesheet">
     <style>
       :root { --bg:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --primary:${safePrimary}; }
-      body { margin:0; font-family: Lato, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:transparent; color:var(--text); }
+      body { margin:0; font-family: ${safeFontFamily}, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:transparent; color:var(--text); }
       .wrap { padding:28px; background:var(--bg); }
       h1 { margin:0 0 16px 0; font-size:34px; line-height:1.1; }
       .sub { margin:0 0 18px 0; color:var(--muted); font-size:14px; }
       .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-      .input { flex:1 1 420px; min-width:280px; border:2px solid #2563eb33; border-radius:14px; padding:14px 16px; font-size:18px; outline:none; }
-      .panel { margin-top:16px; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+      .input { flex:1 1 420px; min-width:280px; border:2px solid #2563eb33; border-radius:${args.inputRadius}px; padding:14px 16px; font-size:18px; outline:none; }
+      .panel { margin-top:16px; border:1px solid var(--border); border-radius:${args.modalRadius}px; overflow:hidden; }
       .list { max-height:360px; overflow:auto; background:#fff; }
       .item { padding:12px 14px; border-top:1px solid var(--border); cursor:pointer; }
       .item:hover { background:#f8fafc; }
       .item:first-child { border-top:0; }
       .title { font-weight:650; }
       .footer { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-top:1px solid var(--border); background:#fff; gap:12px; flex-wrap:wrap; }
-      .btn { appearance:none; border:0; border-radius:12px; padding:12px 14px; font-weight:700; cursor:pointer; }
+      .btn { appearance:none; border:0; border-radius:${args.buttonRadius}px; padding:${args.buttonPaddingY}px ${args.buttonPaddingX}px; font-weight:${args.buttonFontWeight}; font-size:${args.buttonFontSize}px; cursor:pointer; }
       .btn.primary { background:var(--primary); color:#fff; }
       .btn.ghost { background:#f1f5f9; color:#0f172a; }
       .selected { color:var(--muted); font-size:13px; }
@@ -368,6 +437,7 @@ export async function POST(req: Request, ctx: Ctx) {
       parsedConfig = {};
     }
     const config = normalizeSearchBuilderConfig({ ...parsedConfig, id: searchId });
+    const font = fontMeta(config.fontKey);
 
     const svcQ = await pool.query<ServiceRow>(
       `
@@ -419,6 +489,15 @@ export async function POST(req: Request, ctx: Ctx) {
         subtitle: config.searchSubtitle,
         placeholder: config.searchPlaceholder,
         primaryColor: config.buttonColor,
+        fontFamily: font.family,
+        fontImportUrl: font.importUrl,
+        inputRadius: config.inputRadius,
+        buttonRadius: config.buttonRadius,
+        buttonPaddingY: config.buttonPaddingY,
+        buttonPaddingX: config.buttonPaddingX,
+        buttonFontSize: config.buttonFontSize,
+        buttonFontWeight: config.buttonFontWeight,
+        modalRadius: config.modalRadius,
       });
       const dbKey = `${folder}/${fileName}`;
       await upsertSearchFileToDb({
@@ -452,39 +531,6 @@ export async function POST(req: Request, ctx: Ctx) {
     };
 
     await writePublishedManifestToDb(tenantId, searchId, manifest);
-
-    // keep lightweight pointer of latest index generation for this search
-    await pool.query(
-      `
-        insert into app.organization_custom_values (
-          organization_id, provider, scope, module, key_name,
-          key_value, value_type, is_secret, is_active, description
-        ) values (
-          $1::uuid, $2, $3, $4, $5,
-          $6, 'json', false, true, 'Search Builder index pointer'
-        )
-        on conflict (organization_id, provider, scope, module, key_name)
-        do update set
-          key_value = excluded.key_value,
-          value_type = excluded.value_type,
-          is_secret = excluded.is_secret,
-          is_active = excluded.is_active,
-          description = excluded.description,
-          updated_at = now()
-      `,
-      [
-        tenantId,
-        PROVIDER,
-        SEARCH_SCOPE,
-        SEARCH_INDEXES_MODULE,
-        searchId,
-        JSON.stringify({
-          searchId,
-          generatedAt: new Date().toISOString(),
-          url: statesIndexUrl,
-        }),
-      ],
-    );
 
     return NextResponse.json({
       ok: true,
