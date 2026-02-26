@@ -389,6 +389,11 @@ function formatStateLabel(raw: string) {
     .join(" ");
 }
 
+function isPuertoRicoState(raw: string) {
+  const v = s(raw).toLowerCase();
+  return v === "pr" || v === "puerto rico";
+}
+
 function initialsFromLabel(label: string) {
   const cleaned = s(label).replace(/\s+/g, " ").trim();
   if (!cleaned) return "U";
@@ -1106,8 +1111,14 @@ export default function Home() {
   const [mapOpen, setMapOpen] = useState(false);
 
   type MapMetric = "ready" | "domains";
+  type MapScope = "us" | "puerto_rico";
   const [mapMetric, setMapMetric] = useState<MapMetric>("ready");
+  const [mapScope, setMapScope] = useState<MapScope>("us");
   const [mapSelected, setMapSelected] = useState<string>("");
+  const [prDetail, setPrDetail] = useState<StateDetailResponse | null>(null);
+  const [prDetailLoading, setPrDetailLoading] = useState(false);
+  const [prDetailErr, setPrDetailErr] = useState("");
+  const [prCitySearch, setPrCitySearch] = useState("");
   const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detailsRef = useRef<HTMLElement | null>(null);
   const runnerRef = useRef<HTMLDivElement | null>(null);
@@ -1182,6 +1193,44 @@ export default function Home() {
   }
   function closeMap() {
     setMapOpen(false);
+  }
+
+  async function fetchStateDetail(stateName: string) {
+    const endpoint = routeTenantId
+      ? `/api/sheet/state?name=${encodeURIComponent(stateName)}&tenantId=${encodeURIComponent(routeTenantId)}`
+      : `/api/sheet/state?name=${encodeURIComponent(stateName)}`;
+    const res = await fetch(endpoint, { cache: "no-store" });
+    const data = (await safeJson(res)) as StateDetailResponse | any;
+    if (!res.ok || data?.error) {
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+    return data as StateDetailResponse;
+  }
+
+  async function loadPuertoRicoDetail(opts?: { force?: boolean }) {
+    if (prDetail && !opts?.force) return;
+    setPrDetailLoading(true);
+    setPrDetailErr("");
+    try {
+      const data = await fetchStateDetail("Puerto Rico");
+      setPrDetail(data);
+    } catch (e: any) {
+      setPrDetailErr(e?.message || "Failed to load Puerto Rico detail");
+    } finally {
+      setPrDetailLoading(false);
+    }
+  }
+
+  function pickMapState(rawName: string) {
+    const stateName = s(rawName);
+    if (!stateName) return;
+    if (isPuertoRicoState(stateName)) {
+      setMapScope("puerto_rico");
+      void loadPuertoRicoDetail();
+      return;
+    }
+    setMapScope("us");
+    setMapSelected(stateName);
   }
 
   function pushLog(line: string) {
@@ -3474,6 +3523,24 @@ export default function Home() {
     return rows.slice(0, 8);
   }, [filteredSheetStates, stateMetrics]);
 
+  const prCityRows = useMemo(() => {
+    const rows = prDetail?.cities?.rows || [];
+    const term = s(prCitySearch).toLowerCase();
+    const filtered = term
+      ? rows.filter((r) => {
+          const county = s(r["County"]).toLowerCase();
+          const city = s(r["City"]).toLowerCase();
+          const locId = s(r["Location Id"]).toLowerCase();
+          return county.includes(term) || city.includes(term) || locId.includes(term);
+        })
+      : rows;
+    return filtered.slice().sort((a, b) => {
+      const c = s(a["County"]).localeCompare(s(b["County"]));
+      if (c !== 0) return c;
+      return s(a["City"]).localeCompare(s(b["City"]));
+    });
+  }, [prDetail, prCitySearch]);
+
   const tabRunKey = (
     kind: "counties" | "cities",
     action: TabAction,
@@ -4678,15 +4745,7 @@ export default function Home() {
     setDetailLoading(true);
 
     try {
-      const endpoint = routeTenantId
-        ? `/api/sheet/state?name=${encodeURIComponent(stateName)}&tenantId=${encodeURIComponent(routeTenantId)}`
-        : `/api/sheet/state?name=${encodeURIComponent(stateName)}`;
-      const res = await fetch(endpoint, {
-        cache: "no-store",
-      });
-      const data = (await safeJson(res)) as StateDetailResponse | any;
-      if (!res.ok || data?.error)
-        throw new Error(data?.error || `HTTP ${res.status}`);
+      const data = await fetchStateDetail(stateName);
       setDetail(data);
     } catch (e: any) {
       setDetailErr(e?.message || "Failed to load state detail");
@@ -9140,12 +9199,31 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             <div className="card" style={{ marginTop: 12 }}>
               <div className="cardHeader">
                 <div>
-                  <h3 className="cardTitle" style={{ fontSize: 16 }}>US Activation Map</h3>
+                  <h3 className="cardTitle" style={{ fontSize: 16 }}>Activation Map</h3>
                   <div className="cardSubtitle">
                     Click en un estado para ver detalle de progreso.
                   </div>
                 </div>
                 <div className="cardHeaderActions">
+                  <div className="segmented" style={{ marginRight: 8 }}>
+                    <button
+                      className={`segBtn ${mapScope === "us" ? "segBtnOn" : ""}`}
+                      onClick={() => setMapScope("us")}
+                      type="button"
+                    >
+                      United States
+                    </button>
+                    <button
+                      className={`segBtn ${mapScope === "puerto_rico" ? "segBtnOn" : ""}`}
+                      onClick={() => {
+                        setMapScope("puerto_rico");
+                        void loadPuertoRicoDetail();
+                      }}
+                      type="button"
+                    >
+                      Puerto Rico
+                    </button>
+                  </div>
                   <button
                     className={`tabBtn ${mapMetric === "ready" ? "tabBtnActive" : ""}`}
                     onClick={() => setMapMetric("ready")}
@@ -9163,19 +9241,127 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </div>
               </div>
               <div className="cardBody">
-                <UsaChoroplethProgressMap
-                  rows={sheet?.states || []}
-                  metric={mapMetric}
-                  selectedState={mapSelected}
-                  onPick={(name) => setMapSelected(String(name || "").trim())}
-                />
+                {mapScope === "us" ? (
+                  <>
+                    <UsaChoroplethProgressMap
+                      rows={sheet?.states || []}
+                      metric={mapMetric}
+                      selectedState={mapSelected}
+                      onPick={(name) => pickMapState(String(name || "").trim())}
+                    />
 
-                {selectedStateMetrics ? (
-                  <div className="mini" style={{ marginTop: 10 }}>
-                    <b>{mapSelected}</b> · Subaccounts: {Math.round(selectedStateMetrics.readyPct * 100)}% · Domains: {Math.round(selectedStateMetrics.domainsPct * 100)}%
-                  </div>
+                    {selectedStateMetrics ? (
+                      <div className="mini" style={{ marginTop: 10 }}>
+                        <b>{mapSelected}</b> · Subaccounts: {Math.round(selectedStateMetrics.readyPct * 100)}% · Domains: {Math.round(selectedStateMetrics.domainsPct * 100)}%
+                      </div>
+                    ) : (
+                      <div className="mini" style={{ marginTop: 10 }}>Select a state on the map to inspect metrics.</div>
+                    )}
+                  </>
                 ) : (
-                  <div className="mini" style={{ marginTop: 10 }}>Select a state on the map to inspect metrics.</div>
+                  <div className="prPanel">
+                    <div className="prPanelHeader">
+                      <div>
+                        <div className="badge">PUERTO RICO</div>
+                        <div className="prTitle">City Activation Detail</div>
+                        <div className="mini" style={{ marginTop: 6 }}>
+                          Data by city with location id and domain status.
+                        </div>
+                      </div>
+                      <button
+                        className="smallBtn"
+                        type="button"
+                        onClick={() => void loadPuertoRicoDetail({ force: true })}
+                        disabled={prDetailLoading}
+                      >
+                        {prDetailLoading ? "Refreshing..." : "Refresh"}
+                      </button>
+                    </div>
+
+                    {prMetrics ? (
+                      <div className="prGrid">
+                        <div className="prCard">
+                          <div className="prLabel">Subaccounts Created</div>
+                          <div className="prValue">{Math.round(prMetrics.readyPct * 100)}%</div>
+                          <div className="mini">
+                            Counties {prMetrics.countiesReady}/{prMetrics.countiesTotal} • Cities {prMetrics.citiesReady}/{prMetrics.citiesTotal}
+                          </div>
+                          <div className="prBar">
+                            <div className="prBarFill" style={{ width: `${Math.round(prMetrics.readyPct * 100)}%` }} />
+                          </div>
+                        </div>
+                        <div className="prCard">
+                          <div className="prLabel">Domains Created</div>
+                          <div className="prValue">{Math.round(prMetrics.domainsPct * 100)}%</div>
+                          <div className="mini">
+                            County domains {prMetrics.countiesDomains} • City domains {prMetrics.citiesDomains}
+                          </div>
+                          <div className="prBar">
+                            <div className="prBarFill" style={{ width: `${Math.round(prMetrics.domainsPct * 100)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <input
+                        className="input"
+                        style={{ maxWidth: 380 }}
+                        placeholder="Search county, city, location id..."
+                        value={prCitySearch}
+                        onChange={(e) => setPrCitySearch(e.target.value)}
+                      />
+                      <button
+                        className="smallBtn"
+                        type="button"
+                        onClick={() => void openDetail("Puerto Rico")}
+                      >
+                        Open Full State Drawer
+                      </button>
+                    </div>
+
+                    {prDetailErr ? (
+                      <div className="mini" style={{ marginTop: 10, color: "var(--danger)" }}>
+                        ❌ {prDetailErr}
+                      </div>
+                    ) : prDetailLoading && !prDetail ? (
+                      <div className="mini" style={{ marginTop: 10 }}>Loading Puerto Rico data...</div>
+                    ) : (
+                      <div className="tableWrap tableScrollX detailTableWrap" style={{ marginTop: 12 }}>
+                        <table className="table detailDataTable tableWideCities">
+                          <thead>
+                            <tr>
+                              <th className="th">Eligible</th>
+                              <th className="th">Active</th>
+                              <th className="th">Location Id</th>
+                              <th className="th">County</th>
+                              <th className="th">City</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {prCityRows.map((r, i) => {
+                              const eligible = !!r.__eligible;
+                              const active = isTrue(r["Domain Created"]);
+                              return (
+                                <tr key={`${s(r["Location Id"])}_${i}`} className={`tr ${eligible ? "rowEligible" : ""}`}>
+                                  <td className="td">{eligible ? "✅" : "—"}</td>
+                                  <td className="td">{active ? <span className="pillOk">Active</span> : <span className="pillOff">Pending</span>}</td>
+                                  <td className="td"><span className="mini">{s(r["Location Id"]) || "—"}</span></td>
+                                  <td className="td">{s(r["County"]) || "—"}</td>
+                                  <td className="td">{s(r["City"]) || "—"}</td>
+                                </tr>
+                              );
+                            })}
+                            {prCityRows.length === 0 ? (
+                              <tr className="tr">
+                                <td className="td mini" colSpan={5}>No city rows found.</td>
+                              </tr>
+                            ) : null}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -9192,7 +9378,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       type="button"
                       key={`leader_${row.state}`}
                       className="activationRowBtn"
-                      onClick={() => openDetail(row.state)}
+                      onClick={() => {
+                        if (isPuertoRicoState(row.state)) {
+                          setMapScope("puerto_rico");
+                          void loadPuertoRicoDetail();
+                          return;
+                        }
+                        void openDetail(row.state);
+                      }}
                     >
                       <span className="activationRowState">{row.state}</span>
                       <span className="activationRowStats">
@@ -9214,7 +9407,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       type="button"
                       key={`blocker_${row.state}`}
                       className="activationRowBtn"
-                      onClick={() => openDetail(row.state)}
+                      onClick={() => {
+                        if (isPuertoRicoState(row.state)) {
+                          setMapScope("puerto_rico");
+                          void loadPuertoRicoDetail();
+                          return;
+                        }
+                        void openDetail(row.state);
+                      }}
                     >
                       <span className="activationRowState">{row.state}</span>
                       <span className="activationRowStats">
@@ -11506,6 +11706,25 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
               <div className="mapModalActions">
                 <div className="mapMetricTabs">
+                  <div className="segmented">
+                    <button
+                      className={`segBtn ${mapScope === "us" ? "segBtnOn" : ""}`}
+                      onClick={() => setMapScope("us")}
+                      type="button"
+                    >
+                      United States
+                    </button>
+                    <button
+                      className={`segBtn ${mapScope === "puerto_rico" ? "segBtnOn" : ""}`}
+                      onClick={() => {
+                        setMapScope("puerto_rico");
+                        void loadPuertoRicoDetail();
+                      }}
+                      type="button"
+                    >
+                      Puerto Rico
+                    </button>
+                  </div>
                   <button
                     className={`tabBtn ${mapMetric === "ready" ? "tabBtnActive" : ""}`}
                     onClick={() => setMapMetric("ready")}
@@ -11533,14 +11752,57 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 {/* Left */}
                 <div className="mapPane">
                   <div className="mapFrame">
-                    <UsaChoroplethProgressMap
-                      rows={sheet?.states || []}
-                      metric={mapMetric}
-                      selectedState={mapSelected}
-                      onPick={(name) =>
-                        setMapSelected(String(name || "").trim())
-                      }
-                    />
+                    {mapScope === "us" ? (
+                      <UsaChoroplethProgressMap
+                        rows={sheet?.states || []}
+                        metric={mapMetric}
+                        selectedState={mapSelected}
+                        onPick={(name) => pickMapState(String(name || "").trim())}
+                      />
+                    ) : (
+                      <div className="prPanel" style={{ marginTop: 0 }}>
+                        <div className="prPanelHeader">
+                          <div>
+                            <div className="badge">PUERTO RICO</div>
+                            <div className="prTitle">City activation by row</div>
+                            <div className="mini" style={{ marginTop: 6 }}>
+                              Close this modal to view full city table in the Puerto Rico tab.
+                            </div>
+                          </div>
+                          <button
+                            className="smallBtn"
+                            type="button"
+                            onClick={() => {
+                              closeMap();
+                              setMapScope("puerto_rico");
+                              void loadPuertoRicoDetail();
+                            }}
+                          >
+                            Open Puerto Rico Tab
+                          </button>
+                        </div>
+                        {prMetrics ? (
+                          <div className="prGrid">
+                            <div className="prCard">
+                              <div className="prLabel">Subaccounts Created</div>
+                              <div className="prValue">{Math.round(prMetrics.readyPct * 100)}%</div>
+                              <div className="mini">
+                                Counties {prMetrics.countiesReady}/{prMetrics.countiesTotal} • Cities {prMetrics.citiesReady}/{prMetrics.citiesTotal}
+                              </div>
+                            </div>
+                            <div className="prCard">
+                              <div className="prLabel">Domains Created</div>
+                              <div className="prValue">{Math.round(prMetrics.domainsPct * 100)}%</div>
+                              <div className="mini">
+                                County domains {prMetrics.countiesDomains} • City domains {prMetrics.citiesDomains}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mini" style={{ marginTop: 12 }}>Puerto Rico data not available.</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -11551,11 +11813,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       Selection
                     </div>
 
-                    {!selectedStateMetrics ? (
+                    {mapScope === "us" && !selectedStateMetrics ? (
                       <div style={{ marginTop: 12 }} className="mini">
                         Click a state
                       </div>
-                    ) : (
+                    ) : mapScope === "us" ? (
                       <>
                         <h4 style={{ marginTop: 8 }}>{mapSelected}</h4>
 
@@ -11596,7 +11858,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             className="smallBtn"
                             onClick={() => {
                               closeMap();
-                              openDetail(mapSelected);
+                              void openDetail(mapSelected);
                             }}
                           >
                             Open State
@@ -11610,6 +11872,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           </button>
                         </div>
                       </>
+                    ) : (
+                      <div style={{ marginTop: 12 }} className="mini">
+                        Puerto Rico is selected. Close this modal to inspect city-level data in the Puerto Rico tab.
+                      </div>
                     )}
                   </div>
                 </aside>
