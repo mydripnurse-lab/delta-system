@@ -804,7 +804,6 @@ export default function Home() {
   const [searchBuilderFolder, setSearchBuilderFolder] = useState("company-search");
   const [searchBuilderPageSlug, setSearchBuilderPageSlug] = useState("mobile-iv-therapy-locations");
   const [searchBuilderQuery, setSearchBuilderQuery] = useState("embed=1");
-  const [searchBuilderIndexState, setSearchBuilderIndexState] = useState("all");
   const [searchBuilderButtonPosition, setSearchBuilderButtonPosition] = useState<"left" | "center" | "right">("center");
   const [searchBuilderButtonColor, setSearchBuilderButtonColor] = useState("#044c5c");
   const [searchBuilderHeaderColor, setSearchBuilderHeaderColor] = useState("#a4d8e4");
@@ -2330,6 +2329,16 @@ export default function Home() {
     setSearchBuilderPublishing(true);
     setSearchBuilderErr("");
     try {
+      const indexRes = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/index`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ searchId, state: "all" }),
+      });
+      const indexData = await safeJson(indexRes);
+      if (!indexRes.ok || !indexData?.ok) {
+        throw new Error(s(indexData?.error) || `Search index failed (HTTP ${indexRes.status})`);
+      }
+
       const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2341,7 +2350,8 @@ export default function Home() {
       }
       const manifest = (data?.manifest || null) as SearchBuilderManifest | null;
       const total = Number(data?.generated || manifest?.count || 0);
-      setSearchBuilderMsg(`Published ${total} files for this search.`);
+      const indexCount = Number(indexData?.index?.count || 0);
+      setSearchBuilderMsg(`Search index + publish completed (${indexCount} states, ${total} files).`);
       if (manifest) {
         setSearchBuilderLastPublish({
           searchId,
@@ -2392,33 +2402,6 @@ export default function Home() {
       });
     } catch {
       setSearchBuilderLastPublish(null);
-    }
-  }
-
-  async function runCreateSearchIndexFromBuilder() {
-    if (!routeTenantId) return;
-    const searchId = s(searchBuilderActiveSearchId);
-    if (!searchId) {
-      setSearchBuilderErr("Select a search first.");
-      return;
-    }
-    const state = s(searchBuilderIndexState) || "all";
-    setSearchBuilderErr("");
-    setSearchBuilderMsg("");
-    try {
-      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/index`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ searchId, state }),
-      });
-      const data = await safeJson(res);
-      if (!res.ok || !data?.ok) {
-        throw new Error(s(data?.error) || `HTTP ${res.status}`);
-      }
-      const count = Number(data?.index?.count || 0);
-      setSearchBuilderMsg(`Search index created (${count} states).`);
-    } catch (e: unknown) {
-      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to create search index.");
     }
   }
 
@@ -6114,7 +6097,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         bookingPath: singlePath,
         fileSlug: singleSlug,
         fileName: `${singleSlug}.html`,
-        iframeSrc: publishedUrl ? withQuery(publishedUrl) : (query ? `${iframeSrcBase}?${query}` : iframeSrcBase),
+        iframeSrc: publishedUrl ? withQuery(publishedUrl) : "",
         statesIndexUrl,
       }];
     }
@@ -6135,7 +6118,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         bookingPath,
         fileSlug,
         fileName,
-        iframeSrc: publishedUrl ? withQuery(publishedUrl) : (query ? `${iframeSrcBase}?${query}` : iframeSrcBase),
+        iframeSrc: publishedUrl ? withQuery(publishedUrl) : "",
         statesIndexUrl,
       };
     });
@@ -6278,19 +6261,19 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const urlParams = new URLSearchParams(location.search);
       const redirectMode = (urlParams.get("redirectMode") || "county").toLowerCase();
       const bookPath = urlParams.get("bookPath") || BOOK_PATH_DEFAULT;
-      let statesIndex = null, stateCache = new Map(), flat = [], selected = null;
+      let statesIndex = null, flat = [], selected = null;
       const $q = document.getElementById("q"), $list = document.getElementById("list"), $book = document.getElementById("bookBtn"), $sel = document.getElementById("selected"), $err = document.getElementById("err");
       function showError(msg){ $err.style.display = "block"; $err.textContent = msg; }
       function normalizeText(s){ return String(s||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, ""); }
       function joinUrl(domain,p){ if(!domain) return ""; const d = domain.endsWith("/")?domain.slice(0,-1):domain; const path = p.startsWith("/")?p:"/"+p; return d + path; }
       async function fetchJson(url){ const r = await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("Fetch failed " + r.status + ": " + url); return r.json(); }
-      async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const arr = Array.isArray(data)?data:(data.states||[]); return { states: arr }; }
-      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const stateFileUrl = meta?.stateFileUrl || meta?.url; if(!stateFileUrl) throw new Error("Missing state file URL for " + slug); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
-      function flattenState(stateJson){ const items = stateJson.items || stateJson.counties || []; const stateName = stateJson.stateName || stateJson.name || ""; const stateSlug = stateJson.stateSlug || stateJson.stateKey || ""; const out = []; for(const c of items){ const countyName = c.countyName || c.parishName || ""; const countyDomain = c.countyDomain || c.parishDomain || ""; const cities = c.cities || []; for(const city of cities){ const cityName = city.cityName || ""; const cityDomain = city.cityDomain || ""; if(!cityName || !cityDomain) continue; const baseDomain = redirectMode === "city" ? cityDomain : countyDomain || cityDomain; const suffix = countyName ? " (" + countyName + ")" : ""; out.push({ label: cityName + ", " + stateName + suffix, search: normalizeText(cityName + " " + countyName + " " + stateName), targetUrl: joinUrl(baseDomain, bookPath) }); } } return out; }
+      async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const items = Array.isArray(data?.items) ? data.items : []; return { items }; }
+      function buildTarget(item){ const countyDomain = item?.countyDomain || ""; const cityDomain = item?.cityDomain || ""; const baseDomain = redirectMode === "city" ? (cityDomain || countyDomain) : (countyDomain || cityDomain); return joinUrl(baseDomain, bookPath); }
+      function mapIndexItem(item){ const label = String(item?.label || "").trim(); const search = String(item?.search || "").trim(); const targetUrl = buildTarget(item); if(!label || !search || !targetUrl) return null; return { label, search, targetUrl }; }
       function renderList(items){ $list.innerHTML = ""; if(!items.length){ const div = document.createElement("div"); div.className="item"; div.innerHTML = '<div class="title">No results</div>'; $list.appendChild(div); return; } for(const it of items.slice(0,60)){ const row=document.createElement("div"); row.className="item"; row.innerHTML='<div class="title">'+it.label+'</div>'; row.addEventListener("click",()=>{ selected=it; $sel.textContent='Selected: '+it.label; $book.disabled=false; }); $list.appendChild(row);} }
       function filter(q){ const nq = normalizeText(q.trim()); if(!nq) return []; return flat.filter((x)=>x.search.includes(nq)); }
       function doRedirect(url){ try{ window.top.location.href = url; } catch { window.location.href = url; } }
-      async function bootstrap(){ try { statesIndex = await loadIndex(); for(const st of (statesIndex.states||[])){ const slug = st.stateSlug || st.slug; if(!slug) continue; try { const full = await loadStateBySlug(slug); flat.push(...flattenState(full)); } catch {} } } catch(e){ showError((e && e.message) || "Failed to load locations."); } }
+      async function bootstrap(){ try { statesIndex = await loadIndex(); flat = (statesIndex.items || []).map(mapIndexItem).filter(Boolean); if(!flat.length) showError("Search index loaded but has 0 items. Republish this search."); } catch(e){ showError((e && e.message) || "Failed to load locations."); } }
       $q.addEventListener("input",(e)=> renderList(filter((e.target && e.target.value) || "")));
       document.getElementById("clearBtn").addEventListener("click",()=>{ $q.value=""; selected=null; $book.disabled=true; $sel.textContent="No selection yet."; renderList([]); $q.focus(); });
       $book.addEventListener("click",()=>{ if(!selected || !selected.targetUrl) return; doRedirect(selected.targetUrl); });
@@ -8474,9 +8457,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <button type="button" className="smallBtn" disabled={searchBuilderSaving || searchBuilderPublishing} onClick={() => void publishSearchBuilderFiles()}>
                     {searchBuilderPublishing ? "Publishing..." : "Publish"}
                   </button>
-                  <button type="button" className="smallBtn" onClick={() => void runCreateSearchIndexFromBuilder()}>
-                    Create Search Index
-                  </button>
                 </div>
               </div>
               <div className="cardBody">
@@ -8540,15 +8520,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </div>
 
                 <div className="row" style={{ marginTop: 8 }}>
-                  <div className="field" style={{ maxWidth: 260 }}>
-                    <label>Create Search Index state</label>
-                    <select className="select" value={searchBuilderIndexState} onChange={(e) => setSearchBuilderIndexState(e.target.value)}>
-                      <option value="all">ALL</option>
-                      {statesOut.map((st) => (
-                        <option key={st} value={st}>{formatStateLabel(st)}</option>
-                      ))}
-                    </select>
-                  </div>
                   <div className="field" style={{ flex: 1 }}>
                     <label>Service/Search file</label>
                     <select className="select" value={searchBuilderSelectedArtifactId} onChange={(e) => setSearchBuilderSelectedArtifactId(e.target.value)}>
@@ -8564,6 +8535,82 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <div className="field" style={{ flex: 1 }}>
                     <label>States index URL</label>
                     <input className="input" value={selectedSearchBuilderArtifact?.statesIndexUrl || ""} readOnly />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <div className="mini" style={{ marginBottom: 8 }}>Button + modal preview</div>
+                  <div
+                    style={{
+                      width: "100%",
+                      padding: 16,
+                      borderRadius: 14,
+                      border: "1px solid rgba(255,255,255,.12)",
+                      background: "rgba(0,0,0,.15)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        textAlign:
+                          searchBuilderButtonPosition === "left"
+                            ? "left"
+                            : searchBuilderButtonPosition === "right"
+                              ? "right"
+                              : "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "12px 22px",
+                          borderRadius: 999,
+                          fontWeight: 800,
+                          fontSize: 15,
+                          background: s(searchBuilderButtonColor) || "#044c5c",
+                          color: "#fff",
+                        }}
+                      >
+                        {s(searchBuilderButtonText) || "Book Now"}
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 12,
+                        width: "100%",
+                        maxWidth: 780,
+                        height: 250,
+                        borderRadius: 16,
+                        overflow: "hidden",
+                        background: "#fff",
+                        boxShadow: "0 16px 40px rgba(0,0,0,.25)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: 56,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "0 14px",
+                          background: s(searchBuilderHeaderColor) || "#a4d8e4",
+                          borderBottom: "1px solid rgba(0,0,0,.08)",
+                        }}
+                      >
+                        <strong style={{ color: "#0b1b2a" }}>{s(searchBuilderModalTitle) || "Locations"}</strong>
+                        <span style={{ width: 34, height: 34, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(0,0,0,.12)", background: "#fff" }}>x</span>
+                      </div>
+                      <div style={{ height: "calc(100% - 56px)", padding: 12 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 6 }}>{s(searchBuilderSearchTitle) || "Choose your location"}</div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>{s(searchBuilderSearchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now."}</div>
+                        <input
+                          readOnly
+                          value={s(searchBuilderSearchPlaceholder) || "Choose your City, State, or Country"}
+                          style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px", fontSize: 13 }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -8584,11 +8631,25 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
                 <div style={{ marginTop: 12 }}>
                   <div className="mini" style={{ marginBottom: 6 }}>Search iframe preview</div>
-                  <iframe
-                    title="Search Builder Preview"
-                    src={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc}
-                    style={{ width: "100%", height: 420, border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, background: "#fff" }}
-                  />
+                  {s(selectedSearchBuilderArtifact?.iframeSrc) ? (
+                    <iframe
+                      title="Search Builder Preview"
+                      src={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc}
+                      style={{ width: "100%", height: 420, border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, background: "#fff" }}
+                    />
+                  ) : (
+                    <div
+                      className="mini"
+                      style={{
+                        border: "1px dashed rgba(255,255,255,.24)",
+                        borderRadius: 12,
+                        padding: "18px 16px",
+                        background: "rgba(15,23,42,.45)",
+                      }}
+                    >
+                      No published file yet for this search file. Click <b>Publish</b> first.
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ marginTop: 14 }}>

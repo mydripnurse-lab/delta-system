@@ -24,6 +24,88 @@ function kebabToken(input: string) {
     .slice(0, 80);
 }
 
+function pickText(obj: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const v = s(obj[key]);
+    if (v) return v;
+  }
+  return "";
+}
+
+function normalizeText(input: string) {
+  return s(input)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+type FlatIndexItem = {
+  label: string;
+  search: string;
+  state: string;
+  county: string;
+  city: string;
+  countyDomain: string;
+  cityDomain: string;
+};
+
+function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndexItem[] {
+  if (!payload) return [];
+  const stateName = pickText(payload, ["stateName", "state", "name"]);
+  const countiesRaw = payload.counties ?? payload.items;
+  const counties = Array.isArray(countiesRaw) ? countiesRaw : [];
+  const out: FlatIndexItem[] = [];
+
+  for (const c0 of counties) {
+    if (!c0 || typeof c0 !== "object" || Array.isArray(c0)) continue;
+    const countyObj = c0 as Record<string, unknown>;
+    const countyName = pickText(countyObj, ["countyName", "parishName", "county", "name"]);
+    const countyDomain = pickText(countyObj, [
+      "countyDomain",
+      "parishDomain",
+      "county_domain",
+      "parish_domain",
+      "domain",
+    ]);
+    const citiesRaw = countyObj.cities;
+    const cities = Array.isArray(citiesRaw) ? citiesRaw : [];
+
+    if (!cities.length && countyName && countyDomain) {
+      const label = `${countyName}, ${stateName || ""}`.replace(/\s+,/g, ",").trim();
+      out.push({
+        label,
+        search: normalizeText(`${countyName} ${stateName}`),
+        state: stateName,
+        county: countyName,
+        city: "",
+        countyDomain,
+        cityDomain: "",
+      });
+      continue;
+    }
+
+    for (const city0 of cities) {
+      if (!city0 || typeof city0 !== "object" || Array.isArray(city0)) continue;
+      const cityObj = city0 as Record<string, unknown>;
+      const cityName = pickText(cityObj, ["cityName", "city", "name"]);
+      const cityDomain = pickText(cityObj, ["cityDomain", "city_domain", "domain"]);
+      if (!cityName || (!cityDomain && !countyDomain)) continue;
+      const suffix = countyName ? ` (${countyName})` : "";
+      out.push({
+        label: `${cityName}, ${stateName || ""}${suffix}`.trim(),
+        search: normalizeText(`${cityName} ${countyName} ${stateName}`),
+        state: stateName,
+        county: countyName,
+        city: cityName,
+        countyDomain,
+        cityDomain,
+      });
+    }
+  }
+
+  return out;
+}
+
 async function tenantExists(tenantId: string) {
   const pool = getDbPool();
   const q = await pool.query(`select 1 from app.organizations where id = $1::uuid limit 1`, [tenantId]);
@@ -94,9 +176,9 @@ export async function POST(req: Request, ctx: Ctx) {
       args.push(state);
       where += ` and state_slug = $${args.length}`;
     }
-    const q = await pool.query<{ state_slug: string; state_name: string }>(
+    const q = await pool.query<{ state_slug: string; state_name: string; payload: Record<string, unknown> | null }>(
       `
-        select state_slug, state_name
+        select state_slug, state_name, payload
         from app.organization_state_files
         ${where}
         order by state_slug asc
@@ -109,6 +191,7 @@ export async function POST(req: Request, ctx: Ctx) {
       stateName: s(r.state_name),
       stateFileUrl: `/embedded/state/${tenantId}/${s(r.state_slug)}.json`,
     }));
+    const items = q.rows.flatMap((r) => flattenStatePayload(r.payload || null));
 
     const payload = {
       searchId,
@@ -116,7 +199,9 @@ export async function POST(req: Request, ctx: Ctx) {
       state,
       generatedAt: new Date().toISOString(),
       count: states.length,
+      itemsCount: items.length,
       states,
+      items,
     };
 
     await pool.query(

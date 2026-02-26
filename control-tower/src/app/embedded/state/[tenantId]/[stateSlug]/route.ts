@@ -17,8 +17,7 @@ function normalizeStateSlug(input: string) {
   return s(input)
     .toLowerCase()
     .replace(/\.json$/i, "")
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/[^a-z0-9_-]+/g, "")
     .slice(0, 120);
 }
 
