@@ -4028,6 +4028,8 @@ function DashboardHomeContent() {
               tenantId={tenantId}
               title="CEO Agent Chat"
               context={{
+                tenantId,
+                integrationKey,
                 board_meeting_mode: boardMeetingMode,
                 range: data?.range || null,
                 executive: data?.executive || null,

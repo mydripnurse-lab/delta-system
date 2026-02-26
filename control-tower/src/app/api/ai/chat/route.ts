@@ -6,6 +6,7 @@ import {
     getConversationForThread,
     getRecentEvents,
 } from "@/lib/aiMemory";
+import { buildBusinessContextFromDb } from "@/lib/aiBusinessContext";
 
 export const runtime = "nodejs";
 
@@ -66,8 +67,13 @@ export async function POST(req: Request) {
             metadata: { role: "user", threadId },
         });
 
-        const convo = await getConversationForThread(agent, threadId, 30, tenantId || null);
-        const events = await getRecentEvents(80, tenantId || null);
+        const [convo, events, dbBusinessContext] = await Promise.all([
+            getConversationForThread(agent, threadId, 30, tenantId || null),
+            getRecentEvents(80, tenantId || null),
+            tenantId
+                ? buildBusinessContextFromDb(tenantId, String((context as any)?.integrationKey || "owner"))
+                : Promise.resolve(null),
+        ]);
         const eventsCompact = events.map((e) => ({
             ts: e.ts,
             agent: e.agent,
@@ -84,7 +90,8 @@ export async function POST(req: Request) {
                     content:
                         "You are a multi-dashboard business copilot with CEO reasoning. " +
                         "You can collaborate across Calls, Leads, GSC, GA, Ads, YouTube Ads and Overview agents. " +
-                        "Use conversation history, recent AI events, and provided context. " +
+                        "Use conversation history, recent AI events, UI context, and DB business context when available. " +
+                        "Do not anchor only to UI date filters if DB business context has broader data. " +
                         "Be concrete, action-oriented, and cite numeric evidence from context when available. " +
                         "If data/setup is missing, clearly call it out and propose next best steps.",
                 },
@@ -94,6 +101,7 @@ export async function POST(req: Request) {
                         agent,
                         threadId,
                         context,
+                        db_business_context: dbBusinessContext,
                         recent_events: eventsCompact,
                         conversation: convo.map((m) => ({ role: m.role, content: m.content })),
                         current_question: userMsg,

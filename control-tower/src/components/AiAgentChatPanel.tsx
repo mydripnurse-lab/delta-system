@@ -212,7 +212,6 @@ export default function AiAgentChatPanel({
   const [threadQuery, setThreadQuery] = useState("");
   const [dragPinnedThreadId, setDragPinnedThreadId] = useState("");
   const [dragOverPinnedThreadId, setDragOverPinnedThreadId] = useState("");
-  const [streamingAssistantVisible, setStreamingAssistantVisible] = useState(false);
   const [feedOpen, setFeedOpen] = useState(false);
   const [input, setInput] = useState("");
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -271,7 +270,6 @@ export default function AiAgentChatPanel({
     const optimisticTs = Date.now();
     setMessages((prev) => prev.concat({ role: "user", content: text, ts: optimisticTs }));
     setSending(true);
-    setStreamingAssistantVisible(false);
     setErr("");
     setInput("");
     try {
@@ -315,24 +313,10 @@ export default function AiAgentChatPanel({
           }
           if (!eventName) continue;
           const payload = dataRaw ? JSON.parse(dataRaw) : {};
-            if (eventName === "delta") {
-              const delta = String(payload?.delta || "");
-              if (!assistantStarted) {
-                assistantStarted = true;
-                setStreamingAssistantVisible(true);
-                setMessages((prev) => prev.concat({ role: "assistant", content: "", ts: Date.now() + 1 }));
-              }
+          if (eventName === "delta") {
+            const delta = String(payload?.delta || "");
+            if (!assistantStarted) assistantStarted = true;
             assistantText += delta;
-            setMessages((prev) => {
-              const next = prev.slice();
-              for (let i = next.length - 1; i >= 0; i -= 1) {
-                if (next[i].role === "assistant") {
-                  next[i] = { ...next[i], content: assistantText };
-                  break;
-                }
-              }
-              return next;
-            });
           } else if (eventName === "done") {
             donePayload = payload;
           } else if (eventName === "error") {
@@ -342,6 +326,8 @@ export default function AiAgentChatPanel({
       }
       if (donePayload?.history && Array.isArray(donePayload.history)) {
         setMessages(donePayload.history);
+      } else if (assistantText.trim()) {
+        setMessages((prev) => prev.concat({ role: "assistant", content: assistantText, ts: Date.now() + 1 }));
       }
       await loadHistory(activeThread);
     } catch (e: unknown) {
@@ -349,7 +335,6 @@ export default function AiAgentChatPanel({
       setMessages((prev) => prev.filter((m) => !(m.role === "user" && m.ts === optimisticTs)));
     } finally {
       setSending(false);
-      setStreamingAssistantVisible(false);
     }
   }
 
@@ -617,7 +602,7 @@ export default function AiAgentChatPanel({
             ) : (
               <div className="mini">No messages yet.</div>
             )}
-            {sending && !streamingAssistantVisible ? (
+            {sending ? (
               <div className="aiMsg aiMsgAssistant">
                 <div className="aiMsgMeta">
                   <span>AI</span>
