@@ -157,7 +157,7 @@ type TenantDetailResponse = {
   error?: string;
 };
 
-type ProjectTab = "runner" | "sheet" | "activation" | "logs" | "details" | "webhooks";
+type ProjectTab = "runner" | "search_builder" | "sheet" | "activation" | "logs" | "details" | "webhooks";
 type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values" | "products_services" | "state_files";
 
 type StateDetailResponse = {
@@ -210,11 +210,41 @@ function slugToken(input: string) {
     .slice(0, 64);
 }
 
+function kebabToken(input: string) {
+  return s(input)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 function normalizeRelativePath(input: string) {
   const raw = s(input);
   if (!raw) return "";
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   return `/${raw.replace(/^\/+/, "")}`;
+}
+
+function hostOnly(input: string) {
+  const raw = s(input);
+  if (!raw) return "";
+  const noProto = raw.replace(/^https?:\/\//i, "");
+  return noProto.split("/")[0].replace(/^www\./i, "").trim();
+}
+
+function escapeHtmlAttr(input: string) {
+  return s(input)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function fileSlugFromService(input: string) {
+  const base = kebabToken(input).replace(/-locations$/, "");
+  return base ? `${base}-locations` : "locations";
 }
 
 function formatStateLabel(raw: string) {
@@ -651,6 +681,25 @@ export default function Home() {
   const [tenantProspectingWebhookPushBusy, setTenantProspectingWebhookPushBusy] = useState(false);
   const [tenantProspectingWebhookErr, setTenantProspectingWebhookErr] = useState("");
   const [tenantProspectingWebhookOk, setTenantProspectingWebhookOk] = useState("");
+  const [searchBuilderCompanyName, setSearchBuilderCompanyName] = useState("");
+  const [searchBuilderButtonText, setSearchBuilderButtonText] = useState("Book An Appointment");
+  const [searchBuilderModalTitle, setSearchBuilderModalTitle] = useState("Locations");
+  const [searchBuilderHost, setSearchBuilderHost] = useState("sitemaps.mydripnurse.com");
+  const [searchBuilderFolder, setSearchBuilderFolder] = useState("company-search");
+  const [searchBuilderPageSlug, setSearchBuilderPageSlug] = useState("mobile-iv-therapy-locations");
+  const [searchBuilderQuery, setSearchBuilderQuery] = useState("embed=1");
+  const [searchBuilderButtonColor, setSearchBuilderButtonColor] = useState("#044c5c");
+  const [searchBuilderHeaderColor, setSearchBuilderHeaderColor] = useState("#a4d8e4");
+  const [searchBuilderSearchTitle, setSearchBuilderSearchTitle] = useState("Choose your location");
+  const [searchBuilderSearchSubtitle, setSearchBuilderSearchSubtitle] = useState("Search by State, County/Parish, or City. Then click Book Now.");
+  const [searchBuilderSearchPlaceholder, setSearchBuilderSearchPlaceholder] = useState("Choose your City, State, or Country");
+  const [searchBuilderSelectedArtifactId, setSearchBuilderSelectedArtifactId] = useState("");
+  const [searchBuilderSaving, setSearchBuilderSaving] = useState(false);
+  const [searchBuilderMsg, setSearchBuilderMsg] = useState("");
+  const [searchBuilderErr, setSearchBuilderErr] = useState("");
+  const [searchBuilderCopiedArtifactId, setSearchBuilderCopiedArtifactId] = useState("");
+  const [searchBuilderCopiedFileArtifactId, setSearchBuilderCopiedFileArtifactId] = useState("");
+  const searchBuilderHydratedTenantRef = useRef("");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -894,6 +943,7 @@ export default function Home() {
   const celebrateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detailsRef = useRef<HTMLElement | null>(null);
   const runnerRef = useRef<HTMLDivElement | null>(null);
+  const searchBuilderRef = useRef<HTMLElement | null>(null);
   const sheetRef = useRef<HTMLElement | null>(null);
   const activationRef = useRef<HTMLElement | null>(null);
   const webhooksRef = useRef<HTMLElement | null>(null);
@@ -1798,6 +1848,110 @@ export default function Home() {
   }, [searchParams, activeProjectTab]);
 
   useEffect(() => {
+    if (!routeTenantId) return;
+    if (s(tenantSummary?.id) !== routeTenantId) return;
+    if (!s(tenantName) && !s(tenantSlug) && !s(tenantRootDomain)) return;
+    if (searchBuilderHydratedTenantRef.current === routeTenantId) return;
+
+    const rootHost = hostOnly(tenantRootDomain);
+    const folderBase = kebabToken(tenantSlug) || kebabToken(tenantName) || "company";
+
+    setSearchBuilderCompanyName(s(tenantName) || "My Company");
+    setSearchBuilderModalTitle(`${s(tenantName) || "My Company"} Locations`);
+    setSearchBuilderHost(rootHost ? `sitemaps.${rootHost}` : "sitemaps.mydripnurse.com");
+    setSearchBuilderFolder(`${folderBase}-search`);
+    setSearchBuilderPageSlug("mobile-iv-therapy-locations");
+    setSearchBuilderQuery("embed=1");
+    setSearchBuilderSearchTitle("Choose your location");
+    setSearchBuilderSearchSubtitle("Search by State, County/Parish, or City. Then click Book Now.");
+    setSearchBuilderSearchPlaceholder("Choose your City, State, or Country");
+    setSearchBuilderMsg("");
+    setSearchBuilderErr("");
+    searchBuilderHydratedTenantRef.current = routeTenantId;
+  }, [routeTenantId, tenantSummary?.id, tenantName, tenantSlug, tenantRootDomain]);
+
+  useEffect(() => {
+    if (!routeTenantId) return;
+    let cancelled = false;
+    async function loadSearchBuilderSettings() {
+      try {
+        setSearchBuilderErr("");
+        const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder`, {
+          cache: "no-store",
+        });
+        const data = await safeJson(res);
+        if (cancelled) return;
+        if (!res.ok || !data?.ok) {
+          throw new Error(s(data?.error) || `HTTP ${res.status}`);
+        }
+        const payload = (data?.payload || null) as Record<string, unknown> | null;
+        if (!payload) return;
+        setSearchBuilderCompanyName(s(payload.companyName));
+        setSearchBuilderButtonText(s(payload.buttonText) || "Book An Appointment");
+        setSearchBuilderModalTitle(s(payload.modalTitle) || "Locations");
+        setSearchBuilderHost(s(payload.host) || "sitemaps.mydripnurse.com");
+        setSearchBuilderFolder(s(payload.folder) || "company-search");
+        setSearchBuilderPageSlug(s(payload.pageSlug) || "mobile-iv-therapy-locations");
+        setSearchBuilderQuery(s(payload.query) || "embed=1");
+        setSearchBuilderButtonColor(s(payload.buttonColor) || "#044c5c");
+        setSearchBuilderHeaderColor(s(payload.headerColor) || "#a4d8e4");
+        setSearchBuilderSearchTitle(s(payload.searchTitle) || "Choose your location");
+        setSearchBuilderSearchSubtitle(
+          s(payload.searchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now.",
+        );
+        setSearchBuilderSearchPlaceholder(
+          s(payload.searchPlaceholder) || "Choose your City, State, or Country",
+        );
+        setSearchBuilderMsg(data?.exists === true ? "Search Builder settings loaded from DB." : "");
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setSearchBuilderErr(e instanceof Error ? e.message : "Failed to load Search Builder settings.");
+        }
+      }
+    }
+    void loadSearchBuilderSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, [routeTenantId]);
+
+  async function saveSearchBuilderSettings() {
+    if (!routeTenantId) return;
+    setSearchBuilderSaving(true);
+    setSearchBuilderErr("");
+    setSearchBuilderMsg("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: s(searchBuilderCompanyName),
+          buttonText: s(searchBuilderButtonText),
+          modalTitle: s(searchBuilderModalTitle),
+          host: s(searchBuilderHost),
+          folder: s(searchBuilderFolder),
+          pageSlug: s(searchBuilderPageSlug),
+          query: s(searchBuilderQuery),
+          buttonColor: s(searchBuilderButtonColor),
+          headerColor: s(searchBuilderHeaderColor),
+          searchTitle: s(searchBuilderSearchTitle),
+          searchSubtitle: s(searchBuilderSearchSubtitle),
+          searchPlaceholder: s(searchBuilderSearchPlaceholder),
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      setSearchBuilderMsg("Search Builder settings saved in DB.");
+    } catch (e: unknown) {
+      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to save Search Builder settings.");
+    } finally {
+      setSearchBuilderSaving(false);
+    }
+  }
+
+  useEffect(() => {
     hydrateBingFormFromIntegrations(tenantIntegrations);
     hydrateGooglePlacesFormFromIntegrations(tenantIntegrations);
   }, [tenantIntegrations]);
@@ -2546,6 +2700,7 @@ export default function Home() {
     const byTab: Record<ProjectTab, HTMLElement | null> = {
       details: detailsRef.current,
       runner: runnerRef.current,
+      search_builder: searchBuilderRef.current,
       sheet: sheetRef.current,
       activation: activationRef.current,
       webhooks: webhooksRef.current,
@@ -5420,6 +5575,221 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     [actSitemapUrl],
   );
 
+  const searchBuilderIframeSrc = useMemo(() => {
+    const host = hostOnly(searchBuilderHost) || "sitemaps.mydripnurse.com";
+    const folder = kebabToken(searchBuilderFolder) || "company-search";
+    const page = kebabToken(searchBuilderPageSlug) || "locations";
+    const query = s(searchBuilderQuery).replace(/^\?+/, "");
+    const base = `https://${host}/public/ui/${folder}/${page}.html`;
+    return query ? `${base}?${query}` : base;
+  }, [searchBuilderHost, searchBuilderFolder, searchBuilderPageSlug, searchBuilderQuery]);
+
+  const searchBuilderServiceArtifacts = useMemo(() => {
+    const host = hostOnly(searchBuilderHost) || "sitemaps.mydripnurse.com";
+    const folder = kebabToken(searchBuilderFolder) || "company-search";
+    const query = s(searchBuilderQuery).replace(/^\?+/, "");
+    const statesIndexUrl = `https://${host}/public/json/states-index.json`;
+    const activeServices = tenantProductsServices.filter((svc) => svc.isActive !== false);
+
+    if (!activeServices.length) {
+      const singleSlug = kebabToken(searchBuilderPageSlug) || "locations";
+      const singlePath = normalizeRelativePath("/") || "/";
+      const iframeSrcBase = `https://${host}/public/ui/${folder}/${singleSlug}.html`;
+      return [{
+        id: "manual",
+        name: "Manual Search",
+        serviceId: "manual",
+        bookingPath: singlePath,
+        fileSlug: singleSlug,
+        fileName: `${singleSlug}.html`,
+        iframeSrc: query ? `${iframeSrcBase}?${query}` : iframeSrcBase,
+        statesIndexUrl,
+      }];
+    }
+
+    return activeServices.map((svc, idx) => {
+      const serviceId = s(svc.serviceId) || `service-${idx + 1}`;
+      const fileSlug = fileSlugFromService(serviceId || s(svc.name));
+      const fileName = `${fileSlug}.html`;
+      const bookingPath = normalizeRelativePath(s(svc.bookingPath) || "/");
+      const iframeSrcBase = `https://${host}/public/ui/${folder}/${fileSlug}.html`;
+      return {
+        id: serviceId,
+        name: s(svc.name) || serviceId,
+        serviceId,
+        bookingPath,
+        fileSlug,
+        fileName,
+        iframeSrc: query ? `${iframeSrcBase}?${query}` : iframeSrcBase,
+        statesIndexUrl,
+      };
+    });
+  }, [searchBuilderFolder, searchBuilderHost, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
+
+  useEffect(() => {
+    if (!searchBuilderServiceArtifacts.length) {
+      setSearchBuilderSelectedArtifactId("");
+      return;
+    }
+    setSearchBuilderSelectedArtifactId((prev) => {
+      if (prev && searchBuilderServiceArtifacts.some((it) => it.id === prev)) return prev;
+      return searchBuilderServiceArtifacts[0].id;
+    });
+  }, [searchBuilderServiceArtifacts]);
+
+  const selectedSearchBuilderArtifact = useMemo(() => {
+    if (!searchBuilderServiceArtifacts.length) return null;
+    return searchBuilderServiceArtifacts.find((it) => it.id === searchBuilderSelectedArtifactId) || searchBuilderServiceArtifacts[0];
+  }, [searchBuilderSelectedArtifactId, searchBuilderServiceArtifacts]);
+
+  function buildEmbedCodeForArtifact(artifact: {
+    name: string;
+    iframeSrc: string;
+  }) {
+    const companyLabel = s(searchBuilderCompanyName) || "Company";
+    const buttonText = s(searchBuilderButtonText) || "Book Now";
+    const modalTitle = s(searchBuilderModalTitle) || `${companyLabel} Locations`;
+    const btnColor = s(searchBuilderButtonColor) || "#044c5c";
+    const headerColor = s(searchBuilderHeaderColor) || "#a4d8e4";
+    const iframeSrc = escapeHtmlAttr(artifact.iframeSrc);
+    return `<!-- ${companyLabel} ${artifact.name} Embed -->
+<style>
+.ct-book-wrap { font-family: Lato, system-ui, -apple-system, Segoe UI, Roboto, Arial; text-align: center; }
+.ct-book-btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 999px; border: 0; cursor: pointer; font-weight: 800; font-size: 16px; background: ${btnColor}; color: #fff; box-shadow: 0 14px 30px rgba(0,0,0,.18); text-decoration: none; transition: transform .08s ease, filter .12s ease; }
+.ct-book-btn:hover { filter: brightness(1.06); }
+.ct-book-btn:active { transform: translateY(1px); }
+.ct-modal-toggle { position: absolute !important; opacity: 0 !important; pointer-events: none !important; width: 0 !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; }
+.ct-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 999999; display: none; }
+.ct-modal { position: fixed; inset: 0; z-index: 1000000; display: none; align-items: center; justify-content: center; padding: 18px; }
+.ct-modal-toggle:checked ~ .ct-modal-backdrop, .ct-modal-toggle:checked ~ .ct-modal { display: flex; }
+.ct-modal-card { width: min(800px, 96vw); height: min(680px, 86vh); background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 26px 70px rgba(0,0,0,.35); display: flex; flex-direction: column; }
+.ct-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px; border-bottom: 1px solid rgba(0,0,0,.08); background: ${headerColor}; }
+.ct-modal-title { font-size: 18px; font-weight: 800; color: #0b1b2a; }
+.ct-modal-close { width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(0,0,0,.12); cursor: pointer; background: #fff; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.ct-modal-body { flex: 1; background: #fff; }
+.ct-iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+@media (max-width: 640px){ .ct-modal-card{ width: 98vw; height: 90vh; border-radius: 16px; } }
+</style>
+
+<div class="ct-book-wrap">
+  <input id="ctModalToggle" class="ct-modal-toggle" type="checkbox" />
+  <label for="ctModalToggle" class="ct-book-btn">${escapeHtmlAttr(buttonText)}</label>
+  <label for="ctModalToggle" class="ct-modal-backdrop"></label>
+  <div class="ct-modal" role="dialog" aria-modal="true">
+    <div class="ct-modal-card">
+      <div class="ct-modal-header">
+        <div class="ct-modal-title">${escapeHtmlAttr(modalTitle)}</div>
+        <label for="ctModalToggle" class="ct-modal-close">✕</label>
+      </div>
+      <div class="ct-modal-body">
+        <iframe class="ct-iframe" src="${iframeSrc}" title="${escapeHtmlAttr(modalTitle)}"></iframe>
+      </div>
+    </div>
+  </div>
+</div>`;
+  }
+
+  function buildSearchFileCodeForArtifact(artifact: {
+    statesIndexUrl: string;
+    bookingPath: string;
+  }) {
+    const safeTitle = escapeHtmlAttr(searchBuilderSearchTitle || "Choose your location");
+    const safeSubtitle = escapeHtmlAttr(searchBuilderSearchSubtitle || "Search by State, County/Parish, or City. Then click Book Now.");
+    const safePlaceholder = escapeHtmlAttr(searchBuilderSearchPlaceholder || "Choose your City, State, or Country");
+    const safeStatesIndex = escapeHtmlAttr(artifact.statesIndexUrl);
+    const safeBookPath = escapeHtmlAttr(artifact.bookingPath || "/");
+    const safePrimary = escapeHtmlAttr(searchBuilderButtonColor || "#044c5c");
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${safeTitle}</title>
+    <style>
+      :root { --bg:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --primary:${safePrimary}; }
+      body { margin:0; font-family: Lato, system-ui, -apple-system, Segoe UI, Roboto, Arial; background:transparent; color:var(--text); }
+      .wrap { padding:28px; background:var(--bg); }
+      h1 { margin:0 0 16px 0; font-size:34px; line-height:1.1; }
+      .sub { margin:0 0 18px 0; color:var(--muted); font-size:14px; }
+      .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+      .input { flex:1 1 420px; min-width:280px; border:2px solid #2563eb33; border-radius:14px; padding:14px 16px; font-size:18px; outline:none; }
+      .panel { margin-top:16px; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+      .list { max-height:360px; overflow:auto; background:#fff; }
+      .item { padding:12px 14px; border-top:1px solid var(--border); cursor:pointer; }
+      .item:hover { background:#f8fafc; }
+      .item:first-child { border-top:0; }
+      .title { font-weight:650; }
+      .footer { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-top:1px solid var(--border); background:#fff; gap:12px; flex-wrap:wrap; }
+      .btn { appearance:none; border:0; border-radius:12px; padding:12px 14px; font-weight:700; cursor:pointer; }
+      .btn.primary { background:var(--primary); color:#fff; }
+      .btn.ghost { background:#f1f5f9; color:#0f172a; }
+      .selected { color:var(--muted); font-size:13px; }
+      .error { margin-top:10px; color:#b91c1c; font-size:13px; display:none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>${safeTitle}</h1>
+      <p class="sub">${safeSubtitle}</p>
+      <div class="row">
+        <input id="q" class="input" placeholder="${safePlaceholder}" autocomplete="off" />
+      </div>
+      <div class="panel">
+        <div id="list" class="list"></div>
+        <div class="footer">
+          <div class="selected" id="selected">No selection yet.</div>
+          <div class="row">
+            <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+            <button class="btn primary" id="bookBtn" type="button" disabled>Book Now</button>
+          </div>
+        </div>
+      </div>
+      <div id="err" class="error"></div>
+    </div>
+    <script>
+      const STATES_INDEX_URL = "${safeStatesIndex}";
+      const BOOK_PATH_DEFAULT = "${safeBookPath}";
+      const urlParams = new URLSearchParams(location.search);
+      const redirectMode = (urlParams.get("redirectMode") || "county").toLowerCase();
+      const bookPath = urlParams.get("bookPath") || BOOK_PATH_DEFAULT;
+      let statesIndex = null, stateCache = new Map(), flat = [], selected = null;
+      const $q = document.getElementById("q"), $list = document.getElementById("list"), $book = document.getElementById("bookBtn"), $sel = document.getElementById("selected"), $err = document.getElementById("err");
+      function showError(msg){ $err.style.display = "block"; $err.textContent = msg; }
+      function normalizeText(s){ return String(s||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, ""); }
+      function joinUrl(domain,p){ if(!domain) return ""; const d = domain.endsWith("/")?domain.slice(0,-1):domain; const path = p.startsWith("/")?p:"/"+p; return d + path; }
+      async function fetchJson(url){ const r = await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("Fetch failed " + r.status + ": " + url); return r.json(); }
+      async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const arr = Array.isArray(data)?data:(data.states||[]); return { states: arr }; }
+      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const fallbackBase = STATES_INDEX_URL.replace("/public/json/states-index.json", "/resources/statesFiles/"); const stateFileUrl = meta?.stateFileUrl || meta?.url || (fallbackBase + slug + ".json"); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
+      function flattenState(stateJson){ const items = stateJson.items || stateJson.counties || []; const stateName = stateJson.stateName || stateJson.name || ""; const stateSlug = stateJson.stateSlug || stateJson.stateKey || ""; const out = []; for(const c of items){ const countyName = c.countyName || c.parishName || ""; const countyDomain = c.countyDomain || c.parishDomain || ""; const cities = c.cities || []; for(const city of cities){ const cityName = city.cityName || ""; const cityDomain = city.cityDomain || ""; if(!cityName || !cityDomain) continue; const baseDomain = redirectMode === "city" ? cityDomain : countyDomain || cityDomain; const suffix = countyName ? " (" + countyName + ")" : ""; out.push({ label: cityName + ", " + stateName + suffix, search: normalizeText(cityName + " " + countyName + " " + stateName), targetUrl: joinUrl(baseDomain, bookPath) }); } } return out; }
+      function renderList(items){ $list.innerHTML = ""; if(!items.length){ const div = document.createElement("div"); div.className="item"; div.innerHTML = '<div class="title">No results</div>'; $list.appendChild(div); return; } for(const it of items.slice(0,60)){ const row=document.createElement("div"); row.className="item"; row.innerHTML='<div class="title">'+it.label+'</div>'; row.addEventListener("click",()=>{ selected=it; $sel.textContent='Selected: '+it.label; $book.disabled=false; }); $list.appendChild(row);} }
+      function filter(q){ const nq = normalizeText(q.trim()); if(!nq) return []; return flat.filter((x)=>x.search.includes(nq)); }
+      function doRedirect(url){ try{ window.top.location.href = url; } catch { window.location.href = url; } }
+      async function bootstrap(){ try { statesIndex = await loadIndex(); for(const st of (statesIndex.states||[])){ const slug = st.stateSlug || st.slug; if(!slug) continue; try { const full = await loadStateBySlug(slug); flat.push(...flattenState(full)); } catch {} } } catch(e){ showError((e && e.message) || "Failed to load locations."); } }
+      $q.addEventListener("input",(e)=> renderList(filter((e.target && e.target.value) || "")));
+      document.getElementById("clearBtn").addEventListener("click",()=>{ $q.value=""; selected=null; $book.disabled=true; $sel.textContent="No selection yet."; renderList([]); $q.focus(); });
+      $book.addEventListener("click",()=>{ if(!selected || !selected.targetUrl) return; doRedirect(selected.targetUrl); });
+      bootstrap();
+    </script>
+  </body>
+</html>`;
+  }
+
+  async function copyArtifactEmbedCode(artifactId: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setSearchBuilderCopiedArtifactId(artifactId);
+      setTimeout(() => setSearchBuilderCopiedArtifactId(""), 1300);
+    } catch {}
+  }
+
+  async function copyArtifactFileCode(artifactId: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setSearchBuilderCopiedFileArtifactId(artifactId);
+      setTimeout(() => setSearchBuilderCopiedFileArtifactId(""), 1300);
+    } catch {}
+  }
+
   const runCards = useMemo(() => {
     return activeRuns.map((r) => {
       const p = r.progress || null;
@@ -5866,6 +6236,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             onClick={() => jumpTo("runner")}
           >
             Run Center
+          </button>
+          <button
+            type="button"
+            className={`agencyNavItem ${activeProjectTab === "search_builder" ? "agencyNavItemActive" : ""}`}
+            onClick={() => jumpTo("search_builder")}
+          >
+            Search Builder
           </button>
           <button
             type="button"
@@ -7168,6 +7545,304 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </article>
               ))
             )}
+          </div>
+        </div>
+      </section>
+      ) : null}
+
+      {activeProjectTab === "search_builder" ? (
+      <section className="card" style={{ marginTop: 14 }} ref={searchBuilderRef}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Search Builder</h2>
+            <div className="cardSubtitle">
+              Configuracion por tenant guardada en DB. Genera y usa Search sin exponer codigo en pantalla.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            {searchBuilderMsg ? <span className="badge">{searchBuilderMsg}</span> : null}
+            {searchBuilderErr ? <span className="badge" style={{ color: "var(--danger)" }}>{searchBuilderErr}</span> : null}
+            <button type="button" className="smallBtn" disabled={searchBuilderSaving} onClick={() => void saveSearchBuilderSettings()}>
+              {searchBuilderSaving ? "Saving..." : "Save settings"}
+            </button>
+          </div>
+        </div>
+
+        <div className="cardBody">
+          <div className="row">
+            <div className="field">
+              <label>Company name</label>
+              <input
+                className="input"
+                value={searchBuilderCompanyName}
+                onChange={(e) => setSearchBuilderCompanyName(e.target.value)}
+                placeholder="My Drip Nurse"
+              />
+            </div>
+            <div className="field">
+              <label>CTA button text</label>
+              <input
+                className="input"
+                value={searchBuilderButtonText}
+                onChange={(e) => setSearchBuilderButtonText(e.target.value)}
+                placeholder="Book An Appointment"
+              />
+            </div>
+            <div className="field">
+              <label>Modal title</label>
+              <input
+                className="input"
+                value={searchBuilderModalTitle}
+                onChange={(e) => setSearchBuilderModalTitle(e.target.value)}
+                placeholder="My Drip Nurse Locations"
+              />
+            </div>
+            <div className="field">
+              <label>Search host</label>
+              <input
+                className="input"
+                value={searchBuilderHost}
+                onChange={(e) => setSearchBuilderHost(e.target.value)}
+                placeholder="sitemaps.mydripnurse.com"
+              />
+            </div>
+            <div className="field">
+              <label>Search folder</label>
+              <input
+                className="input"
+                value={searchBuilderFolder}
+                onChange={(e) => setSearchBuilderFolder(e.target.value)}
+                placeholder="my-drip-nurse-search"
+              />
+            </div>
+            <div className="field">
+              <label>Page slug</label>
+              <input
+                className="input"
+                value={searchBuilderPageSlug}
+                onChange={(e) => setSearchBuilderPageSlug(e.target.value)}
+                placeholder="mobile-iv-therapy-locations"
+              />
+            </div>
+            <div className="field">
+              <label>Query params</label>
+              <input
+                className="input"
+                value={searchBuilderQuery}
+                onChange={(e) => setSearchBuilderQuery(e.target.value)}
+                placeholder="embed=1"
+              />
+            </div>
+            <div className="field">
+              <label>Button color</label>
+              <input
+                className="input"
+                value={searchBuilderButtonColor}
+                onChange={(e) => setSearchBuilderButtonColor(e.target.value)}
+                placeholder="#044c5c"
+              />
+            </div>
+            <div className="field">
+              <label>Header color</label>
+              <input
+                className="input"
+                value={searchBuilderHeaderColor}
+                onChange={(e) => setSearchBuilderHeaderColor(e.target.value)}
+                placeholder="#a4d8e4"
+              />
+            </div>
+            <div className="field">
+              <label>Search title (inside search file)</label>
+              <input
+                className="input"
+                value={searchBuilderSearchTitle}
+                onChange={(e) => setSearchBuilderSearchTitle(e.target.value)}
+                placeholder="Choose your location"
+              />
+            </div>
+            <div className="field">
+              <label>Search subtitle (inside search file)</label>
+              <input
+                className="input"
+                value={searchBuilderSearchSubtitle}
+                onChange={(e) => setSearchBuilderSearchSubtitle(e.target.value)}
+                placeholder="Search by State, County/Parish, or City. Then click Book Now."
+              />
+            </div>
+            <div className="field">
+              <label>Search placeholder (inside search file)</label>
+              <input
+                className="input"
+                value={searchBuilderSearchPlaceholder}
+                onChange={(e) => setSearchBuilderSearchPlaceholder(e.target.value)}
+                placeholder="Choose your City, State, or Country"
+              />
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 8 }}>
+            <div className="field" style={{ flex: 1 }}>
+              <label>Service/Search file</label>
+              <select
+                className="select"
+                value={searchBuilderSelectedArtifactId}
+                onChange={(e) => setSearchBuilderSelectedArtifactId(e.target.value)}
+              >
+                {searchBuilderServiceArtifacts.map((artifact) => (
+                  <option key={artifact.id} value={artifact.id}>
+                    {artifact.name} ({artifact.fileName})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label>Generated iframe URL (selected)</label>
+              <input className="input" value={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc} readOnly />
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label>States index URL</label>
+              <input className="input" value={selectedSearchBuilderArtifact?.statesIndexUrl || ""} readOnly />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <div className="mini" style={{ marginBottom: 8 }}>
+              UI preview (colors + copy)
+            </div>
+            <div
+              style={{
+                width: "100%",
+                padding: 16,
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,.12)",
+                background: "rgba(0,0,0,.15)",
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "12px 22px",
+                  borderRadius: 999,
+                  fontWeight: 800,
+                  fontSize: 15,
+                  background: s(searchBuilderButtonColor) || "#044c5c",
+                  color: "#fff",
+                }}
+              >
+                {s(searchBuilderButtonText) || "Book Now"}
+              </div>
+              <div
+                style={{
+                  marginTop: 12,
+                  width: "100%",
+                  maxWidth: 780,
+                  height: 300,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  background: "#fff",
+                  boxShadow: "0 16px 40px rgba(0,0,0,.25)",
+                }}
+              >
+                <div
+                  style={{
+                    height: 56,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0 14px",
+                    background: s(searchBuilderHeaderColor) || "#a4d8e4",
+                    borderBottom: "1px solid rgba(0,0,0,.08)",
+                  }}
+                >
+                  <strong style={{ color: "#0b1b2a" }}>{s(searchBuilderModalTitle) || "Locations"}</strong>
+                  <span style={{ width: 34, height: 34, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(0,0,0,.12)", background: "#fff" }}>x</span>
+                </div>
+                <div style={{ height: "calc(100% - 56px)", padding: 12 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>{s(searchBuilderSearchTitle) || "Choose your location"}</div>
+                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>{s(searchBuilderSearchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now."}</div>
+                  <input
+                    readOnly
+                    value={s(searchBuilderSearchPlaceholder) || "Choose your City, State, or Country"}
+                    style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px", fontSize: 13 }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <div className="mini" style={{ marginBottom: 6 }}>
+              Search iframe preview (selected file)
+            </div>
+            <iframe
+              title="Search Builder Preview"
+              src={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc}
+              style={{
+                width: "100%",
+                height: 420,
+                border: "1px solid rgba(255,255,255,.12)",
+                borderRadius: 12,
+                background: "#fff",
+              }}
+            />
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <div className="mini" style={{ marginBottom: 8 }}>
+              Files + embeds por tenant ({searchBuilderServiceArtifacts.length})
+            </div>
+            <div className="tableWrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th className="th">Service</th>
+                    <th className="th">Search file</th>
+                    <th className="th">Booking path</th>
+                    <th className="th">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!searchBuilderServiceArtifacts.length ? (
+                    <tr>
+                      <td className="td" colSpan={4}>
+                        <span className="mini">No services. Add rows in Project Details - Products & Services.</span>
+                      </td>
+                    </tr>
+                  ) : (
+                    searchBuilderServiceArtifacts.map((artifact) => {
+                      const embedCode = buildEmbedCodeForArtifact(artifact);
+                      const fileCode = buildSearchFileCodeForArtifact(artifact);
+                      return (
+                        <tr key={artifact.id} className="tr">
+                          <td className="td">{artifact.name}</td>
+                          <td className="td">
+                            <code>{artifact.fileName}</code>
+                          </td>
+                          <td className="td">
+                            <code>{artifact.bookingPath}</code>
+                          </td>
+                          <td className="td" style={{ minWidth: 220 }}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <button type="button" className="smallBtn" onClick={() => void copyArtifactEmbedCode(artifact.id, embedCode)}>
+                                {searchBuilderCopiedArtifactId === artifact.id ? "Embed copied" : "Copy embed"}
+                              </button>
+                              <button type="button" className="smallBtn" onClick={() => void copyArtifactFileCode(artifact.id, fileCode)}>
+                                {searchBuilderCopiedFileArtifactId === artifact.id ? "File copied" : "Copy file"}
+                              </button>
+                              <button type="button" className="smallBtn" onClick={() => setSearchBuilderSelectedArtifactId(artifact.id)}>
+                                Use preview
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
