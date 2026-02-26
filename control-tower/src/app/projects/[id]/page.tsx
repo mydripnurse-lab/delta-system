@@ -837,6 +837,7 @@ export default function Home() {
   const [searchBuilderSearchTitle, setSearchBuilderSearchTitle] = useState("Choose your location");
   const [searchBuilderSearchSubtitle, setSearchBuilderSearchSubtitle] = useState("Search by State, County/Parish, or City. Then click Book Now.");
   const [searchBuilderSearchPlaceholder, setSearchBuilderSearchPlaceholder] = useState("Choose your City, State, or Country");
+  const [searchBuilderDefaultBookingPath, setSearchBuilderDefaultBookingPath] = useState("/");
   const [searchBuilderFontKey, setSearchBuilderFontKey] = useState("lato");
   const [searchBuilderButtonRadius, setSearchBuilderButtonRadius] = useState(999);
   const [searchBuilderButtonPaddingY, setSearchBuilderButtonPaddingY] = useState(12);
@@ -2191,6 +2192,7 @@ export default function Home() {
     setSearchBuilderSearchPlaceholder(
       s(project.searchPlaceholder) || "Choose your City, State, or Country",
     );
+    setSearchBuilderDefaultBookingPath(s(project.defaultBookingPath) || "/");
     setSearchBuilderFontKey(
       SEARCH_BUILDER_FONT_OPTIONS.some((f) => f.key === s(project.fontKey))
         ? s(project.fontKey)
@@ -2233,7 +2235,7 @@ export default function Home() {
       searchTitle: s(searchBuilderSearchTitle) || fallback.searchTitle,
       searchSubtitle: s(searchBuilderSearchSubtitle) || fallback.searchSubtitle,
       searchPlaceholder: s(searchBuilderSearchPlaceholder) || fallback.searchPlaceholder,
-      defaultBookingPath: "/",
+      defaultBookingPath: normalizeRelativePath(s(searchBuilderDefaultBookingPath) || fallback.defaultBookingPath || "/"),
       buttonPosition: searchBuilderButtonPosition,
       fontKey: s(searchBuilderFontKey) || fallback.fontKey,
       buttonRadius: Number(searchBuilderButtonRadius) || fallback.buttonRadius,
@@ -6176,7 +6178,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
     if (!activeServices.length) {
       const singleSlug = kebabToken(searchBuilderPageSlug) || "locations";
-      const singlePath = normalizeRelativePath("/") || "/";
+      const singlePath = normalizeRelativePath(searchBuilderDefaultBookingPath || "/") || "/";
       const iframeSrcBase = routeTenantId
         ? `https://${host}/embedded/${routeTenantId}/${folder}/${singleSlug}.html`
         : "";
@@ -6197,7 +6199,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const serviceId = s(svc.serviceId) || `service-${idx + 1}`;
       const fileSlug = fileSlugFromService(serviceId || s(svc.name));
       const fileName = `${fileSlug}.html`;
-      const bookingPath = normalizeRelativePath(s(svc.bookingPath) || "/");
+      const bookingPath = normalizeRelativePath(searchBuilderDefaultBookingPath || "/");
       const iframeSrcBase = routeTenantId
         ? `https://${host}/embedded/${routeTenantId}/${folder}/${fileSlug}.html`
         : "";
@@ -6213,7 +6215,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         statesIndexUrl,
       };
     });
-  }, [routeTenantId, searchBuilderActiveSearchId, searchBuilderFolder, searchBuilderHost, searchBuilderLastPublish, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
+  }, [routeTenantId, searchBuilderActiveSearchId, searchBuilderDefaultBookingPath, searchBuilderFolder, searchBuilderHost, searchBuilderLastPublish, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
 
   useEffect(() => {
     if (!searchBuilderServiceArtifacts.length) {
@@ -6391,7 +6393,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       function joinUrl(domain,p){ if(!domain) return ""; const d = domain.endsWith("/")?domain.slice(0,-1):domain; const path = p.startsWith("/")?p:"/"+p; return d + path; }
       async function fetchJson(url){ const r = await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("Fetch failed " + r.status + ": " + url); return r.json(); }
       async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const items = Array.isArray(data?.items) ? data.items : []; return { items }; }
-      function buildTarget(item){ const countyDomain = item?.countyDomain || ""; const cityDomain = item?.cityDomain || ""; const baseDomain = redirectMode === "city" ? (cityDomain || countyDomain) : (countyDomain || cityDomain); return joinUrl(baseDomain, bookPath); }
+      function buildTarget(item){ const countyDomain = item?.countyDomain || ""; const cityDomain = item?.cityDomain || ""; const baseDomain = countyDomain || cityDomain; return joinUrl(baseDomain, bookPath); }
       function mapIndexItem(item){ const label = String(item?.label || "").trim(); const search = String(item?.search || "").trim(); const targetUrl = buildTarget(item); if(!label || !search) return null; return { label, search, targetUrl }; }
       function renderList(items){ $list.innerHTML = ""; if(!items.length){ const div = document.createElement("div"); div.className="item"; div.innerHTML = '<div class="title">No results</div>'; $list.appendChild(div); return; } for(const it of items.slice(0,60)){ const row=document.createElement("div"); row.className="item"; row.innerHTML='<div class="title">'+it.label+'</div>'; row.addEventListener("click",()=>{ selected=it; $sel.textContent='Selected: '+it.label; $book.disabled=false; }); $list.appendChild(row);} }
       function filter(q){ const nq = normalizeText(q.trim()); if(!nq) return []; return flat.filter((x)=>x.search.includes(nq)); }
@@ -8639,6 +8641,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <div className="field">
                     <label>Search Placeholder</label>
                     <input className="input" value={searchBuilderSearchPlaceholder} onChange={(e) => setSearchBuilderSearchPlaceholder(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Book Now Path</label>
+                    <input
+                      className="input"
+                      value={searchBuilderDefaultBookingPath}
+                      onChange={(e) => setSearchBuilderDefaultBookingPath(e.target.value)}
+                      placeholder="/book-now"
+                    />
                   </div>
                   <div className="field">
                     <label>Google Font</label>

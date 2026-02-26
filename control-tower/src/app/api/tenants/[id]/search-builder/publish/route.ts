@@ -264,7 +264,7 @@ function buildSearchFileHtml(args: {
       function joinUrl(domain,p){ if(!domain) return ""; const d = domain.endsWith("/")?domain.slice(0,-1):domain; const path = p.startsWith("/")?p:"/"+p; return d + path; }
       async function fetchJson(url){ const r = await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("Fetch failed " + r.status + ": " + url); return r.json(); }
       async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const items = Array.isArray(data?.items) ? data.items : []; return { items }; }
-      function buildTarget(item){ const countyDomain = item?.countyDomain || ""; const cityDomain = item?.cityDomain || ""; const baseDomain = redirectMode === "city" ? (cityDomain || countyDomain) : (countyDomain || cityDomain); return joinUrl(baseDomain, bookPath); }
+      function buildTarget(item){ const countyDomain = item?.countyDomain || ""; const cityDomain = item?.cityDomain || ""; const baseDomain = countyDomain || cityDomain; return joinUrl(baseDomain, bookPath); }
       function mapIndexItem(item){ const label = String(item?.label || "").trim(); const search = String(item?.search || "").trim(); const targetUrl = buildTarget(item); if(!label || !search) return null; return { label, search, targetUrl }; }
       function renderList(items){ $list.innerHTML = ""; if(!items.length){ const div = document.createElement("div"); div.className="item"; div.innerHTML = '<div class="title">No results</div>'; $list.appendChild(div); return; } for(const it of items.slice(0,60)){ const row=document.createElement("div"); row.className="item"; row.innerHTML='<div class="title">'+it.label+'</div>'; row.addEventListener("click",()=>{ selected=it; $sel.textContent='Selected: '+it.label; $book.disabled=false; }); $list.appendChild(row);} }
       function filter(q){ const nq = normalizeText(q.trim()); if(!nq) return []; return flat.filter((x)=>x.search.includes(nq)); }
@@ -468,7 +468,7 @@ export async function POST(req: Request, ctx: Ctx) {
             id: svc.serviceId,
             name: svc.name,
             fileSlug: fileSlugFromService(svc.serviceId || svc.name),
-            bookingPath: normalizePath(svc.bookingPath || config.defaultBookingPath),
+            bookingPath: normalizePath(config.defaultBookingPath || "/"),
           }))
         : [
             {
