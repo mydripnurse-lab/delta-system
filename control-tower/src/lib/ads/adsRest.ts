@@ -101,6 +101,29 @@ function shouldRetryWithAnotherVersion(status: number, payload: unknown) {
     );
 }
 
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryDelayMs(payload: unknown) {
+    try {
+        const details = (payload as any)?.error?.details;
+        if (!Array.isArray(details) || !details.length) return 0;
+        const first = details[0];
+        const errors = first?.errors;
+        if (!Array.isArray(errors) || !errors.length) return 0;
+        const retryDelay = String(errors[0]?.details?.quotaErrorDetails?.retryDelay || "").trim();
+        const match = retryDelay.match(/^(\d+)(?:\.(\d+))?s$/i);
+        if (!match) return 0;
+        const sec = Number(match[1] || 0);
+        const frac = Number(`0.${match[2] || "0"}`);
+        const ms = Math.round((sec + frac) * 1000);
+        return Number.isFinite(ms) ? ms : 0;
+    } catch {
+        return 0;
+    }
+}
+
 /**
  * We normalize to `{ results: [...] }` so your joins stay consistent.
  */
@@ -206,6 +229,7 @@ export async function googleAdsGenerateKeywordIdeas(opts: {
 
     const versions = versionCandidates(opts.version);
     let lastErr = "";
+    const max429Retries = 4;
     for (const version of versions) {
         const endpoints = [
             // Canonical REST path for KeywordPlanIdeaService.
@@ -228,55 +252,66 @@ export async function googleAdsGenerateKeywordIdeas(opts: {
 
         let versionSucceeded = false;
         for (const endpoint of endpoints) {
-            const res = await fetch(endpoint, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    ...headersBase(
-                        tenantAccess.developerToken,
-                        opts.loginCustomerId || tenantAccess.loginCustomerId,
-                        false,
-                    ),
-                },
-                body: JSON.stringify(body),
-            });
+            for (let attempt = 0; attempt <= max429Retries; attempt += 1) {
+                const res = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        ...headersBase(
+                            tenantAccess.developerToken,
+                            opts.loginCustomerId || tenantAccess.loginCustomerId,
+                            false,
+                        ),
+                    },
+                    body: JSON.stringify(body),
+                });
 
-            const text = await res.text();
-            let json: any;
-            try {
-                json = text ? JSON.parse(text) : null;
-            } catch {
-                json = { raw: text };
-            }
-
-            if (res.ok) {
-                const rawResults = Array.isArray(json?.results)
-                    ? json.results
-                    : Array.isArray(json?.keywordIdeas)
-                        ? json.keywordIdeas
-                        : [];
-                const results: GoogleAdsKeywordIdea[] = rawResults.map((r: any) => {
-                    const m = (r?.keywordIdeaMetrics || r?.keyword_idea_metrics || {}) as Record<string, unknown>;
-                    return {
-                        text: s(r?.text || r?.keyword),
-                        avgMonthlySearches: Number(m.avgMonthlySearches || m.avg_monthly_searches || 0),
-                        competition: s(m.competition || "UNSPECIFIED"),
-                        competitionIndex: Number(m.competitionIndex || m.competition_index || 0),
-                        lowTopOfPageBidMicros: Number(m.lowTopOfPageBidMicros || m.low_top_of_page_bid_micros || 0),
-                        highTopOfPageBidMicros: Number(m.highTopOfPageBidMicros || m.high_top_of_page_bid_micros || 0),
-                    };
-                }).filter((x) => x.text);
-                return { results };
-            }
-
-            lastErr = `Google Ads Keyword Ideas ${version} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`;
-            if (res.status !== 404) {
-                if (!shouldRetryWithAnotherVersion(res.status, json)) {
-                    throw new Error(lastErr);
+                const text = await res.text();
+                let json: any;
+                try {
+                    json = text ? JSON.parse(text) : null;
+                } catch {
+                    json = { raw: text };
                 }
-                versionSucceeded = true;
-                break;
+
+                if (res.ok) {
+                    const rawResults = Array.isArray(json?.results)
+                        ? json.results
+                        : Array.isArray(json?.keywordIdeas)
+                            ? json.keywordIdeas
+                            : [];
+                    const results: GoogleAdsKeywordIdea[] = rawResults.map((r: any) => {
+                        const m = (r?.keywordIdeaMetrics || r?.keyword_idea_metrics || {}) as Record<string, unknown>;
+                        return {
+                            text: s(r?.text || r?.keyword),
+                            avgMonthlySearches: Number(m.avgMonthlySearches || m.avg_monthly_searches || 0),
+                            competition: s(m.competition || "UNSPECIFIED"),
+                            competitionIndex: Number(m.competitionIndex || m.competition_index || 0),
+                            lowTopOfPageBidMicros: Number(m.lowTopOfPageBidMicros || m.low_top_of_page_bid_micros || 0),
+                            highTopOfPageBidMicros: Number(m.highTopOfPageBidMicros || m.high_top_of_page_bid_micros || 0),
+                        };
+                    }).filter((x) => x.text);
+                    return { results };
+                }
+
+                lastErr = `Google Ads Keyword Ideas ${version} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`;
+
+                if (res.status === 429 && attempt < max429Retries) {
+                    const hinted = parseRetryDelayMs(json);
+                    const backoff = hinted > 0 ? hinted : (1000 * (attempt + 1) * (attempt + 1));
+                    await sleep(backoff);
+                    continue;
+                }
+
+                if (res.status !== 404) {
+                    if (!shouldRetryWithAnotherVersion(res.status, json)) {
+                        throw new Error(lastErr);
+                    }
+                    versionSucceeded = true;
+                    break;
+                }
             }
+            if (versionSucceeded) break;
         }
 
         if (!versionSucceeded && lastErr) {

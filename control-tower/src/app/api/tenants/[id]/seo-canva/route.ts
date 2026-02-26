@@ -74,6 +74,10 @@ function buildHowToSlug(keyword: string) {
   return slug ? `how-to-${slug}` : "how-to-guide";
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function titleFromStage(stage: AwarenessStage) {
   if (stage === "problem_aware") return "Problem Aware";
   if (stage === "solution_aware") return "Solution Aware";
@@ -247,129 +251,168 @@ export async function GET(req: Request, ctx: Ctx) {
       ...services.slice(0, 12).map((x) => x.name.split(" ").slice(0, 2).join(" ")),
     ]).map((x) => norm(x));
 
-    const serviceResults = await Promise.all(
-      services.map(async (svc) => {
-        const serviceName = s(svc.name);
-        const base = serviceName
-          .replace(/\bmobile\b/gi, "")
-          .replace(/\btherapy\b/gi, "")
-          .replace(/\s+/g, " ")
-          .trim();
-        const seeds = dedupeStrings([
-          serviceName,
-          base,
-          `${base} near me`,
-          `${base} cost`,
-          `${base} benefits`,
-        ]).slice(0, 5);
+    const serviceResults: Array<{
+      serviceId: string;
+      name: string;
+      landingPath: string;
+      seeds: string[];
+      ideas: Array<{
+        keyword: string;
+        stage: AwarenessStage;
+        stageLabel: string;
+        avgMonthlySearches: number;
+        competition: string;
+        competitionIndex: number;
+        lowTopBid: number;
+        highTopBid: number;
+      }>;
+      board: Array<{
+        stage: AwarenessStage;
+        stageLabel: string;
+        count: number;
+        topKeywords: Array<{
+          keyword: string;
+          stage: AwarenessStage;
+          stageLabel: string;
+          avgMonthlySearches: number;
+          competition: string;
+          competitionIndex: number;
+          lowTopBid: number;
+          highTopBid: number;
+        }>;
+      }>;
+      howToUrls: HowToUrlRow[];
+      error: string;
+    }> = [];
 
-        if (!seeds.length) {
-          return {
-            serviceId: svc.serviceId,
-            name: svc.name,
-            landingPath: svc.landingPath,
-            seeds: [],
-            ideas: [],
-            board: [],
-            error: "No valid seeds for this service.",
-          };
-        }
+    for (let idx = 0; idx < services.length; idx += 1) {
+      const svc = services[idx];
+      const serviceName = s(svc.name);
+      const base = serviceName
+        .replace(/\bmobile\b/gi, "")
+        .replace(/\btherapy\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      const seeds = dedupeStrings([
+        serviceName,
+        base,
+        `${base} near me`,
+        `${base} cost`,
+        `${base} benefits`,
+      ]).slice(0, 5);
 
-        try {
-          const planner = await googleAdsGenerateKeywordIdeas({
-            tenantId,
-            integrationKey,
-            keywords: seeds,
-            languageConstant,
-            geoTargetConstants: geoTargetConstants.length ? geoTargetConstants : ["geoTargetConstants/2840"],
-            pageSize: 120,
-          });
+      if (!seeds.length) {
+        serviceResults.push({
+          serviceId: svc.serviceId,
+          name: svc.name,
+          landingPath: svc.landingPath,
+          seeds: [],
+          ideas: [],
+          board: [],
+          howToUrls: [],
+          error: "No valid seeds for this service.",
+        });
+        continue;
+      }
 
-          const ideas = (planner.results || [])
-            .map((idea) => {
-              const keyword = s(idea.text);
-              const stage = classifyAwareness(keyword, brandHints);
-              return {
-                keyword,
-                stage,
-                stageLabel: titleFromStage(stage),
-                avgMonthlySearches: n(idea.avgMonthlySearches),
-                competition: s(idea.competition),
-                competitionIndex: n(idea.competitionIndex),
-                lowTopBid: n(idea.lowTopOfPageBidMicros) / 1_000_000,
-                highTopBid: n(idea.highTopOfPageBidMicros) / 1_000_000,
-              };
-            })
-            .filter((row) => row.keyword)
-            .sort((a, b) => b.avgMonthlySearches - a.avgMonthlySearches || b.competitionIndex - a.competitionIndex)
-            .slice(0, 80);
+      try {
+        const planner = await googleAdsGenerateKeywordIdeas({
+          tenantId,
+          integrationKey,
+          keywords: seeds,
+          languageConstant,
+          geoTargetConstants: geoTargetConstants.length ? geoTargetConstants : ["geoTargetConstants/2840"],
+          pageSize: 120,
+        });
 
-          const board = ([
-            "unaware",
-            "problem_aware",
-            "solution_aware",
-            "product_aware",
-            "most_aware",
-          ] as AwarenessStage[]).map((stage) => {
-            const rows = ideas.filter((idea) => idea.stage === stage);
+        const ideas = (planner.results || [])
+          .map((idea) => {
+            const keyword = s(idea.text);
+            const stage = classifyAwareness(keyword, brandHints);
             return {
+              keyword,
               stage,
               stageLabel: titleFromStage(stage),
-              count: rows.length,
-              topKeywords: rows.slice(0, 10),
+              avgMonthlySearches: n(idea.avgMonthlySearches),
+              competition: s(idea.competition),
+              competitionIndex: n(idea.competitionIndex),
+              lowTopBid: n(idea.lowTopOfPageBidMicros) / 1_000_000,
+              highTopBid: n(idea.highTopOfPageBidMicros) / 1_000_000,
             };
-          });
+          })
+          .filter((row) => row.keyword)
+          .sort((a, b) => b.avgMonthlySearches - a.avgMonthlySearches || b.competitionIndex - a.competitionIndex)
+          .slice(0, 80);
 
-          const howToCandidates = ideas
-            .filter(
-              (row) =>
-                row.stage === "solution_aware" ||
-                norm(row.keyword).includes("how to") ||
-                norm(row.keyword).includes("guide") ||
-                norm(row.keyword).includes("checklist"),
-            )
-            .sort((a, b) => b.avgMonthlySearches - a.avgMonthlySearches)
-            .slice(0, 15);
-
-          const howToUrls: HowToUrlRow[] = howToCandidates.map((row) => {
-            const urlPath = `/learn/${buildHowToSlug(row.keyword)}/`;
-            const traffic = Math.max(0, Math.round(row.avgMonthlySearches * 0.22));
-            const bidMid = (row.lowTopBid + row.highTopBid) / 2;
-            const value = Math.max(0, Math.round(traffic * Math.max(0.2, bidMid)));
-            const keywords = Math.max(1, Math.round((row.competitionIndex || 0) / 12) + 1);
-            return {
-              url: `${rootDomain || "https://example.com"}${urlPath}`,
-              traffic,
-              value,
-              keywords,
-              topKeyword: row.keyword,
-            };
-          });
-
+        const board = ([
+          "unaware",
+          "problem_aware",
+          "solution_aware",
+          "product_aware",
+          "most_aware",
+        ] as AwarenessStage[]).map((stage) => {
+          const rows = ideas.filter((idea) => idea.stage === stage);
           return {
-            serviceId: svc.serviceId,
-            name: svc.name,
-            landingPath: svc.landingPath,
-            seeds,
-            ideas,
-            board,
-            howToUrls,
-            error: "",
+            stage,
+            stageLabel: titleFromStage(stage),
+            count: rows.length,
+            topKeywords: rows.slice(0, 10),
           };
-        } catch (error: unknown) {
+        });
+
+        const howToCandidates = ideas
+          .filter(
+            (row) =>
+              row.stage === "solution_aware" ||
+              norm(row.keyword).includes("how to") ||
+              norm(row.keyword).includes("guide") ||
+              norm(row.keyword).includes("checklist"),
+          )
+          .sort((a, b) => b.avgMonthlySearches - a.avgMonthlySearches)
+          .slice(0, 15);
+
+        const howToUrls: HowToUrlRow[] = howToCandidates.map((row) => {
+          const urlPath = `/learn/${buildHowToSlug(row.keyword)}/`;
+          const traffic = Math.max(0, Math.round(row.avgMonthlySearches * 0.22));
+          const bidMid = (row.lowTopBid + row.highTopBid) / 2;
+          const value = Math.max(0, Math.round(traffic * Math.max(0.2, bidMid)));
+          const keywords = Math.max(1, Math.round((row.competitionIndex || 0) / 12) + 1);
           return {
-            serviceId: svc.serviceId,
-            name: svc.name,
-            landingPath: svc.landingPath,
-            seeds,
-            ideas: [],
-            board: [],
-            howToUrls: [],
-            error: error instanceof Error ? error.message : "Keyword Planner error",
+            url: `${rootDomain || "https://example.com"}${urlPath}`,
+            traffic,
+            value,
+            keywords,
+            topKeyword: row.keyword,
           };
-        }
-      }),
-    );
+        });
+
+        serviceResults.push({
+          serviceId: svc.serviceId,
+          name: svc.name,
+          landingPath: svc.landingPath,
+          seeds,
+          ideas,
+          board,
+          howToUrls,
+          error: "",
+        });
+      } catch (error: unknown) {
+        serviceResults.push({
+          serviceId: svc.serviceId,
+          name: svc.name,
+          landingPath: svc.landingPath,
+          seeds,
+          ideas: [],
+          board: [],
+          howToUrls: [],
+          error: error instanceof Error ? error.message : "Keyword Planner error",
+        });
+      }
+
+      if (idx < services.length - 1) {
+        await sleep(250);
+      }
+    }
 
     const allIdeas = serviceResults.flatMap((result) => result.ideas || []);
     const boardSummary = ([
