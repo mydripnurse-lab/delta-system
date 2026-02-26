@@ -8,9 +8,9 @@ type Ctx = { params: Promise<{ id: string }> };
 
 const PROVIDER = "custom";
 const SEARCH_SCOPE = "module";
-const SEARCH_MODULE = "search_builder";
-const SEARCH_KEY_NAME = "config_v1";
-const SEARCH_PUBLISH_KEY_NAME = "publish_manifest_v1";
+const SEARCHES_MODULE = "search_builder_searches";
+const SEARCH_PUBLISH_MODULE = "search_builder_searches_publish";
+const SEARCH_INDEXES_MODULE = "search_builder_indexes";
 const SEARCH_FILES_MODULE = "search_builder_files";
 const SERVICES_MODULE = "products_services";
 const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
@@ -57,6 +57,8 @@ function normalizeColor(input: unknown, fallback: string) {
 
 function normalizeSearchBuilderConfig(input: Record<string, unknown> | null | undefined) {
   return {
+    id: s(input?.id),
+    name: s(input?.name) || "Untitled Search",
     companyName: s(input?.companyName),
     buttonText: s(input?.buttonText) || "Book An Appointment",
     modalTitle: s(input?.modalTitle) || "Locations",
@@ -88,6 +90,8 @@ type ParsedService = {
 
 type PublishManifest = {
   tenantId: string;
+  searchId: string;
+  searchName: string;
   folder: string;
   host: string;
   statesIndexUrl: string;
@@ -191,7 +195,7 @@ function buildSearchFileHtml(args: {
       function joinUrl(domain,p){ if(!domain) return ""; const d = domain.endsWith("/")?domain.slice(0,-1):domain; const path = p.startsWith("/")?p:"/"+p; return d + path; }
       async function fetchJson(url){ const r = await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("Fetch failed " + r.status + ": " + url); return r.json(); }
       async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const arr = Array.isArray(data)?data:(data.states||[]); return { states: arr }; }
-      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const tenantMatch = STATES_INDEX_URL.match(/\\/public\\/json\\/tenants\\/([^/]+)\\/states-index\\.json/i); const fallbackBase = tenantMatch ? STATES_INDEX_URL.replace(tenantMatch[0], "/resources/tenants/" + tenantMatch[1] + "/statesFiles/") : STATES_INDEX_URL.replace("/public/json/states-index.json", "/resources/statesFiles/"); const stateFileUrl = meta?.stateFileUrl || meta?.url || (fallbackBase + slug + ".json"); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
+      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const stateFileUrl = meta?.stateFileUrl || meta?.url; if(!stateFileUrl) throw new Error("Missing state file URL for " + slug); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
       function flattenState(stateJson){ const items = stateJson.items || stateJson.counties || []; const stateName = stateJson.stateName || stateJson.name || ""; const out = []; for(const c of items){ const countyName = c.countyName || c.parishName || ""; const countyDomain = c.countyDomain || c.parishDomain || ""; const cities = c.cities || []; for(const city of cities){ const cityName = city.cityName || ""; const cityDomain = city.cityDomain || ""; if(!cityName || !cityDomain) continue; const baseDomain = redirectMode === "city" ? cityDomain : countyDomain || cityDomain; const suffix = countyName ? " (" + countyName + ")" : ""; out.push({ label: cityName + ", " + stateName + suffix, search: normalizeText(cityName + " " + countyName + " " + stateName), targetUrl: joinUrl(baseDomain, bookPath) }); } } return out; }
       function renderList(items){ $list.innerHTML = ""; if(!items.length){ const div = document.createElement("div"); div.className="item"; div.innerHTML = '<div class="title">No results</div>'; $list.appendChild(div); return; } for(const it of items.slice(0,60)){ const row=document.createElement("div"); row.className="item"; row.innerHTML='<div class="title">'+it.label+'</div>'; row.addEventListener("click",()=>{ selected=it; $sel.textContent='Selected: '+it.label; $book.disabled=false; }); $list.appendChild(row);} }
       function filter(q){ const nq = normalizeText(q.trim()); if(!nq) return []; return flat.filter((x)=>x.search.includes(nq)); }
@@ -212,7 +216,7 @@ async function tenantExists(tenantId: string) {
   return !!q.rows[0];
 }
 
-async function readPublishedManifestFromDb(tenantId: string): Promise<PublishManifest | null> {
+async function readPublishedManifestFromDb(tenantId: string, searchId: string): Promise<PublishManifest | null> {
   const pool = getDbPool();
   const q = await pool.query<{ key_value: string | null }>(
     `
@@ -225,7 +229,7 @@ async function readPublishedManifestFromDb(tenantId: string): Promise<PublishMan
         and key_name = $5
       limit 1
     `,
-    [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_MODULE, SEARCH_PUBLISH_KEY_NAME],
+    [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_PUBLISH_MODULE, searchId],
   );
   const raw = s(q.rows[0]?.key_value);
   if (!raw) return null;
@@ -238,7 +242,7 @@ async function readPublishedManifestFromDb(tenantId: string): Promise<PublishMan
   }
 }
 
-async function writePublishedManifestToDb(tenantId: string, manifest: PublishManifest) {
+async function writePublishedManifestToDb(tenantId: string, searchId: string, manifest: PublishManifest) {
   const pool = getDbPool();
   await pool.query(
     `
@@ -258,7 +262,7 @@ async function writePublishedManifestToDb(tenantId: string, manifest: PublishMan
         description = excluded.description,
         updated_at = now()
     `,
-    [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_MODULE, SEARCH_PUBLISH_KEY_NAME, JSON.stringify(manifest)],
+    [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_PUBLISH_MODULE, searchId, JSON.stringify(manifest)],
   );
 }
 
@@ -304,7 +308,11 @@ export async function GET(req: Request, ctx: Ctx) {
   }
 
   try {
-    const manifest = await readPublishedManifestFromDb(tenantId);
+    const searchId = kebabToken(new URL(req.url).searchParams.get("searchId") || "");
+    if (!searchId) {
+      return NextResponse.json({ ok: false, error: "Missing searchId" }, { status: 400 });
+    }
+    const manifest = await readPublishedManifestFromDb(tenantId, searchId);
     return NextResponse.json({ ok: true, exists: !!manifest, manifest });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to read published files";
@@ -325,6 +333,12 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   try {
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const searchId = kebabToken(s(body.searchId));
+    if (!searchId) {
+      return NextResponse.json({ ok: false, error: "Missing searchId" }, { status: 400 });
+    }
+
     const pool = getDbPool();
     const cfgQ = await pool.query<{ key_value: string | null }>(
       `
@@ -335,13 +349,14 @@ export async function POST(req: Request, ctx: Ctx) {
           and scope = $3
           and module = $4
           and key_name = $5
+          and is_active = true
         limit 1
       `,
-      [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_MODULE, SEARCH_KEY_NAME],
+      [tenantId, PROVIDER, SEARCH_SCOPE, SEARCHES_MODULE, searchId],
     );
     if (!cfgQ.rows[0]) {
       return NextResponse.json(
-        { ok: false, error: "No Search Builder settings found. Save settings first." },
+        { ok: false, error: "No Search config found. Save this search first." },
         { status: 400 },
       );
     }
@@ -352,7 +367,7 @@ export async function POST(req: Request, ctx: Ctx) {
     } catch {
       parsedConfig = {};
     }
-    const config = normalizeSearchBuilderConfig(parsedConfig);
+    const config = normalizeSearchBuilderConfig({ ...parsedConfig, id: searchId });
 
     const svcQ = await pool.query<ServiceRow>(
       `
@@ -372,9 +387,10 @@ export async function POST(req: Request, ctx: Ctx) {
       .map((row) => parseServiceRow(row))
       .filter((x): x is ParsedService => Boolean(x));
 
-    const folder = kebabToken(config.folder) || "company-search";
+    const rawFolder = kebabToken(config.folder) || "company-search";
+    const folder = `${searchId}-${rawFolder}`.slice(0, 120);
     const host = s(config.host) || SEARCH_EMBEDDED_HOST;
-    const statesIndexUrl = `https://${host}/public/json/tenants/${tenantId}/states-index.json`;
+    const statesIndexUrl = `https://${host}/embedded/index/${tenantId}/${searchId}.json`;
 
     const artifacts =
       parsedServices.length > 0
@@ -425,6 +441,8 @@ export async function POST(req: Request, ctx: Ctx) {
 
     const manifest: PublishManifest = {
       tenantId,
+      searchId,
+      searchName: config.name,
       folder,
       host,
       statesIndexUrl,
@@ -433,10 +451,44 @@ export async function POST(req: Request, ctx: Ctx) {
       files: written,
     };
 
-    await writePublishedManifestToDb(tenantId, manifest);
+    await writePublishedManifestToDb(tenantId, searchId, manifest);
+
+    // keep lightweight pointer of latest index generation for this search
+    await pool.query(
+      `
+        insert into app.organization_custom_values (
+          organization_id, provider, scope, module, key_name,
+          key_value, value_type, is_secret, is_active, description
+        ) values (
+          $1::uuid, $2, $3, $4, $5,
+          $6, 'json', false, true, 'Search Builder index pointer'
+        )
+        on conflict (organization_id, provider, scope, module, key_name)
+        do update set
+          key_value = excluded.key_value,
+          value_type = excluded.value_type,
+          is_secret = excluded.is_secret,
+          is_active = excluded.is_active,
+          description = excluded.description,
+          updated_at = now()
+      `,
+      [
+        tenantId,
+        PROVIDER,
+        SEARCH_SCOPE,
+        SEARCH_INDEXES_MODULE,
+        searchId,
+        JSON.stringify({
+          searchId,
+          generatedAt: new Date().toISOString(),
+          url: statesIndexUrl,
+        }),
+      ],
+    );
 
     return NextResponse.json({
       ok: true,
+      searchId,
       folder,
       generated: written.length,
       files: written,

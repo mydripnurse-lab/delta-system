@@ -97,6 +97,36 @@ type TenantProductServiceRow = {
   isActive: boolean;
 };
 
+type SearchBuilderProject = {
+  id: string;
+  name: string;
+  companyName: string;
+  buttonText: string;
+  modalTitle: string;
+  host: string;
+  folder: string;
+  pageSlug: string;
+  query: string;
+  buttonColor: string;
+  headerColor: string;
+  searchTitle: string;
+  searchSubtitle: string;
+  searchPlaceholder: string;
+  defaultBookingPath: string;
+  buttonPosition: "left" | "center" | "right";
+  updatedAt?: string;
+};
+
+type SearchBuilderManifest = {
+  searchId: string;
+  searchName?: string;
+  folder: string;
+  host: string;
+  generatedAt: string;
+  count: number;
+  files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
+};
+
 type SeoCanvaIdeaRow = {
   keyword: string;
   stage: "unaware" | "problem_aware" | "solution_aware" | "product_aware" | "most_aware";
@@ -775,28 +805,29 @@ export default function Home() {
   const [searchBuilderPageSlug, setSearchBuilderPageSlug] = useState("mobile-iv-therapy-locations");
   const [searchBuilderQuery, setSearchBuilderQuery] = useState("embed=1");
   const [searchBuilderIndexState, setSearchBuilderIndexState] = useState("all");
+  const [searchBuilderButtonPosition, setSearchBuilderButtonPosition] = useState<"left" | "center" | "right">("center");
   const [searchBuilderButtonColor, setSearchBuilderButtonColor] = useState("#044c5c");
   const [searchBuilderHeaderColor, setSearchBuilderHeaderColor] = useState("#a4d8e4");
   const [searchBuilderSearchTitle, setSearchBuilderSearchTitle] = useState("Choose your location");
   const [searchBuilderSearchSubtitle, setSearchBuilderSearchSubtitle] = useState("Search by State, County/Parish, or City. Then click Book Now.");
   const [searchBuilderSearchPlaceholder, setSearchBuilderSearchPlaceholder] = useState("Choose your City, State, or Country");
+  const [searchBuilderProjects, setSearchBuilderProjects] = useState<SearchBuilderProject[]>([]);
+  const [searchBuilderProjectsLoading, setSearchBuilderProjectsLoading] = useState(false);
+  const [searchBuilderActiveSearchId, setSearchBuilderActiveSearchId] = useState("");
+  const [searchBuilderEditorOpen, setSearchBuilderEditorOpen] = useState(false);
+  const [searchBuilderCreating, setSearchBuilderCreating] = useState(false);
+  const [searchBuilderDeletingId, setSearchBuilderDeletingId] = useState("");
+  const [searchBuilderName, setSearchBuilderName] = useState("");
   const [searchBuilderSelectedArtifactId, setSearchBuilderSelectedArtifactId] = useState("");
   const [searchBuilderSaving, setSearchBuilderSaving] = useState(false);
   const [searchBuilderPublishing, setSearchBuilderPublishing] = useState(false);
   const [searchBuilderMsg, setSearchBuilderMsg] = useState("");
   const [searchBuilderErr, setSearchBuilderErr] = useState("");
-  const [searchBuilderLastPublish, setSearchBuilderLastPublish] = useState<{
-    folder: string;
-    host: string;
-    generatedAt: string;
-    count: number;
-    files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
-  } | null>(null);
+  const [searchBuilderLastPublish, setSearchBuilderLastPublish] = useState<SearchBuilderManifest | null>(null);
   const [searchBuilderShowEmbedPreview, setSearchBuilderShowEmbedPreview] = useState(false);
   const [searchBuilderCopiedArtifactId, setSearchBuilderCopiedArtifactId] = useState("");
   const [searchBuilderCopiedFileArtifactId, setSearchBuilderCopiedFileArtifactId] = useState("");
   const [searchBuilderCopiedFolderPath, setSearchBuilderCopiedFolderPath] = useState(false);
-  const searchBuilderHydratedTenantRef = useRef("");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -2066,81 +2097,200 @@ export default function Home() {
     }
   }, [searchParams, activeProjectTab]);
 
+  function newSearchBuilderDraft() {
+    const companyName = s(tenantName) || "My Company";
+    const folderBase = kebabToken(tenantSlug) || kebabToken(companyName) || "company";
+    return {
+      name: `${companyName} Search`,
+      companyName,
+      buttonText: "Book An Appointment",
+      modalTitle: `${companyName} Locations`,
+      host: SEARCH_EMBEDDED_HOST,
+      folder: `${folderBase}-search`,
+      pageSlug: "mobile-iv-therapy-locations",
+      query: "embed=1",
+      buttonColor: "#044c5c",
+      headerColor: "#a4d8e4",
+      searchTitle: "Choose your location",
+      searchSubtitle: "Search by State, County/Parish, or City. Then click Book Now.",
+      searchPlaceholder: "Choose your City, State, or Country",
+      defaultBookingPath: "/",
+      buttonPosition: "center" as const,
+    };
+  }
+
+  function applySearchBuilderProject(project: SearchBuilderProject | null) {
+    if (!project) return;
+    setSearchBuilderActiveSearchId(s(project.id));
+    setSearchBuilderName(s(project.name) || "Untitled Search");
+    setSearchBuilderCompanyName(s(project.companyName));
+    setSearchBuilderButtonText(s(project.buttonText) || "Book An Appointment");
+    setSearchBuilderModalTitle(s(project.modalTitle) || "Locations");
+    setSearchBuilderHost(SEARCH_EMBEDDED_HOST);
+    setSearchBuilderFolder(s(project.folder) || "company-search");
+    setSearchBuilderPageSlug(s(project.pageSlug) || "mobile-iv-therapy-locations");
+    setSearchBuilderQuery(s(project.query) || "embed=1");
+    setSearchBuilderButtonColor(s(project.buttonColor) || "#044c5c");
+    setSearchBuilderHeaderColor(s(project.headerColor) || "#a4d8e4");
+    setSearchBuilderSearchTitle(s(project.searchTitle) || "Choose your location");
+    setSearchBuilderSearchSubtitle(
+      s(project.searchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now.",
+    );
+    setSearchBuilderSearchPlaceholder(
+      s(project.searchPlaceholder) || "Choose your City, State, or Country",
+    );
+    setSearchBuilderButtonPosition(
+      s(project.buttonPosition) === "left" || s(project.buttonPosition) === "right"
+        ? (s(project.buttonPosition) as "left" | "right")
+        : "center",
+    );
+  }
+
+  function collectSearchBuilderPayload(searchId: string) {
+    const fallback = newSearchBuilderDraft();
+    return {
+      searchId,
+      id: searchId,
+      name: s(searchBuilderName) || `${s(searchBuilderCompanyName) || fallback.companyName} Search`,
+      companyName: s(searchBuilderCompanyName) || fallback.companyName,
+      buttonText: s(searchBuilderButtonText) || fallback.buttonText,
+      modalTitle: s(searchBuilderModalTitle) || fallback.modalTitle,
+      host: SEARCH_EMBEDDED_HOST,
+      folder: s(searchBuilderFolder) || fallback.folder,
+      pageSlug: s(searchBuilderPageSlug) || fallback.pageSlug,
+      query: s(searchBuilderQuery) || fallback.query,
+      buttonColor: s(searchBuilderButtonColor) || fallback.buttonColor,
+      headerColor: s(searchBuilderHeaderColor) || fallback.headerColor,
+      searchTitle: s(searchBuilderSearchTitle) || fallback.searchTitle,
+      searchSubtitle: s(searchBuilderSearchSubtitle) || fallback.searchSubtitle,
+      searchPlaceholder: s(searchBuilderSearchPlaceholder) || fallback.searchPlaceholder,
+      defaultBookingPath: "/",
+      buttonPosition: searchBuilderButtonPosition,
+    };
+  }
+
+  async function loadSearchBuilderProjects(opts?: { selectSearchId?: string; openEditor?: boolean }) {
+    if (!routeTenantId) return;
+    setSearchBuilderProjectsLoading(true);
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/searches`, {
+        cache: "no-store",
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      const rows = Array.isArray(data?.searches) ? (data.searches as SearchBuilderProject[]) : [];
+      setSearchBuilderProjects(rows);
+      const preferred = s(opts?.selectSearchId || searchBuilderActiveSearchId);
+      const picked =
+        rows.find((r) => s(r.id) === preferred) ||
+        rows[0] ||
+        null;
+      if (picked) {
+        applySearchBuilderProject(picked);
+        setSearchBuilderEditorOpen(opts?.openEditor === true || searchBuilderEditorOpen);
+      } else {
+        setSearchBuilderActiveSearchId("");
+        setSearchBuilderName("");
+        setSearchBuilderEditorOpen(false);
+        setSearchBuilderLastPublish(null);
+      }
+      setSearchBuilderErr("");
+    } catch (e: unknown) {
+      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to load searches.");
+      setSearchBuilderProjects([]);
+      setSearchBuilderLastPublish(null);
+    } finally {
+      setSearchBuilderProjectsLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!routeTenantId) return;
-    if (s(tenantSummary?.id) !== routeTenantId) return;
-    if (!s(tenantName) && !s(tenantSlug) && !s(tenantRootDomain)) return;
-    if (searchBuilderHydratedTenantRef.current === routeTenantId) return;
+    void loadSearchBuilderProjects();
+  }, [routeTenantId]);
 
-    const folderBase = kebabToken(tenantSlug) || kebabToken(tenantName) || "company";
+  useEffect(() => {
+    if (!routeTenantId || !searchBuilderActiveSearchId) {
+      setSearchBuilderLastPublish(null);
+      return;
+    }
+    void loadLastPublishedSearchBuilderFiles(searchBuilderActiveSearchId);
+  }, [routeTenantId, searchBuilderActiveSearchId]);
 
-    setSearchBuilderCompanyName(s(tenantName) || "My Company");
-    setSearchBuilderModalTitle(`${s(tenantName) || "My Company"} Locations`);
-    setSearchBuilderHost(SEARCH_EMBEDDED_HOST);
-    setSearchBuilderFolder(`${folderBase}-search`);
-    setSearchBuilderPageSlug("mobile-iv-therapy-locations");
-    setSearchBuilderQuery("embed=1");
-    setSearchBuilderIndexState("all");
-    setSearchBuilderSearchTitle("Choose your location");
-    setSearchBuilderSearchSubtitle("Search by State, County/Parish, or City. Then click Book Now.");
-    setSearchBuilderSearchPlaceholder("Choose your City, State, or Country");
+  async function createNewSearchBuilder() {
+    if (!routeTenantId) return;
+    setSearchBuilderCreating(true);
+    setSearchBuilderErr("");
+    setSearchBuilderMsg("");
+    try {
+      const payload = newSearchBuilderDraft();
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/searches`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok || !data?.search?.id) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      const newId = s(data.search.id);
+      setSearchBuilderMsg("Search created.");
+      setSearchBuilderEditorOpen(true);
+      await loadSearchBuilderProjects({ selectSearchId: newId, openEditor: true });
+    } catch (e: unknown) {
+      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to create search.");
+    } finally {
+      setSearchBuilderCreating(false);
+    }
+  }
+
+  async function deleteSearchBuilderProject(searchId: string) {
+    if (!routeTenantId) return;
+    const id = s(searchId);
+    if (!id) return;
+    setSearchBuilderDeletingId(id);
+    setSearchBuilderErr("");
+    setSearchBuilderMsg("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/searches?searchId=${encodeURIComponent(id)}`,
+        { method: "DELETE" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      setSearchBuilderMsg("Search deleted.");
+      if (searchBuilderActiveSearchId === id) {
+        setSearchBuilderEditorOpen(false);
+        setSearchBuilderActiveSearchId("");
+      }
+      await loadSearchBuilderProjects();
+    } catch (e: unknown) {
+      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to delete search.");
+    } finally {
+      setSearchBuilderDeletingId("");
+    }
+  }
+
+  function openSearchBuilderEditor(searchId: string) {
+    const picked = searchBuilderProjects.find((p) => s(p.id) === s(searchId)) || null;
+    if (!picked) return;
+    applySearchBuilderProject(picked);
+    setSearchBuilderEditorOpen(true);
     setSearchBuilderMsg("");
     setSearchBuilderErr("");
-    searchBuilderHydratedTenantRef.current = routeTenantId;
-  }, [routeTenantId, tenantSummary?.id, tenantName, tenantSlug, tenantRootDomain]);
-
-  useEffect(() => {
-    if (!routeTenantId) return;
-    let cancelled = false;
-    async function loadSearchBuilderSettings() {
-      try {
-        setSearchBuilderErr("");
-        const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder`, {
-          cache: "no-store",
-        });
-        const data = await safeJson(res);
-        if (cancelled) return;
-        if (!res.ok || !data?.ok) {
-          throw new Error(s(data?.error) || `HTTP ${res.status}`);
-        }
-        const payload = (data?.payload || null) as Record<string, unknown> | null;
-        if (!payload) return;
-        setSearchBuilderCompanyName(s(payload.companyName));
-        setSearchBuilderButtonText(s(payload.buttonText) || "Book An Appointment");
-        setSearchBuilderModalTitle(s(payload.modalTitle) || "Locations");
-        setSearchBuilderHost(SEARCH_EMBEDDED_HOST);
-        setSearchBuilderFolder(s(payload.folder) || "company-search");
-        setSearchBuilderPageSlug(s(payload.pageSlug) || "mobile-iv-therapy-locations");
-        setSearchBuilderQuery(s(payload.query) || "embed=1");
-        setSearchBuilderButtonColor(s(payload.buttonColor) || "#044c5c");
-        setSearchBuilderHeaderColor(s(payload.headerColor) || "#a4d8e4");
-        setSearchBuilderSearchTitle(s(payload.searchTitle) || "Choose your location");
-        setSearchBuilderSearchSubtitle(
-          s(payload.searchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now.",
-        );
-        setSearchBuilderSearchPlaceholder(
-          s(payload.searchPlaceholder) || "Choose your City, State, or Country",
-        );
-        setSearchBuilderMsg(data?.exists === true ? "Search Builder settings loaded from DB." : "");
-      } catch (e: unknown) {
-        if (!cancelled) {
-          setSearchBuilderErr(e instanceof Error ? e.message : "Failed to load Search Builder settings.");
-        }
-      }
-    }
-    void loadSearchBuilderSettings();
-    return () => {
-      cancelled = true;
-    };
-  }, [routeTenantId]);
-
-  useEffect(() => {
-    if (!routeTenantId) return;
-    void loadLastPublishedSearchBuilderFiles();
-  }, [routeTenantId]);
+  }
 
   async function saveSearchBuilderSettings(opts?: { silent?: boolean }) {
-    if (!routeTenantId) return;
+    if (!routeTenantId) return false;
+    const searchId = s(searchBuilderActiveSearchId);
+    if (!searchId) {
+      setSearchBuilderErr("Select a search first.");
+      return false;
+    }
     const silent = opts?.silent === true;
     setSearchBuilderSaving(true);
     if (!silent) {
@@ -2148,32 +2298,20 @@ export default function Home() {
       setSearchBuilderMsg("");
     }
     try {
-      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder`, {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/searches`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: s(searchBuilderCompanyName),
-          buttonText: s(searchBuilderButtonText),
-          modalTitle: s(searchBuilderModalTitle),
-          host: s(searchBuilderHost),
-          folder: s(searchBuilderFolder),
-          pageSlug: s(searchBuilderPageSlug),
-          query: s(searchBuilderQuery),
-          buttonColor: s(searchBuilderButtonColor),
-          headerColor: s(searchBuilderHeaderColor),
-          searchTitle: s(searchBuilderSearchTitle),
-          searchSubtitle: s(searchBuilderSearchSubtitle),
-          searchPlaceholder: s(searchBuilderSearchPlaceholder),
-        }),
+        body: JSON.stringify(collectSearchBuilderPayload(searchId)),
       });
       const data = await safeJson(res);
       if (!res.ok || !data?.ok) {
         throw new Error(s(data?.error) || `HTTP ${res.status}`);
       }
-      if (!silent) setSearchBuilderMsg("Search Builder settings saved in DB.");
+      await loadSearchBuilderProjects({ selectSearchId: searchId, openEditor: true });
+      if (!silent) setSearchBuilderMsg("Search saved in DB.");
       return true;
     } catch (e: unknown) {
-      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to save Search Builder settings.");
+      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to save search.");
       return false;
     } finally {
       setSearchBuilderSaving(false);
@@ -2182,6 +2320,11 @@ export default function Home() {
 
   async function publishSearchBuilderFiles() {
     if (!routeTenantId) return;
+    const searchId = s(searchBuilderActiveSearchId);
+    if (!searchId) {
+      setSearchBuilderErr("Select a search first.");
+      return;
+    }
     const saved = await saveSearchBuilderSettings({ silent: true });
     if (!saved) return;
     setSearchBuilderPublishing(true);
@@ -2190,34 +2333,26 @@ export default function Home() {
       const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/publish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ searchId }),
       });
       const data = await safeJson(res);
       if (!res.ok || !data?.ok) {
         throw new Error(s(data?.error) || `HTTP ${res.status}`);
       }
-      const manifest = (data?.manifest || null) as
-        | {
-            folder?: string;
-            host?: string;
-            generatedAt?: string;
-            count?: number;
-            files?: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
-          }
-        | null;
+      const manifest = (data?.manifest || null) as SearchBuilderManifest | null;
       const total = Number(data?.generated || manifest?.count || 0);
-      const folder = s(data?.folder || manifest?.folder);
-      setSearchBuilderMsg(`Published ${total} files and saved manifest in DB.`);
-      setSearchBuilderLastPublish({
-        folder,
-        host: s(manifest?.host) || SEARCH_EMBEDDED_HOST,
-        generatedAt: s(manifest?.generatedAt) || new Date().toISOString(),
-        count: total,
-        files: Array.isArray(manifest?.files)
-          ? (manifest.files as Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>)
-          : Array.isArray(data?.files)
-            ? (data.files as Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>)
-            : [],
-      });
+      setSearchBuilderMsg(`Published ${total} files for this search.`);
+      if (manifest) {
+        setSearchBuilderLastPublish({
+          searchId,
+          searchName: s(manifest.searchName),
+          folder: s(manifest.folder),
+          host: s(manifest.host) || SEARCH_EMBEDDED_HOST,
+          generatedAt: s(manifest.generatedAt) || new Date().toISOString(),
+          count: total,
+          files: Array.isArray(manifest.files) ? manifest.files : [],
+        });
+      }
     } catch (e: unknown) {
       setSearchBuilderErr(e instanceof Error ? e.message : "Failed to publish search files.");
     } finally {
@@ -2225,30 +2360,30 @@ export default function Home() {
     }
   }
 
-  async function loadLastPublishedSearchBuilderFiles() {
+  async function loadLastPublishedSearchBuilderFiles(searchIdInput?: string) {
     if (!routeTenantId) return;
+    const searchId = s(searchIdInput || searchBuilderActiveSearchId);
+    if (!searchId) {
+      setSearchBuilderLastPublish(null);
+      return;
+    }
     try {
-      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/publish`, {
-        cache: "no-store",
-      });
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/publish?searchId=${encodeURIComponent(searchId)}`,
+        { cache: "no-store" },
+      );
       const data = await safeJson(res);
       if (!res.ok || !data?.ok) {
         throw new Error(s(data?.error) || `HTTP ${res.status}`);
       }
-      const manifest = (data?.manifest || null) as
-        | {
-            folder?: string;
-            host?: string;
-            generatedAt?: string;
-            count?: number;
-            files?: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
-          }
-        | null;
+      const manifest = (data?.manifest || null) as SearchBuilderManifest | null;
       if (!manifest) {
         setSearchBuilderLastPublish(null);
         return;
       }
       setSearchBuilderLastPublish({
+        searchId,
+        searchName: s(manifest.searchName),
         folder: s(manifest.folder),
         host: s(manifest.host) || SEARCH_EMBEDDED_HOST,
         generatedAt: s(manifest.generatedAt),
@@ -2261,20 +2396,29 @@ export default function Home() {
   }
 
   async function runCreateSearchIndexFromBuilder() {
+    if (!routeTenantId) return;
+    const searchId = s(searchBuilderActiveSearchId);
+    if (!searchId) {
+      setSearchBuilderErr("Select a search first.");
+      return;
+    }
     const state = s(searchBuilderIndexState) || "all";
     setSearchBuilderErr("");
     setSearchBuilderMsg("");
     try {
-      await run({
-        job: "build-state-index",
-        state,
-        mode: "live",
-        debug: false,
-        allowConcurrent: false,
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/index`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ searchId, state }),
       });
-      setSearchBuilderMsg(`Create Search Index started for state="${state}".`);
-    } catch {
-      setSearchBuilderErr("Failed to start Create Search Index.");
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      const count = Number(data?.index?.count || 0);
+      setSearchBuilderMsg(`Search index created (${count} states).`);
+    } catch (e: unknown) {
+      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to create search index.");
     }
   }
 
@@ -3122,7 +3266,7 @@ export default function Home() {
   }, [sheet, totals]);
 
   const isStateJob = useMemo(() => {
-    return job === "build-state-sitemaps" || job === "build-state-index";
+    return job === "build-state-sitemaps";
   }, [job]);
 
   const isOneLocJob = useMemo(() => {
@@ -5915,13 +6059,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   );
 
   const searchBuilderIframeSrc = useMemo(() => {
+    if (!routeTenantId) return "";
     const host = hostOnly(SEARCH_EMBEDDED_HOST) || SEARCH_EMBEDDED_HOST;
     const folder = kebabToken(searchBuilderFolder) || "company-search";
     const page = kebabToken(searchBuilderPageSlug) || "locations";
     const query = s(searchBuilderQuery).replace(/^\?+/, "");
-    const base = `https://${host}/public/ui/${folder}/${page}.html`;
+    const base = `https://${host}/embedded/${routeTenantId}/${folder}/${page}.html`;
     return query ? `${base}?${query}` : base;
-  }, [searchBuilderHost, searchBuilderFolder, searchBuilderPageSlug, searchBuilderQuery]);
+  }, [routeTenantId, searchBuilderHost, searchBuilderFolder, searchBuilderPageSlug, searchBuilderQuery]);
 
   const searchBuilderServiceArtifacts = useMemo(() => {
     const host = hostOnly(SEARCH_EMBEDDED_HOST) || SEARCH_EMBEDDED_HOST;
@@ -5941,15 +6086,18 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         .map((f) => [s(f.fileName), s(f.url)] as const)
         .filter((x) => !!x[0] && !!x[1]),
     );
-    const statesIndexUrl = routeTenantId
-      ? `https://${host}/public/json/tenants/${routeTenantId}/states-index.json`
-      : `https://${host}/public/json/states-index.json`;
+    const statesIndexUrl =
+      routeTenantId && searchBuilderActiveSearchId
+        ? `https://${host}/embedded/index/${routeTenantId}/${searchBuilderActiveSearchId}.json`
+        : "";
     const activeServices = tenantProductsServices.filter((svc) => svc.isActive !== false);
 
     if (!activeServices.length) {
       const singleSlug = kebabToken(searchBuilderPageSlug) || "locations";
       const singlePath = normalizeRelativePath("/") || "/";
-      const iframeSrcBase = `https://${host}/public/ui/${folder}/${singleSlug}.html`;
+      const iframeSrcBase = routeTenantId
+        ? `https://${host}/embedded/${routeTenantId}/${folder}/${singleSlug}.html`
+        : "";
       const publishedUrl = byServiceId.get("manual") || byFileName.get(`${singleSlug}.html`) || "";
       return [{
         id: "manual",
@@ -5968,7 +6116,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const fileSlug = fileSlugFromService(serviceId || s(svc.name));
       const fileName = `${fileSlug}.html`;
       const bookingPath = normalizeRelativePath(s(svc.bookingPath) || "/");
-      const iframeSrcBase = `https://${host}/public/ui/${folder}/${fileSlug}.html`;
+      const iframeSrcBase = routeTenantId
+        ? `https://${host}/embedded/${routeTenantId}/${folder}/${fileSlug}.html`
+        : "";
       const publishedUrl = byServiceId.get(serviceId) || byFileName.get(fileName) || "";
       return {
         id: serviceId,
@@ -5981,7 +6131,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         statesIndexUrl,
       };
     });
-  }, [routeTenantId, searchBuilderFolder, searchBuilderHost, searchBuilderLastPublish, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
+  }, [routeTenantId, searchBuilderActiveSearchId, searchBuilderFolder, searchBuilderHost, searchBuilderLastPublish, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
 
   useEffect(() => {
     if (!searchBuilderServiceArtifacts.length) {
@@ -5999,6 +6149,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     return searchBuilderServiceArtifacts.find((it) => it.id === searchBuilderSelectedArtifactId) || searchBuilderServiceArtifacts[0];
   }, [searchBuilderSelectedArtifactId, searchBuilderServiceArtifacts]);
 
+  const activeSearchBuilderProject = useMemo(
+    () => searchBuilderProjects.find((p) => s(p.id) === s(searchBuilderActiveSearchId)) || null,
+    [searchBuilderProjects, searchBuilderActiveSearchId],
+  );
+
   function buildEmbedCodeForArtifact(artifact: {
     name: string;
     iframeSrc: string;
@@ -6008,10 +6163,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const modalTitle = s(searchBuilderModalTitle) || `${companyLabel} Locations`;
     const btnColor = s(searchBuilderButtonColor) || "#044c5c";
     const headerColor = s(searchBuilderHeaderColor) || "#a4d8e4";
+    const align =
+      searchBuilderButtonPosition === "left"
+        ? "left"
+        : searchBuilderButtonPosition === "right"
+          ? "right"
+          : "center";
     const iframeSrc = escapeHtmlAttr(artifact.iframeSrc);
     return `<!-- ${companyLabel} ${artifact.name} Embed -->
 <style>
-.ct-book-wrap { font-family: Lato, system-ui, -apple-system, Segoe UI, Roboto, Arial; text-align: center; }
+.ct-book-wrap { font-family: Lato, system-ui, -apple-system, Segoe UI, Roboto, Arial; text-align: ${align}; }
 .ct-book-btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 26px; border-radius: 999px; border: 0; cursor: pointer; font-weight: 800; font-size: 16px; background: ${btnColor}; color: #fff; box-shadow: 0 14px 30px rgba(0,0,0,.18); text-decoration: none; transition: transform .08s ease, filter .12s ease; }
 .ct-book-btn:hover { filter: brightness(1.06); }
 .ct-book-btn:active { transform: translateY(1px); }
@@ -6116,7 +6277,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       function joinUrl(domain,p){ if(!domain) return ""; const d = domain.endsWith("/")?domain.slice(0,-1):domain; const path = p.startsWith("/")?p:"/"+p; return d + path; }
       async function fetchJson(url){ const r = await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("Fetch failed " + r.status + ": " + url); return r.json(); }
       async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const arr = Array.isArray(data)?data:(data.states||[]); return { states: arr }; }
-      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const tenantMatch = STATES_INDEX_URL.match(/\\/public\\/json\\/tenants\\/([^/]+)\\/states-index\\.json/i); const fallbackBase = tenantMatch ? STATES_INDEX_URL.replace(tenantMatch[0], "/resources/tenants/" + tenantMatch[1] + "/statesFiles/") : STATES_INDEX_URL.replace("/public/json/states-index.json", "/resources/statesFiles/"); const stateFileUrl = meta?.stateFileUrl || meta?.url || (fallbackBase + slug + ".json"); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
+      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const stateFileUrl = meta?.stateFileUrl || meta?.url; if(!stateFileUrl) throw new Error("Missing state file URL for " + slug); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
       function flattenState(stateJson){ const items = stateJson.items || stateJson.counties || []; const stateName = stateJson.stateName || stateJson.name || ""; const stateSlug = stateJson.stateSlug || stateJson.stateKey || ""; const out = []; for(const c of items){ const countyName = c.countyName || c.parishName || ""; const countyDomain = c.countyDomain || c.parishDomain || ""; const cities = c.cities || []; for(const city of cities){ const cityName = city.cityName || ""; const cityDomain = city.cityDomain || ""; if(!cityName || !cityDomain) continue; const baseDomain = redirectMode === "city" ? cityDomain : countyDomain || cityDomain; const suffix = countyName ? " (" + countyName + ")" : ""; out.push({ label: cityName + ", " + stateName + suffix, search: normalizeText(cityName + " " + countyName + " " + stateName), targetUrl: joinUrl(baseDomain, bookPath) }); } } return out; }
       function renderList(items){ $list.innerHTML = ""; if(!items.length){ const div = document.createElement("div"); div.className="item"; div.innerHTML = '<div class="title">No results</div>'; $list.appendChild(div); return; } for(const it of items.slice(0,60)){ const row=document.createElement("div"); row.className="item"; row.innerHTML='<div class="title">'+it.label+'</div>'; row.addEventListener("click",()=>{ selected=it; $sel.textContent='Selected: '+it.label; $book.disabled=false; }); $list.appendChild(row);} }
       function filter(q){ const nq = normalizeText(q.trim()); if(!nq) return []; return flat.filter((x)=>x.search.includes(nq)); }
@@ -8225,396 +8386,251 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           <div>
             <h2 className="cardTitle">Search Builder</h2>
             <div className="cardSubtitle">
-              Configuracion por tenant guardada en DB. Genera y usa Search sin exponer codigo en pantalla.
+              Crea y administra searches por proyecto. Cada search guarda su config, index y publicación en DB.
             </div>
           </div>
           <div className="cardHeaderActions">
             {searchBuilderMsg ? <span className="badge">{searchBuilderMsg}</span> : null}
             {searchBuilderErr ? <span className="badge" style={{ color: "var(--danger)" }}>{searchBuilderErr}</span> : null}
-            <button type="button" className="smallBtn" disabled={searchBuilderSaving || searchBuilderPublishing} onClick={() => void saveSearchBuilderSettings()}>
-              {searchBuilderSaving ? "Saving..." : "Save settings"}
+            <button type="button" className="smallBtn" disabled={searchBuilderProjectsLoading} onClick={() => void loadSearchBuilderProjects()}>
+              {searchBuilderProjectsLoading ? "Loading..." : "Refresh"}
             </button>
-            <button type="button" className="smallBtn" disabled={searchBuilderSaving || searchBuilderPublishing} onClick={() => void publishSearchBuilderFiles()}>
-              {searchBuilderPublishing ? "Publishing..." : "Publish files"}
-            </button>
-            <button type="button" className="smallBtn" onClick={() => void runCreateSearchIndexFromBuilder()}>
-              Create Search Index
-            </button>
-            <button type="button" className="smallBtn" onClick={() => void loadLastPublishedSearchBuilderFiles()}>
-              Load last publication
-            </button>
-            <button
-              type="button"
-              className="smallBtn"
-              disabled={!selectedSearchBuilderArtifact?.iframeSrc}
-              onClick={() => {
-                const target = s(selectedSearchBuilderArtifact?.iframeSrc);
-                if (!target) return;
-                window.open(target, "_blank", "noopener,noreferrer");
-              }}
-            >
-              Open selected URL
+            <button type="button" className="smallBtn" disabled={searchBuilderCreating} onClick={() => void createNewSearchBuilder()}>
+              {searchBuilderCreating ? "Creating..." : "+ Add New Search"}
             </button>
           </div>
         </div>
 
         <div className="cardBody">
-          <div className="row">
-            <div className="field">
-              <label>Company name</label>
-              <input
-                className="input"
-                value={searchBuilderCompanyName}
-                onChange={(e) => setSearchBuilderCompanyName(e.target.value)}
-                placeholder="My Drip Nurse"
-              />
-            </div>
-            <div className="field">
-              <label>CTA button text</label>
-              <input
-                className="input"
-                value={searchBuilderButtonText}
-                onChange={(e) => setSearchBuilderButtonText(e.target.value)}
-                placeholder="Book An Appointment"
-              />
-            </div>
-            <div className="field">
-              <label>Modal title</label>
-              <input
-                className="input"
-                value={searchBuilderModalTitle}
-                onChange={(e) => setSearchBuilderModalTitle(e.target.value)}
-                placeholder="My Drip Nurse Locations"
-              />
-            </div>
-            <div className="field">
-              <label>Search folder</label>
-              <input
-                className="input"
-                value={searchBuilderFolder}
-                onChange={(e) => setSearchBuilderFolder(e.target.value)}
-                placeholder="my-drip-nurse-search"
-              />
-            </div>
-            <div className="field">
-              <label>Page slug</label>
-              <input
-                className="input"
-                value={searchBuilderPageSlug}
-                onChange={(e) => setSearchBuilderPageSlug(e.target.value)}
-                placeholder="mobile-iv-therapy-locations"
-              />
-            </div>
-            <div className="field">
-              <label>Query params</label>
-              <input
-                className="input"
-                value={searchBuilderQuery}
-                onChange={(e) => setSearchBuilderQuery(e.target.value)}
-                placeholder="embed=1"
-              />
-            </div>
-            <div className="field">
-              <label>Button color</label>
-              <input
-                className="input"
-                value={searchBuilderButtonColor}
-                onChange={(e) => setSearchBuilderButtonColor(e.target.value)}
-                placeholder="#044c5c"
-              />
-            </div>
-            <div className="field">
-              <label>Header color</label>
-              <input
-                className="input"
-                value={searchBuilderHeaderColor}
-                onChange={(e) => setSearchBuilderHeaderColor(e.target.value)}
-                placeholder="#a4d8e4"
-              />
-            </div>
-            <div className="field">
-              <label>Search title (inside search file)</label>
-              <input
-                className="input"
-                value={searchBuilderSearchTitle}
-                onChange={(e) => setSearchBuilderSearchTitle(e.target.value)}
-                placeholder="Choose your location"
-              />
-            </div>
-            <div className="field">
-              <label>Search subtitle (inside search file)</label>
-              <input
-                className="input"
-                value={searchBuilderSearchSubtitle}
-                onChange={(e) => setSearchBuilderSearchSubtitle(e.target.value)}
-                placeholder="Search by State, County/Parish, or City. Then click Book Now."
-              />
-            </div>
-            <div className="field">
-              <label>Search placeholder (inside search file)</label>
-              <input
-                className="input"
-                value={searchBuilderSearchPlaceholder}
-                onChange={(e) => setSearchBuilderSearchPlaceholder(e.target.value)}
-                placeholder="Choose your City, State, or Country"
-              />
-            </div>
-          </div>
-
-          <div className="row" style={{ marginTop: 8 }}>
-            <div className="field" style={{ maxWidth: 260 }}>
-              <label>Create Search Index state</label>
-              <select
-                className="select"
-                value={searchBuilderIndexState}
-                onChange={(e) => setSearchBuilderIndexState(e.target.value)}
-              >
-                <option value="all">ALL</option>
-                {statesOut.map((st) => (
-                  <option key={st} value={st}>
-                    {formatStateLabel(st)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ flex: 1 }}>
-              <label>Service/Search file</label>
-              <select
-                className="select"
-                value={searchBuilderSelectedArtifactId}
-                onChange={(e) => setSearchBuilderSelectedArtifactId(e.target.value)}
-              >
-                {searchBuilderServiceArtifacts.map((artifact) => (
-                  <option key={artifact.id} value={artifact.id}>
-                    {artifact.name} ({artifact.fileName})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ flex: 1 }}>
-              <label>Generated iframe URL (selected)</label>
-              <input className="input" value={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc} readOnly />
-            </div>
-            <div className="field" style={{ flex: 1 }}>
-              <label>States index URL</label>
-              <input className="input" value={selectedSearchBuilderArtifact?.statesIndexUrl || ""} readOnly />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <div className="mini" style={{ marginBottom: 8 }}>
-              UI preview (colors + copy)
-            </div>
+          {searchBuilderProjects.length === 0 ? (
+            <div className="mini">No searches yet. Use <b>+ Add New Search</b> to create the first one.</div>
+          ) : (
             <div
               style={{
-                width: "100%",
-                padding: 16,
-                borderRadius: 14,
-                border: "1px solid rgba(255,255,255,.12)",
-                background: "rgba(0,0,0,.15)",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                gap: 12,
               }}
             >
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "12px 22px",
-                  borderRadius: 999,
-                  fontWeight: 800,
-                  fontSize: 15,
-                  background: s(searchBuilderButtonColor) || "#044c5c",
-                  color: "#fff",
-                }}
-              >
-                {s(searchBuilderButtonText) || "Book Now"}
-              </div>
-              <div
-                style={{
-                  marginTop: 12,
-                  width: "100%",
-                  maxWidth: 780,
-                  height: 300,
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  background: "#fff",
-                  boxShadow: "0 16px 40px rgba(0,0,0,.25)",
-                }}
-              >
-                <div
-                  style={{
-                    height: 56,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "0 14px",
-                    background: s(searchBuilderHeaderColor) || "#a4d8e4",
-                    borderBottom: "1px solid rgba(0,0,0,.08)",
-                  }}
-                >
-                  <strong style={{ color: "#0b1b2a" }}>{s(searchBuilderModalTitle) || "Locations"}</strong>
-                  <span style={{ width: 34, height: 34, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(0,0,0,.12)", background: "#fff" }}>x</span>
+              {searchBuilderProjects.map((project) => {
+                const isActive = s(project.id) === s(searchBuilderActiveSearchId) && searchBuilderEditorOpen;
+                return (
+                  <article
+                    key={project.id}
+                    style={{
+                      border: isActive ? "1px solid rgba(255,255,255,.45)" : "1px solid rgba(255,255,255,.14)",
+                      borderRadius: 14,
+                      overflow: "hidden",
+                      background: "linear-gradient(165deg, rgba(15,23,42,.96), rgba(2,6,23,.92))",
+                    }}
+                  >
+                    <div style={{ height: 86, background: `linear-gradient(115deg, ${s(project.headerColor) || "#a4d8e4"}, ${s(project.buttonColor) || "#044c5c"})`, padding: 14 }}>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: "#031623" }}>{s(project.name) || "Untitled Search"}</div>
+                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(2,22,34,.86)" }}>{s(project.modalTitle) || "Locations"}</div>
+                    </div>
+                    <div style={{ padding: 12 }}>
+                      <div className="mini">{s(project.folder) || "company-search"}</div>
+                      <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button type="button" className="smallBtn" onClick={() => openSearchBuilderEditor(project.id)}>
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="smallBtn"
+                          disabled={searchBuilderDeletingId === s(project.id)}
+                          onClick={() => void deleteSearchBuilderProject(project.id)}
+                        >
+                          {searchBuilderDeletingId === s(project.id) ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+          {searchBuilderEditorOpen && activeSearchBuilderProject ? (
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="cardHeader">
+                <div>
+                  <h3 className="cardTitle" style={{ fontSize: 18 }}>{s(activeSearchBuilderProject.name) || "Search Builder"}</h3>
+                  <div className="cardSubtitle">Visual editor del iframe/button para este search.</div>
                 </div>
-                <div style={{ height: "calc(100% - 56px)", padding: 12 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>{s(searchBuilderSearchTitle) || "Choose your location"}</div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>{s(searchBuilderSearchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now."}</div>
-                  <input
-                    readOnly
-                    value={s(searchBuilderSearchPlaceholder) || "Choose your City, State, or Country"}
-                    style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px", fontSize: 13 }}
+                <div className="cardHeaderActions">
+                  <button type="button" className="smallBtn" onClick={() => setSearchBuilderEditorOpen(false)}>
+                    Back to cards
+                  </button>
+                  <button type="button" className="smallBtn" disabled={searchBuilderSaving || searchBuilderPublishing} onClick={() => void saveSearchBuilderSettings()}>
+                    {searchBuilderSaving ? "Saving..." : "Save"}
+                  </button>
+                  <button type="button" className="smallBtn" disabled={searchBuilderSaving || searchBuilderPublishing} onClick={() => void publishSearchBuilderFiles()}>
+                    {searchBuilderPublishing ? "Publishing..." : "Publish"}
+                  </button>
+                  <button type="button" className="smallBtn" onClick={() => void runCreateSearchIndexFromBuilder()}>
+                    Create Search Index
+                  </button>
+                </div>
+              </div>
+              <div className="cardBody">
+                <div className="row">
+                  <div className="field">
+                    <label>Search Name</label>
+                    <input className="input" value={searchBuilderName} onChange={(e) => setSearchBuilderName(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Company Name</label>
+                    <input className="input" value={searchBuilderCompanyName} onChange={(e) => setSearchBuilderCompanyName(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Button Text</label>
+                    <input className="input" value={searchBuilderButtonText} onChange={(e) => setSearchBuilderButtonText(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Button Position</label>
+                    <select className="select" value={searchBuilderButtonPosition} onChange={(e) => setSearchBuilderButtonPosition((e.target.value as "left" | "center" | "right"))}>
+                      <option value="left">Left</option>
+                      <option value="center">Center</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Button Color</label>
+                    <input className="input" value={searchBuilderButtonColor} onChange={(e) => setSearchBuilderButtonColor(e.target.value)} placeholder="#044c5c" />
+                  </div>
+                  <div className="field">
+                    <label>Header Color</label>
+                    <input className="input" value={searchBuilderHeaderColor} onChange={(e) => setSearchBuilderHeaderColor(e.target.value)} placeholder="#a4d8e4" />
+                  </div>
+                  <div className="field">
+                    <label>Modal Title</label>
+                    <input className="input" value={searchBuilderModalTitle} onChange={(e) => setSearchBuilderModalTitle(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Folder</label>
+                    <input className="input" value={searchBuilderFolder} onChange={(e) => setSearchBuilderFolder(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Page Slug</label>
+                    <input className="input" value={searchBuilderPageSlug} onChange={(e) => setSearchBuilderPageSlug(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Query Params</label>
+                    <input className="input" value={searchBuilderQuery} onChange={(e) => setSearchBuilderQuery(e.target.value)} placeholder="embed=1" />
+                  </div>
+                  <div className="field">
+                    <label>Search Title</label>
+                    <input className="input" value={searchBuilderSearchTitle} onChange={(e) => setSearchBuilderSearchTitle(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Search Subtitle</label>
+                    <input className="input" value={searchBuilderSearchSubtitle} onChange={(e) => setSearchBuilderSearchSubtitle(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Search Placeholder</label>
+                    <input className="input" value={searchBuilderSearchPlaceholder} onChange={(e) => setSearchBuilderSearchPlaceholder(e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="row" style={{ marginTop: 8 }}>
+                  <div className="field" style={{ maxWidth: 260 }}>
+                    <label>Create Search Index state</label>
+                    <select className="select" value={searchBuilderIndexState} onChange={(e) => setSearchBuilderIndexState(e.target.value)}>
+                      <option value="all">ALL</option>
+                      {statesOut.map((st) => (
+                        <option key={st} value={st}>{formatStateLabel(st)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>Service/Search file</label>
+                    <select className="select" value={searchBuilderSelectedArtifactId} onChange={(e) => setSearchBuilderSelectedArtifactId(e.target.value)}>
+                      {searchBuilderServiceArtifacts.map((artifact) => (
+                        <option key={artifact.id} value={artifact.id}>{artifact.name} ({artifact.fileName})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>Generated iframe URL (selected)</label>
+                    <input className="input" value={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc} readOnly />
+                  </div>
+                  <div className="field" style={{ flex: 1 }}>
+                    <label>States index URL</label>
+                    <input className="input" value={selectedSearchBuilderArtifact?.statesIndexUrl || ""} readOnly />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <button type="button" className="smallBtn" disabled={!selectedSearchBuilderArtifact} onClick={() => setSearchBuilderShowEmbedPreview((v) => !v)}>
+                    {searchBuilderShowEmbedPreview ? "Hide embed code" : "Preview embed code"}
+                  </button>
+                  {searchBuilderShowEmbedPreview && selectedSearchBuilderArtifact ? (
+                    <textarea
+                      className="input agencyTextarea"
+                      rows={12}
+                      value={buildEmbedCodeForArtifact(selectedSearchBuilderArtifact)}
+                      readOnly
+                      style={{ marginTop: 8, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", width: "100%" }}
+                    />
+                  ) : null}
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <div className="mini" style={{ marginBottom: 6 }}>Search iframe preview</div>
+                  <iframe
+                    title="Search Builder Preview"
+                    src={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc}
+                    style={{ width: "100%", height: 420, border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, background: "#fff" }}
                   />
                 </div>
-              </div>
-            </div>
-          </div>
 
-          <div style={{ marginTop: 12 }}>
-            <button
-              type="button"
-              className="smallBtn"
-              disabled={!selectedSearchBuilderArtifact}
-              onClick={() => setSearchBuilderShowEmbedPreview((v) => !v)}
-            >
-              {searchBuilderShowEmbedPreview ? "Hide embed preview" : "Preview embed code"}
-            </button>
-            {searchBuilderShowEmbedPreview && selectedSearchBuilderArtifact ? (
-              <textarea
-                className="input agencyTextarea"
-                rows={12}
-                value={buildEmbedCodeForArtifact(selectedSearchBuilderArtifact)}
-                readOnly
-                style={{
-                  marginTop: 8,
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                  width: "100%",
-                }}
-              />
-            ) : null}
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            <div className="mini" style={{ marginBottom: 6 }}>
-              Search iframe preview (selected file)
-            </div>
-            <iframe
-              title="Search Builder Preview"
-              src={selectedSearchBuilderArtifact?.iframeSrc || searchBuilderIframeSrc}
-              style={{
-                width: "100%",
-                height: 420,
-                border: "1px solid rgba(255,255,255,.12)",
-                borderRadius: 12,
-                background: "#fff",
-              }}
-            />
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <div className="mini" style={{ marginBottom: 8 }}>
-              Files + embeds por tenant ({searchBuilderServiceArtifacts.length})
-            </div>
-            <div className="tableWrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th className="th">Service</th>
-                    <th className="th">Search file</th>
-                    <th className="th">Booking path</th>
-                    <th className="th">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!searchBuilderServiceArtifacts.length ? (
-                    <tr>
-                      <td className="td" colSpan={4}>
-                        <span className="mini">No services. Add rows in Project Details - Products & Services.</span>
-                      </td>
-                    </tr>
+                <div style={{ marginTop: 14 }}>
+                  <div className="mini" style={{ marginBottom: 8 }}>
+                    Last publication
+                  </div>
+                  {!searchBuilderLastPublish ? (
+                    <div className="mini">No publication for this search yet.</div>
                   ) : (
-                    searchBuilderServiceArtifacts.map((artifact) => {
-                      const embedCode = buildEmbedCodeForArtifact(artifact);
-                      const fileCode = buildSearchFileCodeForArtifact(artifact);
-                      return (
-                        <tr key={artifact.id} className="tr">
-                          <td className="td">{artifact.name}</td>
-                          <td className="td">
-                            <code>{artifact.fileName}</code>
-                          </td>
-                          <td className="td">
-                            <code>{artifact.bookingPath}</code>
-                          </td>
-                          <td className="td" style={{ minWidth: 220 }}>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <button type="button" className="smallBtn" onClick={() => void copyArtifactEmbedCode(artifact.id, embedCode)}>
-                                {searchBuilderCopiedArtifactId === artifact.id ? "Embed copied" : "Copy embed"}
-                              </button>
-                              <button type="button" className="smallBtn" onClick={() => void copyArtifactFileCode(artifact.id, fileCode)}>
-                                {searchBuilderCopiedFileArtifactId === artifact.id ? "File copied" : "Copy file"}
-                              </button>
-                              <button type="button" className="smallBtn" onClick={() => setSearchBuilderSelectedArtifactId(artifact.id)}>
-                                Use preview
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
+                    <div>
+                      <div className="mini" style={{ marginBottom: 6 }}>
+                        Published path: <code>/embedded/{routeTenantId}/{searchBuilderLastPublish.folder}</code> | Files: {searchBuilderLastPublish.count} | Generated:{" "}
+                        {searchBuilderLastPublish.generatedAt ? new Date(searchBuilderLastPublish.generatedAt).toLocaleString() : "—"}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                        <button type="button" className="smallBtn" onClick={() => void copyPublishedFolderPath()}>
+                          {searchBuilderCopiedFolderPath ? "Folder copied" : "Copy folder path"}
+                        </button>
+                      </div>
+                      <div className="tableWrap">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th className="th">Service</th>
+                              <th className="th">File</th>
+                              <th className="th">URL</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {searchBuilderLastPublish.files.map((file) => {
+                              const href = s(file.url) || `https://${searchBuilderLastPublish.host}/embedded/${routeTenantId}/${searchBuilderLastPublish.folder}/${file.fileName}?embed=1`;
+                              return (
+                                <tr key={`${file.serviceId}:${file.fileName}`} className="tr">
+                                  <td className="td">{file.name || file.serviceId}</td>
+                                  <td className="td"><code>{file.fileName}</code></td>
+                                  <td className="td">
+                                    <a href={href} target="_blank" rel="noreferrer">{href}</a>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <div className="mini" style={{ marginBottom: 8 }}>
-              Last publication
-            </div>
-            {!searchBuilderLastPublish ? (
-              <div className="mini">No publication manifest found yet.</div>
-            ) : (
-              <div>
-                <div className="mini" style={{ marginBottom: 6 }}>
-                  Published path: <code>/embedded/{routeTenantId}/{searchBuilderLastPublish.folder}</code> | Files: {searchBuilderLastPublish.count} | Generated:{" "}
-                  {searchBuilderLastPublish.generatedAt ? new Date(searchBuilderLastPublish.generatedAt).toLocaleString() : "—"}
-                </div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-                  <button type="button" className="smallBtn" onClick={() => void copyPublishedFolderPath()}>
-                    {searchBuilderCopiedFolderPath ? "Folder copied" : "Copy folder path"}
-                  </button>
-                  <span className="mini">Embed usage: copy one URL below and use "Copy embed" in Files + embeds.</span>
-                </div>
-                <div className="tableWrap">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th className="th">Service</th>
-                        <th className="th">File</th>
-                        <th className="th">URL</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {searchBuilderLastPublish.files.map((file) => {
-                        const href = s(file.url) || `https://${searchBuilderLastPublish.host}/public/ui/${searchBuilderLastPublish.folder}/${file.fileName}?embed=1`;
-                        return (
-                          <tr key={`${file.serviceId}:${file.fileName}`} className="tr">
-                            <td className="td">{file.name || file.serviceId}</td>
-                            <td className="td">
-                              <code>{file.fileName}</code>
-                            </td>
-                            <td className="td">
-                              <a href={href} target="_blank" rel="noreferrer">
-                                {href}
-                              </a>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : null}
         </div>
       </section>
       ) : null}
