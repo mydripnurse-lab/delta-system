@@ -213,6 +213,7 @@ export default function AiAgentChatPanel({
   const [dragPinnedThreadId, setDragPinnedThreadId] = useState("");
   const [dragOverPinnedThreadId, setDragOverPinnedThreadId] = useState("");
   const [streamingAssistantVisible, setStreamingAssistantVisible] = useState(false);
+  const [feedOpen, setFeedOpen] = useState(false);
   const [input, setInput] = useState("");
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -481,22 +482,29 @@ export default function AiAgentChatPanel({
             Agent: <b>{agent}</b> · Thread: <b>{activeThread === "default" ? "General" : activeThread}</b>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="smallBtn" type="button" onClick={startNewChat} disabled={loading || sending}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button className="smallBtn runCardActionBtn" type="button" onClick={startNewChat} disabled={loading || sending}>
             + New Chat
           </button>
           <button
-            className="smallBtn"
+            className="smallBtn runCardActionBtn"
             type="button"
             onClick={() => void loadHistory(activeThread)}
             disabled={loading || sending}
           >
             {loading ? "Loading..." : "Refresh"}
           </button>
+          <button
+            className={`smallBtn runCardActionBtn ${feedOpen ? "smallBtnOn" : ""}`}
+            type="button"
+            onClick={() => setFeedOpen((v) => !v)}
+          >
+            {feedOpen ? "Hide Feed" : "Show Feed"}
+          </button>
         </div>
       </div>
 
-      <div className="aiChatBody">
+      <div className={`aiChatBody ${feedOpen ? "aiChatBodyFeedOpen" : "aiChatBodyFeedClosed"}`}>
         <aside className="aiThreadRail">
           <div className="mini aiThreadTitle">Conversations</div>
           <input
@@ -563,17 +571,17 @@ export default function AiAgentChatPanel({
                 ) : (
                   <div className="aiThreadActions">
                     <button
-                      className="smallBtn"
+                      className="smallBtn runCardActionBtn"
                       type="button"
                       onClick={() => void togglePinned(t.threadId, !(t.pinned === true))}
                     >
                       {t.pinned ? "Unpin" : "Pin"}
                     </button>
-                    <button className="smallBtn" type="button" onClick={() => startRename(t)}>
+                    <button className="smallBtn runCardActionBtn" type="button" onClick={() => startRename(t)}>
                       Rename
                     </button>
                     {t.threadId !== "default" ? (
-                      <button className="smallBtn" type="button" onClick={() => void deleteThread(t.threadId)}>
+                      <button className="smallBtn runCardActionBtn runCardActionBtnDelete" type="button" onClick={() => void deleteThread(t.threadId)}>
                         Archive
                       </button>
                     ) : null}
@@ -587,45 +595,59 @@ export default function AiAgentChatPanel({
           </div>
         </aside>
 
-        <div className="aiChatMessages">
-          <div ref={listRef}>
-          {messages.length ? (
-            messages.map((m, i) => (
-              <div
-                key={`${m.ts}_${i}`}
-                className={`aiMsg ${m.role === "user" ? "aiMsgUser" : "aiMsgAssistant"}`}
-              >
+        <section className="aiChatCenter">
+          <div className="aiChatMessages" ref={listRef}>
+            {messages.length ? (
+              messages.map((m, i) => (
+                <div
+                  key={`${m.ts}_${i}`}
+                  className={`aiMsg ${m.role === "user" ? "aiMsgUser" : "aiMsgAssistant"}`}
+                >
+                  <div className="aiMsgMeta">
+                      <span>{m.role === "user" ? "You" : "AI"}</span>
+                      <span>
+                        {m.role === "user" ? (isReadMessage(m.ts) ? "read" : "sent") : fmtTs(m.ts)}
+                      </span>
+                  </div>
+                  <div className="aiMsgText">
+                    {m.role === "assistant" ? renderMarkdown(m.content) : m.content}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="mini">No messages yet.</div>
+            )}
+            {sending && !streamingAssistantVisible ? (
+              <div className="aiMsg aiMsgAssistant">
                 <div className="aiMsgMeta">
-                    <span>{m.role === "user" ? "You" : "AI"}</span>
-                    <span>
-                      {m.role === "user" ? (isReadMessage(m.ts) ? "read" : "sent") : fmtTs(m.ts)}
-                    </span>
+                  <span>AI</span>
+                  <span>typing</span>
                 </div>
-                <div className="aiMsgText">
-                  {m.role === "assistant" ? renderMarkdown(m.content) : m.content}
+                <div className="aiTyping" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="mini">No messages yet.</div>
-          )}
-          {sending && !streamingAssistantVisible ? (
-            <div className="aiMsg aiMsgAssistant">
-              <div className="aiMsgMeta">
-                <span>AI</span>
-                <span>typing</span>
-              </div>
-              <div className="aiTyping" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-          ) : null}
+            ) : null}
           </div>
-        </div>
+          <div className="aiChatComposer aiChatComposerInline">
+            <textarea
+              className="input aiChatInput"
+              placeholder="Ask the AI agent about business issues, root causes, and action plans..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={sending}
+              rows={3}
+            />
+            <button className="btn btnPrimary runCardActionBtn aiChatSendBtn" type="button" onClick={send} disabled={sending || !input.trim()}>
+              {sending ? "Sending..." : "Send"}
+            </button>
+          </div>
+        </section>
 
-        <aside className="aiFeed">
+        {feedOpen ? (
+        <aside className="aiFeed aiFeedDocked">
           <div className="mini" style={{ opacity: 0.8, marginBottom: 8 }}>
             Recent AI feed (all agents)
           </div>
@@ -645,20 +667,7 @@ export default function AiAgentChatPanel({
             <div className="mini">No feed events yet.</div>
           )}
         </aside>
-      </div>
-
-      <div className="aiChatComposer">
-        <textarea
-          className="input aiChatInput"
-          placeholder="Ask the AI agent about business issues, root causes, and action plans..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={sending}
-          rows={3}
-        />
-        <button className="btn btnPrimary" type="button" onClick={send} disabled={sending || !input.trim()}>
-          {sending ? "Sending..." : "Send"}
-        </button>
+        ) : null}
       </div>
 
       {err ? (

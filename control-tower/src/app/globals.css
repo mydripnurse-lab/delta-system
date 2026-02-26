@@ -5545,6 +5545,14 @@ button, input, select { font-family: inherit; }
   gap: 10px;
 }
 
+.aiChatBody.aiChatBodyFeedClosed {
+  grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.aiChatBody.aiChatBodyFeedOpen {
+  grid-template-columns: 260px minmax(0, 1fr) 340px;
+}
+
 @media (max-width: 980px) {
   .aiChatBody {
     grid-template-columns: 1fr;
@@ -5556,7 +5564,7 @@ button, input, select { font-family: inherit; }
   background: rgba(8, 13, 27, 0.58);
   border-radius: 14px;
   padding: 10px;
-  max-height: 360px;
+  max-height: 620px;
   overflow: auto;
 }
 
@@ -5639,8 +5647,20 @@ button, input, select { font-family: inherit; }
   background: rgba(0,0,0,0.18);
   border-radius: 14px;
   padding: 10px;
-  max-height: 360px;
+  min-height: 420px;
+  max-height: 620px;
   overflow: auto;
+}
+
+.aiChatCenter {
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  background:
+    radial-gradient(820px 220px at 80% -20%, rgba(56,189,248,.08), transparent 62%),
+    linear-gradient(180deg, rgba(9, 16, 34, 0.72), rgba(8, 14, 28, 0.62));
+  padding: 12px;
+  display: grid;
+  gap: 10px;
 }
 
 .aiMsg {
@@ -5715,8 +5735,17 @@ button, input, select { font-family: inherit; }
   background: rgba(255,255,255,0.03);
   border-radius: 14px;
   padding: 10px;
-  max-height: 360px;
+  max-height: 620px;
   overflow: auto;
+}
+
+.aiFeedDocked {
+  animation: aiFeedIn .2s ease;
+}
+
+@keyframes aiFeedIn {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .aiFeedList {
@@ -5752,9 +5781,26 @@ button, input, select { font-family: inherit; }
   gap: 8px;
 }
 
+.aiChatComposerInline {
+  margin-top: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255,255,255,0.03);
+}
+
 .aiChatInput {
   resize: vertical;
-  min-height: 84px;
+  min-height: 100px;
+}
+
+.aiChatSendBtn {
+  width: 100%;
+  min-height: 46px;
+  font-size: 20px;
+  font-weight: 600;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
 }
 
 .aiTyping {
