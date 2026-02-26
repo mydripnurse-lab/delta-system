@@ -15,6 +15,14 @@ type AwarenessStage =
   | "product_aware"
   | "most_aware";
 
+type HowToUrlRow = {
+  url: string;
+  traffic: number;
+  value: number;
+  keywords: number;
+  topKeyword: string;
+};
+
 function s(v: unknown) {
   return String(v ?? "").trim();
 }
@@ -39,6 +47,31 @@ function dedupeStrings(values: string[]) {
     out.push(clean);
   }
   return out;
+}
+
+function ensureHttp(urlOrHost: string) {
+  const raw = s(urlOrHost);
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  return `https://${raw}`;
+}
+
+function kebab(input: string) {
+  return s(input)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+}
+
+function buildHowToSlug(keyword: string) {
+  const k = norm(keyword)
+    .replace(/^how to\s+/i, "")
+    .replace(/^how-to\s+/i, "");
+  const slug = kebab(k);
+  return slug ? `how-to-${slug}` : "how-to-guide";
 }
 
 function titleFromStage(stage: AwarenessStage) {
@@ -142,6 +175,15 @@ async function tenantExists(tenantId: string) {
   return Boolean(q.rows[0]);
 }
 
+async function loadRootDomain(tenantId: string) {
+  const pool = getDbPool();
+  const q = await pool.query<{ root_domain: string | null }>(
+    "select root_domain from app.organization_settings where organization_id = $1::uuid limit 1",
+    [tenantId],
+  );
+  return ensureHttp(s(q.rows[0]?.root_domain || ""));
+}
+
 export async function GET(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const tenantId = s(id);
@@ -167,7 +209,12 @@ export async function GET(req: Request, ctx: Ctx) {
         .filter(Boolean),
     );
 
-    const loaded = await loadTenantProductsServices(tenantId);
+    const rootDomainFromQuery = ensureHttp(s(searchParams.get("rootDomain")));
+    const [loaded, rootDomainFromDb] = await Promise.all([
+      loadTenantProductsServices(tenantId),
+      loadRootDomain(tenantId),
+    ]);
+    const rootDomain = rootDomainFromQuery || rootDomainFromDb;
     const services = (loaded.services || [])
       .map((svc) => ({
         serviceId: s(svc.id),
@@ -273,6 +320,32 @@ export async function GET(req: Request, ctx: Ctx) {
             };
           });
 
+          const howToCandidates = ideas
+            .filter(
+              (row) =>
+                row.stage === "solution_aware" ||
+                norm(row.keyword).includes("how to") ||
+                norm(row.keyword).includes("guide") ||
+                norm(row.keyword).includes("checklist"),
+            )
+            .sort((a, b) => b.avgMonthlySearches - a.avgMonthlySearches)
+            .slice(0, 15);
+
+          const howToUrls: HowToUrlRow[] = howToCandidates.map((row) => {
+            const urlPath = `/learn/${buildHowToSlug(row.keyword)}/`;
+            const traffic = Math.max(0, Math.round(row.avgMonthlySearches * 0.22));
+            const bidMid = (row.lowTopBid + row.highTopBid) / 2;
+            const value = Math.max(0, Math.round(traffic * Math.max(0.2, bidMid)));
+            const keywords = Math.max(1, Math.round((row.competitionIndex || 0) / 12) + 1);
+            return {
+              url: `${rootDomain || "https://example.com"}${urlPath}`,
+              traffic,
+              value,
+              keywords,
+              topKeyword: row.keyword,
+            };
+          });
+
           return {
             serviceId: svc.serviceId,
             name: svc.name,
@@ -280,6 +353,7 @@ export async function GET(req: Request, ctx: Ctx) {
             seeds,
             ideas,
             board,
+            howToUrls,
             error: "",
           };
         } catch (error: unknown) {
@@ -290,6 +364,7 @@ export async function GET(req: Request, ctx: Ctx) {
             seeds,
             ideas: [],
             board: [],
+            howToUrls: [],
             error: error instanceof Error ? error.message : "Keyword Planner error",
           };
         }
@@ -318,6 +393,7 @@ export async function GET(req: Request, ctx: Ctx) {
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
+      rootDomain,
       services: serviceResults,
       boardSummary,
       planner: {

@@ -120,11 +120,19 @@ type SeoCanvaServiceResult = {
     count: number;
     topKeywords: SeoCanvaIdeaRow[];
   }>;
+  howToUrls: Array<{
+    url: string;
+    traffic: number;
+    value: number;
+    keywords: number;
+    topKeyword: string;
+  }>;
   error: string;
 };
 
 type SeoCanvaPayload = {
   generatedAt: string;
+  rootDomain?: string;
   services: SeoCanvaServiceResult[];
   boardSummary: Array<{
     stage: SeoCanvaIdeaRow["stage"];
@@ -1659,6 +1667,9 @@ export default function Home() {
       const qs = new URLSearchParams({
         integrationKey: OAUTH_INTEGRATION_KEY,
       });
+      if (s(tenantRootDomain)) {
+        qs.set("rootDomain", s(tenantRootDomain));
+      }
       const res = await fetch(
         `/api/tenants/${encodeURIComponent(routeTenantId)}/seo-canva?${qs.toString()}`,
         { cache: "no-store" },
@@ -1669,6 +1680,7 @@ export default function Home() {
       }
       const payload = {
         generatedAt: s((data as any)?.generatedAt),
+        rootDomain: s((data as any)?.rootDomain),
         services: Array.isArray((data as any)?.services) ? ((data as any).services as SeoCanvaServiceResult[]) : [],
         boardSummary: Array.isArray((data as any)?.boardSummary) ? ((data as any).boardSummary as SeoCanvaPayload["boardSummary"]) : [],
         planner: ((data as any)?.planner || {
@@ -7489,6 +7501,61 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     </table>
                   </div>
 
+                  <div className="detailsPaneHeader" style={{ marginTop: 14 }}>
+                    <div className="detailsPaneTitle">Top How-To URLs (All Services)</div>
+                    <div className="detailsPaneSub">
+                      Prioritized URLs to publish first, based on estimated traffic and value.
+                    </div>
+                  </div>
+                  <div className="tableWrap" style={{ marginTop: 8 }}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th className="th">URL</th>
+                          <th className="th">Traffic</th>
+                          <th className="th">Value</th>
+                          <th className="th">Keywords</th>
+                          <th className="th">Top keyword</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const rows = seoCanvaData.services
+                            .flatMap((svc) =>
+                              (svc.howToUrls || []).map((row) => ({
+                                ...row,
+                                serviceId: svc.serviceId,
+                              })),
+                            )
+                            .sort((a, b) => b.traffic - a.traffic || b.value - a.value)
+                            .slice(0, 40);
+                          if (rows.length === 0) {
+                            return (
+                              <tr>
+                                <td className="td" colSpan={5}>
+                                  <span className="mini">No How-To URLs generated yet.</span>
+                                </td>
+                              </tr>
+                            );
+                          }
+                          return rows.map((row) => (
+                            <tr key={`all:${row.serviceId}:${row.url}`} className="tr">
+                              <td className="td">
+                                <a href={row.url} target="_blank" rel="noreferrer">
+                                  {row.url}
+                                </a>
+                              </td>
+                              <td className="td">{Number(row.traffic || 0).toLocaleString()}</td>
+                              <td className="td">${Number(row.value || 0).toLocaleString()}</td>
+                              <td className="td">{Number(row.keywords || 0).toLocaleString()}</td>
+                              <td className="td">{row.topKeyword}</td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+
                   <div className="detailsCustomTop" style={{ marginTop: 12 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                       <label className="mini" style={{ minWidth: 84 }}>Service</label>
@@ -7554,6 +7621,49 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                     <td className="td">
                                       ${Number(idea.lowTopBid || 0).toFixed(2)} - ${Number(idea.highTopBid || 0).toFixed(2)}
                                     </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div className="detailsPaneHeader" style={{ marginTop: 14 }}>
+                          <div className="detailsPaneTitle">How-To URL Strategy</div>
+                          <div className="detailsPaneSub">
+                            URLs generated from Solution Aware / How-To intent keywords.
+                          </div>
+                        </div>
+                        <div className="tableWrap" style={{ marginTop: 8 }}>
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th className="th">URL</th>
+                                <th className="th">Traffic</th>
+                                <th className="th">Value</th>
+                                <th className="th">Keywords</th>
+                                <th className="th">Top keyword</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(selected.howToUrls || []).length === 0 ? (
+                                <tr>
+                                  <td className="td" colSpan={5}>
+                                    <span className="mini">No How-To URLs generated yet for this service.</span>
+                                  </td>
+                                </tr>
+                              ) : (
+                                (selected.howToUrls || []).map((row) => (
+                                  <tr key={`${selected.serviceId}:${row.url}`} className="tr">
+                                    <td className="td">
+                                      <a href={row.url} target="_blank" rel="noreferrer">
+                                        {row.url}
+                                      </a>
+                                    </td>
+                                    <td className="td">{Number(row.traffic || 0).toLocaleString()}</td>
+                                    <td className="td">${Number(row.value || 0).toLocaleString()}</td>
+                                    <td className="td">{Number(row.keywords || 0).toLocaleString()}</td>
+                                    <td className="td">{row.topKeyword}</td>
                                   </tr>
                                 ))
                               )}
