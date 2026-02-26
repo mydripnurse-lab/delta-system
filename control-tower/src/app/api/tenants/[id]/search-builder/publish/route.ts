@@ -1,4 +1,3 @@
-import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { requireTenantPermission } from "@/lib/authz";
@@ -12,20 +11,12 @@ const SEARCH_SCOPE = "module";
 const SEARCH_MODULE = "search_builder";
 const SEARCH_KEY_NAME = "config_v1";
 const SEARCH_PUBLISH_KEY_NAME = "publish_manifest_v1";
+const SEARCH_FILES_MODULE = "search_builder_files";
 const SERVICES_MODULE = "products_services";
 const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
-}
-
-function resolveBlobToken() {
-  return s(
-    process.env.BLOB_READ_WRITE_TOKEN ||
-      process.env.VERCEL_BLOB_READ_WRITE_TOKEN ||
-      process.env.SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN ||
-      process.env.PUBLISH_BLOB_TOKEN,
-  );
 }
 
 function kebabToken(input: string) {
@@ -107,7 +98,7 @@ type PublishManifest = {
     name: string;
     fileName: string;
     relativePath: string;
-    blobPath: string;
+    dbKey: string;
     url: string;
   }>;
 };
@@ -271,6 +262,35 @@ async function writePublishedManifestToDb(tenantId: string, manifest: PublishMan
   );
 }
 
+async function upsertSearchFileToDb(args: {
+  tenantId: string;
+  keyName: string;
+  html: string;
+  description: string;
+}) {
+  const pool = getDbPool();
+  await pool.query(
+    `
+      insert into app.organization_custom_values (
+        organization_id, provider, scope, module, key_name,
+        key_value, value_type, is_secret, is_active, description
+      ) values (
+        $1::uuid, $2, $3, $4, $5,
+        $6, 'text', false, true, $7
+      )
+      on conflict (organization_id, provider, scope, module, key_name)
+      do update set
+        key_value = excluded.key_value,
+        value_type = excluded.value_type,
+        is_secret = excluded.is_secret,
+        is_active = excluded.is_active,
+        description = excluded.description,
+        updated_at = now()
+    `,
+    [args.tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_FILES_MODULE, args.keyName, args.html, args.description],
+  );
+}
+
 export async function GET(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const tenantId = s(id);
@@ -305,26 +325,6 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   try {
-    const blobToken = resolveBlobToken();
-    if (!blobToken) {
-      const envKeys = Object.keys(process.env)
-        .filter((k) => /BLOB/i.test(k))
-        .sort();
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Missing Blob token. Expected one of: BLOB_READ_WRITE_TOKEN, VERCEL_BLOB_READ_WRITE_TOKEN, SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN, PUBLISH_BLOB_TOKEN.",
-          debug: {
-            blobEnvKeysPresent: envKeys,
-            nodeEnv: s(process.env.NODE_ENV),
-            vercelEnv: s(process.env.VERCEL_ENV),
-          },
-        },
-        { status: 500 },
-      );
-    }
-
     const pool = getDbPool();
     const cfgQ = await pool.query<{ key_value: string | null }>(
       `
@@ -404,22 +404,22 @@ export async function POST(req: Request, ctx: Ctx) {
         placeholder: config.searchPlaceholder,
         primaryColor: config.buttonColor,
       });
-
-      const blobPath = `search-builder/${tenantId}/${folder}/${fileName}`;
-      const uploaded = await put(blobPath, html, {
-        token: blobToken,
-        access: "public",
-        contentType: "text/html; charset=utf-8",
-        addRandomSuffix: false,
+      const dbKey = `${folder}/${fileName}`;
+      await upsertSearchFileToDb({
+        tenantId,
+        keyName: dbKey,
+        html,
+        description: `Search Builder file (${artifact.name})`,
       });
+      const url = `https://${host}/embedded/${tenantId}/${folder}/${fileName}`;
 
       written.push({
         serviceId: artifact.id,
         name: artifact.name,
         fileName,
         relativePath: `public/ui/${folder}/${fileName}`,
-        blobPath: uploaded.pathname,
-        url: uploaded.url,
+        dbKey,
+        url,
       });
     }
 
@@ -432,13 +432,6 @@ export async function POST(req: Request, ctx: Ctx) {
       count: written.length,
       files: written,
     };
-
-    await put(`search-builder/${tenantId}/${folder}/_search-builder-manifest.json`, JSON.stringify(manifest, null, 2), {
-      token: blobToken,
-      access: "public",
-      contentType: "application/json; charset=utf-8",
-      addRandomSuffix: false,
-    });
 
     await writePublishedManifestToDb(tenantId, manifest);
 

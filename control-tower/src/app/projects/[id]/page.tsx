@@ -2283,8 +2283,8 @@ export default function Home() {
     if (!folder) return;
     try {
       const tenant = s(routeTenantId);
-      const blobPrefix = tenant ? `search-builder/${tenant}/${folder}` : `search-builder/${folder}`;
-      await navigator.clipboard.writeText(blobPrefix);
+      const publishedPrefix = tenant ? `/embedded/${tenant}/${folder}` : `/embedded/${folder}`;
+      await navigator.clipboard.writeText(publishedPrefix);
       setSearchBuilderCopiedFolderPath(true);
       setTimeout(() => setSearchBuilderCopiedFolderPath(false), 1300);
     } catch {}
@@ -8574,7 +8574,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             ) : (
               <div>
                 <div className="mini" style={{ marginBottom: 6 }}>
-                  Blob folder: <code>search-builder/{routeTenantId}/{searchBuilderLastPublish.folder}</code> | Files: {searchBuilderLastPublish.count} | Generated:{" "}
+                  Published path: <code>/embedded/{routeTenantId}/{searchBuilderLastPublish.folder}</code> | Files: {searchBuilderLastPublish.count} | Generated:{" "}
                   {searchBuilderLastPublish.generatedAt ? new Date(searchBuilderLastPublish.generatedAt).toLocaleString() : "—"}
                 </div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
