@@ -719,9 +719,11 @@ export default function Home() {
         job?: string;
         state?: string;
         mode?: string;
+        debug?: boolean;
         tenantId?: string;
         locId?: string;
         kind?: string;
+        cmd?: string;
       };
       linesCount?: number;
       lastLine?: string;
