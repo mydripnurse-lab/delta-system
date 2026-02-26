@@ -341,7 +341,7 @@ export default function UsaChoroplethProgressMap({
     <div className="choroplethWrap">
       <div className="choroplethTop">
         <div>
-          <div className="choroplethTitle">Delta System Map</div>
+          <div className="choroplethTitle">United States</div>
           <div className="mini" style={{ opacity: 0.85 }}>
             {metric === "calls"
               ? "Calls per state"

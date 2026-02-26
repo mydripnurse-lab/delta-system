@@ -9257,15 +9257,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ) : prDetailLoading && !prDetail ? (
                       <div className="mini" style={{ marginTop: 10 }}>Loading Puerto Rico data...</div>
                     ) : (
-                      <div className="card" style={{ marginTop: 12 }}>
-                        <div className="cardBody" style={{ height: 620 }}>
-                          <PuertoRicoMunicipioProgressMap
-                            rows={prDetail?.cities?.rows || []}
-                            metric={mapMetric}
-                            onPickMunicipio={(municipio) => setPrCitySearch(municipio)}
-                          />
-                        </div>
-                      </div>
+                      <>
+                        <PuertoRicoMunicipioProgressMap
+                          rows={prDetail?.cities?.rows || []}
+                          metric={mapMetric}
+                          onPickMunicipio={(municipio) => setPrCitySearch(municipio)}
+                        />
+                      </>
                     )}
                   </>
                   )}
