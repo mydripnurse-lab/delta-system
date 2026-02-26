@@ -23,7 +23,8 @@ function resolveBlobToken() {
   return s(
     process.env.BLOB_READ_WRITE_TOKEN ||
       process.env.VERCEL_BLOB_READ_WRITE_TOKEN ||
-      process.env.SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN,
+      process.env.SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN ||
+      process.env.PUBLISH_BLOB_TOKEN,
   );
 }
 
@@ -313,7 +314,7 @@ export async function POST(req: Request, ctx: Ctx) {
         {
           ok: false,
           error:
-            "Missing Blob token. Expected one of: BLOB_READ_WRITE_TOKEN, VERCEL_BLOB_READ_WRITE_TOKEN, SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN.",
+            "Missing Blob token. Expected one of: BLOB_READ_WRITE_TOKEN, VERCEL_BLOB_READ_WRITE_TOKEN, SEARCH_EMBEDDED_BLOB_READ_WRITE_TOKEN, PUBLISH_BLOB_TOKEN.",
           debug: {
             blobEnvKeysPresent: envKeys,
             nodeEnv: s(process.env.NODE_ENV),
