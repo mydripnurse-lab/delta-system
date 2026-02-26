@@ -7103,12 +7103,17 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <div className="runCardActions">
                     <button
                       type="button"
-                      className="smallBtn"
+                      className="smallBtn runCardActionBtn"
                       disabled={!r.finished}
                       title={r.finished ? "Run again (reprocess Status=false rows)" : "Finish current run first"}
-                      onClick={() =>
+                      onClick={() => {
+                        const rerunJob = s(r.meta?.job);
+                        if (!rerunJob) {
+                          pushLog(`❌ Rerun unavailable for ${r.id}: missing original job in run metadata.`);
+                          return;
+                        }
                         void run({
-                          job: s(r.meta?.job) || job,
+                          job: rerunJob,
                           state: s(r.meta?.state) || r.stateLabel,
                           mode: s(r.meta?.mode).toLowerCase() === "dry" ? "dry" : "live",
                           debug: !!r.meta?.debug,
@@ -7116,21 +7121,21 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           kind: s(r.meta?.kind),
                           allowConcurrent: false,
                           rerun: true,
-                        })
-                      }
+                        });
+                      }}
                     >
                       Rerun
                     </button>
                     <button
                       type="button"
-                      className="smallBtn"
+                      className="smallBtn runCardActionBtn"
                       onClick={() => void openRunHistory(r.id)}
                     >
                       View History
                     </button>
                     <button
                       type="button"
-                      className="smallBtn"
+                      className="smallBtn runCardActionBtn runCardActionBtnStop"
                       disabled={r.finished}
                       onClick={async () => {
                         try {
@@ -7150,7 +7155,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     </button>
                     <button
                       type="button"
-                      className="smallBtn"
+                      className="smallBtn runCardActionBtn runCardActionBtnDelete"
                       onClick={() => void deleteRunFromCard(r.id)}
                       title="Delete run and persisted events"
                     >
