@@ -9,13 +9,13 @@ import { useParams, useSearchParams } from "next/navigation";
 const JOBS = [
   { key: "run-delta-system", label: "Run Delta System" },
   { key: "build-state-sitemaps", label: "Create Sitemaps" },
-  { key: "build-state-index", label: "Create Search Index" },
 ];
 const OAUTH_INTEGRATION_KEY = "default";
 const DOMAIN_BOT_BASE_URL = "https://app.devasks.com/v2/location";
 const DOMAIN_BOT_TIMEOUT_MIN_DEFAULT = 35;
 const DOMAIN_BOT_TIMEOUT_MIN_MIN = 5;
 const DOMAIN_BOT_TIMEOUT_MIN_MAX = 120;
+const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
 
 type SheetStateRow = {
   state: string;
@@ -684,10 +684,11 @@ export default function Home() {
   const [searchBuilderCompanyName, setSearchBuilderCompanyName] = useState("");
   const [searchBuilderButtonText, setSearchBuilderButtonText] = useState("Book An Appointment");
   const [searchBuilderModalTitle, setSearchBuilderModalTitle] = useState("Locations");
-  const [searchBuilderHost, setSearchBuilderHost] = useState("sitemaps.mydripnurse.com");
+  const [searchBuilderHost, setSearchBuilderHost] = useState(SEARCH_EMBEDDED_HOST);
   const [searchBuilderFolder, setSearchBuilderFolder] = useState("company-search");
   const [searchBuilderPageSlug, setSearchBuilderPageSlug] = useState("mobile-iv-therapy-locations");
   const [searchBuilderQuery, setSearchBuilderQuery] = useState("embed=1");
+  const [searchBuilderIndexState, setSearchBuilderIndexState] = useState("all");
   const [searchBuilderButtonColor, setSearchBuilderButtonColor] = useState("#044c5c");
   const [searchBuilderHeaderColor, setSearchBuilderHeaderColor] = useState("#a4d8e4");
   const [searchBuilderSearchTitle, setSearchBuilderSearchTitle] = useState("Choose your location");
@@ -695,10 +696,20 @@ export default function Home() {
   const [searchBuilderSearchPlaceholder, setSearchBuilderSearchPlaceholder] = useState("Choose your City, State, or Country");
   const [searchBuilderSelectedArtifactId, setSearchBuilderSelectedArtifactId] = useState("");
   const [searchBuilderSaving, setSearchBuilderSaving] = useState(false);
+  const [searchBuilderPublishing, setSearchBuilderPublishing] = useState(false);
   const [searchBuilderMsg, setSearchBuilderMsg] = useState("");
   const [searchBuilderErr, setSearchBuilderErr] = useState("");
+  const [searchBuilderLastPublish, setSearchBuilderLastPublish] = useState<{
+    folder: string;
+    host: string;
+    generatedAt: string;
+    count: number;
+    files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string }>;
+  } | null>(null);
+  const [searchBuilderShowEmbedPreview, setSearchBuilderShowEmbedPreview] = useState(false);
   const [searchBuilderCopiedArtifactId, setSearchBuilderCopiedArtifactId] = useState("");
   const [searchBuilderCopiedFileArtifactId, setSearchBuilderCopiedFileArtifactId] = useState("");
+  const [searchBuilderCopiedFolderPath, setSearchBuilderCopiedFolderPath] = useState(false);
   const searchBuilderHydratedTenantRef = useRef("");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
@@ -1853,15 +1864,15 @@ export default function Home() {
     if (!s(tenantName) && !s(tenantSlug) && !s(tenantRootDomain)) return;
     if (searchBuilderHydratedTenantRef.current === routeTenantId) return;
 
-    const rootHost = hostOnly(tenantRootDomain);
     const folderBase = kebabToken(tenantSlug) || kebabToken(tenantName) || "company";
 
     setSearchBuilderCompanyName(s(tenantName) || "My Company");
     setSearchBuilderModalTitle(`${s(tenantName) || "My Company"} Locations`);
-    setSearchBuilderHost(rootHost ? `sitemaps.${rootHost}` : "sitemaps.mydripnurse.com");
+    setSearchBuilderHost(SEARCH_EMBEDDED_HOST);
     setSearchBuilderFolder(`${folderBase}-search`);
     setSearchBuilderPageSlug("mobile-iv-therapy-locations");
     setSearchBuilderQuery("embed=1");
+    setSearchBuilderIndexState("all");
     setSearchBuilderSearchTitle("Choose your location");
     setSearchBuilderSearchSubtitle("Search by State, County/Parish, or City. Then click Book Now.");
     setSearchBuilderSearchPlaceholder("Choose your City, State, or Country");
@@ -1889,7 +1900,7 @@ export default function Home() {
         setSearchBuilderCompanyName(s(payload.companyName));
         setSearchBuilderButtonText(s(payload.buttonText) || "Book An Appointment");
         setSearchBuilderModalTitle(s(payload.modalTitle) || "Locations");
-        setSearchBuilderHost(s(payload.host) || "sitemaps.mydripnurse.com");
+        setSearchBuilderHost(SEARCH_EMBEDDED_HOST);
         setSearchBuilderFolder(s(payload.folder) || "company-search");
         setSearchBuilderPageSlug(s(payload.pageSlug) || "mobile-iv-therapy-locations");
         setSearchBuilderQuery(s(payload.query) || "embed=1");
@@ -1915,11 +1926,19 @@ export default function Home() {
     };
   }, [routeTenantId]);
 
-  async function saveSearchBuilderSettings() {
+  useEffect(() => {
     if (!routeTenantId) return;
+    void loadLastPublishedSearchBuilderFiles();
+  }, [routeTenantId]);
+
+  async function saveSearchBuilderSettings(opts?: { silent?: boolean }) {
+    if (!routeTenantId) return;
+    const silent = opts?.silent === true;
     setSearchBuilderSaving(true);
-    setSearchBuilderErr("");
-    setSearchBuilderMsg("");
+    if (!silent) {
+      setSearchBuilderErr("");
+      setSearchBuilderMsg("");
+    }
     try {
       const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder`, {
         method: "PATCH",
@@ -1943,12 +1962,109 @@ export default function Home() {
       if (!res.ok || !data?.ok) {
         throw new Error(s(data?.error) || `HTTP ${res.status}`);
       }
-      setSearchBuilderMsg("Search Builder settings saved in DB.");
+      if (!silent) setSearchBuilderMsg("Search Builder settings saved in DB.");
+      return true;
     } catch (e: unknown) {
       setSearchBuilderErr(e instanceof Error ? e.message : "Failed to save Search Builder settings.");
+      return false;
     } finally {
       setSearchBuilderSaving(false);
     }
+  }
+
+  async function publishSearchBuilderFiles() {
+    if (!routeTenantId) return;
+    const saved = await saveSearchBuilderSettings({ silent: true });
+    if (!saved) return;
+    setSearchBuilderPublishing(true);
+    setSearchBuilderErr("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      const total = Number(data?.generated || 0);
+      const folder = s(data?.folder);
+      setSearchBuilderMsg(`Published ${total} files to public/ui/${folder}.`);
+      setSearchBuilderLastPublish({
+        folder,
+          host: SEARCH_EMBEDDED_HOST,
+        generatedAt: new Date().toISOString(),
+        count: total,
+        files: Array.isArray(data?.files) ? (data.files as Array<{ serviceId: string; name: string; fileName: string; relativePath: string }>) : [],
+      });
+    } catch (e: unknown) {
+      setSearchBuilderErr(e instanceof Error ? e.message : "Failed to publish search files.");
+    } finally {
+      setSearchBuilderPublishing(false);
+    }
+  }
+
+  async function loadLastPublishedSearchBuilderFiles() {
+    if (!routeTenantId) return;
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/publish`, {
+        cache: "no-store",
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      const manifest = (data?.manifest || null) as
+        | {
+            folder?: string;
+            host?: string;
+            generatedAt?: string;
+            count?: number;
+            files?: Array<{ serviceId: string; name: string; fileName: string; relativePath: string }>;
+          }
+        | null;
+      if (!manifest) {
+        setSearchBuilderLastPublish(null);
+        return;
+      }
+      setSearchBuilderLastPublish({
+        folder: s(manifest.folder),
+        host: s(manifest.host) || SEARCH_EMBEDDED_HOST,
+        generatedAt: s(manifest.generatedAt),
+        count: Number(manifest.count || 0),
+        files: Array.isArray(manifest.files) ? manifest.files : [],
+      });
+    } catch {
+      setSearchBuilderLastPublish(null);
+    }
+  }
+
+  async function runCreateSearchIndexFromBuilder() {
+    const state = s(searchBuilderIndexState) || "all";
+    setSearchBuilderErr("");
+    setSearchBuilderMsg("");
+    try {
+      await run({
+        job: "build-state-index",
+        state,
+        mode: "live",
+        debug: false,
+        allowConcurrent: false,
+      });
+      setSearchBuilderMsg(`Create Search Index started for state="${state}".`);
+    } catch {
+      setSearchBuilderErr("Failed to start Create Search Index.");
+    }
+  }
+
+  async function copyPublishedFolderPath() {
+    const folder = s(searchBuilderLastPublish?.folder);
+    if (!folder) return;
+    try {
+      await navigator.clipboard.writeText(`public/ui/${folder}`);
+      setSearchBuilderCopiedFolderPath(true);
+      setTimeout(() => setSearchBuilderCopiedFolderPath(false), 1300);
+    } catch {}
   }
 
   useEffect(() => {
@@ -5576,7 +5692,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   );
 
   const searchBuilderIframeSrc = useMemo(() => {
-    const host = hostOnly(searchBuilderHost) || "sitemaps.mydripnurse.com";
+    const host = hostOnly(SEARCH_EMBEDDED_HOST) || SEARCH_EMBEDDED_HOST;
     const folder = kebabToken(searchBuilderFolder) || "company-search";
     const page = kebabToken(searchBuilderPageSlug) || "locations";
     const query = s(searchBuilderQuery).replace(/^\?+/, "");
@@ -5585,10 +5701,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   }, [searchBuilderHost, searchBuilderFolder, searchBuilderPageSlug, searchBuilderQuery]);
 
   const searchBuilderServiceArtifacts = useMemo(() => {
-    const host = hostOnly(searchBuilderHost) || "sitemaps.mydripnurse.com";
+    const host = hostOnly(SEARCH_EMBEDDED_HOST) || SEARCH_EMBEDDED_HOST;
     const folder = kebabToken(searchBuilderFolder) || "company-search";
     const query = s(searchBuilderQuery).replace(/^\?+/, "");
-    const statesIndexUrl = `https://${host}/public/json/states-index.json`;
+    const statesIndexUrl = routeTenantId
+      ? `https://${host}/public/json/tenants/${routeTenantId}/states-index.json`
+      : `https://${host}/public/json/states-index.json`;
     const activeServices = tenantProductsServices.filter((svc) => svc.isActive !== false);
 
     if (!activeServices.length) {
@@ -5624,7 +5742,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         statesIndexUrl,
       };
     });
-  }, [searchBuilderFolder, searchBuilderHost, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
+  }, [routeTenantId, searchBuilderFolder, searchBuilderHost, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
 
   useEffect(() => {
     if (!searchBuilderServiceArtifacts.length) {
@@ -5759,7 +5877,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       function joinUrl(domain,p){ if(!domain) return ""; const d = domain.endsWith("/")?domain.slice(0,-1):domain; const path = p.startsWith("/")?p:"/"+p; return d + path; }
       async function fetchJson(url){ const r = await fetch(url,{cache:"no-store"}); if(!r.ok) throw new Error("Fetch failed " + r.status + ": " + url); return r.json(); }
       async function loadIndex(){ const data = await fetchJson(STATES_INDEX_URL); const arr = Array.isArray(data)?data:(data.states||[]); return { states: arr }; }
-      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const fallbackBase = STATES_INDEX_URL.replace("/public/json/states-index.json", "/resources/statesFiles/"); const stateFileUrl = meta?.stateFileUrl || meta?.url || (fallbackBase + slug + ".json"); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
+      async function loadStateBySlug(slug){ if(stateCache.has(slug)) return stateCache.get(slug); const meta = (statesIndex?.states||[]).find((x)=> (x.stateSlug||x.slug)===slug); const tenantMatch = STATES_INDEX_URL.match(/\\/public\\/json\\/tenants\\/([^/]+)\\/states-index\\.json/i); const fallbackBase = tenantMatch ? STATES_INDEX_URL.replace(tenantMatch[0], "/resources/tenants/" + tenantMatch[1] + "/statesFiles/") : STATES_INDEX_URL.replace("/public/json/states-index.json", "/resources/statesFiles/"); const stateFileUrl = meta?.stateFileUrl || meta?.url || (fallbackBase + slug + ".json"); const st = await fetchJson(stateFileUrl); stateCache.set(slug, st); return st; }
       function flattenState(stateJson){ const items = stateJson.items || stateJson.counties || []; const stateName = stateJson.stateName || stateJson.name || ""; const stateSlug = stateJson.stateSlug || stateJson.stateKey || ""; const out = []; for(const c of items){ const countyName = c.countyName || c.parishName || ""; const countyDomain = c.countyDomain || c.parishDomain || ""; const cities = c.cities || []; for(const city of cities){ const cityName = city.cityName || ""; const cityDomain = city.cityDomain || ""; if(!cityName || !cityDomain) continue; const baseDomain = redirectMode === "city" ? cityDomain : countyDomain || cityDomain; const suffix = countyName ? " (" + countyName + ")" : ""; out.push({ label: cityName + ", " + stateName + suffix, search: normalizeText(cityName + " " + countyName + " " + stateName), targetUrl: joinUrl(baseDomain, bookPath) }); } } return out; }
       function renderList(items){ $list.innerHTML = ""; if(!items.length){ const div = document.createElement("div"); div.className="item"; div.innerHTML = '<div class="title">No results</div>'; $list.appendChild(div); return; } for(const it of items.slice(0,60)){ const row=document.createElement("div"); row.className="item"; row.innerHTML='<div class="title">'+it.label+'</div>'; row.addEventListener("click",()=>{ selected=it; $sel.textContent='Selected: '+it.label; $book.disabled=false; }); $list.appendChild(row);} }
       function filter(q){ const nq = normalizeText(q.trim()); if(!nq) return []; return flat.filter((x)=>x.search.includes(nq)); }
@@ -6524,7 +6642,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       className="input"
                       value={tenantBingWebmasterSiteUrl}
                       onChange={(e) => setTenantBingWebmasterSiteUrl(e.target.value)}
-                      placeholder="https://mydripnurse.com"
+                      placeholder="https://telahagocrecer.com"
                     />
                   </div>
                   <div className="field">
@@ -6543,7 +6661,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       className="input"
                       value={tenantBingIndexNowKeyLocation}
                       onChange={(e) => setTenantBingIndexNowKeyLocation(e.target.value)}
-                      placeholder="https://mydripnurse.com/{key}.txt"
+                      placeholder="https://telahagocrecer.com/{key}.txt"
                     />
                   </div>
                 </div>
@@ -7562,8 +7680,29 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           <div className="cardHeaderActions">
             {searchBuilderMsg ? <span className="badge">{searchBuilderMsg}</span> : null}
             {searchBuilderErr ? <span className="badge" style={{ color: "var(--danger)" }}>{searchBuilderErr}</span> : null}
-            <button type="button" className="smallBtn" disabled={searchBuilderSaving} onClick={() => void saveSearchBuilderSettings()}>
+            <button type="button" className="smallBtn" disabled={searchBuilderSaving || searchBuilderPublishing} onClick={() => void saveSearchBuilderSettings()}>
               {searchBuilderSaving ? "Saving..." : "Save settings"}
+            </button>
+            <button type="button" className="smallBtn" disabled={searchBuilderSaving || searchBuilderPublishing} onClick={() => void publishSearchBuilderFiles()}>
+              {searchBuilderPublishing ? "Publishing..." : "Publish files"}
+            </button>
+            <button type="button" className="smallBtn" onClick={() => void runCreateSearchIndexFromBuilder()}>
+              Create Search Index
+            </button>
+            <button type="button" className="smallBtn" onClick={() => void loadLastPublishedSearchBuilderFiles()}>
+              Load last publication
+            </button>
+            <button
+              type="button"
+              className="smallBtn"
+              disabled={!selectedSearchBuilderArtifact?.iframeSrc}
+              onClick={() => {
+                const target = s(selectedSearchBuilderArtifact?.iframeSrc);
+                if (!target) return;
+                window.open(target, "_blank", "noopener,noreferrer");
+              }}
+            >
+              Open selected URL
             </button>
           </div>
         </div>
@@ -7595,15 +7734,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 value={searchBuilderModalTitle}
                 onChange={(e) => setSearchBuilderModalTitle(e.target.value)}
                 placeholder="My Drip Nurse Locations"
-              />
-            </div>
-            <div className="field">
-              <label>Search host</label>
-              <input
-                className="input"
-                value={searchBuilderHost}
-                onChange={(e) => setSearchBuilderHost(e.target.value)}
-                placeholder="sitemaps.mydripnurse.com"
               />
             </div>
             <div className="field">
@@ -7681,6 +7811,21 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           </div>
 
           <div className="row" style={{ marginTop: 8 }}>
+            <div className="field" style={{ maxWidth: 260 }}>
+              <label>Create Search Index state</label>
+              <select
+                className="select"
+                value={searchBuilderIndexState}
+                onChange={(e) => setSearchBuilderIndexState(e.target.value)}
+              >
+                <option value="all">ALL</option>
+                {statesOut.map((st) => (
+                  <option key={st} value={st}>
+                    {formatStateLabel(st)}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="field" style={{ flex: 1 }}>
               <label>Service/Search file</label>
               <select
@@ -7773,6 +7918,30 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           </div>
 
           <div style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className="smallBtn"
+              disabled={!selectedSearchBuilderArtifact}
+              onClick={() => setSearchBuilderShowEmbedPreview((v) => !v)}
+            >
+              {searchBuilderShowEmbedPreview ? "Hide embed preview" : "Preview embed code"}
+            </button>
+            {searchBuilderShowEmbedPreview && selectedSearchBuilderArtifact ? (
+              <textarea
+                className="input agencyTextarea"
+                rows={12}
+                value={buildEmbedCodeForArtifact(selectedSearchBuilderArtifact)}
+                readOnly
+                style={{
+                  marginTop: 8,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                  width: "100%",
+                }}
+              />
+            ) : null}
+          </div>
+
+          <div style={{ marginTop: 12 }}>
             <div className="mini" style={{ marginBottom: 6 }}>
               Search iframe preview (selected file)
             </div>
@@ -7843,6 +8012,57 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <div className="mini" style={{ marginBottom: 8 }}>
+              Last publication
+            </div>
+            {!searchBuilderLastPublish ? (
+              <div className="mini">No publication manifest found yet.</div>
+            ) : (
+              <div>
+                <div className="mini" style={{ marginBottom: 6 }}>
+                  Folder: <code>public/ui/{searchBuilderLastPublish.folder}</code> | Files: {searchBuilderLastPublish.count} | Generated:{" "}
+                  {searchBuilderLastPublish.generatedAt ? new Date(searchBuilderLastPublish.generatedAt).toLocaleString() : "—"}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                  <button type="button" className="smallBtn" onClick={() => void copyPublishedFolderPath()}>
+                    {searchBuilderCopiedFolderPath ? "Folder copied" : "Copy folder path"}
+                  </button>
+                  <span className="mini">Embed usage: copy one URL below and use "Copy embed" in Files + embeds.</span>
+                </div>
+                <div className="tableWrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th className="th">Service</th>
+                        <th className="th">File</th>
+                        <th className="th">URL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {searchBuilderLastPublish.files.map((file) => {
+                        const href = `https://${searchBuilderLastPublish.host}/public/ui/${searchBuilderLastPublish.folder}/${file.fileName}?embed=1`;
+                        return (
+                          <tr key={`${file.serviceId}:${file.fileName}`} className="tr">
+                            <td className="td">{file.name || file.serviceId}</td>
+                            <td className="td">
+                              <code>{file.fileName}</code>
+                            </td>
+                            <td className="td">
+                              <a href={href} target="_blank" rel="noreferrer">
+                                {href}
+                              </a>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

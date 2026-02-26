@@ -24,8 +24,10 @@ const GENERATED_STATES_DIR = TENANT_ID
     ? path.join(process.cwd(), "scripts", "out", "tenants", TENANT_ID)
     : path.join(process.cwd(), "scripts", "out");
 
-// Si lo vas a servir desde Netlify, pon el BASE URL público.
-const BASE_URL = process.env.SITEMAPS_BASE_URL || "https://sitemaps.mydripnurse.com";
+// Optional host base. If empty, the index stores relative URLs (portable across Netlify/Vercel).
+const BASE_URL = String(process.env.SITEMAPS_BASE_URL || "")
+    .trim()
+    .replace(/\/+$/, "");
 
 // -------------------- Helpers --------------------
 function tsLocal() {
@@ -321,7 +323,7 @@ async function main() {
             const stateJsonPath = TENANT_ID
                 ? `/resources/tenants/${TENANT_ID}/statesFiles/${file}`
                 : `/resources/statesFiles/${file}`;
-            const stateJsonUrl = `${BASE_URL}${stateJsonPath}`;
+            const stateJsonUrl = BASE_URL ? `${BASE_URL}${stateJsonPath}` : stateJsonPath;
 
             states.push({
                 stateName,
@@ -355,7 +357,7 @@ async function main() {
 
     const out = {
         generatedAt: new Date().toISOString(),
-        baseUrl: BASE_URL,
+        baseUrl: BASE_URL || "(relative)",
         states,
         includedOnlyIfFolderExistsIn: "scripts/out/<stateSlug>",
         filters: {

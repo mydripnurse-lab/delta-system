@@ -10,6 +10,7 @@ const PROVIDER = "custom";
 const SCOPE = "module";
 const MODULE = "search_builder";
 const KEY_NAME = "config_v1";
+const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -35,7 +36,7 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     companyName: s(input?.companyName),
     buttonText: s(input?.buttonText) || "Book An Appointment",
     modalTitle: s(input?.modalTitle) || "Locations",
-    host: s(input?.host) || "sitemaps.mydripnurse.com",
+    host: SEARCH_EMBEDDED_HOST,
     folder: s(input?.folder) || "company-search",
     pageSlug: s(input?.pageSlug) || "mobile-iv-therapy-locations",
     query: s(input?.query) || "embed=1",
@@ -150,4 +151,3 @@ export async function PATCH(req: Request, ctx: Ctx) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
-
