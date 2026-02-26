@@ -52,6 +52,33 @@ type FlatIndexItem = {
 function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndexItem[] {
   if (!payload) return [];
   const stateName = pickText(payload, ["stateName", "state", "name"]);
+  const rowsRaw = payload.rows;
+  const rows = Array.isArray(rowsRaw) ? rowsRaw : [];
+  if (rows.length) {
+    const outRows: FlatIndexItem[] = [];
+    for (const row0 of rows) {
+      if (!row0 || typeof row0 !== "object" || Array.isArray(row0)) continue;
+      const row = row0 as Record<string, unknown>;
+      const countyName = pickText(row, ["County", "county", "countyName", "parishName"]);
+      const cityName = pickText(row, ["City", "city", "cityName"]);
+      const countyDomain = pickText(row, ["Domain", "County Domain", "countyDomain", "parishDomain"]);
+      const cityDomain = pickText(row, ["City Domain", "cityDomain"]);
+      const labelCore = cityName || countyName;
+      if (!labelCore) continue;
+      const suffix = countyName && cityName ? ` (${countyName})` : "";
+      outRows.push({
+        label: `${labelCore}, ${stateName || ""}${suffix}`.trim(),
+        search: normalizeText(`${cityName} ${countyName} ${stateName}`),
+        state: stateName,
+        county: countyName,
+        city: cityName,
+        countyDomain,
+        cityDomain,
+      });
+    }
+    if (outRows.length) return outRows;
+  }
+
   const countiesRaw = payload.counties ?? payload.items;
   const counties = Array.isArray(countiesRaw) ? countiesRaw : [];
   const out: FlatIndexItem[] = [];
@@ -70,7 +97,7 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
     const citiesRaw = countyObj.cities;
     const cities = Array.isArray(citiesRaw) ? citiesRaw : [];
 
-    if (!cities.length && countyName && countyDomain) {
+    if (!cities.length && countyName) {
       const label = `${countyName}, ${stateName || ""}`.replace(/\s+,/g, ",").trim();
       out.push({
         label,
@@ -89,7 +116,7 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
       const cityObj = city0 as Record<string, unknown>;
       const cityName = pickText(cityObj, ["cityName", "city", "name"]);
       const cityDomain = pickText(cityObj, ["cityDomain", "city_domain", "domain"]);
-      if (!cityName || (!cityDomain && !countyDomain)) continue;
+      if (!cityName) continue;
       const suffix = countyName ? ` (${countyName})` : "";
       out.push({
         label: `${cityName}, ${stateName || ""}${suffix}`.trim(),
