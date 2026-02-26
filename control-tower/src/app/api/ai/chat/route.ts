@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import {
     appendAiEvent,
-    appendConversationMessage,
-    getConversation,
+    appendConversationMessageForThread,
+    getConversationForThread,
     getRecentEvents,
 } from "@/lib/aiMemory";
 
@@ -16,6 +16,7 @@ const client = new OpenAI({
 type ChatRequest = {
     agent: string;
     message: string;
+    threadId?: string;
     context?: Record<string, unknown>;
 };
 
@@ -25,6 +26,14 @@ function s(v: unknown) {
 
 function clip(v: string, n = 1400) {
     return v.length > n ? `${v.slice(0, n)}...` : v;
+}
+
+function normalizeThreadId(v: unknown) {
+    return String(v || "")
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 64) || "default";
 }
 
 export async function POST(req: Request) {
@@ -38,6 +47,7 @@ export async function POST(req: Request) {
 
         const body = (await req.json()) as ChatRequest;
         const agent = s(body?.agent || "overview");
+        const threadId = normalizeThreadId(body?.threadId);
         const userMsg = s(body?.message);
         const context = body?.context || {};
 
@@ -45,15 +55,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ ok: false, error: "Missing message." }, { status: 400 });
         }
 
-        await appendConversationMessage(agent, { role: "user", content: userMsg });
+        await appendConversationMessageForThread(agent, threadId, { role: "user", content: userMsg });
         await appendAiEvent({
             agent,
             kind: "chat_turn",
             summary: `User asked: ${clip(userMsg, 180)}`,
-            metadata: { role: "user" },
+            metadata: { role: "user", threadId },
         });
 
-        const convo = await getConversation(agent, 30);
+        const convo = await getConversationForThread(agent, threadId, 30);
         const events = await getRecentEvents(80);
         const eventsCompact = events.map((e) => ({
             ts: e.ts,
@@ -79,6 +89,7 @@ export async function POST(req: Request) {
                     role: "user",
                     content: JSON.stringify({
                         agent,
+                        threadId,
                         context,
                         recent_events: eventsCompact,
                         conversation: convo.map((m) => ({ role: m.role, content: m.content })),
@@ -96,16 +107,16 @@ export async function POST(req: Request) {
             );
         }
 
-        await appendConversationMessage(agent, { role: "assistant", content: outText });
+        await appendConversationMessageForThread(agent, threadId, { role: "assistant", content: outText });
         await appendAiEvent({
             agent,
             kind: "chat_turn",
             summary: `Assistant replied: ${clip(outText, 220)}`,
-            metadata: { role: "assistant" },
+            metadata: { role: "assistant", threadId },
         });
 
-        const history = await getConversation(agent, 50);
-        return NextResponse.json({ ok: true, reply: outText, history });
+        const history = await getConversationForThread(agent, threadId, 50);
+        return NextResponse.json({ ok: true, reply: outText, history, threadId });
     } catch (e: unknown) {
         return NextResponse.json(
             { ok: false, error: e instanceof Error ? e.message : "chat failed" },

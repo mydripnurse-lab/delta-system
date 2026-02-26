@@ -964,7 +964,7 @@ function DashboardHomeContent() {
   const [tenantHeaderName, setTenantHeaderName] = useState("My Drip Nurse");
   const [tenantHeaderSlug, setTenantHeaderSlug] = useState("my-drip-nurse");
   const [tenantHeaderLogo, setTenantHeaderLogo] = useState("");
-  const [activeNavItem, setActiveNavItem] = useState<"dashboard" | "modules" | "analytics" | "dataops" | "execution">("dashboard");
+  const [activeNavItem, setActiveNavItem] = useState<"dashboard" | "modules" | "analytics" | "dataops" | "execution" | "ai_chat">("dashboard");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -2442,15 +2442,16 @@ function DashboardHomeContent() {
     return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
   }
 
-  const navItems: Array<{ key: "dashboard" | "modules" | "analytics" | "dataops" | "execution"; label: string }> = [
+  const navItems: Array<{ key: "dashboard" | "modules" | "analytics" | "dataops" | "execution" | "ai_chat"; label: string }> = [
     { key: "dashboard", label: "Dashboard" },
     { key: "modules", label: "Modules" },
     { key: "analytics", label: "Analytics" },
     { key: "dataops", label: "Data Ops" },
     { key: "execution", label: "Execution" },
+    { key: "ai_chat", label: "AI Chat" },
   ];
 
-  function jumpToSection(key: "dashboard" | "modules" | "analytics" | "dataops" | "execution") {
+  function jumpToSection(key: "dashboard" | "modules" | "analytics" | "dataops" | "execution" | "ai_chat") {
     setActiveNavItem(key);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -3867,7 +3868,7 @@ function DashboardHomeContent() {
       </section>
       ) : null}
 
-      {activeNavItem === "execution" ? (
+      {activeNavItem === "ai_chat" ? (
       <section id="sec-ai-swarm" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
