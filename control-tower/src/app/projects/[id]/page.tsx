@@ -9249,8 +9249,28 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     )}
                   </>
                 ) : (
-                  <div className="prPanel">
-                    <div className="prPanelHeader">
+                  <>
+                    {prDetailErr ? (
+                      <div className="mini" style={{ marginTop: 10, color: "var(--danger)" }}>
+                        ❌ {prDetailErr}
+                    </div>
+                    ) : prDetailLoading && !prDetail ? (
+                      <div className="mini" style={{ marginTop: 10 }}>Loading Puerto Rico data...</div>
+                    ) : (
+                      <div className="card" style={{ marginTop: 12 }}>
+                        <div className="cardBody" style={{ height: 620 }}>
+                          <PuertoRicoMunicipioProgressMap
+                            rows={prDetail?.cities?.rows || []}
+                            metric={mapMetric}
+                            onPickMunicipio={(municipio) => setPrCitySearch(municipio)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                  )}
+                  {/* <div className="prPanel"> */}
+                    {/* <div className="prPanelHeader">
                       <div>
                         <div className="badge">PUERTO RICO</div>
                         <div className="prTitle">City Activation Detail</div>
@@ -9266,9 +9286,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       >
                         {prDetailLoading ? "Refreshing..." : "Refresh"}
                       </button>
-                    </div>
+                    </div> */}
 
-                    {prMetrics ? (
+                    {/* {prMetrics ? (
                       <div className="prGrid">
                         <div className="prCard">
                           <div className="prLabel">Subaccounts Created</div>
@@ -9291,9 +9311,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           </div>
                         </div>
                       </div>
-                    ) : null}
+                    ) : null} */}
 
-                    <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {/* <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <div className="mini" style={{ display: "flex", alignItems: "center" }}>
                         {prCitySearch
                           ? `Pueblo seleccionado: ${prCitySearch}`
@@ -9306,27 +9326,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       >
                         Open Full State Drawer
                       </button>
-                    </div>
-
-                    {prDetailErr ? (
-                      <div className="mini" style={{ marginTop: 10, color: "var(--danger)" }}>
-                        ❌ {prDetailErr}
-                    </div>
-                    ) : prDetailLoading && !prDetail ? (
-                      <div className="mini" style={{ marginTop: 10 }}>Loading Puerto Rico data...</div>
-                    ) : (
-                      <div className="card" style={{ marginTop: 12 }}>
-                        <div className="cardBody" style={{ height: 620 }}>
-                          <PuertoRicoMunicipioProgressMap
-                            rows={prDetail?.cities?.rows || []}
-                            metric={mapMetric}
-                            onPickMunicipio={(municipio) => setPrCitySearch(municipio)}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </div> */}
+                  {/* </div> */}
+                {/* )} */}
               </div>
             </div>
 
