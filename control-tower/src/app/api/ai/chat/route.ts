@@ -17,6 +17,7 @@ type ChatRequest = {
     agent: string;
     message: string;
     threadId?: string;
+    tenantId?: string;
     context?: Record<string, unknown>;
 };
 
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
         const body = (await req.json()) as ChatRequest;
         const agent = s(body?.agent || "overview");
         const threadId = normalizeThreadId(body?.threadId);
+        const tenantId = s(body?.tenantId || "");
         const userMsg = s(body?.message);
         const context = body?.context || {};
 
@@ -55,16 +57,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ ok: false, error: "Missing message." }, { status: 400 });
         }
 
-        await appendConversationMessageForThread(agent, threadId, { role: "user", content: userMsg });
+        await appendConversationMessageForThread(agent, threadId, { role: "user", content: userMsg }, tenantId || null);
         await appendAiEvent({
+            tenantId: tenantId || null,
             agent,
             kind: "chat_turn",
             summary: `User asked: ${clip(userMsg, 180)}`,
             metadata: { role: "user", threadId },
         });
 
-        const convo = await getConversationForThread(agent, threadId, 30);
-        const events = await getRecentEvents(80);
+        const convo = await getConversationForThread(agent, threadId, 30, tenantId || null);
+        const events = await getRecentEvents(80, tenantId || null);
         const eventsCompact = events.map((e) => ({
             ts: e.ts,
             agent: e.agent,
@@ -107,16 +110,17 @@ export async function POST(req: Request) {
             );
         }
 
-        await appendConversationMessageForThread(agent, threadId, { role: "assistant", content: outText });
+        await appendConversationMessageForThread(agent, threadId, { role: "assistant", content: outText }, tenantId || null);
         await appendAiEvent({
+            tenantId: tenantId || null,
             agent,
             kind: "chat_turn",
             summary: `Assistant replied: ${clip(outText, 220)}`,
             metadata: { role: "assistant", threadId },
         });
 
-        const history = await getConversationForThread(agent, threadId, 50);
-        return NextResponse.json({ ok: true, reply: outText, history, threadId });
+        const history = await getConversationForThread(agent, threadId, 50, tenantId || null);
+        return NextResponse.json({ ok: true, reply: outText, history, threadId, tenantId: tenantId || null });
     } catch (e: unknown) {
         return NextResponse.json(
             { ok: false, error: e instanceof Error ? e.message : "chat failed" },

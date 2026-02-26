@@ -4025,6 +4025,7 @@ function DashboardHomeContent() {
           <div style={{ marginTop: 14 }}>
             <AiAgentChatPanel
               agent="overview"
+              tenantId={tenantId}
               title="CEO Agent Chat"
               context={{
                 board_meeting_mode: boardMeetingMode,

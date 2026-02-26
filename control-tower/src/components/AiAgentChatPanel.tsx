@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type ChatMsg = {
   role: "user" | "assistant" | "system";
@@ -11,6 +11,8 @@ type ChatMsg = {
 type ThreadSummary = {
   threadId: string;
   title?: string;
+  pinned?: boolean;
+  pinOrder?: number;
   messageCount: number;
   lastTs: number;
   lastPreview: string;
@@ -26,6 +28,7 @@ type FeedEvent = {
 
 type Props = {
   agent: string;
+  tenantId?: string;
   title?: string;
   context?: Record<string, unknown>;
   className?: string;
@@ -35,6 +38,146 @@ function fmtTs(ts: number) {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleString();
+}
+
+function normalizeAssistantText(raw: string) {
+  const text = String(raw || "").replace(/\r/g, "");
+  return text
+    .replace(/(^|\n)#{1,6}\s*/g, "$1")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function parseInlineMarkdown(text: string) {
+  const src = String(text || "");
+  const out: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < src.length) {
+    const bold = src.indexOf("**", i);
+    const ital = src.indexOf("*", i);
+    const code = src.indexOf("`", i);
+    const linkOpen = src.indexOf("[", i);
+    const candidates = [bold, ital, code, linkOpen].filter((n) => n >= 0);
+    const next = candidates.length ? Math.min(...candidates) : -1;
+    if (next < 0) {
+      out.push(src.slice(i));
+      break;
+    }
+    if (next > i) out.push(src.slice(i, next));
+    if (next === bold) {
+      const end = src.indexOf("**", bold + 2);
+      if (end > bold + 1) {
+        out.push(<strong key={`b-${key++}`}>{src.slice(bold + 2, end)}</strong>);
+        i = end + 2;
+        continue;
+      }
+    }
+    if (next === code) {
+      const end = src.indexOf("`", code + 1);
+      if (end > code) {
+        out.push(<code key={`c-${key++}`}>{src.slice(code + 1, end)}</code>);
+        i = end + 1;
+        continue;
+      }
+    }
+    if (next === linkOpen) {
+      const close = src.indexOf("]", linkOpen + 1);
+      const oParen = src.indexOf("(", close + 1);
+      const cParen = src.indexOf(")", oParen + 1);
+      if (close > linkOpen && oParen === close + 1 && cParen > oParen + 1) {
+        const label = src.slice(linkOpen + 1, close);
+        const href = src.slice(oParen + 1, cParen);
+        out.push(
+          <a key={`l-${key++}`} href={href} target="_blank" rel="noreferrer">
+            {label}
+          </a>,
+        );
+        i = cParen + 1;
+        continue;
+      }
+    }
+    if (next === ital) {
+      const end = src.indexOf("*", ital + 1);
+      if (end > ital + 1 && src.slice(ital, ital + 2) !== "**") {
+        out.push(<em key={`i-${key++}`}>{src.slice(ital + 1, end)}</em>);
+        i = end + 1;
+        continue;
+      }
+    }
+    out.push(src.charAt(next));
+    i = next + 1;
+  }
+  return out;
+}
+
+function renderMarkdown(content: string) {
+  const text = String(content || "").replace(/\r/g, "");
+  const lines = text.split("\n");
+  const nodes: ReactNode[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed) {
+      i += 1;
+      continue;
+    }
+    const h = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (h) {
+      const level = Math.min(6, h[1].length);
+      const body = h[2];
+      const className = `aiMdH aiMdH${level}`;
+      nodes.push(
+        <div key={`h-${i}`} className={className}>
+          {parseInlineMarkdown(body)}
+        </div>,
+      );
+      i += 1;
+      continue;
+    }
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: ReactNode[] = [];
+      let j = i;
+      while (j < lines.length) {
+        const t = lines[j].trim();
+        if (!/^[-*]\s+/.test(t)) break;
+        items.push(<li key={`ul-${j}`}>{parseInlineMarkdown(t.replace(/^[-*]\s+/, ""))}</li>);
+        j += 1;
+      }
+      nodes.push(<ul key={`u-${i}`} className="aiMdList">{items}</ul>);
+      i = j;
+      continue;
+    }
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items: ReactNode[] = [];
+      let j = i;
+      while (j < lines.length) {
+        const t = lines[j].trim();
+        if (!/^\d+\.\s+/.test(t)) break;
+        items.push(<li key={`ol-${j}`}>{parseInlineMarkdown(t.replace(/^\d+\.\s+/, ""))}</li>);
+        j += 1;
+      }
+      nodes.push(<ol key={`o-${i}`} className="aiMdList">{items}</ol>);
+      i = j;
+      continue;
+    }
+    const para: string[] = [trimmed];
+    let j = i + 1;
+    while (j < lines.length && lines[j].trim() && !/^(#{1,6}\s+|[-*]\s+|\d+\.\s+)/.test(lines[j].trim())) {
+      para.push(lines[j].trim());
+      j += 1;
+    }
+    nodes.push(
+      <p key={`p-${i}`} className="aiMdP">
+        {parseInlineMarkdown(para.join(" "))}
+      </p>,
+    );
+    i = j;
+  }
+  return nodes.length ? nodes : normalizeAssistantText(content);
 }
 
 function makeThreadId() {
@@ -52,6 +195,7 @@ function threadLabel(thread: ThreadSummary) {
 
 export default function AiAgentChatPanel({
   agent,
+  tenantId = "",
   title = "AI Copilot Chat",
   context = {},
   className = "",
@@ -65,6 +209,10 @@ export default function AiAgentChatPanel({
   const [activeThread, setActiveThread] = useState("default");
   const [renamingThreadId, setRenamingThreadId] = useState("");
   const [renameValue, setRenameValue] = useState("");
+  const [threadQuery, setThreadQuery] = useState("");
+  const [dragPinnedThreadId, setDragPinnedThreadId] = useState("");
+  const [dragOverPinnedThreadId, setDragOverPinnedThreadId] = useState("");
+  const [streamingAssistantVisible, setStreamingAssistantVisible] = useState(false);
   const [input, setInput] = useState("");
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -74,7 +222,7 @@ export default function AiAgentChatPanel({
     setErr("");
     try {
       const res = await fetch(
-        `/api/ai/chat/history?agent=${encodeURIComponent(agent)}&threadId=${encodeURIComponent(threadId)}`,
+        `/api/ai/chat/history?agent=${encodeURIComponent(agent)}&threadId=${encodeURIComponent(threadId)}&tenantId=${encodeURIComponent(tenantId)}`,
         { cache: "no-store" },
       );
       const json = await res.json();
@@ -122,6 +270,7 @@ export default function AiAgentChatPanel({
     const optimisticTs = Date.now();
     setMessages((prev) => prev.concat({ role: "user", content: text, ts: optimisticTs }));
     setSending(true);
+    setStreamingAssistantVisible(false);
     setErr("");
     setInput("");
     try {
@@ -131,6 +280,7 @@ export default function AiAgentChatPanel({
         body: JSON.stringify({
           agent,
           threadId: activeThread,
+          tenantId,
           message: text,
           context,
         }),
@@ -157,16 +307,20 @@ export default function AiAgentChatPanel({
           let dataRaw = "";
           for (const line of lines) {
             if (line.startsWith("event:")) eventName = line.slice(6).trim();
-            if (line.startsWith("data:")) dataRaw += line.slice(5).trim();
+            if (line.startsWith("data:")) {
+              const part = line.startsWith("data: ") ? line.slice(6) : line.slice(5);
+              dataRaw += part;
+            }
           }
           if (!eventName) continue;
           const payload = dataRaw ? JSON.parse(dataRaw) : {};
-          if (eventName === "delta") {
-            const delta = String(payload?.delta || "");
-            if (!assistantStarted) {
-              assistantStarted = true;
-              setMessages((prev) => prev.concat({ role: "assistant", content: "", ts: Date.now() + 1 }));
-            }
+            if (eventName === "delta") {
+              const delta = String(payload?.delta || "");
+              if (!assistantStarted) {
+                assistantStarted = true;
+                setStreamingAssistantVisible(true);
+                setMessages((prev) => prev.concat({ role: "assistant", content: "", ts: Date.now() + 1 }));
+              }
             assistantText += delta;
             setMessages((prev) => {
               const next = prev.slice();
@@ -194,6 +348,7 @@ export default function AiAgentChatPanel({
       setMessages((prev) => prev.filter((m) => !(m.role === "user" && m.ts === optimisticTs)));
     } finally {
       setSending(false);
+      setStreamingAssistantVisible(false);
     }
   }
 
@@ -231,7 +386,7 @@ export default function AiAgentChatPanel({
     void fetch("/api/ai/chat/threads", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agent, threadId }),
+      body: JSON.stringify({ agent, threadId, tenantId }),
     }).catch(() => null);
   }
 
@@ -246,7 +401,7 @@ export default function AiAgentChatPanel({
     await fetch("/api/ai/chat/threads", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agent, threadId, title }),
+      body: JSON.stringify({ agent, threadId, title, tenantId }),
     }).catch(() => null);
     setRenamingThreadId("");
     setRenameValue("");
@@ -255,12 +410,67 @@ export default function AiAgentChatPanel({
 
   async function deleteThread(threadId: string) {
     if (threadId === "default") return;
-    await fetch(`/api/ai/chat/threads?agent=${encodeURIComponent(agent)}&threadId=${encodeURIComponent(threadId)}`, {
+    await fetch(`/api/ai/chat/threads?agent=${encodeURIComponent(agent)}&threadId=${encodeURIComponent(threadId)}&tenantId=${encodeURIComponent(tenantId)}`, {
       method: "DELETE",
     }).catch(() => null);
     if (activeThread === threadId) setActiveThread("default");
     await loadHistory(activeThread === threadId ? "default" : activeThread);
   }
+
+  async function togglePinned(threadId: string, pinned: boolean) {
+    await fetch("/api/ai/chat/threads", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ agent, threadId, pinned, tenantId }),
+    }).catch(() => null);
+    await loadHistory(activeThread);
+  }
+
+  function sortedWithPinnedOrder(prev: ThreadSummary[], orderedPinnedIds: string[]) {
+    const idxMap = new Map<string, number>();
+    prev.forEach((t, idx) => idxMap.set(t.threadId, idx));
+    const orderMap = new Map<string, number>();
+    orderedPinnedIds.forEach((id, idx) => orderMap.set(id, idx));
+    return prev.slice().sort((a, b) => {
+      const ap = a.pinned === true;
+      const bp = b.pinned === true;
+      if (ap !== bp) return ap ? -1 : 1;
+      if (ap && bp) {
+        const ao = Number(orderMap.get(a.threadId) ?? 999999);
+        const bo = Number(orderMap.get(b.threadId) ?? 999999);
+        if (ao !== bo) return ao - bo;
+      }
+      return (idxMap.get(a.threadId) ?? 0) - (idxMap.get(b.threadId) ?? 0);
+    });
+  }
+
+  async function reorderPinned(dragId: string, targetId: string) {
+    if (!dragId || !targetId || dragId === targetId) return;
+    const currentPinned = (threads || []).filter((t) => t.pinned === true).map((t) => t.threadId);
+    const from = currentPinned.indexOf(dragId);
+    const to = currentPinned.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    const nextPinned = currentPinned.slice();
+    const [moved] = nextPinned.splice(from, 1);
+    nextPinned.splice(to, 0, moved);
+    setThreads((prev) => sortedWithPinnedOrder(prev, nextPinned));
+    await fetch("/api/ai/chat/threads", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ agent, reorderPinnedThreadIds: nextPinned, tenantId }),
+    }).catch(() => null);
+    await loadHistory(activeThread);
+  }
+
+  const filteredThreads = useMemo(() => {
+    const q = threadQuery.trim().toLowerCase();
+    if (!q) return threads;
+    return (threads || []).filter((t) => {
+      const label = threadLabel(t).toLowerCase();
+      const preview = String(t.lastPreview || "").toLowerCase();
+      return label.includes(q) || preview.includes(q) || String(t.threadId).toLowerCase().includes(q);
+    });
+  }, [threads, threadQuery]);
 
   return (
     <div className={`aiChatCard ${className}`}>
@@ -289,11 +499,41 @@ export default function AiAgentChatPanel({
       <div className="aiChatBody">
         <aside className="aiThreadRail">
           <div className="mini aiThreadTitle">Conversations</div>
+          <input
+            className="input aiThreadSearch"
+            placeholder="Search chats..."
+            value={threadQuery}
+            onChange={(e) => setThreadQuery(e.target.value)}
+          />
           <div className="aiThreadList">
-            {(threads || []).map((t) => (
+            {(filteredThreads || []).map((t) => (
               <div
                 key={t.threadId}
-                className={`aiThreadItem ${activeThread === t.threadId ? "aiThreadItemActive" : ""}`}
+                className={`aiThreadItem ${activeThread === t.threadId ? "aiThreadItemActive" : ""} ${dragOverPinnedThreadId === t.threadId ? "aiThreadDragOver" : ""}`}
+                draggable={t.pinned === true}
+                onDragStart={() => {
+                  if (t.pinned !== true) return;
+                  setDragPinnedThreadId(t.threadId);
+                }}
+                onDragOver={(e) => {
+                  if (!dragPinnedThreadId || t.pinned !== true) return;
+                  e.preventDefault();
+                  setDragOverPinnedThreadId(t.threadId);
+                }}
+                onDragLeave={() => {
+                  if (dragOverPinnedThreadId === t.threadId) setDragOverPinnedThreadId("");
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const dragId = dragPinnedThreadId;
+                  setDragPinnedThreadId("");
+                  setDragOverPinnedThreadId("");
+                  void reorderPinned(dragId, t.threadId);
+                }}
+                onDragEnd={() => {
+                  setDragPinnedThreadId("");
+                  setDragOverPinnedThreadId("");
+                }}
               >
                 <button
                   type="button"
@@ -301,7 +541,7 @@ export default function AiAgentChatPanel({
                   onClick={() => setActiveThread(t.threadId)}
                 >
                   <div className="aiThreadHead">
-                    <span>{threadLabel(t)}</span>
+                    <span>{t.pinned ? `★ ${threadLabel(t)}` : threadLabel(t)}</span>
                     <span>{t.messageCount || 0}</span>
                   </div>
                   <div className="aiThreadMeta">{t.lastTs ? fmtTs(t.lastTs) : "No messages yet"}</div>
@@ -322,6 +562,13 @@ export default function AiAgentChatPanel({
                   </div>
                 ) : (
                   <div className="aiThreadActions">
+                    <button
+                      className="smallBtn"
+                      type="button"
+                      onClick={() => void togglePinned(t.threadId, !(t.pinned === true))}
+                    >
+                      {t.pinned ? "Unpin" : "Pin"}
+                    </button>
                     <button className="smallBtn" type="button" onClick={() => startRename(t)}>
                       Rename
                     </button>
@@ -334,6 +581,9 @@ export default function AiAgentChatPanel({
                 )}
               </div>
             ))}
+            {filteredThreads.length === 0 ? (
+              <div className="mini">No conversations found.</div>
+            ) : null}
           </div>
         </aside>
 
@@ -346,18 +596,20 @@ export default function AiAgentChatPanel({
                 className={`aiMsg ${m.role === "user" ? "aiMsgUser" : "aiMsgAssistant"}`}
               >
                 <div className="aiMsgMeta">
-                  <span>{m.role === "user" ? "You" : "AI"}</span>
-                  <span>
-                    {m.role === "user" ? (isReadMessage(m.ts) ? "read" : "sent") : fmtTs(m.ts)}
-                  </span>
+                    <span>{m.role === "user" ? "You" : "AI"}</span>
+                    <span>
+                      {m.role === "user" ? (isReadMessage(m.ts) ? "read" : "sent") : fmtTs(m.ts)}
+                    </span>
                 </div>
-                <div className="aiMsgText">{m.content}</div>
+                <div className="aiMsgText">
+                  {m.role === "assistant" ? renderMarkdown(m.content) : m.content}
+                </div>
               </div>
             ))
           ) : (
             <div className="mini">No messages yet.</div>
           )}
-          {sending ? (
+          {sending && !streamingAssistantVisible ? (
             <div className="aiMsg aiMsgAssistant">
               <div className="aiMsgMeta">
                 <span>AI</span>

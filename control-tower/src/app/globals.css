@@ -5564,6 +5564,10 @@ button, input, select { font-family: inherit; }
   margin-bottom: 8px;
 }
 
+.aiThreadSearch {
+  margin-bottom: 8px;
+}
+
 .aiThreadList {
   display: grid;
   gap: 8px;
@@ -5574,6 +5578,15 @@ button, input, select { font-family: inherit; }
   background: rgba(255,255,255,0.03);
   border-radius: 10px;
   padding: 8px;
+}
+
+.aiThreadItem[draggable="true"] {
+  cursor: move;
+}
+
+.aiThreadDragOver {
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4) inset;
 }
 
 .aiThreadItem:hover {
@@ -5659,6 +5672,42 @@ button, input, select { font-family: inherit; }
   font-size: 12px;
   line-height: 1.4;
   white-space: pre-wrap;
+}
+
+.aiMdH {
+  margin: 6px 0 4px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+.aiMdH1 { font-size: 18px; }
+.aiMdH2 { font-size: 16px; }
+.aiMdH3 { font-size: 14px; }
+.aiMdH4, .aiMdH5, .aiMdH6 { font-size: 13px; }
+
+.aiMdP {
+  margin: 0 0 8px;
+}
+
+.aiMdList {
+  margin: 0 0 8px 18px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.aiMsgText code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148,163,184,0.28);
+  border-radius: 6px;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+
+.aiMsgText a {
+  color: #93c5fd;
+  text-decoration: underline;
 }
 
 .aiFeed {
