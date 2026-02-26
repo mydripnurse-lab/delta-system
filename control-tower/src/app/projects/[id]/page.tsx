@@ -3268,6 +3268,14 @@ export default function Home() {
     await loadRunHistoryEvents(id, { initial: true });
   }
 
+  async function openRunBotFromRunCard(stateRaw: string) {
+    const stateName = formatStateLabel(stateRaw);
+    const stateKey = s(stateRaw).toLowerCase();
+    if (!stateName || stateKey === "all" || stateKey === "one") return;
+    await openDetail(stateName);
+    setQuickBotModal("pending");
+  }
+
   useEffect(() => {
     if (!runHistoryOpen || !runHistoryRunId) {
       setRunHistoryLive(false);
@@ -7058,23 +7066,36 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <div className="runFlowStepWrap">
                       <span className={`runFlowStep ${stepClasses(createDbStatus)}`}>
                         <span className="runFlowStepFill" aria-hidden style={{ width: `${createDbStatus === "running" ? 68 : createDbStatus === "done" ? 100 : createDbStatus === "error" ? 100 : 0}%` }} />
-                        <span className="runFlowStepLabel">1. Create DB</span>
+                        <span className="runFlowStepLabel">1. Build Sheet DB</span>
                       </span>
                       <span className="runFlowArrow">→</span>
                     </div>
                     <div className="runFlowStepWrap">
                       <span className={`runFlowStep ${stepClasses(createJsonStatus)}`}>
                         <span className="runFlowStepFill" aria-hidden style={{ width: `${createJsonStatus === "running" ? 68 : createJsonStatus === "done" ? 100 : createJsonStatus === "error" ? 100 : 0}%` }} />
-                        <span className="runFlowStepLabel">2. Create Subaccount Json</span>
+                        <span className="runFlowStepLabel">2. Build State JSON</span>
                       </span>
                       <span className="runFlowArrow">→</span>
                     </div>
                     <div className="runFlowStepWrap">
                       <span className={`runFlowStep ${stepClasses(runDeltaStatus)}`}>
                         <span className="runFlowStepFill" aria-hidden style={{ width: `${runDeltaStatus === "running" ? Math.max(9, Math.min(100, r.pct)) : runDeltaStatus === "done" ? 100 : runDeltaStatus === "error" ? 100 : 0}%` }} />
-                        <span className="runFlowStepLabel">3. Run Delta System</span>
+                        <span className="runFlowStepLabel">3. Create + Sync Accounts</span>
                       </span>
                     </div>
+                    {r.status === "done" && s(r.stateLabel).toLowerCase() !== "all" && s(r.stateLabel).toLowerCase() !== "one" ? (
+                      <>
+                        <span className="runFlowArrow">→</span>
+                        <button
+                          type="button"
+                          className="runFlowStep runFlowStepDone runFlowStepAction"
+                          onClick={() => void openRunBotFromRunCard(s(r.meta?.state) || r.stateLabel)}
+                          title="Open Run Pending bot actions for this state"
+                        >
+                          <span className="runFlowStepLabel">4. Run Bot</span>
+                        </button>
+                      </>
+                    ) : null}
                   </div>
 
                   <div className="runCardActions">

@@ -881,6 +881,18 @@ button, input, select { font-family: inherit; }
   font-weight: 500;
 }
 
+.runFlowStepAction {
+  cursor: pointer;
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.runFlowStepAction:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, 0.75);
+  box-shadow: 0 10px 20px rgba(2, 132, 199, 0.24);
+}
+
 @keyframes runStepShimmer {
   0% { background-position: 180% 0; }
   100% { background-position: -40% 0; }
