@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
+import PuertoRicoMunicipioProgressMap from "@/components/PuertoRicoMunicipioProgressMap";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 
@@ -1231,6 +1232,13 @@ export default function Home() {
     }
     setMapScope("us");
     setMapSelected(stateName);
+  }
+
+  async function openPuertoRicoMunicipioDetail(municipio?: string) {
+    await openDetail("Puerto Rico");
+    setDetailTab("cities");
+    const q = s(municipio);
+    if (q) setDetailSearch(q);
   }
 
   function pushLog(line: string) {
@@ -3522,24 +3530,6 @@ export default function Home() {
       });
     return rows.slice(0, 8);
   }, [filteredSheetStates, stateMetrics]);
-
-  const prCityRows = useMemo(() => {
-    const rows = prDetail?.cities?.rows || [];
-    const term = s(prCitySearch).toLowerCase();
-    const filtered = term
-      ? rows.filter((r) => {
-          const county = s(r["County"]).toLowerCase();
-          const city = s(r["City"]).toLowerCase();
-          const locId = s(r["Location Id"]).toLowerCase();
-          return county.includes(term) || city.includes(term) || locId.includes(term);
-        })
-      : rows;
-    return filtered.slice().sort((a, b) => {
-      const c = s(a["County"]).localeCompare(s(b["County"]));
-      if (c !== 0) return c;
-      return s(a["City"]).localeCompare(s(b["City"]));
-    });
-  }, [prDetail, prCitySearch]);
 
   const tabRunKey = (
     kind: "counties" | "cities",
@@ -9304,17 +9294,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ) : null}
 
                     <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <input
-                        className="input"
-                        style={{ maxWidth: 380 }}
-                        placeholder="Search county, city, location id..."
-                        value={prCitySearch}
-                        onChange={(e) => setPrCitySearch(e.target.value)}
-                      />
+                      <div className="mini" style={{ display: "flex", alignItems: "center" }}>
+                        {prCitySearch
+                          ? `Pueblo seleccionado: ${prCitySearch}`
+                          : "Mapa por pueblo. Click en un pueblo para usarlo como filtro."}
+                      </div>
                       <button
                         className="smallBtn"
                         type="button"
-                        onClick={() => void openDetail("Puerto Rico")}
+                        onClick={() => void openPuertoRicoMunicipioDetail(prCitySearch)}
                       >
                         Open Full State Drawer
                       </button>
@@ -9323,42 +9311,18 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     {prDetailErr ? (
                       <div className="mini" style={{ marginTop: 10, color: "var(--danger)" }}>
                         ❌ {prDetailErr}
-                      </div>
+                    </div>
                     ) : prDetailLoading && !prDetail ? (
                       <div className="mini" style={{ marginTop: 10 }}>Loading Puerto Rico data...</div>
                     ) : (
-                      <div className="tableWrap tableScrollX detailTableWrap" style={{ marginTop: 12 }}>
-                        <table className="table detailDataTable tableWideCities">
-                          <thead>
-                            <tr>
-                              <th className="th">Eligible</th>
-                              <th className="th">Active</th>
-                              <th className="th">Location Id</th>
-                              <th className="th">County</th>
-                              <th className="th">City</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {prCityRows.map((r, i) => {
-                              const eligible = !!r.__eligible;
-                              const active = isTrue(r["Domain Created"]);
-                              return (
-                                <tr key={`${s(r["Location Id"])}_${i}`} className={`tr ${eligible ? "rowEligible" : ""}`}>
-                                  <td className="td">{eligible ? "✅" : "—"}</td>
-                                  <td className="td">{active ? <span className="pillOk">Active</span> : <span className="pillOff">Pending</span>}</td>
-                                  <td className="td"><span className="mini">{s(r["Location Id"]) || "—"}</span></td>
-                                  <td className="td">{s(r["County"]) || "—"}</td>
-                                  <td className="td">{s(r["City"]) || "—"}</td>
-                                </tr>
-                              );
-                            })}
-                            {prCityRows.length === 0 ? (
-                              <tr className="tr">
-                                <td className="td mini" colSpan={5}>No city rows found.</td>
-                              </tr>
-                            ) : null}
-                          </tbody>
-                        </table>
+                      <div className="card" style={{ marginTop: 12 }}>
+                        <div className="cardBody" style={{ height: 620 }}>
+                          <PuertoRicoMunicipioProgressMap
+                            rows={prDetail?.cities?.rows || []}
+                            metric={mapMetric}
+                            onPickMunicipio={(municipio) => setPrCitySearch(municipio)}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -11766,7 +11730,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             <div className="badge">PUERTO RICO</div>
                             <div className="prTitle">City activation by row</div>
                             <div className="mini" style={{ marginTop: 6 }}>
-                              Close this modal to view full city table in the Puerto Rico tab.
+                              Close this modal to open the Puerto Rico map by pueblo.
                             </div>
                           </div>
                           <button
@@ -11874,7 +11838,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       </>
                     ) : (
                       <div style={{ marginTop: 12 }} className="mini">
-                        Puerto Rico is selected. Close this modal to inspect city-level data in the Puerto Rico tab.
+                        Puerto Rico is selected. Close this modal to inspect the map by pueblo in the Puerto Rico tab.
                       </div>
                     )}
                   </div>
