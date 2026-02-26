@@ -1142,6 +1142,27 @@ async function runState({
                     countyHandledFromDbResume = true;
                 }
                 if (claimed?.action === "busy") {
+                    if (dbItemState.existingLocationId || dbItemState.existingAccountName) {
+                        await reconcileSheetFromDbDone({
+                            isCity: false,
+                            tabIndex: countyTabIndex,
+                            stateName,
+                            countyName,
+                            locationId: dbItemState.existingLocationId,
+                            accountName: dbItemState.existingAccountName,
+                        }).catch((e) => {
+                            console.log(`⚠️ DB busy county reconcile failed (${countyName}): ${e?.message || e}`);
+                        });
+                        if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                            await markRunDeltaItemDone({
+                                key: dbItemState.key,
+                                locationId: dbItemState.existingLocationId,
+                                accountName: dbItemState.existingAccountName,
+                                note: "resume-db-busy->synced",
+                            }).catch(() => {});
+                        }
+                        await checkpointMarkDone({ kind: "county", countyName });
+                    }
                     resumed++;
                     progressDone.counties += 1;
                     progressDone.all += 1;
@@ -1285,6 +1306,28 @@ async function runState({
                     continue;
                 }
                 if (claimed?.action === "busy") {
+                    if (dbItemState.existingLocationId || dbItemState.existingAccountName) {
+                        await reconcileSheetFromDbDone({
+                            isCity: true,
+                            tabIndex: cityTabIndex,
+                            stateName,
+                            countyName,
+                            cityName,
+                            locationId: dbItemState.existingLocationId,
+                            accountName: dbItemState.existingAccountName,
+                        }).catch((e) => {
+                            console.log(`⚠️ DB busy city reconcile failed (${cityName}): ${e?.message || e}`);
+                        });
+                        if (RUN_DELTA_DB_ACTIVE && dbItemState.key) {
+                            await markRunDeltaItemDone({
+                                key: dbItemState.key,
+                                locationId: dbItemState.existingLocationId,
+                                accountName: dbItemState.existingAccountName,
+                                note: "resume-db-busy->synced",
+                            }).catch(() => {});
+                        }
+                        await checkpointMarkDone({ kind: "city", countyName, cityName });
+                    }
                     resumed++;
                     progressDone.cities += 1;
                     progressDone.all += 1;

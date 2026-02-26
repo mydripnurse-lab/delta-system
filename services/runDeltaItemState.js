@@ -184,7 +184,12 @@ export async function claimRunDeltaItem({
             accountName: s(row.ghl_account_name),
         };
     }
-    return { action: "busy", key };
+    return {
+        action: "busy",
+        key,
+        locationId: s(row.ghl_location_id),
+        accountName: s(row.ghl_account_name),
+    };
 }
 
 export async function markRunDeltaItemCreated({

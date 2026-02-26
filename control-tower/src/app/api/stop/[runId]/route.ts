@@ -74,12 +74,39 @@ async function stopRemoteWorker(runId: string) {
     }
 }
 
+async function releaseDeltaItemLocks(runId: string) {
+    const pool = getDbPool();
+    try {
+        const q = await pool.query<{ count: string }>(
+            `
+              with rel as (
+                update app.run_delta_item_state
+                   set status = 'failed',
+                       run_id = null,
+                       locked_at = null,
+                       last_error = coalesce(nullif(last_error, ''), 'Stopped by user'),
+                       updated_at = now()
+                 where run_id = $1
+                   and status = 'running'
+                returning 1
+              )
+              select count(*)::text as count from rel
+            `,
+            [runId],
+        );
+        return Number(q.rows[0]?.count || 0);
+    } catch {
+        return 0;
+    }
+}
+
 export async function POST(_req: Request, ctx: { params: Promise<{ runId: string }> }) {
     const { runId } = await ctx.params;
 
     if (!runId) return NextResponse.json({ ok: false, error: "Missing runId" }, { status: 400 });
 
     const remoteStop = await stopRemoteWorker(runId);
+    const releasedLocks = await releaseDeltaItemLocks(runId);
     const run = getRun(runId);
     if (!run) {
         // Fallback: run may exist only in DB (different worker/process).
@@ -118,6 +145,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ runId: string
             forced: true,
             pid: pid || null,
             killed,
+            releasedLocks,
             remoteStop,
             note: killed
                 ? "Run was not attached in memory. Process killed by PID and marked as stopped in DB."
@@ -126,5 +154,5 @@ export async function POST(_req: Request, ctx: { params: Promise<{ runId: string
     }
 
     const ok = stopRun(runId);
-    return NextResponse.json({ ok: !!ok, runId, forced: false, remoteStop });
+    return NextResponse.json({ ok: !!ok, runId, forced: false, releasedLocks, remoteStop });
 }
