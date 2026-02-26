@@ -97,6 +97,50 @@ type TenantProductServiceRow = {
   isActive: boolean;
 };
 
+type SeoCanvaIdeaRow = {
+  keyword: string;
+  stage: "unaware" | "problem_aware" | "solution_aware" | "product_aware" | "most_aware";
+  stageLabel: string;
+  avgMonthlySearches: number;
+  competition: string;
+  competitionIndex: number;
+  lowTopBid: number;
+  highTopBid: number;
+};
+
+type SeoCanvaServiceResult = {
+  serviceId: string;
+  name: string;
+  landingPath: string;
+  seeds: string[];
+  ideas: SeoCanvaIdeaRow[];
+  board: Array<{
+    stage: SeoCanvaIdeaRow["stage"];
+    stageLabel: string;
+    count: number;
+    topKeywords: SeoCanvaIdeaRow[];
+  }>;
+  error: string;
+};
+
+type SeoCanvaPayload = {
+  generatedAt: string;
+  services: SeoCanvaServiceResult[];
+  boardSummary: Array<{
+    stage: SeoCanvaIdeaRow["stage"];
+    stageLabel: string;
+    count: number;
+  }>;
+  planner: {
+    ok: boolean;
+    source: string;
+    totalIdeas: number;
+    mappedIdeas: number;
+    services: number;
+    errors?: string[];
+  };
+};
+
 type TenantStateFileRow = {
   id: string;
   organization_id: string;
@@ -158,7 +202,14 @@ type TenantDetailResponse = {
 };
 
 type ProjectTab = "runner" | "search_builder" | "sheet" | "activation" | "logs" | "details" | "webhooks";
-type ProjectDetailsTab = "business" | "ghl" | "integrations" | "custom_values" | "products_services" | "state_files";
+type ProjectDetailsTab =
+  | "business"
+  | "ghl"
+  | "integrations"
+  | "custom_values"
+  | "products_services"
+  | "seo_canva"
+  | "state_files";
 
 type StateDetailResponse = {
   state: string;
@@ -661,6 +712,11 @@ export default function Home() {
   const [tenantProductsServicesMsg, setTenantProductsServicesMsg] = useState("");
   const [tenantProductsServicesSearch, setTenantProductsServicesSearch] = useState("");
   const [tenantProductsServicesPage, setTenantProductsServicesPage] = useState(1);
+  const [seoCanvaLoading, setSeoCanvaLoading] = useState(false);
+  const [seoCanvaMsg, setSeoCanvaMsg] = useState("");
+  const [seoCanvaErr, setSeoCanvaErr] = useState("");
+  const [seoCanvaData, setSeoCanvaData] = useState<SeoCanvaPayload | null>(null);
+  const [seoCanvaExpandedServiceId, setSeoCanvaExpandedServiceId] = useState("");
   const [tenantBingWebmasterApiKey, setTenantBingWebmasterApiKey] = useState("");
   const [tenantBingWebmasterSiteUrl, setTenantBingWebmasterSiteUrl] = useState("");
   const [tenantBingIndexNowKey, setTenantBingIndexNowKey] = useState("");
@@ -1594,6 +1650,49 @@ export default function Home() {
     }
   }
 
+  async function runSeoCanvaModel() {
+    if (!routeTenantId) return;
+    setSeoCanvaMsg("");
+    setSeoCanvaErr("");
+    setSeoCanvaLoading(true);
+    try {
+      const qs = new URLSearchParams({
+        integrationKey: OAUTH_INTEGRATION_KEY,
+      });
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/seo-canva?${qs.toString()}`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const payload = {
+        generatedAt: s((data as any)?.generatedAt),
+        services: Array.isArray((data as any)?.services) ? ((data as any).services as SeoCanvaServiceResult[]) : [],
+        boardSummary: Array.isArray((data as any)?.boardSummary) ? ((data as any).boardSummary as SeoCanvaPayload["boardSummary"]) : [],
+        planner: ((data as any)?.planner || {
+          ok: false,
+          source: "unknown",
+          totalIdeas: 0,
+          mappedIdeas: 0,
+          services: 0,
+          errors: [],
+        }) as SeoCanvaPayload["planner"],
+      } satisfies SeoCanvaPayload;
+      setSeoCanvaData(payload);
+      setSeoCanvaExpandedServiceId(payload.services[0]?.serviceId || "");
+      setSeoCanvaMsg(
+        `Processed ${payload.planner.services || payload.services.length} services · ${payload.planner.totalIdeas || 0} keyword ideas.`,
+      );
+    } catch (e: any) {
+      setSeoCanvaData(null);
+      setSeoCanvaErr(e?.message || "Failed to run SEO Canva Model.");
+    } finally {
+      setSeoCanvaLoading(false);
+    }
+  }
+
   function hydrateBingFormFromIntegrations(rows: TenantIntegrationRow[]) {
     const key = "default";
     const pick =
@@ -1840,6 +1939,13 @@ export default function Home() {
   }, [routeTenantId]);
 
   useEffect(() => {
+    if (!routeTenantId) return;
+    if (detailsTab !== "seo_canva") return;
+    if (seoCanvaLoading || seoCanvaData || seoCanvaErr) return;
+    void runSeoCanvaModel();
+  }, [routeTenantId, detailsTab, seoCanvaLoading, seoCanvaData, seoCanvaErr]);
+
+  useEffect(() => {
     void loadTenantProspectingWebhookSettings();
   }, [routeTenantId]);
 
@@ -1851,6 +1957,7 @@ export default function Home() {
       tab === "integrations" ||
       tab === "custom_values" ||
       tab === "products_services" ||
+      tab === "seo_canva" ||
       tab === "state_files"
     ) {
       setDetailsTab(tab as ProjectDetailsTab);
@@ -6496,6 +6603,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             </button>
             <button
               type="button"
+              className={`detailsTabBtn ${detailsTab === "seo_canva" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("seo_canva")}
+            >
+              SEO Canva Model
+            </button>
+            <button
+              type="button"
               className={`detailsTabBtn ${detailsTab === "state_files" ? "detailsTabBtnOn" : ""}`}
               onClick={() => setDetailsTab("state_files")}
             >
@@ -7307,6 +7421,154 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
                 ) : null}
               </div>
+            </div>
+          ) : null}
+
+          {detailsTab === "seo_canva" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">SEO Canva Model</div>
+                <div className="detailsPaneSub">
+                  Uses active Products & Services as keyword seeds and runs Google Ads Keyword Planner.
+                </div>
+              </div>
+
+              <div className="detailsCustomTop">
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <div className="mini">
+                    Awareness board flow: Unaware → Problem Aware → Solution Aware → Product Aware → Most Aware.
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {seoCanvaMsg ? <span className="badge">{seoCanvaMsg}</span> : null}
+                    {seoCanvaData?.generatedAt ? (
+                      <span className="badge">Updated: {new Date(seoCanvaData.generatedAt).toLocaleString()}</span>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={!routeTenantId || seoCanvaLoading}
+                      onClick={() => void runSeoCanvaModel()}
+                    >
+                      {seoCanvaLoading ? "Running..." : "Run from Products & Services"}
+                    </button>
+                  </div>
+                </div>
+                {seoCanvaErr ? (
+                  <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
+                    ❌ {seoCanvaErr}
+                  </div>
+                ) : null}
+              </div>
+
+              {seoCanvaData ? (
+                <>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                    <span className="badge">Planner: {seoCanvaData.planner.ok ? "connected" : "partial"}</span>
+                    <span className="badge">Source: {s(seoCanvaData.planner.source) || "n/a"}</span>
+                    <span className="badge">Ideas: {Number(seoCanvaData.planner.totalIdeas || 0)}</span>
+                    <span className="badge">Mapped: {Number(seoCanvaData.planner.mappedIdeas || 0)}</span>
+                    <span className="badge">Services: {Number(seoCanvaData.planner.services || 0)}</span>
+                  </div>
+
+                  <div className="tableWrap" style={{ marginTop: 12 }}>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th className="th">Awareness Stage</th>
+                          <th className="th">Keywords</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(seoCanvaData.boardSummary || []).map((row) => (
+                          <tr key={row.stage} className="tr">
+                            <td className="td">{row.stageLabel}</td>
+                            <td className="td">{Number(row.count || 0)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="detailsCustomTop" style={{ marginTop: 12 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <label className="mini" style={{ minWidth: 84 }}>Service</label>
+                      <select
+                        className="select"
+                        style={{ minWidth: 320 }}
+                        value={seoCanvaExpandedServiceId}
+                        onChange={(e) => setSeoCanvaExpandedServiceId(s(e.target.value))}
+                      >
+                        {(seoCanvaData.services || []).map((svc) => (
+                          <option key={svc.serviceId} value={svc.serviceId}>
+                            {svc.name} ({svc.serviceId})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const selected =
+                      (seoCanvaData.services || []).find((svc) => svc.serviceId === seoCanvaExpandedServiceId) ||
+                      seoCanvaData.services[0] ||
+                      null;
+                    if (!selected) {
+                      return <div className="mini" style={{ marginTop: 10 }}>No services available. Add rows in Products & Services first.</div>;
+                    }
+                    return (
+                      <>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                          <span className="badge">Service: {selected.name}</span>
+                          <span className="badge">Landing: {selected.landingPath}</span>
+                          <span className="badge">Seeds: {selected.seeds.length}</span>
+                          <span className="badge">Ideas: {selected.ideas.length}</span>
+                          {selected.error ? <span className="badge">Error: {selected.error}</span> : null}
+                        </div>
+                        <div className="tableWrap" style={{ marginTop: 10 }}>
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th className="th">Keyword</th>
+                                <th className="th">Stage</th>
+                                <th className="th">Avg Monthly</th>
+                                <th className="th">Competition</th>
+                                <th className="th">Bid (Low-High)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selected.ideas.length === 0 ? (
+                                <tr>
+                                  <td className="td" colSpan={5}>
+                                    <span className="mini">No keyword ideas returned for this service.</span>
+                                  </td>
+                                </tr>
+                              ) : (
+                                selected.ideas.slice(0, 50).map((idea) => (
+                                  <tr key={`${selected.serviceId}:${idea.keyword}`} className="tr">
+                                    <td className="td">{idea.keyword}</td>
+                                    <td className="td">{idea.stageLabel}</td>
+                                    <td className="td">{Number(idea.avgMonthlySearches || 0)}</td>
+                                    <td className="td">
+                                      {idea.competition} ({Number(idea.competitionIndex || 0)})
+                                    </td>
+                                    <td className="td">
+                                      ${Number(idea.lowTopBid || 0).toFixed(2)} - ${Number(idea.highTopBid || 0).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                <div className="mini" style={{ marginTop: 12 }}>
+                  Run the model to generate Keyword Planner ideas from your active Products & Services.
+                </div>
+              )}
             </div>
           ) : null}
         </div>
