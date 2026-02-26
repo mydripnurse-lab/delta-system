@@ -1,5 +1,4 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import { requireTenantPermission } from "@/lib/authz";
@@ -12,6 +11,7 @@ const PROVIDER = "custom";
 const SEARCH_SCOPE = "module";
 const SEARCH_MODULE = "search_builder";
 const SEARCH_KEY_NAME = "config_v1";
+const SEARCH_PUBLISH_KEY_NAME = "publish_manifest_v1";
 const SERVICES_MODULE = "products_services";
 const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
 
@@ -46,7 +46,7 @@ function htmlEscape(input: unknown) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/\"/g, "&quot;");
 }
 
 function normalizeColor(input: unknown, fallback: string) {
@@ -93,7 +93,14 @@ type PublishManifest = {
   statesIndexUrl: string;
   generatedAt: string;
   count: number;
-  files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string }>;
+  files: Array<{
+    serviceId: string;
+    name: string;
+    fileName: string;
+    relativePath: string;
+    blobPath: string;
+    url: string;
+  }>;
 };
 
 function parseServiceRow(row: ServiceRow): ParsedService | null {
@@ -205,34 +212,54 @@ async function tenantExists(tenantId: string) {
   return !!q.rows[0];
 }
 
-async function resolveUiRootDir() {
-  const candidates = [
-    path.resolve(process.cwd(), "../public/ui"),
-    path.resolve(process.cwd(), "public/ui"),
-  ];
-  for (const candidate of candidates) {
-    try {
-      const st = await fs.stat(candidate);
-      if (st.isDirectory()) return candidate;
-    } catch {
-      // continue
-    }
-  }
-  await fs.mkdir(candidates[0], { recursive: true });
-  return candidates[0];
-}
-
-async function readManifestForFolder(folder: string): Promise<PublishManifest | null> {
-  const uiRoot = await resolveUiRootDir();
-  const manifestPath = path.join(uiRoot, folder, "_search-builder-manifest.json");
+async function readPublishedManifestFromDb(tenantId: string): Promise<PublishManifest | null> {
+  const pool = getDbPool();
+  const q = await pool.query<{ key_value: string | null }>(
+    `
+      select key_value
+      from app.organization_custom_values
+      where organization_id = $1::uuid
+        and provider = $2
+        and scope = $3
+        and module = $4
+        and key_name = $5
+      limit 1
+    `,
+    [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_MODULE, SEARCH_PUBLISH_KEY_NAME],
+  );
+  const raw = s(q.rows[0]?.key_value);
+  if (!raw) return null;
   try {
-    const raw = await fs.readFile(manifestPath, "utf8");
     const parsed = JSON.parse(raw) as PublishManifest;
     if (!parsed || typeof parsed !== "object") return null;
     return parsed;
   } catch {
     return null;
   }
+}
+
+async function writePublishedManifestToDb(tenantId: string, manifest: PublishManifest) {
+  const pool = getDbPool();
+  await pool.query(
+    `
+      insert into app.organization_custom_values (
+        organization_id, provider, scope, module, key_name,
+        key_value, value_type, is_secret, is_active, description
+      ) values (
+        $1::uuid, $2, $3, $4, $5,
+        $6, 'json', false, true, 'Search Builder publish manifest'
+      )
+      on conflict (organization_id, provider, scope, module, key_name)
+      do update set
+        key_value = excluded.key_value,
+        value_type = excluded.value_type,
+        is_secret = excluded.is_secret,
+        is_active = excluded.is_active,
+        description = excluded.description,
+        updated_at = now()
+    `,
+    [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_MODULE, SEARCH_PUBLISH_KEY_NAME, JSON.stringify(manifest)],
+  );
 }
 
 export async function GET(req: Request, ctx: Ctx) {
@@ -248,33 +275,7 @@ export async function GET(req: Request, ctx: Ctx) {
   }
 
   try {
-    const pool = getDbPool();
-    const cfgQ = await pool.query<{ key_value: string | null }>(
-      `
-        select key_value
-        from app.organization_custom_values
-        where organization_id = $1::uuid
-          and provider = $2
-          and scope = $3
-          and module = $4
-          and key_name = $5
-        limit 1
-      `,
-      [tenantId, PROVIDER, SEARCH_SCOPE, SEARCH_MODULE, SEARCH_KEY_NAME],
-    );
-    if (!cfgQ.rows[0]) {
-      return NextResponse.json({ ok: true, exists: false, manifest: null });
-    }
-
-    let parsedConfig: Record<string, unknown> = {};
-    try {
-      parsedConfig = JSON.parse(s(cfgQ.rows[0].key_value) || "{}") as Record<string, unknown>;
-    } catch {
-      parsedConfig = {};
-    }
-    const config = normalizeSearchBuilderConfig(parsedConfig);
-    const folder = kebabToken(config.folder) || "company-search";
-    const manifest = await readManifestForFolder(folder);
+    const manifest = await readPublishedManifestFromDb(tenantId);
     return NextResponse.json({ ok: true, exists: !!manifest, manifest });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to read published files";
@@ -363,14 +364,9 @@ export async function POST(req: Request, ctx: Ctx) {
             },
           ];
 
-    const uiRoot = await resolveUiRootDir();
-    const outDir = path.join(uiRoot, folder);
-    await fs.mkdir(outDir, { recursive: true });
-
-    const written: Array<{ serviceId: string; name: string; fileName: string; relativePath: string }> = [];
+    const written: PublishManifest["files"] = [];
     for (const artifact of artifacts) {
       const fileName = `${artifact.fileSlug}.html`;
-      const fullPath = path.join(outDir, fileName);
       const html = buildSearchFileHtml({
         statesIndexUrl,
         bookingPath: artifact.bookingPath,
@@ -379,16 +375,25 @@ export async function POST(req: Request, ctx: Ctx) {
         placeholder: config.searchPlaceholder,
         primaryColor: config.buttonColor,
       });
-      await fs.writeFile(fullPath, html, "utf8");
+
+      const blobPath = `search-builder/${tenantId}/${folder}/${fileName}`;
+      const uploaded = await put(blobPath, html, {
+        access: "public",
+        contentType: "text/html; charset=utf-8",
+        addRandomSuffix: false,
+      });
+
       written.push({
         serviceId: artifact.id,
         name: artifact.name,
         fileName,
         relativePath: `public/ui/${folder}/${fileName}`,
+        blobPath: uploaded.pathname,
+        url: uploaded.url,
       });
     }
 
-    const manifest = {
+    const manifest: PublishManifest = {
       tenantId,
       folder,
       host,
@@ -397,15 +402,21 @@ export async function POST(req: Request, ctx: Ctx) {
       count: written.length,
       files: written,
     };
-    await fs.writeFile(path.join(outDir, "_search-builder-manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
+
+    await put(`search-builder/${tenantId}/${folder}/_search-builder-manifest.json`, JSON.stringify(manifest, null, 2), {
+      access: "public",
+      contentType: "application/json; charset=utf-8",
+      addRandomSuffix: false,
+    });
+
+    await writePublishedManifestToDb(tenantId, manifest);
 
     return NextResponse.json({
       ok: true,
       folder,
-      outputDir: outDir,
       generated: written.length,
       files: written,
-      manifestPath: `public/ui/${folder}/_search-builder-manifest.json`,
+      manifest,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Failed to publish search files";

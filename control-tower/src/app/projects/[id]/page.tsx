@@ -704,7 +704,7 @@ export default function Home() {
     host: string;
     generatedAt: string;
     count: number;
-    files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string }>;
+    files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
   } | null>(null);
   const [searchBuilderShowEmbedPreview, setSearchBuilderShowEmbedPreview] = useState(false);
   const [searchBuilderCopiedArtifactId, setSearchBuilderCopiedArtifactId] = useState("");
@@ -1987,15 +1987,28 @@ export default function Home() {
       if (!res.ok || !data?.ok) {
         throw new Error(s(data?.error) || `HTTP ${res.status}`);
       }
-      const total = Number(data?.generated || 0);
-      const folder = s(data?.folder);
-      setSearchBuilderMsg(`Published ${total} files to public/ui/${folder}.`);
+      const manifest = (data?.manifest || null) as
+        | {
+            folder?: string;
+            host?: string;
+            generatedAt?: string;
+            count?: number;
+            files?: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
+          }
+        | null;
+      const total = Number(data?.generated || manifest?.count || 0);
+      const folder = s(data?.folder || manifest?.folder);
+      setSearchBuilderMsg(`Published ${total} files and saved manifest in DB.`);
       setSearchBuilderLastPublish({
         folder,
-          host: SEARCH_EMBEDDED_HOST,
-        generatedAt: new Date().toISOString(),
+        host: s(manifest?.host) || SEARCH_EMBEDDED_HOST,
+        generatedAt: s(manifest?.generatedAt) || new Date().toISOString(),
         count: total,
-        files: Array.isArray(data?.files) ? (data.files as Array<{ serviceId: string; name: string; fileName: string; relativePath: string }>) : [],
+        files: Array.isArray(manifest?.files)
+          ? (manifest.files as Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>)
+          : Array.isArray(data?.files)
+            ? (data.files as Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>)
+            : [],
       });
     } catch (e: unknown) {
       setSearchBuilderErr(e instanceof Error ? e.message : "Failed to publish search files.");
@@ -2020,7 +2033,7 @@ export default function Home() {
             host?: string;
             generatedAt?: string;
             count?: number;
-            files?: Array<{ serviceId: string; name: string; fileName: string; relativePath: string }>;
+            files?: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
           }
         | null;
       if (!manifest) {
@@ -2061,7 +2074,9 @@ export default function Home() {
     const folder = s(searchBuilderLastPublish?.folder);
     if (!folder) return;
     try {
-      await navigator.clipboard.writeText(`public/ui/${folder}`);
+      const tenant = s(routeTenantId);
+      const blobPrefix = tenant ? `search-builder/${tenant}/${folder}` : `search-builder/${folder}`;
+      await navigator.clipboard.writeText(blobPrefix);
       setSearchBuilderCopiedFolderPath(true);
       setTimeout(() => setSearchBuilderCopiedFolderPath(false), 1300);
     } catch {}
@@ -5704,6 +5719,20 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const host = hostOnly(SEARCH_EMBEDDED_HOST) || SEARCH_EMBEDDED_HOST;
     const folder = kebabToken(searchBuilderFolder) || "company-search";
     const query = s(searchBuilderQuery).replace(/^\?+/, "");
+    const withQuery = (url: string) => {
+      if (!query) return url;
+      return `${url}${url.includes("?") ? "&" : "?"}${query}`;
+    };
+    const byServiceId = new Map(
+      (searchBuilderLastPublish?.files || [])
+        .map((f) => [s(f.serviceId), s(f.url)] as const)
+        .filter((x) => !!x[0] && !!x[1]),
+    );
+    const byFileName = new Map(
+      (searchBuilderLastPublish?.files || [])
+        .map((f) => [s(f.fileName), s(f.url)] as const)
+        .filter((x) => !!x[0] && !!x[1]),
+    );
     const statesIndexUrl = routeTenantId
       ? `https://${host}/public/json/tenants/${routeTenantId}/states-index.json`
       : `https://${host}/public/json/states-index.json`;
@@ -5713,6 +5742,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const singleSlug = kebabToken(searchBuilderPageSlug) || "locations";
       const singlePath = normalizeRelativePath("/") || "/";
       const iframeSrcBase = `https://${host}/public/ui/${folder}/${singleSlug}.html`;
+      const publishedUrl = byServiceId.get("manual") || byFileName.get(`${singleSlug}.html`) || "";
       return [{
         id: "manual",
         name: "Manual Search",
@@ -5720,7 +5750,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         bookingPath: singlePath,
         fileSlug: singleSlug,
         fileName: `${singleSlug}.html`,
-        iframeSrc: query ? `${iframeSrcBase}?${query}` : iframeSrcBase,
+        iframeSrc: publishedUrl ? withQuery(publishedUrl) : (query ? `${iframeSrcBase}?${query}` : iframeSrcBase),
         statesIndexUrl,
       }];
     }
@@ -5731,6 +5761,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const fileName = `${fileSlug}.html`;
       const bookingPath = normalizeRelativePath(s(svc.bookingPath) || "/");
       const iframeSrcBase = `https://${host}/public/ui/${folder}/${fileSlug}.html`;
+      const publishedUrl = byServiceId.get(serviceId) || byFileName.get(fileName) || "";
       return {
         id: serviceId,
         name: s(svc.name) || serviceId,
@@ -5738,11 +5769,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         bookingPath,
         fileSlug,
         fileName,
-        iframeSrc: query ? `${iframeSrcBase}?${query}` : iframeSrcBase,
+        iframeSrc: publishedUrl ? withQuery(publishedUrl) : (query ? `${iframeSrcBase}?${query}` : iframeSrcBase),
         statesIndexUrl,
       };
     });
-  }, [routeTenantId, searchBuilderFolder, searchBuilderHost, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
+  }, [routeTenantId, searchBuilderFolder, searchBuilderHost, searchBuilderLastPublish, searchBuilderPageSlug, searchBuilderQuery, tenantProductsServices]);
 
   useEffect(() => {
     if (!searchBuilderServiceArtifacts.length) {
@@ -8023,7 +8054,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             ) : (
               <div>
                 <div className="mini" style={{ marginBottom: 6 }}>
-                  Folder: <code>public/ui/{searchBuilderLastPublish.folder}</code> | Files: {searchBuilderLastPublish.count} | Generated:{" "}
+                  Blob folder: <code>search-builder/{routeTenantId}/{searchBuilderLastPublish.folder}</code> | Files: {searchBuilderLastPublish.count} | Generated:{" "}
                   {searchBuilderLastPublish.generatedAt ? new Date(searchBuilderLastPublish.generatedAt).toLocaleString() : "—"}
                 </div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
@@ -8043,7 +8074,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     </thead>
                     <tbody>
                       {searchBuilderLastPublish.files.map((file) => {
-                        const href = `https://${searchBuilderLastPublish.host}/public/ui/${searchBuilderLastPublish.folder}/${file.fileName}?embed=1`;
+                        const href = s(file.url) || `https://${searchBuilderLastPublish.host}/public/ui/${searchBuilderLastPublish.folder}/${file.fileName}?embed=1`;
                         return (
                           <tr key={`${file.serviceId}:${file.fileName}`} className="tr">
                             <td className="td">{file.name || file.serviceId}</td>
