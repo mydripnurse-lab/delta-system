@@ -6061,28 +6061,36 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   const searchBuilderIframeSrc = useMemo(() => {
     if (!routeTenantId) return "";
     const host = hostOnly(SEARCH_EMBEDDED_HOST) || SEARCH_EMBEDDED_HOST;
-    const folder = kebabToken(searchBuilderFolder) || "company-search";
+    const baseFolder = kebabToken(searchBuilderFolder) || "company-search";
+    const searchId = kebabToken(searchBuilderActiveSearchId) || "search";
+    const folder = `${searchId}-${baseFolder}`.slice(0, 120);
     const page = kebabToken(searchBuilderPageSlug) || "locations";
     const query = s(searchBuilderQuery).replace(/^\?+/, "");
     const base = `https://${host}/embedded/${routeTenantId}/${folder}/${page}.html`;
     return query ? `${base}?${query}` : base;
-  }, [routeTenantId, searchBuilderHost, searchBuilderFolder, searchBuilderPageSlug, searchBuilderQuery]);
+  }, [routeTenantId, searchBuilderHost, searchBuilderActiveSearchId, searchBuilderFolder, searchBuilderPageSlug, searchBuilderQuery]);
 
   const searchBuilderServiceArtifacts = useMemo(() => {
     const host = hostOnly(SEARCH_EMBEDDED_HOST) || SEARCH_EMBEDDED_HOST;
-    const folder = kebabToken(searchBuilderFolder) || "company-search";
+    const baseFolder = kebabToken(searchBuilderFolder) || "company-search";
+    const searchId = kebabToken(searchBuilderActiveSearchId) || "search";
+    const folder = `${searchId}-${baseFolder}`.slice(0, 120);
     const query = s(searchBuilderQuery).replace(/^\?+/, "");
     const withQuery = (url: string) => {
       if (!query) return url;
       return `${url}${url.includes("?") ? "&" : "?"}${query}`;
     };
+    const manifestFiles =
+      searchBuilderLastPublish && s(searchBuilderLastPublish.searchId) === s(searchBuilderActiveSearchId)
+        ? searchBuilderLastPublish.files || []
+        : [];
     const byServiceId = new Map(
-      (searchBuilderLastPublish?.files || [])
+      manifestFiles
         .map((f) => [s(f.serviceId), s(f.url)] as const)
         .filter((x) => !!x[0] && !!x[1]),
     );
     const byFileName = new Map(
-      (searchBuilderLastPublish?.files || [])
+      manifestFiles
         .map((f) => [s(f.fileName), s(f.url)] as const)
         .filter((x) => !!x[0] && !!x[1]),
     );
