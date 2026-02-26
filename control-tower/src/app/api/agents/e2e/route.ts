@@ -30,7 +30,8 @@ type DashboardKey =
   | "ads"
   | "facebook_ads"
   | "youtube_ads"
-  | "content";
+  | "content"
+  | "seo_canva";
 
 function mapDashboardToActionType(dashboard: DashboardKey) {
   if (dashboard === "leads" || dashboard === "prospecting") return "send_leads_ghl" as const;
@@ -50,6 +51,7 @@ function mapDashboardToAgent(dashboard: DashboardKey) {
   if (dashboard === "gsc") return "soul_gsc";
   if (dashboard === "ga") return "soul_ga";
   if (dashboard === "central") return "soul_central_orchestrator";
+  if (dashboard === "seo_canva") return "soul_seo_canvas_strategist";
   return "soul_content_publisher";
 }
 
@@ -132,6 +134,7 @@ export async function POST(req: Request) {
       "facebook_ads",
       "youtube_ads",
       "content",
+      "seo_canva",
       "central",
     ];
     const targets = include.length

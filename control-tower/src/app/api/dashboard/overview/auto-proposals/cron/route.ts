@@ -170,6 +170,7 @@ function defaultAgents() {
     facebook_ads: { enabled: true, agentId: "soul_facebook_ads" },
     youtube_ads: { enabled: true, agentId: "soul_youtube_ads" },
     content: { enabled: true, agentId: "soul_content_publisher" },
+    seo_canva: { enabled: true, agentId: "soul_seo_canvas_strategist" },
   } satisfies Record<string, { enabled: boolean; agentId: string }>;
 }
 

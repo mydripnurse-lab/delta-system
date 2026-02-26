@@ -27,7 +27,8 @@ type DashboardAgentKey =
   | "ads"
   | "facebook_ads"
   | "youtube_ads"
-  | "content";
+  | "content"
+  | "seo_canva";
 
 type AgentNode = {
   enabled: boolean;
@@ -77,6 +78,7 @@ function defaultAgents(): Record<DashboardAgentKey, AgentNode> {
     facebook_ads: { enabled: true, agentId: "soul_facebook_ads", displayName: "Facebook Ads Agent" },
     youtube_ads: { enabled: true, agentId: "soul_youtube_ads", displayName: "YouTube Ads Agent" },
     content: { enabled: true, agentId: "soul_content_publisher", displayName: "Content Publisher Agent" },
+    seo_canva: { enabled: true, agentId: "soul_seo_canvas_strategist", displayName: "SEO Canva Strategist" },
   };
 }
 

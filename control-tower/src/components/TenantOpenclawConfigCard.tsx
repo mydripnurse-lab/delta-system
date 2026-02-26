@@ -52,6 +52,7 @@ const DASHBOARD_ROWS = [
   { key: "facebook_ads", label: "Facebook Ads" },
   { key: "youtube_ads", label: "YouTube Ads" },
   { key: "content", label: "Content" },
+  { key: "seo_canva", label: "SEO Canva" },
 ] as const;
 
 function s(v: unknown) {

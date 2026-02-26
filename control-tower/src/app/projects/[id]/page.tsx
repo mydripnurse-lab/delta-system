@@ -108,6 +108,24 @@ type SeoCanvaIdeaRow = {
   highTopBid: number;
 };
 
+type SeoCanvaUrlStrategyRow = {
+  url: string;
+  format:
+    | "service_page"
+    | "location_page"
+    | "pricing_page"
+    | "comparison_page"
+    | "faq_page"
+    | "how_to_page"
+    | "template_page"
+    | "alternatives_page"
+    | "insights_page";
+  traffic: number;
+  value: number;
+  keywords: number;
+  topKeyword: string;
+};
+
 type SeoCanvaServiceResult = {
   serviceId: string;
   name: string;
@@ -120,25 +138,24 @@ type SeoCanvaServiceResult = {
     count: number;
     topKeywords: SeoCanvaIdeaRow[];
   }>;
-  howToUrls: Array<{
-    url: string;
-    traffic: number;
-    value: number;
-    keywords: number;
-    topKeyword: string;
-  }>;
+  urlStrategyRows: SeoCanvaUrlStrategyRow[];
+  howToUrls: SeoCanvaUrlStrategyRow[];
   error: string;
 };
 
 type SeoCanvaPayload = {
   generatedAt: string;
   rootDomain?: string;
+  industryProfile?: "healthcare" | "legal" | "home_services" | "saas" | "ecommerce" | "generic";
+  businessCategory?: string;
   services: SeoCanvaServiceResult[];
   boardSummary: Array<{
     stage: SeoCanvaIdeaRow["stage"];
     stageLabel: string;
     count: number;
   }>;
+  urlStrategyRows?: SeoCanvaUrlStrategyRow[];
+  formatMix?: Array<{ format: SeoCanvaUrlStrategyRow["format"]; count: number }>;
   planner: {
     ok: boolean;
     source: string;
@@ -725,6 +742,11 @@ export default function Home() {
   const [seoCanvaErr, setSeoCanvaErr] = useState("");
   const [seoCanvaData, setSeoCanvaData] = useState<SeoCanvaPayload | null>(null);
   const [seoCanvaExpandedServiceId, setSeoCanvaExpandedServiceId] = useState("");
+  const [seoCanvaIndustryProfile, setSeoCanvaIndustryProfile] = useState<
+    "healthcare" | "legal" | "home_services" | "saas" | "ecommerce" | "generic"
+  >("healthcare");
+  const [seoCanvaBusinessCategory, setSeoCanvaBusinessCategory] = useState("");
+  const [seoCanvaQueueing, setSeoCanvaQueueing] = useState(false);
   const [tenantBingWebmasterApiKey, setTenantBingWebmasterApiKey] = useState("");
   const [tenantBingWebmasterSiteUrl, setTenantBingWebmasterSiteUrl] = useState("");
   const [tenantBingIndexNowKey, setTenantBingIndexNowKey] = useState("");
@@ -1666,7 +1688,11 @@ export default function Home() {
     try {
       const qs = new URLSearchParams({
         integrationKey: OAUTH_INTEGRATION_KEY,
+        industryProfile: seoCanvaIndustryProfile,
       });
+      if (s(seoCanvaBusinessCategory)) {
+        qs.set("businessCategory", s(seoCanvaBusinessCategory));
+      }
       if (s(tenantRootDomain)) {
         qs.set("rootDomain", s(tenantRootDomain));
       }
@@ -1681,8 +1707,12 @@ export default function Home() {
       const payload = {
         generatedAt: s((data as any)?.generatedAt),
         rootDomain: s((data as any)?.rootDomain),
+        industryProfile: s((data as any)?.industryProfile) as SeoCanvaPayload["industryProfile"],
+        businessCategory: s((data as any)?.businessCategory),
         services: Array.isArray((data as any)?.services) ? ((data as any).services as SeoCanvaServiceResult[]) : [],
         boardSummary: Array.isArray((data as any)?.boardSummary) ? ((data as any).boardSummary as SeoCanvaPayload["boardSummary"]) : [],
+        urlStrategyRows: Array.isArray((data as any)?.urlStrategyRows) ? ((data as any).urlStrategyRows as SeoCanvaUrlStrategyRow[]) : [],
+        formatMix: Array.isArray((data as any)?.formatMix) ? ((data as any).formatMix as SeoCanvaPayload["formatMix"]) : [],
         planner: ((data as any)?.planner || {
           ok: false,
           source: "unknown",
@@ -1702,6 +1732,65 @@ export default function Home() {
       setSeoCanvaErr(e?.message || "Failed to run SEO Canva Model.");
     } finally {
       setSeoCanvaLoading(false);
+    }
+  }
+
+  async function queueSeoCanvaAgentProposal() {
+    if (!routeTenantId || !seoCanvaData) return;
+    setSeoCanvaQueueing(true);
+    setSeoCanvaErr("");
+    try {
+      const routingRes = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/integrations/openclaw`,
+        { cache: "no-store" },
+      );
+      const routingJson = await safeJson(routingRes);
+      const seoAgentId =
+        s((routingJson as any)?.agents?.seo_canva?.agentId) || "soul_seo_canvas_strategist";
+
+      const topRows = (seoCanvaData.urlStrategyRows || [])
+        .slice(0, 20)
+        .map((row) => ({
+          url: row.url,
+          format: row.format,
+          traffic: row.traffic,
+          value: row.value,
+          keywords: row.keywords,
+          topKeyword: row.topKeyword,
+        }));
+
+      const res = await fetch("/api/agents/proposals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: routeTenantId,
+          actionType: "publish_content",
+          agentId: seoAgentId,
+          dashboardId: "seo_canva",
+          priority: "P2",
+          riskLevel: "low",
+          expectedImpact: "high",
+          summary: `SEO Canva multi-industry strategy (${s(seoCanvaData.industryProfile) || "generic"})`,
+          payload: {
+            tenant_id: routeTenantId,
+            source: "seo_canva_model",
+            root_domain: seoCanvaData.rootDomain || s(tenantRootDomain),
+            industry_profile: seoCanvaData.industryProfile || seoCanvaIndustryProfile,
+            business_category: seoCanvaData.businessCategory || s(seoCanvaBusinessCategory),
+            planner_summary: seoCanvaData.planner,
+            format_mix: seoCanvaData.formatMix || [],
+            top_urls: topRows,
+            generated_at: seoCanvaData.generatedAt,
+          },
+        }),
+      });
+      const json = await safeJson(res);
+      if (!res.ok || !json?.ok) throw new Error((json as any)?.error || `HTTP ${res.status}`);
+      setSeoCanvaMsg("SEO strategy sent to Agent Notification Hub for approval.");
+    } catch (e: any) {
+      setSeoCanvaErr(e?.message || "Failed to queue SEO agent proposal.");
+    } finally {
+      setSeoCanvaQueueing(false);
     }
   }
 
@@ -7470,6 +7559,42 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ❌ {seoCanvaErr}
                   </div>
                 ) : null}
+                <div className="row" style={{ marginTop: 10 }}>
+                  <div className="field">
+                    <label>Industry Profile</label>
+                    <select
+                      className="select"
+                      value={seoCanvaIndustryProfile}
+                      onChange={(e) =>
+                        setSeoCanvaIndustryProfile(
+                          s(e.target.value) as
+                            | "healthcare"
+                            | "legal"
+                            | "home_services"
+                            | "saas"
+                            | "ecommerce"
+                            | "generic",
+                        )
+                      }
+                    >
+                      <option value="healthcare">Healthcare</option>
+                      <option value="legal">Legal</option>
+                      <option value="home_services">Home Services</option>
+                      <option value="saas">SaaS</option>
+                      <option value="ecommerce">Ecommerce</option>
+                      <option value="generic">Generic</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Business Category (optional)</label>
+                    <input
+                      className="input"
+                      value={seoCanvaBusinessCategory}
+                      onChange={(e) => setSeoCanvaBusinessCategory(e.target.value)}
+                      placeholder="ex: Mobile IV Therapy, Immigration Law, HVAC Repair"
+                    />
+                  </div>
+                </div>
               </div>
 
               {seoCanvaData ? (
@@ -7480,6 +7605,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <span className="badge">Ideas: {Number(seoCanvaData.planner.totalIdeas || 0)}</span>
                     <span className="badge">Mapped: {Number(seoCanvaData.planner.mappedIdeas || 0)}</span>
                     <span className="badge">Services: {Number(seoCanvaData.planner.services || 0)}</span>
+                    <span className="badge">Industry: {s(seoCanvaData.industryProfile) || seoCanvaIndustryProfile}</span>
+                    {s(seoCanvaData.businessCategory) ? (
+                      <span className="badge">Category: {seoCanvaData.businessCategory}</span>
+                    ) : null}
                   </div>
 
                   <div className="tableWrap" style={{ marginTop: 12 }}>
@@ -7502,16 +7631,32 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
 
                   <div className="detailsPaneHeader" style={{ marginTop: 14 }}>
-                    <div className="detailsPaneTitle">Top How-To URLs (All Services)</div>
+                    <div className="detailsPaneTitle">Top URL Strategy (All Services)</div>
                     <div className="detailsPaneSub">
-                      Prioritized URLs to publish first, based on estimated traffic and value.
+                      Dynamic format mix by tenant industry and search intent.
                     </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                    {(seoCanvaData.formatMix || []).map((row) => (
+                      <span key={`mix:${row.format}`} className="badge">
+                        {row.format}: {Number(row.count || 0)}
+                      </span>
+                    ))}
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={seoCanvaQueueing}
+                      onClick={() => void queueSeoCanvaAgentProposal()}
+                    >
+                      {seoCanvaQueueing ? "Sending..." : "Send to SEO Agent (OpenClaw)"}
+                    </button>
                   </div>
                   <div className="tableWrap" style={{ marginTop: 8 }}>
                     <table className="table">
                       <thead>
                         <tr>
                           <th className="th">URL</th>
+                          <th className="th">Format</th>
                           <th className="th">Traffic</th>
                           <th className="th">Value</th>
                           <th className="th">Keywords</th>
@@ -7522,7 +7667,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         {(() => {
                           const rows = seoCanvaData.services
                             .flatMap((svc) =>
-                              (svc.howToUrls || []).map((row) => ({
+                              (svc.urlStrategyRows || []).map((row) => ({
                                 ...row,
                                 serviceId: svc.serviceId,
                               })),
@@ -7532,8 +7677,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           if (rows.length === 0) {
                             return (
                               <tr>
-                                <td className="td" colSpan={5}>
-                                  <span className="mini">No How-To URLs generated yet.</span>
+                                <td className="td" colSpan={6}>
+                                  <span className="mini">No URL strategy rows generated yet.</span>
                                 </td>
                               </tr>
                             );
@@ -7545,6 +7690,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                   {row.url}
                                 </a>
                               </td>
+                              <td className="td">{row.format}</td>
                               <td className="td">{Number(row.traffic || 0).toLocaleString()}</td>
                               <td className="td">${Number(row.value || 0).toLocaleString()}</td>
                               <td className="td">{Number(row.keywords || 0).toLocaleString()}</td>
@@ -7629,9 +7775,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </div>
 
                         <div className="detailsPaneHeader" style={{ marginTop: 14 }}>
-                          <div className="detailsPaneTitle">How-To URL Strategy</div>
+                          <div className="detailsPaneTitle">Service URL Strategy</div>
                           <div className="detailsPaneSub">
-                            URLs generated from Solution Aware / How-To intent keywords.
+                            Dynamic URL formats generated from this service keyword set.
                           </div>
                         </div>
                         <div className="tableWrap" style={{ marginTop: 8 }}>
@@ -7639,6 +7785,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             <thead>
                               <tr>
                                 <th className="th">URL</th>
+                                <th className="th">Format</th>
                                 <th className="th">Traffic</th>
                                 <th className="th">Value</th>
                                 <th className="th">Keywords</th>
@@ -7646,20 +7793,21 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               </tr>
                             </thead>
                             <tbody>
-                              {(selected.howToUrls || []).length === 0 ? (
+                              {(selected.urlStrategyRows || []).length === 0 ? (
                                 <tr>
-                                  <td className="td" colSpan={5}>
-                                    <span className="mini">No How-To URLs generated yet for this service.</span>
+                                  <td className="td" colSpan={6}>
+                                    <span className="mini">No URL strategy rows generated yet for this service.</span>
                                   </td>
                                 </tr>
                               ) : (
-                                (selected.howToUrls || []).map((row) => (
+                                (selected.urlStrategyRows || []).map((row) => (
                                   <tr key={`${selected.serviceId}:${row.url}`} className="tr">
                                     <td className="td">
                                       <a href={row.url} target="_blank" rel="noreferrer">
                                         {row.url}
                                       </a>
                                     </td>
+                                    <td className="td">{row.format}</td>
                                     <td className="td">{Number(row.traffic || 0).toLocaleString()}</td>
                                     <td className="td">${Number(row.value || 0).toLocaleString()}</td>
                                     <td className="td">{Number(row.keywords || 0).toLocaleString()}</td>

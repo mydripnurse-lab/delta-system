@@ -15,8 +15,21 @@ type AwarenessStage =
   | "product_aware"
   | "most_aware";
 
-type HowToUrlRow = {
+type IndustryProfile = "healthcare" | "legal" | "home_services" | "saas" | "ecommerce" | "generic";
+type UrlFormat =
+  | "service_page"
+  | "location_page"
+  | "pricing_page"
+  | "comparison_page"
+  | "faq_page"
+  | "how_to_page"
+  | "template_page"
+  | "alternatives_page"
+  | "insights_page";
+
+type UrlStrategyRow = {
   url: string;
+  format: UrlFormat;
   traffic: number;
   value: number;
   keywords: number;
@@ -72,6 +85,140 @@ function buildHowToSlug(keyword: string) {
     .replace(/^how-to\s+/i, "");
   const slug = kebab(k);
   return slug ? `how-to-${slug}` : "how-to-guide";
+}
+
+function parseIndustryProfile(v: unknown): IndustryProfile {
+  const x = s(v).toLowerCase();
+  if (x === "healthcare" || x === "legal" || x === "home_services" || x === "saas" || x === "ecommerce") {
+    return x;
+  }
+  return "generic";
+}
+
+function profileFormatWeights(profile: IndustryProfile): Record<UrlFormat, number> {
+  if (profile === "healthcare") {
+    return {
+      service_page: 0.31,
+      location_page: 0.2,
+      pricing_page: 0.14,
+      comparison_page: 0.08,
+      faq_page: 0.12,
+      how_to_page: 0.07,
+      template_page: 0.0,
+      alternatives_page: 0.03,
+      insights_page: 0.05,
+    };
+  }
+  if (profile === "legal") {
+    return {
+      service_page: 0.29,
+      location_page: 0.2,
+      pricing_page: 0.08,
+      comparison_page: 0.14,
+      faq_page: 0.12,
+      how_to_page: 0.04,
+      template_page: 0.02,
+      alternatives_page: 0.06,
+      insights_page: 0.05,
+    };
+  }
+  if (profile === "home_services") {
+    return {
+      service_page: 0.3,
+      location_page: 0.25,
+      pricing_page: 0.1,
+      comparison_page: 0.08,
+      faq_page: 0.09,
+      how_to_page: 0.05,
+      template_page: 0.0,
+      alternatives_page: 0.04,
+      insights_page: 0.09,
+    };
+  }
+  if (profile === "saas") {
+    return {
+      service_page: 0.16,
+      location_page: 0.02,
+      pricing_page: 0.14,
+      comparison_page: 0.16,
+      faq_page: 0.1,
+      how_to_page: 0.15,
+      template_page: 0.12,
+      alternatives_page: 0.1,
+      insights_page: 0.05,
+    };
+  }
+  if (profile === "ecommerce") {
+    return {
+      service_page: 0.23,
+      location_page: 0.03,
+      pricing_page: 0.16,
+      comparison_page: 0.14,
+      faq_page: 0.09,
+      how_to_page: 0.08,
+      template_page: 0.1,
+      alternatives_page: 0.11,
+      insights_page: 0.06,
+    };
+  }
+  return {
+    service_page: 0.24,
+    location_page: 0.12,
+    pricing_page: 0.12,
+    comparison_page: 0.12,
+    faq_page: 0.12,
+    how_to_page: 0.1,
+    template_page: 0.06,
+    alternatives_page: 0.06,
+    insights_page: 0.06,
+  };
+}
+
+function chooseUrlFormat(input: {
+  keyword: string;
+  stage: AwarenessStage;
+  profile: IndustryProfile;
+}): UrlFormat {
+  const k = norm(input.keyword);
+  const has = (parts: string[]) => parts.some((part) => k.includes(part));
+
+  if (has(["near me", " in ", " city ", " county ", " location"])) return "location_page";
+  if (has(["price", "pricing", "cost", "quote"])) return "pricing_page";
+  if (has(["vs", "versus", "compare", "comparison"])) return "comparison_page";
+  if (has(["alternative", "alternatives"])) return "alternatives_page";
+  if (has(["faq", "faqs", "questions"])) return "faq_page";
+  if (has(["template", "templates"])) return "template_page";
+  if (has(["how to", "guide", "checklist"])) return "how_to_page";
+
+  if (input.stage === "most_aware") return "service_page";
+  if (input.stage === "product_aware") return "comparison_page";
+  if (input.stage === "solution_aware") {
+    const weights = profileFormatWeights(input.profile);
+    if (weights.template_page >= 0.1) return "template_page";
+    if (weights.how_to_page >= 0.08) return "how_to_page";
+    return "service_page";
+  }
+  if (input.stage === "problem_aware") return "faq_page";
+  if (input.profile === "saas" && has(["api", "integration", "automation"])) return "template_page";
+  return "insights_page";
+}
+
+function buildUrlPath(input: {
+  format: UrlFormat;
+  keyword: string;
+  serviceId: string;
+}) {
+  const keySlug = kebab(input.keyword);
+  const serviceSlug = kebab(input.serviceId);
+  if (input.format === "location_page") return `/locations/${keySlug || serviceSlug}/`;
+  if (input.format === "pricing_page") return `/pricing/${serviceSlug || keySlug}/`;
+  if (input.format === "comparison_page") return `/compare/${keySlug || serviceSlug}/`;
+  if (input.format === "faq_page") return `/faq/${keySlug || serviceSlug}/`;
+  if (input.format === "how_to_page") return `/learn/${buildHowToSlug(input.keyword)}/`;
+  if (input.format === "template_page") return `/templates/${keySlug || serviceSlug}/`;
+  if (input.format === "alternatives_page") return `/alternatives/${keySlug || serviceSlug}/`;
+  if (input.format === "insights_page") return `/insights/${keySlug || serviceSlug}/`;
+  return `/services/${serviceSlug || keySlug}/`;
 }
 
 function sleep(ms: number) {
@@ -204,6 +351,8 @@ export async function GET(req: Request, ctx: Ctx) {
   try {
     const { searchParams } = new URL(req.url);
     const integrationKey = s(searchParams.get("integrationKey")) || "default";
+    const industryProfile = parseIndustryProfile(searchParams.get("industryProfile"));
+    const businessCategory = s(searchParams.get("businessCategory"));
     const languageConstant = s(searchParams.get("languageConstant")) || "languageConstants/1000";
     const geoTargetRaw = s(searchParams.get("geoTargetConstant")) || "geoTargetConstants/2840";
     const geoTargetConstants = dedupeStrings(
@@ -232,8 +381,13 @@ export async function GET(req: Request, ctx: Ctx) {
       return NextResponse.json({
         ok: true,
         generatedAt: new Date().toISOString(),
+        rootDomain,
+        industryProfile,
+        businessCategory,
         services: [],
         boardSummary: [],
+        urlStrategyRows: [],
+        formatMix: [],
         planner: {
           ok: true,
           source: loaded.source,
@@ -281,7 +435,8 @@ export async function GET(req: Request, ctx: Ctx) {
           highTopBid: number;
         }>;
       }>;
-      howToUrls: HowToUrlRow[];
+      urlStrategyRows: UrlStrategyRow[];
+      howToUrls: UrlStrategyRow[];
       error: string;
     }> = [];
 
@@ -309,6 +464,7 @@ export async function GET(req: Request, ctx: Ctx) {
           seeds: [],
           ideas: [],
           board: [],
+          urlStrategyRows: [],
           howToUrls: [],
           error: "No valid seeds for this service.",
         });
@@ -360,31 +516,35 @@ export async function GET(req: Request, ctx: Ctx) {
           };
         });
 
-        const howToCandidates = ideas
-          .filter(
-            (row) =>
-              row.stage === "solution_aware" ||
-              norm(row.keyword).includes("how to") ||
-              norm(row.keyword).includes("guide") ||
-              norm(row.keyword).includes("checklist"),
-          )
-          .sort((a, b) => b.avgMonthlySearches - a.avgMonthlySearches)
-          .slice(0, 15);
+        const strategyRows = ideas
+          .slice(0, 30)
+          .map((row) => {
+            const format = chooseUrlFormat({
+              keyword: row.keyword,
+              stage: row.stage,
+              profile: industryProfile,
+            });
+            const urlPath = buildUrlPath({
+              format,
+              keyword: row.keyword,
+              serviceId: svc.serviceId,
+            });
+            const traffic = Math.max(0, Math.round(row.avgMonthlySearches * 0.22));
+            const bidMid = (row.lowTopBid + row.highTopBid) / 2;
+            const value = Math.max(0, Math.round(traffic * Math.max(0.2, bidMid)));
+            const keywords = Math.max(1, Math.round((row.competitionIndex || 0) / 12) + 1);
+            return {
+              url: `${rootDomain || "https://example.com"}${urlPath}`,
+              format,
+              traffic,
+              value,
+              keywords,
+              topKeyword: row.keyword,
+            };
+          })
+          .filter((row) => row.url);
 
-        const howToUrls: HowToUrlRow[] = howToCandidates.map((row) => {
-          const urlPath = `/learn/${buildHowToSlug(row.keyword)}/`;
-          const traffic = Math.max(0, Math.round(row.avgMonthlySearches * 0.22));
-          const bidMid = (row.lowTopBid + row.highTopBid) / 2;
-          const value = Math.max(0, Math.round(traffic * Math.max(0.2, bidMid)));
-          const keywords = Math.max(1, Math.round((row.competitionIndex || 0) / 12) + 1);
-          return {
-            url: `${rootDomain || "https://example.com"}${urlPath}`,
-            traffic,
-            value,
-            keywords,
-            topKeyword: row.keyword,
-          };
-        });
+        const howToUrls = strategyRows.filter((row) => row.format === "how_to_page");
 
         serviceResults.push({
           serviceId: svc.serviceId,
@@ -393,6 +553,7 @@ export async function GET(req: Request, ctx: Ctx) {
           seeds,
           ideas,
           board,
+          urlStrategyRows: strategyRows,
           howToUrls,
           error: "",
         });
@@ -404,6 +565,7 @@ export async function GET(req: Request, ctx: Ctx) {
           seeds,
           ideas: [],
           board: [],
+          urlStrategyRows: [],
           howToUrls: [],
           error: error instanceof Error ? error.message : "Keyword Planner error",
         });
@@ -432,13 +594,38 @@ export async function GET(req: Request, ctx: Ctx) {
 
     const plannerErrors = serviceResults.map((x) => s(x.error)).filter(Boolean);
     const mappedIdeas = allIdeas.filter((x) => x.avgMonthlySearches > 0).length;
+    const urlStrategyRows = serviceResults
+      .flatMap((row) => row.urlStrategyRows || [])
+      .sort((a, b) => b.traffic - a.traffic || b.value - a.value)
+      .slice(0, 120);
+    const formatMix = (() => {
+      const counts: Record<UrlFormat, number> = {
+        service_page: 0,
+        location_page: 0,
+        pricing_page: 0,
+        comparison_page: 0,
+        faq_page: 0,
+        how_to_page: 0,
+        template_page: 0,
+        alternatives_page: 0,
+        insights_page: 0,
+      };
+      for (const row of urlStrategyRows) {
+        if (row.format in counts) counts[row.format as UrlFormat] += 1;
+      }
+      return Object.entries(counts).map(([format, count]) => ({ format, count }));
+    })();
 
     return NextResponse.json({
       ok: true,
       generatedAt: new Date().toISOString(),
       rootDomain,
+      industryProfile,
+      businessCategory,
       services: serviceResults,
       boardSummary,
+      urlStrategyRows,
+      formatMix,
       planner: {
         ok: plannerErrors.length === 0,
         source: loaded.source,
