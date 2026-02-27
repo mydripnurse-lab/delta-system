@@ -168,6 +168,8 @@ type LocationNavBuilder = {
   buttonBg: string;
   buttonText: string;
   buttonBorder: string;
+  buttonBorderEnabled: boolean;
+  buttonBorderWidth: number;
   buttonRadius: number;
   buttonPaddingY: number;
   buttonPaddingX: number;
@@ -952,6 +954,8 @@ export default function Home() {
   const [locationNavButtonBg, setLocationNavButtonBg] = useState("#0f172a");
   const [locationNavButtonText, setLocationNavButtonText] = useState("#e2e8f0");
   const [locationNavButtonBorder, setLocationNavButtonBorder] = useState("#1e293b");
+  const [locationNavButtonBorderEnabled, setLocationNavButtonBorderEnabled] = useState(true);
+  const [locationNavButtonBorderWidth, setLocationNavButtonBorderWidth] = useState(1);
   const [locationNavButtonRadius, setLocationNavButtonRadius] = useState(12);
   const [locationNavButtonPaddingY, setLocationNavButtonPaddingY] = useState(10);
   const [locationNavButtonPaddingX, setLocationNavButtonPaddingX] = useState(14);
@@ -2557,6 +2561,8 @@ export default function Home() {
       buttonBg: "#0f172a",
       buttonText: "#e2e8f0",
       buttonBorder: "#1e293b",
+      buttonBorderEnabled: true,
+      buttonBorderWidth: 1,
       buttonRadius: 12,
       buttonPaddingY: 10,
       buttonPaddingX: 14,
@@ -2589,6 +2595,8 @@ export default function Home() {
     setLocationNavButtonBg(s(b.buttonBg) || "#0f172a");
     setLocationNavButtonText(s(b.buttonText) || "#e2e8f0");
     setLocationNavButtonBorder(s(b.buttonBorder) || "#1e293b");
+    setLocationNavButtonBorderEnabled(b.buttonBorderEnabled !== false);
+    setLocationNavButtonBorderWidth(Math.max(0, Math.min(12, Number(b.buttonBorderWidth ?? 1))));
     setLocationNavButtonRadius(Math.max(0, Math.min(30, Number(b.buttonRadius || 12))));
     setLocationNavButtonPaddingY(Math.max(6, Math.min(24, Number(b.buttonPaddingY || 10))));
     setLocationNavButtonPaddingX(Math.max(8, Math.min(32, Number(b.buttonPaddingX || 14))));
@@ -2617,6 +2625,8 @@ export default function Home() {
       buttonBg: s(locationNavButtonBg) || fallback.buttonBg,
       buttonText: s(locationNavButtonText) || fallback.buttonText,
       buttonBorder: s(locationNavButtonBorder) || fallback.buttonBorder,
+      buttonBorderEnabled: locationNavButtonBorderEnabled,
+      buttonBorderWidth: Number(locationNavButtonBorderWidth) || 0,
       buttonRadius: Number(locationNavButtonRadius) || fallback.buttonRadius,
       buttonPaddingY: Number(locationNavButtonPaddingY) || fallback.buttonPaddingY,
       buttonPaddingX: Number(locationNavButtonPaddingX) || fallback.buttonPaddingX,
@@ -6851,6 +6861,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     buttonBg: "${escapeHtmlAttr(locationNavButtonBg || "#0f172a")}",
     buttonText: "${escapeHtmlAttr(locationNavButtonText || "#e2e8f0")}",
     buttonBorder: "${escapeHtmlAttr(locationNavButtonBorder || "#1e293b")}",
+    buttonBorderEnabled: ${locationNavButtonBorderEnabled ? "true" : "false"},
+    buttonBorderWidth: ${Math.max(0, Math.min(12, Number(locationNavButtonBorderWidth) || 1))},
     buttonRadius: ${Math.max(0, Math.min(30, Number(locationNavButtonRadius) || 12))},
     buttonPaddingY: ${Math.max(6, Math.min(24, Number(locationNavButtonPaddingY) || 10))},
     buttonPaddingX: ${Math.max(8, Math.min(32, Number(locationNavButtonPaddingX) || 14))},
@@ -6868,6 +6880,22 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   function subdomainFromHost(h){ const p=s(h).toLowerCase().replace(/^www\\./,'').split('.').filter(Boolean); return p.length>2 ? p[0] : ''; }
   function byName(a,b){ return a.label.localeCompare(b.label); }
   function uniqBy(arr,keyFn){ const seen=new Set(); const out=[]; for(const it of arr){ const k=keyFn(it); if(!k||seen.has(k)) continue; seen.add(k); out.push(it);} return out; }
+  function dropSuffixToken(v){
+    const x = slug(v);
+    return x.replace(/-(city|county|parish)$/, "").replace(/-(city|county|parish)-[a-z]{2}$/, "");
+  }
+  function classifyFromSubdomain(sub){
+    if(/-city(-[a-z]{2})?$/.test(sub)) return "city";
+    if(/-(county|parish)(-[a-z]{2})?$/.test(sub)) return "county";
+    return "state";
+  }
+  function countyDisplayLabel(countyName, stateName){
+    const raw = s(countyName);
+    if(!raw) return "";
+    const low = norm(raw);
+    if(low.endsWith(" county") || low.endsWith(" parish")) return raw;
+    return norm(stateName) === "louisiana" ? (raw + " Parish") : (raw + " County");
+  }
   function withCurrentPath(targetUrl){
     try{
       const target = new URL(targetUrl);
@@ -6884,6 +6912,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   function detectContext(items){
     const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase().replace(/^www\\./,"");
     const subdomain = hostLabel(subdomainFromHost(host));
+    const subType = classifyFromSubdomain(subdomain);
     let cityMatch = null;
     let countyMatch = null;
     let stateMatch = null;
@@ -6897,7 +6926,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       if(!cityMatch && subdomain && subdomain === cityHostLabel) cityMatch = it;
       if(!countyMatch && subdomain && subdomain === countyHostLabel) countyMatch = it;
       if(!stateMatch && subdomain && (subdomain === stateHostLabel || subdomain === slug(it.state || ""))) stateMatch = it;
+      // fallback exact-by-name from subdomain token when URLs are missing/incomplete
+      if(!countyMatch && subType === "county" && dropSuffixToken(subdomain) === dropSuffixToken(it.county || "")) countyMatch = it;
+      if(!cityMatch && subType === "city" && dropSuffixToken(subdomain) === dropSuffixToken(it.city || "")) cityMatch = it;
+      if(!stateMatch && subType === "state" && subdomain === slug(it.state || "")) stateMatch = it;
     }
+    // En county pages we must show cities (priority county over city/state)
     if(countyMatch) return { type: "county", state: s(countyMatch.state), county: s(countyMatch.county), city: "" };
     if(cityMatch) return { type: "city", state: s(cityMatch.state), county: s(cityMatch.county), city: s(cityMatch.city) };
     if(stateMatch) return { type: "state", state: s(stateMatch.state), county: "", city: "" };
@@ -6905,25 +6939,28 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   }
 
   function buildTargets(items, ctx){
+    // City page => list of states (+ Puerto Rico if present in data)
     if(ctx.type === "city"){
       const rows = items
         .filter((x)=>s(x.stateUrl || x.state))
         .map((x)=>({ label: x.state, href: withCurrentPath(s(x.stateUrl || x.countyUrl || x.countyDomain)) }))
         .filter((x)=>s(x.label) && s(x.href));
-      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+      return uniqBy(rows,(x)=>norm(x.label)).sort(byName);
     }
+    // County page => cities from same county in alphabetical order
     if(ctx.type === "county"){
       const rows = items
         .filter((x)=>norm(x.state)===norm(ctx.state) && norm(x.county)===norm(ctx.county))
         .map((x)=>({ label: x.city, href: withCurrentPath(s(x.cityUrl || x.cityDomain)) }))
         .filter((x)=>s(x.label) && s(x.href));
-      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+      return uniqBy(rows,(x)=>norm(x.label)).sort(byName);
     }
+    // State page => counties (or parishes in Louisiana)
     const rows = items
       .filter((x)=>!ctx.state || norm(x.state)===norm(ctx.state))
-      .map((x)=>({ label: x.county, href: withCurrentPath(s(x.countyUrl || x.countyDomain)) }))
+      .map((x)=>({ label: countyDisplayLabel(x.county, x.state), href: withCurrentPath(s(x.countyUrl || x.countyDomain)) }))
       .filter((x)=>s(x.label) && s(x.href));
-    return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+    return uniqBy(rows,(x)=>norm(x.label)).sort(byName);
   }
 
   function render(targets){
@@ -6932,7 +6969,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       ".ct-nav-wrap{font-family:${safeFontFamily},system-ui,-apple-system,Segoe UI,Roboto,Arial;}",
       ".ct-nav-title{margin:0 0 10px 0;font-size:18px;font-weight:800;color:inherit;}",
       ".ct-nav-grid{display:grid;grid-template-columns:repeat("+CFG.cols+",minmax(0,1fr));gap:"+CFG.gap+"px;}",
-      ".ct-nav-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:"+CFG.buttonBg+";color:"+CFG.buttonText+";border:1px solid "+CFG.buttonBorder+";border-radius:"+CFG.buttonRadius+"px;padding:"+CFG.buttonPaddingY+"px "+CFG.buttonPaddingX+"px;font-size:"+CFG.buttonFontSize+"px;font-weight:"+CFG.buttonFontWeight+";line-height:1.2;transition:transform .08s ease,filter .14s ease;}",
+      ".ct-nav-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:"+CFG.buttonBg+";color:"+CFG.buttonText+";border:"+(CFG.buttonBorderEnabled ? (CFG.buttonBorderWidth + "px solid " + CFG.buttonBorder) : "0")+";border-radius:"+CFG.buttonRadius+"px;padding:"+CFG.buttonPaddingY+"px "+CFG.buttonPaddingX+"px;font-size:"+CFG.buttonFontSize+"px;font-weight:"+CFG.buttonFontWeight+";line-height:1.2;transition:transform .08s ease,filter .14s ease;}",
       ".ct-nav-btn:hover{filter:brightness(1.07);}",
       ".ct-nav-btn:active{transform:translateY(1px);}",
       "@media (max-width:1024px){.ct-nav-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}",
@@ -9750,7 +9787,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               textDecoration: "none",
                               background: s(locationNavButtonBg) || "#0f172a",
                               color: s(locationNavButtonText) || "#e2e8f0",
-                              border: `1px solid ${s(locationNavButtonBorder) || "#1e293b"}`,
+                              border: locationNavButtonBorderEnabled
+                                ? `${Math.max(0, Number(locationNavButtonBorderWidth) || 1)}px solid ${s(locationNavButtonBorder) || "#1e293b"}`
+                                : "0",
                               borderRadius: Math.max(0, Number(locationNavButtonRadius) || 12),
                               padding: `${Math.max(6, Number(locationNavButtonPaddingY) || 10)}px ${Math.max(8, Number(locationNavButtonPaddingX) || 14)}px`,
                               fontSize: Math.max(11, Number(locationNavButtonFontSize) || 14),
@@ -9778,7 +9817,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                   textDecoration: "none",
                                   background: s(locationNavButtonBg) || "#0f172a",
                                   color: s(locationNavButtonText) || "#e2e8f0",
-                                  border: `1px solid ${s(locationNavButtonBorder) || "#1e293b"}`,
+                                  border: locationNavButtonBorderEnabled
+                                    ? `${Math.max(0, Number(locationNavButtonBorderWidth) || 1)}px solid ${s(locationNavButtonBorder) || "#1e293b"}`
+                                    : "0",
                                   borderRadius: Math.max(0, Number(locationNavButtonRadius) || 12),
                                   padding: `${Math.max(6, Number(locationNavButtonPaddingY) || 10)}px ${Math.max(8, Number(locationNavButtonPaddingX) || 14)}px`,
                                   fontSize: Math.max(11, Number(locationNavButtonFontSize) || 14),
@@ -9861,7 +9902,31 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           </button>
                         </div>
                         <div className="field"><label>Button text color</label><input className="input" value={locationNavButtonText} onChange={(e) => setLocationNavButtonText(e.target.value)} /></div>
+                        <div className="field">
+                          <label>Border enabled</label>
+                          <select
+                            className="select"
+                            value={locationNavButtonBorderEnabled ? "yes" : "no"}
+                            onChange={(e) => setLocationNavButtonBorderEnabled(e.target.value === "yes")}
+                          >
+                            <option value="yes">Enabled</option>
+                            <option value="no">Disabled</option>
+                          </select>
+                        </div>
                         <div className="field"><label>Button border color</label><input className="input" value={locationNavButtonBorder} onChange={(e) => setLocationNavButtonBorder(e.target.value)} /></div>
+                        {locationNavButtonBorderEnabled ? (
+                          <div className="field">
+                            <label>Border width (px)</label>
+                            <input
+                              className="input"
+                              type="number"
+                              min={0}
+                              max={12}
+                              value={locationNavButtonBorderWidth}
+                              onChange={(e) => setLocationNavButtonBorderWidth(Math.max(0, Math.min(12, Number(e.target.value) || 1)))}
+                            />
+                          </div>
+                        ) : null}
                         <div className="field"><label>Button radius</label><input className="input" type="number" min={0} max={30} value={locationNavButtonRadius} onChange={(e) => setLocationNavButtonRadius(Number(e.target.value) || 12)} /></div>
                         <div className="field"><label>Padding Y</label><input className="input" type="number" min={6} max={24} value={locationNavButtonPaddingY} onChange={(e) => setLocationNavButtonPaddingY(Number(e.target.value) || 10)} /></div>
                         <div className="field"><label>Padding X</label><input className="input" type="number" min={8} max={32} value={locationNavButtonPaddingX} onChange={(e) => setLocationNavButtonPaddingX(Number(e.target.value) || 14)} /></div>

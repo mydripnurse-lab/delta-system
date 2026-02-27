@@ -43,6 +43,14 @@ function n(input: unknown, fallback: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.round(v)));
 }
 
+function b(input: unknown, fallback: boolean) {
+  if (typeof input === "boolean") return input;
+  const raw = s(input).toLowerCase();
+  if (raw === "true" || raw === "1" || raw === "yes" || raw === "y" || raw === "on") return true;
+  if (raw === "false" || raw === "0" || raw === "no" || raw === "n" || raw === "off") return false;
+  return fallback;
+}
+
 function normalizeFontKey(input: unknown) {
   const key = s(input).toLowerCase();
   const allowed = new Set([
@@ -80,6 +88,8 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     buttonBg: normalizeColor(input?.buttonBg, "#0f172a"),
     buttonText: normalizeColor(input?.buttonText, "#e2e8f0"),
     buttonBorder: normalizeColor(input?.buttonBorder, "#1e293b"),
+    buttonBorderEnabled: b(input?.buttonBorderEnabled, true),
+    buttonBorderWidth: n(input?.buttonBorderWidth, 1, 0, 12),
     buttonRadius: n(input?.buttonRadius, 12, 0, 30),
     buttonPaddingY: n(input?.buttonPaddingY, 10, 6, 24),
     buttonPaddingX: n(input?.buttonPaddingX, 14, 8, 32),
