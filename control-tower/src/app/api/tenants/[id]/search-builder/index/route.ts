@@ -129,6 +129,17 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
   }
 
   const stateName = pickText(payload, ["stateName", "state", "name"]);
+  const countyDomainByName = new Map<string, string>();
+  const countiesRaw = payload.counties;
+  const counties = Array.isArray(countiesRaw) ? countiesRaw : [];
+  for (const county0 of counties) {
+    if (!county0 || typeof county0 !== "object" || Array.isArray(county0)) continue;
+    const countyObj = county0 as Record<string, unknown>;
+    const countyName = pickText(countyObj, ["countyName", "parishName", "County", "county", "parish", "name"]);
+    const countyDomain = pickText(countyObj, ["countyDomain", "parishDomain", "county_domain", "parish_domain", "Domain", "domain"]);
+    if (!countyName || !countyDomain) continue;
+    countyDomainByName.set(normalizeText(countyName), countyDomain);
+  }
   const rowsRaw = payload.rows;
   const rows = Array.isArray(rowsRaw) ? rowsRaw : [];
   if (rows.length) {
@@ -138,7 +149,8 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
       const row = row0 as Record<string, unknown>;
       const countyName = pickText(row, ["County", "county", "countyName", "parishName"]);
       const cityName = pickText(row, ["City", "city", "cityName"]);
-      const countyDomain = pickText(row, ["Domain", "County Domain", "countyDomain", "parishDomain"]);
+      const countyDomainRaw = pickText(row, ["Domain", "County Domain", "countyDomain", "parishDomain"]);
+      const countyDomain = countyDomainRaw || countyDomainByName.get(normalizeText(countyName)) || "";
       const cityDomain = pickText(row, ["City Domain", "cityDomain"]);
       const labelCore = cityName || countyName;
       if (!labelCore) continue;

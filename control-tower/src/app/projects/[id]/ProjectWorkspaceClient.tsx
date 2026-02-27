@@ -6881,36 +6881,47 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     }
   }
 
-  function detectStateFromSubdomain(items){
+  function detectContext(items){
     const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase().replace(/^www\\./,"");
     const subdomain = hostLabel(subdomainFromHost(host));
-    if(!subdomain) return "";
+    let cityMatch = null;
+    let countyMatch = null;
+    let stateMatch = null;
     for(const it of items){
-      if(subdomain === slug(it.state || "")) return s(it.state);
-    }
-    for(const it of items){
-      const countyHostLabel = hostLabel(hostFromUrl(it.countyUrl || it.countyDomain || ""));
       const cityHostLabel = hostLabel(hostFromUrl(it.cityUrl || it.cityDomain || ""));
+      const countyHostLabel = hostLabel(hostFromUrl(it.countyUrl || it.countyDomain || ""));
       const stateHostLabel = hostLabel(hostFromUrl(it.stateUrl || ""));
-      if(subdomain && (subdomain === countyHostLabel || subdomain === cityHostLabel || subdomain === stateHostLabel)) {
-        return s(it.state);
-      }
+      if(!cityMatch && host && hostFromUrl(it.cityUrl || it.cityDomain || "") === host) cityMatch = it;
+      if(!countyMatch && host && hostFromUrl(it.countyUrl || it.countyDomain || "") === host) countyMatch = it;
+      if(!stateMatch && host && hostFromUrl(it.stateUrl || "") === host) stateMatch = it;
+      if(!cityMatch && subdomain && (subdomain === cityHostLabel || cityHostLabel.startsWith(subdomain + "-"))) cityMatch = it;
+      if(!countyMatch && subdomain && (subdomain === countyHostLabel || countyHostLabel.startsWith(subdomain + "-"))) countyMatch = it;
+      if(!stateMatch && subdomain && (subdomain === stateHostLabel || subdomain === slug(it.state || ""))) stateMatch = it;
     }
-    // fallback para subdominios con sufijos de estado (ej: orange-county vs orange-county-ca)
-    for(const it of items){
-      const countyHostLabel = hostLabel(hostFromUrl(it.countyUrl || it.countyDomain || ""));
-      const cityHostLabel = hostLabel(hostFromUrl(it.cityUrl || it.cityDomain || ""));
-      if((countyHostLabel && countyHostLabel.startsWith(subdomain+"-")) || (cityHostLabel && cityHostLabel.startsWith(subdomain+"-"))){
-        return s(it.state);
-      }
-    }
-    return "";
+    if(cityMatch) return { type: "city", state: s(cityMatch.state), county: s(cityMatch.county), city: s(cityMatch.city) };
+    if(countyMatch) return { type: "county", state: s(countyMatch.state), county: s(countyMatch.county), city: "" };
+    if(stateMatch) return { type: "state", state: s(stateMatch.state), county: "", city: "" };
+    return { type: "state", state: "", county: "", city: "" };
   }
 
-  function buildTargets(items, stateName){
+  function buildTargets(items, ctx){
+    if(ctx.type === "city"){
+      const rows = items
+        .filter((x)=>s(x.stateUrl || x.state))
+        .map((x)=>({ label: x.state, href: withCurrentPath(s(x.stateUrl || x.countyUrl || x.countyDomain)) }))
+        .filter((x)=>s(x.label) && s(x.href));
+      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+    }
+    if(ctx.type === "county"){
+      const rows = items
+        .filter((x)=>norm(x.state)===norm(ctx.state) && norm(x.county)===norm(ctx.county))
+        .map((x)=>({ label: x.city, href: withCurrentPath(s(x.cityUrl || x.cityDomain)) }))
+        .filter((x)=>s(x.label) && s(x.href));
+      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+    }
     const rows = items
-      .filter((x)=>!stateName || norm(x.state)===norm(stateName))
-      .map((x)=>({ label:x.county, href:withCurrentPath(s(x.countyUrl || x.countyDomain)) }))
+      .filter((x)=>!ctx.state || norm(x.state)===norm(ctx.state))
+      .map((x)=>({ label: x.county, href: withCurrentPath(s(x.countyUrl || x.countyDomain)) }))
       .filter((x)=>s(x.label) && s(x.href));
     return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
   }
@@ -6975,8 +6986,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           return s(found?.stateUrl || found?.stateFileUrl || "");
         })()
       }));
-      const stateName = detectStateFromSubdomain(enriched);
-      const targets = buildTargets(enriched, stateName);
+      const ctx = detectContext(enriched);
+      const targets = buildTargets(enriched, ctx);
       render(targets);
     })
     .catch(()=> render([]));
