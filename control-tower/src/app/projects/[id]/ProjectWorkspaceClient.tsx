@@ -944,7 +944,7 @@ export default function Home() {
   const [locationNavSaving, setLocationNavSaving] = useState(false);
   const [locationNavIndexing, setLocationNavIndexing] = useState(false);
   const [locationNavCopied, setLocationNavCopied] = useState(false);
-  const [locationNavTitle, setLocationNavTitle] = useState("Explore nearby locations");
+  const [locationNavTitle, setLocationNavTitle] = useState("");
   const [locationNavMode, setLocationNavMode] = useState<"auto" | "state" | "county" | "city">("auto");
   const [locationNavCityBehavior, setLocationNavCityBehavior] = useState<"states" | "sibling_cities" | "counties_in_state">("states");
   const [locationNavColumnsDesktop, setLocationNavColumnsDesktop] = useState(4);
@@ -2549,7 +2549,7 @@ export default function Home() {
       id: "",
       name: "Location Nav",
       searchId: sourceSearchId,
-      title: "Explore nearby locations",
+      title: "",
       mode: "auto",
       cityBehavior: "states",
       columnsDesktop: 4,
@@ -2573,7 +2573,7 @@ export default function Home() {
     setLocationNavActiveId(s(b.id));
     setLocationNavName(s(b.name) || "Location Nav");
     setLocationNavSearchId(s(b.searchId));
-    setLocationNavTitle(s(b.title) || "Explore nearby locations");
+    setLocationNavTitle(s(b.title));
     setLocationNavMode(
       s(b.mode) === "state" || s(b.mode) === "county" || s(b.mode) === "city"
         ? (s(b.mode) as "state" | "county" | "city")
@@ -6828,7 +6828,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   }
 
   function buildLocationNavEmbedCode(artifact: { statesIndexUrl: string }) {
-    const safeTitle = escapeHtmlAttr(locationNavTitle || "Explore nearby locations");
+    const safeTitle = escapeHtmlAttr(locationNavTitle || "");
     const safeStatesIndex = escapeHtmlAttr(artifact.statesIndexUrl || "");
     const safeFontImport = escapeHtmlAttr(selectedLocationNavFont.importUrl || "");
     const safeFontFamily = escapeHtmlAttr(selectedLocationNavFont.family || "Inter");
@@ -6894,12 +6894,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       if(!cityMatch && host && hostFromUrl(it.cityUrl || it.cityDomain || "") === host) cityMatch = it;
       if(!countyMatch && host && hostFromUrl(it.countyUrl || it.countyDomain || "") === host) countyMatch = it;
       if(!stateMatch && host && hostFromUrl(it.stateUrl || "") === host) stateMatch = it;
-      if(!cityMatch && subdomain && (subdomain === cityHostLabel || cityHostLabel.startsWith(subdomain + "-"))) cityMatch = it;
-      if(!countyMatch && subdomain && (subdomain === countyHostLabel || countyHostLabel.startsWith(subdomain + "-"))) countyMatch = it;
+      if(!cityMatch && subdomain && subdomain === cityHostLabel) cityMatch = it;
+      if(!countyMatch && subdomain && subdomain === countyHostLabel) countyMatch = it;
       if(!stateMatch && subdomain && (subdomain === stateHostLabel || subdomain === slug(it.state || ""))) stateMatch = it;
     }
-    if(cityMatch) return { type: "city", state: s(cityMatch.state), county: s(cityMatch.county), city: s(cityMatch.city) };
     if(countyMatch) return { type: "county", state: s(countyMatch.state), county: s(countyMatch.county), city: "" };
+    if(cityMatch) return { type: "city", state: s(cityMatch.state), county: s(cityMatch.county), city: s(cityMatch.city) };
     if(stateMatch) return { type: "state", state: s(stateMatch.state), county: "", city: "" };
     return { type: "state", state: "", county: "", city: "" };
   }
@@ -6943,10 +6943,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     root.appendChild(style);
     const wrap = document.createElement("section");
     wrap.className = "ct-nav-wrap";
-    const h = document.createElement("h3");
-    h.className = "ct-nav-title";
-    h.textContent = CFG.title || "Explore nearby locations";
-    wrap.appendChild(h);
+    if(s(CFG.title)){
+      const h = document.createElement("h3");
+      h.className = "ct-nav-title";
+      h.textContent = s(CFG.title);
+      wrap.appendChild(h);
+    }
     const grid = document.createElement("div");
     grid.className = "ct-nav-grid";
     for(const t of targets.slice(0,36)){
@@ -9679,7 +9681,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     >
                       <div style={{ height: 86, background: `linear-gradient(115deg, ${s(builder.buttonBg) || "#0f172a"}, #0b1222)`, padding: 14 }}>
                         <div style={{ fontWeight: 800, fontSize: 16, color: "#e2e8f0" }}>{s(builder.name) || "Location Nav"}</div>
-                        <div style={{ marginTop: 6, fontSize: 12, color: "rgba(226,232,240,.82)" }}>{s(builder.title) || "Explore nearby locations"}</div>
+                        <div style={{ marginTop: 6, fontSize: 12, color: "rgba(226,232,240,.82)" }}>{s(builder.title) || "—"}</div>
                       </div>
                       <div style={{ padding: 12 }}>
                         <div className="mini">Search: {s(builder.searchId) || "—"}</div>
@@ -9760,7 +9762,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </div>
                       ) : (
                         <>
-                          <div className="mini" style={{ marginBottom: 10, opacity: 0.86 }}>{s(locationNavTitle) || "Explore nearby locations"}</div>
+                          {s(locationNavTitle) ? (
+                            <div className="mini" style={{ marginBottom: 10, opacity: 0.86 }}>{s(locationNavTitle)}</div>
+                          ) : null}
                           <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, Math.min(4, Number(locationNavColumnsDesktop) || 4))}, minmax(0, 1fr))`, gap: Math.max(4, Math.min(20, Number(locationNavGap) || 10)) }}>
                             {["County A", "County B", "County C", "County D", "County E", "County F"].map((label) => (
                               <a
@@ -9851,6 +9855,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ) : locationNavPanel === "button" ? (
                       <>
                         <div className="field"><label>Button background</label><input className="input" value={locationNavButtonBg} onChange={(e) => setLocationNavButtonBg(e.target.value)} /></div>
+                        <div className="field" style={{ marginTop: -6 }}>
+                          <button type="button" className="smallBtn" onClick={() => setLocationNavButtonBg("transparent")}>
+                            Set Transparent Background
+                          </button>
+                        </div>
                         <div className="field"><label>Button text color</label><input className="input" value={locationNavButtonText} onChange={(e) => setLocationNavButtonText(e.target.value)} /></div>
                         <div className="field"><label>Button border color</label><input className="input" value={locationNavButtonBorder} onChange={(e) => setLocationNavButtonBorder(e.target.value)} /></div>
                         <div className="field"><label>Button radius</label><input className="input" type="number" min={0} max={30} value={locationNavButtonRadius} onChange={(e) => setLocationNavButtonRadius(Number(e.target.value) || 12)} /></div>

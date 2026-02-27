@@ -30,7 +30,10 @@ function randomId() {
 
 function normalizeColor(input: unknown, fallback: string) {
   const raw = s(input).toLowerCase();
+  if (raw === "transparent") return "transparent";
   if (/^#[0-9a-f]{3}([0-9a-f]{3})?$/.test(raw)) return raw;
+  if (/^rgba?\(([^)]+)\)$/.test(raw)) return raw;
+  if (/^hsla?\(([^)]+)\)$/.test(raw)) return raw;
   return fallback;
 }
 
@@ -65,7 +68,7 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     id: s(input?.id) || randomId(),
     name: s(input?.name) || "Location Nav",
     searchId,
-    title: s(input?.title) || "Explore nearby locations",
+    title: s(input?.title),
     mode: ["auto", "state", "county", "city"].includes(s(input?.mode).toLowerCase())
       ? s(input?.mode).toLowerCase()
       : "auto",
@@ -252,4 +255,3 @@ export async function DELETE(req: Request, ctx: Ctx) {
     );
   }
 }
-
