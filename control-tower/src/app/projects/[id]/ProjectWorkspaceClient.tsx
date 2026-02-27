@@ -9798,12 +9798,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <input className="input" value={locationNavName} onChange={(e) => setLocationNavName(e.target.value)} />
                     </div>
                     <div className="field">
-                      <label>Source Search</label>
-                      <select className="select" value={locationNavSearchId} onChange={(e) => setLocationNavSearchId(e.target.value)}>
+                      <label>Source Search (legacy)</label>
+                      <select className="select" value={locationNavSearchId} onChange={(e) => setLocationNavSearchId(e.target.value)} disabled>
                         {searchBuilderProjects.map((p) => (
                           <option key={p.id} value={p.id}>{p.name}</option>
                         ))}
                       </select>
+                      <div className="mini" style={{ marginTop: 6, opacity: 0.8 }}>
+                        Location Nav now uses tenant global index key: <b>location-nav</b>.
+                      </div>
                     </div>
                     <div className="field">
                       <label>Google Font</label>

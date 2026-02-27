@@ -51,6 +51,60 @@ type FlatIndexItem = {
   cityUrl: string;
 };
 
+const STATE_ABBR_BY_SLUG: Record<string, string> = {
+  alabama: "al",
+  alaska: "ak",
+  arizona: "az",
+  arkansas: "ar",
+  california: "ca",
+  colorado: "co",
+  connecticut: "ct",
+  delaware: "de",
+  florida: "fl",
+  georgia: "ga",
+  hawaii: "hi",
+  idaho: "id",
+  illinois: "il",
+  indiana: "in",
+  iowa: "ia",
+  kansas: "ks",
+  kentucky: "ky",
+  louisiana: "la",
+  maine: "me",
+  maryland: "md",
+  massachusetts: "ma",
+  michigan: "mi",
+  minnesota: "mn",
+  mississippi: "ms",
+  missouri: "mo",
+  montana: "mt",
+  nebraska: "ne",
+  nevada: "nv",
+  "new-hampshire": "nh",
+  "new-jersey": "nj",
+  "new-mexico": "nm",
+  "new-york": "ny",
+  "north-carolina": "nc",
+  "north-dakota": "nd",
+  ohio: "oh",
+  oklahoma: "ok",
+  oregon: "or",
+  pennsylvania: "pa",
+  "rhode-island": "ri",
+  "south-carolina": "sc",
+  "south-dakota": "sd",
+  tennessee: "tn",
+  texas: "tx",
+  utah: "ut",
+  vermont: "vt",
+  virginia: "va",
+  washington: "wa",
+  "west-virginia": "wv",
+  wisconsin: "wi",
+  wyoming: "wy",
+  "puerto-rico": "pr",
+};
+
 function isObj(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
@@ -67,6 +121,19 @@ function hostOnly(input: string) {
   if (!raw) return "";
   const noProto = raw.replace(/^https?:\/\//i, "");
   return noProto.split("/")[0].replace(/^www\./i, "").trim();
+}
+
+function deriveCountyDomain(countyName: string, stateSlug: string, rootDomain: string) {
+  const county = kebabToken(countyName);
+  const slug = kebabToken(stateSlug);
+  const rootHost = hostOnly(rootDomain);
+  const abbr = s(STATE_ABBR_BY_SLUG[slug]).toLowerCase();
+  if (!county || !abbr || !rootHost) return "";
+  const base =
+    county.endsWith("-county") || county.endsWith("-parish")
+      ? county
+      : `${county}-county`;
+  return `${base}-${abbr}.${rootHost}`;
 }
 
 function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndexItem[] {
@@ -266,6 +333,7 @@ export async function POST(req: Request, ctx: Ctx) {
       return {
         stateSlug,
         stateName,
+        rootDomain,
         stateUrl: stateUrlSubdomain || stateUrlPath || s(representative?.countyUrl) || "",
         statePathUrl: stateUrlPath,
         stateSubdomainUrl: stateUrlSubdomain,
@@ -275,8 +343,14 @@ export async function POST(req: Request, ctx: Ctx) {
     const statesWithPayload = q.rows.filter((r) => isObj(r.payload)).length;
     const items = allItems.map((it) => {
       const stateRef = states.find((st) => normalizeText(st.stateName) === normalizeText(it.state));
+      const stateSlug = s(stateRef?.stateSlug);
+      const fallbackCountyDomain = deriveCountyDomain(s(it.county), stateSlug, s(stateRef?.rootDomain));
+      const countyDomain = s(it.countyDomain) || fallbackCountyDomain;
+      const countyUrl = s(it.countyUrl) || toUrlMaybe(countyDomain);
       return {
         ...it,
+        countyDomain,
+        countyUrl,
         stateUrl: s(stateRef?.stateUrl),
       };
     });
