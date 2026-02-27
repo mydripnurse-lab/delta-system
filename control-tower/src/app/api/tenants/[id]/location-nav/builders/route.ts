@@ -72,6 +72,7 @@ function normalizeFontKey(input: unknown) {
 
 function normalizePayload(input: Record<string, unknown> | null | undefined) {
   const searchId = kebabToken(s(input?.searchId || ""));
+  const stylePreset = s(input?.stylePreset).toLowerCase();
   return {
     id: s(input?.id) || randomId(),
     name: s(input?.name) || "Location Nav",
@@ -95,6 +96,13 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     buttonPaddingX: n(input?.buttonPaddingX, 14, 8, 32),
     buttonFontSize: n(input?.buttonFontSize, 14, 11, 22),
     buttonFontWeight: n(input?.buttonFontWeight, 700, 400, 900),
+    stylePreset:
+      stylePreset === "minimal" ||
+      stylePreset === "soft" ||
+      stylePreset === "outline" ||
+      stylePreset === "link"
+        ? stylePreset
+        : "pill",
     customCss: s(input?.customCss),
     fontKey: normalizeFontKey(input?.fontKey),
     previewTone: s(input?.previewTone).toLowerCase() === "light" ? "light" : "dark",

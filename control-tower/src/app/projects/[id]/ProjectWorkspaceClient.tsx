@@ -175,6 +175,7 @@ type LocationNavBuilder = {
   buttonPaddingX: number;
   buttonFontSize: number;
   buttonFontWeight: number;
+  stylePreset: "pill" | "minimal" | "soft" | "outline" | "link";
   customCss: string;
   fontKey: string;
   previewTone: "dark" | "light";
@@ -962,6 +963,7 @@ export default function Home() {
   const [locationNavButtonFontSize, setLocationNavButtonFontSize] = useState(14);
   const [locationNavButtonFontWeight, setLocationNavButtonFontWeight] = useState(700);
   const [locationNavCustomCss, setLocationNavCustomCss] = useState("");
+  const [locationNavStylePreset, setLocationNavStylePreset] = useState<"pill" | "minimal" | "soft" | "outline" | "link">("pill");
   const [locationNavPreviewTone, setLocationNavPreviewTone] = useState<"dark" | "light">("dark");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
@@ -2569,6 +2571,7 @@ export default function Home() {
       buttonFontSize: 14,
       buttonFontWeight: 700,
       customCss: "",
+      stylePreset: "pill" as const,
       fontKey: "inter",
       previewTone: "dark",
     };
@@ -2603,6 +2606,12 @@ export default function Home() {
     setLocationNavButtonFontSize(Math.max(11, Math.min(22, Number(b.buttonFontSize || 14))));
     setLocationNavButtonFontWeight(Math.max(400, Math.min(900, Number(b.buttonFontWeight || 700))));
     setLocationNavCustomCss(s(b.customCss));
+    const preset = s((b as any).stylePreset);
+    setLocationNavStylePreset(
+      preset === "minimal" || preset === "soft" || preset === "outline" || preset === "link"
+        ? (preset as "minimal" | "soft" | "outline" | "link")
+        : "pill",
+    );
     setLocationNavFontKey(
       SEARCH_BUILDER_FONT_OPTIONS.some((f) => f.key === s(b.fontKey))
         ? s(b.fontKey)
@@ -2633,6 +2642,7 @@ export default function Home() {
       buttonFontSize: Number(locationNavButtonFontSize) || fallback.buttonFontSize,
       buttonFontWeight: Number(locationNavButtonFontWeight) || fallback.buttonFontWeight,
       customCss: s(locationNavCustomCss),
+      stylePreset: locationNavStylePreset,
       fontKey: s(locationNavFontKey) || "inter",
       previewTone: locationNavPreviewTone,
     };
@@ -6850,6 +6860,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 <div id="ct-location-nav-root"></div>
 <script>
 (function(){
+  const VERSION = "lnav-20260227d";
   const INDEX_URL = "${safeStatesIndex}";
   const ROOT_ID = "ct-location-nav-root";
   const CFG = {
@@ -6867,7 +6878,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     buttonPaddingY: ${Math.max(6, Math.min(24, Number(locationNavButtonPaddingY) || 10))},
     buttonPaddingX: ${Math.max(8, Math.min(32, Number(locationNavButtonPaddingX) || 14))},
     buttonFontSize: ${Math.max(11, Math.min(22, Number(locationNavButtonFontSize) || 14))},
-    buttonFontWeight: ${Math.max(400, Math.min(900, Number(locationNavButtonFontWeight) || 700))}
+    buttonFontWeight: ${Math.max(400, Math.min(900, Number(locationNavButtonFontWeight) || 700))},
+    stylePreset: "${escapeHtmlAttr(locationNavStylePreset || "pill")}"
   };
   const EXTRA_CSS = ${JSON.stringify(safeCustomCss)};
   const root = document.getElementById(ROOT_ID);
@@ -6882,7 +6894,35 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   function uniqBy(arr,keyFn){ const seen=new Set(); const out=[]; for(const it of arr){ const k=keyFn(it); if(!k||seen.has(k)) continue; seen.add(k); out.push(it);} return out; }
   function dropSuffixToken(v){
     const x = slug(v);
-    return x.replace(/-(city|county|parish)$/, "").replace(/-(city|county|parish)-[a-z]{2}$/, "");
+    return x
+      .replace(/-(city|county|parish)$/, "")
+      .replace(/-(city|county|parish)-[a-z]{2}$/, "")
+      .replace(/-[a-z]{2}$/, "");
+  }
+  function countyAliases(county){
+    const base = dropSuffixToken(county);
+    const full = slug(county);
+    const out = [full, base, base + "-county", base + "-parish"];
+    return Array.from(new Set(out.filter(Boolean)));
+  }
+  function cityAliases(city){
+    const base = dropSuffixToken(city);
+    const full = slug(city);
+    const out = [full, base, base + "-city"];
+    return Array.from(new Set(out.filter(Boolean)));
+  }
+  function pickBestCounty(items){
+    if(!items.length) return null;
+    let winner = items[0];
+    let winnerCities = -1;
+    for(const it of items){
+      const cities = items.filter((x)=>norm(x.state)===norm(it.state) && norm(x.county)===norm(it.county) && s(x.city)).length;
+      if(cities > winnerCities){
+        winner = it;
+        winnerCities = cities;
+      }
+    }
+    return winner;
   }
   function classifyFromSubdomain(sub){
     if(/-city(-[a-z]{2})?$/.test(sub)) return "city";
@@ -6913,28 +6953,53 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase().replace(/^www\\./,"");
     const subdomain = hostLabel(subdomainFromHost(host));
     const subType = classifyFromSubdomain(subdomain);
-    let cityMatch = null;
-    let countyMatch = null;
-    let stateMatch = null;
+    let cityHostMatch = null;
+    let countyHostMatch = null;
+    let stateHostMatch = null;
+    const cityAliasMatches = [];
+    const countyAliasMatches = [];
+    const stateAliasMatches = [];
     for(const it of items){
       const cityHostLabel = hostLabel(hostFromUrl(it.cityUrl || it.cityDomain || ""));
       const countyHostLabel = hostLabel(hostFromUrl(it.countyUrl || it.countyDomain || ""));
       const stateHostLabel = hostLabel(hostFromUrl(it.stateUrl || ""));
-      if(!cityMatch && host && hostFromUrl(it.cityUrl || it.cityDomain || "") === host) cityMatch = it;
-      if(!countyMatch && host && hostFromUrl(it.countyUrl || it.countyDomain || "") === host) countyMatch = it;
-      if(!stateMatch && host && hostFromUrl(it.stateUrl || "") === host) stateMatch = it;
-      if(!cityMatch && subdomain && subdomain === cityHostLabel) cityMatch = it;
-      if(!countyMatch && subdomain && subdomain === countyHostLabel) countyMatch = it;
-      if(!stateMatch && subdomain && (subdomain === stateHostLabel || subdomain === slug(it.state || ""))) stateMatch = it;
-      // fallback exact-by-name from subdomain token when URLs are missing/incomplete
-      if(!countyMatch && subType === "county" && dropSuffixToken(subdomain) === dropSuffixToken(it.county || "")) countyMatch = it;
-      if(!cityMatch && subType === "city" && dropSuffixToken(subdomain) === dropSuffixToken(it.city || "")) cityMatch = it;
-      if(!stateMatch && subType === "state" && subdomain === slug(it.state || "")) stateMatch = it;
+      if(!cityHostMatch && host && hostFromUrl(it.cityUrl || it.cityDomain || "") === host) cityHostMatch = it;
+      if(!countyHostMatch && host && hostFromUrl(it.countyUrl || it.countyDomain || "") === host) countyHostMatch = it;
+      if(!stateHostMatch && host && hostFromUrl(it.stateUrl || "") === host) stateHostMatch = it;
+      if(!cityHostMatch && subdomain && subdomain === cityHostLabel) cityHostMatch = it;
+      if(!countyHostMatch && subdomain && subdomain === countyHostLabel) countyHostMatch = it;
+      if(!stateHostMatch && subdomain && (subdomain === stateHostLabel || subdomain === slug(it.state || ""))) stateHostMatch = it;
+      if(subdomain && cityAliases(it.city || "").includes(subdomain)) cityAliasMatches.push(it);
+      if(subdomain && countyAliases(it.county || "").includes(subdomain)) countyAliasMatches.push(it);
+      if(subdomain && slug(it.state || "") === subdomain) stateAliasMatches.push(it);
     }
-    // En county pages we must show cities (priority county over city/state)
-    if(countyMatch) return { type: "county", state: s(countyMatch.state), county: s(countyMatch.county), city: "" };
-    if(cityMatch) return { type: "city", state: s(cityMatch.state), county: s(cityMatch.county), city: s(cityMatch.city) };
-    if(stateMatch) return { type: "state", state: s(stateMatch.state), county: "", city: "" };
+    if(countyHostMatch) return { type: "county", state: s(countyHostMatch.state), county: s(countyHostMatch.county), city: "" };
+    if(cityHostMatch) return { type: "city", state: s(cityHostMatch.state), county: s(cityHostMatch.county), city: s(cityHostMatch.city) };
+    if(stateHostMatch) return { type: "state", state: s(stateHostMatch.state), county: "", city: "" };
+    if(subType === "county" && countyAliasMatches.length){
+      const picked = pickBestCounty(countyAliasMatches);
+      if(picked) return { type: "county", state: s(picked.state), county: s(picked.county), city: "" };
+    }
+    if(subType === "city" && cityAliasMatches.length){
+      const picked = cityAliasMatches[0];
+      return { type: "city", state: s(picked.state), county: s(picked.county), city: s(picked.city) };
+    }
+    if(stateAliasMatches.length){
+      const picked = stateAliasMatches[0];
+      return { type: "state", state: s(picked.state), county: "", city: "" };
+    }
+    if(countyAliasMatches.length){
+      const picked = pickBestCounty(countyAliasMatches);
+      if(picked) return { type: "county", state: s(picked.state), county: s(picked.county), city: "" };
+    }
+    if(cityAliasMatches.length){
+      const picked = cityAliasMatches[0];
+      return { type: "city", state: s(picked.state), county: s(picked.county), city: s(picked.city) };
+    }
+    if(subType === "state" && subdomain){
+      const picked = items.find((it)=>slug(it.state || "") === subdomain);
+      if(picked) return { type: "state", state: s(picked.state), county: "", city: "" };
+    }
     return { type: "state", state: "", county: "", city: "" };
   }
 
@@ -6956,6 +7021,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       return uniqBy(rows,(x)=>norm(x.label)).sort(byName);
     }
     // State page => counties (or parishes in Louisiana)
+    if(!ctx.state) return [];
     const rows = items
       .filter((x)=>!ctx.state || norm(x.state)===norm(ctx.state))
       .map((x)=>({ label: countyDisplayLabel(x.county, x.state), href: withCurrentPath(s(x.countyUrl || x.countyDomain)) }))
@@ -6965,12 +7031,39 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
   function render(targets){
     const style = document.createElement("style");
+    const borderCss = CFG.buttonBorderEnabled ? (CFG.buttonBorderWidth + "px solid " + CFG.buttonBorder) : "0";
+    const presetRadius =
+      CFG.stylePreset === "minimal"
+        ? "6px"
+        : CFG.stylePreset === "soft"
+          ? Math.max(CFG.buttonRadius, 18) + "px"
+          : CFG.stylePreset === "outline"
+            ? Math.max(CFG.buttonRadius, 10) + "px"
+            : CFG.stylePreset === "link"
+              ? "0"
+              : CFG.buttonRadius + "px";
+    const presetBg =
+      CFG.stylePreset === "minimal" || CFG.stylePreset === "outline" || CFG.stylePreset === "link"
+        ? "transparent"
+        : CFG.buttonBg;
+    const presetBorder =
+      CFG.stylePreset === "link"
+        ? "0"
+        : CFG.stylePreset === "outline"
+          ? (Math.max(1, CFG.buttonBorderWidth) + "px solid " + CFG.buttonText)
+          : borderCss;
+    const presetHover =
+      CFG.stylePreset === "minimal" || CFG.stylePreset === "outline"
+        ? "background:rgba(255,255,255,.08);"
+        : CFG.stylePreset === "link"
+          ? "text-decoration:underline;opacity:.92;"
+          : "filter:brightness(1.07);";
     style.textContent = [
       ".ct-nav-wrap{font-family:${safeFontFamily},system-ui,-apple-system,Segoe UI,Roboto,Arial;}",
       ".ct-nav-title{margin:0 0 10px 0;font-size:18px;font-weight:800;color:inherit;}",
       ".ct-nav-grid{display:grid;grid-template-columns:repeat("+CFG.cols+",minmax(0,1fr));gap:"+CFG.gap+"px;}",
-      ".ct-nav-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:"+CFG.buttonBg+";color:"+CFG.buttonText+";border:"+(CFG.buttonBorderEnabled ? (CFG.buttonBorderWidth + "px solid " + CFG.buttonBorder) : "0")+";border-radius:"+CFG.buttonRadius+"px;padding:"+CFG.buttonPaddingY+"px "+CFG.buttonPaddingX+"px;font-size:"+CFG.buttonFontSize+"px;font-weight:"+CFG.buttonFontWeight+";line-height:1.2;transition:transform .08s ease,filter .14s ease;}",
-      ".ct-nav-btn:hover{filter:brightness(1.07);}",
+      ".ct-nav-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:"+presetBg+";color:"+CFG.buttonText+";border:"+presetBorder+";border-radius:"+presetRadius+";padding:"+CFG.buttonPaddingY+"px "+CFG.buttonPaddingX+"px;font-size:"+CFG.buttonFontSize+"px;font-weight:"+CFG.buttonFontWeight+";line-height:1.2;transition:transform .08s ease,filter .14s ease,background .14s ease,opacity .14s ease;}",
+      ".ct-nav-btn:hover{"+presetHover+"}",
       ".ct-nav-btn:active{transform:translateY(1px);}",
       "@media (max-width:1024px){.ct-nav-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}",
       "@media (max-width:680px){.ct-nav-grid{grid-template-columns:1fr;}}",
@@ -7008,7 +7101,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     root.appendChild(wrap);
   }
 
-  fetch(INDEX_URL,{cache:"no-store"})
+  const bust = INDEX_URL + (INDEX_URL.includes("?") ? "&" : "?") + "v=" + encodeURIComponent(VERSION + "-" + Date.now());
+  fetch(bust,{cache:"no-store"})
     .then((r)=>r.ok?r.json():Promise.reject(new Error("Failed to load index: "+r.status)))
     .then((data)=>{
       const items = Array.isArray(data?.items)?data.items:[];
@@ -9815,12 +9909,29 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                   alignItems: "center",
                                   justifyContent: "center",
                                   textDecoration: "none",
-                                  background: s(locationNavButtonBg) || "#0f172a",
+                                  background:
+                                    locationNavStylePreset === "minimal" ||
+                                    locationNavStylePreset === "outline" ||
+                                    locationNavStylePreset === "link"
+                                      ? "transparent"
+                                      : s(locationNavButtonBg) || "#0f172a",
                                   color: s(locationNavButtonText) || "#e2e8f0",
-                                  border: locationNavButtonBorderEnabled
-                                    ? `${Math.max(0, Number(locationNavButtonBorderWidth) || 1)}px solid ${s(locationNavButtonBorder) || "#1e293b"}`
-                                    : "0",
-                                  borderRadius: Math.max(0, Number(locationNavButtonRadius) || 12),
+                                  border:
+                                    locationNavStylePreset === "link"
+                                      ? "0"
+                                      : locationNavStylePreset === "outline"
+                                        ? `${Math.max(1, Number(locationNavButtonBorderWidth) || 1)}px solid ${s(locationNavButtonText) || "#e2e8f0"}`
+                                        : locationNavButtonBorderEnabled
+                                          ? `${Math.max(0, Number(locationNavButtonBorderWidth) || 1)}px solid ${s(locationNavButtonBorder) || "#1e293b"}`
+                                          : "0",
+                                  borderRadius:
+                                    locationNavStylePreset === "minimal"
+                                      ? 6
+                                      : locationNavStylePreset === "soft"
+                                        ? Math.max(18, Number(locationNavButtonRadius) || 12)
+                                        : locationNavStylePreset === "link"
+                                          ? 0
+                                          : Math.max(0, Number(locationNavButtonRadius) || 12),
                                   padding: `${Math.max(6, Number(locationNavButtonPaddingY) || 10)}px ${Math.max(8, Number(locationNavButtonPaddingX) || 14)}px`,
                                   fontSize: Math.max(11, Number(locationNavButtonFontSize) || 14),
                                   fontWeight: Math.max(400, Number(locationNavButtonFontWeight) || 700),
@@ -9902,6 +10013,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           </button>
                         </div>
                         <div className="field"><label>Button text color</label><input className="input" value={locationNavButtonText} onChange={(e) => setLocationNavButtonText(e.target.value)} /></div>
+                        <div className="field">
+                          <label>Style preset</label>
+                          <select className="select" value={locationNavStylePreset} onChange={(e) => setLocationNavStylePreset((e.target.value as any) || "pill")}>
+                            <option value="pill">Pill</option>
+                            <option value="minimal">Minimal</option>
+                            <option value="soft">Soft</option>
+                            <option value="outline">Outline</option>
+                            <option value="link">Link list</option>
+                          </select>
+                        </div>
                         <div className="field">
                           <label>Border enabled</label>
                           <select
