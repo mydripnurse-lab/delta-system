@@ -142,6 +142,7 @@ type SearchBuilderProject = {
   modalBackdropOpacity: number;
   modalHeaderHeight: number;
   inputRadius: number;
+  previewTone?: "dark" | "light";
   updatedAt?: string;
 };
 
@@ -894,6 +895,7 @@ export default function Home() {
   const [searchBuilderCopiedFileArtifactId, setSearchBuilderCopiedFileArtifactId] = useState("");
   const [searchBuilderCopiedFolderPath, setSearchBuilderCopiedFolderPath] = useState(false);
   const [searchBuilderEditorPanel, setSearchBuilderEditorPanel] = useState<"button" | "modal">("button");
+  const [searchBuilderPreviewTone, setSearchBuilderPreviewTone] = useState<"dark" | "light">("dark");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -2252,6 +2254,7 @@ export default function Home() {
       modalBackdropOpacity: 55,
       modalHeaderHeight: 56,
       inputRadius: 10,
+      previewTone: "dark" as const,
     };
   }
 
@@ -2293,6 +2296,7 @@ export default function Home() {
     setSearchBuilderModalBackdropOpacity(Number(project.modalBackdropOpacity || 55));
     setSearchBuilderModalHeaderHeight(Number(project.modalHeaderHeight || 56));
     setSearchBuilderInputRadius(Number(project.inputRadius || 10));
+    setSearchBuilderPreviewTone(s(project.previewTone) === "light" ? "light" : "dark");
     setSearchBuilderButtonPosition(
       s(project.buttonPosition) === "left" || s(project.buttonPosition) === "right"
         ? (s(project.buttonPosition) as "left" | "right")
@@ -2333,6 +2337,7 @@ export default function Home() {
       modalBackdropOpacity: Number(searchBuilderModalBackdropOpacity) || fallback.modalBackdropOpacity,
       modalHeaderHeight: Number(searchBuilderModalHeaderHeight) || fallback.modalHeaderHeight,
       inputRadius: Number(searchBuilderInputRadius) || fallback.inputRadius,
+      previewTone: searchBuilderPreviewTone,
     };
   }
 
@@ -8682,17 +8687,36 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </aside>
 
                   <section className="sbStudioPreview">
-                    <div className="mini" style={{ marginBottom: 8 }}>
-                      Live Preview ({searchBuilderEditorPanel === "button" ? "Button focus" : "Modal focus"})
+                    <div className="sbStudioPreviewTop">
+                      <div className="mini">
+                        Live Preview ({searchBuilderEditorPanel === "button" ? "Button" : "Modal"})
+                      </div>
+                      <div className="sbStudioToneGroup">
+                        <button
+                          type="button"
+                          className={`sbStudioToneBtn ${searchBuilderPreviewTone === "dark" ? "isActive" : ""}`}
+                          onClick={() => setSearchBuilderPreviewTone("dark")}
+                        >
+                          Dark
+                        </button>
+                        <button
+                          type="button"
+                          className={`sbStudioToneBtn ${searchBuilderPreviewTone === "light" ? "isActive" : ""}`}
+                          onClick={() => setSearchBuilderPreviewTone("light")}
+                        >
+                          Light
+                        </button>
+                      </div>
                     </div>
                     <div
-                      className={`sbStudioPreviewSurface ${searchBuilderEditorPanel === "modal" ? "isModalFocus" : "isButtonFocus"}`}
+                      className={`sbStudioPreviewSurface ${searchBuilderPreviewTone === "light" ? "isLight" : "isDark"}`}
                       style={{
                         fontFamily: `${selectedSearchBuilderFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial`,
                       }}
                     >
+                      {searchBuilderEditorPanel === "button" ? (
                       <div
-                        className="sbStudioButtonLane"
+                        className="sbStudioButtonLane sbStudioButtonOnly"
                         style={{
                           justifyContent:
                             searchBuilderButtonPosition === "left"
@@ -8716,7 +8740,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           {s(searchBuilderButtonText) || "Book Now"}
                         </span>
                       </div>
-
+                      ) : (
                       <div
                         className="sbStudioModalPreview"
                         style={{
@@ -8754,6 +8778,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           </div>
                         </div>
                       </div>
+                      )}
                     </div>
                   </section>
 

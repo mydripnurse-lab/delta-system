@@ -53,6 +53,11 @@ function normalizeFontKey(input: unknown) {
   return allowed.has(key) ? key : "lato";
 }
 
+function normalizePreviewTone(input: unknown) {
+  const tone = s(input).toLowerCase();
+  return tone === "light" ? "light" : "dark";
+}
+
 function kebabToken(input: string) {
   return s(input)
     .normalize("NFD")
@@ -102,6 +107,7 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     modalBackdropOpacity: n(input?.modalBackdropOpacity, 55, 0, 95),
     modalHeaderHeight: n(input?.modalHeaderHeight, 56, 40, 120),
     inputRadius: n(input?.inputRadius, 10, 0, 30),
+    previewTone: normalizePreviewTone(input?.previewTone),
   };
 }
 
