@@ -70,9 +70,19 @@ function normalizeFontKey(input: unknown) {
   return allowed.has(key) ? key : "inter";
 }
 
+function normalizeStylePreset(input: unknown) {
+  const raw = s(input).toLowerCase();
+  if (raw === "pill" || raw === "pill_grid") return "pill_grid";
+  if (raw === "minimal" || raw === "minimal_links") return "minimal_links";
+  if (raw === "soft" || raw === "cards_glass") return "cards_glass";
+  if (raw === "link" || raw === "underline_list") return "underline_list";
+  if (raw === "outline" || raw === "chips_compact") return "chips_compact";
+  return "pill_grid";
+}
+
 function normalizePayload(input: Record<string, unknown> | null | undefined) {
   const searchId = kebabToken(s(input?.searchId || ""));
-  const stylePreset = s(input?.stylePreset).toLowerCase();
+  const stylePreset = normalizeStylePreset(input?.stylePreset);
   return {
     id: s(input?.id) || randomId(),
     name: s(input?.name) || "Location Nav",
@@ -96,13 +106,7 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     buttonPaddingX: n(input?.buttonPaddingX, 14, 8, 32),
     buttonFontSize: n(input?.buttonFontSize, 14, 11, 22),
     buttonFontWeight: n(input?.buttonFontWeight, 700, 400, 900),
-    stylePreset:
-      stylePreset === "minimal" ||
-      stylePreset === "soft" ||
-      stylePreset === "outline" ||
-      stylePreset === "link"
-        ? stylePreset
-        : "pill",
+    stylePreset,
     customCss: s(input?.customCss),
     fontKey: normalizeFontKey(input?.fontKey),
     previewTone: s(input?.previewTone).toLowerCase() === "light" ? "light" : "dark",

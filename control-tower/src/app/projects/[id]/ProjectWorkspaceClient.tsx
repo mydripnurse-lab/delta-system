@@ -156,6 +156,25 @@ type SearchBuilderManifest = {
   files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
 };
 
+type LocationNavStylePreset =
+  | "pill_grid"
+  | "minimal_links"
+  | "cards_glass"
+  | "underline_list"
+  | "chips_compact";
+
+const LOCATION_NAV_STYLE_OPTIONS: Array<{
+  key: LocationNavStylePreset;
+  label: string;
+  subtitle: string;
+}> = [
+  { key: "pill_grid", label: "Pill Grid", subtitle: "Balanced, strong CTA look." },
+  { key: "minimal_links", label: "Minimal Links", subtitle: "Clean, editorial, low-noise." },
+  { key: "cards_glass", label: "Cards Glass", subtitle: "Premium frosted card style." },
+  { key: "underline_list", label: "Underline List", subtitle: "SEO/article friendly links." },
+  { key: "chips_compact", label: "Chips Compact", subtitle: "Mobile-first compact chips." },
+];
+
 type LocationNavBuilder = {
   id: string;
   name: string;
@@ -175,7 +194,7 @@ type LocationNavBuilder = {
   buttonPaddingX: number;
   buttonFontSize: number;
   buttonFontWeight: number;
-  stylePreset: "pill" | "minimal" | "soft" | "outline" | "link";
+  stylePreset: LocationNavStylePreset;
   customCss: string;
   fontKey: string;
   previewTone: "dark" | "light";
@@ -781,6 +800,21 @@ function normalizePct(raw: any): number | null {
   return null;
 }
 
+function normalizeLocationNavStylePreset(input: unknown): LocationNavStylePreset {
+  const raw = s(input).toLowerCase();
+  if (raw === "pill_grid" || raw === "pill") return "pill_grid";
+  if (raw === "minimal_links" || raw === "minimal") return "minimal_links";
+  if (raw === "cards_glass" || raw === "soft") return "cards_glass";
+  if (raw === "underline_list" || raw === "link") return "underline_list";
+  if (raw === "chips_compact" || raw === "outline") return "chips_compact";
+  return "pill_grid";
+}
+
+function locationNavStyleLabel(input: unknown): string {
+  const key = normalizeLocationNavStylePreset(input);
+  return LOCATION_NAV_STYLE_OPTIONS.find((it) => it.key === key)?.label || "Pill Grid";
+}
+
 export default function Home() {
   const params = useParams<{ id: string; tab?: string }>();
   const searchParams = useSearchParams();
@@ -947,6 +981,7 @@ export default function Home() {
   const [locationNavSaving, setLocationNavSaving] = useState(false);
   const [locationNavIndexing, setLocationNavIndexing] = useState(false);
   const [locationNavCopied, setLocationNavCopied] = useState(false);
+  const [locationNavTemplateCopied, setLocationNavTemplateCopied] = useState("");
   const [locationNavTitle, setLocationNavTitle] = useState("");
   const [locationNavMode, setLocationNavMode] = useState<"auto" | "state" | "county" | "city">("auto");
   const [locationNavCityBehavior, setLocationNavCityBehavior] = useState<"states" | "sibling_cities" | "counties_in_state">("states");
@@ -963,7 +998,7 @@ export default function Home() {
   const [locationNavButtonFontSize, setLocationNavButtonFontSize] = useState(14);
   const [locationNavButtonFontWeight, setLocationNavButtonFontWeight] = useState(700);
   const [locationNavCustomCss, setLocationNavCustomCss] = useState("");
-  const [locationNavStylePreset, setLocationNavStylePreset] = useState<"pill" | "minimal" | "soft" | "outline" | "link">("pill");
+  const [locationNavStylePreset, setLocationNavStylePreset] = useState<LocationNavStylePreset>("pill_grid");
   const [locationNavPreviewTone, setLocationNavPreviewTone] = useState<"dark" | "light">("dark");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
@@ -2571,7 +2606,7 @@ export default function Home() {
       buttonFontSize: 14,
       buttonFontWeight: 700,
       customCss: "",
-      stylePreset: "pill" as const,
+      stylePreset: "pill_grid",
       fontKey: "inter",
       previewTone: "dark",
     };
@@ -2606,12 +2641,7 @@ export default function Home() {
     setLocationNavButtonFontSize(Math.max(11, Math.min(22, Number(b.buttonFontSize || 14))));
     setLocationNavButtonFontWeight(Math.max(400, Math.min(900, Number(b.buttonFontWeight || 700))));
     setLocationNavCustomCss(s(b.customCss));
-    const preset = s((b as any).stylePreset);
-    setLocationNavStylePreset(
-      preset === "minimal" || preset === "soft" || preset === "outline" || preset === "link"
-        ? (preset as "minimal" | "soft" | "outline" | "link")
-        : "pill",
-    );
+    setLocationNavStylePreset(normalizeLocationNavStylePreset((b as any).stylePreset));
     setLocationNavFontKey(
       SEARCH_BUILDER_FONT_OPTIONS.some((f) => f.key === s(b.fontKey))
         ? s(b.fontKey)
@@ -6847,12 +6877,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 </html>`;
   }
 
-  function buildLocationNavEmbedCode(artifact: { statesIndexUrl: string }) {
+  function buildLocationNavEmbedCode(
+    artifact: { statesIndexUrl: string },
+    opts?: { stylePreset?: LocationNavStylePreset },
+  ) {
     const safeTitle = escapeHtmlAttr(locationNavTitle || "");
     const safeStatesIndex = escapeHtmlAttr(artifact.statesIndexUrl || "");
     const safeFontImport = escapeHtmlAttr(selectedLocationNavFont.importUrl || "");
     const safeFontFamily = escapeHtmlAttr(selectedLocationNavFont.family || "Inter");
     const safeCustomCss = s(locationNavCustomCss || "");
+    const stylePreset = normalizeLocationNavStylePreset(opts?.stylePreset || locationNavStylePreset);
     return `<!-- Dynamic Location Navigation -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6880,7 +6914,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     buttonPaddingX: ${Math.max(8, Math.min(32, Number(locationNavButtonPaddingX) || 14))},
     buttonFontSize: ${Math.max(11, Math.min(22, Number(locationNavButtonFontSize) || 14))},
     buttonFontWeight: ${Math.max(400, Math.min(900, Number(locationNavButtonFontWeight) || 700))},
-    stylePreset: "${escapeHtmlAttr(locationNavStylePreset || "pill")}"
+    stylePreset: "${escapeHtmlAttr(stylePreset || "pill_grid")}"
   };
   const EXTRA_CSS = ${JSON.stringify(safeCustomCss)};
   const root = document.getElementById(ROOT_ID);
@@ -7041,29 +7075,29 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     const style = document.createElement("style");
     const borderCss = CFG.buttonBorderEnabled ? (CFG.buttonBorderWidth + "px solid " + CFG.buttonBorder) : "0";
     const presetRadius =
-      CFG.stylePreset === "minimal"
+      CFG.stylePreset === "minimal_links"
         ? "6px"
-        : CFG.stylePreset === "soft"
+        : CFG.stylePreset === "cards_glass"
           ? Math.max(CFG.buttonRadius, 18) + "px"
-          : CFG.stylePreset === "outline"
+          : CFG.stylePreset === "chips_compact"
             ? Math.max(CFG.buttonRadius, 10) + "px"
-            : CFG.stylePreset === "link"
+            : CFG.stylePreset === "underline_list"
               ? "0"
               : CFG.buttonRadius + "px";
     const presetBg =
-      CFG.stylePreset === "minimal" || CFG.stylePreset === "outline" || CFG.stylePreset === "link"
+      CFG.stylePreset === "minimal_links" || CFG.stylePreset === "chips_compact" || CFG.stylePreset === "underline_list"
         ? "transparent"
         : CFG.buttonBg;
     const presetBorder =
-      CFG.stylePreset === "link"
+      CFG.stylePreset === "underline_list"
         ? "0"
-        : CFG.stylePreset === "outline"
+        : CFG.stylePreset === "chips_compact"
           ? (Math.max(1, CFG.buttonBorderWidth) + "px solid " + CFG.buttonText)
           : borderCss;
     const presetHover =
-      CFG.stylePreset === "minimal" || CFG.stylePreset === "outline"
+      CFG.stylePreset === "minimal_links" || CFG.stylePreset === "chips_compact"
         ? "background:rgba(255,255,255,.08);"
-        : CFG.stylePreset === "link"
+        : CFG.stylePreset === "underline_list"
           ? "text-decoration:underline;opacity:.92;"
           : "filter:brightness(1.07);";
     style.textContent = [
@@ -7071,6 +7105,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       ".ct-nav-title{margin:0 0 10px 0;font-size:18px;font-weight:800;color:inherit;}",
       ".ct-nav-grid{display:grid;grid-template-columns:repeat("+CFG.cols+",minmax(0,1fr));gap:"+CFG.gap+"px;}",
       ".ct-nav-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:"+presetBg+";color:"+CFG.buttonText+";border:"+presetBorder+";border-radius:"+presetRadius+";padding:"+CFG.buttonPaddingY+"px "+CFG.buttonPaddingX+"px;font-size:"+CFG.buttonFontSize+"px;font-weight:"+CFG.buttonFontWeight+";line-height:1.2;transition:transform .08s ease,filter .14s ease,background .14s ease,opacity .14s ease;}",
+      ".ct-nav-btn{backdrop-filter:"+(CFG.stylePreset === "cards_glass" ? "blur(10px)" : "none")+";box-shadow:"+(CFG.stylePreset === "cards_glass" ? "0 14px 30px rgba(2,6,23,.26)" : "none")+";}",
+      ".ct-nav-grid{align-items:stretch;}",
       ".ct-nav-btn:hover{"+presetHover+"}",
       ".ct-nav-btn:active{transform:translateY(1px);}",
       "@media (max-width:1024px){.ct-nav-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}",
@@ -7159,6 +7195,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     .catch(()=> render([], { type: "error", matchSource: "fetch_error", host: location.hostname }, 0));
 })();
 </script>`;
+  }
+
+  async function copyLocationNavEmbedCodeForPreset(preset: LocationNavStylePreset) {
+    if (!locationNavStatesIndexUrl) return;
+    const code = buildLocationNavEmbedCode({ statesIndexUrl: locationNavStatesIndexUrl }, { stylePreset: preset });
+    try {
+      await navigator.clipboard.writeText(code);
+      setLocationNavTemplateCopied(preset);
+      setTimeout(() => setLocationNavTemplateCopied(""), 1400);
+    } catch {}
   }
 
   async function copyArtifactEmbedCode(artifactId: string, value: string) {
@@ -9849,6 +9895,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       </div>
                       <div style={{ padding: 12 }}>
                         <div className="mini">Search: {s(builder.searchId) || "—"}</div>
+                        <div className="mini" style={{ marginTop: 6 }}>
+                          Style: <b>{locationNavStyleLabel((builder as any).stylePreset)}</b>
+                        </div>
                         <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
                           <button type="button" className="smallBtn" onClick={() => openLocationNavEditor(builder.id)}>
                             Edit Nav
@@ -9941,33 +9990,41 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                   display: "inline-flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  textDecoration: "none",
+                                  textDecoration: locationNavStylePreset === "underline_list" ? "underline" : "none",
                                   background:
-                                    locationNavStylePreset === "minimal" ||
-                                    locationNavStylePreset === "outline" ||
-                                    locationNavStylePreset === "link"
+                                    locationNavStylePreset === "minimal_links" ||
+                                    locationNavStylePreset === "underline_list" ||
+                                    locationNavStylePreset === "chips_compact"
                                       ? "transparent"
                                       : s(locationNavButtonBg) || "#0f172a",
                                   color: s(locationNavButtonText) || "#e2e8f0",
                                   border:
-                                    locationNavStylePreset === "link"
+                                    locationNavStylePreset === "underline_list"
                                       ? "0"
-                                      : locationNavStylePreset === "outline"
+                                      : locationNavStylePreset === "chips_compact"
                                         ? `${Math.max(1, Number(locationNavButtonBorderWidth) || 1)}px solid ${s(locationNavButtonText) || "#e2e8f0"}`
                                         : locationNavButtonBorderEnabled
                                           ? `${Math.max(0, Number(locationNavButtonBorderWidth) || 1)}px solid ${s(locationNavButtonBorder) || "#1e293b"}`
                                           : "0",
                                   borderRadius:
-                                    locationNavStylePreset === "minimal"
+                                    locationNavStylePreset === "minimal_links"
                                       ? 6
-                                      : locationNavStylePreset === "soft"
+                                      : locationNavStylePreset === "cards_glass"
                                         ? Math.max(18, Number(locationNavButtonRadius) || 12)
-                                        : locationNavStylePreset === "link"
+                                        : locationNavStylePreset === "underline_list"
                                           ? 0
                                           : Math.max(0, Number(locationNavButtonRadius) || 12),
-                                  padding: `${Math.max(6, Number(locationNavButtonPaddingY) || 10)}px ${Math.max(8, Number(locationNavButtonPaddingX) || 14)}px`,
+                                  padding:
+                                    locationNavStylePreset === "chips_compact"
+                                      ? `${Math.max(4, Number(locationNavButtonPaddingY) || 10)}px ${Math.max(8, Number(locationNavButtonPaddingX) || 14)}px`
+                                      : `${Math.max(6, Number(locationNavButtonPaddingY) || 10)}px ${Math.max(8, Number(locationNavButtonPaddingX) || 14)}px`,
                                   fontSize: Math.max(11, Number(locationNavButtonFontSize) || 14),
                                   fontWeight: Math.max(400, Number(locationNavButtonFontWeight) || 700),
+                                  boxShadow:
+                                    locationNavStylePreset === "cards_glass"
+                                      ? "0 14px 28px rgba(2,6,23,.26)"
+                                      : "none",
+                                  backdropFilter: locationNavStylePreset === "cards_glass" ? "blur(10px)" : "none",
                                 }}
                               >
                                 {label}
@@ -10047,14 +10104,28 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </div>
                         <div className="field"><label>Button text color</label><input className="input" value={locationNavButtonText} onChange={(e) => setLocationNavButtonText(e.target.value)} /></div>
                         <div className="field">
-                          <label>Style preset</label>
-                          <select className="select" value={locationNavStylePreset} onChange={(e) => setLocationNavStylePreset((e.target.value as any) || "pill")}>
-                            <option value="pill">Pill</option>
-                            <option value="minimal">Minimal</option>
-                            <option value="soft">Soft</option>
-                            <option value="outline">Outline</option>
-                            <option value="link">Link list</option>
-                          </select>
+                          <label>Template Style</label>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+                            {LOCATION_NAV_STYLE_OPTIONS.map((opt) => {
+                              const active = locationNavStylePreset === opt.key;
+                              return (
+                                <button
+                                  key={opt.key}
+                                  type="button"
+                                  className="smallBtn"
+                                  onClick={() => setLocationNavStylePreset(opt.key)}
+                                  style={{
+                                    justifyContent: "space-between",
+                                    borderColor: active ? "rgba(96,165,250,.75)" : "rgba(148,163,184,.35)",
+                                    background: active ? "linear-gradient(90deg, rgba(30,64,175,.34), rgba(15,23,42,.88))" : undefined,
+                                  }}
+                                >
+                                  <span style={{ fontWeight: 700 }}>{opt.label}</span>
+                                  <span className="mini" style={{ opacity: 0.86 }}>{opt.subtitle}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                         <div className="field">
                           <label>Border enabled</label>
@@ -10109,6 +10180,34 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     value={locationNavStatesIndexUrl ? buildLocationNavEmbedCode({ statesIndexUrl: locationNavStatesIndexUrl }) : "Publish Search Builder once to generate tenant global index URL."}
                     style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
                   />
+                </div>
+
+                <div style={{ marginTop: 14 }}>
+                  <div className="mini" style={{ marginBottom: 8 }}>Template Embeds (quick copy)</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 8 }}>
+                    {LOCATION_NAV_STYLE_OPTIONS.map((opt) => (
+                      <button
+                        key={`ln-embed-${opt.key}`}
+                        type="button"
+                        className="smallBtn"
+                        disabled={!locationNavStatesIndexUrl}
+                        onClick={() => void copyLocationNavEmbedCodeForPreset(opt.key)}
+                        style={{
+                          justifyContent: "space-between",
+                          borderColor:
+                            locationNavTemplateCopied === opt.key
+                              ? "rgba(74,222,128,.9)"
+                              : "rgba(148,163,184,.35)",
+                        }}
+                        title={opt.subtitle}
+                      >
+                        <span>{opt.label}</span>
+                        <span className="mini">
+                          {locationNavTemplateCopied === opt.key ? "Copied" : "Copy"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
