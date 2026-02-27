@@ -9,6 +9,8 @@ type Ctx = { params: Promise<{ id: string }> };
 const PROVIDER = "custom";
 const SCOPE = "module";
 const MODULE = "search_builder_indexes";
+const GLOBAL_SEARCH_BUILDER_KEY = "search-builder";
+const GLOBAL_LOCATION_NAV_KEY = "location-nav";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -60,6 +62,13 @@ function toUrlMaybe(domainOrUrl: string) {
   if (!d) return "";
   if (d.startsWith("http://") || d.startsWith("https://")) return d;
   return `https://${d}`;
+}
+
+function hostOnly(input: string) {
+  const raw = s(input);
+  if (!raw) return "";
+  const noProto = raw.replace(/^https?:\/\//i, "");
+  return noProto.split("/")[0].replace(/^www\./i, "").trim();
 }
 
 function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndexItem[] {
@@ -241,11 +250,15 @@ export async function POST(req: Request, ctx: Ctx) {
       const stateName = s(r.state_name);
       const rootDomain = s(r.root_domain);
       const representative = allItems.find((it) => normalizeText(it.state) === normalizeText(stateName));
-      const stateUrlFromRoot = rootDomain ? `${toUrlMaybe(rootDomain).replace(/\/+$/, "")}/${stateSlug}` : "";
+      const rootHost = hostOnly(rootDomain);
+      const stateUrlSubdomain = rootHost ? `https://${stateSlug}.${rootHost}` : "";
+      const stateUrlPath = rootDomain ? `${toUrlMaybe(rootDomain).replace(/\/+$/, "")}/${stateSlug}` : "";
       return {
         stateSlug,
         stateName,
-        stateUrl: stateUrlFromRoot || s(representative?.countyUrl) || "",
+        stateUrl: stateUrlSubdomain || stateUrlPath || s(representative?.countyUrl) || "",
+        statePathUrl: stateUrlPath,
+        stateSubdomainUrl: stateUrlSubdomain,
         stateFileUrl: `/embedded/state/${tenantId}/${stateSlug}.json`,
       };
     });
@@ -270,26 +283,34 @@ export async function POST(req: Request, ctx: Ctx) {
       items,
     };
 
-    await pool.query(
-      `
-        insert into app.organization_custom_values (
-          organization_id, provider, scope, module, key_name,
-          key_value, value_type, is_secret, is_active, description
-        ) values (
-          $1::uuid, $2, $3, $4, $5,
-          $6, 'json', false, true, 'Search Builder index by search'
-        )
-        on conflict (organization_id, provider, scope, module, key_name)
-        do update set
-          key_value = excluded.key_value,
-          value_type = excluded.value_type,
-          is_secret = excluded.is_secret,
-          is_active = excluded.is_active,
-          description = excluded.description,
-          updated_at = now()
-      `,
-      [tenantId, PROVIDER, SCOPE, MODULE, searchId, JSON.stringify(payload)],
-    );
+    const upsertKey = async (keyName: string, description: string) => {
+      await pool.query(
+        `
+          insert into app.organization_custom_values (
+            organization_id, provider, scope, module, key_name,
+            key_value, value_type, is_secret, is_active, description
+          ) values (
+            $1::uuid, $2, $3, $4, $5,
+            $6, 'json', false, true, $7
+          )
+          on conflict (organization_id, provider, scope, module, key_name)
+          do update set
+            key_value = excluded.key_value,
+            value_type = excluded.value_type,
+            is_secret = excluded.is_secret,
+            is_active = excluded.is_active,
+            description = excluded.description,
+            updated_at = now()
+        `,
+        [tenantId, PROVIDER, SCOPE, MODULE, keyName, JSON.stringify(payload), description],
+      );
+    };
+
+    // keep per-search index (backward compatibility)
+    await upsertKey(searchId, "Search Builder index by search");
+    // global per-tenant indexes (requested)
+    await upsertKey(GLOBAL_SEARCH_BUILDER_KEY, "Search Builder global index by tenant");
+    await upsertKey(GLOBAL_LOCATION_NAV_KEY, "Location Nav global index by tenant");
 
     return NextResponse.json({ ok: true, index: payload });
   } catch (error: unknown) {

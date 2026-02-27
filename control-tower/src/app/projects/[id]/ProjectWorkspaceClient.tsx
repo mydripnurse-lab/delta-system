@@ -6508,8 +6508,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         .filter((x) => !!x[0] && !!x[1]),
     );
     const statesIndexUrl =
-      routeTenantId && searchBuilderActiveSearchId
-        ? `https://${host}/embedded/index/${routeTenantId}/${searchBuilderActiveSearchId}.json`
+      routeTenantId
+        ? `https://${host}/embedded/index/${routeTenantId}/search-builder.json`
         : "";
     const activeServices = tenantProductsServices.filter((svc) => svc.isActive !== false);
 
@@ -6572,10 +6572,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
   const locationNavStatesIndexUrl = useMemo(() => {
     if (!routeTenantId) return "";
-    const searchId = kebabToken(locationNavSearchId);
-    if (!searchId) return "";
-    return `https://${SEARCH_EMBEDDED_HOST}/embedded/index/${routeTenantId}/${searchId}.json`;
-  }, [routeTenantId, locationNavSearchId]);
+    return `https://${SEARCH_EMBEDDED_HOST}/embedded/index/${routeTenantId}/location-nav.json`;
+  }, [routeTenantId]);
 
   const activeSearchBuilderProject = useMemo(
     () => searchBuilderProjects.find((p) => s(p.id) === s(searchBuilderActiveSearchId)) || null,
@@ -6793,6 +6791,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   function norm(v){return s(v).toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");}
   function slug(v){return norm(v).replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");}
   function hostFromUrl(u){ const x=s(u).replace(/^https?:\\/\\//i,""); return x.split("/")[0].replace(/^www\\./i,"").toLowerCase(); }
+  function hostLabel(h){ return s(h).toLowerCase().split(".").filter(Boolean)[0] || ""; }
   function subdomainFromHost(h){ const p=s(h).toLowerCase().replace(/^www\\./,'').split('.').filter(Boolean); return p.length>2 ? p[0] : ''; }
   function byName(a,b){ return a.label.localeCompare(b.label); }
   function uniqBy(arr,keyFn){ const seen=new Set(); const out=[]; for(const it of arr){ const k=keyFn(it); if(!k||seen.has(k)) continue; seen.add(k); out.push(it);} return out; }
@@ -6809,53 +6808,37 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     }
   }
 
-  function detectContext(items){
-    const href = (window.location && window.location.href ? window.location.href : "").toLowerCase();
+  function detectStateFromSubdomain(items){
     const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase().replace(/^www\\./,"");
-    const subdomain = subdomainFromHost(host);
-    let city = null, county = null, state = null;
+    const subdomain = hostLabel(subdomainFromHost(host));
+    if(!subdomain) return "";
     for(const it of items){
-      const cityHost = hostFromUrl(it.cityUrl || it.cityDomain || "");
-      const countyHost = hostFromUrl(it.countyUrl || it.countyDomain || "");
-      const stateHost = hostFromUrl(it.stateUrl || "");
-      if(!city && host && cityHost===host) city = it;
-      if(!county && host && countyHost===host) county = it;
-      if(!state && host && stateHost===host) state = it;
-      if(!city && subdomain && subdomain === slug(it.city || "")) city = it;
-      if(!county && subdomain && subdomain === slug(it.county || "")) county = it;
-      if(!state && subdomain && subdomain === slug(it.state || "")) state = it;
-      if(!state){
-        const stSlug = slug(it.state||"");
-        const stateUrl = s(it.stateUrl || "");
-        if((stateUrl && href.startsWith(stateUrl.toLowerCase())) || (stSlug && href.includes("/"+stSlug))) state = it;
+      if(subdomain === slug(it.state || "")) return s(it.state);
+    }
+    for(const it of items){
+      const countyHostLabel = hostLabel(hostFromUrl(it.countyUrl || it.countyDomain || ""));
+      const cityHostLabel = hostLabel(hostFromUrl(it.cityUrl || it.cityDomain || ""));
+      const stateHostLabel = hostLabel(hostFromUrl(it.stateUrl || ""));
+      if(subdomain && (subdomain === countyHostLabel || subdomain === cityHostLabel || subdomain === stateHostLabel)) {
+        return s(it.state);
       }
     }
-    if(city) return { type:"city", state: city.state, county: city.county, city: city.city };
-    if(CFG.mode==="city") return { type:"city", state: state?.state||"", county: county?.county||"", city: "" };
-    if(county) return { type:"county", state: county.state, county: county.county, city: "" };
-    if(CFG.mode==="county") return { type:"county", state: state?.state||"", county: county?.county||"", city: "" };
-    if(state || CFG.mode==="state") return { type:"state", state: state?.state||"", county: "", city: "" };
-    return { type:"state", state:"", county:"", city:"" };
+    // fallback para subdominios con sufijos de estado (ej: orange-county vs orange-county-ca)
+    for(const it of items){
+      const countyHostLabel = hostLabel(hostFromUrl(it.countyUrl || it.countyDomain || ""));
+      const cityHostLabel = hostLabel(hostFromUrl(it.cityUrl || it.cityDomain || ""));
+      if((countyHostLabel && countyHostLabel.startsWith(subdomain+"-")) || (cityHostLabel && cityHostLabel.startsWith(subdomain+"-"))){
+        return s(it.state);
+      }
+    }
+    return "";
   }
 
-  function buildTargets(items, ctx){
-    if(ctx.type==="city"){
-      if(CFG.cityBehavior==="sibling_cities"){
-        const rows = items.filter((x)=>norm(x.state)===norm(ctx.state) && norm(x.county)===norm(ctx.county) && s(x.cityUrl || x.cityDomain)).map((x)=>({ label:x.city, href:withCurrentPath(s(x.cityUrl || x.cityDomain)) }));
-        return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
-      }
-      if(CFG.cityBehavior==="counties_in_state"){
-        const rows = items.filter((x)=>norm(x.state)===norm(ctx.state) && s(x.countyUrl || x.countyDomain)).map((x)=>({ label:x.county, href:withCurrentPath(s(x.countyUrl || x.countyDomain)) }));
-        return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
-      }
-      const rows = items.filter((x)=>s(x.state) && s(x.stateUrl || x.countyUrl || x.countyDomain)).map((x)=>({ label:x.state, href:withCurrentPath(s(x.stateUrl || x.countyUrl || x.countyDomain)) }));
-      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
-    }
-    if(ctx.type==="county"){
-      const rows = items.filter((x)=>norm(x.state)===norm(ctx.state) && norm(x.county)===norm(ctx.county) && s(x.cityUrl || x.cityDomain)).map((x)=>({ label:x.city, href:withCurrentPath(s(x.cityUrl || x.cityDomain)) }));
-      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
-    }
-    const rows = items.filter((x)=>!ctx.state || norm(x.state)===norm(ctx.state)).map((x)=>({ label:x.county, href:withCurrentPath(s(x.countyUrl || x.countyDomain)) }));
+  function buildTargets(items, stateName){
+    const rows = items
+      .filter((x)=>!stateName || norm(x.state)===norm(stateName))
+      .map((x)=>({ label:x.county, href:withCurrentPath(s(x.countyUrl || x.countyDomain)) }))
+      .filter((x)=>s(x.label) && s(x.href));
     return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
   }
 
@@ -6919,8 +6902,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           return s(found?.stateUrl || found?.stateFileUrl || "");
         })()
       }));
-      const ctx = CFG.mode==="auto" ? detectContext(enriched) : { type: CFG.mode, state:"", county:"", city:"" };
-      const targets = buildTargets(enriched, ctx);
+      const stateName = detectStateFromSubdomain(enriched);
+      const targets = buildTargets(enriched, stateName);
       render(targets);
     })
     .catch(()=> render([]));
@@ -9734,7 +9717,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     className="input agencyTextarea"
                     rows={14}
                     readOnly
-                    value={locationNavStatesIndexUrl ? buildLocationNavEmbedCode({ statesIndexUrl: locationNavStatesIndexUrl }) : "Select Source Search and publish that search first to generate states index URL."}
+                    value={locationNavStatesIndexUrl ? buildLocationNavEmbedCode({ statesIndexUrl: locationNavStatesIndexUrl }) : "Publish Search Builder once to generate tenant global index URL."}
                     style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
                   />
                 </div>

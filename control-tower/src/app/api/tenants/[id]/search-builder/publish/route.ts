@@ -460,7 +460,7 @@ export async function POST(req: Request, ctx: Ctx) {
     const rawFolder = kebabToken(config.folder) || "company-search";
     const folder = `${searchId}-${rawFolder}`.slice(0, 120);
     const host = s(config.host) || SEARCH_EMBEDDED_HOST;
-    const statesIndexUrl = `https://${host}/embedded/index/${tenantId}/${searchId}.json`;
+    const statesIndexUrl = `https://${host}/embedded/index/${tenantId}/search-builder.json`;
 
     const artifacts =
       parsedServices.length > 0
