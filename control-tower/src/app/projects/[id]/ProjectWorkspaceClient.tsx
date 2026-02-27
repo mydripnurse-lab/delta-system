@@ -934,6 +934,7 @@ export default function Home() {
   const [locationNavMsg, setLocationNavMsg] = useState("");
   const [locationNavErr, setLocationNavErr] = useState("");
   const [locationNavSaving, setLocationNavSaving] = useState(false);
+  const [locationNavIndexing, setLocationNavIndexing] = useState(false);
   const [locationNavCopied, setLocationNavCopied] = useState(false);
   const [locationNavTitle, setLocationNavTitle] = useState("Explore nearby locations");
   const [locationNavMode, setLocationNavMode] = useState<"auto" | "state" | "county" | "city">("auto");
@@ -2702,11 +2703,23 @@ export default function Home() {
       });
       const data = await safeJson(res);
       if (!res.ok || !data?.ok) throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      setLocationNavIndexing(true);
+      const indexRes = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/index`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ searchId: "location-nav", state: "all" }),
+      });
+      const indexData = await safeJson(indexRes);
+      if (!indexRes.ok || !indexData?.ok) {
+        throw new Error(s(indexData?.error) || `Location Nav index failed (HTTP ${indexRes.status})`);
+      }
       await loadLocationNavBuilders({ selectId: id, openEditor: true });
-      setLocationNavMsg("Location Nav settings saved.");
+      const count = Number(indexData?.index?.itemsCount || 0);
+      setLocationNavMsg(`Location Nav saved + index generated (${count} rows).`);
     } catch (e: unknown) {
       setLocationNavErr(e instanceof Error ? e.message : "Failed to save location nav.");
     } finally {
+      setLocationNavIndexing(false);
       setLocationNavSaving(false);
     }
   }
@@ -2760,7 +2773,7 @@ export default function Home() {
       const indexRes = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/index`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ searchId, state: "all" }),
+        body: JSON.stringify({ searchId: "search-builder", state: "all" }),
       });
       const indexData = await safeJson(indexRes);
       if (!indexRes.ok || !indexData?.ok) {
@@ -2787,7 +2800,7 @@ export default function Home() {
       }
       const manifest = (data?.manifest || null) as SearchBuilderManifest | null;
       const total = Number(data?.generated || manifest?.count || 0);
-      setSearchBuilderMsg(`Search index + publish completed (${indexCount} states, ${total} files).`);
+      setSearchBuilderMsg(`Search Builder index + publish completed (${indexCount} rows, ${total} files).`);
       if (manifest) {
         setSearchBuilderLastPublish({
           searchId,
@@ -9483,7 +9496,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   Back
                 </button>
                 <button type="button" className="smallBtn" disabled={locationNavSaving} onClick={() => void saveLocationNavSettings()}>
-                  {locationNavSaving ? "Saving..." : "Save"}
+                  {locationNavSaving ? "Saving..." : locationNavIndexing ? "Generating Index..." : "Save"}
                 </button>
                 <button type="button" className="smallBtn" disabled={!locationNavStatesIndexUrl} onClick={() => void copyLocationNavEmbedCode()}>
                   {locationNavCopied ? "Copied" : "Copy Embed"}

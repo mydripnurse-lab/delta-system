@@ -9,8 +9,6 @@ type Ctx = { params: Promise<{ id: string }> };
 const PROVIDER = "custom";
 const SCOPE = "module";
 const MODULE = "search_builder_indexes";
-const GLOBAL_SEARCH_BUILDER_KEY = "search-builder";
-const GLOBAL_LOCATION_NAV_KEY = "location-nav";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -283,34 +281,26 @@ export async function POST(req: Request, ctx: Ctx) {
       items,
     };
 
-    const upsertKey = async (keyName: string, description: string) => {
-      await pool.query(
-        `
-          insert into app.organization_custom_values (
-            organization_id, provider, scope, module, key_name,
-            key_value, value_type, is_secret, is_active, description
-          ) values (
-            $1::uuid, $2, $3, $4, $5,
-            $6, 'json', false, true, $7
-          )
-          on conflict (organization_id, provider, scope, module, key_name)
-          do update set
-            key_value = excluded.key_value,
-            value_type = excluded.value_type,
-            is_secret = excluded.is_secret,
-            is_active = excluded.is_active,
-            description = excluded.description,
-            updated_at = now()
-        `,
-        [tenantId, PROVIDER, SCOPE, MODULE, keyName, JSON.stringify(payload), description],
-      );
-    };
-
-    // keep per-search index (backward compatibility)
-    await upsertKey(searchId, "Search Builder index by search");
-    // global per-tenant indexes (requested)
-    await upsertKey(GLOBAL_SEARCH_BUILDER_KEY, "Search Builder global index by tenant");
-    await upsertKey(GLOBAL_LOCATION_NAV_KEY, "Location Nav global index by tenant");
+    await pool.query(
+      `
+        insert into app.organization_custom_values (
+          organization_id, provider, scope, module, key_name,
+          key_value, value_type, is_secret, is_active, description
+        ) values (
+          $1::uuid, $2, $3, $4, $5,
+          $6, 'json', false, true, 'Search/Navigation index by key'
+        )
+        on conflict (organization_id, provider, scope, module, key_name)
+        do update set
+          key_value = excluded.key_value,
+          value_type = excluded.value_type,
+          is_secret = excluded.is_secret,
+          is_active = excluded.is_active,
+          description = excluded.description,
+          updated_at = now()
+      `,
+      [tenantId, PROVIDER, SCOPE, MODULE, searchId, JSON.stringify(payload)],
+    );
 
     return NextResponse.json({ ok: true, index: payload });
   } catch (error: unknown) {
