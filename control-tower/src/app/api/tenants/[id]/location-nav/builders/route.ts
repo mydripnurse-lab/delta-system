@@ -8,18 +8,24 @@ type Ctx = { params: Promise<{ id: string }> };
 
 const PROVIDER = "custom";
 const SCOPE = "module";
-const MODULE = "search_builder_searches";
-const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
+const MODULE = "location_nav_builders";
 
 function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
-function normalizePath(input: unknown) {
-  const raw = s(input);
-  if (!raw) return "/";
-  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-  return `/${raw.replace(/^\/+/, "")}`;
+function kebabToken(input: string) {
+  return s(input)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function randomId() {
+  return `loc_nav_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function normalizeColor(input: unknown, fallback: string) {
@@ -50,64 +56,35 @@ function normalizeFontKey(input: unknown) {
     "rubik",
     "merriweather",
   ]);
-  return allowed.has(key) ? key : "lato";
-}
-
-function normalizePreviewTone(input: unknown) {
-  const tone = s(input).toLowerCase();
-  return tone === "light" ? "light" : "dark";
-}
-
-function kebabToken(input: string) {
-  return s(input)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
-
-function randomId() {
-  return `search_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  return allowed.has(key) ? key : "inter";
 }
 
 function normalizePayload(input: Record<string, unknown> | null | undefined) {
-  const name = s(input?.name) || "Untitled Search";
+  const searchId = kebabToken(s(input?.searchId || ""));
   return {
     id: s(input?.id) || randomId(),
-    name,
-    companyName: s(input?.companyName),
-    buttonText: s(input?.buttonText) || "Book An Appointment",
-    modalTitle: s(input?.modalTitle) || `${name} Locations`,
-    host: SEARCH_EMBEDDED_HOST,
-    folder: s(input?.folder) || "company-search",
-    pageSlug: s(input?.pageSlug) || "mobile-iv-therapy-locations",
-    query: s(input?.query) || "embed=1",
-    buttonColor: normalizeColor(input?.buttonColor, "#044c5c"),
-    headerColor: normalizeColor(input?.headerColor, "#a4d8e4"),
-    searchTitle: s(input?.searchTitle) || "Choose your location",
-    searchSubtitle:
-      s(input?.searchSubtitle) || "Search by State, County/Parish, or City. Then click Book Now.",
-    searchPlaceholder: s(input?.searchPlaceholder) || "Choose your City, State, or Country",
-    defaultBookingPath: normalizePath(input?.defaultBookingPath || "/"),
-    buttonPosition: ["left", "center", "right"].includes(s(input?.buttonPosition).toLowerCase())
-      ? s(input?.buttonPosition).toLowerCase()
-      : "center",
+    name: s(input?.name) || "Location Nav",
+    searchId,
+    title: s(input?.title) || "Explore nearby locations",
+    mode: ["auto", "state", "county", "city"].includes(s(input?.mode).toLowerCase())
+      ? s(input?.mode).toLowerCase()
+      : "auto",
+    cityBehavior: ["states", "sibling_cities", "counties_in_state"].includes(s(input?.cityBehavior).toLowerCase())
+      ? s(input?.cityBehavior).toLowerCase()
+      : "states",
+    columnsDesktop: n(input?.columnsDesktop, 4, 1, 6),
+    gap: n(input?.gap, 10, 4, 32),
+    buttonBg: normalizeColor(input?.buttonBg, "#0f172a"),
+    buttonText: normalizeColor(input?.buttonText, "#e2e8f0"),
+    buttonBorder: normalizeColor(input?.buttonBorder, "#1e293b"),
+    buttonRadius: n(input?.buttonRadius, 12, 0, 30),
+    buttonPaddingY: n(input?.buttonPaddingY, 10, 6, 24),
+    buttonPaddingX: n(input?.buttonPaddingX, 14, 8, 32),
+    buttonFontSize: n(input?.buttonFontSize, 14, 11, 22),
+    buttonFontWeight: n(input?.buttonFontWeight, 700, 400, 900),
+    customCss: s(input?.customCss),
     fontKey: normalizeFontKey(input?.fontKey),
-    buttonRadius: n(input?.buttonRadius, 999, 0, 999),
-    buttonPaddingY: n(input?.buttonPaddingY, 12, 6, 32),
-    buttonPaddingX: n(input?.buttonPaddingX, 22, 8, 60),
-    buttonFontSize: n(input?.buttonFontSize, 15, 10, 30),
-    buttonFontWeight: n(input?.buttonFontWeight, 800, 300, 900),
-    buttonShadow: n(input?.buttonShadow, 18, 0, 80),
-    modalRadius: n(input?.modalRadius, 16, 0, 40),
-    modalWidth: n(input?.modalWidth, 800, 360, 1400),
-    modalHeight: n(input?.modalHeight, 680, 360, 1100),
-    modalBackdropOpacity: n(input?.modalBackdropOpacity, 55, 0, 95),
-    modalHeaderHeight: n(input?.modalHeaderHeight, 56, 40, 120),
-    inputRadius: n(input?.inputRadius, 10, 0, 30),
-    previewTone: normalizePreviewTone(input?.previewTone),
+    previewTone: s(input?.previewTone).toLowerCase() === "light" ? "light" : "dark",
   };
 }
 
@@ -140,22 +117,19 @@ export async function GET(req: Request, ctx: Ctx) {
       `,
       [tenantId, PROVIDER, SCOPE, MODULE],
     );
-
-    const searches = q.rows.map((row) => {
+    const builders = q.rows.map((row) => {
       let parsed: Record<string, unknown> = {};
       try {
         parsed = JSON.parse(s(row.key_value) || "{}") as Record<string, unknown>;
       } catch {
         parsed = {};
       }
-      const payload = normalizePayload({ ...parsed, id: s(parsed.id) || row.key_name });
-      return { ...payload, updatedAt: s(row.updated_at) };
+      return { ...normalizePayload({ ...parsed, id: s(parsed.id) || row.key_name }), updatedAt: s(row.updated_at) };
     });
-
-    return NextResponse.json({ ok: true, searches });
+    return NextResponse.json({ ok: true, builders });
   } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to read searches" },
+      { ok: false, error: error instanceof Error ? error.message : "Failed to read location nav builders" },
       { status: 500 },
     );
   }
@@ -174,7 +148,6 @@ export async function POST(req: Request, ctx: Ctx) {
     const payload = normalizePayload(body);
     const keyName = kebabToken(payload.id) || randomId();
     const pool = getDbPool();
-
     await pool.query(
       `
         insert into app.organization_custom_values (
@@ -182,7 +155,7 @@ export async function POST(req: Request, ctx: Ctx) {
           key_value, value_type, is_secret, is_active, description
         ) values (
           $1::uuid, $2, $3, $4, $5,
-          $6, 'json', false, true, 'Search Builder search config'
+          $6, 'json', false, true, 'Location Nav builder config'
         )
         on conflict (organization_id, provider, scope, module, key_name)
         do update set
@@ -195,11 +168,10 @@ export async function POST(req: Request, ctx: Ctx) {
       `,
       [tenantId, PROVIDER, SCOPE, MODULE, keyName, JSON.stringify({ ...payload, id: keyName })],
     );
-
-    return NextResponse.json({ ok: true, search: { ...payload, id: keyName } });
+    return NextResponse.json({ ok: true, builder: { ...payload, id: keyName } });
   } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to create search" },
+      { ok: false, error: error instanceof Error ? error.message : "Failed to create location nav builder" },
       { status: 500 },
     );
   }
@@ -215,11 +187,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-    const searchId = kebabToken(s(body.searchId || body.id));
-    if (!searchId) return NextResponse.json({ ok: false, error: "Missing searchId" }, { status: 400 });
-    const payload = normalizePayload({ ...body, id: searchId });
+    const builderId = kebabToken(s(body.id));
+    if (!builderId) return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
+    const payload = normalizePayload({ ...body, id: builderId });
     const pool = getDbPool();
-
     await pool.query(
       `
         insert into app.organization_custom_values (
@@ -227,7 +198,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
           key_value, value_type, is_secret, is_active, description
         ) values (
           $1::uuid, $2, $3, $4, $5,
-          $6, 'json', false, true, 'Search Builder search config'
+          $6, 'json', false, true, 'Location Nav builder config'
         )
         on conflict (organization_id, provider, scope, module, key_name)
         do update set
@@ -238,13 +209,12 @@ export async function PATCH(req: Request, ctx: Ctx) {
           description = excluded.description,
           updated_at = now()
       `,
-      [tenantId, PROVIDER, SCOPE, MODULE, searchId, JSON.stringify(payload)],
+      [tenantId, PROVIDER, SCOPE, MODULE, builderId, JSON.stringify(payload)],
     );
-
-    return NextResponse.json({ ok: true, search: payload });
+    return NextResponse.json({ ok: true, builder: payload });
   } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to update search" },
+      { ok: false, error: error instanceof Error ? error.message : "Failed to update location nav builder" },
       { status: 500 },
     );
   }
@@ -260,28 +230,26 @@ export async function DELETE(req: Request, ctx: Ctx) {
 
   try {
     const url = new URL(req.url);
-    const searchId = kebabToken(url.searchParams.get("searchId") || "");
-    if (!searchId) return NextResponse.json({ ok: false, error: "Missing searchId" }, { status: 400 });
-
+    const builderId = kebabToken(url.searchParams.get("id") || "");
+    if (!builderId) return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
     const pool = getDbPool();
     await pool.query(
       `
-        update app.organization_custom_values
-        set is_active = false, updated_at = now()
+        delete from app.organization_custom_values
         where organization_id = $1::uuid
           and provider = $2
           and scope = $3
           and module = $4
           and key_name = $5
       `,
-      [tenantId, PROVIDER, SCOPE, MODULE, searchId],
+      [tenantId, PROVIDER, SCOPE, MODULE, builderId],
     );
-
-    return NextResponse.json({ ok: true, searchId });
+    return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "Failed to delete search" },
+      { ok: false, error: error instanceof Error ? error.message : "Failed to delete location nav builder" },
       { status: 500 },
     );
   }
 }
+
