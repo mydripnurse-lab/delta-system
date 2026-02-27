@@ -6863,6 +6863,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   const VERSION = "lnav-20260227d";
   const INDEX_URL = "${safeStatesIndex}";
   const ROOT_ID = "ct-location-nav-root";
+  const DEBUG = /(?:^|[?&])debug=true(?:&|$)/i.test(window.location.search) || /(?:^|[?&])lnav_debug=1(?:&|$)/i.test(window.location.search);
   const CFG = {
     title: "${safeTitle}",
     mode: "${locationNavMode}",
@@ -6973,44 +6974,51 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       if(subdomain && countyAliases(it.county || "").includes(subdomain)) countyAliasMatches.push(it);
       if(subdomain && slug(it.state || "") === subdomain) stateAliasMatches.push(it);
     }
-    if(countyHostMatch) return { type: "county", state: s(countyHostMatch.state), county: s(countyHostMatch.county), city: "" };
-    if(cityHostMatch) return { type: "city", state: s(cityHostMatch.state), county: s(cityHostMatch.county), city: s(cityHostMatch.city) };
-    if(stateHostMatch) return { type: "state", state: s(stateHostMatch.state), county: "", city: "" };
+    if(countyHostMatch) return { type: "county", state: s(countyHostMatch.state), county: s(countyHostMatch.county), city: "", matchSource: "county_host", host, subdomain, subType };
+    if(cityHostMatch) return { type: "city", state: s(cityHostMatch.state), county: s(cityHostMatch.county), city: s(cityHostMatch.city), matchSource: "city_host", host, subdomain, subType };
+    if(stateHostMatch) return { type: "state", state: s(stateHostMatch.state), county: "", city: "", matchSource: "state_host", host, subdomain, subType };
     if(subType === "county" && countyAliasMatches.length){
       const picked = pickBestCounty(countyAliasMatches);
-      if(picked) return { type: "county", state: s(picked.state), county: s(picked.county), city: "" };
+      if(picked) return { type: "county", state: s(picked.state), county: s(picked.county), city: "", matchSource: "county_alias", host, subdomain, subType };
     }
     if(subType === "city" && cityAliasMatches.length){
       const picked = cityAliasMatches[0];
-      return { type: "city", state: s(picked.state), county: s(picked.county), city: s(picked.city) };
+      return { type: "city", state: s(picked.state), county: s(picked.county), city: s(picked.city), matchSource: "city_alias", host, subdomain, subType };
     }
     if(stateAliasMatches.length){
       const picked = stateAliasMatches[0];
-      return { type: "state", state: s(picked.state), county: "", city: "" };
+      return { type: "state", state: s(picked.state), county: "", city: "", matchSource: "state_alias", host, subdomain, subType };
     }
     if(countyAliasMatches.length){
       const picked = pickBestCounty(countyAliasMatches);
-      if(picked) return { type: "county", state: s(picked.state), county: s(picked.county), city: "" };
+      if(picked) return { type: "county", state: s(picked.state), county: s(picked.county), city: "", matchSource: "county_alias_loose", host, subdomain, subType };
     }
     if(cityAliasMatches.length){
       const picked = cityAliasMatches[0];
-      return { type: "city", state: s(picked.state), county: s(picked.county), city: s(picked.city) };
+      return { type: "city", state: s(picked.state), county: s(picked.county), city: s(picked.city), matchSource: "city_alias_loose", host, subdomain, subType };
     }
     if(subType === "state" && subdomain){
       const picked = items.find((it)=>slug(it.state || "") === subdomain);
-      if(picked) return { type: "state", state: s(picked.state), county: "", city: "" };
+      if(picked) return { type: "state", state: s(picked.state), county: "", city: "", matchSource: "state_slug", host, subdomain, subType };
     }
-    return { type: "state", state: "", county: "", city: "" };
+    return { type: "unknown", state: "", county: "", city: "", matchSource: "none", host, subdomain, subType };
+  }
+
+  function buildStateTargets(items){
+    const rows = items
+      .filter((x)=>s(x.state))
+      .map((x)=>({ label: x.state, href: withCurrentPath(s(x.stateUrl || x.countyUrl || x.countyDomain)) }))
+      .filter((x)=>s(x.label) && s(x.href));
+    return uniqBy(rows,(x)=>norm(x.label)).sort(byName);
   }
 
   function buildTargets(items, ctx){
+    if(ctx.type === "unknown"){
+      return buildStateTargets(items);
+    }
     // City page => list of states (+ Puerto Rico if present in data)
     if(ctx.type === "city"){
-      const rows = items
-        .filter((x)=>s(x.stateUrl || x.state))
-        .map((x)=>({ label: x.state, href: withCurrentPath(s(x.stateUrl || x.countyUrl || x.countyDomain)) }))
-        .filter((x)=>s(x.label) && s(x.href));
-      return uniqBy(rows,(x)=>norm(x.label)).sort(byName);
+      return buildStateTargets(items);
     }
     // County page => cities from same county in alphabetical order
     if(ctx.type === "county"){
@@ -7029,7 +7037,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     return uniqBy(rows,(x)=>norm(x.label)).sort(byName);
   }
 
-  function render(targets){
+  function render(targets, ctx, totalItems){
     const style = document.createElement("style");
     const borderCss = CFG.buttonBorderEnabled ? (CFG.buttonBorderWidth + "px solid " + CFG.buttonBorder) : "0";
     const presetRadius =
@@ -7081,7 +7089,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     }
     const grid = document.createElement("div");
     grid.className = "ct-nav-grid";
-    for(const t of targets.slice(0,36)){
+    for(const t of targets){
       if(!s(t.href)) continue;
       const a = document.createElement("a");
       a.className = "ct-nav-btn";
@@ -7097,6 +7105,31 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       wrap.appendChild(empty);
     } else {
       wrap.appendChild(grid);
+    }
+    if(DEBUG){
+      const dbg = document.createElement("pre");
+      dbg.style.marginTop = "10px";
+      dbg.style.padding = "10px";
+      dbg.style.borderRadius = "10px";
+      dbg.style.fontSize = "12px";
+      dbg.style.lineHeight = "1.4";
+      dbg.style.whiteSpace = "pre-wrap";
+      dbg.style.background = "rgba(0,0,0,.25)";
+      dbg.style.color = "#d1e7ff";
+      dbg.textContent = JSON.stringify({
+        version: VERSION,
+        host: ctx?.host || "",
+        subdomain: ctx?.subdomain || "",
+        inferredType: ctx?.subType || "",
+        ctxType: ctx?.type || "",
+        state: ctx?.state || "",
+        county: ctx?.county || "",
+        city: ctx?.city || "",
+        matchSource: ctx?.matchSource || "",
+        totalItems,
+        renderedTargets: targets.length
+      }, null, 2);
+      wrap.appendChild(dbg);
     }
     root.appendChild(wrap);
   }
@@ -7121,9 +7154,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       }));
       const ctx = detectContext(enriched);
       const targets = buildTargets(enriched, ctx);
-      render(targets);
+      render(targets, ctx, enriched.length);
     })
-    .catch(()=> render([]));
+    .catch(()=> render([], { type: "error", matchSource: "fetch_error", host: location.hostname }, 0));
 })();
 </script>`;
   }
