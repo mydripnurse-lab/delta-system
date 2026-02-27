@@ -33,7 +33,12 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (!t || !k || !validToken(k)) {
     return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
       status: 404,
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": "Content-Type",
+      },
     });
   }
 
@@ -58,7 +63,12 @@ export async function GET(_req: Request, ctx: Ctx) {
     if (!raw) {
       return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
         status: 404,
-        headers: { "content-type": "application/json; charset=utf-8" },
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "access-control-allow-methods": "GET, OPTIONS",
+          "access-control-allow-headers": "Content-Type",
+        },
       });
     }
 
@@ -67,12 +77,32 @@ export async function GET(_req: Request, ctx: Ctx) {
       headers: {
         "content-type": "application/json; charset=utf-8",
         "cache-control": "public, max-age=60, s-maxage=300",
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": "Content-Type",
       },
     });
   } catch {
     return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
       status: 404,
-      headers: { "content-type": "application/json; charset=utf-8" },
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": "Content-Type",
+      },
     });
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET, OPTIONS",
+      "access-control-allow-headers": "Content-Type",
+      "access-control-max-age": "86400",
+    },
+  });
 }
