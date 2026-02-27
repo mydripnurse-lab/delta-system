@@ -143,6 +143,20 @@ type SearchBuilderProject = {
   modalHeaderHeight: number;
   inputRadius: number;
   previewTone?: "dark" | "light";
+  locationNavTitle?: string;
+  locationNavMode?: "auto" | "state" | "county" | "city";
+  locationNavCityBehavior?: "states" | "sibling_cities" | "counties_in_state";
+  locationNavColumnsDesktop?: number;
+  locationNavGap?: number;
+  locationNavButtonBg?: string;
+  locationNavButtonText?: string;
+  locationNavButtonBorder?: string;
+  locationNavButtonRadius?: number;
+  locationNavButtonPaddingY?: number;
+  locationNavButtonPaddingX?: number;
+  locationNavButtonFontSize?: number;
+  locationNavButtonFontWeight?: number;
+  locationNavCustomCss?: string;
   updatedAt?: string;
 };
 
@@ -285,11 +299,12 @@ type TenantDetailResponse = {
   error?: string;
 };
 
-type ProjectTab = "runner" | "search_builder" | "sheet" | "activation" | "logs" | "details" | "webhooks";
+type ProjectTab = "runner" | "search_builder" | "location_nav" | "sheet" | "activation" | "logs" | "details" | "webhooks";
 const PROJECT_TAB_TO_SLUG: Record<ProjectTab, string> = {
   activation: "home",
   runner: "run-center",
   search_builder: "search-builder",
+  location_nav: "location-nav",
   sheet: "sheet-explorer",
   details: "project-details",
   webhooks: "webhooks",
@@ -299,6 +314,7 @@ const PROJECT_SLUG_TO_TAB: Record<string, ProjectTab> = {
   home: "activation",
   "run-center": "runner",
   "search-builder": "search_builder",
+  "location-nav": "location_nav",
   "sheet-explorer": "sheet",
   "project-details": "details",
   webhooks: "webhooks",
@@ -896,6 +912,26 @@ export default function Home() {
   const [searchBuilderCopiedFolderPath, setSearchBuilderCopiedFolderPath] = useState(false);
   const [searchBuilderEditorPanel, setSearchBuilderEditorPanel] = useState<"button" | "modal">("button");
   const [searchBuilderPreviewTone, setSearchBuilderPreviewTone] = useState<"dark" | "light">("dark");
+  const [locationNavEditorOpen, setLocationNavEditorOpen] = useState(false);
+  const [locationNavPanel, setLocationNavPanel] = useState<"layout" | "button" | "css">("layout");
+  const [locationNavMsg, setLocationNavMsg] = useState("");
+  const [locationNavErr, setLocationNavErr] = useState("");
+  const [locationNavSaving, setLocationNavSaving] = useState(false);
+  const [locationNavCopied, setLocationNavCopied] = useState(false);
+  const [locationNavTitle, setLocationNavTitle] = useState("Explore nearby locations");
+  const [locationNavMode, setLocationNavMode] = useState<"auto" | "state" | "county" | "city">("auto");
+  const [locationNavCityBehavior, setLocationNavCityBehavior] = useState<"states" | "sibling_cities" | "counties_in_state">("states");
+  const [locationNavColumnsDesktop, setLocationNavColumnsDesktop] = useState(4);
+  const [locationNavGap, setLocationNavGap] = useState(10);
+  const [locationNavButtonBg, setLocationNavButtonBg] = useState("#0f172a");
+  const [locationNavButtonText, setLocationNavButtonText] = useState("#e2e8f0");
+  const [locationNavButtonBorder, setLocationNavButtonBorder] = useState("#1e293b");
+  const [locationNavButtonRadius, setLocationNavButtonRadius] = useState(12);
+  const [locationNavButtonPaddingY, setLocationNavButtonPaddingY] = useState(10);
+  const [locationNavButtonPaddingX, setLocationNavButtonPaddingX] = useState(14);
+  const [locationNavButtonFontSize, setLocationNavButtonFontSize] = useState(14);
+  const [locationNavButtonFontWeight, setLocationNavButtonFontWeight] = useState(700);
+  const [locationNavCustomCss, setLocationNavCustomCss] = useState("");
   const [actCvApplying, setActCvApplying] = useState(false);
   const [actCvMsg, setActCvMsg] = useState("");
   const [actCvErr, setActCvErr] = useState("");
@@ -2255,6 +2291,20 @@ export default function Home() {
       modalHeaderHeight: 56,
       inputRadius: 10,
       previewTone: "dark" as const,
+      locationNavTitle: "Explore nearby locations",
+      locationNavMode: "auto" as const,
+      locationNavCityBehavior: "states" as const,
+      locationNavColumnsDesktop: 4,
+      locationNavGap: 10,
+      locationNavButtonBg: "#0f172a",
+      locationNavButtonText: "#e2e8f0",
+      locationNavButtonBorder: "#1e293b",
+      locationNavButtonRadius: 12,
+      locationNavButtonPaddingY: 10,
+      locationNavButtonPaddingX: 14,
+      locationNavButtonFontSize: 14,
+      locationNavButtonFontWeight: 700,
+      locationNavCustomCss: "",
     };
   }
 
@@ -2297,6 +2347,28 @@ export default function Home() {
     setSearchBuilderModalHeaderHeight(Number(project.modalHeaderHeight || 56));
     setSearchBuilderInputRadius(Number(project.inputRadius || 10));
     setSearchBuilderPreviewTone(s(project.previewTone) === "light" ? "light" : "dark");
+    setLocationNavTitle(s(project.locationNavTitle) || "Explore nearby locations");
+    setLocationNavMode(
+      s(project.locationNavMode) === "state" || s(project.locationNavMode) === "county" || s(project.locationNavMode) === "city"
+        ? (s(project.locationNavMode) as "state" | "county" | "city")
+        : "auto",
+    );
+    setLocationNavCityBehavior(
+      s(project.locationNavCityBehavior) === "sibling_cities" || s(project.locationNavCityBehavior) === "counties_in_state"
+        ? (s(project.locationNavCityBehavior) as "sibling_cities" | "counties_in_state")
+        : "states",
+    );
+    setLocationNavColumnsDesktop(Math.max(1, Math.min(6, Number(project.locationNavColumnsDesktop || 4))));
+    setLocationNavGap(Math.max(4, Math.min(32, Number(project.locationNavGap || 10))));
+    setLocationNavButtonBg(s(project.locationNavButtonBg) || "#0f172a");
+    setLocationNavButtonText(s(project.locationNavButtonText) || "#e2e8f0");
+    setLocationNavButtonBorder(s(project.locationNavButtonBorder) || "#1e293b");
+    setLocationNavButtonRadius(Math.max(0, Math.min(30, Number(project.locationNavButtonRadius || 12))));
+    setLocationNavButtonPaddingY(Math.max(6, Math.min(24, Number(project.locationNavButtonPaddingY || 10))));
+    setLocationNavButtonPaddingX(Math.max(8, Math.min(32, Number(project.locationNavButtonPaddingX || 14))));
+    setLocationNavButtonFontSize(Math.max(11, Math.min(22, Number(project.locationNavButtonFontSize || 14))));
+    setLocationNavButtonFontWeight(Math.max(400, Math.min(900, Number(project.locationNavButtonFontWeight || 700))));
+    setLocationNavCustomCss(s(project.locationNavCustomCss));
     setSearchBuilderButtonPosition(
       s(project.buttonPosition) === "left" || s(project.buttonPosition) === "right"
         ? (s(project.buttonPosition) as "left" | "right")
@@ -2338,6 +2410,20 @@ export default function Home() {
       modalHeaderHeight: Number(searchBuilderModalHeaderHeight) || fallback.modalHeaderHeight,
       inputRadius: Number(searchBuilderInputRadius) || fallback.inputRadius,
       previewTone: searchBuilderPreviewTone,
+      locationNavTitle: s(locationNavTitle) || fallback.locationNavTitle,
+      locationNavMode: locationNavMode,
+      locationNavCityBehavior: locationNavCityBehavior,
+      locationNavColumnsDesktop: Number(locationNavColumnsDesktop) || fallback.locationNavColumnsDesktop,
+      locationNavGap: Number(locationNavGap) || fallback.locationNavGap,
+      locationNavButtonBg: s(locationNavButtonBg) || fallback.locationNavButtonBg,
+      locationNavButtonText: s(locationNavButtonText) || fallback.locationNavButtonText,
+      locationNavButtonBorder: s(locationNavButtonBorder) || fallback.locationNavButtonBorder,
+      locationNavButtonRadius: Number(locationNavButtonRadius) || fallback.locationNavButtonRadius,
+      locationNavButtonPaddingY: Number(locationNavButtonPaddingY) || fallback.locationNavButtonPaddingY,
+      locationNavButtonPaddingX: Number(locationNavButtonPaddingX) || fallback.locationNavButtonPaddingX,
+      locationNavButtonFontSize: Number(locationNavButtonFontSize) || fallback.locationNavButtonFontSize,
+      locationNavButtonFontWeight: Number(locationNavButtonFontWeight) || fallback.locationNavButtonFontWeight,
+      locationNavCustomCss: s(locationNavCustomCss),
     };
   }
 
@@ -2456,6 +2542,31 @@ export default function Home() {
     setSearchBuilderEditorOpen(true);
     setSearchBuilderMsg("");
     setSearchBuilderErr("");
+  }
+
+  function openLocationNavEditor(searchId: string) {
+    const picked = searchBuilderProjects.find((p) => s(p.id) === s(searchId)) || null;
+    if (!picked) return;
+    applySearchBuilderProject(picked);
+    setLocationNavPanel("layout");
+    setLocationNavEditorOpen(true);
+    setLocationNavMsg("");
+    setLocationNavErr("");
+  }
+
+  async function saveLocationNavSettings() {
+    setLocationNavSaving(true);
+    setLocationNavMsg("");
+    setLocationNavErr("");
+    try {
+      const ok = await saveSearchBuilderSettings({ silent: true });
+      if (!ok) throw new Error(searchBuilderErr || "Failed to save location nav.");
+      setLocationNavMsg("Location Nav settings saved.");
+    } catch (e: unknown) {
+      setLocationNavErr(e instanceof Error ? e.message : "Failed to save location nav.");
+    } finally {
+      setLocationNavSaving(false);
+    }
   }
 
   async function saveSearchBuilderSettings(opts?: { silent?: boolean }) {
@@ -2597,6 +2708,17 @@ export default function Home() {
       await navigator.clipboard.writeText(publishedPrefix);
       setSearchBuilderCopiedFolderPath(true);
       setTimeout(() => setSearchBuilderCopiedFolderPath(false), 1300);
+    } catch {}
+  }
+
+  async function copyLocationNavEmbedCode() {
+    if (!selectedSearchBuilderArtifact) return;
+    try {
+      await navigator.clipboard.writeText(
+        buildLocationNavEmbedCode({ statesIndexUrl: selectedSearchBuilderArtifact.statesIndexUrl }),
+      );
+      setLocationNavCopied(true);
+      setTimeout(() => setLocationNavCopied(false), 1300);
     } catch {}
   }
 
@@ -6481,6 +6603,159 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 </html>`;
   }
 
+  function buildLocationNavEmbedCode(artifact: { statesIndexUrl: string }) {
+    const safeTitle = escapeHtmlAttr(locationNavTitle || "Explore nearby locations");
+    const safeStatesIndex = escapeHtmlAttr(artifact.statesIndexUrl || "");
+    const safeFontImport = escapeHtmlAttr(selectedSearchBuilderFont.importUrl || "");
+    const safeFontFamily = escapeHtmlAttr(selectedSearchBuilderFont.family || "Inter");
+    const safeCustomCss = s(locationNavCustomCss || "");
+    return `<!-- Dynamic Location Navigation -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="${safeFontImport}" rel="stylesheet">
+<div id="ct-location-nav-root"></div>
+<script>
+(function(){
+  const INDEX_URL = "${safeStatesIndex}";
+  const ROOT_ID = "ct-location-nav-root";
+  const CFG = {
+    title: "${safeTitle}",
+    mode: "${locationNavMode}",
+    cityBehavior: "${locationNavCityBehavior}",
+    cols: ${Math.max(1, Math.min(6, Number(locationNavColumnsDesktop) || 4))},
+    gap: ${Math.max(4, Math.min(32, Number(locationNavGap) || 10))},
+    buttonBg: "${escapeHtmlAttr(locationNavButtonBg || "#0f172a")}",
+    buttonText: "${escapeHtmlAttr(locationNavButtonText || "#e2e8f0")}",
+    buttonBorder: "${escapeHtmlAttr(locationNavButtonBorder || "#1e293b")}",
+    buttonRadius: ${Math.max(0, Math.min(30, Number(locationNavButtonRadius) || 12))},
+    buttonPaddingY: ${Math.max(6, Math.min(24, Number(locationNavButtonPaddingY) || 10))},
+    buttonPaddingX: ${Math.max(8, Math.min(32, Number(locationNavButtonPaddingX) || 14))},
+    buttonFontSize: ${Math.max(11, Math.min(22, Number(locationNavButtonFontSize) || 14))},
+    buttonFontWeight: ${Math.max(400, Math.min(900, Number(locationNavButtonFontWeight) || 700))}
+  };
+  const EXTRA_CSS = ${JSON.stringify(safeCustomCss)};
+  const root = document.getElementById(ROOT_ID);
+  if(!root) return;
+  function s(v){return String(v ?? "").trim();}
+  function norm(v){return s(v).toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");}
+  function slug(v){return norm(v).replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");}
+  function hostFromUrl(u){ const x=s(u).replace(/^https?:\\/\\//i,""); return x.split("/")[0].replace(/^www\\./i,""); }
+  function byName(a,b){ return a.label.localeCompare(b.label); }
+  function uniqBy(arr,keyFn){ const seen=new Set(); const out=[]; for(const it of arr){ const k=keyFn(it); if(!k||seen.has(k)) continue; seen.add(k); out.push(it);} return out; }
+
+  function detectContext(items){
+    const href = (window.location && window.location.href ? window.location.href : "").toLowerCase();
+    const host = (window.location && window.location.hostname ? window.location.hostname : "").toLowerCase().replace(/^www\\./,"");
+    let city = null, county = null, state = null;
+    for(const it of items){
+      const cityHost = hostFromUrl(it.cityUrl || it.cityDomain || "").toLowerCase();
+      const countyHost = hostFromUrl(it.countyUrl || it.countyDomain || "").toLowerCase();
+      if(!city && host && cityHost===host) city = it;
+      if(!county && host && countyHost===host) county = it;
+      if(!state){
+        const stSlug = slug(it.state||"");
+        const stateUrl = s(it.stateUrl || "");
+        if((stateUrl && href.startsWith(stateUrl.toLowerCase())) || (stSlug && href.includes("/"+stSlug))) state = it;
+      }
+    }
+    if(city) return { type:"city", state: city.state, county: city.county, city: city.city };
+    if(CFG.mode==="city") return { type:"city", state: state?.state||"", county: county?.county||"", city: "" };
+    if(county) return { type:"county", state: county.state, county: county.county, city: "" };
+    if(CFG.mode==="county") return { type:"county", state: state?.state||"", county: county?.county||"", city: "" };
+    if(state || CFG.mode==="state") return { type:"state", state: state?.state||"", county: "", city: "" };
+    return { type:"state", state:"", county:"", city:"" };
+  }
+
+  function buildTargets(items, ctx){
+    if(ctx.type==="city"){
+      if(CFG.cityBehavior==="sibling_cities"){
+        const rows = items.filter((x)=>norm(x.state)===norm(ctx.state) && norm(x.county)===norm(ctx.county) && s(x.cityUrl || x.cityDomain)).map((x)=>({ label:x.city, href:s(x.cityUrl || x.cityDomain) }));
+        return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+      }
+      if(CFG.cityBehavior==="counties_in_state"){
+        const rows = items.filter((x)=>norm(x.state)===norm(ctx.state) && s(x.countyUrl || x.countyDomain)).map((x)=>({ label:x.county, href:s(x.countyUrl || x.countyDomain) }));
+        return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+      }
+      const rows = items.filter((x)=>s(x.state) && s(x.stateUrl || x.countyUrl || x.countyDomain)).map((x)=>({ label:x.state, href:s(x.stateUrl || x.countyUrl || x.countyDomain) }));
+      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+    }
+    if(ctx.type==="county"){
+      const rows = items.filter((x)=>norm(x.state)===norm(ctx.state) && norm(x.county)===norm(ctx.county) && s(x.cityUrl || x.cityDomain)).map((x)=>({ label:x.city, href:s(x.cityUrl || x.cityDomain) }));
+      return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+    }
+    const rows = items.filter((x)=>!ctx.state || norm(x.state)===norm(ctx.state)).map((x)=>({ label:x.county, href:s(x.countyUrl || x.countyDomain) }));
+    return uniqBy(rows,(x)=>norm(x.label)+"|"+x.href).sort(byName);
+  }
+
+  function render(targets){
+    const style = document.createElement("style");
+    style.textContent = [
+      ".ct-nav-wrap{font-family:${safeFontFamily},system-ui,-apple-system,Segoe UI,Roboto,Arial;}",
+      ".ct-nav-title{margin:0 0 10px 0;font-size:18px;font-weight:800;color:inherit;}",
+      ".ct-nav-grid{display:grid;grid-template-columns:repeat("+CFG.cols+",minmax(0,1fr));gap:"+CFG.gap+"px;}",
+      ".ct-nav-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;background:"+CFG.buttonBg+";color:"+CFG.buttonText+";border:1px solid "+CFG.buttonBorder+";border-radius:"+CFG.buttonRadius+"px;padding:"+CFG.buttonPaddingY+"px "+CFG.buttonPaddingX+"px;font-size:"+CFG.buttonFontSize+"px;font-weight:"+CFG.buttonFontWeight+";line-height:1.2;transition:transform .08s ease,filter .14s ease;}",
+      ".ct-nav-btn:hover{filter:brightness(1.07);}",
+      ".ct-nav-btn:active{transform:translateY(1px);}",
+      "@media (max-width:1024px){.ct-nav-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}",
+      "@media (max-width:680px){.ct-nav-grid{grid-template-columns:1fr;}}",
+      EXTRA_CSS || ""
+    ].join("\\n");
+    root.innerHTML = "";
+    root.appendChild(style);
+    const wrap = document.createElement("section");
+    wrap.className = "ct-nav-wrap";
+    const h = document.createElement("h3");
+    h.className = "ct-nav-title";
+    h.textContent = CFG.title || "Explore nearby locations";
+    wrap.appendChild(h);
+    const grid = document.createElement("div");
+    grid.className = "ct-nav-grid";
+    for(const t of targets.slice(0,36)){
+      if(!s(t.href)) continue;
+      const a = document.createElement("a");
+      a.className = "ct-nav-btn";
+      a.href = s(t.href);
+      a.textContent = s(t.label) || "Location";
+      a.setAttribute("aria-label", s(t.label) || "Location");
+      grid.appendChild(a);
+    }
+    if(!grid.children.length){
+      const empty = document.createElement("div");
+      empty.textContent = "No related locations.";
+      empty.style.opacity = "0.7";
+      wrap.appendChild(empty);
+    } else {
+      wrap.appendChild(grid);
+    }
+    root.appendChild(wrap);
+  }
+
+  fetch(INDEX_URL,{cache:"no-store"})
+    .then((r)=>r.ok?r.json():Promise.reject(new Error("Failed to load index: "+r.status)))
+    .then((data)=>{
+      const items = Array.isArray(data?.items)?data.items:[];
+      const states = Array.isArray(data?.states)?data.states:[];
+      const enriched = items.map((it)=>({
+        state:s(it?.state), county:s(it?.county), city:s(it?.city),
+        countyDomain:s(it?.countyDomain), cityDomain:s(it?.cityDomain),
+        countyUrl:s(it?.countyUrl || it?.countyDomain),
+        cityUrl:s(it?.cityUrl || it?.cityDomain),
+        stateUrl: (()=> {
+          const direct = s(it?.stateUrl);
+          if (direct) return direct;
+          const found = states.find((st)=>norm(st?.stateName)===norm(it?.state));
+          return s(found?.stateUrl || found?.stateFileUrl || "");
+        })()
+      }));
+      const ctx = CFG.mode==="auto" ? detectContext(enriched) : { type: CFG.mode, state:"", county:"", city:"" };
+      const targets = buildTargets(enriched, ctx);
+      render(targets);
+    })
+    .catch(()=> render([]));
+})();
+</script>`;
+  }
+
   async function copyArtifactEmbedCode(artifactId: string, value: string) {
     try {
       await navigator.clipboard.writeText(value);
@@ -6950,6 +7225,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             onClick={() => setActiveProjectTab("search_builder")}
           >
             Search Builder
+          </Link>
+          <Link
+            className={`agencyNavItem ${activeProjectTab === "location_nav" ? "agencyNavItemActive" : ""}`}
+            href={projectTabHref("location_nav")}
+            onClick={() => setActiveProjectTab("location_nav")}
+          >
+            Location Nav
           </Link>
           <Link
             className={`agencyNavItem ${activeProjectTab === "sheet" ? "agencyNavItemActive" : ""}`}
@@ -9020,6 +9302,212 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               </div>
             </div>
           ) : null}
+        </div>
+      </section>
+      ) : null}
+
+      {activeProjectTab === "location_nav" ? (
+      <section className={`card ${locationNavEditorOpen ? "searchBuilderFullscreen" : ""}`} style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">
+              {locationNavEditorOpen && activeSearchBuilderProject
+                ? `Location Nav Builder · ${s(activeSearchBuilderProject.name) || "Search"}`
+                : "Location Nav Builder"}
+            </h2>
+            <div className="cardSubtitle">
+              Widget dinámico por URL (state/county/city) usando el mismo search index para navegación SEO.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            {locationNavMsg ? <span className="badge">{locationNavMsg}</span> : null}
+            {locationNavErr ? <span className="badge" style={{ color: "var(--danger)" }}>{locationNavErr}</span> : null}
+            {locationNavEditorOpen ? (
+              <>
+                <button type="button" className="smallBtn" onClick={() => setLocationNavEditorOpen(false)}>
+                  Back
+                </button>
+                <button type="button" className="smallBtn" disabled={locationNavSaving} onClick={() => void saveLocationNavSettings()}>
+                  {locationNavSaving ? "Saving..." : "Save"}
+                </button>
+                <button type="button" className="smallBtn" disabled={!selectedSearchBuilderArtifact} onClick={() => void copyLocationNavEmbedCode()}>
+                  {locationNavCopied ? "Copied" : "Copy Embed"}
+                </button>
+              </>
+            ) : (
+              <button type="button" className="smallBtn" disabled={searchBuilderProjectsLoading} onClick={() => void loadSearchBuilderProjects()}>
+                {searchBuilderProjectsLoading ? "Loading..." : "Refresh"}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="cardBody">
+          {!locationNavEditorOpen ? (
+            <>
+              {searchBuilderProjects.length === 0 ? (
+                <div className="mini">No searches yet. Create one in Search Builder first.</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                  {searchBuilderProjects.map((project) => (
+                    <article
+                      key={`ln:${project.id}`}
+                      style={{
+                        border: "1px solid rgba(255,255,255,.14)",
+                        borderRadius: 14,
+                        overflow: "hidden",
+                        background: "linear-gradient(165deg, rgba(15,23,42,.96), rgba(2,6,23,.92))",
+                      }}
+                    >
+                      <div style={{ height: 86, background: `linear-gradient(115deg, ${s(project.headerColor) || "#a4d8e4"}, ${s(project.buttonColor) || "#044c5c"})`, padding: 14 }}>
+                        <div style={{ fontWeight: 800, fontSize: 16, color: "#031623" }}>{s(project.name) || "Untitled Search"}</div>
+                        <div style={{ marginTop: 6, fontSize: 12, color: "rgba(2,22,34,.86)" }}>{s(project.locationNavTitle) || "Explore nearby locations"}</div>
+                      </div>
+                      <div style={{ padding: 12 }}>
+                        <div className="mini">{s(project.folder) || "company-search"}</div>
+                        <div style={{ marginTop: 10 }}>
+                          <button type="button" className="smallBtn" onClick={() => openLocationNavEditor(project.id)}>
+                            Edit Nav
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="searchBuilderEditorPage">
+              <div className="searchBuilderEditorPageBody">
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href={selectedSearchBuilderFont.importUrl} rel="stylesheet" />
+                <div className="sbStudio">
+                  <aside className="sbStudioNav">
+                    <div className="sbStudioNavTitle">Builder</div>
+                    <button type="button" className={`sbStudioNavBtn ${locationNavPanel === "layout" ? "isActive" : ""}`} onClick={() => setLocationNavPanel("layout")}>1. Layout</button>
+                    <button type="button" className={`sbStudioNavBtn ${locationNavPanel === "button" ? "isActive" : ""}`} onClick={() => setLocationNavPanel("button")}>2. Button</button>
+                    <button type="button" className={`sbStudioNavBtn ${locationNavPanel === "css" ? "isActive" : ""}`} onClick={() => setLocationNavPanel("css")}>3. CSS</button>
+                  </aside>
+                  <section className="sbStudioPreview">
+                    <div className="mini" style={{ marginBottom: 8 }}>Live Preview</div>
+                    <div className={`sbStudioPreviewSurface ${searchBuilderPreviewTone === "light" ? "isLight" : "isDark"}`} style={{ fontFamily: `${selectedSearchBuilderFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial` }}>
+                      <div className="mini" style={{ marginBottom: 10, opacity: .86 }}>{s(locationNavTitle) || "Explore nearby locations"}</div>
+                      <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.max(1, Math.min(4, Number(locationNavColumnsDesktop) || 4))}, minmax(0, 1fr))`, gap: Math.max(4, Math.min(20, Number(locationNavGap) || 10)) }}>
+                        {["County A", "County B", "County C", "County D", "County E", "County F"].map((label) => (
+                          <a
+                            key={label}
+                            href="#"
+                            onClick={(e) => e.preventDefault()}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              textDecoration: "none",
+                              background: s(locationNavButtonBg) || "#0f172a",
+                              color: s(locationNavButtonText) || "#e2e8f0",
+                              border: `1px solid ${s(locationNavButtonBorder) || "#1e293b"}`,
+                              borderRadius: Math.max(0, Number(locationNavButtonRadius) || 12),
+                              padding: `${Math.max(6, Number(locationNavButtonPaddingY) || 10)}px ${Math.max(8, Number(locationNavButtonPaddingX) || 14)}px`,
+                              fontSize: Math.max(11, Number(locationNavButtonFontSize) || 14),
+                              fontWeight: Math.max(400, Number(locationNavButtonFontWeight) || 700),
+                            }}
+                          >
+                            {label}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                  <aside className="sbStudioSettings">
+                    <div className="sbStudioSettingsTitle">
+                      {locationNavPanel === "layout" ? "Layout Controls" : locationNavPanel === "button" ? "Button Controls" : "Custom CSS"}
+                    </div>
+                    <div className="field">
+                      <label>Search</label>
+                      <select className="select" value={searchBuilderActiveSearchId} onChange={(e) => openLocationNavEditor(e.target.value)}>
+                        {searchBuilderProjects.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Google Font</label>
+                      <select className="select" value={searchBuilderFontKey} onChange={(e) => setSearchBuilderFontKey(e.target.value)}>
+                        {SEARCH_BUILDER_FONT_OPTIONS.map((f) => (
+                          <option key={f.key} value={f.key}>{f.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Widget Title</label>
+                      <input className="input" value={locationNavTitle} onChange={(e) => setLocationNavTitle(e.target.value)} />
+                    </div>
+                    {locationNavPanel === "layout" ? (
+                      <>
+                        <div className="field">
+                          <label>Mode</label>
+                          <select className="select" value={locationNavMode} onChange={(e) => setLocationNavMode(e.target.value as any)}>
+                            <option value="auto">Auto by URL</option>
+                            <option value="state">State</option>
+                            <option value="county">County</option>
+                            <option value="city">City</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>City behavior</label>
+                          <select className="select" value={locationNavCityBehavior} onChange={(e) => setLocationNavCityBehavior(e.target.value as any)}>
+                            <option value="states">Show states</option>
+                            <option value="sibling_cities">Show sibling cities</option>
+                            <option value="counties_in_state">Show counties in state</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>Desktop columns</label>
+                          <input className="input" type="number" min={1} max={6} value={locationNavColumnsDesktop} onChange={(e) => setLocationNavColumnsDesktop(Number(e.target.value) || 4)} />
+                        </div>
+                        <div className="field">
+                          <label>Gap</label>
+                          <input className="input" type="number" min={4} max={32} value={locationNavGap} onChange={(e) => setLocationNavGap(Number(e.target.value) || 10)} />
+                        </div>
+                      </>
+                    ) : locationNavPanel === "button" ? (
+                      <>
+                        <div className="field"><label>Button background</label><input className="input" value={locationNavButtonBg} onChange={(e) => setLocationNavButtonBg(e.target.value)} /></div>
+                        <div className="field"><label>Button text color</label><input className="input" value={locationNavButtonText} onChange={(e) => setLocationNavButtonText(e.target.value)} /></div>
+                        <div className="field"><label>Button border color</label><input className="input" value={locationNavButtonBorder} onChange={(e) => setLocationNavButtonBorder(e.target.value)} /></div>
+                        <div className="field"><label>Button radius</label><input className="input" type="number" min={0} max={30} value={locationNavButtonRadius} onChange={(e) => setLocationNavButtonRadius(Number(e.target.value) || 12)} /></div>
+                        <div className="field"><label>Padding Y</label><input className="input" type="number" min={6} max={24} value={locationNavButtonPaddingY} onChange={(e) => setLocationNavButtonPaddingY(Number(e.target.value) || 10)} /></div>
+                        <div className="field"><label>Padding X</label><input className="input" type="number" min={8} max={32} value={locationNavButtonPaddingX} onChange={(e) => setLocationNavButtonPaddingX(Number(e.target.value) || 14)} /></div>
+                        <div className="field"><label>Font size</label><input className="input" type="number" min={11} max={22} value={locationNavButtonFontSize} onChange={(e) => setLocationNavButtonFontSize(Number(e.target.value) || 14)} /></div>
+                        <div className="field"><label>Font weight</label><input className="input" type="number" min={400} max={900} step={100} value={locationNavButtonFontWeight} onChange={(e) => setLocationNavButtonFontWeight(Number(e.target.value) || 700)} /></div>
+                      </>
+                    ) : (
+                      <div className="field">
+                        <label>Custom CSS (optional)</label>
+                        <textarea className="input agencyTextarea" rows={12} value={locationNavCustomCss} onChange={(e) => setLocationNavCustomCss(e.target.value)} placeholder=".ct-nav-btn{ text-transform:uppercase; }" />
+                      </div>
+                    )}
+                    <div className="field">
+                      <label>Index URL</label>
+                      <input className="input" value={selectedSearchBuilderArtifact?.statesIndexUrl || ""} readOnly />
+                    </div>
+                  </aside>
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <div className="mini" style={{ marginBottom: 6 }}>Embed Code</div>
+                  <textarea
+                    className="input agencyTextarea"
+                    rows={14}
+                    readOnly
+                    value={selectedSearchBuilderArtifact ? buildLocationNavEmbedCode({ statesIndexUrl: selectedSearchBuilderArtifact.statesIndexUrl }) : "Publish the search first to generate states index URL."}
+                    style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
       ) : null}

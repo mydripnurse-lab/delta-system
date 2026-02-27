@@ -58,6 +58,18 @@ function normalizePreviewTone(input: unknown) {
   return tone === "light" ? "light" : "dark";
 }
 
+function normalizeLocationNavMode(input: unknown) {
+  const m = s(input).toLowerCase();
+  if (m === "state" || m === "county" || m === "city") return m;
+  return "auto";
+}
+
+function normalizeLocationNavCityBehavior(input: unknown) {
+  const m = s(input).toLowerCase();
+  if (m === "sibling_cities" || m === "counties_in_state") return m;
+  return "states";
+}
+
 function kebabToken(input: string) {
   return s(input)
     .normalize("NFD")
@@ -108,6 +120,20 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     modalHeaderHeight: n(input?.modalHeaderHeight, 56, 40, 120),
     inputRadius: n(input?.inputRadius, 10, 0, 30),
     previewTone: normalizePreviewTone(input?.previewTone),
+    locationNavTitle: s(input?.locationNavTitle) || "Explore nearby locations",
+    locationNavMode: normalizeLocationNavMode(input?.locationNavMode),
+    locationNavCityBehavior: normalizeLocationNavCityBehavior(input?.locationNavCityBehavior),
+    locationNavColumnsDesktop: n(input?.locationNavColumnsDesktop, 4, 1, 6),
+    locationNavGap: n(input?.locationNavGap, 10, 4, 32),
+    locationNavButtonBg: normalizeColor(input?.locationNavButtonBg, "#0f172a"),
+    locationNavButtonText: normalizeColor(input?.locationNavButtonText, "#e2e8f0"),
+    locationNavButtonBorder: normalizeColor(input?.locationNavButtonBorder, "#1e293b"),
+    locationNavButtonRadius: n(input?.locationNavButtonRadius, 12, 0, 30),
+    locationNavButtonPaddingY: n(input?.locationNavButtonPaddingY, 10, 6, 24),
+    locationNavButtonPaddingX: n(input?.locationNavButtonPaddingX, 14, 8, 32),
+    locationNavButtonFontSize: n(input?.locationNavButtonFontSize, 14, 11, 22),
+    locationNavButtonFontWeight: n(input?.locationNavButtonFontWeight, 700, 400, 900),
+    locationNavCustomCss: s(input?.locationNavCustomCss),
   };
 }
 

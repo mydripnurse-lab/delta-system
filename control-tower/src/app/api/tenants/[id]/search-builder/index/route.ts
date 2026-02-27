@@ -47,10 +47,19 @@ type FlatIndexItem = {
   city: string;
   countyDomain: string;
   cityDomain: string;
+  countyUrl: string;
+  cityUrl: string;
 };
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+function toUrlMaybe(domainOrUrl: string) {
+  const d = s(domainOrUrl);
+  if (!d) return "";
+  if (d.startsWith("http://") || d.startsWith("https://")) return d;
+  return `https://${d}`;
 }
 
 function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndexItem[] {
@@ -60,7 +69,7 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
   let visited = 0;
 
   function pushItem(item: FlatIndexItem) {
-    const key = `${item.label}|${item.cityDomain}|${item.countyDomain}`.toLowerCase();
+    const key = `${item.label}|${item.cityUrl}|${item.countyUrl}`.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
     out.push(item);
@@ -90,6 +99,8 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
         city,
         countyDomain,
         cityDomain,
+        countyUrl: toUrlMaybe(countyDomain),
+        cityUrl: toUrlMaybe(cityDomain),
       });
     } else if (county) {
       pushItem({
@@ -100,6 +111,8 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
         city: "",
         countyDomain,
         cityDomain: "",
+        countyUrl: toUrlMaybe(countyDomain),
+        cityUrl: "",
       });
     }
 
@@ -131,6 +144,8 @@ function flattenStatePayload(payload: Record<string, unknown> | null): FlatIndex
         city: cityName,
         countyDomain,
         cityDomain,
+        countyUrl: toUrlMaybe(countyDomain),
+        cityUrl: toUrlMaybe(cityDomain),
       });
     }
     if (outRows.length) return outRows;
@@ -210,9 +225,9 @@ export async function POST(req: Request, ctx: Ctx) {
       args.push(state);
       where += ` and state_slug = $${args.length}`;
     }
-    const q = await pool.query<{ state_slug: string; state_name: string; payload: Record<string, unknown> | null }>(
+    const q = await pool.query<{ state_slug: string; state_name: string; root_domain: string | null; payload: Record<string, unknown> | null }>(
       `
-        select state_slug, state_name, payload
+        select state_slug, state_name, root_domain, payload
         from app.organization_state_files
         ${where}
         order by state_slug asc
@@ -220,13 +235,28 @@ export async function POST(req: Request, ctx: Ctx) {
       args,
     );
 
-    const states = q.rows.map((r) => ({
-      stateSlug: s(r.state_slug),
-      stateName: s(r.state_name),
-      stateFileUrl: `/embedded/state/${tenantId}/${s(r.state_slug)}.json`,
-    }));
+    const allItems = q.rows.flatMap((r) => flattenStatePayload(r.payload || null));
+    const states = q.rows.map((r) => {
+      const stateSlug = s(r.state_slug);
+      const stateName = s(r.state_name);
+      const rootDomain = s(r.root_domain);
+      const representative = allItems.find((it) => normalizeText(it.state) === normalizeText(stateName));
+      const stateUrlFromRoot = rootDomain ? `${toUrlMaybe(rootDomain).replace(/\/+$/, "")}/${stateSlug}` : "";
+      return {
+        stateSlug,
+        stateName,
+        stateUrl: stateUrlFromRoot || s(representative?.countyUrl) || "",
+        stateFileUrl: `/embedded/state/${tenantId}/${stateSlug}.json`,
+      };
+    });
     const statesWithPayload = q.rows.filter((r) => isObj(r.payload)).length;
-    const items = q.rows.flatMap((r) => flattenStatePayload(r.payload || null));
+    const items = allItems.map((it) => {
+      const stateRef = states.find((st) => normalizeText(st.stateName) === normalizeText(it.state));
+      return {
+        ...it,
+        stateUrl: s(stateRef?.stateUrl),
+      };
+    });
 
     const payload = {
       searchId,
