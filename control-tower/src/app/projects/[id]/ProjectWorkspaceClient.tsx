@@ -336,7 +336,9 @@ type ProjectDetailsTab =
   | "custom_values"
   | "products_services"
   | "seo_canva"
-  | "state_files";
+  | "state_files"
+  | "search_builder_index"
+  | "location_nav_index";
 
 type StateDetailResponse = {
   state: string;
@@ -807,6 +809,12 @@ export default function Home() {
   const [stateFileSearchState, setStateFileSearchState] = useState("");
   const [stateFileSearchCounty, setStateFileSearchCounty] = useState("");
   const [stateFileSearchCity, setStateFileSearchCity] = useState("");
+  const [searchBuilderIndexLoading, setSearchBuilderIndexLoading] = useState(false);
+  const [searchBuilderIndexErr, setSearchBuilderIndexErr] = useState("");
+  const [searchBuilderIndexText, setSearchBuilderIndexText] = useState("");
+  const [locationNavIndexLoading, setLocationNavIndexLoading] = useState(false);
+  const [locationNavIndexErr, setLocationNavIndexErr] = useState("");
+  const [locationNavIndexText, setLocationNavIndexText] = useState("");
 
   const [tenantName, setTenantName] = useState("");
   const [tenantSlug, setTenantSlug] = useState("");
@@ -2270,12 +2278,33 @@ export default function Home() {
       tab === "custom_values" ||
       tab === "products_services" ||
       tab === "seo_canva" ||
-      tab === "state_files"
+      tab === "state_files" ||
+      tab === "search_builder_index" ||
+      tab === "location_nav_index"
     ) {
       setDetailsTab(tab as ProjectDetailsTab);
       if (tab && activeProjectTab !== "details") setActiveProjectTab("details");
     }
   }, [searchParams, activeProjectTab]);
+
+  useEffect(() => {
+    if (!routeTenantId) return;
+    if (detailsTab === "search_builder_index" && !searchBuilderIndexLoading && !searchBuilderIndexText && !searchBuilderIndexErr) {
+      void loadTenantModuleIndex("search-builder");
+    }
+    if (detailsTab === "location_nav_index" && !locationNavIndexLoading && !locationNavIndexText && !locationNavIndexErr) {
+      void loadTenantModuleIndex("location-nav");
+    }
+  }, [
+    routeTenantId,
+    detailsTab,
+    searchBuilderIndexLoading,
+    searchBuilderIndexText,
+    searchBuilderIndexErr,
+    locationNavIndexLoading,
+    locationNavIndexText,
+    locationNavIndexErr,
+  ]);
 
   function newSearchBuilderDraft() {
     const companyName = s(tenantName) || "My Company";
@@ -3259,6 +3288,37 @@ export default function Home() {
       setStateFileErr(msg);
     } finally {
       setStateFileLoading(false);
+    }
+  }
+
+  async function loadTenantModuleIndex(moduleKey: "search-builder" | "location-nav") {
+    if (!routeTenantId) return;
+    const setLoading = moduleKey === "search-builder" ? setSearchBuilderIndexLoading : setLocationNavIndexLoading;
+    const setErr = moduleKey === "search-builder" ? setSearchBuilderIndexErr : setLocationNavIndexErr;
+    const setText = moduleKey === "search-builder" ? setSearchBuilderIndexText : setLocationNavIndexText;
+    setLoading(true);
+    setErr("");
+    try {
+      const qs = new URLSearchParams({ searchId: moduleKey });
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/search-builder/index?${qs.toString()}`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      if (!data?.exists || !data?.index) {
+        setText("");
+        setErr("Index not found yet. Generate it from its module first.");
+        return;
+      }
+      setText(JSON.stringify(data.index, null, 2));
+    } catch (e: unknown) {
+      setText("");
+      setErr(e instanceof Error ? e.message : "Failed to load index.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -7516,6 +7576,20 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             >
               State Files
             </button>
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "search_builder_index" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("search_builder_index")}
+            >
+              Search Builder Index
+            </button>
+            <button
+              type="button"
+              className={`detailsTabBtn ${detailsTab === "location_nav_index" ? "detailsTabBtnOn" : ""}`}
+              onClick={() => setDetailsTab("location_nav_index")}
+            >
+              Location Nav Index
+            </button>
           </div>
 
           {detailsTab === "business" ? (
@@ -7954,6 +8028,66 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </table>
                 </div>
               </div>
+            </div>
+          ) : null}
+
+          {detailsTab === "search_builder_index" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">Search Builder Index (Tenant Global)</div>
+                <div className="detailsPaneSub">
+                  Key: <b>search-builder</b> in <code>app.organization_custom_values</code>.
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                <button
+                  type="button"
+                  className="smallBtn"
+                  onClick={() => void loadTenantModuleIndex("search-builder")}
+                  disabled={searchBuilderIndexLoading}
+                >
+                  {searchBuilderIndexLoading ? "Loading..." : "Refresh Index"}
+                </button>
+                {searchBuilderIndexErr ? <span className="mini" style={{ color: "var(--danger)" }}>❌ {searchBuilderIndexErr}</span> : null}
+              </div>
+              <textarea
+                className="input agencyTextarea"
+                rows={22}
+                value={searchBuilderIndexText}
+                readOnly
+                placeholder="Index JSON will appear here."
+                style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", width: "100%" }}
+              />
+            </div>
+          ) : null}
+
+          {detailsTab === "location_nav_index" ? (
+            <div className="detailsPane">
+              <div className="detailsPaneHeader">
+                <div className="detailsPaneTitle">Location Nav Index (Tenant Global)</div>
+                <div className="detailsPaneSub">
+                  Key: <b>location-nav</b> in <code>app.organization_custom_values</code>.
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                <button
+                  type="button"
+                  className="smallBtn"
+                  onClick={() => void loadTenantModuleIndex("location-nav")}
+                  disabled={locationNavIndexLoading}
+                >
+                  {locationNavIndexLoading ? "Loading..." : "Refresh Index"}
+                </button>
+                {locationNavIndexErr ? <span className="mini" style={{ color: "var(--danger)" }}>❌ {locationNavIndexErr}</span> : null}
+              </div>
+              <textarea
+                className="input agencyTextarea"
+                rows={22}
+                value={locationNavIndexText}
+                readOnly
+                placeholder="Index JSON will appear here."
+                style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", width: "100%" }}
+              />
             </div>
           ) : null}
 
