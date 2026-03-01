@@ -46,6 +46,85 @@ function toMonth(dateStr: string) {
   return dateStr.slice(0, 7);
 }
 
+function fromISODate(dateStr: string) {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+function toISODate(d: Date) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const da = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${da}`;
+}
+
+function weekStartFromDate(dateStr: string) {
+  const d = fromISODate(dateStr);
+  if (!d) return null;
+  const dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum);
+  return d;
+}
+
+function monthStartFromDate(dateStr: string) {
+  const d = fromISODate(dateStr);
+  if (!d) return null;
+  d.setUTCDate(1);
+  return d;
+}
+
+function densifyPoints(
+  points: PremiumTrendPoint[],
+  mode: "day" | "week" | "month",
+  startDate?: string | null,
+  endDate?: string | null,
+) {
+  const start = String(startDate || "").trim();
+  const end = String(endDate || "").trim();
+  if (!start || !end) return points;
+
+  const byKey = new Map(points.map((p) => [p.key, Number(p.value || 0)]));
+  if (mode === "day") {
+    const a = fromISODate(start);
+    const b = fromISODate(end);
+    if (!a || !b || a.getTime() > b.getTime()) return points;
+    const out: PremiumTrendPoint[] = [];
+    const cur = new Date(a);
+    while (cur.getTime() <= b.getTime()) {
+      const key = toISODate(cur);
+      out.push({ key, label: key, value: byKey.get(key) || 0 });
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return out;
+  }
+
+  if (mode === "week") {
+    const a = weekStartFromDate(start);
+    const b = weekStartFromDate(end);
+    if (!a || !b || a.getTime() > b.getTime()) return points;
+    const out: PremiumTrendPoint[] = [];
+    const cur = new Date(a);
+    while (cur.getTime() <= b.getTime()) {
+      const key = toISOWeek(toISODate(cur));
+      out.push({ key, label: key, value: byKey.get(key) || 0 });
+      cur.setUTCDate(cur.getUTCDate() + 7);
+    }
+    return out;
+  }
+
+  const a = monthStartFromDate(start);
+  const b = monthStartFromDate(end);
+  if (!a || !b || a.getTime() > b.getTime()) return points;
+  const out: PremiumTrendPoint[] = [];
+  const cur = new Date(a);
+  while (cur.getTime() <= b.getTime()) {
+    const key = toMonth(toISODate(cur));
+    out.push({ key, label: key, value: byKey.get(key) || 0 });
+    cur.setUTCMonth(cur.getUTCMonth() + 1);
+  }
+  return out;
+}
+
 function groupTrend(
   rows: TrendRow[],
   mode: "day" | "week" | "month",
@@ -83,7 +162,10 @@ export default function AdsTrendChart({
   onModeChange?: (mode: "day" | "week" | "month") => void;
   showModeSwitch?: boolean;
 }) {
-  const points = useMemo(() => groupTrend(trend || [], mode), [trend, mode]);
+  const points = useMemo(
+    () => densifyPoints(groupTrend(trend || [], mode), mode, startDate, endDate),
+    [trend, mode, startDate, endDate],
+  );
   const comparePoints = useMemo(() => {
     const factor = 1 + Number(comparePct ?? NaN);
     if (!Number.isFinite(factor) || factor <= 0) return [];

@@ -45,6 +45,72 @@ function pctDelta(curr: number, prev: number) {
   return ((curr - prev) / prev) * 100;
 }
 
+function parseIsoDate(value: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return { y, mo, d };
+}
+
+function formatXLabel(value: string, mode: PremiumTrendMode) {
+  const raw = String(value || "").trim();
+  if (!raw) return raw;
+
+  if (mode === "day") {
+    const p = parseIsoDate(raw);
+    if (!p) return raw;
+    return `${String(p.mo).padStart(2, "0")}/${String(p.d).padStart(2, "0")}`;
+  }
+
+  if (mode === "week") {
+    const wm = /^\d{4}-W(\d{2})$/.exec(raw);
+    if (!wm) return raw;
+    return `W${wm[1]}`;
+  }
+
+  const mm = /^(\d{4})-(\d{2})$/.exec(raw);
+  if (!mm) return raw;
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthIdx = Number(mm[2]) - 1;
+  if (monthIdx < 0 || monthIdx > 11) return raw;
+  return `${monthNames[monthIdx]} ${mm[1]}`;
+}
+
+function formatXDetailLabel(value: string, mode: PremiumTrendMode) {
+  const raw = String(value || "").trim();
+  if (!raw) return raw;
+
+  if (mode === "day") {
+    const p = parseIsoDate(raw);
+    if (!p) return raw;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${monthNames[p.mo - 1]} ${String(p.d).padStart(2, "0")}, ${p.y}`;
+  }
+
+  if (mode === "week") {
+    return raw.replace(/^(\d{4})-W(\d{2})$/, "Week $2, $1");
+  }
+
+  return formatXLabel(raw, mode);
+}
+
+function buildLabelIndexes(total: number, maxLabels: number) {
+  if (total <= 0) return [];
+  if (total <= maxLabels) return Array.from({ length: total }, (_, i) => i);
+
+  const target = Math.max(2, maxLabels);
+  const step = (total - 1) / (target - 1);
+  const idxs = new Set<number>();
+  for (let i = 0; i < target; i++) idxs.add(Math.round(i * step));
+  idxs.add(0);
+  idxs.add(total - 1);
+  return Array.from(idxs).sort((a, b) => a - b);
+}
+
 export default function PremiumTrendChart({
   title,
   subtitle,
@@ -123,16 +189,8 @@ export default function PremiumTrendChart({
       : "";
 
     const ticks = [0, Math.round(maxY * 0.33), Math.round(maxY * 0.66), maxY];
-    const labelIdxs: number[] = [];
-    if (rows.length <= 8) {
-      for (let i = 0; i < rows.length; i++) labelIdxs.push(i);
-    } else {
-      labelIdxs.push(0);
-      labelIdxs.push(Math.floor((rows.length - 1) * 0.25));
-      labelIdxs.push(Math.floor((rows.length - 1) * 0.5));
-      labelIdxs.push(Math.floor((rows.length - 1) * 0.75));
-      labelIdxs.push(rows.length - 1);
-    }
+    const maxLabels = mode === "day" ? 7 : 6;
+    const labelIdxs = buildLabelIndexes(rows.length, maxLabels);
 
     return {
       w,
@@ -149,7 +207,7 @@ export default function PremiumTrendChart({
       areaPath,
       labelIdxs,
     };
-  }, [rows]);
+  }, [rows, mode]);
 
   const stats = useMemo(() => {
     const currentTotal = rows.reduce((acc, r) => acc + r.value, 0);
@@ -239,14 +297,13 @@ export default function PremiumTrendChart({
                   y1={y}
                   x2={chart.w - chart.padR}
                   y2={y}
-                  stroke="rgba(255,255,255,0.08)"
+                  className="premiumTrendGridLine"
                 />
                 <text
                   x={chart.padL - 10}
                   y={y + 4}
                   textAnchor="end"
-                  fontSize="11"
-                  fill="rgba(255,255,255,0.55)"
+                  className="premiumTrendAxisYLabel"
                 >
                   {valueFormatter(t)}
                 </text>
@@ -319,10 +376,9 @@ export default function PremiumTrendChart({
                 x={x}
                 y={chart.h - 12}
                 textAnchor="middle"
-                fontSize="11"
-                fill="rgba(255,255,255,0.6)"
+                className="premiumTrendAxisXLabel"
               >
-                {rows[i].label}
+                {formatXLabel(rows[i].label, mode)}
               </text>
             );
           })}
@@ -331,7 +387,7 @@ export default function PremiumTrendChart({
         <div className="mini premiumTrendHoverText">
           {hover ? (
             <>
-              <b>{hover.label}</b>: {valueFormatter(hover.value)}
+              <b>{formatXDetailLabel(hover.label, mode)}</b>: {valueFormatter(hover.value)}
               {showCompare && hover.compareValue !== null ? (
                 <>
                   {" "}
