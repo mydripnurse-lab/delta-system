@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getTenantIntegration } from "@/lib/tenantIntegrations";
 
 export const runtime = "nodejs";
+const INDEXNOW_CANONICAL_HOST = "www.mydripnurse.com";
+const INDEXNOW_CANONICAL_ORIGIN = `https://${INDEXNOW_CANONICAL_HOST}/`;
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -91,8 +93,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const host = new URL(domainUrl).host.toLowerCase();
-    const keyLocation = resolveKeyLocation(domainUrl, host, key, keyLocationOverride);
+    const host = INDEXNOW_CANONICAL_HOST;
+    const keyLocation = resolveKeyLocation(
+      INDEXNOW_CANONICAL_ORIGIN,
+      INDEXNOW_CANONICAL_HOST,
+      key,
+      keyLocationOverride,
+    );
 
     const bodyUrlList = Array.isArray(body?.urlList)
       ? body.urlList.map((u: unknown) => s(u)).filter(Boolean)
