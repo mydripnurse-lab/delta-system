@@ -1187,6 +1187,23 @@ export default function AdsDashboardPage() {
               endDate={endDate}
               seriesLabel={metricLabel(metric)}
               unitHint={metricUnitHint(metric)}
+              comparePct={
+                compareOn && compare?.pct
+                  ? Number(
+                      metric === "cost"
+                        ? compare.pct.cost
+                        : metric === "conversions"
+                          ? compare.pct.conversions
+                          : metric === "avgCpc"
+                            ? compare.pct.avgCpc
+                            : metric === "ctr"
+                              ? compare.pct.ctr
+                              : metric === "clicks"
+                                ? compare.pct.clicks
+                                : compare.pct.impressions,
+                    )
+                  : null
+              }
             />
           </div>
         </div>
@@ -1208,6 +1225,7 @@ export default function AdsDashboardPage() {
             mode={trendMode}
             startDate={startDate}
             endDate={endDate}
+            comparePct={compareOn ? (compare?.pct || null) : null}
           />
         </div>
       </section>

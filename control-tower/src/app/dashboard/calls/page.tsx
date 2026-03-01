@@ -7,6 +7,7 @@ import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import PremiumTrendChart from "@/components/PremiumTrendChart";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import {
   addDashboardRangeParams,
@@ -215,118 +216,6 @@ function percentChange(curr: number, prev: number) {
 }
 
 /** ========= Small SVG line chart ========= */
-function LineTrend({
-  points,
-  height = 220,
-  onHover,
-}: {
-  points: TrendPoint[];
-  height?: number;
-  onHover?: (p: TrendPoint | null) => void;
-}) {
-  const padL = 44;
-  const padR = 16;
-  const padT = 14;
-  const padB = 34;
-
-  const w = 1000;
-  const h = height;
-
-  const maxY = Math.max(...points.map((p) => p.calls), 1);
-  const minY = 0;
-
-  const plotW = w - padL - padR;
-  const plotH = h - padT - padB;
-
-  const xFor = (i: number) =>
-    padL + (plotW * i) / Math.max(1, points.length - 1);
-  const yFor = (v: number) =>
-    padT + plotH * (1 - (v - minY) / (maxY - minY || 1));
-
-  const d = points
-    .map((p, i) => {
-      const x = xFor(i);
-      const y = yFor(p.calls);
-      return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
-
-  const yTicks = [0, Math.round(maxY / 2), maxY];
-  const first = points[0];
-  const last = points[points.length - 1];
-
-  return (
-    <div className="chartWrap">
-      <svg
-        className="chartSvg"
-        viewBox={`0 0 ${w} ${h}`}
-        preserveAspectRatio="none"
-        onMouseLeave={() => onHover?.(null)}
-      >
-        {yTicks.map((t, idx) => {
-          const y = yFor(t);
-          return (
-            <g key={idx}>
-              <line
-                x1={padL}
-                x2={w - padR}
-                y1={y}
-                y2={y}
-                className="chartGrid"
-              />
-              <text
-                x={padL - 10}
-                y={y + 4}
-                textAnchor="end"
-                className="chartAxis"
-              >
-                {t}
-              </text>
-            </g>
-          );
-        })}
-
-        {points.length >= 2 && (
-          <>
-            <text x={padL} y={h - 10} textAnchor="start" className="chartAxis">
-              {first?.label ?? ""}
-            </text>
-            <text
-              x={w - padR}
-              y={h - 10}
-              textAnchor="end"
-              className="chartAxis"
-            >
-              {last?.label ?? ""}
-            </text>
-          </>
-        )}
-
-        <path
-          d={`${d} L ${xFor(points.length - 1)} ${yFor(0)} L ${xFor(0)} ${yFor(0)} Z`}
-          className="chartArea"
-        />
-        <path d={d} className="chartLine" />
-
-        {points.map((p, i) => {
-          const x = xFor(i);
-          const y = yFor(p.calls);
-          return (
-            <circle
-              key={p.key}
-              cx={x}
-              cy={y}
-              r={3}
-              className="chartPoint"
-              onMouseEnter={() => onHover?.(p)}
-            />
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
 /** ========= KPI helper from rows ========= */
 function computeKpis(rows: ApiRow[]) {
   const total = rows.length;
@@ -679,6 +568,10 @@ function CallsDashboardPageContent() {
   const trendPoints = useMemo(
     () => buildTrend(filteredRows, grain),
     [filteredRows, grain],
+  );
+  const prevTrendPoints = useMemo(
+    () => buildTrend(prevFilteredRows, grain),
+    [prevFilteredRows, grain],
   );
 
   const trendSummary = useMemo(() => {
@@ -1425,17 +1318,32 @@ function CallsDashboardPageContent() {
                   </div>
                 </div>
 
-                {trendPoints.length ? (
-                  <LineTrend
-                    points={trendPoints}
-                    height={240}
-                    onHover={setHoverPoint}
-                  />
-                ) : (
-                  <div className="mini" style={{ marginTop: 10 }}>
-                    No data for chart.
-                  </div>
-                )}
+                <PremiumTrendChart
+                  title={`Calls trend (${grain})`}
+                  subtitle="Evolucion por dia, semana o mes segun el filtro."
+                  points={trendPoints.map((p) => ({
+                    key: p.key,
+                    label: p.label,
+                    value: p.calls,
+                  }))}
+                  comparePoints={prevTrendPoints.map((p) => ({
+                    key: p.key,
+                    label: p.label,
+                    value: p.calls,
+                  }))}
+                  mode={grain}
+                  onModeChange={setGrain}
+                  showModeSwitch={false}
+                  valueFormatter={(n) => String(Math.round(n))}
+                  onHoverPoint={(point) =>
+                    setHoverPoint(
+                      point
+                        ? { key: point.key, label: point.label, calls: Number(point.value || 0) }
+                        : null,
+                    )
+                  }
+                  footerHint="Hover un punto para ver detalle."
+                />
               </div>
 
               {/* Map + panel */}

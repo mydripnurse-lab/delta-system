@@ -1179,6 +1179,15 @@ function GscDashboardPageContent() {
               mode={trendMode}
               startDate={startDate}
               endDate={endDate}
+              comparePct={
+                compareOn && compare?.pct
+                  ? Number(
+                      metric === "impressions"
+                        ? compare.pct.impressions
+                        : compare.pct.clicks,
+                    )
+                  : null
+              }
             />
           </div>
         </div>

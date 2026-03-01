@@ -6,6 +6,7 @@ import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import PremiumTrendChart from "@/components/PremiumTrendChart";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import {
   addDashboardRangeParams,
@@ -236,109 +237,6 @@ function slicePrevPeriod(startIso: string, endIso: string) {
   return { prevStart: prevStart.toISOString(), prevEnd: prevEnd.toISOString() };
 }
 
-function LineTrend({
-  points,
-  metric,
-  height = 220,
-  onHover,
-}: {
-  points: TrendPoint[];
-  metric: TrendMetric;
-  height?: number;
-  onHover?: (p: TrendPoint | null) => void;
-}) {
-  const padL = 44;
-  const padR = 16;
-  const padT = 14;
-  const padB = 34;
-
-  const w = 1000;
-  const h = height;
-  const maxY = Math.max(...points.map((p) => p.value), 1);
-  const plotW = w - padL - padR;
-  const plotH = h - padT - padB;
-
-  const xFor = (i: number) => padL + (plotW * i) / Math.max(1, points.length - 1);
-  const yFor = (v: number) => padT + plotH * (1 - v / (maxY || 1));
-
-  const d = points
-    .map((p, i) => {
-      const x = xFor(i);
-      const y = yFor(p.value);
-      return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-    })
-    .join(" ");
-
-  const areaD = points.length
-    ? `${d} L ${xFor(points.length - 1)} ${h - padB} L ${xFor(0)} ${h - padB} Z`
-    : "";
-
-  return (
-    <div style={{ width: "100%", overflowX: "auto" }}>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", minWidth: 640, display: "block" }}>
-        <defs>
-          <linearGradient id="txLineGrad" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="rgba(96,165,250,0.95)" />
-            <stop offset="100%" stopColor="rgba(52,211,153,0.95)" />
-          </linearGradient>
-          <linearGradient id="txAreaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="rgba(96,165,250,0.28)" />
-            <stop offset="100%" stopColor="rgba(96,165,250,0.03)" />
-          </linearGradient>
-        </defs>
-
-        {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-          const y = padT + plotH * t;
-          return (
-            <line
-              key={t}
-              x1={padL}
-              y1={y}
-              x2={w - padR}
-              y2={y}
-              stroke="rgba(255,255,255,0.08)"
-              strokeWidth="1"
-            />
-          );
-        })}
-
-        {areaD ? <path d={areaD} fill="url(#txAreaGrad)" /> : null}
-        {d ? <path d={d} fill="none" stroke="url(#txLineGrad)" strokeWidth="3" strokeLinecap="round" /> : null}
-
-        {points.map((p, i) => {
-          const x = xFor(i);
-          const y = yFor(p.value);
-          return (
-            <g
-              key={p.key}
-              onMouseEnter={() => onHover?.(p)}
-              onMouseLeave={() => onHover?.(null)}
-              style={{ cursor: "pointer" }}
-            >
-              <circle cx={x} cy={y} r={4} fill="rgba(96,165,250,0.95)" />
-            </g>
-          );
-        })}
-
-        {points.map((p, i) => {
-          if (i % Math.max(1, Math.floor(points.length / 8)) !== 0 && i !== points.length - 1) {
-            return null;
-          }
-          const x = xFor(i);
-          return (
-            <text key={`${p.key}_lbl`} x={x} y={h - 12} textAnchor="middle" fill="rgba(255,255,255,0.68)" fontSize="11">
-              {p.label}
-            </text>
-          );
-        })}
-      </svg>
-      <div className="mini" style={{ marginTop: 4 }}>
-        Metric: {metric === "amount" ? "Revenue (USD)" : "Transactions count"}
-      </div>
-    </div>
-  );
-}
-
 function TransactionsDashboardPageContent() {
   const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(true);
@@ -567,6 +465,10 @@ function TransactionsDashboardPageContent() {
   );
 
   const trend = useMemo(() => buildTrend(filteredRows, grain, trendMetric), [filteredRows, grain, trendMetric]);
+  const prevTrend = useMemo(
+    () => buildTrend(prevFilteredRows, grain, trendMetric),
+    [prevFilteredRows, grain, trendMetric],
+  );
 
   const byStateCount = useMemo(() => {
     const m: Record<string, number> = {};
@@ -897,7 +799,28 @@ function TransactionsDashboardPageContent() {
             <div className="mini">{loading ? "Loading..." : "No trend data for this scope."}</div>
           ) : (
             <>
-              <LineTrend points={trend} metric={trendMetric} onHover={setHoverPoint} />
+              <PremiumTrendChart
+                title={`Transactions trend (${grain})`}
+                subtitle="Evolucion por dia, semana o mes segun el filtro."
+                points={trend.map((p) => ({ key: p.key, label: p.label, value: p.value }))}
+                comparePoints={prevTrend.map((p) => ({ key: p.key, label: p.label, value: p.value }))}
+                mode={grain}
+                onModeChange={setGrain}
+                showModeSwitch={false}
+                valueFormatter={(n) =>
+                  trendMetric === "amount"
+                    ? fmtMoney(Number(n || 0))
+                    : String(Math.round(Number(n || 0)))
+                }
+                onHoverPoint={(point) =>
+                  setHoverPoint(
+                    point
+                      ? { key: point.key, label: point.label, value: Number(point.value || 0) }
+                      : null,
+                  )
+                }
+                footerHint="Hover un punto para ver detalle."
+              />
               <div className="mini" style={{ marginTop: 10 }}>
                 {hoverPoint ? (
                   <>

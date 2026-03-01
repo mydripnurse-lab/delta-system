@@ -844,6 +844,19 @@ function GaDashboardPageContent() {
               mode={trendMode}
               startDate={startDate}
               endDate={endDate}
+              comparePct={
+                compareOn && compare?.pct
+                  ? Number(
+                      metric === "sessions"
+                        ? compare.pct.sessions
+                        : metric === "users"
+                          ? compare.pct.users
+                          : metric === "views"
+                            ? compare.pct.views
+                            : compare.pct.conversions,
+                    )
+                  : null
+              }
             />
           </div>
         </div>

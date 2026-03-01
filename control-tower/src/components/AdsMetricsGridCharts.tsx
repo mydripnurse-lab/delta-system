@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import PremiumTrendChart, { type PremiumTrendPoint } from "@/components/PremiumTrendChart";
 
 type TrendRow = {
   date?: string;
@@ -10,8 +11,15 @@ type TrendRow = {
   clicks?: unknown;
   conversions?: unknown;
   cost?: unknown;
-  avgCpc?: unknown;
-  ctr?: unknown;
+};
+
+type ComparePct = {
+  impressions?: number | null;
+  clicks?: number | null;
+  conversions?: number | null;
+  cost?: number | null;
+  avgCpc?: number | null;
+  ctr?: number | null;
 };
 
 type BucketAgg = {
@@ -22,16 +30,28 @@ type BucketAgg = {
   cost: number;
 };
 
+type MetricCard = {
+  key: "cost" | "conversions" | "avgCpc" | "ctr" | "clicks" | "impressions";
+  title: string;
+  unit: "usd" | "count" | "pct";
+  points: PremiumTrendPoint[];
+  comparePoints: PremiumTrendPoint[];
+  formatter: (n: number) => string;
+};
+
 function s(v: unknown) {
   return String(v ?? "").trim();
 }
+
 function n(v: unknown) {
   const x = Number(v);
   return Number.isFinite(x) ? x : 0;
 }
+
 function pickDate(r: TrendRow) {
   return s(r.date) || s(r.day) || s(Array.isArray(r.keys) ? r.keys[0] : "");
 }
+
 function toISOWeek(dateStr: string) {
   const d = new Date(`${dateStr}T00:00:00Z`);
   const dayNum = (d.getUTCDay() + 6) % 7;
@@ -39,10 +59,10 @@ function toISOWeek(dateStr: string) {
   const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
   const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
   firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
-  const week =
-    1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 864e5));
+  const week = 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 864e5));
   return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
+
 function toMonth(dateStr: string) {
   return dateStr.slice(0, 7);
 }
@@ -53,95 +73,102 @@ function formatCompact(v: number) {
   if (abs >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
   return `${Math.round(v * 100) / 100}`;
 }
+
 function formatMoney(v: number) {
   return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
-function toMetricCards(points: BucketAgg[]) {
-  const costSeries = points.map((p) => p.cost);
-  const convSeries = points.map((p) => p.conversions);
-  const cpcSeries = points.map((p) => (p.clicks > 0 ? p.cost / p.clicks : 0));
-  const ctrSeries = points.map((p) =>
-    p.impressions > 0 ? (p.clicks / p.impressions) * 100 : 0,
-  );
-  const clicksSeries = points.map((p) => p.clicks);
-  const imprSeries = points.map((p) => p.impressions);
+function formatPct(v: number) {
+  return `${v.toFixed(2)}%`;
+}
 
-  const totalCost = points.reduce((acc, p) => acc + p.cost, 0);
-  const totalConversions = points.reduce((acc, p) => acc + p.conversions, 0);
-  const totalClicks = points.reduce((acc, p) => acc + p.clicks, 0);
-  const totalImpressions = points.reduce((acc, p) => acc + p.impressions, 0);
+function pctToFactor(deltaPct: number | null | undefined) {
+  if (deltaPct === null || deltaPct === undefined || !Number.isFinite(deltaPct)) return null;
+  const factor = 1 + Number(deltaPct);
+  if (factor <= 0) return null;
+  return factor;
+}
 
-  const weightedAvgCpc = totalClicks > 0 ? totalCost / totalClicks : 0;
-  const weightedCtrPct =
-    totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+function toPoints(values: Array<{ key: string; value: number }>) {
+  return values.map((v) => ({ key: v.key, label: v.key, value: v.value }));
+}
+
+function buildCards(rows: BucketAgg[], comparePct: ComparePct | null | undefined): MetricCard[] {
+  const costSeries = rows.map((p) => ({ key: p.bucket, value: p.cost }));
+  const convSeries = rows.map((p) => ({ key: p.bucket, value: p.conversions }));
+  const cpcSeries = rows.map((p) => ({
+    key: p.bucket,
+    value: p.clicks > 0 ? p.cost / p.clicks : 0,
+  }));
+  const ctrSeries = rows.map((p) => ({
+    key: p.bucket,
+    value: p.impressions > 0 ? (p.clicks / p.impressions) * 100 : 0,
+  }));
+  const clicksSeries = rows.map((p) => ({ key: p.bucket, value: p.clicks }));
+  const imprSeries = rows.map((p) => ({ key: p.bucket, value: p.impressions }));
+
+  const buildCompare = (
+    series: Array<{ key: string; value: number }>,
+    delta: number | null | undefined,
+  ) => {
+    const factor = pctToFactor(delta);
+    if (!factor) return [];
+    return series.map((p) => ({
+      key: p.key,
+      value: p.value / factor,
+    }));
+  };
 
   return [
     {
       key: "cost",
       title: "Cost",
-      valueText: formatMoney(totalCost),
-      peakText: formatMoney(Math.max(...costSeries, 0)),
-      unit: "USD",
-      series: costSeries,
+      unit: "usd",
+      points: toPoints(costSeries),
+      comparePoints: toPoints(buildCompare(costSeries, comparePct?.cost)),
+      formatter: formatMoney,
     },
     {
       key: "conversions",
       title: "Conversions",
-      valueText: formatCompact(totalConversions),
-      peakText: formatCompact(Math.max(...convSeries, 0)),
       unit: "count",
-      series: convSeries,
+      points: toPoints(convSeries),
+      comparePoints: toPoints(buildCompare(convSeries, comparePct?.conversions)),
+      formatter: formatCompact,
     },
     {
       key: "avgCpc",
       title: "Avg CPC",
-      valueText: formatMoney(weightedAvgCpc),
-      peakText: formatMoney(Math.max(...cpcSeries, 0)),
-      unit: "USD",
-      series: cpcSeries,
+      unit: "usd",
+      points: toPoints(cpcSeries),
+      comparePoints: toPoints(buildCompare(cpcSeries, comparePct?.avgCpc)),
+      formatter: formatMoney,
     },
     {
       key: "ctr",
       title: "CTR",
-      valueText: `${weightedCtrPct.toFixed(2)}%`,
-      peakText: `${Math.max(...ctrSeries, 0).toFixed(2)}%`,
       unit: "pct",
-      series: ctrSeries,
+      points: toPoints(ctrSeries),
+      comparePoints: toPoints(buildCompare(ctrSeries, comparePct?.ctr)),
+      formatter: formatPct,
     },
     {
       key: "clicks",
       title: "Clicks",
-      valueText: formatCompact(totalClicks),
-      peakText: formatCompact(Math.max(...clicksSeries, 0)),
       unit: "count",
-      series: clicksSeries,
+      points: toPoints(clicksSeries),
+      comparePoints: toPoints(buildCompare(clicksSeries, comparePct?.clicks)),
+      formatter: formatCompact,
     },
     {
       key: "impressions",
       title: "Impressions",
-      valueText: formatCompact(totalImpressions),
-      peakText: formatCompact(Math.max(...imprSeries, 0)),
       unit: "count",
-      series: imprSeries,
+      points: toPoints(imprSeries),
+      comparePoints: toPoints(buildCompare(imprSeries, comparePct?.impressions)),
+      formatter: formatCompact,
     },
   ];
-}
-
-function sparkPath(values: number[], w: number, h: number) {
-  if (!values.length) return "";
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const span = Math.max(1e-9, max - min);
-  const x = (i: number) => (values.length <= 1 ? 0 : (i / (values.length - 1)) * w);
-  const y = (v: number) => h - ((v - min) / span) * h;
-  let d = "";
-  for (let i = 0; i < values.length; i++) {
-    const xi = x(i);
-    const yi = y(values[i] || 0);
-    d += i === 0 ? `M ${xi} ${yi}` : ` L ${xi} ${yi}`;
-  }
-  return d;
 }
 
 export default function AdsMetricsGridCharts({
@@ -149,21 +176,20 @@ export default function AdsMetricsGridCharts({
   mode,
   startDate,
   endDate,
+  comparePct,
 }: {
   trend: TrendRow[];
   mode: "day" | "week" | "month";
   startDate?: string | null;
   endDate?: string | null;
+  comparePct?: ComparePct | null;
 }) {
   const grouped = useMemo(() => {
     const m = new Map<string, BucketAgg>();
-
     for (const row of trend || []) {
       const date = pickDate(row);
       if (!date) continue;
-      const bucket =
-        mode === "day" ? date : mode === "week" ? toISOWeek(date) : toMonth(date);
-
+      const bucket = mode === "day" ? date : mode === "week" ? toISOWeek(date) : toMonth(date);
       const prev = m.get(bucket) || {
         bucket,
         impressions: 0,
@@ -171,20 +197,16 @@ export default function AdsMetricsGridCharts({
         conversions: 0,
         cost: 0,
       };
-
       prev.impressions += n(row.impressions);
       prev.clicks += n(row.clicks);
       prev.conversions += n(row.conversions);
       prev.cost += n(row.cost);
       m.set(bucket, prev);
     }
-
-    const out = Array.from(m.values());
-    out.sort((a, b) => a.bucket.localeCompare(b.bucket));
-    return out;
+    return Array.from(m.values()).sort((a, b) => a.bucket.localeCompare(b.bucket));
   }, [trend, mode]);
 
-  const cards = useMemo(() => toMetricCards(grouped), [grouped]);
+  const cards = useMemo(() => buildCards(grouped, comparePct), [grouped, comparePct]);
 
   if (!grouped.length) {
     return <div className="mini">No hay data de tendencia para este rango.</div>;
@@ -194,44 +216,23 @@ export default function AdsMetricsGridCharts({
     <div className="adsTrendBoard">
       <div className="adsTrendBoardMeta mini">
         Range: <b>{startDate || grouped[0]?.bucket}</b> →{" "}
-        <b>{endDate || grouped[grouped.length - 1]?.bucket}</b> · Group by{" "}
-        <b>{mode}</b>
+        <b>{endDate || grouped[grouped.length - 1]?.bucket}</b> · Group by <b>{mode}</b>
       </div>
       <div className="adsTrendGrid">
-        {cards.map((card) => {
-          const d = sparkPath(card.series, 320, 84);
-          const first = card.series[0] || 0;
-          const last = card.series[card.series.length - 1] || 0;
-          const deltaPct = first > 0 ? ((last - first) / first) * 100 : null;
-          return (
-            <div className="adsTrendCard" key={card.key}>
-              <div className="adsTrendCardTop">
-                <div className="adsTrendCardTitle">{card.title}</div>
-                <div className="adsTrendCardValue">{card.valueText}</div>
-              </div>
-              <svg
-                viewBox="0 0 320 84"
-                width="100%"
-                height={84}
-                className="adsTrendSpark"
-                preserveAspectRatio="none"
-              >
-                <path d={d} fill="none" strokeWidth={2.5} />
-              </svg>
-              <div className="adsTrendCardFoot mini">
-                <span>Peak: <b>{card.peakText}</b></span>
-                <span>
-                  Delta:{" "}
-                  <b>
-                    {deltaPct == null
-                      ? "—"
-                      : `${deltaPct > 0 ? "+" : ""}${deltaPct.toFixed(1)}%`}
-                  </b>
-                </span>
-              </div>
-            </div>
-          );
-        })}
+        {cards.map((card) => (
+          <div className="adsTrendCard" key={card.key}>
+            <PremiumTrendChart
+              title={`${card.title} trend`}
+              subtitle={`Mode: ${mode}`}
+              points={card.points}
+              comparePoints={card.comparePoints}
+              mode={mode}
+              showModeSwitch={false}
+              valueFormatter={card.formatter}
+              footerHint="Hover un punto para ver detalle y comparison."
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
