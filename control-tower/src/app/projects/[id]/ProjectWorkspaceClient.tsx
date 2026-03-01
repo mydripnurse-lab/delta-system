@@ -5458,6 +5458,7 @@ export default function Home() {
               tenantId: routeTenantId || "",
               integrationKey: "default",
               domainUrl,
+              urlList: [domainUrl],
             }
           : {
               tenantId: routeTenantId || "",
