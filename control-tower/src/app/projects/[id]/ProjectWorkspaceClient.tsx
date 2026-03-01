@@ -706,6 +706,7 @@ type TabSitemapResultItem = {
   domainUrl: string;
   ok: boolean;
   error?: string;
+  debug?: string;
 };
 
 type TabSitemapReport = {
@@ -725,6 +726,7 @@ type TabSitemapRunItem = {
   domainUrl: string;
   status: "pending" | "running" | "done" | "failed";
   error?: string;
+  debug?: string;
 };
 
 type TabAction = "inspect" | "discovery" | "bing_indexnow";
@@ -5422,10 +5424,13 @@ export default function Home() {
       key: string,
       status: TabSitemapRunItem["status"],
       error?: string,
+      debug?: string,
     ) => {
       setTabSitemapRunItems((prev) =>
         prev.map((it) =>
-          it.key === key ? { ...it, status, error: error || undefined } : it,
+          it.key === key
+            ? { ...it, status, error: error || undefined, debug: debug || undefined }
+            : it,
         ),
       );
     };
@@ -5434,6 +5439,23 @@ export default function Home() {
       const domainUrl = getTabRowDomainUrl(kind, r);
       const rowName = getTabRowName(kind, r);
       const key = `${kind}:${s(r["Location Id"])}:${rowName}:${domainUrl}`;
+      const isBingAction = action === "bing_indexnow";
+      const endpoint = isBingAction
+        ? "/api/tools/bing-indexnow-submit"
+        : "/api/tools/index-submit";
+      const payload = isBingAction
+        ? {
+            tenantId: routeTenantId || "",
+            integrationKey: "default",
+            domainUrl,
+            urlList: [domainUrl],
+          }
+        : {
+            tenantId: routeTenantId || "",
+            target: "google",
+            domainUrl,
+            mode: action,
+          };
       updateRunItem(key, "running");
 
       if (!domainUrl) {
@@ -5443,36 +5465,37 @@ export default function Home() {
           domainUrl: "",
           ok: false,
           error: "missing domain URL",
+          debug: isBingAction ? "request not sent: missing domain URL" : undefined,
         });
-        updateRunItem(key, "failed", "missing domain URL");
+        updateRunItem(
+          key,
+          "failed",
+          "missing domain URL",
+          isBingAction ? "request not sent: missing domain URL" : undefined,
+        );
         continue;
       }
 
       try {
-        const isBingAction = action === "bing_indexnow";
-        const endpoint = isBingAction
-          ? "/api/tools/bing-indexnow-submit"
-          : "/api/tools/index-submit";
-        const payload = isBingAction
-          ? {
-              tenantId: routeTenantId || "",
-              integrationKey: "default",
-              domainUrl,
-              urlList: [domainUrl],
-            }
-          : {
-              tenantId: routeTenantId || "",
-              target: "google",
-              domainUrl,
-              mode: action,
-            };
-
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify(payload),
         });
         const data = await safeJson(res);
+        const debugMsg = isBingAction
+          ? [
+              `req=${endpoint}`,
+              `reqDomain=${domainUrl}`,
+              `reqUrls=${Array.isArray((payload as any).urlList) ? (payload as any).urlList.length : 0}`,
+              `resStatus=${res.status}`,
+              `apiOk=${!!(data as any)?.ok}`,
+              `indexEndpoint=${s((data as any)?.endpoint) || "-"}`,
+              `host=${s((data as any)?.host) || "-"}`,
+              `submittedUrls=${String((data as any)?.submittedUrls ?? "-")}`,
+              `response=${s((data as any)?.responsePreview || "").slice(0, 140) || "-"}`,
+            ].join(" | ")
+          : undefined;
         const submitted = !!(data as any)?.google?.discovery?.submitted;
         const actionOk =
           action === "discovery"
@@ -5487,8 +5510,9 @@ export default function Home() {
             rowName: rowName || domainUrl,
             domainUrl,
             ok: true,
+            debug: debugMsg,
           });
-          updateRunItem(key, "done");
+          updateRunItem(key, "done", undefined, debugMsg);
         } else {
           const errMsg =
             (data as any)?.error ||
@@ -5500,19 +5524,29 @@ export default function Home() {
             domainUrl,
             ok: false,
             error: errMsg,
+            debug: debugMsg,
           });
-          updateRunItem(key, "failed", errMsg);
+          updateRunItem(key, "failed", errMsg, debugMsg);
         }
       } catch (e: any) {
         const errMsg = e?.message || "request failed";
+        const debugMsg = isBingAction
+          ? [
+              `req=${endpoint}`,
+              `reqDomain=${domainUrl}`,
+              `reqUrls=${Array.isArray((payload as any).urlList) ? (payload as any).urlList.length : 0}`,
+              `error=${errMsg}`,
+            ].join(" | ")
+          : undefined;
         items.push({
           key,
           rowName: rowName || domainUrl,
           domainUrl,
           ok: false,
           error: errMsg,
+          debug: debugMsg,
         });
-        updateRunItem(key, "failed", errMsg);
+        updateRunItem(key, "failed", errMsg, debugMsg);
       }
 
       await new Promise((resolve) => setTimeout(resolve, 120));
@@ -11043,6 +11077,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                 </th>
                                 <th className="th">Domain</th>
                                 <th className="th">Error</th>
+                                {currentTabSitemapReport.action === "bing_indexnow" && (
+                                  <th className="th">Debug</th>
+                                )}
                               </tr>
                             </thead>
                             <tbody>
@@ -11061,6 +11098,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                   <td className="td">
                                     <span className="mini">{it.error || "—"}</span>
                                   </td>
+                                  {currentTabSitemapReport.action === "bing_indexnow" && (
+                                    <td className="td" style={{ maxWidth: 360 }}>
+                                      <span className="mini">{it.debug || "—"}</span>
+                                    </td>
+                                  )}
                                 </tr>
                               ))}
                             </tbody>
@@ -11981,6 +12023,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       </th>
                       <th className="th">Domain</th>
                       <th className="th">Error</th>
+                      {tabSitemapRunAction === "bing_indexnow" && (
+                        <th className="th">Debug</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -12007,6 +12052,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         <td className="td">
                           <span className="mini">{it.error || "—"}</span>
                         </td>
+                        {tabSitemapRunAction === "bing_indexnow" && (
+                          <td className="td" style={{ maxWidth: 360 }}>
+                            <span className="mini">{it.debug || "—"}</span>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
