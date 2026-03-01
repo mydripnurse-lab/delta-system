@@ -5635,80 +5635,100 @@ button, input, select { font-family: inherit; }
 
 .ceoDash .funnelBoard {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+}
+
+.ceoDash .funnelRangeMeta {
+  color: rgba(190, 206, 232, 0.86);
+  font-size: 12px;
 }
 
 .ceoDash .funnelLane {
   border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 20px;
-  padding: 14px;
+  padding: 14px 14px 10px;
   background:
-    radial-gradient(680px 220px at 20% -35%, rgba(59,130,246,0.16), transparent 74%),
-    linear-gradient(180deg, rgba(255,255,255,0.042), rgba(255,255,255,0.02));
+    radial-gradient(900px 280px at 50% -38%, rgba(59,130,246,0.14), transparent 74%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.018));
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-.ceoDash .funnelNodeWrap {
+.ceoDash .funnelStage {
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
-.ceoDash .funnelConnector {
-  display: inline-flex;
+.ceoDash .funnelStageHead {
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(125, 211, 252, 0.36);
-  background: rgba(15, 23, 42, 0.45);
-  border-radius: 999px;
-  padding: 4px 10px;
-}
-
-.ceoDash .funnelConnectorRate {
-  font-size: 12px;
-  font-weight: 780;
-  color: rgba(153, 246, 228, 0.96);
-}
-
-.ceoDash .funnelConnectorLabel {
-  font-size: 11px;
-  color: rgba(196, 209, 233, 0.84);
-}
-
-.ceoDash .funnelNode {
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-radius: 16px;
-  padding: 12px;
-  background:
-    radial-gradient(320px 130px at 90% -35%, rgba(96,165,250,0.15), transparent 74%),
-    rgba(15, 23, 42, 0.54);
-  clip-path: polygon(4% 0, 96% 0, 100% 100%, 0 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.07),
-    0 12px 26px rgba(2,6,23,0.26);
-}
-
-.ceoDash .funnelNodeTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   gap: 10px;
 }
 
-.ceoDash .funnelNodeTitle {
+.ceoDash .funnelStageStep {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(193, 209, 236, 0.92);
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.ceoDash .funnelStageTitle {
   margin: 0;
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.01em;
-  color: rgba(245, 251, 255, 0.98);
+  color: rgba(246, 251, 255, 0.98);
 }
 
-.ceoDash .funnelNodeMetrics {
-  margin-top: 10px;
+.ceoDash .funnelStageBar {
+  border-radius: 16px;
+  position: relative;
+}
+
+.ceoDash .funnelStageSurface {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(31, 49, 85, 0.68), rgba(13, 21, 40, 0.74));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 8px 22px rgba(2,6,23,0.22);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ceoDash .funnelStageSurface::before,
+.ceoDash .funnelStageSurface::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  opacity: 0.4;
+}
+
+.ceoDash .funnelStageSurface::before {
+  left: -8px;
+  transform: skewX(-18deg);
+}
+
+.ceoDash .funnelStageSurface::after {
+  right: -8px;
+  transform: skewX(18deg);
 }
 
 .ceoDash .funnelMetric {
@@ -5725,6 +5745,41 @@ button, input, select { font-family: inherit; }
   line-height: 1.08;
   font-weight: 820;
   color: rgba(244, 249, 255, 0.99);
+}
+
+.ceoDash .funnelBridge {
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.ceoDash .funnelBridgeLine {
+  width: min(72%, 640px);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(148,163,184,0), rgba(148,163,184,0.44), rgba(148,163,184,0));
+}
+
+.ceoDash .funnelBridgePill {
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 999px;
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ceoDash .funnelBridgePill b {
+  font-size: 12px;
+  color: rgba(153, 246, 228, 0.97);
+  font-weight: 780;
+}
+
+.ceoDash .funnelBridgePill span {
+  font-size: 11px;
+  color: rgba(196, 209, 233, 0.84);
 }
 
 .ceoDash .funnelRatesGrid {
@@ -5755,6 +5810,10 @@ button, input, select { font-family: inherit; }
   .ceoDash .funnelRatesGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .ceoDash .funnelStageSurface {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -5763,13 +5822,17 @@ button, input, select { font-family: inherit; }
     padding-left: 8px;
   }
 
-  .ceoDash .funnelNode {
+  .ceoDash .funnelStageBar {
     width: 100% !important;
   }
 
-  .ceoDash .funnelNodeMetrics,
   .ceoDash .funnelRatesGrid {
     grid-template-columns: 1fr;
+  }
+
+  .ceoDash .funnelStageHead {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 }
 

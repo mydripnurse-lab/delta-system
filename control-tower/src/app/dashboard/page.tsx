@@ -689,6 +689,13 @@ function numOrNull(v: unknown) {
   return Number.isFinite(n) ? n : null;
 }
 
+function fmtRangeDate(v: unknown) {
+  const raw = String(v || "").trim();
+  if (!raw) return "—";
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  return raw;
+}
+
 function deltaClass(v: number | null) {
   if (v === null || !Number.isFinite(v)) return "";
   return v < 0 ? "deltaDown" : "deltaUp";
@@ -3164,37 +3171,33 @@ function DashboardHomeContent() {
             <button className="smallBtn" type="button" onClick={() => openSectionHelp("executive_funnel")} title="Section helper">
               ?
             </button>
-            <div className="badge">
-              Range {data?.range?.start || "—"} → {data?.range?.end || "—"}
-            </div>
           </div>
         </div>
 
         <div className="cardBody">
           <div className="funnelBoard">
+            <div className="funnelRangeMeta mini">
+              Range {fmtRangeDate(data?.range?.start)} → {fmtRangeDate(data?.range?.end)}
+            </div>
+
             <div className="funnelLane">
               {funnelStages.map((stage, idx) => {
-                const transitionRate = funnelTransitions[idx];
-                const widthPct = Math.max(48, 100 - idx * 8);
+                const widthPct = Math.max(46, 98 - idx * 9);
+                const toNextRate = idx < funnelStages.length - 1 ? funnelTransitions[idx + 1] : null;
                 const isRevenue = stage.key === "revenue";
+
                 return (
-                  <div className="funnelNodeWrap" key={stage.key}>
-                    {idx > 0 ? (
-                      <div className="funnelConnector">
-                        <span className="funnelConnectorRate">{fmtRatePct(transitionRate)}</span>
-                        <span className="funnelConnectorLabel">conversion</span>
-                      </div>
-                    ) : null}
+                  <article className="funnelStage" key={stage.key}>
+                    <div className="funnelStageHead">
+                      <div className="funnelStageStep">Step {idx + 1}</div>
+                      <h3 className="funnelStageTitle">{stage.label}</h3>
+                      <span className={`mini moduleDelta ${deltaClass(stage.deltaPct ?? null)}`}>
+                        {fmtPct(stage.deltaPct ?? null)}
+                      </span>
+                    </div>
 
-                    <article className="funnelNode" style={{ width: `${widthPct}%` }}>
-                      <div className="funnelNodeTop">
-                        <h3 className="funnelNodeTitle">{stage.label}</h3>
-                        <span className={`mini moduleDelta ${deltaClass(stage.deltaPct ?? null)}`}>
-                          {fmtPct(stage.deltaPct ?? null)}
-                        </span>
-                      </div>
-
-                      <div className="funnelNodeMetrics">
+                    <div className="funnelStageBar" style={{ width: `${widthPct}%` }}>
+                      <div className="funnelStageSurface">
                         <div className="funnelMetric">
                           <span className="mini">Current</span>
                           <b>{isRevenue ? fmtMoney(stage.valueNow) : fmtInt(stage.valueNow)}</b>
@@ -3204,8 +3207,18 @@ function DashboardHomeContent() {
                           <b>{isRevenue ? fmtMoney(stage.valuePrev) : fmtInt(stage.valuePrev)}</b>
                         </div>
                       </div>
-                    </article>
-                  </div>
+                    </div>
+
+                    {idx < funnelStages.length - 1 ? (
+                      <div className="funnelBridge">
+                        <div className="funnelBridgeLine" />
+                        <div className="funnelBridgePill">
+                          <b>{fmtRatePct(toNextRate)}</b>
+                          <span>to next stage</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
                 );
               })}
             </div>
