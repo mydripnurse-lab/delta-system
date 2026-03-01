@@ -7,7 +7,11 @@ import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
-import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
+import {
+  addDashboardRangeParams,
+  persistDashboardRange,
+  readDashboardRangeFromSearch,
+} from "@/lib/dashboardRangeSync";
 
 const UsaChoroplethProgressMap = dynamic(
   () => import("@/components/UsaChoroplethProgressMap"),
@@ -295,6 +299,9 @@ function ConversationsDashboardPageContent() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
+  useEffect(() => {
+    persistDashboardRange(preset, customStart, customEnd);
+  }, [preset, customStart, customEnd]);
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
   const backHref = useMemo(() => {

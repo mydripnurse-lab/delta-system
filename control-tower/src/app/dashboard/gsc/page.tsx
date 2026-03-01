@@ -1,12 +1,13 @@
 // control-tower/src/app/dashboard/gsc/page.tsx
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
-import DashboardTopbar from "@/components/DashboardTopbar";
 
 const UsaChoroplethProgressMap = dynamic(
   () => import("@/components/UsaChoroplethProgressMap"),
@@ -26,6 +27,21 @@ type RangePreset =
   | "last_year"
   | "custom";
 type SearchTab = "gsc" | "bing" | "all";
+type GscSectionKey =
+  | "overview"
+  | "filters"
+  | "geo"
+  | "queries"
+  | "segments"
+  | "states";
+
+type AuthMeUser = {
+  id: string;
+  email: string;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+  globalRoles?: string[];
+};
 
 function fmtInt(x: any) {
   const n = Number(x);
@@ -61,6 +77,7 @@ function deltaClass(pct: any, opts?: { invert?: boolean }) {
 
 function GscDashboardPageContent() {
   const searchParams = useBrowserSearchParams();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(false);
   const [hardRefreshing, setHardRefreshing] = useState(false);
   const [err, setErr] = useState("");
@@ -92,17 +109,252 @@ function GscDashboardPageContent() {
   const integrationKey =
     integrationKeyRaw.toLowerCase() === "owner" ? "default" : integrationKeyRaw;
   const backHref = tenantId
-    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}`
+    ? `/dashboard?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
     : "/dashboard";
-  const notificationsHref = tenantId
+  const notificationHubHref = tenantId
     ? `/dashboard/notification-hub?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
     : "/dashboard/notification-hub";
+  const controlTowerHref = tenantId
+    ? `/projects/${encodeURIComponent(tenantId)}`
+    : "/";
+  const sectionBasePath = pathname?.includes("/dashboard/search-performance")
+    ? "/dashboard/search-performance"
+    : "/dashboard/gsc";
+
+  const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
+  const [tenantHeaderName, setTenantHeaderName] = useState("My Drip Nurse");
+  const [tenantHeaderSlug, setTenantHeaderSlug] = useState("my-drip-nurse");
+  const [tenantHeaderLogo, setTenantHeaderLogo] = useState("");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const activeSection = useMemo<GscSectionKey>(() => {
+    const path = String(pathname || "");
+    const base = sectionBasePath;
+    const tail = path.startsWith(base) ? path.slice(base.length) : "";
+    const raw = tail.replace(/^\/+/, "").split("/")[0] || "";
+    if (
+      raw === "filters" ||
+      raw === "geo" ||
+      raw === "queries" ||
+      raw === "segments" ||
+      raw === "states" ||
+      raw === "overview"
+    ) {
+      return raw;
+    }
+    return "overview";
+  }, [pathname, sectionBasePath]);
+
+  const sectionNavItems: Array<{ key: GscSectionKey; label: string }> = [
+    { key: "overview", label: "Overview" },
+    { key: "filters", label: "Executive Filters" },
+    { key: "geo", label: "Geo Intelligence" },
+    { key: "queries", label: "Query Explorer" },
+    { key: "segments", label: "Nationwide & Funnels" },
+    { key: "states", label: "States Table" },
+  ];
+
+  function buildSectionHref(section: GscSectionKey) {
+    const query = new URLSearchParams(searchParams?.toString() || "");
+    query.set("range", preset);
+    if (preset === "custom") {
+      if (customStart) query.set("start", customStart);
+      if (customEnd) query.set("end", customEnd);
+    } else {
+      query.delete("start");
+      query.delete("end");
+    }
+    query.set("source", searchTab);
+    query.set("metric", metric);
+    query.set("trend", trendMode);
+    if (mapSelected) query.set("state", mapSelected);
+    else query.delete("state");
+    if (compareOn) query.set("compare", "1");
+    else query.delete("compare");
+    attachTenantScope(query);
+    const qs = query.toString();
+    const href = `${sectionBasePath}/${section}`;
+    return qs ? `${href}?${qs}` : href;
+  }
+
+  function accountDisplayName() {
+    const full = String(authMe?.fullName || "").trim();
+    if (full) return full;
+    const email = String(authMe?.email || "").trim();
+    if (!email) return "Platform User";
+    return email.split("@")[0] || email;
+  }
+
+  function currentRoleLabel() {
+    const roles = Array.isArray(authMe?.globalRoles) ? authMe.globalRoles : [];
+    return String(roles[0] || "tenant_user").trim() || "tenant_user";
+  }
+
+  function initialsFromLabel(label: string) {
+    const cleaned = String(label || "").trim();
+    if (!cleaned) return "U";
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  }
+
+  function openAgencyAccountPanel(panel: "profile" | "security") {
+    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/?account=${panel}&returnTo=${returnTo}`;
+  }
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+    window.location.href = "/login";
+  }
 
   function attachTenantScope(p: URLSearchParams) {
     if (!tenantId) return;
     p.set("tenantId", tenantId);
     p.set("integrationKey", integrationKey);
   }
+
+  useEffect(() => {
+    const qRange = String(searchParams?.get("range") || "").trim();
+    const qStart = String(searchParams?.get("start") || "").trim();
+    const qEnd = String(searchParams?.get("end") || "").trim();
+    const qSource = String(searchParams?.get("source") || "").trim().toLowerCase();
+    const qMetric = String(searchParams?.get("metric") || "").trim().toLowerCase();
+    const qTrend = String(searchParams?.get("trend") || "").trim().toLowerCase();
+    const qState = String(searchParams?.get("state") || "").trim();
+    const qCompare = String(searchParams?.get("compare") || "").trim();
+
+    if (
+      qRange === "last_7_days" ||
+      qRange === "last_28_days" ||
+      qRange === "last_month" ||
+      qRange === "last_quarter" ||
+      qRange === "last_6_months" ||
+      qRange === "last_year" ||
+      qRange === "custom"
+    ) {
+      setPreset(qRange);
+    }
+    if (qRange === "custom") {
+      setCustomStart(qStart);
+      setCustomEnd(qEnd);
+    }
+    if (qSource === "gsc" || qSource === "bing" || qSource === "all") {
+      setSearchTab(qSource);
+    }
+    if (qMetric === "impressions" || qMetric === "clicks") {
+      setMetric(qMetric);
+    }
+    if (qTrend === "day" || qTrend === "week" || qTrend === "month") {
+      setTrendMode(qTrend);
+    }
+    setMapSelected(qState);
+    setCompareOn(qCompare !== "0");
+  }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAuthMe() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; user?: AuthMeUser }
+          | null;
+        if (!cancelled && res.ok && json?.ok && json.user) setAuthMe(json.user);
+      } catch {
+        // optional auth metadata for header
+      }
+    }
+    void loadAuthMe();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTenantBranding() {
+      if (!tenantId) return;
+      try {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}`, {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as
+          | {
+              ok?: boolean;
+              tenant?: { name?: string | null; slug?: string | null } | null;
+              settings?: { logo_url?: string | null } | null;
+            }
+          | null;
+        if (!res.ok || !json?.ok || cancelled) return;
+        const name = String(json.tenant?.name || "").trim();
+        const slug = String(json.tenant?.slug || "").trim();
+        const logoUrl = String(json.settings?.logo_url || "").trim();
+        if (name) setTenantHeaderName(name);
+        if (slug) setTenantHeaderSlug(slug);
+        setTenantHeaderLogo(logoUrl);
+      } catch {
+        // optional tenant branding for header
+      }
+    }
+    void loadTenantBranding();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadNotificationCount() {
+      if (!tenantId) {
+        if (!cancelled) setNotificationCount(0);
+        return;
+      }
+      try {
+        const qs = new URLSearchParams({
+          organizationId: tenantId,
+          status: "proposed",
+          limit: "200",
+        });
+        const res = await fetch(`/api/agents/proposals?${qs.toString()}`, {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as
+          | { ok?: boolean; proposals?: Array<unknown>; error?: string }
+          | null;
+        if (!res.ok || !json?.ok) {
+          throw new Error(String(json?.error || "").trim() || `HTTP ${res.status}`);
+        }
+        if (!cancelled) {
+          setNotificationCount(Array.isArray(json.proposals) ? json.proposals.length : 0);
+        }
+      } catch {
+        if (!cancelled) setNotificationCount(0);
+      }
+    }
+    void loadNotificationCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!accountMenuRef.current) return;
+      if (!accountMenuRef.current.contains(event.target as Node)) setAccountMenuOpen(false);
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setAccountMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   function qs() {
     const p = new URLSearchParams();
@@ -379,19 +631,134 @@ function GscDashboardPageContent() {
   }
 
   return (
-    <div className="shell callsDash">
-      <DashboardTopbar
-        title="My Drip Nurse — Search Performance Dashboard"
-        backHref={backHref}
-        tenantId={tenantId}
-        notificationsHref={notificationsHref}
-      />
+    <main className="agencyShell callsDash dashboardPremium">
+      <header className="agencyGlobalTopbar">
+        <div className="agencyGlobalBrand">
+          {tenantHeaderLogo ? (
+            <img
+              className="logo tenantLogo"
+              src={tenantHeaderLogo}
+              alt={`${tenantHeaderName} logo`}
+            />
+          ) : (
+            <div className="agencyBrandLogo agencyBrandLogoDelta" />
+          )}
+          <div>
+            <h1>{tenantHeaderName} — Search Performance Dashboard</h1>
+            <p>@{tenantHeaderSlug || "tenant"}</p>
+          </div>
+        </div>
+
+        <nav className="agencyGlobalNav agencyGlobalNavRight">
+          <div className="agencyAccountWrap" ref={accountMenuRef}>
+            <button
+              type="button"
+              className="agencyAccountTrigger"
+              title={accountDisplayName()}
+              onClick={() => setAccountMenuOpen((prev) => !prev)}
+            >
+              <span className="agencyProfileAvatar">
+                {notificationCount > 0 ? (
+                  <span
+                    className="agencyProfileNotifBadge"
+                    aria-label={`${notificationCount} notifications`}
+                  >
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                ) : null}
+                {String(authMe?.avatarUrl || "").trim() ? (
+                  <img
+                    className="agencyProfileAvatarImg"
+                    src={String(authMe?.avatarUrl || "").trim()}
+                    alt={accountDisplayName()}
+                  />
+                ) : (
+                  initialsFromLabel(accountDisplayName())
+                )}
+              </span>
+              <span className="agencyAccountIdentity">
+                <strong>{accountDisplayName()}</strong>
+                <small>{currentRoleLabel()}</small>
+              </span>
+              <span className="agencyAccountCaret" aria-hidden>
+                ▾
+              </span>
+            </button>
+            {accountMenuOpen ? (
+              <div className="agencyAccountMenu">
+                <button
+                  type="button"
+                  className="agencyAccountMenuItem"
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    openAgencyAccountPanel("profile");
+                  }}
+                >
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  className="agencyAccountMenuItem"
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    openAgencyAccountPanel("security");
+                  }}
+                >
+                  Security
+                </button>
+                <button
+                  type="button"
+                  className="agencyAccountMenuItem agencyAccountMenuItemNotif"
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    window.location.href = notificationHubHref;
+                  }}
+                >
+                  <span>Notifications</span>
+                  <span className="agencyAccountMenuCount">{notificationCount}</span>
+                </button>
+                <button
+                  type="button"
+                  className="agencyAccountMenuItem"
+                  onClick={() => void signOut()}
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </nav>
+      </header>
+
+      <div className="agencyRoot">
+        <aside className="agencySidebar">
+          <nav className="agencyNav">
+            <Link className="agencyNavItem agencyNavBackItem" href={backHref}>
+              ← Back to Dashboard
+            </Link>
+            <Link className="agencyNavItem" href={controlTowerHref}>
+              Control Tower
+            </Link>
+            {sectionNavItems.map((item) => (
+              <Link
+                key={item.key}
+                className={`agencyNavItem ${activeSection === item.key ? "agencyNavItemActive" : ""}`}
+                href={buildSectionHref(item.key)}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </aside>
+
+        <section className="agencyMain">
 
       {/* Filters */}
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeSection === "filters" || activeSection === "overview" ? (
+      <section className="card">
         <div className="cardHeader">
           <div>
-            <h2 className="cardTitle">Filters</h2>
+            <h2 className="cardTitle">Executive Filters</h2>
             <div className="cardSubtitle">
               Este filtro afecta el mapa, KPIs, trend y tablas. Cache se
               regenera automáticamente (stale ≤ 10 min).
@@ -700,9 +1067,11 @@ function GscDashboardPageContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
       {/* Summary */}
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeSection === "overview" ? (
+      <section className="card">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Summary</h2>
@@ -814,26 +1183,47 @@ function GscDashboardPageContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
       {/* Map + panel + AI */}
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeSection === "geo" ||
+      activeSection === "queries" ||
+      activeSection === "segments" ||
+      activeSection === "states" ? (
+      <section className="card">
         <div className="cardHeader">
           <div>
-            <h2 className="cardTitle">Performance by state</h2>
+            <h2 className="cardTitle">
+              {activeSection === "geo"
+                ? "Performance by state"
+                : activeSection === "queries"
+                  ? "Top Queries & Pages"
+                  : activeSection === "segments"
+                    ? "Nationwide & Funnels"
+                    : "States table"}
+            </h2>
             <div className="cardSubtitle">
-              Mapa + drilldown real. “__unknown” no sale en mapa pero sí en
-              tabla.
+              {activeSection === "geo"
+                ? "Mapa + drilldown real. “__unknown” no sale en mapa pero sí en tabla."
+                : activeSection === "queries"
+                  ? "Top 100 por impressions con filtros de estado y rango."
+                  : activeSection === "segments"
+                    ? "Root domain como nationwide y subdominios como funnels."
+                    : "Tabla completa por estado con métricas clave."}
             </div>
           </div>
 
           <div className="cardHeaderActions">
-            <button className="smallBtn" onClick={clearSelection} type="button">
-              Clear
-            </button>
+            {activeSection === "geo" ? (
+              <button className="smallBtn" onClick={clearSelection} type="button">
+                Clear
+              </button>
+            ) : null}
           </div>
         </div>
 
         <div className="cardBody">
+          {activeSection === "geo" ? (
           <div className="mapGrid">
             {/* <div className="mapCard"> */}
               {/* <div className="mapCardTop">
@@ -1170,8 +1560,10 @@ function GscDashboardPageContent() {
               </div>
             </aside>
           </div>
+          ) : null}
 
           {/* Top tables */}
+          {activeSection === "queries" ? (
           <div className="card" style={{ marginTop: 14 }}>
             <div className="cardHeader">
               <div>
@@ -1258,8 +1650,10 @@ function GscDashboardPageContent() {
               </div>
             </div>
           </div>
+          ) : null}
 
           {/* Nationwide + Funnels */}
+          {activeSection === "segments" ? (
           <div className="card" style={{ marginTop: 14 }}>
             <div className="cardHeader">
               <div>
@@ -1427,8 +1821,10 @@ function GscDashboardPageContent() {
               )}
             </div>
           </div>
+          ) : null}
 
           {/* States table */}
+          {activeSection === "states" ? (
           <div className="card" style={{ marginTop: 14 }}>
             <div className="cardHeader">
               <div>
@@ -1496,9 +1892,13 @@ function GscDashboardPageContent() {
               ) : null} */}
             </div>
           </div>
+          ) : null}
         </div>
       </section>
-    </div>
+      ) : null}
+        </section>
+      </div>
+    </main>
   );
 }
 

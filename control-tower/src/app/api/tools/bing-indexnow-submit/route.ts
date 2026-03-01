@@ -121,6 +121,11 @@ export async function POST(req: Request) {
     });
 
     const text = await res.text().catch(() => "");
+    const responseContentType = s(res.headers.get("content-type"));
+    const responseRequestId =
+      s(res.headers.get("x-msedge-ref")) ||
+      s(res.headers.get("x-request-id")) ||
+      s(res.headers.get("request-id"));
     const ok = res.ok;
     return NextResponse.json(
       {
@@ -135,6 +140,9 @@ export async function POST(req: Request) {
         integrationKey: integrationKey || undefined,
         keyLocation,
         submittedUrls: urlList.length,
+        responseBytes: text.length,
+        responseContentType: responseContentType || undefined,
+        responseRequestId: responseRequestId || undefined,
         responsePreview: text.slice(0, 500) || undefined,
         error: ok ? undefined : `IndexNow submit failed (HTTP ${res.status})`,
       },

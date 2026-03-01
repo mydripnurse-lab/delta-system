@@ -5,7 +5,11 @@ import Link from "next/link";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
-import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
+import {
+  addDashboardRangeParams,
+  persistDashboardRange,
+  readDashboardRangeFromSearch,
+} from "@/lib/dashboardRangeSync";
 
 declare global {
   interface Window {
@@ -950,6 +954,9 @@ function DashboardHomeContent() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
+  useEffect(() => {
+    persistDashboardRange(preset, customStart, customEnd);
+  }, [preset, customStart, customEnd]);
   const tenantIdFromQuery = String(searchParams?.get("tenantId") || "").trim();
   const [tenantIdResolved, setTenantIdResolved] = useState(tenantIdFromQuery);
   const [tenantResolveDone, setTenantResolveDone] = useState(Boolean(tenantIdFromQuery));

@@ -8,7 +8,11 @@ import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
-import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
+import {
+  addDashboardRangeParams,
+  persistDashboardRange,
+  readDashboardRangeFromSearch,
+} from "@/lib/dashboardRangeSync";
 
 type ApiRow = Record<string, any> & {
   __startIso?: string;
@@ -427,6 +431,9 @@ function CallsDashboardPageContent() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
+  useEffect(() => {
+    persistDashboardRange(preset, customStart, customEnd);
+  }, [preset, customStart, customEnd]);
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKey = String(searchParams?.get("integrationKey") || "owner").trim() || "owner";
   const backHref = useMemo(() => {

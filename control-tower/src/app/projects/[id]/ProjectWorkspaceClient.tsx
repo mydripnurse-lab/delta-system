@@ -5493,6 +5493,9 @@ export default function Home() {
               `indexEndpoint=${s((data as any)?.endpoint) || "-"}`,
               `host=${s((data as any)?.host) || "-"}`,
               `submittedUrls=${String((data as any)?.submittedUrls ?? "-")}`,
+              `responseBytes=${String((data as any)?.responseBytes ?? "-")}`,
+              `responseType=${s((data as any)?.responseContentType) || "-"}`,
+              `responseId=${s((data as any)?.responseRequestId) || "-"}`,
               `response=${s((data as any)?.responsePreview || "").slice(0, 140) || "-"}`,
             ].join(" | ")
           : undefined;

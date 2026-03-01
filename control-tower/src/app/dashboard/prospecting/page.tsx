@@ -6,7 +6,11 @@ import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
-import { addDashboardRangeParams, readDashboardRangeFromSearch } from "@/lib/dashboardRangeSync";
+import {
+  addDashboardRangeParams,
+  persistDashboardRange,
+  readDashboardRangeFromSearch,
+} from "@/lib/dashboardRangeSync";
 
 type RangePreset = DashboardRangePreset;
 
@@ -250,6 +254,9 @@ function ProspectingDashboardContent() {
     () => computeDashboardRange(preset, customStart, customEnd),
     [preset, customStart, customEnd],
   );
+  useEffect(() => {
+    persistDashboardRange(preset, customStart, customEnd);
+  }, [preset, customStart, customEnd]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
