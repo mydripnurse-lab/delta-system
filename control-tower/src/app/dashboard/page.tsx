@@ -678,6 +678,17 @@ function fmtPct(v: number | null, isFraction = false) {
   return `${sign}${val.toFixed(1)}%`;
 }
 
+function fmtRatePct(v: number | null) {
+  if (v === null || !Number.isFinite(v)) return "-";
+  if (Math.abs(v) <= 1) return `${(v * 100).toFixed(1)}%`;
+  return `${v.toFixed(1)}%`;
+}
+
+function numOrNull(v: unknown) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 function deltaClass(v: number | null) {
   if (v === null || !Number.isFinite(v)) return "";
   return v < 0 ? "deltaDown" : "deltaUp";
@@ -731,6 +742,101 @@ function adsRangeFromPreset(preset: RangePreset) {
   if (preset === "1y") return "last_year";
   if (preset === "custom") return "last_28_days";
   return "last_7_days";
+}
+
+function ModuleIcon({ name }: { name: string }) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  switch (name) {
+    case "calls":
+      return (
+        <svg {...common}>
+          <path d="M22 16.9v2a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2 3.2 2 2 0 0 1 4 1h2a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L7 8.6a16 16 0 0 0 8.4 8.4l1.1-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z" />
+        </svg>
+      );
+    case "leads":
+      return (
+        <svg {...common}>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <path d="M20 8v6M17 11h6" />
+        </svg>
+      );
+    case "prospecting":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M15 9l-6 3 3 6 3-9z" />
+        </svg>
+      );
+    case "conversations":
+      return (
+        <svg {...common}>
+          <path d="M21 12a8 8 0 0 1-8 8H7l-4 3v-7a8 8 0 1 1 18-4z" />
+        </svg>
+      );
+    case "transactions":
+      return (
+        <svg {...common}>
+          <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+          <path d="M2.5 10h19M8 15h3" />
+        </svg>
+      );
+    case "appointments":
+      return (
+        <svg {...common}>
+          <rect x="3" y="4.5" width="18" height="16" rx="2" />
+          <path d="M8 2.5v4M16 2.5v4M3 9.5h18" />
+        </svg>
+      );
+    case "search":
+      return (
+        <svg {...common}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.3-4.3" />
+        </svg>
+      );
+    case "ga":
+      return (
+        <svg {...common}>
+          <path d="M4 20V11M10 20V7M16 20V14M22 20V4" />
+        </svg>
+      );
+    case "ads":
+      return (
+        <svg {...common}>
+          <path d="M3 11v2a2 2 0 0 0 2 2h2l4 4V5L7 9H5a2 2 0 0 0-2 2zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />
+        </svg>
+      );
+    case "facebook":
+      return (
+        <svg {...common}>
+          <path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v5h4v-5h3l1-4h-4V8a1 1 0 0 1 1-1z" />
+        </svg>
+      );
+    case "youtube":
+      return (
+        <svg {...common}>
+          <path d="M22 12s0-3-1-4.3c-1.1-1.2-2.3-1.2-2.9-1.3C14.8 6 12 6 12 6s-2.8 0-6.1.4c-.6.1-1.8.1-2.9 1.3C2 9 2 12 2 12s0 3 1 4.3c1.1 1.2 2.5 1.2 3.2 1.3C8.7 18 12 18 12 18s2.8 0 6.1-.4c.6-.1 1.8-.1 2.9-1.3 1-1.3 1-4.3 1-4.3z" />
+          <path d="M10 9.5l5 2.5-5 2.5v-5z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8" />
+        </svg>
+      );
+  }
 }
 
 function csvCell(v: unknown) {
@@ -972,6 +1078,7 @@ function DashboardHomeContent() {
   const [tenantHeaderSlug, setTenantHeaderSlug] = useState("my-drip-nurse");
   const [tenantHeaderLogo, setTenantHeaderLogo] = useState("");
   const [activeNavItem, setActiveNavItem] = useState<"dashboard" | "modules" | "analytics" | "dataops" | "execution" | "ai_chat">("dashboard");
+  const [dashboardSubTab, setDashboardSubTab] = useState<"kpis" | "funnel">("kpis");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1598,148 +1705,116 @@ function DashboardHomeContent() {
   const moduleCatalog = [
     {
       key: "calls",
-      icon: "CL",
+      icon: "calls",
       title: "Calls",
       description: "Call flow, missed-call risk y calidad operativa del contact center.",
-      delta: m?.calls?.deltaPct ?? null,
       href: withTenantHref("/dashboard/calls"),
       openLabel: "Open Calls",
-      metrics: [
-        { label: "Total calls", value: fmtInt(m?.calls?.total) },
-        { label: "Missed calls", value: fmtInt(m?.calls?.missed) },
-      ],
     },
     {
       key: "leads",
-      icon: "LD",
+      icon: "leads",
       title: "Contacts / Leads",
       description: "Captura de demanda y calidad del lead pool para crecimiento.",
-      delta: m?.contacts?.deltaPct ?? null,
       href: withTenantHref("/dashboard/contacts"),
       openLabel: "Open Leads",
-      metrics: [
-        { label: "Total leads", value: fmtInt(m?.contacts?.total) },
-        { label: "Inferred leads", value: fmtInt(m?.contacts?.inferredFromOpportunity) },
-      ],
     },
     {
       key: "prospecting",
-      icon: "PR",
+      icon: "prospecting",
       title: "Prospecting Intelligence",
       description: "Descubrimiento de negocio y expansión geográfica de oportunidades.",
-      delta: null,
       href: withTenantHref("/dashboard/prospecting"),
       openLabel: "Open Prospecting",
-      metrics: [
-        { label: "Coverage", value: "USA + Puerto Rico" },
-        { label: "Output", value: "Email + Phone leads" },
-      ],
     },
     {
       key: "conversations",
-      icon: "CR",
+      icon: "conversations",
       title: "Conversations / CRM",
       description: "Conversational pipeline, canales y mapeo operacional por estado.",
-      delta: m?.conversations?.deltaPct ?? null,
       href: withTenantHref("/dashboard/conversations"),
       openLabel: "Open Conversations",
-      metrics: [
-        { label: "Conversations", value: fmtInt(m?.conversations?.total) },
-        { label: "State mapping", value: `${fmtInt(m?.conversations?.mappedStateRate)}%` },
-      ],
     },
     {
       key: "transactions",
-      icon: "TR",
+      icon: "transactions",
       title: "Transactions / Revenue",
       description: "Monetización, ticket promedio y performance de ingresos.",
-      delta: m?.transactions?.revenueDeltaPct ?? null,
       href: withTenantHref("/dashboard/transactions"),
       openLabel: "Open Transactions",
-      metrics: [
-        { label: "Revenue", value: fmtMoney(m?.transactions?.grossAmount) },
-        { label: "Avg LTV", value: fmtMoney(m?.transactions?.avgLifetimeOrderValue) },
-      ],
     },
     {
       key: "appointments",
-      icon: "AP",
+      icon: "appointments",
       title: "Appointments",
       description: "Conversión final a cita, asistencia y fugas de demanda.",
-      delta: m?.appointments?.deltaPct ?? null,
       href: withTenantHref("/dashboard/appointments"),
       openLabel: "Open Appointments",
-      metrics: [
-        { label: "Appointments", value: fmtInt(m?.appointments?.total) },
-        { label: "Lost qualified", value: fmtInt(m?.appointments?.lostQualified) },
-      ],
     },
     {
       key: "search",
-      icon: "SP",
+      icon: "search",
       title: "Search Performance",
       description: "Organic visibility y click demand en Google + Bing.",
-      delta: searchClicksDeltaPct,
       href: withTenantHref("/dashboard/search-performance", { integrationKey: "default" }),
       openLabel: "Open Search",
-      metrics: [
-        { label: "Clicks", value: fmtInt((m?.searchPerformance?.totals?.clicks as number) || 0) },
-        { label: "Impressions", value: fmtInt((m?.searchPerformance?.totals?.impressions as number) || 0) },
-      ],
     },
     {
       key: "ga",
-      icon: "GA",
+      icon: "ga",
       title: "Google Analytics",
       description: "Behavior analytics para engagement, sesiones y conversiones.",
-      delta: null,
       href: withTenantHref("/dashboard/ga", { integrationKey: "default" }),
       openLabel: "Open GA",
-      metrics: [
-        { label: "Sessions", value: fmtInt((m?.ga?.summaryOverall?.sessions as number) || 0) },
-        { label: "Conversions", value: fmtInt((m?.ga?.summaryOverall?.conversions as number) || 0) },
-      ],
     },
     {
       key: "ads",
-      icon: "AD",
+      icon: "ads",
       title: "Google Ads",
       description: "Paid media execution, spend control y conversion output.",
-      delta: null,
       href: withTenantHref("/dashboard/ads", { integrationKey: "default" }),
       openLabel: "Open Ads",
-      metrics: [
-        { label: "Cost", value: fmtMoney((m?.ads?.summary?.cost as number) || 0) },
-        { label: "Conversions", value: fmtInt((m?.ads?.summary?.conversions as number) || 0) },
-      ],
     },
     {
       key: "facebook",
-      icon: "FB",
+      icon: "facebook",
       title: "Facebook Ads",
       description: "Social demand capture y geo optimization across campaigns.",
-      delta: null,
       href: withTenantHref("/dashboard/facebook-ads"),
       openLabel: "Open Facebook",
-      metrics: [
-        { label: "Status", value: "Planner Live" },
-        { label: "Scope", value: "Overview + Geo" },
-      ],
     },
     {
       key: "youtube",
-      icon: "YT",
+      icon: "youtube",
       title: "YouTube Ads + Runway",
       description: "Video creative pipeline y campaign studio for acquisition.",
-      delta: null,
       href: withTenantHref("/dashboard/youtube-ads"),
       openLabel: "Open YouTube",
-      metrics: [
-        { label: "Status", value: "Studio Live" },
-        { label: "Scope", value: "Overview + Geo + Runway" },
-      ],
     },
   ] as const;
+
+  const funnelStages = (funnel?.stages || []) as Array<{
+    key: string;
+    label: string;
+    valueNow: number;
+    valuePrev: number;
+    deltaPct: number | null;
+  }>;
+
+  const funnelTransitions = useMemo(() => {
+    const rates = funnel?.conversionRates || {};
+    const byStage: Record<string, number | null> = {
+      clicks: numOrNull((rates as Record<string, { now?: number | null }>)?.ctr?.now),
+      leads: numOrNull((rates as Record<string, { now?: number | null }>)?.clickToLead?.now),
+      conversations: numOrNull((rates as Record<string, { now?: number | null }>)?.leadToConversation?.now),
+      appointments: numOrNull((rates as Record<string, { now?: number | null }>)?.conversationToAppointment?.now),
+      revenue: numOrNull((rates as Record<string, { now?: number | null }>)?.appointmentToTransaction?.now),
+    };
+    return funnelStages.map((stage, idx) => {
+      if (idx === 0) return null;
+      return byStage[stage.key] ?? null;
+    });
+  }, [funnel, funnelStages]);
 
   function campaignKey(c: CampaignBlueprint) {
     return `${c.channel}|${c.region}|${c.geoTier}|${c.objective}|${c.intentCluster}`;
@@ -2786,6 +2861,7 @@ function DashboardHomeContent() {
 
   function jumpToSection(key: "dashboard" | "modules" | "analytics" | "dataops" | "execution" | "ai_chat") {
     setActiveNavItem(key);
+    if (key !== "dashboard") setDashboardSubTab("kpis");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -2884,19 +2960,39 @@ function DashboardHomeContent() {
               ← Back to Home
             </Link>
             {navItems.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                className={`agencyNavItem ${activeNavItem === item.key ? "agencyNavItemActive" : ""}`}
-                onClick={() => jumpToSection(item.key)}
-              >
-                {item.label}
-              </button>
+              <div key={item.key}>
+                <button
+                  type="button"
+                  className={`agencyNavItem ${activeNavItem === item.key ? "agencyNavItemActive" : ""}`}
+                  onClick={() => jumpToSection(item.key)}
+                >
+                  {item.label}
+                </button>
+                {item.key === "dashboard" && activeNavItem === "dashboard" ? (
+                  <div className="dashboardSubmenu">
+                    <button
+                      type="button"
+                      className={`dashboardSubmenuItem ${dashboardSubTab === "kpis" ? "dashboardSubmenuItemActive" : ""}`}
+                      onClick={() => setDashboardSubTab("kpis")}
+                    >
+                      KPI Board
+                    </button>
+                    <button
+                      type="button"
+                      className={`dashboardSubmenuItem ${dashboardSubTab === "funnel" ? "dashboardSubmenuItemActive" : ""}`}
+                      onClick={() => setDashboardSubTab("funnel")}
+                    >
+                      Executive Funnel
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             ))}
           </nav>
         </aside>
 
         <section className="agencyMain">
+      {activeNavItem !== "modules" ? (
       <section id="sec-filters" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -2999,8 +3095,9 @@ function DashboardHomeContent() {
           ) : null}
         </div>
       </section>
+      ) : null}
 
-      {activeNavItem === "dashboard" ? (
+      {activeNavItem === "dashboard" && dashboardSubTab === "kpis" ? (
       <section id="sec-dashboard-kpi" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -3054,25 +3151,104 @@ function DashboardHomeContent() {
       </section>
       ) : null}
 
+      {activeNavItem === "dashboard" && dashboardSubTab === "funnel" ? (
+      <section id="sec-funnel" className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Executive Funnel</h2>
+            <div className="cardSubtitle">
+              Funnel estratégico filtrado por Executive Filters: Impressions → Clicks → Leads → Conversations → Appointments → Revenue.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            <button className="smallBtn" type="button" onClick={() => openSectionHelp("executive_funnel")} title="Section helper">
+              ?
+            </button>
+            <div className="badge">
+              Range {data?.range?.start || "—"} → {data?.range?.end || "—"}
+            </div>
+          </div>
+        </div>
+
+        <div className="cardBody">
+          <div className="funnelBoard">
+            <div className="funnelLane">
+              {funnelStages.map((stage, idx) => {
+                const transitionRate = funnelTransitions[idx];
+                const widthPct = Math.max(48, 100 - idx * 8);
+                const isRevenue = stage.key === "revenue";
+                return (
+                  <div className="funnelNodeWrap" key={stage.key}>
+                    {idx > 0 ? (
+                      <div className="funnelConnector">
+                        <span className="funnelConnectorRate">{fmtRatePct(transitionRate)}</span>
+                        <span className="funnelConnectorLabel">conversion</span>
+                      </div>
+                    ) : null}
+
+                    <article className="funnelNode" style={{ width: `${widthPct}%` }}>
+                      <div className="funnelNodeTop">
+                        <h3 className="funnelNodeTitle">{stage.label}</h3>
+                        <span className={`mini moduleDelta ${deltaClass(stage.deltaPct ?? null)}`}>
+                          {fmtPct(stage.deltaPct ?? null)}
+                        </span>
+                      </div>
+
+                      <div className="funnelNodeMetrics">
+                        <div className="funnelMetric">
+                          <span className="mini">Current</span>
+                          <b>{isRevenue ? fmtMoney(stage.valueNow) : fmtInt(stage.valueNow)}</b>
+                        </div>
+                        <div className="funnelMetric">
+                          <span className="mini">Previous</span>
+                          <b>{isRevenue ? fmtMoney(stage.valuePrev) : fmtInt(stage.valuePrev)}</b>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="funnelRatesGrid">
+              <div className="funnelRateCard">
+                <span className="mini">CTR</span>
+                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.ctr?.now))}</b>
+              </div>
+              <div className="funnelRateCard">
+                <span className="mini">Click → Lead</span>
+                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.clickToLead?.now))}</b>
+              </div>
+              <div className="funnelRateCard">
+                <span className="mini">Lead → Conversation</span>
+                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.leadToConversation?.now))}</b>
+              </div>
+              <div className="funnelRateCard">
+                <span className="mini">Conversation → Appointment</span>
+                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.conversationToAppointment?.now))}</b>
+              </div>
+              <div className="funnelRateCard">
+                <span className="mini">Appointment → Revenue</span>
+                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.appointmentToTransaction?.now))}</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      ) : null}
+
       {activeNavItem === "modules" ? (
       <section id="sec-modules" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Modules Catalog</h2>
             <div className="cardSubtitle">
-              Cada módulo es un producto: icono, propósito, KPIs clave y acceso directo.
+              Cada módulo funciona como un producto independiente para este tenant.
             </div>
           </div>
           <div className="cardHeaderActions">
             <button className="smallBtn" type="button" onClick={() => openSectionHelp("module_dashboards")} title="Section helper">
               ?
-            </button>
-            <button
-              className={`smallBtn ${boardMeetingMode ? "smallBtnOn" : ""}`}
-              onClick={() => setBoardMeetingMode((x) => !x)}
-              type="button"
-            >
-              {boardMeetingMode ? "Board Meeting: ON" : "Board Meeting: OFF"}
             </button>
           </div>
         </div>
@@ -3083,28 +3259,12 @@ function DashboardHomeContent() {
               <article key={module.key} className="moduleProductCard">
                 <div className="moduleProductTop">
                   <div className="moduleIconBadge" aria-hidden>
-                    {module.icon}
+                    <ModuleIcon name={module.icon} />
                   </div>
-                  {module.delta === null ? (
-                    <span className="mini moduleDelta moduleDeltaNeutral">No compare</span>
-                  ) : (
-                    <span className={`mini moduleDelta ${deltaClass(module.delta)}`}>
-                      {fmtPct(module.delta)}
-                    </span>
-                  )}
                 </div>
 
                 <h3 className="moduleProductTitle">{module.title}</h3>
                 <p className="moduleProductDesc">{module.description}</p>
-
-                <div className="moduleProductMetrics">
-                  {module.metrics.map((metric) => (
-                    <div key={`${module.key}-${metric.label}`} className="moduleProductMetric">
-                      <div className="mini moduleStatLabel">{metric.label}</div>
-                      <div className="moduleStatValue">{metric.value}</div>
-                    </div>
-                  ))}
-                </div>
 
                 <div className="moduleActions">
                   <Link className="btn btnPrimary moduleBtn" href={module.href}>
@@ -3428,46 +3588,6 @@ function DashboardHomeContent() {
                 </div>
               ),
             )}
-          </div>
-        </div>
-      </section>
-      ) : null}
-
-      {activeNavItem === "analytics" ? (
-      <section id="sec-funnel" className="card" style={{ marginTop: 14 }}>
-        <div className="cardHeader">
-          <div>
-            <h2 className="cardTitle">Executive Funnel</h2>
-            <div className="cardSubtitle">
-              Impressions → Clicks → Leads → Conversations → Appointments → Revenue.
-            </div>
-          </div>
-          <div className="cardHeaderActions">
-            <button className="smallBtn" type="button" onClick={() => openSectionHelp("executive_funnel")} title="Section helper">
-              ?
-            </button>
-          </div>
-        </div>
-        <div className="cardBody">
-          <div className="moduleGrid">
-            {(funnel?.stages || []).map((s) => (
-              <div className="moduleCard" key={s.key}>
-                <div className="moduleTop">
-                  <p className="l moduleTitle">{s.label}</p>
-                  <span className={`mini moduleDelta ${deltaClass(s.deltaPct ?? null)}`}>{fmtPct(s.deltaPct ?? null)}</span>
-                </div>
-                <div className="moduleStats">
-                  <div className="moduleStat">
-                    <div className="mini moduleStatLabel">Current</div>
-                    <div className="moduleStatValue">{s.key === "revenue" ? fmtMoney(s.valueNow) : fmtInt(s.valueNow)}</div>
-                  </div>
-                  <div className="moduleStat">
-                    <div className="mini moduleStatLabel">Previous</div>
-                    <div className="moduleStatValue">{s.key === "revenue" ? fmtMoney(s.valuePrev) : fmtInt(s.valuePrev)}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

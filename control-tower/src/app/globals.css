@@ -5598,6 +5598,181 @@ button, input, select { font-family: inherit; }
   max-width: 900px;
 }
 
+.dashboardPremium .dashboardSubmenu {
+  margin: 8px 0 2px 12px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(148, 163, 184, 0.28);
+  display: grid;
+  gap: 7px;
+}
+
+.dashboardPremium .dashboardSubmenuItem {
+  width: 100%;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.34);
+  color: rgba(214, 226, 246, 0.88);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 680;
+  cursor: pointer;
+  transition: all .16s ease;
+}
+
+.dashboardPremium .dashboardSubmenuItem:hover {
+  border-color: rgba(96, 165, 250, 0.48);
+  color: rgba(238, 247, 255, 0.98);
+  background: rgba(30, 64, 175, 0.22);
+}
+
+.dashboardPremium .dashboardSubmenuItemActive {
+  border-color: rgba(125, 211, 252, 0.62);
+  background: linear-gradient(180deg, rgba(59,130,246,0.34), rgba(30,64,175,0.24));
+  color: rgba(243, 250, 255, 0.99);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.28);
+}
+
+.ceoDash .funnelBoard {
+  display: grid;
+  gap: 16px;
+}
+
+.ceoDash .funnelLane {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 20px;
+  padding: 14px;
+  background:
+    radial-gradient(680px 220px at 20% -35%, rgba(59,130,246,0.16), transparent 74%),
+    linear-gradient(180deg, rgba(255,255,255,0.042), rgba(255,255,255,0.02));
+  display: grid;
+  gap: 10px;
+}
+
+.ceoDash .funnelNodeWrap {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.ceoDash .funnelConnector {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(125, 211, 252, 0.36);
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.ceoDash .funnelConnectorRate {
+  font-size: 12px;
+  font-weight: 780;
+  color: rgba(153, 246, 228, 0.96);
+}
+
+.ceoDash .funnelConnectorLabel {
+  font-size: 11px;
+  color: rgba(196, 209, 233, 0.84);
+}
+
+.ceoDash .funnelNode {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(320px 130px at 90% -35%, rgba(96,165,250,0.15), transparent 74%),
+    rgba(15, 23, 42, 0.54);
+  clip-path: polygon(4% 0, 96% 0, 100% 100%, 0 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    0 12px 26px rgba(2,6,23,0.26);
+}
+
+.ceoDash .funnelNodeTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ceoDash .funnelNodeTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: rgba(245, 251, 255, 0.98);
+}
+
+.ceoDash .funnelNodeMetrics {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ceoDash .funnelMetric {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(15, 23, 42, 0.44);
+}
+
+.ceoDash .funnelMetric b {
+  display: block;
+  margin-top: 5px;
+  font-size: clamp(17px, 1.5vw, 24px);
+  line-height: 1.08;
+  font-weight: 820;
+  color: rgba(244, 249, 255, 0.99);
+}
+
+.ceoDash .funnelRatesGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ceoDash .funnelRateCard {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background:
+    radial-gradient(220px 90px at 100% -35%, rgba(20,184,166,0.2), transparent 75%),
+    rgba(15, 23, 42, 0.44);
+}
+
+.ceoDash .funnelRateCard b {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+  line-height: 1.1;
+  color: rgba(167, 243, 208, 0.98);
+  font-weight: 820;
+}
+
+@media (max-width: 1060px) {
+  .ceoDash .funnelRatesGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .dashboardPremium .dashboardSubmenu {
+    margin-left: 8px;
+    padding-left: 8px;
+  }
+
+  .ceoDash .funnelNode {
+    width: 100% !important;
+  }
+
+  .ceoDash .funnelNodeMetrics,
+  .ceoDash .funnelRatesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .ceoDash .ceoKpiCategories {
   display: grid;
   gap: 14px;
@@ -5732,6 +5907,7 @@ button, input, select { font-family: inherit; }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 214px;
 }
 
 .ceoDash .moduleProductTop {
@@ -5753,9 +5929,12 @@ button, input, select { font-family: inherit; }
   align-items: center;
   justify-content: center;
   color: rgba(241, 248, 255, 0.99);
-  font-size: 11px;
-  font-weight: 840;
-  letter-spacing: 0.04em;
+}
+
+.ceoDash .moduleIconBadge svg {
+  width: 18px;
+  height: 18px;
+  color: rgba(241, 248, 255, 0.99);
 }
 
 .ceoDash .moduleProductTitle {
@@ -5771,24 +5950,7 @@ button, input, select { font-family: inherit; }
   font-size: 12px;
   line-height: 1.38;
   color: rgba(198, 211, 232, 0.9);
-  min-height: 48px;
-}
-
-.ceoDash .moduleProductMetrics {
-  margin-top: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.ceoDash .moduleProductMetric {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 12px;
-  padding: 9px 10px;
-  background: rgba(15,23,42,0.4);
-}
-
-.ceoDash .moduleProductCard .moduleStatValue {
-  font-size: clamp(17px, 1.4vw, 24px);
+  min-height: 56px;
 }
 
 @media (max-width: 1540px) {
