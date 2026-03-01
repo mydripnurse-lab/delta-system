@@ -1414,6 +1414,332 @@ function DashboardHomeContent() {
   const cohorts = data?.cohorts;
   const attribution = data?.attribution;
   const actionCenter = data?.actionCenter;
+  const searchClicksDeltaRaw = Number((m?.searchPerformance?.deltas as Record<string, unknown> | undefined)?.clicksPct);
+  const searchClicksDeltaPct = Number.isFinite(searchClicksDeltaRaw) ? searchClicksDeltaRaw : null;
+
+  const kpiCategories = [
+    {
+      key: "critical",
+      title: "Business Critical",
+      subtitle: "North-star KPIs para revenue y crecimiento.",
+      cards: [
+        {
+          label: "Transactions Revenue",
+          value: fmtMoney(ex?.transactionsRevenueNow),
+          delta: ex?.transactionsRevenueDeltaPct ?? null,
+          foot: `Prev ${fmtMoney(ex?.transactionsRevenueBefore)}`,
+          href: withTenantHref("/dashboard/transactions"),
+        },
+        {
+          label: "Transactions",
+          value: fmtInt(ex?.transactionsNow),
+          delta: ex?.transactionsDeltaPct ?? null,
+          foot: `Prev ${fmtInt(ex?.transactionsBefore)}`,
+          href: withTenantHref("/dashboard/transactions"),
+        },
+        {
+          label: "Total Leads",
+          value: fmtInt(ex?.leadsNow),
+          delta: ex?.leadsDeltaPct ?? null,
+          foot: `Prev ${fmtInt(ex?.leadsBefore)}`,
+          href: withTenantHref("/dashboard/contacts"),
+        },
+        {
+          label: "Appointments",
+          value: fmtInt(ex?.appointmentsNow),
+          delta: ex?.appointmentsDeltaPct ?? null,
+          foot: `Prev ${fmtInt(ex?.appointmentsBefore)}`,
+          href: withTenantHref("/dashboard/appointments"),
+        },
+        {
+          label: "Conversations",
+          value: fmtInt(ex?.conversationsNow),
+          delta: ex?.conversationsDeltaPct ?? null,
+          foot: `Prev ${fmtInt(ex?.conversationsBefore)}`,
+          href: withTenantHref("/dashboard/conversations"),
+        },
+        {
+          label: "Avg Lifetime Order Value",
+          value: fmtMoney(ex?.transactionsAvgLtvNow),
+          delta: null,
+          foot: "Average by transacting customer",
+          href: withTenantHref("/dashboard/transactions"),
+        },
+      ],
+    },
+    {
+      key: "acquisition",
+      title: "Demand & Acquisition",
+      subtitle: "Visibilidad y tráfico de canales orgánicos/pago.",
+      cards: [
+        {
+          label: "Search Impressions",
+          value: fmtInt(ex?.searchImpressionsNow),
+          delta: ex?.searchImpressionsDeltaPct ?? null,
+          foot: "GSC + Bing",
+          href: withTenantHref("/dashboard/search-performance", { integrationKey: "default" }),
+        },
+        {
+          label: "Search Clicks",
+          value: fmtInt(ex?.searchClicksNow),
+          delta: searchClicksDeltaPct,
+          foot: "Click demand captured",
+          href: withTenantHref("/dashboard/search-performance", { integrationKey: "default" }),
+        },
+        {
+          label: "GA Sessions",
+          value: fmtInt(ex?.gaSessions),
+          delta: null,
+          foot: `Users ${fmtInt(ex?.gaUsers)}`,
+          href: withTenantHref("/dashboard/ga", { integrationKey: "default" }),
+        },
+        {
+          label: "GA Conversions",
+          value: fmtInt(ex?.gaConversions),
+          delta: null,
+          foot: "Tracked goal completions",
+          href: withTenantHref("/dashboard/ga", { integrationKey: "default" }),
+        },
+        {
+          label: "Ads Spend",
+          value: fmtMoney(ex?.adsCost),
+          delta: null,
+          foot: "Google Ads cost",
+          href: withTenantHref("/dashboard/ads", { integrationKey: "default" }),
+        },
+        {
+          label: "Ads Conversions",
+          value: fmtInt(ex?.adsConversions),
+          delta: null,
+          foot: `Conv value ${fmtMoney(ex?.adsConversionValue)}`,
+          href: withTenantHref("/dashboard/ads", { integrationKey: "default" }),
+        },
+      ],
+    },
+    {
+      key: "pipeline",
+      title: "Pipeline & Operations",
+      subtitle: "Eficiencia operativa del flujo lead -> booked -> revenue.",
+      cards: [
+        {
+          label: "Total Calls",
+          value: fmtInt(ex?.callsNow),
+          delta: ex?.callsDeltaPct ?? null,
+          foot: `Prev ${fmtInt(ex?.callsBefore)}`,
+          href: withTenantHref("/dashboard/calls"),
+        },
+        {
+          label: "Leads per Call",
+          value: ex?.leadToCall == null ? "-" : ex.leadToCall.toFixed(2),
+          delta: ex?.leadToCallDeltaPct ?? null,
+          foot: "Efficiency ratio",
+          href: withTenantHref("/dashboard/calls"),
+        },
+        {
+          label: "Lost Qualified Bookings",
+          value: fmtInt(ex?.appointmentsLostNow),
+          delta: ex?.appointmentsLostDeltaPct ?? null,
+          foot: `Prev ${fmtInt(ex?.appointmentsLostBefore)}`,
+          href: withTenantHref("/dashboard/appointments"),
+        },
+        {
+          label: "Potential Lost Value",
+          value: fmtMoney(ex?.appointmentsLostValueNow),
+          delta: ex?.appointmentsLostValueDeltaPct ?? null,
+          foot: `Prev ${fmtMoney(ex?.appointmentsLostValueBefore)}`,
+          href: withTenantHref("/dashboard/appointments"),
+        },
+        {
+          label: "Conversation State Mapping",
+          value: `${fmtInt(m?.conversations?.mappedStateRate)}%`,
+          delta: null,
+          foot: "Geo attribution quality",
+          href: withTenantHref("/dashboard/conversations"),
+        },
+        {
+          label: "Transaction State Mapping",
+          value: `${fmtInt(m?.transactions?.mappedStateRate)}%`,
+          delta: null,
+          foot: "Revenue geo quality",
+          href: withTenantHref("/dashboard/transactions"),
+        },
+      ],
+    },
+    {
+      key: "growth_ops",
+      title: "Growth Ops & Readiness",
+      subtitle: "Módulos habilitadores para adquisición y expansión.",
+      cards: [
+        {
+          label: "Prospecting Coverage",
+          value: "USA + Puerto Rico",
+          delta: null,
+          foot: "Lead intelligence engine",
+          href: withTenantHref("/dashboard/prospecting"),
+        },
+        {
+          label: "Facebook Ads",
+          value: "Planner Live",
+          delta: null,
+          foot: "Overview + Geo",
+          href: withTenantHref("/dashboard/facebook-ads"),
+        },
+        {
+          label: "YouTube Ads + Runway",
+          value: "Studio Live",
+          delta: null,
+          foot: "Overview + Geo + Runway",
+          href: withTenantHref("/dashboard/youtube-ads"),
+        },
+      ],
+    },
+  ] as const;
+
+  const moduleCatalog = [
+    {
+      key: "calls",
+      icon: "CL",
+      title: "Calls",
+      description: "Call flow, missed-call risk y calidad operativa del contact center.",
+      delta: m?.calls?.deltaPct ?? null,
+      href: withTenantHref("/dashboard/calls"),
+      openLabel: "Open Calls",
+      metrics: [
+        { label: "Total calls", value: fmtInt(m?.calls?.total) },
+        { label: "Missed calls", value: fmtInt(m?.calls?.missed) },
+      ],
+    },
+    {
+      key: "leads",
+      icon: "LD",
+      title: "Contacts / Leads",
+      description: "Captura de demanda y calidad del lead pool para crecimiento.",
+      delta: m?.contacts?.deltaPct ?? null,
+      href: withTenantHref("/dashboard/contacts"),
+      openLabel: "Open Leads",
+      metrics: [
+        { label: "Total leads", value: fmtInt(m?.contacts?.total) },
+        { label: "Inferred leads", value: fmtInt(m?.contacts?.inferredFromOpportunity) },
+      ],
+    },
+    {
+      key: "prospecting",
+      icon: "PR",
+      title: "Prospecting Intelligence",
+      description: "Descubrimiento de negocio y expansión geográfica de oportunidades.",
+      delta: null,
+      href: withTenantHref("/dashboard/prospecting"),
+      openLabel: "Open Prospecting",
+      metrics: [
+        { label: "Coverage", value: "USA + Puerto Rico" },
+        { label: "Output", value: "Email + Phone leads" },
+      ],
+    },
+    {
+      key: "conversations",
+      icon: "CR",
+      title: "Conversations / CRM",
+      description: "Conversational pipeline, canales y mapeo operacional por estado.",
+      delta: m?.conversations?.deltaPct ?? null,
+      href: withTenantHref("/dashboard/conversations"),
+      openLabel: "Open Conversations",
+      metrics: [
+        { label: "Conversations", value: fmtInt(m?.conversations?.total) },
+        { label: "State mapping", value: `${fmtInt(m?.conversations?.mappedStateRate)}%` },
+      ],
+    },
+    {
+      key: "transactions",
+      icon: "TR",
+      title: "Transactions / Revenue",
+      description: "Monetización, ticket promedio y performance de ingresos.",
+      delta: m?.transactions?.revenueDeltaPct ?? null,
+      href: withTenantHref("/dashboard/transactions"),
+      openLabel: "Open Transactions",
+      metrics: [
+        { label: "Revenue", value: fmtMoney(m?.transactions?.grossAmount) },
+        { label: "Avg LTV", value: fmtMoney(m?.transactions?.avgLifetimeOrderValue) },
+      ],
+    },
+    {
+      key: "appointments",
+      icon: "AP",
+      title: "Appointments",
+      description: "Conversión final a cita, asistencia y fugas de demanda.",
+      delta: m?.appointments?.deltaPct ?? null,
+      href: withTenantHref("/dashboard/appointments"),
+      openLabel: "Open Appointments",
+      metrics: [
+        { label: "Appointments", value: fmtInt(m?.appointments?.total) },
+        { label: "Lost qualified", value: fmtInt(m?.appointments?.lostQualified) },
+      ],
+    },
+    {
+      key: "search",
+      icon: "SP",
+      title: "Search Performance",
+      description: "Organic visibility y click demand en Google + Bing.",
+      delta: searchClicksDeltaPct,
+      href: withTenantHref("/dashboard/search-performance", { integrationKey: "default" }),
+      openLabel: "Open Search",
+      metrics: [
+        { label: "Clicks", value: fmtInt((m?.searchPerformance?.totals?.clicks as number) || 0) },
+        { label: "Impressions", value: fmtInt((m?.searchPerformance?.totals?.impressions as number) || 0) },
+      ],
+    },
+    {
+      key: "ga",
+      icon: "GA",
+      title: "Google Analytics",
+      description: "Behavior analytics para engagement, sesiones y conversiones.",
+      delta: null,
+      href: withTenantHref("/dashboard/ga", { integrationKey: "default" }),
+      openLabel: "Open GA",
+      metrics: [
+        { label: "Sessions", value: fmtInt((m?.ga?.summaryOverall?.sessions as number) || 0) },
+        { label: "Conversions", value: fmtInt((m?.ga?.summaryOverall?.conversions as number) || 0) },
+      ],
+    },
+    {
+      key: "ads",
+      icon: "AD",
+      title: "Google Ads",
+      description: "Paid media execution, spend control y conversion output.",
+      delta: null,
+      href: withTenantHref("/dashboard/ads", { integrationKey: "default" }),
+      openLabel: "Open Ads",
+      metrics: [
+        { label: "Cost", value: fmtMoney((m?.ads?.summary?.cost as number) || 0) },
+        { label: "Conversions", value: fmtInt((m?.ads?.summary?.conversions as number) || 0) },
+      ],
+    },
+    {
+      key: "facebook",
+      icon: "FB",
+      title: "Facebook Ads",
+      description: "Social demand capture y geo optimization across campaigns.",
+      delta: null,
+      href: withTenantHref("/dashboard/facebook-ads"),
+      openLabel: "Open Facebook",
+      metrics: [
+        { label: "Status", value: "Planner Live" },
+        { label: "Scope", value: "Overview + Geo" },
+      ],
+    },
+    {
+      key: "youtube",
+      icon: "YT",
+      title: "YouTube Ads + Runway",
+      description: "Video creative pipeline y campaign studio for acquisition.",
+      delta: null,
+      href: withTenantHref("/dashboard/youtube-ads"),
+      openLabel: "Open YouTube",
+      metrics: [
+        { label: "Status", value: "Studio Live" },
+        { label: "Scope", value: "Overview + Geo + Runway" },
+      ],
+    },
+  ] as const;
 
   function campaignKey(c: CampaignBlueprint) {
     return `${c.channel}|${c.region}|${c.geoTier}|${c.objective}|${c.intentCluster}`;
@@ -2678,9 +3004,9 @@ function DashboardHomeContent() {
       <section id="sec-dashboard-kpi" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
-            <h2 className="cardTitle">CEO KPI Board</h2>
+            <h2 className="cardTitle">Business KPI Priority Board</h2>
             <div className="cardSubtitle">
-              Vista consolidada del negocio para decisiones ejecutivas.
+              KPIs organizados por categoría y prioridad para decisiones ejecutivas.
             </div>
           </div>
           <div className="cardHeaderActions">
@@ -2692,89 +3018,37 @@ function DashboardHomeContent() {
         </div>
 
         <div className="cardBody">
-          <div className="kpiRow kpiRowWide">
-            <div className="kpi">
-              <p className="n">{fmtInt(ex?.leadsNow)}</p>
-              <p className="l">Total Leads</p>
-              <div className={`mini ${deltaClass(ex?.leadsDeltaPct ?? null)}`}>
-                {fmtPct(ex?.leadsDeltaPct ?? null)} vs prev period
-              </div>
-            </div>
+          <div className="ceoKpiCategories">
+            {kpiCategories.map((cat) => (
+              <section key={cat.key} className="kpiCategoryBlock">
+                <div className="kpiCategoryHead">
+                  <h3 className="kpiCategoryTitle">{cat.title}</h3>
+                  <p className="kpiCategorySubtitle">{cat.subtitle}</p>
+                </div>
 
-            <div className="kpi">
-              <p className="n">{fmtInt(ex?.callsNow)}</p>
-              <p className="l">Total Calls</p>
-              <div className={`mini ${deltaClass(ex?.callsDeltaPct ?? null)}`}>
-                {fmtPct(ex?.callsDeltaPct ?? null)} vs prev period
-              </div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtInt(ex?.conversationsNow)}</p>
-              <p className="l">Conversations</p>
-              <div className={`mini ${deltaClass(ex?.conversationsDeltaPct ?? null)}`}>
-                {fmtPct(ex?.conversationsDeltaPct ?? null)} vs prev period
-              </div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtMoney(ex?.transactionsRevenueNow)}</p>
-              <p className="l">Transactions Revenue</p>
-              <div className={`mini ${deltaClass(ex?.transactionsRevenueDeltaPct ?? null)}`}>
-                {fmtPct(ex?.transactionsRevenueDeltaPct ?? null)} vs prev period
-              </div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtMoney(ex?.transactionsAvgLtvNow)}</p>
-              <p className="l">Avg Lifetime Order Value</p>
-              <div className="mini">Average by transacting customer</div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtInt(ex?.appointmentsNow)}</p>
-              <p className="l">Appointments</p>
-              <div className={`mini ${deltaClass(ex?.appointmentsDeltaPct ?? null)}`}>
-                {fmtPct(ex?.appointmentsDeltaPct ?? null)} vs prev period
-              </div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtInt(ex?.appointmentsLostNow)}</p>
-              <p className="l">Lost Qualified Bookings</p>
-              <div className={`mini ${deltaClass(ex?.appointmentsLostDeltaPct ?? null)}`}>
-                {fmtPct(ex?.appointmentsLostDeltaPct ?? null)} vs prev period
-              </div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{ex?.leadToCall == null ? "-" : ex.leadToCall.toFixed(2)}</p>
-              <p className="l">Leads per Call</p>
-              <div className={`mini ${deltaClass(ex?.leadToCallDeltaPct ?? null)}`}>
-                {fmtPct(ex?.leadToCallDeltaPct ?? null)} efficiency
-              </div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtInt(ex?.gaSessions)}</p>
-              <p className="l">GA Sessions</p>
-              <div className="mini">Users: {fmtInt(ex?.gaUsers)}</div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtInt(ex?.searchImpressionsNow)}</p>
-              <p className="l">Impressions (GSC + Bing)</p>
-              <div className={`mini ${deltaClass(ex?.searchImpressionsDeltaPct ?? null)}`}>
-                {fmtPct(ex?.searchImpressionsDeltaPct ?? null)} vs prev period
-              </div>
-              <div className="mini">Clicks: {fmtInt(ex?.searchClicksNow)}</div>
-            </div>
-
-            <div className="kpi">
-              <p className="n">{fmtMoney(ex?.adsCost)}</p>
-              <p className="l">Ads Spend</p>
-              <div className="mini">Conv: {fmtInt(ex?.adsConversions)}</div>
-            </div>
+                <div className="kpiCategoryGrid">
+                  {cat.cards.map((card) => (
+                    <article key={`${cat.key}-${card.label}`} className="kpiUnifiedCard">
+                      <div className="kpiUnifiedTop">
+                        <p className="kpiUnifiedValue">{card.value}</p>
+                        {card.delta === null ? (
+                          <span className="kpiUnifiedDelta kpiUnifiedDeltaNeutral">No compare</span>
+                        ) : (
+                          <span className={`kpiUnifiedDelta ${deltaClass(card.delta)}`}>
+                            {fmtPct(card.delta)} vs prev
+                          </span>
+                        )}
+                      </div>
+                      <p className="kpiUnifiedLabel">{card.label}</p>
+                      <p className="kpiUnifiedFoot">{card.foot}</p>
+                      <Link className="kpiUnifiedOpen" href={card.href}>
+                        Open module
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         </div>
       </section>
@@ -2784,9 +3058,9 @@ function DashboardHomeContent() {
       <section id="sec-modules" className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
-            <h2 className="cardTitle">Module Dashboards</h2>
+            <h2 className="cardTitle">Modules Catalog</h2>
             <div className="cardSubtitle">
-              KPIs críticos por módulo con acceso directo a cada dashboard.
+              Cada módulo es un producto: icono, propósito, KPIs clave y acceso directo.
             </div>
           </div>
           <div className="cardHeaderActions">
@@ -2804,285 +3078,41 @@ function DashboardHomeContent() {
         </div>
 
         <div className="cardBody">
-          <div className="moduleGrid">
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Calls</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.calls?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.calls?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total calls</div>
-                  <div className="moduleStatValue">{fmtInt(m?.calls?.total)}</div>
+          <div className="moduleProductGrid">
+            {moduleCatalog.map((module) => (
+              <article key={module.key} className="moduleProductCard">
+                <div className="moduleProductTop">
+                  <div className="moduleIconBadge" aria-hidden>
+                    {module.icon}
+                  </div>
+                  {module.delta === null ? (
+                    <span className="mini moduleDelta moduleDeltaNeutral">No compare</span>
+                  ) : (
+                    <span className={`mini moduleDelta ${deltaClass(module.delta)}`}>
+                      {fmtPct(module.delta)}
+                    </span>
+                  )}
                 </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Missed calls</div>
-                  <div className="moduleStatValue">{fmtInt(m?.calls?.missed)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/calls")}>Open Calls Dashboard</Link>
-              </div>
-            </div>
 
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Contacts / Leads</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.contacts?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.contacts?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total leads</div>
-                  <div className="moduleStatValue">{fmtInt(m?.contacts?.total)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Inferred from opportunity</div>
-                  <div className="moduleStatValue">{fmtInt(m?.contacts?.inferredFromOpportunity)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/contacts")}>Open Leads Dashboard</Link>
-              </div>
-            </div>
+                <h3 className="moduleProductTitle">{module.title}</h3>
+                <p className="moduleProductDesc">{module.description}</p>
 
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Prospecting Intelligence</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Purpose</div>
-                  <div className="moduleStatValue">Find Similar Businesses</div>
+                <div className="moduleProductMetrics">
+                  {module.metrics.map((metric) => (
+                    <div key={`${module.key}-${metric.label}`} className="moduleProductMetric">
+                      <div className="mini moduleStatLabel">{metric.label}</div>
+                      <div className="moduleStatValue">{metric.value}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Coverage</div>
-                  <div className="moduleStatValue">USA + Puerto Rico</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Output</div>
-                  <div className="moduleStatValue">Email + Phone Lead Pool</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/prospecting")}>Open Prospecting Dashboard</Link>
-              </div>
-            </div>
 
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Conversations / CRM</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.conversations?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.conversations?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total conversations</div>
-                  <div className="moduleStatValue">{fmtInt(m?.conversations?.total)}</div>
+                <div className="moduleActions">
+                  <Link className="btn btnPrimary moduleBtn" href={module.href}>
+                    {module.openLabel}
+                  </Link>
                 </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">State mapping rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.conversations?.mappedStateRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Top channel</div>
-                  <div className="moduleStatValue">{String(m?.conversations?.topChannel || "unknown")}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/conversations")}>Open Conversations Dashboard</Link>
-              </div>
-              {m?.conversations?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.conversations.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Transactions / Revenue</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.transactions?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.transactions?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Transactions</div>
-                  <div className="moduleStatValue">{fmtInt(m?.transactions?.total)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Revenue (succeeded)</div>
-                  <div className="moduleStatValue">{fmtMoney(m?.transactions?.grossAmount)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Avg Lifetime Order Value</div>
-                  <div className="moduleStatValue">{fmtMoney(m?.transactions?.avgLifetimeOrderValue)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">State mapping rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.transactions?.mappedStateRate)}%</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/transactions")}>Open Transactions Dashboard</Link>
-              </div>
-              {m?.transactions?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.transactions.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Appointments</p>
-                <span className={`mini moduleDelta ${deltaClass(m?.appointments?.deltaPct ?? null)}`}>
-                  {fmtPct(m?.appointments?.deltaPct ?? null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Total appointments</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.total)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Show rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.showRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Cancel rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.cancellationRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">No-show rate</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.noShowRate)}%</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Lost qualified bookings</div>
-                  <div className="moduleStatValue">{fmtInt(m?.appointments?.lostQualified)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Potential lost value</div>
-                  <div className="moduleStatValue">{fmtMoney(m?.appointments?.potentialLostValue)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/appointments")}>Open Appointments Dashboard</Link>
-              </div>
-              {m?.appointments?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.appointments.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Search Performance</p>
-                <span className={`mini moduleDelta ${deltaClass((m?.searchPerformance?.deltas?.clicksPct as number) || null)}`}>
-                  {fmtPct((m?.searchPerformance?.deltas?.clicksPct as number) || null)}
-                </span>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Clicks</div>
-                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.clicks as number) || 0)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Impressions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.searchPerformance?.totals?.impressions as number) || 0)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/search-performance", { integrationKey: "default" })}>Open Search Performance</Link>
-              </div>
-              {m?.searchPerformance?.error ? (
-                <div className="mini" style={{ color: "var(--danger)", marginTop: 8 }}>
-                  X {m.searchPerformance.error}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Google Analytics</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Sessions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.ga?.summaryOverall?.sessions as number) || 0)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Conversions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.ga?.summaryOverall?.conversions as number) || 0)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/ga#ai-playbook", { integrationKey: "default" })}>Open GA Dashboard</Link>
-              </div>
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Google Ads</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Cost</div>
-                  <div className="moduleStatValue">{fmtMoney((m?.ads?.summary?.cost as number) || 0)}</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Conversions</div>
-                  <div className="moduleStatValue">{fmtInt((m?.ads?.summary?.conversions as number) || 0)}</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/ads", { integrationKey: "default" })}>Open Ads Dashboard</Link>
-              </div>
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">Facebook Ads</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Status</div>
-                  <div className="moduleStatValue">Planner Live</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Source</div>
-                  <div className="moduleStatValue">Overview + Geo</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/facebook-ads")}>Open Facebook Dashboard</Link>
-              </div>
-            </div>
-
-            <div className="moduleCard">
-              <div className="moduleTop">
-                <p className="l moduleTitle">YouTube Ads + Runway</p>
-              </div>
-              <div className="moduleStats">
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Status</div>
-                  <div className="moduleStatValue">Studio Live</div>
-                </div>
-                <div className="moduleStat">
-                  <div className="mini moduleStatLabel">Source</div>
-                  <div className="moduleStatValue">Overview + Geo + Runway</div>
-                </div>
-              </div>
-              <div className="moduleActions">
-                <Link className="btn btnPrimary moduleBtn" href={withTenantHref("/dashboard/youtube-ads")}>Open YouTube Dashboard</Link>
-              </div>
-            </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>

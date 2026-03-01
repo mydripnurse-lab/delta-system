@@ -5598,6 +5598,222 @@ button, input, select { font-family: inherit; }
   max-width: 900px;
 }
 
+.ceoDash .ceoKpiCategories {
+  display: grid;
+  gap: 14px;
+}
+
+.ceoDash .kpiCategoryBlock {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  padding: 14px;
+  background:
+    radial-gradient(460px 160px at 8% -20%, rgba(59,130,246,0.14), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+}
+
+.ceoDash .kpiCategoryHead {
+  margin-bottom: 10px;
+}
+
+.ceoDash .kpiCategoryTitle {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  font-weight: 800;
+  color: rgba(246, 250, 255, 0.98);
+}
+
+.ceoDash .kpiCategorySubtitle {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: rgba(203, 215, 236, 0.86);
+}
+
+.ceoDash .kpiCategoryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ceoDash .kpiUnifiedCard {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 12px;
+  background:
+    radial-gradient(260px 120px at 100% -30%, rgba(96,165,250,0.12), transparent 70%),
+    rgba(15,23,42,0.46);
+  min-width: 0;
+}
+
+.ceoDash .kpiUnifiedTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ceoDash .kpiUnifiedValue {
+  margin: 0;
+  font-size: clamp(22px, 1.7vw, 30px);
+  line-height: 1.06;
+  font-weight: 820;
+  letter-spacing: -0.02em;
+  color: rgba(247, 252, 255, 0.99);
+  word-break: break-word;
+}
+
+.ceoDash .kpiUnifiedLabel {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: rgba(217, 227, 244, 0.9);
+  line-height: 1.3;
+}
+
+.ceoDash .kpiUnifiedFoot {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: rgba(178, 193, 218, 0.82);
+  line-height: 1.3;
+}
+
+.ceoDash .kpiUnifiedDelta {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.ceoDash .kpiUnifiedDeltaNeutral,
+.ceoDash .moduleDeltaNeutral {
+  color: rgba(211, 220, 236, 0.9);
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+.ceoDash .kpiUnifiedOpen {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(188, 220, 255, 0.96);
+  font-size: 11px;
+  font-weight: 760;
+  text-decoration: none;
+  border: 1px solid rgba(96,165,250,0.36);
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: rgba(30,64,175,0.18);
+}
+
+.ceoDash .kpiUnifiedOpen:hover {
+  color: rgba(231, 244, 255, 0.99);
+  border-color: rgba(125, 211, 252, 0.58);
+  background: rgba(30,64,175,0.3);
+}
+
+.ceoDash .moduleProductGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.ceoDash .moduleProductCard {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  padding: 14px;
+  background:
+    radial-gradient(280px 120px at 12% -20%, rgba(59,130,246,0.16), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ceoDash .moduleProductTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.ceoDash .moduleIconBadge {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  border: 1px solid rgba(129, 180, 255, 0.44);
+  background:
+    radial-gradient(80px 34px at 10% 10%, rgba(148,197,253,0.34), transparent 70%),
+    linear-gradient(145deg, rgba(41,89,188,0.9), rgba(28,57,120,0.88));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(241, 248, 255, 0.99);
+  font-size: 11px;
+  font-weight: 840;
+  letter-spacing: 0.04em;
+}
+
+.ceoDash .moduleProductTitle {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 790;
+  color: rgba(247, 252, 255, 0.99);
+}
+
+.ceoDash .moduleProductDesc {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.38;
+  color: rgba(198, 211, 232, 0.9);
+  min-height: 48px;
+}
+
+.ceoDash .moduleProductMetrics {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.ceoDash .moduleProductMetric {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(15,23,42,0.4);
+}
+
+.ceoDash .moduleProductCard .moduleStatValue {
+  font-size: clamp(17px, 1.4vw, 24px);
+}
+
+@media (max-width: 1540px) {
+  .ceoDash .moduleProductGrid {
+    grid-template-columns: repeat(3, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .ceoDash .kpiCategoryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ceoDash .moduleProductGrid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .ceoDash .kpiCategoryGrid,
+  .ceoDash .moduleProductGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Dashboard Reports premium shell */
 .dashboardPremium {
   --dash-lux-border: rgba(148, 163, 184, 0.26);
