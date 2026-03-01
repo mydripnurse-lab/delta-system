@@ -1807,21 +1807,85 @@ function DashboardHomeContent() {
     valuePrev: number;
     deltaPct: number | null;
   }>;
+  const funnelStagesDisplay = funnelStages.filter((s) => s.key !== "conversations");
 
   const funnelTransitions = useMemo(() => {
     const rates = funnel?.conversionRates || {};
-    const byStage: Record<string, number | null> = {
-      clicks: numOrNull((rates as Record<string, { now?: number | null }>)?.ctr?.now),
-      leads: numOrNull((rates as Record<string, { now?: number | null }>)?.clickToLead?.now),
-      conversations: numOrNull((rates as Record<string, { now?: number | null }>)?.leadToConversation?.now),
-      appointments: numOrNull((rates as Record<string, { now?: number | null }>)?.conversationToAppointment?.now),
-      revenue: numOrNull((rates as Record<string, { now?: number | null }>)?.appointmentToTransaction?.now),
+    const ctr = numOrNull((rates as Record<string, { now?: number | null }>)?.ctr?.now);
+    const clickToLead = numOrNull((rates as Record<string, { now?: number | null }>)?.clickToLead?.now);
+    const leadToConversation = numOrNull((rates as Record<string, { now?: number | null }>)?.leadToConversation?.now);
+    const conversationToAppointment = numOrNull((rates as Record<string, { now?: number | null }>)?.conversationToAppointment?.now);
+    const appointmentToTransaction = numOrNull((rates as Record<string, { now?: number | null }>)?.appointmentToTransaction?.now);
+
+    const leadToAppointment =
+      leadToConversation == null || conversationToAppointment == null
+        ? null
+        : leadToConversation * conversationToAppointment;
+
+    const byPair: Record<string, number | null> = {
+      "impressions:clicks": ctr,
+      "clicks:leads": clickToLead,
+      "leads:appointments": leadToAppointment,
+      "appointments:revenue": appointmentToTransaction,
     };
-    return funnelStages.map((stage, idx) => {
-      if (idx === 0) return null;
-      return byStage[stage.key] ?? null;
+    return funnelStagesDisplay.map((stage, idx) => {
+      if (idx >= funnelStagesDisplay.length - 1) return null;
+      const next = funnelStagesDisplay[idx + 1];
+      return byPair[`${stage.key}:${next.key}`] ?? null;
     });
-  }, [funnel, funnelStages]);
+  }, [funnel, funnelStagesDisplay]);
+
+  const funnelRateCards = useMemo(() => {
+    const rates = (funnel?.conversionRates as any) || {};
+    const ctrNow = numOrNull(rates?.ctr?.now);
+    const ctrPrev = numOrNull(rates?.ctr?.prev);
+    const clickToLeadNow = numOrNull(rates?.clickToLead?.now);
+    const clickToLeadPrev = numOrNull(rates?.clickToLead?.prev);
+    const leadToConversationNow = numOrNull(rates?.leadToConversation?.now);
+    const leadToConversationPrev = numOrNull(rates?.leadToConversation?.prev);
+    const conversationToAppointmentNow = numOrNull(rates?.conversationToAppointment?.now);
+    const conversationToAppointmentPrev = numOrNull(rates?.conversationToAppointment?.prev);
+    const appointmentToRevenueNow = numOrNull(rates?.appointmentToTransaction?.now);
+    const appointmentToRevenuePrev = numOrNull(rates?.appointmentToTransaction?.prev);
+    const leadToAppointmentNow =
+      leadToConversationNow == null || conversationToAppointmentNow == null
+        ? null
+        : leadToConversationNow * conversationToAppointmentNow;
+    const leadToAppointmentPrev =
+      leadToConversationPrev == null || conversationToAppointmentPrev == null
+        ? null
+        : leadToConversationPrev * conversationToAppointmentPrev;
+
+    return [
+      {
+        key: "ctr",
+        label: "CTR",
+        value: fmtRatePct(ctrNow),
+        tooltip: `Current: ${fmtRatePct(ctrNow)} | Previous: ${fmtRatePct(ctrPrev)}`,
+      },
+      {
+        key: "click_lead",
+        label: "Click → Lead",
+        value: fmtRatePct(clickToLeadNow),
+        tooltip: `Current: ${fmtRatePct(clickToLeadNow)} | Previous: ${fmtRatePct(clickToLeadPrev)}`,
+      },
+      {
+        key: "lead_appointment",
+        label: "Lead → Appointment",
+        value: fmtRatePct(leadToAppointmentNow),
+        tooltip:
+          `Current: ${fmtRatePct(leadToAppointmentNow)} | Previous: ${fmtRatePct(leadToAppointmentPrev)}\n` +
+          `Breakdown current: Lead→Conversation ${fmtRatePct(leadToConversationNow)} × Conversation→Appointment ${fmtRatePct(conversationToAppointmentNow)}\n` +
+          `Breakdown previous: Lead→Conversation ${fmtRatePct(leadToConversationPrev)} × Conversation→Appointment ${fmtRatePct(conversationToAppointmentPrev)}`,
+      },
+      {
+        key: "appointment_revenue",
+        label: "Appointment → Revenue",
+        value: fmtRatePct(appointmentToRevenueNow),
+        tooltip: `Current: ${fmtRatePct(appointmentToRevenueNow)} | Previous: ${fmtRatePct(appointmentToRevenuePrev)}`,
+      },
+    ] as const;
+  }, [funnel]);
 
   function campaignKey(c: CampaignBlueprint) {
     return `${c.channel}|${c.region}|${c.geoTier}|${c.objective}|${c.intentCluster}`;
@@ -3164,7 +3228,7 @@ function DashboardHomeContent() {
           <div>
             <h2 className="cardTitle">Executive Funnel</h2>
             <div className="cardSubtitle">
-              Funnel estratégico filtrado por Executive Filters: Impressions → Clicks → Leads → Conversations → Appointments → Revenue.
+              Funnel estratégico filtrado por Executive Filters: Impressions → Clicks → Leads → Appointments → Revenue.
             </div>
           </div>
           <div className="cardHeaderActions">
@@ -3181,9 +3245,9 @@ function DashboardHomeContent() {
             </div>
 
             <div className="funnelLane">
-              {funnelStages.map((stage, idx) => {
+              {funnelStagesDisplay.map((stage, idx) => {
                 const widthPct = Math.max(46, 98 - idx * 9);
-                const toNextRate = idx < funnelStages.length - 1 ? funnelTransitions[idx + 1] : null;
+                const toNextRate = funnelTransitions[idx];
                 const isRevenue = stage.key === "revenue";
 
                 return (
@@ -3209,7 +3273,7 @@ function DashboardHomeContent() {
                       </div>
                     </div>
 
-                    {idx < funnelStages.length - 1 ? (
+                    {idx < funnelStagesDisplay.length - 1 ? (
                       <div className="funnelBridge">
                         <div className="funnelBridgeLine" />
                         <div className="funnelBridgePill">
@@ -3224,26 +3288,15 @@ function DashboardHomeContent() {
             </div>
 
             <div className="funnelRatesGrid">
-              <div className="funnelRateCard">
-                <span className="mini">CTR</span>
-                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.ctr?.now))}</b>
-              </div>
-              <div className="funnelRateCard">
-                <span className="mini">Click → Lead</span>
-                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.clickToLead?.now))}</b>
-              </div>
-              <div className="funnelRateCard">
-                <span className="mini">Lead → Conversation</span>
-                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.leadToConversation?.now))}</b>
-              </div>
-              <div className="funnelRateCard">
-                <span className="mini">Conversation → Appointment</span>
-                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.conversationToAppointment?.now))}</b>
-              </div>
-              <div className="funnelRateCard">
-                <span className="mini">Appointment → Revenue</span>
-                <b>{fmtRatePct(numOrNull((funnel?.conversionRates as any)?.appointmentToTransaction?.now))}</b>
-              </div>
+              {funnelRateCards.map((rate) => (
+                <div key={rate.key} className="funnelRateCard" title={rate.tooltip}>
+                  <div className="funnelRateHead">
+                    <span className="mini">{rate.label}</span>
+                    <span className="funnelInfoDot" aria-hidden>i</span>
+                  </div>
+                  <b>{rate.value}</b>
+                </div>
+              ))}
             </div>
           </div>
         </div>
