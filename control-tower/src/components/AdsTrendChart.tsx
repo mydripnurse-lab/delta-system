@@ -70,6 +70,8 @@ export default function AdsTrendChart({
   seriesLabel,
   unitHint,
   comparePct,
+  onModeChange,
+  showModeSwitch = true,
 }: {
   trend: TrendRow[];
   mode: "day" | "week" | "month";
@@ -78,6 +80,8 @@ export default function AdsTrendChart({
   seriesLabel: string;
   unitHint?: string;
   comparePct?: number | null;
+  onModeChange?: (mode: "day" | "week" | "month") => void;
+  showModeSwitch?: boolean;
 }) {
   const points = useMemo(() => groupTrend(trend || [], mode), [trend, mode]);
   const comparePoints = useMemo(() => {
@@ -98,7 +102,8 @@ export default function AdsTrendChart({
       points={points}
       comparePoints={comparePoints}
       mode={mode}
-      showModeSwitch={false}
+      onModeChange={onModeChange}
+      showModeSwitch={showModeSwitch}
       valueFormatter={fmtCompact}
       footerHint="Hover un punto para ver detalle y comparar picos."
     />

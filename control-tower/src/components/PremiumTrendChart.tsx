@@ -191,7 +191,7 @@ export default function PremiumTrendChart({
                 <button
                   key={m}
                   type="button"
-                  className={`segBtn ${mode === m ? "segOn" : ""}`}
+                  className={`segBtn ${mode === m ? "segBtnOn" : ""}`}
                   onClick={() => onModeChange?.(m)}
                 >
                   {m}

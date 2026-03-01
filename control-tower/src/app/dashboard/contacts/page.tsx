@@ -876,20 +876,6 @@ function ContactsDashboardPageContent() {
           </div>
 
           <div className="cardHeaderActions">
-            <div className="segmented" role="tablist" aria-label="Trend grain">
-              {(["day", "week", "month"] as TrendGrain[]).map((g) => (
-                <button
-                  key={g}
-                  className={`segBtn ${grain === g ? "segBtnOn" : ""}`}
-                  onClick={() => setGrain(g)}
-                  type="button"
-                  disabled={loading}
-                >
-                  {g === "day" ? "Day" : g === "week" ? "Week" : "Month"}
-                </button>
-              ))}
-            </div>
-
             <button
               className="smallBtn"
               onClick={() => setMapSelected("")}
@@ -940,7 +926,6 @@ function ContactsDashboardPageContent() {
                   }))}
                   mode={grain}
                   onModeChange={setGrain}
-                  showModeSwitch={false}
                   valueFormatter={(n) => String(Math.round(n))}
                   onHoverPoint={(point) =>
                     setHoverPoint(

@@ -71,6 +71,8 @@ export default function GSCTrendChart({
   startDate,
   endDate,
   comparePct,
+  onModeChange,
+  showModeSwitch = true,
 }: {
   trend: TrendRow[];
   metric: "impressions" | "clicks";
@@ -78,6 +80,8 @@ export default function GSCTrendChart({
   startDate?: string | null;
   endDate?: string | null;
   comparePct?: number | null;
+  onModeChange?: (mode: "day" | "week" | "month") => void;
+  showModeSwitch?: boolean;
 }) {
   const points = useMemo(() => groupTrend(trend || [], mode, metric), [trend, mode, metric]);
   const comparePoints = useMemo(() => {
@@ -97,7 +101,8 @@ export default function GSCTrendChart({
       points={points}
       comparePoints={comparePoints}
       mode={mode}
-      showModeSwitch={false}
+      onModeChange={onModeChange}
+      showModeSwitch={showModeSwitch}
       valueFormatter={fmtCompact}
       footerHint="Hover un punto para ver detalle y detectar picos."
     />

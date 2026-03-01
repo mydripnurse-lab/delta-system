@@ -787,11 +787,6 @@ function TransactionsDashboardPageContent() {
                 </button>
               ))}
             </div>
-            {(["day", "week", "month"] as TrendGrain[]).map((g) => (
-              <button key={g} className={`smallBtn ${grain === g ? "smallBtnOn" : ""}`} onClick={() => setGrain(g)} type="button">
-                {g}
-              </button>
-            ))}
           </div>
         </div>
         <div className="cardBody">
@@ -806,7 +801,6 @@ function TransactionsDashboardPageContent() {
                 comparePoints={prevTrend.map((p) => ({ key: p.key, label: p.label, value: p.value }))}
                 mode={grain}
                 onModeChange={setGrain}
-                showModeSwitch={false}
                 valueFormatter={(n) =>
                   trendMetric === "amount"
                     ? fmtMoney(Number(n || 0))

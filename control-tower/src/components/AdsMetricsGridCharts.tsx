@@ -177,12 +177,14 @@ export default function AdsMetricsGridCharts({
   startDate,
   endDate,
   comparePct,
+  onModeChange,
 }: {
   trend: TrendRow[];
   mode: "day" | "week" | "month";
   startDate?: string | null;
   endDate?: string | null;
   comparePct?: ComparePct | null;
+  onModeChange?: (mode: "day" | "week" | "month") => void;
 }) {
   const grouped = useMemo(() => {
     const m = new Map<string, BucketAgg>();
@@ -227,7 +229,8 @@ export default function AdsMetricsGridCharts({
               points={card.points}
               comparePoints={card.comparePoints}
               mode={mode}
-              showModeSwitch={false}
+              onModeChange={onModeChange}
+              showModeSwitch={true}
               valueFormatter={card.formatter}
               footerHint="Hover un punto para ver detalle y comparison."
             />

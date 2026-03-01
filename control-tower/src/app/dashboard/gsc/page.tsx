@@ -114,9 +114,6 @@ function GscDashboardPageContent() {
   const notificationHubHref = tenantId
     ? `/dashboard/notification-hub?tenantId=${encodeURIComponent(tenantId)}&integrationKey=${encodeURIComponent(integrationKey)}`
     : "/dashboard/notification-hub";
-  const controlTowerHref = tenantId
-    ? `/projects/${encodeURIComponent(tenantId)}`
-    : "/";
   const sectionBasePath = pathname?.includes("/dashboard/search-performance")
     ? "/dashboard/search-performance"
     : "/dashboard/gsc";
@@ -149,7 +146,6 @@ function GscDashboardPageContent() {
 
   const sectionNavItems: Array<{ key: GscSectionKey; label: string }> = [
     { key: "overview", label: "Overview" },
-    { key: "filters", label: "Executive Filters" },
     { key: "geo", label: "Geo Intelligence" },
     { key: "queries", label: "Query Explorer" },
     { key: "segments", label: "Nationwide & Funnels" },
@@ -736,9 +732,6 @@ function GscDashboardPageContent() {
             <Link className="agencyNavItem agencyNavBackItem" href={backHref}>
               ← Back to Dashboard
             </Link>
-            <Link className="agencyNavItem" href={controlTowerHref}>
-              Control Tower
-            </Link>
             {sectionNavItems.map((item) => (
               <Link
                 key={item.key}
@@ -963,32 +956,6 @@ function GscDashboardPageContent() {
                 Clear state
               </button>
 
-              <span className="filtersDivider" />
-
-              <div className="seg">
-                <button
-                  className={`segBtn ${trendMode === "day" ? "segOn" : ""}`}
-                  onClick={() => setTrendMode("day")}
-                  type="button"
-                >
-                  Day
-                </button>
-                <button
-                  className={`segBtn ${trendMode === "week" ? "segOn" : ""}`}
-                  onClick={() => setTrendMode("week")}
-                  type="button"
-                >
-                  Week
-                </button>
-                <button
-                  className={`segBtn ${trendMode === "month" ? "segOn" : ""}`}
-                  onClick={() => setTrendMode("month")}
-                  type="button"
-                >
-                  Month
-                </button>
-              </div>
-
               {summary.generatedAt && (
                 <span className="mini" style={{ opacity: 0.8, marginLeft: 8 }}>
                   Last Update:{" "}
@@ -1177,6 +1144,7 @@ function GscDashboardPageContent() {
               trend={(trendFiltered.length ? trendFiltered : trend) as any}
               metric={metric}
               mode={trendMode}
+              onModeChange={setTrendMode}
               startDate={startDate}
               endDate={endDate}
               comparePct={

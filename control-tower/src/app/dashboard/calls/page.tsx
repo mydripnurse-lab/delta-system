@@ -1241,30 +1241,6 @@ function CallsDashboardPageContent() {
           </div>
 
           <div className="cardHeaderActions">
-            <div className="segmented" role="tablist" aria-label="Trend grain">
-              <button
-                className={`segBtn ${grain === "day" ? "segBtnOn" : ""}`}
-                onClick={() => setGrain("day")}
-                type="button"
-              >
-                Day
-              </button>
-              <button
-                className={`segBtn ${grain === "week" ? "segBtnOn" : ""}`}
-                onClick={() => setGrain("week")}
-                type="button"
-              >
-                Week
-              </button>
-              <button
-                className={`segBtn ${grain === "month" ? "segBtnOn" : ""}`}
-                onClick={() => setGrain("month")}
-                type="button"
-              >
-                Month
-              </button>
-            </div>
-
             <button className="smallBtn" onClick={clearSelection} type="button">
               Clear
             </button>
@@ -1333,7 +1309,6 @@ function CallsDashboardPageContent() {
                   }))}
                   mode={grain}
                   onModeChange={setGrain}
-                  showModeSwitch={false}
                   valueFormatter={(n) => String(Math.round(n))}
                   onHoverPoint={(point) =>
                     setHoverPoint(

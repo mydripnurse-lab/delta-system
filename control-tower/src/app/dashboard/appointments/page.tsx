@@ -863,13 +863,6 @@ function AppointmentsDashboardPageContent() {
             <h2 className="cardTitle">Appointments trend</h2>
             <div className="cardSubtitle">Evolución por día, semana o mes según el filtro.</div>
           </div>
-          <div className="cardHeaderActions">
-            {(["day", "week", "month"] as TrendGrain[]).map((g) => (
-              <button key={g} className={`smallBtn ${grain === g ? "smallBtnOn" : ""}`} onClick={() => setGrain(g)} type="button">
-                {g}
-              </button>
-            ))}
-          </div>
         </div>
         <div className="cardBody">
           {!trend.length ? (
@@ -883,7 +876,6 @@ function AppointmentsDashboardPageContent() {
                 comparePoints={prevTrend.map((p) => ({ key: p.key, label: p.label, value: p.value }))}
                 mode={grain}
                 onModeChange={setGrain}
-                showModeSwitch={false}
                 valueFormatter={(n) => String(Math.round(n))}
                 onHoverPoint={(point) =>
                   setHoverPoint(

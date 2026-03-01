@@ -991,32 +991,6 @@ export default function AdsDashboardPage() {
                 Impressions
               </button>
 
-              <span className="filtersDivider" />
-
-              <div className="seg">
-                <button
-                  className={`segBtn ${trendMode === "day" ? "segOn" : ""}`}
-                  onClick={() => setTrendMode("day")}
-                  type="button"
-                >
-                  Day
-                </button>
-                <button
-                  className={`segBtn ${trendMode === "week" ? "segOn" : ""}`}
-                  onClick={() => setTrendMode("week")}
-                  type="button"
-                >
-                  Week
-                </button>
-                <button
-                  className={`segBtn ${trendMode === "month" ? "segOn" : ""}`}
-                  onClick={() => setTrendMode("month")}
-                  type="button"
-                >
-                  Month
-                </button>
-              </div>
-
               {summary.generatedAt && (
                 <span className="mini" style={{ opacity: 0.8, marginLeft: 8 }}>
                   Last Update:{" "}
@@ -1183,6 +1157,7 @@ export default function AdsDashboardPage() {
             <AdsTrendChart
               trend={trendForChart}
               mode={trendMode}
+              onModeChange={setTrendMode}
               startDate={startDate}
               endDate={endDate}
               seriesLabel={metricLabel(metric)}
@@ -1223,6 +1198,7 @@ export default function AdsDashboardPage() {
           <AdsMetricsGridCharts
             trend={trend}
             mode={trendMode}
+            onModeChange={setTrendMode}
             startDate={startDate}
             endDate={endDate}
             comparePct={compareOn ? (compare?.pct || null) : null}
