@@ -33,7 +33,9 @@ type GscSectionKey =
   | "geo"
   | "queries"
   | "segments"
-  | "states";
+  | "states"
+  | "ai-playbook"
+  | "chat";
 
 type AuthMeUser = {
   id: string;
@@ -137,6 +139,8 @@ function GscDashboardPageContent() {
       raw === "queries" ||
       raw === "segments" ||
       raw === "states" ||
+      raw === "ai-playbook" ||
+      raw === "chat" ||
       raw === "overview"
     ) {
       return raw;
@@ -150,6 +154,8 @@ function GscDashboardPageContent() {
     { key: "queries", label: "Query Explorer" },
     { key: "segments", label: "Nationwide & Funnels" },
     { key: "states", label: "States Table" },
+    { key: "ai-playbook", label: "AI Playbook" },
+    { key: "chat", label: "Agent Chat" },
   ];
 
   function buildSectionHref(section: GscSectionKey) {
@@ -748,7 +754,7 @@ function GscDashboardPageContent() {
 
       {/* Filters */}
       {activeSection === "filters" || activeSection === "overview" ? (
-      <section className="card">
+      <section className="card spRouteAnim" key={`filters-${activeSection}`}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Executive Filters</h2>
@@ -1038,7 +1044,7 @@ function GscDashboardPageContent() {
 
       {/* Summary */}
       {activeSection === "overview" ? (
-      <section className="card">
+      <section className="card spRouteAnim" key="overview">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Summary</h2>
@@ -1166,8 +1172,10 @@ function GscDashboardPageContent() {
       {activeSection === "geo" ||
       activeSection === "queries" ||
       activeSection === "segments" ||
-      activeSection === "states" ? (
-      <section className="card">
+      activeSection === "states" ||
+      activeSection === "ai-playbook" ||
+      activeSection === "chat" ? (
+      <section className="card spRouteAnim" key={`section-${activeSection}`}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">
@@ -1177,6 +1185,10 @@ function GscDashboardPageContent() {
                   ? "Top Queries & Pages"
                   : activeSection === "segments"
                     ? "Nationwide & Funnels"
+                    : activeSection === "ai-playbook"
+                      ? "AI Playbook"
+                      : activeSection === "chat"
+                        ? "Agent Chat"
                     : "States table"}
             </h2>
             <div className="cardSubtitle">
@@ -1186,6 +1198,10 @@ function GscDashboardPageContent() {
                   ? "Top 100 por impressions con filtros de estado y rango."
                   : activeSection === "segments"
                     ? "Root domain como nationwide y subdominios como funnels."
+                    : activeSection === "ai-playbook"
+                      ? "Estrategia accionable por IA sobre tus datos actuales de Search Performance."
+                      : activeSection === "chat"
+                        ? "Asistente experto con contexto de filtros y métricas del dashboard."
                     : "Tabla completa por estado con métricas clave."}
             </div>
           </div>
@@ -1365,144 +1381,186 @@ function GscDashboardPageContent() {
                 )}
               </div>
 
-              {/* AI Strategist */}
-              <div className="aiCard" id="ai-playbook">
-                <div className="aiCardTop">
-                  <div>
-                    <div className="aiTitle">
-                      {searchTab === "all"
-                        ? "AI Playbook (Search Performance Expert)"
-                        : searchTab === "bing"
-                          ? "AI Playbook (Bing Webmaster Expert)"
-                          : "AI Playbook (Google Search Console Expert)"}
-                    </div>
-                    <div
-                      className="mini"
-                      style={{ opacity: 0.85, marginTop: 4 }}
-                    >
-                      Insights accionables basados en KPIs + top queries/pages.
-                    </div>
-                  </div>
+            </aside>
+          </div>
+          ) : null}
 
-                  <button
-                    className="smallBtn aiBtn"
-                    onClick={generateInsights}
-                    disabled={aiLoading || loading || !stateRows.length}
-                    type="button"
-                  >
-                    {aiLoading ? "Generating…" : "Generate AI Playbook"}
-                  </button>
+          {/* AI Playbook */}
+          {activeSection === "ai-playbook" ? (
+          <div className="spStudioLayout" style={{ marginTop: 14 }}>
+            <div className="spStudioRail">
+              <div className="gscTopCard spStudioCard">
+                <div className="gscTopHead">
+                  <div className="gscTopTitle">Playbook Context</div>
                 </div>
+                <div className="spStudioPills">
+                  <span className="pill chartPill">
+                    <span className="mini" style={{ opacity: 0.82 }}>Source</span>
+                    <b>{searchTab === "all" ? "Google + Bing" : searchTab === "bing" ? "Bing" : "Google"}</b>
+                  </span>
+                  <span className="pill chartPill">
+                    <span className="mini" style={{ opacity: 0.82 }}>Range</span>
+                    <b>{summary.startDate || "—"} → {summary.endDate || "—"}</b>
+                  </span>
+                  <span className="pill chartPill">
+                    <span className="mini" style={{ opacity: 0.82 }}>Scope</span>
+                    <b>{mapSelected || "All states"}</b>
+                  </span>
+                </div>
+                <div className="mini" style={{ marginTop: 10, opacity: 0.84 }}>
+                  Usa el botón de Generate para construir recomendaciones de prioridad alta
+                  usando KPIs, tendencias y queries/pages.
+                </div>
+              </div>
 
-                {aiErr ? (
-                  <div
-                    className="mini"
-                    style={{ color: "var(--danger)", marginTop: 10 }}
-                  >
-                    ❌ {aiErr}
+              <div className="gscTopCard spStudioCard">
+                <div className="gscTopHead">
+                  <div className="gscTopTitle">
+                    Top Keywords{" "}
+                    <span className="mini" style={{ opacity: 0.8 }}>
+                      {mapSelected ? `(${mapSelected})` : "(Overall)"}
+                    </span>
                   </div>
-                ) : null}
-
-                {aiInsights ? (
-                  <div className="aiBody">
-                    <div className="aiSummary">
-                      <div className="aiSummaryTitle">Executive summary</div>
-                      <div className="aiText">
-                        {aiInsights.executive_summary}
-                      </div>
-                    </div>
-
-                    <div className="aiScore">
-                      <span
-                        className={`aiBadge ${aiInsights.scorecard?.health || ""}`}
-                      >
-                        {String(
-                          aiInsights.scorecard?.health || "mixed",
-                        ).toUpperCase()}
-                      </span>
-                      <div
-                        className="mini"
-                        style={{ marginTop: 8, opacity: 0.9 }}
-                      >
-                        <b>Primary risk:</b>{" "}
-                        {aiInsights.scorecard?.primary_risk}
-                      </div>
-                      <div
-                        className="mini"
-                        style={{ marginTop: 6, opacity: 0.9 }}
-                      >
-                        <b>Primary opportunity:</b>{" "}
-                        {aiInsights.scorecard?.primary_opportunity}
-                      </div>
-                    </div>
-
-                    {!!aiInsights.opportunities?.length && (
-                      <div className="aiBlock">
-                        <div className="aiBlockTitle">Top opportunities</div>
-                        <div className="aiOps">
-                          {aiInsights.opportunities
-                            .slice(0, 3)
-                            .map((o: any, idx: number) => (
-                              <div className="aiOp" key={idx}>
-                                <div className="aiOpHead">
-                                  <div className="aiOpTitle">{o.title}</div>
-                                  <span
-                                    className={`aiImpact ${o.expected_impact}`}
-                                  >
-                                    {String(
-                                      o.expected_impact || "medium",
-                                    ).toUpperCase()}
-                                  </span>
-                                </div>
-                                <div
-                                  className="mini"
-                                  style={{ opacity: 0.9, marginTop: 6 }}
-                                >
-                                  <b>Why:</b> {o.why_it_matters}
-                                </div>
-                                <div
-                                  className="mini"
-                                  style={{ opacity: 0.85, marginTop: 6 }}
-                                >
-                                  <b>Evidence:</b> {o.evidence}
-                                </div>
-                                {Array.isArray(o.recommended_actions) &&
-                                o.recommended_actions.length ? (
-                                  <ul className="aiList">
-                                    {o.recommended_actions
-                                      .slice(0, 5)
-                                      .map((a: string, i: number) => (
-                                        <li key={i}>{a}</li>
-                                      ))}
-                                  </ul>
-                                ) : null}
-                              </div>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {!!aiInsights.quick_wins_next_7_days?.length && (
-                      <div className="aiBlock">
-                        <div className="aiBlockTitle">Quick wins (7 days)</div>
-                        <ul className="aiList">
-                          {aiInsights.quick_wins_next_7_days
-                            .slice(0, 7)
-                            .map((x: string, i: number) => (
-                              <li key={i}>{x}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                </div>
+                {topKeywords?.length ? (
+                  <ul className="aiList" style={{ marginTop: 0 }}>
+                    {topKeywords.slice(0, 10).map((k: any, i: number) => (
+                      <li key={i}>
+                        <span className="mono">{k.query}</span>{" "}
+                        <span style={{ opacity: 0.72 }}>• {fmtInt(k.impressions)} impr</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : (
-                  <div className="aiPlaceholder">
-                    <div className="mini" style={{ opacity: 0.85 }}>
-                      Tip: Selecciona un estado y luego “Generate insights” para
-                      recomendaciones hiper-específicas por keywords + páginas.
-                    </div>
+                  <div className="mini" style={{ opacity: 0.78 }}>
+                    No keyword data disponible para este rango.
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="gscTopCard spStudioCard">
+              <div className="aiCardTop">
+                <div>
+                  <div className="aiTitle">
+                    {searchTab === "all"
+                      ? "AI Playbook (Search Performance Expert)"
+                      : searchTab === "bing"
+                        ? "AI Playbook (Bing Webmaster Expert)"
+                        : "AI Playbook (Google Search Console Expert)"}
+                  </div>
+                  <div className="mini" style={{ opacity: 0.85, marginTop: 4 }}>
+                    Recomendaciones ejecutables basadas en señales del dashboard.
+                  </div>
+                </div>
+
+                <button
+                  className="smallBtn aiBtn"
+                  onClick={generateInsights}
+                  disabled={aiLoading || loading || !stateRows.length}
+                  type="button"
+                >
+                  {aiLoading ? "Generating…" : "Generate AI Playbook"}
+                </button>
+              </div>
+
+              {aiErr ? (
+                <div className="mini" style={{ color: "var(--danger)", marginTop: 10 }}>
+                  ❌ {aiErr}
+                </div>
+              ) : null}
+
+              {aiInsights ? (
+                <div className="aiBody">
+                  <div className="aiSummary">
+                    <div className="aiSummaryTitle">Executive summary</div>
+                    <div className="aiText">{aiInsights.executive_summary}</div>
+                  </div>
+
+                  <div className="aiScore">
+                    <span className={`aiBadge ${aiInsights.scorecard?.health || ""}`}>
+                      {String(aiInsights.scorecard?.health || "mixed").toUpperCase()}
+                    </span>
+                    <div className="mini" style={{ marginTop: 8, opacity: 0.9 }}>
+                      <b>Primary risk:</b> {aiInsights.scorecard?.primary_risk}
+                    </div>
+                    <div className="mini" style={{ marginTop: 6, opacity: 0.9 }}>
+                      <b>Primary opportunity:</b> {aiInsights.scorecard?.primary_opportunity}
+                    </div>
+                  </div>
+
+                  {!!aiInsights.opportunities?.length && (
+                    <div className="aiBlock">
+                      <div className="aiBlockTitle">Top opportunities</div>
+                      <div className="aiOps">
+                        {aiInsights.opportunities.slice(0, 3).map((o: any, idx: number) => (
+                          <div className="aiOp" key={idx}>
+                            <div className="aiOpHead">
+                              <div className="aiOpTitle">{o.title}</div>
+                              <span className={`aiImpact ${o.expected_impact}`}>
+                                {String(o.expected_impact || "medium").toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="mini" style={{ opacity: 0.9, marginTop: 6 }}>
+                              <b>Why:</b> {o.why_it_matters}
+                            </div>
+                            <div className="mini" style={{ opacity: 0.85, marginTop: 6 }}>
+                              <b>Evidence:</b> {o.evidence}
+                            </div>
+                            {Array.isArray(o.recommended_actions) && o.recommended_actions.length ? (
+                              <ul className="aiList">
+                                {o.recommended_actions.slice(0, 5).map((a: string, i: number) => (
+                                  <li key={i}>{a}</li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!!aiInsights.quick_wins_next_7_days?.length && (
+                    <div className="aiBlock">
+                      <div className="aiBlockTitle">Quick wins (7 days)</div>
+                      <ul className="aiList">
+                        {aiInsights.quick_wins_next_7_days.slice(0, 7).map((x: string, i: number) => (
+                          <li key={i}>{x}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="aiPlaceholder">
+                  <div className="mini" style={{ opacity: 0.85 }}>
+                    Tip: Selecciona un estado en Geo Intelligence para recomendaciones
+                    hiper-específicas por keywords y páginas.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          ) : null}
+
+          {/* Agent Chat */}
+          {activeSection === "chat" ? (
+          <div className="spStudioLayout spStudioLayoutSingle" style={{ marginTop: 14 }}>
+            <div className="gscTopCard spStudioCard">
+              <div className="gscTopHead">
+                <div>
+                  <div className="gscTopTitle">Search Performance Agent Chat</div>
+                  <div className="mini" style={{ marginTop: 4, opacity: 0.82 }}>
+                    Conversación persistente con contexto del rango, estado y métricas activas.
+                  </div>
+                </div>
+              </div>
+
+              <div className="spStudioPills">
+                <span className="pill chartPill"><span className="mini">Source</span><b>{searchTab}</b></span>
+                <span className="pill chartPill"><span className="mini">Trend</span><b>{trendMode}</b></span>
+                <span className="pill chartPill"><span className="mini">Metric</span><b>{metric}</b></span>
+                <span className="pill chartPill"><span className="mini">State</span><b>{mapSelected || "All"}</b></span>
               </div>
 
               <div style={{ marginTop: 12 }}>
@@ -1535,7 +1593,7 @@ function GscDashboardPageContent() {
                   }}
                 />
               </div>
-            </aside>
+            </div>
           </div>
           ) : null}
 
