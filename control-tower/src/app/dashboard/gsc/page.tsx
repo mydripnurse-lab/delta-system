@@ -548,15 +548,51 @@ function GscDashboardPageContent() {
     );
   }, [prMunicipioRows, prMunicipioSelected]);
 
-  const prTopMunicipios = useMemo(() => {
+  const prMunicipioRowsSorted = useMemo(() => {
     return [...prMunicipioRows]
       .sort((a, b) => {
         const av = metric === "impressions" ? Number(a?.impressions || 0) : Number(a?.clicks || 0);
         const bv = metric === "impressions" ? Number(b?.impressions || 0) : Number(b?.clicks || 0);
-        return bv - av;
+        if (bv !== av) return bv - av;
+        return String(a?.municipio || "").localeCompare(String(b?.municipio || ""));
       })
-      .slice(0, 10);
+      .map((x) => ({
+        ...x,
+        __value: metric === "impressions" ? Number(x?.impressions || 0) : Number(x?.clicks || 0),
+      }));
   }, [prMunicipioRows, metric]);
+
+  const prMunicipiosWithData = useMemo(
+    () => prMunicipioRowsSorted.filter((r: any) => Number(r?.__value || 0) > 0).length,
+    [prMunicipioRowsSorted],
+  );
+
+  const prSummary = useMemo(() => {
+    let impressions = 0;
+    let clicks = 0;
+    let posAcc = 0;
+    let posW = 0;
+    let pages = 0;
+    for (const r of prMunicipioRows) {
+      const imp = Number(r?.impressions || 0);
+      const clk = Number(r?.clicks || 0);
+      const pos = Number(r?.position || 0);
+      impressions += imp;
+      clicks += clk;
+      pages += Number(r?.pagesCounted || 0);
+      if (pos > 0) {
+        posAcc += pos * Math.max(imp, 1);
+        posW += Math.max(imp, 1);
+      }
+    }
+    return {
+      impressions,
+      clicks,
+      ctr: impressions > 0 ? clicks / impressions : 0,
+      position: posW > 0 ? posAcc / posW : 0,
+      pagesCounted: pages,
+    };
+  }, [prMunicipioRows]);
 
   const topQueries = data?.top?.queries || [];
   const topPages = data?.top?.pages || [];
@@ -1328,20 +1364,17 @@ function GscDashboardPageContent() {
               {mapScope === "pr" ? (
                 <div className="mapPrRank">
                   <div className="mapPrRankTop">
-                    <div className="mapPrRankTitle">Top municipios</div>
+                    <div className="mapPrRankTitle">Municipios</div>
                     <div className="mini" style={{ opacity: 0.78 }}>
                       {metric === "impressions" ? "Impressions" : "Clicks"} • URL-mapped
                     </div>
                   </div>
 
                   <div className="mapPrRankGrid">
-                    {prTopMunicipios.length ? (
-                      prTopMunicipios.map((row: any, idx: number) => {
+                    {prMunicipioRowsSorted.length ? (
+                      prMunicipioRowsSorted.map((row: any, idx: number) => {
                         const municipio = String(row?.municipio || "—");
-                        const value =
-                          metric === "impressions"
-                            ? Number(row?.impressions || 0)
-                            : Number(row?.clicks || 0);
+                        const value = Number(row?.__value || 0);
                         const isActive =
                           prMunicipioSelected.trim().toLowerCase() ===
                           municipio.trim().toLowerCase();
@@ -1403,7 +1436,8 @@ function GscDashboardPageContent() {
                 )}
                 {mapScope === "pr" ? (
                   <div className="mini" style={{ marginTop: 8, opacity: 0.75 }}>
-                    Municipios detectados por URL: <b>{fmtInt(prMunicipioRows.length)}</b>
+                    Cobertura: <b>{fmtInt(prMunicipiosWithData)}</b> con data /{" "}
+                    <b>{fmtInt(prMunicipioRows.length)}</b> municipios
                   </div>
                 ) : null}
               </div>
@@ -1416,7 +1450,7 @@ function GscDashboardPageContent() {
                       (mapScope === "pr"
                         ? selectedPrMunicipioRow?.impressions
                         : selectedStateRow?.impressions) ??
-                        summaryOverall.impressions,
+                        (mapScope === "pr" ? prSummary.impressions : summaryOverall.impressions),
                     )}
                   </div>
                   <div className="mini" style={{ opacity: 0.85 }}>
@@ -1430,7 +1464,8 @@ function GscDashboardPageContent() {
                     {fmtInt(
                       (mapScope === "pr"
                         ? selectedPrMunicipioRow?.clicks
-                        : selectedStateRow?.clicks) ?? summaryOverall.clicks,
+                        : selectedStateRow?.clicks) ??
+                        (mapScope === "pr" ? prSummary.clicks : summaryOverall.clicks),
                     )}
                   </div>
                   <div className="mini" style={{ opacity: 0.85 }}>
@@ -1444,7 +1479,8 @@ function GscDashboardPageContent() {
                     {fmtPct(
                       (mapScope === "pr"
                         ? selectedPrMunicipioRow?.ctr
-                        : selectedStateRow?.ctr) ?? summaryOverall.ctr,
+                        : selectedStateRow?.ctr) ??
+                        (mapScope === "pr" ? prSummary.ctr : summaryOverall.ctr),
                     )}
                   </div>
                   <div className="mini" style={{ opacity: 0.85 }}>
@@ -1458,7 +1494,8 @@ function GscDashboardPageContent() {
                     {fmtPos(
                       (mapScope === "pr"
                         ? selectedPrMunicipioRow?.position
-                        : selectedStateRow?.position) ?? summaryOverall.position,
+                        : selectedStateRow?.position) ??
+                        (mapScope === "pr" ? prSummary.position : summaryOverall.position),
                     )}
                   </div>
                   <div className="mini" style={{ opacity: 0.85 }}>
@@ -1481,7 +1518,7 @@ function GscDashboardPageContent() {
                   <div className="stateKpi">
                     <div className="mini">Pages</div>
                     <div className="stateKpiN">
-                      {fmtInt(selectedPrMunicipioRow?.pagesCounted ?? 0)}
+                      {fmtInt(selectedPrMunicipioRow?.pagesCounted ?? prSummary.pagesCounted)}
                     </div>
                     <div className="mini" style={{ opacity: 0.85 }}>
                       URLs mapped to this municipio

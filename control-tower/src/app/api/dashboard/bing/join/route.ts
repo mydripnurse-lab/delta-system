@@ -88,6 +88,28 @@ function canonicalPrMunicipio(nameLike: string) {
   return PR_MUNICIPIO_BY_KEY.get(key) || "";
 }
 
+function escapeRegExp(input: string) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function inferPrMunicipioByDictionary(leftLabel: string) {
+  const normalized = normalizeNameKey(leftLabel.replace(/[-_.]+/g, " "));
+  if (!normalized) return "";
+
+  let best = "";
+  let bestLen = 0;
+  for (const [key, municipio] of PR_MUNICIPIO_BY_KEY.entries()) {
+    if (!key) continue;
+    const re = new RegExp(`(^| )${escapeRegExp(key)}( |$)`, "i");
+    if (!re.test(normalized)) continue;
+    if (key.length > bestLen) {
+      best = municipio;
+      bestLen = key.length;
+    }
+  }
+  return best;
+}
+
 function slugToTitle(slug: string) {
   const words = s(slug)
     .replace(/[-_]+/g, " ")
@@ -124,7 +146,7 @@ function inferPrMunicipioFromPage(page: string) {
     const canonical = canonicalPrMunicipio(slugToTitle(slug));
     if (canonical) return canonical;
   }
-  return "";
+  return inferPrMunicipioByDictionary(normalized);
 }
 
 function aggregateTrendFromRows(rows: Array<JsonObj>) {
@@ -422,16 +444,35 @@ export async function GET(req: Request) {
       prMunicipioMap.set(key, prev);
     }
 
-    const prMunicipioRows = Array.from(prMunicipioMap.values())
-      .map((x) => ({
+    const mergedPrMunicipio = new Map<
+      string,
+      { municipio: string; impressions: number; clicks: number; ctr: number; position: number; pagesCounted: number }
+    >();
+    for (const municipioName of PR_MUNICIPIOS) {
+      const key = normalizeNameKey(municipioName);
+      mergedPrMunicipio.set(key, {
+        municipio: municipioName,
+        impressions: 0,
+        clicks: 0,
+        ctr: 0,
+        position: 0,
+        pagesCounted: 0,
+      });
+    }
+    for (const x of prMunicipioMap.values()) {
+      const key = normalizeNameKey(x.municipio);
+      mergedPrMunicipio.set(key, {
         municipio: x.municipio,
         impressions: x.impressions,
         clicks: x.clicks,
         ctr: x.impressions > 0 ? x.clicks / x.impressions : 0,
         position: x.posW > 0 ? x.posAcc / x.posW : 0,
         pagesCounted: x.pagesCounted,
-      }))
-      .sort((a, b) => n(b.impressions) - n(a.impressions));
+      });
+    }
+    const prMunicipioRows = Array.from(mergedPrMunicipio.values()).sort((a, b) =>
+      a.municipio.localeCompare(b.municipio),
+    );
 
     const filteredPages = state ? pageRowsWithState.filter((r) => s(r.__state) === state) : pageRowsWithState;
     const summaryOverall = summarize(pageRowsWithState, startDate, endDate);
