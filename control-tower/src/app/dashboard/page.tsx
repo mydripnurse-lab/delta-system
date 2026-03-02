@@ -3289,7 +3289,12 @@ function DashboardHomeContent() {
 
             <div className="funnelRatesGrid">
               {funnelRateCards.map((rate) => (
-                <div key={rate.key} className="funnelRateCard" title={rate.tooltip}>
+                <div
+                  key={rate.key}
+                  className="funnelRateCard"
+                  data-tooltip={rate.tooltip}
+                  tabIndex={0}
+                >
                   <div className="funnelRateHead">
                     <span className="mini">{rate.label}</span>
                     <span className="funnelInfoDot" aria-hidden>i</span>

@@ -59,6 +59,47 @@ function normalizeStateName(v: string) {
   return x;
 }
 
+function normalizeNameKey(v: string) {
+  return s(v)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function slugToTitle(slug: string) {
+  const words = s(slug)
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return "";
+  return words
+    .map((w) => `${w.charAt(0).toUpperCase()}${w.slice(1).toLowerCase()}`)
+    .join(" ");
+}
+
+function inferPrMunicipioFromPage(page: string) {
+  const host = normalizeHost(hostnameFromPage(page));
+  const left = s(host).split(".")[0] || "";
+  if (!left) return "";
+
+  const normalized = left.toLowerCase();
+  let slug = "";
+
+  let m = normalized.match(/^(.+?)-(?:city|county)-pr$/i);
+  if (m?.[1]) slug = s(m[1]);
+  if (!slug) {
+    m = normalized.match(/^(.+?)-pr$/i);
+    if (m?.[1]) slug = s(m[1]).replace(/-(?:city|county)$/i, "");
+  }
+
+  if (!slug) return "";
+  return slugToTitle(slug);
+}
+
 function aggregateTrendFromRows(rows: Array<JsonObj>) {
   const byDate = new Map<string, { impressions: number; clicks: number; ctrAcc: number; ctrW: number; posAcc: number; posW: number }>();
   for (const r of rows) {
@@ -301,6 +342,56 @@ export async function GET(req: Request) {
       }))
       .sort((a, b) => n(b.impressions) - n(a.impressions));
 
+    const prMunicipioMap = new Map<
+      string,
+      {
+        municipio: string;
+        impressions: number;
+        clicks: number;
+        posAcc: number;
+        posW: number;
+        pagesCounted: number;
+      }
+    >();
+    for (const r of pageRowsWithState) {
+      if (s(r.__state) !== "Puerto Rico") continue;
+      const municipio = inferPrMunicipioFromPage(s(r.page));
+      if (!municipio) continue;
+      const key = normalizeNameKey(municipio);
+      if (!key) continue;
+
+      const prev = prMunicipioMap.get(key) || {
+        municipio,
+        impressions: 0,
+        clicks: 0,
+        posAcc: 0,
+        posW: 0,
+        pagesCounted: 0,
+      };
+      const impressions = n(r.impressions);
+      const clicks = n(r.clicks);
+      const position = n(r.position);
+      prev.impressions += impressions;
+      prev.clicks += clicks;
+      if (position > 0) {
+        prev.posAcc += position * Math.max(impressions, 1);
+        prev.posW += Math.max(impressions, 1);
+      }
+      prev.pagesCounted += 1;
+      prMunicipioMap.set(key, prev);
+    }
+
+    const prMunicipioRows = Array.from(prMunicipioMap.values())
+      .map((x) => ({
+        municipio: x.municipio,
+        impressions: x.impressions,
+        clicks: x.clicks,
+        ctr: x.impressions > 0 ? x.clicks / x.impressions : 0,
+        position: x.posW > 0 ? x.posAcc / x.posW : 0,
+        pagesCounted: x.pagesCounted,
+      }))
+      .sort((a, b) => n(b.impressions) - n(a.impressions));
+
     const filteredPages = state ? pageRowsWithState.filter((r) => s(r.__state) === state) : pageRowsWithState;
     const summaryOverall = summarize(pageRowsWithState, startDate, endDate);
     const summaryFiltered = summarize(filteredPages, startDate, endDate);
@@ -384,6 +475,7 @@ export async function GET(req: Request) {
       topKeywordsOverall,
       topKeywordsFiltered: topKeywordsOverall,
       stateRows,
+      prMunicipioRows,
       funnels: [],
       top: {
         queries: topQueries,

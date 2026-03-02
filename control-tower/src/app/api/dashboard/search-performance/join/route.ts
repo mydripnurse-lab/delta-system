@@ -115,6 +115,59 @@ function mergeStateRows(aRows: AnyObj[], bRows: AnyObj[]) {
     .sort((x, y) => n(y.impressions) - n(x.impressions));
 }
 
+function mergePrMunicipioRows(aRows: AnyObj[], bRows: AnyObj[]) {
+  const by = new Map<string, AnyObj>();
+  const ingest = (r: AnyObj) => {
+    const municipio = s(r.municipio);
+    if (!municipio) return;
+    const key = municipio
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!key) return;
+
+    const prev: any = by.get(key) || {
+      municipio,
+      impressions: 0,
+      clicks: 0,
+      ctrAcc: 0,
+      ctrW: 0,
+      posAcc: 0,
+      posW: 0,
+      pagesCounted: 0,
+    };
+
+    const impressions = n(r.impressions);
+    prev.impressions += impressions;
+    prev.clicks += n(r.clicks);
+    prev.ctrAcc += n(r.ctr) * Math.max(impressions, 1);
+    prev.ctrW += Math.max(impressions, 1);
+    if (n(r.position) > 0) {
+      prev.posAcc += n(r.position) * Math.max(impressions, 1);
+      prev.posW += Math.max(impressions, 1);
+    }
+    prev.pagesCounted += n(r.pagesCounted);
+    by.set(key, prev);
+  };
+
+  for (const r of aRows || []) ingest(r || {});
+  for (const r of bRows || []) ingest(r || {});
+
+  return Array.from(by.values())
+    .map((x) => ({
+      municipio: s(x.municipio),
+      impressions: n(x.impressions),
+      clicks: n(x.clicks),
+      ctr: n(x.ctrW) > 0 ? n(x.ctrAcc) / n(x.ctrW) : 0,
+      position: n(x.posW) > 0 ? n(x.posAcc) / n(x.posW) : 0,
+      pagesCounted: n(x.pagesCounted),
+    }))
+    .sort((x, y) => n(y.impressions) - n(x.impressions));
+}
+
 function mergeTrendRows(aRows: AnyObj[], bRows: AnyObj[]) {
   const by = new Map<string, AnyObj>();
   const ingest = (r: AnyObj) => {
@@ -206,13 +259,18 @@ export async function GET(req: Request) {
         compare: compareEnabled,
       });
       if (dbCached?.payload) {
-        return NextResponse.json({
-          ...(dbCached.payload as AnyObj),
-          cache: {
-            source: "db_range_cache",
-            cachedAt: dbCached.capturedAt || undefined,
-          },
-        });
+        const cachedPayload = dbCached.payload as AnyObj;
+        const hasPrMunicipios = Array.isArray(cachedPayload.prMunicipioRows);
+        if (hasPrMunicipios) {
+          return NextResponse.json({
+            ...cachedPayload,
+            cache: {
+              source: "db_range_cache",
+              cachedAt: dbCached.capturedAt || undefined,
+            },
+          });
+        }
+        // Schema bump: recompute payload so Geo Intelligence can render PR municipios.
       }
     }
 
@@ -251,6 +309,7 @@ export async function GET(req: Request) {
     const summaryNationwide = mergeSummary(g.summaryNationwide || {}, b.summaryNationwide || {});
 
     const stateRows = mergeStateRows(g.stateRows || [], b.stateRows || []);
+    const prMunicipioRows = mergePrMunicipioRows(g.prMunicipioRows || [], b.prMunicipioRows || []);
     const trend = mergeTrendRows(g.trend || [], b.trend || []);
     const trendFiltered = mergeTrendRows(g.trendFiltered || [], b.trendFiltered || []);
 
@@ -382,6 +441,7 @@ export async function GET(req: Request) {
       topKeywordsOverall,
       topKeywordsFiltered,
       stateRows,
+      prMunicipioRows,
       funnels: g.funnels || [],
       top: {
         queries: topQueries,

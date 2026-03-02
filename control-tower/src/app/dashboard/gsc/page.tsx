@@ -13,6 +13,10 @@ const UsaChoroplethProgressMap = dynamic(
   () => import("@/components/UsaChoroplethProgressMap"),
   { ssr: false },
 );
+const PuertoRicoMunicipioSearchMap = dynamic(
+  () => import("@/components/PuertoRicoMunicipioSearchMap"),
+  { ssr: false },
+);
 
 const GSCTrendChart = dynamic(() => import("@/components/GSCTrendChart"), {
   ssr: false,
@@ -90,6 +94,8 @@ function GscDashboardPageContent() {
 
   const [metric, setMetric] = useState<"impressions" | "clicks">("impressions");
   const [mapSelected, setMapSelected] = useState<string>("");
+  const [mapScope, setMapScope] = useState<"us" | "pr">("us");
+  const [prMunicipioSelected, setPrMunicipioSelected] = useState<string>("");
 
   const [trendMode, setTrendMode] = useState<"day" | "week" | "month">("day");
   const [compareOn, setCompareOn] = useState(true);
@@ -171,8 +177,12 @@ function GscDashboardPageContent() {
     query.set("source", searchTab);
     query.set("metric", metric);
     query.set("trend", trendMode);
-    if (mapSelected) query.set("state", mapSelected);
+    query.set("mapScope", mapScope);
+    if (mapScope === "us" && mapSelected) query.set("state", mapSelected);
     else query.delete("state");
+    if (mapScope === "pr" && prMunicipioSelected)
+      query.set("prTown", prMunicipioSelected);
+    else query.delete("prTown");
     if (compareOn) query.set("compare", "1");
     else query.delete("compare");
     attachTenantScope(query);
@@ -226,6 +236,8 @@ function GscDashboardPageContent() {
     const qMetric = String(searchParams?.get("metric") || "").trim().toLowerCase();
     const qTrend = String(searchParams?.get("trend") || "").trim().toLowerCase();
     const qState = String(searchParams?.get("state") || "").trim();
+    const qMapScope = String(searchParams?.get("mapScope") || "").trim().toLowerCase();
+    const qPrTown = String(searchParams?.get("prTown") || "").trim();
     const qCompare = String(searchParams?.get("compare") || "").trim();
 
     if (
@@ -252,7 +264,11 @@ function GscDashboardPageContent() {
     if (qTrend === "day" || qTrend === "week" || qTrend === "month") {
       setTrendMode(qTrend);
     }
+    if (qMapScope === "us" || qMapScope === "pr") {
+      setMapScope(qMapScope);
+    }
     setMapSelected(qState);
+    setPrMunicipioSelected(qPrTown);
     setCompareOn(qCompare !== "0");
   }, [searchParams]);
 
@@ -365,7 +381,9 @@ function GscDashboardPageContent() {
       if (customStart) p.set("start", customStart);
       if (customEnd) p.set("end", customEnd);
     }
-    if (mapSelected) p.set("state", mapSelected);
+    p.set("mapScope", mapScope);
+    if (mapScope === "us" && mapSelected) p.set("state", mapSelected);
+    if (mapScope === "pr" && prMunicipioSelected) p.set("prTown", prMunicipioSelected);
     if (compareOn) p.set("compare", "1");
     attachTenantScope(p);
     return p.toString();
@@ -461,8 +479,14 @@ function GscDashboardPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapSelected, tenantReady, tenantId]);
 
+  useEffect(() => {
+    if (mapScope !== "pr") return;
+    if (mapSelected) setMapSelected("");
+  }, [mapScope, mapSelected]);
+
   function clearSelection() {
-    setMapSelected("");
+    if (mapScope === "pr") setPrMunicipioSelected("");
+    else setMapSelected("");
   }
 
   const summaryOverall = data?.summaryOverall || {
@@ -477,10 +501,12 @@ function GscDashboardPageContent() {
   };
 
   const summaryFiltered = data?.summaryFiltered || summaryOverall;
-  const summary = mapSelected ? summaryFiltered : summaryOverall;
+  const selectedState = mapScope === "us" ? mapSelected : "";
+  const summary = selectedState ? summaryFiltered : summaryOverall;
 
   const compare = data?.compare || null;
   const stateRows = (data?.stateRows || []) as Array<any>;
+  const prMunicipioRows = (data?.prMunicipioRows || []) as Array<any>;
 
   const mapRows = useMemo(() => {
     const rows = stateRows.filter((r) => r.state !== "__unknown");
@@ -506,9 +532,20 @@ function GscDashboardPageContent() {
   }, [stateRows, metric]);
 
   const selectedStateRow = useMemo(() => {
-    if (!mapSelected) return null;
-    return stateRows.find((r) => String(r.state) === mapSelected) || null;
-  }, [mapSelected, stateRows]);
+    if (!selectedState) return null;
+    return stateRows.find((r) => String(r.state) === selectedState) || null;
+  }, [selectedState, stateRows]);
+
+  const selectedPrMunicipioRow = useMemo(() => {
+    if (!prMunicipioSelected) return null;
+    return (
+      prMunicipioRows.find(
+        (r) =>
+          String(r.municipio || "").trim().toLowerCase() ===
+          prMunicipioSelected.trim().toLowerCase(),
+      ) || null
+    );
+  }, [prMunicipioRows, prMunicipioSelected]);
 
   const topQueries = data?.top?.queries || [];
   const topPages = data?.top?.pages || [];
@@ -539,15 +576,15 @@ function GscDashboardPageContent() {
   const endDate = summary?.endDate || data?.meta?.endDate || null;
 
   const keywordsCount = useMemo(() => {
-    if (mapSelected) return selectedStateRow?.keywordsCount ?? 0;
+    if (selectedState) return selectedStateRow?.keywordsCount ?? 0;
     return data?.keywordsOverall ?? 0;
-  }, [data, mapSelected, selectedStateRow]);
+  }, [data, selectedState, selectedStateRow]);
 
   const topKeywords = useMemo(() => {
     if (!data) return [];
-    if (mapSelected) return (data?.topKeywordsFiltered || []).slice(0, 10);
+    if (selectedState) return (data?.topKeywordsFiltered || []).slice(0, 10);
     return (data?.topKeywordsOverall || []).slice(0, 10);
-  }, [data, mapSelected]);
+  }, [data, selectedState]);
 
   const comparePills = useMemo(() => {
     if (!compareOn || !compare?.pct) return null;
@@ -575,7 +612,9 @@ function GscDashboardPageContent() {
           generatedAt: summary.generatedAt,
         },
         scope: {
-          state: mapSelected || null,
+          state: selectedState || null,
+          municipio: mapScope === "pr" ? prMunicipioSelected || null : null,
+          mapScope,
           metric,
         },
         summary,
@@ -959,7 +998,7 @@ function GscDashboardPageContent() {
                 onClick={clearSelection}
                 type="button"
               >
-                Clear state
+                {mapScope === "pr" ? "Clear municipio" : "Clear state"}
               </button>
 
               {summary.generatedAt && (
@@ -985,10 +1024,16 @@ function GscDashboardPageContent() {
                       <b>{fmtInt(summary.clicks)}</b> • CTR:{" "}
                       <b>{fmtPct(summary.ctr)}</b> • Avg pos:{" "}
                       <b>{fmtPos(summary.position)}</b>
-                      {mapSelected ? (
+                      {selectedState ? (
                         <>
                           {" "}
-                          • State: <b>{mapSelected}</b>
+                          • State: <b>{selectedState}</b>
+                        </>
+                      ) : null}
+                      {mapScope === "pr" && prMunicipioSelected ? (
+                        <>
+                          {" "}
+                          • Municipio: <b>{prMunicipioSelected}</b>
                         </>
                       ) : null}
                     </div>
@@ -1055,7 +1100,7 @@ function GscDashboardPageContent() {
                   ? "KPIs de Bing Webmaster"
                   : "KPIs de Google Search Console"}{" "}
               del rango seleccionado{" "}
-              {mapSelected ? "(filtrado por estado)" : ""}.
+              {selectedState ? "(filtrado por estado)" : ""}.
             </div>
           </div>
           <div className="badge">{loading ? "loading…" : "ready"}</div>
@@ -1180,7 +1225,7 @@ function GscDashboardPageContent() {
           <div>
             <h2 className="cardTitle">
               {activeSection === "geo"
-                ? "Performance by state"
+                ? "Performance by geography"
                 : activeSection === "queries"
                   ? "Top Queries & Pages"
                   : activeSection === "segments"
@@ -1193,7 +1238,7 @@ function GscDashboardPageContent() {
             </h2>
             <div className="cardSubtitle">
               {activeSection === "geo"
-                ? "Mapa + drilldown real. “__unknown” no sale en mapa pero sí en tabla."
+                ? "United States y Puerto Rico con drilldown; Puerto Rico se distribuye por pueblo."
                 : activeSection === "queries"
                   ? "Top 100 por impressions con filtros de estado y rango."
                   : activeSection === "segments"
@@ -1231,27 +1276,71 @@ function GscDashboardPageContent() {
                 </div>
               </div> */}
 
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginBottom: 10,
+                }}
+              >
+                <div className="segmented" role="tablist" aria-label="Map geography scope">
+                  <button
+                    className={`segBtn ${mapScope === "us" ? "segBtnOn" : ""}`}
+                    type="button"
+                    onClick={() => setMapScope("us")}
+                  >
+                    United States
+                  </button>
+                  <button
+                    className={`segBtn ${mapScope === "pr" ? "segBtnOn" : ""}`}
+                    type="button"
+                    onClick={() => setMapScope("pr")}
+                  >
+                    Puerto Rico
+                  </button>
+                </div>
+              </div>
+
               <div className="mapFrame mapFrameXL">
-                <UsaChoroplethProgressMap
-                  rows={mapRows as any}
-                  metric={metric as any}
-                  labelMode={"value" as any}
-                  valueField={"__value" as any}
-                  selectedState={mapSelected}
-                  onPick={(name: string) => setMapSelected(String(name))}
-                />
+                {mapScope === "pr" ? (
+                  <PuertoRicoMunicipioSearchMap
+                    rows={prMunicipioRows}
+                    metric={metric}
+                    selectedMunicipio={prMunicipioSelected}
+                    onPick={(name: string) => setPrMunicipioSelected(String(name))}
+                  />
+                ) : (
+                  <UsaChoroplethProgressMap
+                    rows={mapRows as any}
+                    metric={metric as any}
+                    labelMode={"value" as any}
+                    valueField={"__value" as any}
+                    selectedState={selectedState}
+                    onPick={(name: string) => setMapSelected(String(name))}
+                  />
+                )}
               </div>
             {/* </div> */}
 
             <aside className="statePanel">
               <div className="statePanelTop">
                 <div className="mini" style={{ opacity: 0.85 }}>
-                  State analytics
+                  {mapScope === "pr" ? "Municipio analytics" : "State analytics"}
                 </div>
 
-                {mapSelected ? (
+                {mapScope === "pr" && prMunicipioSelected ? (
                   <div className="stateHead">
-                    <div className="stateName">{mapSelected}</div>
+                    <div className="stateName">{prMunicipioSelected}</div>
+                    <div className="statePill">
+                      {metric === "impressions"
+                        ? fmtInt(selectedPrMunicipioRow?.impressions || 0)
+                        : fmtInt(selectedPrMunicipioRow?.clicks || 0)}{" "}
+                      {metric}
+                    </div>
+                  </div>
+                ) : selectedState ? (
+                  <div className="stateHead">
+                    <div className="stateName">{selectedState}</div>
                     <div className="statePill">
                       {metric === "impressions"
                         ? fmtInt(selectedStateRow?.impressions || 0)
@@ -1261,7 +1350,9 @@ function GscDashboardPageContent() {
                   </div>
                 ) : (
                   <div className="mini" style={{ marginTop: 10 }}>
-                    Click a state to drill down.
+                    {mapScope === "pr"
+                      ? "Click a municipio to drill down."
+                      : "Click a state to drill down."}
                   </div>
                 )}
               </div>
@@ -1271,7 +1362,9 @@ function GscDashboardPageContent() {
                   <div className="mini">Impressions</div>
                   <div className="stateKpiN">
                     {fmtInt(
-                      selectedStateRow?.impressions ??
+                      (mapScope === "pr"
+                        ? selectedPrMunicipioRow?.impressions
+                        : selectedStateRow?.impressions) ??
                         summaryOverall.impressions,
                     )}
                   </div>
@@ -1283,7 +1376,11 @@ function GscDashboardPageContent() {
                 <div className="stateKpi">
                   <div className="mini">Clicks</div>
                   <div className="stateKpiN">
-                    {fmtInt(selectedStateRow?.clicks ?? summaryOverall.clicks)}
+                    {fmtInt(
+                      (mapScope === "pr"
+                        ? selectedPrMunicipioRow?.clicks
+                        : selectedStateRow?.clicks) ?? summaryOverall.clicks,
+                    )}
                   </div>
                   <div className="mini" style={{ opacity: 0.85 }}>
                     Traffic delivered
@@ -1293,7 +1390,11 @@ function GscDashboardPageContent() {
                 <div className="stateKpi">
                   <div className="mini">CTR</div>
                   <div className="stateKpiN">
-                    {fmtPct(selectedStateRow?.ctr ?? summaryOverall.ctr)}
+                    {fmtPct(
+                      (mapScope === "pr"
+                        ? selectedPrMunicipioRow?.ctr
+                        : selectedStateRow?.ctr) ?? summaryOverall.ctr,
+                    )}
                   </div>
                   <div className="mini" style={{ opacity: 0.85 }}>
                     Snippet quality
@@ -1304,7 +1405,9 @@ function GscDashboardPageContent() {
                   <div className="mini">Avg position</div>
                   <div className="stateKpiN">
                     {fmtPos(
-                      selectedStateRow?.position ?? summaryOverall.position,
+                      (mapScope === "pr"
+                        ? selectedPrMunicipioRow?.position
+                        : selectedStateRow?.position) ?? summaryOverall.position,
                     )}
                   </div>
                   <div className="mini" style={{ opacity: 0.85 }}>
@@ -1317,11 +1420,23 @@ function GscDashboardPageContent() {
                   <div className="mini">Keywords</div>
                   <div className="stateKpiN">{fmtInt(keywordsCount)}</div>
                   <div className="mini" style={{ opacity: 0.85 }}>
-                    {mapSelected
+                    {selectedState
                       ? "Queries in this state"
                       : "Queries overall (Delta pages)"}
                   </div>
                 </div>
+
+                {mapScope === "pr" ? (
+                  <div className="stateKpi">
+                    <div className="mini">Pages</div>
+                    <div className="stateKpiN">
+                      {fmtInt(selectedPrMunicipioRow?.pagesCounted ?? 0)}
+                    </div>
+                    <div className="mini" style={{ opacity: 0.85 }}>
+                      URLs mapped to this municipio
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {/* ✅ Top keywords list (pro) */}
@@ -1331,7 +1446,7 @@ function GscDashboardPageContent() {
                     <div className="aiTitle">
                       Top Keywords{" "}
                       <span className="mini" style={{ opacity: 0.85 }}>
-                        {mapSelected ? `(${mapSelected})` : "(Overall)"}
+                        {selectedState ? `(${selectedState})` : "(Overall)"}
                       </span>
                     </div>
                     <div
@@ -1404,7 +1519,10 @@ function GscDashboardPageContent() {
                   </span>
                   <span className="pill chartPill">
                     <span className="mini" style={{ opacity: 0.82 }}>Scope</span>
-                    <b>{mapSelected || "All states"}</b>
+                    <b>{selectedState || "All states"}</b>
+                    {mapScope === "pr" && prMunicipioSelected ? (
+                      <span> · {prMunicipioSelected}</span>
+                    ) : null}
                   </span>
                 </div>
                 <div className="mini" style={{ marginTop: 10, opacity: 0.84 }}>
@@ -1418,7 +1536,10 @@ function GscDashboardPageContent() {
                   <div className="gscTopTitle">
                     Top Keywords{" "}
                     <span className="mini" style={{ opacity: 0.8 }}>
-                      {mapSelected ? `(${mapSelected})` : "(Overall)"}
+                      {selectedState ? `(${selectedState})` : "(Overall)"}
+                      {mapScope === "pr" && prMunicipioSelected
+                        ? ` (${prMunicipioSelected})`
+                        : ""}
                     </span>
                   </div>
                 </div>
@@ -1560,7 +1681,10 @@ function GscDashboardPageContent() {
                 <span className="pill chartPill"><span className="mini">Source</span><b>{searchTab}</b></span>
                 <span className="pill chartPill"><span className="mini">Trend</span><b>{trendMode}</b></span>
                 <span className="pill chartPill"><span className="mini">Metric</span><b>{metric}</b></span>
-                <span className="pill chartPill"><span className="mini">State</span><b>{mapSelected || "All"}</b></span>
+                <span className="pill chartPill"><span className="mini">State</span><b>{selectedState || "All"}</b></span>
+                {mapScope === "pr" ? (
+                  <span className="pill chartPill"><span className="mini">Municipio</span><b>{prMunicipioSelected || "All"}</b></span>
+                ) : null}
               </div>
 
               <div style={{ marginTop: 12 }}>
@@ -1587,7 +1711,8 @@ function GscDashboardPageContent() {
                     compareOn,
                     trendMode,
                     metric,
-                    selectedState: mapSelected || null,
+                    selectedState: selectedState || null,
+                    selectedMunicipio: mapScope === "pr" ? prMunicipioSelected || null : null,
                     summary,
                     selectedStateRow,
                   }}
@@ -1647,8 +1772,8 @@ function GscDashboardPageContent() {
                   <div className="gscTopHead">
                     <div className="gscTopTitle">
                       Top Pages{" "}
-                      {mapSelected ? (
-                        <span className="mini">({mapSelected})</span>
+                      {selectedState ? (
+                        <span className="mini">({selectedState})</span>
                       ) : null}
                     </div>
                   </div>
@@ -1893,6 +2018,7 @@ function GscDashboardPageContent() {
                         }}
                         onClick={() => {
                           if (r.state === "__unknown") return;
+                          setMapScope("us");
                           setMapSelected(String(r.state));
                         }}
                       >

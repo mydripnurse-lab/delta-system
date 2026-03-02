@@ -461,6 +461,110 @@ function groupByStateFromPagesWithCatalog(pages: GscRow[], catalogByHostname: Re
     return out;
 }
 
+function normalizeNameKey(v: string) {
+    return s(v)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function slugToTitle(slug: string) {
+    const words = s(slug)
+        .replace(/[-_]+/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (!words.length) return "";
+    return words
+        .map((w) => `${w.charAt(0).toUpperCase()}${w.slice(1).toLowerCase()}`)
+        .join(" ");
+}
+
+function inferPrMunicipioFromPage(pageUrl: string) {
+    const host = safeHostname(pageUrl);
+    const left = getLeftLabel(host);
+    if (!left) return "";
+
+    const normalized = left.toLowerCase();
+    let slug = "";
+
+    // Most common Delta pattern: <municipio>-city-pr
+    let m = normalized.match(/^(.+?)-(?:city|county)-pr$/i);
+    if (m?.[1]) slug = s(m[1]);
+
+    // Fallback: any subdomain ending in -pr
+    if (!slug) {
+        m = normalized.match(/^(.+?)-pr$/i);
+        if (m?.[1]) slug = s(m[1]).replace(/-(?:city|county)$/i, "");
+    }
+
+    if (!slug) return "";
+    return slugToTitle(slug);
+}
+
+function groupByPrMunicipioFromPages(pages: GscRow[], catalogByHostname: Record<string, any>) {
+    const m = new Map<
+        string,
+        {
+            municipio: string;
+            impressions: number;
+            clicks: number;
+            posWeightedSum: number;
+            posWeight: number;
+            pages: Set<string>;
+        }
+    >();
+
+    for (const r of pages) {
+        const page = s(r.page);
+        const st = normalizeState(classifyStateWithCatalog(page, catalogByHostname).state || "__unknown");
+        if (st !== "Puerto Rico") continue;
+
+        const municipio = inferPrMunicipioFromPage(page);
+        if (!municipio) continue;
+        const key = normalizeNameKey(municipio);
+        if (!key) continue;
+
+        if (!m.has(key)) {
+            m.set(key, {
+                municipio,
+                impressions: 0,
+                clicks: 0,
+                posWeightedSum: 0,
+                posWeight: 0,
+                pages: new Set<string>(),
+            });
+        }
+
+        const b = m.get(key)!;
+        const imp = num(r.impressions);
+        const clk = num(r.clicks);
+        const pos = num(r.position);
+
+        b.impressions += imp;
+        b.clicks += clk;
+        if (imp > 0 && pos > 0) {
+            b.posWeightedSum += pos * imp;
+            b.posWeight += imp;
+        }
+        if (page) b.pages.add(page);
+    }
+
+    return Array.from(m.values())
+        .map((x) => ({
+            municipio: x.municipio,
+            impressions: x.impressions,
+            clicks: x.clicks,
+            ctr: x.impressions > 0 ? x.clicks / x.impressions : 0,
+            position: x.posWeight > 0 ? x.posWeightedSum / x.posWeight : 0,
+            pagesCounted: x.pages.size,
+        }))
+        .sort((a, b) => (b.impressions || 0) - (a.impressions || 0));
+}
+
 function filterPagesByState(pages: GscRow[], stateName: string, catalogByHostname: Record<string, any>) {
     const target = normalizeState(stateName);
     if (!target) return pages;
@@ -813,6 +917,7 @@ export async function GET(req: Request) {
 
         // states from delta pages
         const stateRows = groupByStateFromPagesWithCatalog(deltaPages, catalogByHostname);
+        const prMunicipioRows = groupByPrMunicipioFromPages(deltaPages, catalogByHostname);
 
         // filter delta pages by state
         const deltaPagesFiltered = state ? filterPagesByState(deltaPages, state, catalogByHostname) : deltaPages;
@@ -934,6 +1039,7 @@ export async function GET(req: Request) {
             topKeywordsFiltered: kw.topKeywordsFiltered,
 
             stateRows,
+            prMunicipioRows,
             funnels: funnelRows,
 
             top,
