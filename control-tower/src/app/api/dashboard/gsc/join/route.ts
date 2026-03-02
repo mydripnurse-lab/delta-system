@@ -471,6 +471,26 @@ function normalizeNameKey(v: string) {
         .trim();
 }
 
+const PR_MUNICIPIOS = [
+    "Adjuntas", "Aguada", "Aguadilla", "Aguas Buenas", "Aibonito", "Anasco", "Arecibo", "Arroyo",
+    "Barceloneta", "Barranquitas", "Bayamon", "Cabo Rojo", "Caguas", "Camuy", "Canovanas", "Carolina",
+    "Catano", "Cayey", "Ceiba", "Ciales", "Cidra", "Coamo", "Comerio", "Corozal", "Culebra",
+    "Dorado", "Fajardo", "Florida", "Guanica", "Guayama", "Guayanilla", "Guaynabo", "Gurabo",
+    "Hatillo", "Hormigueros", "Humacao", "Isabela", "Jayuya", "Juana Diaz", "Juncos", "Lajas",
+    "Lares", "Las Marias", "Las Piedras", "Loiza", "Luquillo", "Manati", "Maricao", "Maunabo",
+    "Mayaguez", "Moca", "Morovis", "Naguabo", "Naranjito", "Orocovis", "Patillas", "Penuelas",
+    "Ponce", "Quebradillas", "Rincon", "Rio Grande", "Sabana Grande", "Salinas", "San German",
+    "San Juan", "San Lorenzo", "San Sebastian", "Santa Isabel", "Toa Alta", "Toa Baja",
+    "Trujillo Alto", "Utuado", "Vega Alta", "Vega Baja", "Vieques", "Villalba", "Yabucoa", "Yauco",
+];
+
+const PR_MUNICIPIO_BY_KEY = new Map(PR_MUNICIPIOS.map((name) => [normalizeNameKey(name), name]));
+
+function canonicalPrMunicipio(nameLike: string) {
+    const key = normalizeNameKey(nameLike);
+    return PR_MUNICIPIO_BY_KEY.get(key) || "";
+}
+
 function slugToTitle(slug: string) {
     const words = s(slug)
         .replace(/[-_]+/g, " ")
@@ -489,20 +509,32 @@ function inferPrMunicipioFromPage(pageUrl: string) {
     if (!left) return "";
 
     const normalized = left.toLowerCase();
-    let slug = "";
+    const candidateSlugs: string[] = [];
 
-    // Most common Delta pattern: <municipio>-city-pr
-    let m = normalized.match(/^(.+?)-(?:city|county)-pr$/i);
-    if (m?.[1]) slug = s(m[1]);
+    const take = (re: RegExp, post?: (x: string) => string) => {
+        const m = normalized.match(re);
+        const raw = s(m?.[1]);
+        if (!raw) return;
+        candidateSlugs.push(post ? post(raw) : raw);
+    };
 
-    // Fallback: any subdomain ending in -pr
-    if (!slug) {
-        m = normalized.match(/^(.+?)-pr$/i);
-        if (m?.[1]) slug = s(m[1]).replace(/-(?:city|county)$/i, "");
+    // Most common Delta patterns
+    take(/^(.+?)-(?:city|county)-pr$/i);
+    take(/^(.+?)-pr$/i, (x) => x.replace(/-(?:city|county)$/i, ""));
+
+    // PR-only legacy pattern (no state suffix)
+    take(/^(.+?)-city$/i);
+    take(/^(.+?)-municipio$/i);
+
+    // Try full left label as last resort
+    candidateSlugs.push(normalized);
+
+    for (const slug of candidateSlugs) {
+        const pretty = slugToTitle(slug);
+        const canonical = canonicalPrMunicipio(pretty);
+        if (canonical) return canonical;
     }
-
-    if (!slug) return "";
-    return slugToTitle(slug);
+    return "";
 }
 
 function groupByPrMunicipioFromPages(pages: GscRow[], catalogByHostname: Record<string, any>) {
@@ -521,10 +553,10 @@ function groupByPrMunicipioFromPages(pages: GscRow[], catalogByHostname: Record<
     for (const r of pages) {
         const page = s(r.page);
         const st = normalizeState(classifyStateWithCatalog(page, catalogByHostname).state || "__unknown");
-        if (st !== "Puerto Rico") continue;
 
         const municipio = inferPrMunicipioFromPage(page);
         if (!municipio) continue;
+        if (st !== "Puerto Rico" && st !== "__unknown") continue;
         const key = normalizeNameKey(municipio);
         if (!key) continue;
 

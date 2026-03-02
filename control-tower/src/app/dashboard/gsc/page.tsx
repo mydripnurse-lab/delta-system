@@ -410,6 +410,7 @@ function GscDashboardPageContent() {
     const base = qs();
     const p = new URLSearchParams(base);
     if (forceCatalog) p.set("force", "1");
+    if (mapScope === "pr") p.set("bust", "1");
     p.set("v", String(Date.now()));
     if (searchTab === "bing") return `/api/dashboard/bing/join?${p.toString()}`;
     if (searchTab === "all")
@@ -546,6 +547,16 @@ function GscDashboardPageContent() {
       ) || null
     );
   }, [prMunicipioRows, prMunicipioSelected]);
+
+  const prTopMunicipios = useMemo(() => {
+    return [...prMunicipioRows]
+      .sort((a, b) => {
+        const av = metric === "impressions" ? Number(a?.impressions || 0) : Number(a?.clicks || 0);
+        const bv = metric === "impressions" ? Number(b?.impressions || 0) : Number(b?.clicks || 0);
+        return bv - av;
+      })
+      .slice(0, 10);
+  }, [prMunicipioRows, metric]);
 
   const topQueries = data?.top?.queries || [];
   const topPages = data?.top?.pages || [];
@@ -1263,26 +1274,19 @@ function GscDashboardPageContent() {
         <div className="cardBody">
           {activeSection === "geo" ? (
           <div className="mapGrid">
-            {/* <div className="mapCard"> */}
-              {/* <div className="mapCardTop">
+            <div className="mapCard">
+              <div className="mapCardTop">
                 <div>
                   <div className="mapCardTitle">
-                    US {metric === "impressions" ? "Impressions" : "Clicks"} Map
+                    {mapScope === "pr" ? "Puerto Rico" : "United States"}{" "}
+                    {metric === "impressions" ? "Impressions" : "Clicks"} Map
                   </div>
                   <div className="mini" style={{ marginTop: 6 }}>
-                    Tip: Click en un estado → filtra KPIs + Trend + Top Pages +
-                    tabla.
+                    {mapScope === "pr"
+                      ? "Click en un pueblo para drilldown."
+                      : "Click en un estado para drilldown."}
                   </div>
                 </div>
-              </div> */}
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  marginBottom: 10,
-                }}
-              >
                 <div className="segmented" role="tablist" aria-label="Map geography scope">
                   <button
                     className={`segBtn ${mapScope === "us" ? "segBtnOn" : ""}`}
@@ -1320,7 +1324,49 @@ function GscDashboardPageContent() {
                   />
                 )}
               </div>
-            {/* </div> */}
+
+              {mapScope === "pr" ? (
+                <div className="mapPrRank">
+                  <div className="mapPrRankTop">
+                    <div className="mapPrRankTitle">Top municipios</div>
+                    <div className="mini" style={{ opacity: 0.78 }}>
+                      {metric === "impressions" ? "Impressions" : "Clicks"} • URL-mapped
+                    </div>
+                  </div>
+
+                  <div className="mapPrRankGrid">
+                    {prTopMunicipios.length ? (
+                      prTopMunicipios.map((row: any, idx: number) => {
+                        const municipio = String(row?.municipio || "—");
+                        const value =
+                          metric === "impressions"
+                            ? Number(row?.impressions || 0)
+                            : Number(row?.clicks || 0);
+                        const isActive =
+                          prMunicipioSelected.trim().toLowerCase() ===
+                          municipio.trim().toLowerCase();
+                        return (
+                          <button
+                            key={`${municipio}-${idx}`}
+                            className={`mapPrRankItem ${isActive ? "mapPrRankItemOn" : ""}`}
+                            type="button"
+                            onClick={() => setPrMunicipioSelected(municipio)}
+                          >
+                            <span className="mapPrRankPos">#{idx + 1}</span>
+                            <span className="mapPrRankName">{municipio}</span>
+                            <span className="mapPrRankVal">{fmtInt(value)}</span>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="mini" style={{ opacity: 0.78 }}>
+                        No municipio rows for this range yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
             <aside className="statePanel">
               <div className="statePanelTop">
@@ -1355,6 +1401,11 @@ function GscDashboardPageContent() {
                       : "Click a state to drill down."}
                   </div>
                 )}
+                {mapScope === "pr" ? (
+                  <div className="mini" style={{ marginTop: 8, opacity: 0.75 }}>
+                    Municipios detectados por URL: <b>{fmtInt(prMunicipioRows.length)}</b>
+                  </div>
+                ) : null}
               </div>
 
               <div className="stateCards">

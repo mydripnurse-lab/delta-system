@@ -69,6 +69,25 @@ function normalizeNameKey(v: string) {
     .trim();
 }
 
+const PR_MUNICIPIOS = [
+  "Adjuntas", "Aguada", "Aguadilla", "Aguas Buenas", "Aibonito", "Anasco", "Arecibo", "Arroyo",
+  "Barceloneta", "Barranquitas", "Bayamon", "Cabo Rojo", "Caguas", "Camuy", "Canovanas", "Carolina",
+  "Catano", "Cayey", "Ceiba", "Ciales", "Cidra", "Coamo", "Comerio", "Corozal", "Culebra",
+  "Dorado", "Fajardo", "Florida", "Guanica", "Guayama", "Guayanilla", "Guaynabo", "Gurabo",
+  "Hatillo", "Hormigueros", "Humacao", "Isabela", "Jayuya", "Juana Diaz", "Juncos", "Lajas",
+  "Lares", "Las Marias", "Las Piedras", "Loiza", "Luquillo", "Manati", "Maricao", "Maunabo",
+  "Mayaguez", "Moca", "Morovis", "Naguabo", "Naranjito", "Orocovis", "Patillas", "Penuelas",
+  "Ponce", "Quebradillas", "Rincon", "Rio Grande", "Sabana Grande", "Salinas", "San German",
+  "San Juan", "San Lorenzo", "San Sebastian", "Santa Isabel", "Toa Alta", "Toa Baja",
+  "Trujillo Alto", "Utuado", "Vega Alta", "Vega Baja", "Vieques", "Villalba", "Yabucoa", "Yauco",
+];
+const PR_MUNICIPIO_BY_KEY = new Map(PR_MUNICIPIOS.map((name) => [normalizeNameKey(name), name]));
+
+function canonicalPrMunicipio(nameLike: string) {
+  const key = normalizeNameKey(nameLike);
+  return PR_MUNICIPIO_BY_KEY.get(key) || "";
+}
+
 function slugToTitle(slug: string) {
   const words = s(slug)
     .replace(/[-_]+/g, " ")
@@ -87,17 +106,25 @@ function inferPrMunicipioFromPage(page: string) {
   if (!left) return "";
 
   const normalized = left.toLowerCase();
-  let slug = "";
+  const candidateSlugs: string[] = [];
+  const take = (re: RegExp, post?: (x: string) => string) => {
+    const m = normalized.match(re);
+    const raw = s(m?.[1]);
+    if (!raw) return;
+    candidateSlugs.push(post ? post(raw) : raw);
+  };
 
-  let m = normalized.match(/^(.+?)-(?:city|county)-pr$/i);
-  if (m?.[1]) slug = s(m[1]);
-  if (!slug) {
-    m = normalized.match(/^(.+?)-pr$/i);
-    if (m?.[1]) slug = s(m[1]).replace(/-(?:city|county)$/i, "");
+  take(/^(.+?)-(?:city|county)-pr$/i);
+  take(/^(.+?)-pr$/i, (x) => x.replace(/-(?:city|county)$/i, ""));
+  take(/^(.+?)-city$/i);
+  take(/^(.+?)-municipio$/i);
+  candidateSlugs.push(normalized);
+
+  for (const slug of candidateSlugs) {
+    const canonical = canonicalPrMunicipio(slugToTitle(slug));
+    if (canonical) return canonical;
   }
-
-  if (!slug) return "";
-  return slugToTitle(slug);
+  return "";
 }
 
 function aggregateTrendFromRows(rows: Array<JsonObj>) {
@@ -367,9 +394,10 @@ export async function GET(req: Request) {
       }
     >();
     for (const r of pageRowsWithState) {
-      if (s(r.__state) !== "Puerto Rico") continue;
       const municipio = inferPrMunicipioFromPage(s(r.page));
       if (!municipio) continue;
+      const st = s(r.__state);
+      if (st !== "Puerto Rico" && st !== "__unknown") continue;
       const key = normalizeNameKey(municipio);
       if (!key) continue;
 

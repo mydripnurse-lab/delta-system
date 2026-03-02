@@ -3868,6 +3868,83 @@ button, input, select { font-family: inherit; }
   font-weight:900;
 }
 
+/* Puerto Rico ranking strip under map */
+.callsDash .mapPrRank{
+  margin: 12px 14px 14px;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  padding: 12px;
+  background:
+    radial-gradient(260px 120px at 8% -28%, rgba(56,189,248,0.10), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+}
+
+.callsDash .mapPrRankTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom: 10px;
+}
+
+.callsDash .mapPrRankTitle{
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.callsDash .mapPrRankGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:8px;
+}
+@media (max-width: 760px){
+  .callsDash .mapPrRankGrid{ grid-template-columns: 1fr; }
+}
+
+.callsDash .mapPrRankItem{
+  border:1px solid rgba(255,255,255,0.10);
+  background: rgba(15,23,42,0.44);
+  border-radius: 12px;
+  padding: 10px 12px;
+  width: 100%;
+  display:grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap:10px;
+  align-items:center;
+  color: rgba(255,255,255,0.92);
+  cursor: pointer;
+  text-align: left;
+}
+.callsDash .mapPrRankItem:hover{
+  border-color: rgba(96,165,250,0.45);
+  background: rgba(25,34,57,0.66);
+}
+
+.callsDash .mapPrRankItemOn{
+  border-color: rgba(96,165,250,0.72);
+  box-shadow: inset 0 0 0 1px rgba(96,165,250,0.32);
+  background: linear-gradient(120deg, rgba(30,64,175,0.34), rgba(17,24,39,0.62));
+}
+
+.callsDash .mapPrRankPos{
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(191,219,254,0.92);
+}
+.callsDash .mapPrRankName{
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.callsDash .mapPrRankVal{
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(167,243,208,0.96);
+}
+
 /* ---------- Segmented control ---------- */
 .callsDash .segmented{
   display:flex;
@@ -4085,14 +4162,14 @@ button, input, select { font-family: inherit; }
 }
 .callsDash .mapFrame.mapFrameXL{
   margin-top: 12px;
-  height: 520px !important;
+  height: 620px !important;
   border-radius: 18px !important;
   border: 1px solid rgba(255,255,255,0.10) !important;
   background: rgba(255,255,255,0.03) !important;
   overflow: hidden !important;
 }
 @media (max-width: 980px){
-  .callsDash .mapFrame.mapFrameXL{ height: 460px !important; }
+  .callsDash .mapFrame.mapFrameXL{ height: 500px !important; }
 }
 
 /* =========================================================
