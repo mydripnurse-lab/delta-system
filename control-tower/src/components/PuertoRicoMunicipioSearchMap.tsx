@@ -251,7 +251,6 @@ export default function PuertoRicoMunicipioSearchMap({
             {geo.prCounties.map((f: any) => {
               const fips = String(f.id).padStart(5, "0");
               const area = geo.areas.get(fips) || 0;
-              if (area < 1650) return null;
               const c = geo.centroids.get(fips);
               if (!c) return null;
 
@@ -266,7 +265,7 @@ export default function PuertoRicoMunicipioSearchMap({
                   y={c[1]}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  className="stateLabel"
+                  className={`stateLabel ${area < 1650 ? "stateLabelTiny" : ""}`}
                 >
                   {Math.round(value).toLocaleString()}
                 </text>
