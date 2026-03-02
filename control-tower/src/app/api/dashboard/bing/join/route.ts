@@ -285,7 +285,15 @@ export async function GET(req: Request) {
     const stateRowsMap = new Map<string, { state: string; impressions: number; clicks: number; ctrAcc: number; ctrW: number; posAcc: number; posW: number; pagesCounted: number; keywordsCount: number }>();
 
     const siteHost = normalizeHost(hostnameFromPage(s(meta.siteUrl)));
-    const pageRowsWithState = pages.map((r) => {
+    const pageRowsWithState: Array<{
+      page: string;
+      impressions: number;
+      clicks: number;
+      ctr: number;
+      position: number;
+      date: string;
+      __state: string;
+    }> = pages.map((r) => {
       const page = s(r.page);
       const hostRaw = hostnameFromPage(page);
       const host = normalizeHost(hostRaw || siteHost);
@@ -325,7 +333,12 @@ export async function GET(req: Request) {
       stateRowsMap.set(mappedState, prev);
 
       return {
-        ...r,
+        page,
+        impressions,
+        clicks,
+        ctr,
+        position,
+        date: s(r.date),
         __state: mappedState,
       };
     });
