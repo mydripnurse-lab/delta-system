@@ -7,6 +7,7 @@ import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 import PremiumTrendChart from "@/components/PremiumTrendChart";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import {
@@ -597,7 +598,7 @@ function ContactsDashboardPageContent() {
   }
 
   return (
-    <div className="shell callsDash contactsDash">
+    <div className="shell callsDash contactsDash dashboardPremium">
       {loading && (
         <div className="dashLoadingOverlay" aria-live="polite" aria-busy="true">
           <div className="dashLoadingCard">
@@ -617,6 +618,7 @@ function ContactsDashboardPageContent() {
         notificationsHref={notificationsHref}
       />
 
+      <DashboardModuleShell backHref={backHref} active="contacts">
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -757,7 +759,7 @@ function ContactsDashboardPageContent() {
 
                 {preset === "custom" && (
                   <button
-                    className="btn btnPrimary applyBtn"
+                    className="smallBtn smallBtnOn"
                     onClick={() => load(false)}
                     disabled={!customStart || !customEnd || loading}
                     type="button"
@@ -1197,6 +1199,7 @@ function ContactsDashboardPageContent() {
           )}
         </div>
       </section>
+      </DashboardModuleShell>
     </div>
   );
 }

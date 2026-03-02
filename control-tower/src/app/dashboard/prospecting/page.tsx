@@ -5,6 +5,7 @@ import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import {
   addDashboardRangeParams,
@@ -1070,7 +1071,7 @@ function ProspectingDashboardContent() {
   }
 
   return (
-    <div className="shell callsDash ceoDash prospectingDash">
+    <div className="shell callsDash ceoDash prospectingDash dashboardPremium">
       <DashboardTopbar
         title="Prospecting Dashboard"
         subtitle="County by county and city by city lead intelligence."
@@ -1080,6 +1081,7 @@ function ProspectingDashboardContent() {
         notificationsHref={notificationsHref}
       />
 
+      <DashboardModuleShell backHref={backHref} active="prospecting">
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -1095,11 +1097,21 @@ function ProspectingDashboardContent() {
             {(["today", "7d", "28d", "1m", "3m", "custom"] as RangePreset[]).map((p) => (
               <button
                 key={p}
-                className={`tabBtn ${preset === p ? "active" : ""}`}
+                className={`smallBtn ${preset === p ? "smallBtnOn" : ""}`}
                 onClick={() => setPreset(p)}
                 type="button"
               >
-                {p}
+                {p === "today"
+                  ? "Today"
+                  : p === "7d"
+                    ? "7 days"
+                    : p === "28d"
+                      ? "28 days"
+                      : p === "1m"
+                        ? "Last month"
+                        : p === "3m"
+                          ? "Last quarter"
+                          : "Custom"}
               </button>
             ))}
             {preset === "custom" ? (
@@ -2029,6 +2041,7 @@ function ProspectingDashboardContent() {
           ) : null}
         </div>
       </section>
+      </DashboardModuleShell>
     </div>
   );
 }

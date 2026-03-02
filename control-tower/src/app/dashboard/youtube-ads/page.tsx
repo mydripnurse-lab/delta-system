@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
@@ -761,7 +762,7 @@ export default function YoutubeAdsDashboardPage() {
   }, [campaign, videoGen?.outputUrl]);
 
   return (
-    <div className="shell callsDash gaDash">
+    <div className="shell callsDash gaDash dashboardPremium">
       <DashboardTopbar
         title="My Drip Nurse — YouTube Ads + Runway Studio"
         subtitle="Delta System + OpenClaw + Runway: build, preview and queue YouTube campaigns for approval and future publishing."
@@ -771,6 +772,7 @@ export default function YoutubeAdsDashboardPage() {
         liveLabel="Planning + Render Mode"
       />
 
+      <DashboardModuleShell backHref={backHref} active="youtube-ads">
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -811,7 +813,7 @@ export default function YoutubeAdsDashboardPage() {
               <input className="input" type="date" value={start} onChange={(e) => setStart(e.target.value)} disabled={preset !== "custom"} />
               <input className="input" type="date" value={end} onChange={(e) => setEnd(e.target.value)} disabled={preset !== "custom"} />
               {preset === "custom" ? (
-                <button className="btn btnPrimary" type="button" onClick={() => load(true)} disabled={!start || !end || loading}>Apply</button>
+                <button className="smallBtn smallBtnOn" type="button" onClick={() => load(true)} disabled={!start || !end || loading}>Apply</button>
               ) : null}
             </div>
           </div>
@@ -1269,6 +1271,7 @@ export default function YoutubeAdsDashboardPage() {
           />
         </div>
       </section>
+      </DashboardModuleShell>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import dynamic from "next/dynamic";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 import PremiumTrendChart from "@/components/PremiumTrendChart";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import {
@@ -443,7 +444,7 @@ function ConversationsDashboardPageContent() {
   }
 
   return (
-    <div className="shell callsDash contactsDash conversationsDash">
+    <div className="shell callsDash contactsDash conversationsDash dashboardPremium">
       {loading ? (
         <div className="dashLoadingOverlay" aria-live="polite" aria-busy="true">
           <div className="dashLoadingCard">
@@ -464,6 +465,7 @@ function ConversationsDashboardPageContent() {
         notificationsHref={notificationsHref}
       />
 
+      <DashboardModuleShell backHref={backHref} active="conversations">
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -884,6 +886,7 @@ function ConversationsDashboardPageContent() {
           </div>
         </div>
       </section>
+      </DashboardModuleShell>
     </div>
   );
 }

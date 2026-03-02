@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 
 import UsaChoroplethGaMap from "@/components/UsaChoroplethGaMap";
 import GaInsightsPanel from "@/components/GaInsightsPanel";
@@ -427,7 +428,7 @@ function GaDashboardPageContent() {
   ]);
 
   return (
-    <div className="shell callsDash gaDash">
+    <div className="shell callsDash gaDash dashboardPremium">
       <DashboardTopbar
         title="My Drip Nurse — Google Analytics (GA4) Dashboard"
         subtitle={(
@@ -444,6 +445,7 @@ function GaDashboardPageContent() {
         notificationsHref={notificationsHref}
       />
 
+      <DashboardModuleShell backHref={backHref} active="ga">
       {/* Filters */}
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
@@ -583,7 +585,7 @@ function GaDashboardPageContent() {
 
                 {preset === "custom" && (
                   <button
-                    className="btn btnPrimary applyBtn"
+                    className="smallBtn smallBtnOn"
                     onClick={() => load({ force: true })}
                     disabled={!customStart || !customEnd || loading}
                     type="button"
@@ -1240,6 +1242,7 @@ function GaDashboardPageContent() {
           </div>
         </div>
       </section>
+      </DashboardModuleShell>
     </div>
   );
 }

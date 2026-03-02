@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 import type { DashboardRangePreset } from "@/lib/dateRangePresets";
@@ -252,7 +253,7 @@ export default function FacebookAdsDashboardPage() {
   }
 
   return (
-    <div className="shell callsDash gaDash">
+    <div className="shell callsDash gaDash dashboardPremium">
       <DashboardTopbar
         title="My Drip Nurse — Facebook Ads Strategy Dashboard"
         subtitle="Planner de campanas por region con setup de funnel y copy listo para ejecutar."
@@ -262,6 +263,7 @@ export default function FacebookAdsDashboardPage() {
         liveLabel="Planning Mode"
       />
 
+      <DashboardModuleShell backHref={backHref} active="facebook-ads">
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -302,7 +304,7 @@ export default function FacebookAdsDashboardPage() {
               <input className="input" type="date" value={start} onChange={(e) => setStart(e.target.value)} disabled={preset !== "custom"} />
               <input className="input" type="date" value={end} onChange={(e) => setEnd(e.target.value)} disabled={preset !== "custom"} />
               {preset === "custom" ? (
-                <button className="btn btnPrimary" type="button" onClick={() => load(true)} disabled={!start || !end || loading}>Apply</button>
+                <button className="smallBtn smallBtnOn" type="button" onClick={() => load(true)} disabled={!start || !end || loading}>Apply</button>
               ) : null}
             </div>
           </div>
@@ -441,6 +443,7 @@ export default function FacebookAdsDashboardPage() {
           />
         </div>
       </section>
+      </DashboardModuleShell>
     </div>
   );
 }

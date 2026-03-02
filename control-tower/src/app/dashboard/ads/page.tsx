@@ -6,6 +6,7 @@ import AdsTrendChart from "@/components/AdsTrendChart";
 import AdsMetricsGridCharts from "@/components/AdsMetricsGridCharts";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 
@@ -723,7 +724,7 @@ export default function AdsDashboardPage() {
   }
 
   return (
-    <div className="shell callsDash gaDash adsCinema">
+    <div className="shell callsDash gaDash adsCinema dashboardPremium">
       <DashboardTopbar
         title="My Drip Nurse — Google Ads Dashboard"
         subtitle={(
@@ -754,6 +755,7 @@ export default function AdsDashboardPage() {
         )}
       />
 
+      <DashboardModuleShell backHref={backHref} active="ads">
       <section className="card adsHeroCard" style={{ marginTop: 14 }}>
         <div className="adsHeroGlow" />
         <div className="cardBody adsHeroBody">
@@ -924,7 +926,7 @@ export default function AdsDashboardPage() {
 
                 {preset === "custom" && (
                   <button
-                    className="btn btnPrimary applyBtn"
+                    className="smallBtn smallBtnOn"
                     onClick={() => load({ force: true })}
                     disabled={!customStart || !customEnd || loading}
                     type="button"
@@ -2236,6 +2238,7 @@ export default function AdsDashboardPage() {
           </aside>
         </div>
       ) : null}
+      </DashboardModuleShell>
     </div>
   );
 }

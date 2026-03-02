@@ -7,6 +7,7 @@ import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
+import DashboardModuleShell from "@/components/DashboardModuleShell";
 import PremiumTrendChart from "@/components/PremiumTrendChart";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import {
@@ -761,7 +762,7 @@ function CallsDashboardPageContent() {
   }
 
   return (
-    <div className="shell callsDash">
+    <div className="shell callsDash dashboardPremium">
       <DashboardTopbar
         title="My Drip Nurse — Calls Dashboard"
         backHref={backHref}
@@ -769,6 +770,7 @@ function CallsDashboardPageContent() {
         notificationsHref={notificationsHref}
       />
 
+      <DashboardModuleShell backHref={backHref} active="calls">
       {/* Filters */}
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
@@ -908,7 +910,7 @@ function CallsDashboardPageContent() {
                 {/* ✅ Apply only in custom mode */}
                 {preset === "custom" && (
                   <button
-                    className="btn btnPrimary applyBtn"
+                    className="smallBtn smallBtnOn"
                     onClick={load}
                     disabled={!customStart || !customEnd || loading}
                     type="button"
@@ -1856,6 +1858,7 @@ function CallsDashboardPageContent() {
           </div>
         </div>
       </section>
+      </DashboardModuleShell>
     </div>
   );
 }
