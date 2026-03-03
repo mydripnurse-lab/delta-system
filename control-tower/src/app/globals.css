@@ -7515,7 +7515,7 @@ button, input, select { font-family: inherit; }
 .integrationConnectionsList {
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   background: rgba(255,255,255,0.02);
 }
 
@@ -7623,7 +7623,7 @@ button, input, select { font-family: inherit; }
 .integrationMenu {
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
+  bottom: calc(100% + 6px);
   min-width: 140px;
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 10px;
@@ -7655,6 +7655,14 @@ button, input, select { font-family: inherit; }
 
 .integrationMenuBtnDanger {
   color: #fecaca;
+}
+
+.dashboardPremium .agencyMain .card.integrationsCard {
+  overflow: visible;
+}
+
+.integrationsCardBody {
+  overflow: visible;
 }
 
 @media (max-width: 760px) {

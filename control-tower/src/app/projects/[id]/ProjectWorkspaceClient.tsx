@@ -513,13 +513,15 @@ function integrationProviderLabel(provider: string) {
 
 function integrationProviderLogoUrl(provider: string) {
   const p = s(provider).toLowerCase();
-  if (p === "google_search_console" || p === "google_ads" || p === "google_cloud" || p === "google_places" || p === "google_maps") {
-    return "https://logo.clearbit.com/google.com";
+  if (p === "google_search_console" || p === "google_cloud" || p === "google_places" || p === "google_maps") {
+    return "https://img.icons8.com/color/96/google-logo.png";
   }
-  if (p === "bing_webmaster") return "https://logo.clearbit.com/bing.com";
-  if (p === "openai") return "https://logo.clearbit.com/openai.com";
-  if (p === "cloudflare") return "https://logo.clearbit.com/cloudflare.com";
-  if (p === "ghl" || p === "custom") return "https://logo.clearbit.com/gohighlevel.com";
+  if (p === "google_ads") return "https://img.icons8.com/color/96/google-ads.png";
+  if (p === "bing_webmaster") return "https://img.icons8.com/color/96/bing.png";
+  if (p === "openai") return "https://img.icons8.com/color/96/chatgpt.png";
+  if (p === "cloudflare") return "https://img.icons8.com/color/96/cloudflare.png";
+  if (p === "ghl") return "https://logo.clearbit.com/gohighlevel.com";
+  if (p === "custom") return "https://img.icons8.com/color/96/services.png";
   return "";
 }
 
@@ -3836,6 +3838,8 @@ export default function Home() {
 
   function openIntegrationEditor(row?: TenantIntegrationRow | null) {
     const item = row || null;
+    const rowId = s(item?.id);
+    const isVirtual = rowId.startsWith("virtual:");
     const provider = s(item?.provider).toLowerCase();
     const cfg =
       item?.config && typeof item.config === "object"
@@ -3846,10 +3850,18 @@ export default function Home() {
         ? (cfg.auth as Record<string, unknown>)
         : {};
 
-    setIntegrationEditId(s(item?.id));
+    setIntegrationEditId(isVirtual ? "" : rowId);
     setIntegrationEditProvider(provider || "openai");
     setIntegrationEditKey(s(item?.integration_key || item?.integrationKey || "default") || "default");
-    setIntegrationEditStatus(s(item?.status) || "connected");
+    const nextStatus = s(item?.status).toLowerCase();
+    setIntegrationEditStatus(
+      nextStatus === "connected" ||
+        nextStatus === "disconnected" ||
+        nextStatus === "error" ||
+        nextStatus === "needs_reconnect"
+        ? nextStatus
+        : "disconnected",
+    );
     setIntegrationEditAuthType(s(item?.auth_type || item?.authType) || "api_key");
     setIntegrationEditExternalAccountId(s(item?.external_account_id || item?.externalAccountId));
     setIntegrationEditExternalPropertyId(s(item?.external_property_id || item?.externalPropertyId));
@@ -3959,7 +3971,7 @@ export default function Home() {
   async function deleteIntegration(row: TenantIntegrationRow) {
     if (!routeTenantId) return;
     const id = s(row.id);
-    if (!id) return;
+    if (!id || id.startsWith("virtual:")) return;
     setIntegrationDeleteBusyId(id);
     setIntegrationEditorErr("");
     setIntegrationEditorMsg("");
@@ -4010,10 +4022,29 @@ export default function Home() {
     });
   }, [tenantAiPrompts, tenantAiPromptsSearch]);
 
+  const tenantIntegrationsForView = useMemo(() => {
+    const rows = [...tenantIntegrations];
+    const hasOpenAI = rows.some(
+      (row) =>
+        s(row.provider).toLowerCase() === "openai" &&
+        s(row.integration_key || row.integrationKey || "default").toLowerCase() === "default",
+    );
+    if (!hasOpenAI) {
+      rows.push({
+        id: "virtual:openai:default",
+        provider: "openai",
+        integrationKey: "default",
+        status: "not_configured",
+        authType: "api_key",
+      });
+    }
+    return rows;
+  }, [tenantIntegrations]);
+
   const filteredTenantIntegrations = useMemo(() => {
     const term = s(integrationsSearch).toLowerCase();
-    if (!term) return tenantIntegrations;
-    return tenantIntegrations.filter((row) => {
+    if (!term) return tenantIntegrationsForView;
+    return tenantIntegrationsForView.filter((row) => {
       const haystack = [
         integrationProviderLabel(s(row.provider)),
         s(row.provider),
@@ -4027,7 +4058,7 @@ export default function Home() {
         .toLowerCase();
       return haystack.includes(term);
     });
-  }, [tenantIntegrations, integrationsSearch]);
+  }, [tenantIntegrationsForView, integrationsSearch]);
 
   const integrationHealthById = useMemo(() => {
     const m = new Map<string, IntegrationHealthRow>();
@@ -9182,7 +9213,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       ) : null}
 
       {activeProjectTab === "integrations" ? (
-      <section className="card" style={{ marginTop: 12 }}>
+      <section className="card integrationsCard" style={{ marginTop: 12 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Connections</h2>
@@ -9203,7 +9234,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             </button>
           </div>
         </div>
-        <div className="cardBody">
+        <div className="cardBody integrationsCardBody">
           {integrationEditorErr ? (
             <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>
               ❌ {integrationEditorErr}
@@ -9232,6 +9263,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             ) : (
               filteredTenantIntegrations.map((it) => {
                 const integrationId = s(it.id);
+                const isVirtual = integrationId.startsWith("virtual:");
                 const provider = s(it.provider);
                 const providerLabel = integrationProviderLabel(provider);
                 const logoUrl = integrationProviderLogoUrl(provider);
@@ -9242,7 +9274,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   "No external account";
                 const health = integrationHealthById.get(integrationId) || null;
                 const authType = s(it.auth_type || it.authType);
-                const isOauth = authType === "oauth";
+                const isOauth = authType === "oauth" && !isVirtual;
                 const menuOpen = integrationActionsOpenId === integrationId;
                 return (
                   <div key={integrationId} className="integrationConnectionRow">
@@ -9255,6 +9287,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             className="integrationLogoImg"
                             loading="lazy"
                             referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                            }}
                           />
                         ) : (
                           <span>{providerLabel.slice(0, 1).toUpperCase()}</span>
@@ -9290,6 +9325,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         type="button"
                         className="smallBtn"
                         onClick={() => void loadOAuthHealth()}
+                        disabled={isVirtual}
                       >
                         Verify
                       </button>
@@ -9312,7 +9348,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               type="button"
                               className="integrationMenuBtn integrationMenuBtnDanger"
                               onClick={() => void deleteIntegration(it)}
-                              disabled={integrationDeleteBusyId === integrationId}
+                              disabled={isVirtual || integrationDeleteBusyId === integrationId}
                             >
                               {integrationDeleteBusyId === integrationId ? "Deleting..." : "Delete"}
                             </button>
