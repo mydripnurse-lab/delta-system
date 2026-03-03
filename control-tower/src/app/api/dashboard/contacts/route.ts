@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import { ghlFetchJson, getEffectiveLocationIdOrThrow } from "@/lib/ghlHttp";
 import { inferStateFromText, normalizeStateName, norm } from "@/lib/ghlState";
-import { tokensDebugInfo } from "@/lib/ghlTokens";
 import { readDashboardKpiCache, writeDashboardKpiCache } from "@/lib/dashboardKpiCache";
 
 export const runtime = "nodejs";
@@ -439,7 +438,8 @@ export async function GET(req: Request) {
             ...(debug
                 ? {
                     debug: {
-                        tokens: await tokensDebugInfo(),
+                        tenantId,
+                        integrationKey,
                         contactsCount: contacts.length,
                         sampleContact: contacts[0] || null,
                         sampleRow: rows[0] || null,

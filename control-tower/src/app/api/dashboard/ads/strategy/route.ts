@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { getDbPool } from "@/lib/db";
 import { googleAdsGenerateKeywordIdeas } from "@/lib/ads/adsRest";
 import { loadTenantProductsServices } from "@/lib/tenantProductsServices";
 import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
+import { getTenantOpenAIClient } from "@/lib/tenantOpenAI";
 
 export const runtime = "nodejs";
-
-const openaiClient = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 type LandingService = {
   id: string;
@@ -294,10 +290,15 @@ async function maybeAiSummary(input: {
   campaignDrafts: Array<Record<string, unknown>>;
   plannerStatus: Record<string, unknown>;
 }) {
-  if (!openaiClient) return null;
+  const tenantId = s(input.tenantId);
+  if (!tenantId) return null;
   try {
+    const openaiClient = await getTenantOpenAIClient({
+      tenantId,
+      integrationKey: s(input.integrationKey) || "default",
+    });
     const promptResolved = await resolveTenantAiPrompt({
-      tenantId: s(input.tenantId) || null,
+      tenantId: tenantId || null,
       integrationKey: s(input.integrationKey) || "default",
       promptKey: "dashboard.ads.strategy.system.v1",
       fallbackPrompt:

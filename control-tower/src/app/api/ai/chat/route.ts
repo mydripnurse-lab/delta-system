@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getTenantOpenAIClient } from "@/lib/tenantOpenAI";
 import {
     appendAiEvent,
     appendConversationMessageForThread,
@@ -11,9 +11,6 @@ import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
-const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 type ChatRequest = {
     agent: string;
@@ -41,13 +38,6 @@ function normalizeThreadId(v: unknown) {
 
 export async function POST(req: Request) {
     try {
-        if (!process.env.OPENAI_API_KEY) {
-            return NextResponse.json(
-                { ok: false, error: "Missing OPENAI_API_KEY in environment." },
-                { status: 500 },
-            );
-        }
-
         const body = (await req.json()) as ChatRequest;
         const agent = s(body?.agent || "overview");
         const threadId = normalizeThreadId(body?.threadId);
@@ -56,6 +46,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
         }
         const integrationKey = s((body?.context as any)?.integrationKey || "default");
+        const client = await getTenantOpenAIClient({ tenantId, integrationKey });
         const userMsg = s(body?.message);
         const context = body?.context || {};
 

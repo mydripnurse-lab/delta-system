@@ -101,10 +101,7 @@ async function loadFromFileFallback() {
   };
 }
 
-export async function loadTenantProductsServices(tenantId?: string) {
-  const id = s(tenantId);
-  if (!id) return loadFromFileFallback();
-
+async function loadTenantProductsServicesFromDb(tenantId: string) {
   try {
     const pool = getDbPool();
     const q = await pool.query<CustomValueRow>(
@@ -117,7 +114,7 @@ export async function loadTenantProductsServices(tenantId?: string) {
           and is_active = true
         order by key_name asc
       `,
-      [id],
+      [tenantId],
     );
 
     const services = q.rows
@@ -144,8 +141,42 @@ export async function loadTenantProductsServices(tenantId?: string) {
         services,
       };
     }
+    return {
+      source: "db",
+      services: [] as TenantProductService[],
+    };
   } catch {
+    return null;
+  }
+}
+
+export async function loadTenantProductsServicesDbOnly(tenantId: string) {
+  const id = s(tenantId);
+  if (!id) {
+    return {
+      source: "db",
+      services: [] as TenantProductService[],
+    };
+  }
+
+  return (
+    (await loadTenantProductsServicesFromDb(id)) || {
+      source: "db",
+      services: [] as TenantProductService[],
+    }
+  );
+}
+
+export async function loadTenantProductsServices(tenantId?: string) {
+  const id = s(tenantId);
+  if (!id) return loadFromFileFallback();
+
+  const db = await loadTenantProductsServicesFromDb(id);
+  if (db) {
+    if (db.services.length > 0) return db;
+  } else {
     // Fallback to file map to keep campaign factory operable.
+    return loadFromFileFallback();
   }
 
   return loadFromFileFallback();

@@ -77,7 +77,7 @@ export async function GET(req: Request) {
         }
 
         const ttl = Number(process.env.ADS_CACHE_TTL_SECONDS || 600);
-        const adsApiVersion = s(process.env.GOOGLE_ADS_API_VERSION) || "v22";
+        const adsApiVersion = s(url.searchParams.get("version"));
 
         const { start, end } = resolveRange(range, startQ, endQ);
         const prev = prevPeriodRange(start, end);
@@ -97,7 +97,7 @@ export async function GET(req: Request) {
             try {
                 const res = await googleAdsSearch({
                     query,
-                    version: adsApiVersion,
+                    ...(adsApiVersion ? { version: adsApiVersion } : {}),
                     tenantId,
                     integrationKey,
                 });
@@ -118,13 +118,13 @@ export async function GET(req: Request) {
         // KPIs (customer)
         const kpis = await googleAdsSearch({
             query: qKpis(start, end),
-            version: adsApiVersion,
+            ...(adsApiVersion ? { version: adsApiVersion } : {}),
             tenantId,
             integrationKey,
         });
         const prevKpis = await googleAdsSearch({
             query: qKpis(prev.start, prev.end),
-            version: adsApiVersion,
+            ...(adsApiVersion ? { version: adsApiVersion } : {}),
             tenantId,
             integrationKey,
         });
@@ -132,7 +132,7 @@ export async function GET(req: Request) {
         // Trend daily
         const trend = await googleAdsSearch({
             query: qTrendDaily(start, end),
-            version: adsApiVersion,
+            ...(adsApiVersion ? { version: adsApiVersion } : {}),
             tenantId,
             integrationKey,
         });
@@ -140,7 +140,7 @@ export async function GET(req: Request) {
         // Campaigns top
         const campaigns = await googleAdsSearch({
             query: qCampaigns(start, end),
-            version: adsApiVersion,
+            ...(adsApiVersion ? { version: adsApiVersion } : {}),
             tenantId,
             integrationKey,
         });

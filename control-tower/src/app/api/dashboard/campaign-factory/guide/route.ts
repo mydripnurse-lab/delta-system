@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getTenantOpenAIClient } from "@/lib/tenantOpenAI";
 import { appendAiEvent } from "@/lib/aiMemory";
 import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 type ResponseOutputText = {
   output_text?: string;
@@ -40,19 +39,13 @@ function n(v: unknown) {
 
 export async function POST(req: Request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { ok: false, error: "Missing OPENAI_API_KEY in environment." },
-        { status: 500 },
-      );
-    }
-
     const payload = await req.json();
     const tenantId = s((payload as any)?.tenantId || "");
     if (!tenantId) {
       return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
     }
     const integrationKey = s((payload as any)?.integrationKey || "default");
+    const client = await getTenantOpenAIClient({ tenantId, integrationKey });
     const p = (payload || {}) as Record<string, unknown>;
     const campaign = (p.campaign || {}) as Record<string, unknown>;
     const context = (p.context || {}) as Record<string, unknown>;

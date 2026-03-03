@@ -1,4 +1,3 @@
-import { getAdsOAuth2 } from "./adsAuth";
 import {
     refreshGoogleAccessToken,
     resolveTenantOAuthConnection,
@@ -10,14 +9,6 @@ function s(v: any) {
 }
 function cleanCid(v: string) {
     return s(v).replace(/-/g, "");
-}
-
-async function getAccessToken() {
-    const oauth2 = await getAdsOAuth2();
-    const tok = await oauth2.getAccessToken();
-    const accessToken = s((tok as any)?.token || tok);
-    if (!accessToken) throw new Error("Failed to obtain Google OAuth access_token");
-    return accessToken;
 }
 
 async function getTenantAccess(input: { tenantId: string; integrationKey?: string }) {
@@ -51,16 +42,15 @@ async function getTenantAccess(input: { tenantId: string; integrationKey?: strin
         customerId: s(conn.externalAccountId) || s(cfg.customerId) || s(cfg.googleAdsCustomerId),
         loginCustomerId: s(cfg.loginCustomerId) || s(cfg.googleAdsLoginCustomerId),
         developerToken: s(cfg.developerToken) || s(cfg.googleAdsDeveloperToken),
+        apiVersion: s(cfg.apiVersion) || s(cfg.googleAdsApiVersion),
     };
 }
 
-function headersBase(developerTokenInput?: string, loginCustomerId?: string, allowEnvFallback = true) {
-    const developerToken = allowEnvFallback
-        ? s(developerTokenInput) || s(process.env.GOOGLE_ADS_DEVELOPER_TOKEN)
-        : s(developerTokenInput);
+function headersBase(developerTokenInput?: string, loginCustomerId?: string) {
+    const developerToken = s(developerTokenInput);
     if (!developerToken) throw new Error("Missing Google Ads developer token.");
 
-    const loginCid = cleanCid(loginCustomerId || s(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID));
+    const loginCid = cleanCid(loginCustomerId);
 
     return {
         "developer-token": developerToken,
@@ -70,7 +60,7 @@ function headersBase(developerTokenInput?: string, loginCustomerId?: string, all
 }
 
 function buildSearchStreamUrl(opts: { version?: string; customerId: string }) {
-    const version = s(opts.version) || s(process.env.GOOGLE_ADS_API_VERSION) || "v22";
+    const version = s(opts.version) || "v22";
     const customerId = cleanCid(opts.customerId);
 
     const base = `https://googleads.googleapis.com/${version}`;
@@ -79,7 +69,7 @@ function buildSearchStreamUrl(opts: { version?: string; customerId: string }) {
 }
 
 function versionCandidates(preferred?: string) {
-    const seed = [s(preferred), s(process.env.GOOGLE_ADS_API_VERSION), "v22", "v21", "v20"].filter(Boolean);
+    const seed = [s(preferred), "v22", "v21", "v20"].filter(Boolean);
     const out: string[] = [];
     const seen = new Set<string>();
     for (const v of seed) {
@@ -132,21 +122,18 @@ export async function googleAdsSearch(opts: {
     customerId?: string;
     loginCustomerId?: string;
     version?: string;
-    tenantId?: string;
+    tenantId: string;
     integrationKey?: string;
 }) {
     const tenantId = s(opts.tenantId);
-    const tenantAccess = tenantId
-        ? await getTenantAccess({ tenantId, integrationKey: opts.integrationKey })
-        : null;
+    if (!tenantId) throw new Error("Missing tenantId");
+    const tenantAccess = await getTenantAccess({ tenantId, integrationKey: opts.integrationKey });
 
-    const customerId = tenantAccess
-        ? cleanCid(opts.customerId || tenantAccess.customerId)
-        : cleanCid(opts.customerId || s(process.env.GOOGLE_ADS_CUSTOMER_ID));
+    const customerId = cleanCid(opts.customerId || tenantAccess.customerId);
     if (!customerId) throw new Error("Missing Google Ads customerId.");
 
-    const accessToken = tenantAccess?.accessToken || (await getAccessToken());
-    const versions = versionCandidates(opts.version);
+    const accessToken = tenantAccess.accessToken;
+    const versions = versionCandidates(opts.version || tenantAccess.apiVersion);
     let lastErr = "";
 
     for (const version of versions) {
@@ -158,13 +145,8 @@ export async function googleAdsSearch(opts: {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 ...headersBase(
-                    tenantAccess
-                        ? tenantAccess.developerToken
-                        : undefined,
-                    tenantAccess
-                        ? (opts.loginCustomerId || tenantAccess.loginCustomerId)
-                        : opts.loginCustomerId,
-                    !tenantAccess,
+                    tenantAccess.developerToken,
+                    opts.loginCustomerId || tenantAccess.loginCustomerId,
                 ),
             },
             body: JSON.stringify({ query: opts.query }),
@@ -217,7 +199,7 @@ export async function googleAdsGenerateKeywordIdeas(opts: {
     const tenantId = s(opts.tenantId);
     if (!tenantId) throw new Error("Missing tenantId");
     const tenantAccess = await getTenantAccess({ tenantId, integrationKey: opts.integrationKey });
-    const accessToken = tenantAccess.accessToken || (await getAccessToken());
+    const accessToken = tenantAccess.accessToken;
 
     const customerId = cleanCid(opts.customerId || tenantAccess.customerId);
     if (!customerId) throw new Error("Missing Google Ads customerId.");
@@ -227,7 +209,7 @@ export async function googleAdsGenerateKeywordIdeas(opts: {
     ).slice(0, 20);
     if (!keywords.length) return { results: [] as GoogleAdsKeywordIdea[] };
 
-    const versions = versionCandidates(opts.version);
+    const versions = versionCandidates(opts.version || tenantAccess.apiVersion);
     let lastErr = "";
     const max429Retries = 4;
     for (const version of versions) {
@@ -260,7 +242,6 @@ export async function googleAdsGenerateKeywordIdeas(opts: {
                         ...headersBase(
                             tenantAccess.developerToken,
                             opts.loginCustomerId || tenantAccess.loginCustomerId,
-                            false,
                         ),
                     },
                     body: JSON.stringify(body),

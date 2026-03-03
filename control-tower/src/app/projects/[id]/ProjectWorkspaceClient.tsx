@@ -18,6 +18,19 @@ const DOMAIN_BOT_TIMEOUT_MIN_DEFAULT = 35;
 const DOMAIN_BOT_TIMEOUT_MIN_MIN = 5;
 const DOMAIN_BOT_TIMEOUT_MIN_MAX = 120;
 const SEARCH_EMBEDDED_HOST = "search-embedded.telahagocrecer.com";
+const DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS: TenantCampaignContextSettings = {
+  businessName: "My Drip Nurse",
+  brandVoice: "professional, friendly, trustworthy",
+  industry: "Mobile IV Therapy",
+  primaryOffer: "At-home mobile IV therapy",
+  targetAudience: "Adults looking for hydration, recovery, immunity support, and wellness IV services",
+  serviceArea: "United States and Puerto Rico",
+  primaryGoal: "Increase qualified leads, booked appointments, and profitable revenue growth",
+  complianceNotes: "Avoid medical claims or guaranteed outcomes.",
+  internalProjectName: "Delta System",
+  excludeInternalProjectNameFromAds: true,
+  defaultBaseUrl: "https://mydripnurse.com",
+};
 const SEARCH_BUILDER_FONT_OPTIONS = [
   { key: "lato", label: "Lato", family: "Lato", importUrl: "https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" },
   { key: "inter", label: "Inter", family: "Inter", importUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" },
@@ -124,6 +137,20 @@ type TenantAiPromptRow = {
   source: "db" | "default";
   customized: boolean;
   updatedAt?: string;
+};
+
+type TenantCampaignContextSettings = {
+  businessName: string;
+  brandVoice: string;
+  industry: string;
+  primaryOffer: string;
+  targetAudience: string;
+  serviceArea: string;
+  primaryGoal: string;
+  complianceNotes: string;
+  internalProjectName: string;
+  excludeInternalProjectNameFromAds: boolean;
+  defaultBaseUrl: string;
 };
 
 type SearchBuilderProject = {
@@ -910,6 +937,13 @@ export default function Home() {
   const [tenantAiPromptsSearch, setTenantAiPromptsSearch] = useState("");
   const [tenantAiPromptSelectedKey, setTenantAiPromptSelectedKey] = useState("");
   const [tenantAiPromptEditorText, setTenantAiPromptEditorText] = useState("");
+  const [tenantCampaignCtxSettings, setTenantCampaignCtxSettings] = useState<TenantCampaignContextSettings>(
+    DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS,
+  );
+  const [tenantCampaignCtxLoading, setTenantCampaignCtxLoading] = useState(false);
+  const [tenantCampaignCtxSaving, setTenantCampaignCtxSaving] = useState(false);
+  const [tenantCampaignCtxMsg, setTenantCampaignCtxMsg] = useState("");
+  const [tenantCampaignCtxErr, setTenantCampaignCtxErr] = useState("");
   const [tenantProductsServices, setTenantProductsServices] = useState<TenantProductServiceRow[]>([]);
   const [tenantProductsServicesLoading, setTenantProductsServicesLoading] = useState(false);
   const [tenantProductsServicesSaving, setTenantProductsServicesSaving] = useState(false);
@@ -1912,6 +1946,84 @@ export default function Home() {
     }
   }
 
+  function normalizeTenantCampaignContextSettings(input: Record<string, unknown> | null | undefined) {
+    return {
+      businessName: s(input?.businessName) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.businessName,
+      brandVoice: s(input?.brandVoice) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.brandVoice,
+      industry: s(input?.industry) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.industry,
+      primaryOffer: s(input?.primaryOffer) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.primaryOffer,
+      targetAudience: s(input?.targetAudience) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.targetAudience,
+      serviceArea: s(input?.serviceArea) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.serviceArea,
+      primaryGoal: s(input?.primaryGoal) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.primaryGoal,
+      complianceNotes: s(input?.complianceNotes) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.complianceNotes,
+      internalProjectName:
+        s(input?.internalProjectName) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.internalProjectName,
+      excludeInternalProjectNameFromAds:
+        typeof input?.excludeInternalProjectNameFromAds === "boolean"
+          ? input.excludeInternalProjectNameFromAds
+          : DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.excludeInternalProjectNameFromAds,
+      defaultBaseUrl: s(input?.defaultBaseUrl) || DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS.defaultBaseUrl,
+    } as TenantCampaignContextSettings;
+  }
+
+  async function loadTenantCampaignContextSettings() {
+    if (!routeTenantId) {
+      setTenantCampaignCtxSettings(DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS);
+      return;
+    }
+    setTenantCampaignCtxLoading(true);
+    setTenantCampaignCtxMsg("");
+    setTenantCampaignCtxErr("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/campaign-context-settings`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      setTenantCampaignCtxSettings(
+        normalizeTenantCampaignContextSettings((data as any)?.payload as Record<string, unknown>),
+      );
+    } catch (e: any) {
+      setTenantCampaignCtxSettings(DEFAULT_TENANT_CAMPAIGN_CONTEXT_SETTINGS);
+      setTenantCampaignCtxErr(e?.message || "Failed to load campaign context settings.");
+    } finally {
+      setTenantCampaignCtxLoading(false);
+    }
+  }
+
+  async function saveTenantCampaignContextSettings() {
+    if (!routeTenantId) return;
+    setTenantCampaignCtxSaving(true);
+    setTenantCampaignCtxErr("");
+    setTenantCampaignCtxMsg("");
+    try {
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/campaign-context-settings`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(tenantCampaignCtxSettings),
+        },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const payload = normalizeTenantCampaignContextSettings(
+        ((data as any)?.payload || {}) as Record<string, unknown>,
+      );
+      setTenantCampaignCtxSettings(payload);
+      setTenantCampaignCtxMsg("Campaign context settings saved in DB.");
+    } catch (e: any) {
+      setTenantCampaignCtxErr(e?.message || "Failed to save campaign context settings.");
+    } finally {
+      setTenantCampaignCtxSaving(false);
+    }
+  }
+
   async function loadTenantProductsServices() {
     if (!routeTenantId) {
       setTenantProductsServices([]);
@@ -2418,6 +2530,10 @@ export default function Home() {
 
   useEffect(() => {
     void loadTenantAiPrompts();
+  }, [routeTenantId]);
+
+  useEffect(() => {
+    void loadTenantCampaignContextSettings();
   }, [routeTenantId]);
 
   useEffect(() => {
@@ -10935,6 +11051,130 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     </label>
                   </>
                 )}
+              </div>
+            </div>
+
+            <div className="agencyFormPanel" style={{ marginTop: 12 }}>
+              <div className="cardHeader" style={{ padding: 0, marginBottom: 8 }}>
+                <div>
+                  <h3 className="cardTitle">Campaign Context Settings</h3>
+                  <div className="cardSubtitle">
+                    Datos de negocio para Campaign Factory en DB por tenant.
+                  </div>
+                </div>
+                <div className="cardHeaderActions">
+                  {tenantCampaignCtxMsg ? <span className="badge">{tenantCampaignCtxMsg}</span> : null}
+                  <button className="smallBtn" onClick={() => void loadTenantCampaignContextSettings()} disabled={tenantCampaignCtxLoading}>
+                    {tenantCampaignCtxLoading ? "Refreshing..." : "Refresh"}
+                  </button>
+                  <button className="smallBtn" onClick={() => void saveTenantCampaignContextSettings()} disabled={tenantCampaignCtxSaving}>
+                    {tenantCampaignCtxSaving ? "Saving..." : "Save Settings"}
+                  </button>
+                </div>
+              </div>
+              {tenantCampaignCtxErr ? (
+                <div className="mini" style={{ color: "var(--danger)", marginBottom: 10 }}>
+                  ❌ {tenantCampaignCtxErr}
+                </div>
+              ) : null}
+              <div className="agencyWizardGrid agencyWizardGridTwo">
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Business Name</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.businessName}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, businessName: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Industry</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.industry}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, industry: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Primary Offer</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.primaryOffer}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, primaryOffer: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Service Area</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.serviceArea}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, serviceArea: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Primary Goal</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.primaryGoal}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, primaryGoal: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Default Base URL</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.defaultBaseUrl}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, defaultBaseUrl: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Target Audience</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.targetAudience}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, targetAudience: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Brand Voice</span>
+                  <textarea
+                    className="input agencyTextarea"
+                    rows={3}
+                    value={tenantCampaignCtxSettings.brandVoice}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, brandVoice: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField agencyFieldFull">
+                  <span className="agencyFieldLabel">Compliance Notes</span>
+                  <textarea
+                    className="input agencyTextarea"
+                    rows={3}
+                    value={tenantCampaignCtxSettings.complianceNotes}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, complianceNotes: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Internal Project Name</span>
+                  <input
+                    className="input"
+                    value={tenantCampaignCtxSettings.internalProjectName}
+                    onChange={(e) => setTenantCampaignCtxSettings((p) => ({ ...p, internalProjectName: e.target.value }))}
+                  />
+                </label>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Exclude Internal Name In Ads</span>
+                  <select
+                    className="input"
+                    value={tenantCampaignCtxSettings.excludeInternalProjectNameFromAds ? "yes" : "no"}
+                    onChange={(e) =>
+                      setTenantCampaignCtxSettings((p) => ({
+                        ...p,
+                        excludeInternalProjectNameFromAds: e.target.value === "yes",
+                      }))}
+                  >
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
               </div>
             </div>
           </div>

@@ -1,14 +1,10 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { getDbPool } from "@/lib/db";
 import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
+import { getTenantOpenAIClient } from "@/lib/tenantOpenAI";
 
 export const runtime = "nodejs";
-
-const openaiClient = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 type Suggestion = {
   recommendationType: string;
@@ -208,7 +204,17 @@ async function aiRefineSuggestions(input: {
   joinData: any;
   heuristics: Suggestion[];
 }): Promise<Suggestion[] | null> {
-  if (!openaiClient) return null;
+  const tenantId = s(input.tenantId);
+  if (!tenantId) return null;
+  let openaiClient: Awaited<ReturnType<typeof getTenantOpenAIClient>> | null = null;
+  try {
+    openaiClient = await getTenantOpenAIClient({
+      tenantId,
+      integrationKey: s(input.integrationKey) || "default",
+    });
+  } catch {
+    return null;
+  }
 
   const schema = {
     type: "object",
@@ -249,7 +255,7 @@ async function aiRefineSuggestions(input: {
   };
 
   const promptResolved = await resolveTenantAiPrompt({
-    tenantId: s(input.tenantId) || null,
+    tenantId: tenantId || null,
     integrationKey: s(input.integrationKey) || "default",
     promptKey: "dashboard.ads.notifications.system.v1",
     fallbackPrompt:

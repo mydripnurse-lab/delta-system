@@ -1,8 +1,8 @@
-import fs from "fs/promises";
-import path from "path";
 import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
 import { getDbPool } from "@/lib/db";
-import { loadTenantProductsServices } from "@/lib/tenantProductsServices";
+import { loadDashboardSnapshot } from "@/lib/dashboardSnapshots";
+import { readTenantCampaignContextSettings } from "@/lib/campaignContextSettings";
+import { loadTenantProductsServicesDbOnly } from "@/lib/tenantProductsServices";
 
 export const runtime = "nodejs";
 
@@ -10,30 +10,6 @@ type SheetTabIndex = {
   headers: string[];
   rows: unknown[][];
   headerMap: Map<string, number>;
-};
-
-type GscCacheRow = {
-  query?: unknown;
-  keys?: unknown[];
-  clicks?: unknown;
-  impressions?: unknown;
-};
-
-type GscCacheFile = {
-  rows?: GscCacheRow[];
-};
-
-type BusinessProfile = {
-  businessName: string;
-  brandVoice: string;
-  industry: string;
-  primaryOffer: string;
-  targetAudience: string;
-  serviceArea: string;
-  primaryGoal: string;
-  complianceNotes: string;
-  internalProjectName?: string;
-  excludeInternalProjectNameFromAds?: boolean;
 };
 
 function s(v: unknown) {
@@ -69,66 +45,15 @@ function safeUrl(raw: string) {
   return `https://${x}`;
 }
 
-async function readJsonIfExists<T = unknown>(filePath: string): Promise<T | null> {
-  try {
-    const txt = await fs.readFile(filePath, "utf8");
-    return JSON.parse(txt) as T;
-  } catch {
-    return null;
-  }
+async function loadBusinessProfile(tenantId: string) {
+  const row = await readTenantCampaignContextSettings(tenantId);
+  return row.payload;
 }
 
-function pickFirstExisting(paths: string[]) {
-  for (const p of paths) {
-    if (p) return p;
-  }
-  return "";
-}
-
-async function loadBusinessProfile() {
-  const profileFile = pickFirstExisting([
-    process.env.BUSINESS_PROFILE_FILE || "",
-    path.resolve(process.cwd(), "../resources/config/business-profile.json"),
-    path.resolve(process.cwd(), "resources/config/business-profile.json"),
-  ]);
-
-  const base =
-    (await readJsonIfExists<BusinessProfile>(profileFile)) ||
-    ({
-      businessName: "My Drip Nurse",
-      brandVoice: "professional, friendly, trustworthy",
-      industry: "Mobile IV Therapy",
-      primaryOffer: "At-home mobile IV therapy",
-      targetAudience: "Adults looking for hydration, recovery, immunity support, and wellness IV services",
-      serviceArea: "United States and Puerto Rico",
-      primaryGoal: "Increase qualified leads, booked appointments, and profitable revenue growth",
-      complianceNotes: "Avoid medical claims or guaranteed outcomes.",
-      internalProjectName: "Delta System",
-      excludeInternalProjectNameFromAds: true,
-    } as BusinessProfile);
-
+async function loadLandingMap(tenantId: string) {
+  const loaded = await loadTenantProductsServicesDbOnly(tenantId);
   return {
-    ...base,
-    businessName: s(process.env.BUSINESS_NAME) || base.businessName,
-    brandVoice: s(process.env.BUSINESS_BRAND_VOICE) || base.brandVoice,
-    industry: s(process.env.BUSINESS_INDUSTRY) || base.industry,
-    primaryOffer: s(process.env.BUSINESS_PRIMARY_OFFER) || base.primaryOffer,
-    targetAudience: s(process.env.BUSINESS_TARGET_AUDIENCE) || base.targetAudience,
-    serviceArea: s(process.env.BUSINESS_SERVICE_AREA) || base.serviceArea,
-    primaryGoal: s(process.env.BUSINESS_PRIMARY_GOAL) || base.primaryGoal,
-    complianceNotes: s(process.env.BUSINESS_COMPLIANCE_NOTES) || base.complianceNotes,
-    internalProjectName: s(process.env.BUSINESS_INTERNAL_PROJECT_NAME) || base.internalProjectName || "",
-    excludeInternalProjectNameFromAds:
-      s(process.env.BUSINESS_EXCLUDE_INTERNAL_PROJECT_NAME_FROM_ADS)
-        ? isTrue(process.env.BUSINESS_EXCLUDE_INTERNAL_PROJECT_NAME_FROM_ADS)
-        : Boolean(base.excludeInternalProjectNameFromAds),
-  };
-}
-
-async function loadLandingMap(tenantId?: string) {
-  const loaded = await loadTenantProductsServices(tenantId);
-  return {
-    file: loaded.source === "file" ? s((loaded as { file?: string }).file) : "",
+    file: "",
     source: loaded.source,
     services: loaded.services.map((x) => ({
       id: s(x.id),
@@ -248,21 +173,17 @@ async function loadSheetDomains(tenantId?: string) {
 }
 
 async function loadGscTopQueries(limit: number, tenantId?: string) {
-  const filePath = path.resolve(
-    process.cwd(),
-    "data",
-    "cache",
-    "tenants",
-    s(tenantId) || "_default",
-    "gsc",
-    "queries.json",
-  );
-  const raw = await readJsonIfExists<GscCacheFile>(filePath);
-  const rows = Array.isArray(raw?.rows) ? raw.rows : [];
+  const id = s(tenantId);
+  if (!id) return { available: false, rows: [] as Array<{ query: string; clicks: number; impressions: number }> };
+
+  const snapshot = await loadDashboardSnapshot(id, "gsc");
+  const payload = (snapshot?.payload || {}) as Record<string, unknown>;
+  const queries = (payload.queries || {}) as Record<string, unknown>;
+  const rows = Array.isArray(queries.rows) ? (queries.rows as Array<Record<string, unknown>>) : [];
 
   const mapped = rows
     .map((r) => {
-      const query = s(r?.query || r?.keys?.[0]);
+      const query = s(r?.query || (Array.isArray(r?.keys) ? r.keys[0] : ""));
       const clicks = Number(r?.clicks || 0);
       const impressions = Number(r?.impressions || 0);
       return {
@@ -304,17 +225,19 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const keywordLimit = Math.max(5, Math.min(100, Number(searchParams.get("keywordLimit") || 30)));
     const tenantId = s(searchParams.get("tenantId"));
+    if (!tenantId) {
+      return Response.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
 
     const [business, landingMap, domains, gsc, tenantBaseUrl] = await Promise.all([
-      loadBusinessProfile(),
+      loadBusinessProfile(tenantId),
       loadLandingMap(tenantId),
       loadSheetDomains(tenantId),
       loadGscTopQueries(keywordLimit, tenantId),
       loadTenantDefaultBaseUrl(tenantId),
     ]);
 
-    const defaultBaseUrl =
-      safeUrl(tenantBaseUrl || s(process.env.NEXT_PUBLIC_DEFAULT_BASE_URL) || s(process.env.BUSINESS_DEFAULT_BASE_URL) || "https://mydripnurse.com");
+    const defaultBaseUrl = safeUrl(tenantBaseUrl || business.defaultBaseUrl || "https://mydripnurse.com");
 
     return Response.json({
       ok: true,

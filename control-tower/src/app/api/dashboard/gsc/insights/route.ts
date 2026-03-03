@@ -1,14 +1,11 @@
 // control-tower/src/app/api/dashboard/gsc/insights/route.ts
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getTenantOpenAIClient } from "@/lib/tenantOpenAI";
 import { appendAiEvent } from "@/lib/aiMemory";
 import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
-const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 function s(v: unknown) {
     return String(v ?? "").trim();
@@ -29,19 +26,13 @@ function safeJsonStringify(x: any, maxChars = 140_000) {
 
 export async function POST(req: Request) {
     try {
-        if (!process.env.OPENAI_API_KEY) {
-            return NextResponse.json(
-                { ok: false, error: "Missing OPENAI_API_KEY in environment." },
-                { status: 500 },
-            );
-        }
-
         const payload = await req.json();
         const tenantId = s(payload?.tenantId || "");
         if (!tenantId) {
             return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
         }
         const integrationKey = s(payload?.integrationKey || "default");
+        const client = await getTenantOpenAIClient({ tenantId, integrationKey });
 
         // ✅ JSON schema estricto (igual patrón que Calls)
         const schema = {
