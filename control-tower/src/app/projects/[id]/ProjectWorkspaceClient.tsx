@@ -12,6 +12,7 @@ const JOBS = [
   { key: "build-state-sitemaps", label: "Create Sitemaps" },
 ];
 const OAUTH_INTEGRATION_KEY = "default";
+const PROMPTS_INTEGRATION_KEY = "default";
 const DOMAIN_BOT_BASE_URL = "https://app.devasks.com/v2/location";
 const DOMAIN_BOT_TIMEOUT_MIN_DEFAULT = 35;
 const DOMAIN_BOT_TIMEOUT_MIN_MIN = 5;
@@ -110,6 +111,19 @@ type TenantProductServiceRow = {
   cta: string;
   ctaSecondary: string;
   isActive: boolean;
+};
+
+type TenantAiPromptRow = {
+  promptKey: string;
+  name: string;
+  module: string;
+  routePath: string;
+  description: string;
+  promptText: string;
+  integrationKey: string;
+  source: "db" | "default";
+  customized: boolean;
+  updatedAt?: string;
 };
 
 type SearchBuilderProject = {
@@ -330,7 +344,7 @@ type TenantDetailResponse = {
   error?: string;
 };
 
-type ProjectTab = "runner" | "search_builder" | "location_nav" | "sheet" | "activation" | "logs" | "details" | "webhooks";
+type ProjectTab = "runner" | "search_builder" | "location_nav" | "sheet" | "activation" | "logs" | "details" | "webhooks" | "prompts";
 const PROJECT_TAB_TO_SLUG: Record<ProjectTab, string> = {
   activation: "home",
   runner: "run-center",
@@ -340,6 +354,7 @@ const PROJECT_TAB_TO_SLUG: Record<ProjectTab, string> = {
   details: "project-details",
   webhooks: "webhooks",
   logs: "logs",
+  prompts: "prompts",
 };
 const PROJECT_SLUG_TO_TAB: Record<string, ProjectTab> = {
   home: "activation",
@@ -350,6 +365,7 @@ const PROJECT_SLUG_TO_TAB: Record<string, ProjectTab> = {
   "project-details": "details",
   webhooks: "webhooks",
   logs: "logs",
+  prompts: "prompts",
 };
 type ProjectDetailsTab =
   | "business"
@@ -886,6 +902,14 @@ export default function Home() {
   const [tenantCustomValuesMsg, setTenantCustomValuesMsg] = useState("");
   const [tenantCustomValuesPage, setTenantCustomValuesPage] = useState(1);
   const [tenantCustomValuesSearch, setTenantCustomValuesSearch] = useState("");
+  const [tenantAiPrompts, setTenantAiPrompts] = useState<TenantAiPromptRow[]>([]);
+  const [tenantAiPromptsLoading, setTenantAiPromptsLoading] = useState(false);
+  const [tenantAiPromptsSaving, setTenantAiPromptsSaving] = useState(false);
+  const [tenantAiPromptsErr, setTenantAiPromptsErr] = useState("");
+  const [tenantAiPromptsMsg, setTenantAiPromptsMsg] = useState("");
+  const [tenantAiPromptsSearch, setTenantAiPromptsSearch] = useState("");
+  const [tenantAiPromptSelectedKey, setTenantAiPromptSelectedKey] = useState("");
+  const [tenantAiPromptEditorText, setTenantAiPromptEditorText] = useState("");
   const [tenantProductsServices, setTenantProductsServices] = useState<TenantProductServiceRow[]>([]);
   const [tenantProductsServicesLoading, setTenantProductsServicesLoading] = useState(false);
   const [tenantProductsServicesSaving, setTenantProductsServicesSaving] = useState(false);
@@ -1791,6 +1815,103 @@ export default function Home() {
     }
   }
 
+  async function loadTenantAiPrompts() {
+    if (!routeTenantId) {
+      setTenantAiPrompts([]);
+      setTenantAiPromptSelectedKey("");
+      setTenantAiPromptEditorText("");
+      return;
+    }
+    setTenantAiPromptsLoading(true);
+    setTenantAiPromptsErr("");
+    try {
+      const qs = new URLSearchParams({
+        integrationKey: PROMPTS_INTEGRATION_KEY,
+      });
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/ai-prompts?${qs.toString()}`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      const rows = Array.isArray((data as any)?.rows) ? (data as any).rows : [];
+      const mapped = rows.map((row: any) => ({
+        promptKey: s(row.promptKey),
+        name: s(row.name),
+        module: s(row.module),
+        routePath: s(row.routePath),
+        description: s(row.description),
+        promptText: s(row.promptText),
+        integrationKey: s(row.integrationKey) || PROMPTS_INTEGRATION_KEY,
+        source: s(row.source) === "db" ? "db" : "default",
+        customized: row?.customized === true,
+        updatedAt: s(row.updatedAt),
+      })) as TenantAiPromptRow[];
+      setTenantAiPrompts(mapped);
+      if (!mapped.length) {
+        setTenantAiPromptSelectedKey("");
+        setTenantAiPromptEditorText("");
+        return;
+      }
+      const selectedKey = s(tenantAiPromptSelectedKey);
+      const selected = mapped.find((row) => row.promptKey === selectedKey) || mapped[0];
+      setTenantAiPromptSelectedKey(selected.promptKey);
+      setTenantAiPromptEditorText(selected.promptText);
+    } catch (e: any) {
+      setTenantAiPrompts([]);
+      setTenantAiPromptsErr(e?.message || "Failed to load tenant AI prompts.");
+    } finally {
+      setTenantAiPromptsLoading(false);
+    }
+  }
+
+  async function saveTenantAiPrompt() {
+    if (!routeTenantId) return;
+    const promptKey = s(tenantAiPromptSelectedKey);
+    const row = tenantAiPrompts.find((x) => x.promptKey === promptKey) || null;
+    if (!row || !promptKey) {
+      setTenantAiPromptsErr("Select one prompt before saving.");
+      return;
+    }
+    const promptText = s(tenantAiPromptEditorText);
+    if (!promptText) {
+      setTenantAiPromptsErr("Prompt text cannot be empty.");
+      return;
+    }
+
+    setTenantAiPromptsSaving(true);
+    setTenantAiPromptsErr("");
+    setTenantAiPromptsMsg("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/ai-prompts`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          integrationKey: row.integrationKey || PROMPTS_INTEGRATION_KEY,
+          promptKey: row.promptKey,
+          name: row.name,
+          module: row.module,
+          routePath: row.routePath,
+          description: row.description,
+          promptText,
+          isActive: true,
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error((data as any)?.error || `HTTP ${res.status}`);
+      }
+      setTenantAiPromptsMsg(`Prompt saved in DB (${row.name}).`);
+      await loadTenantAiPrompts();
+    } catch (e: any) {
+      setTenantAiPromptsErr(e?.message || "Failed to save tenant AI prompt.");
+    } finally {
+      setTenantAiPromptsSaving(false);
+    }
+  }
+
   async function loadTenantProductsServices() {
     if (!routeTenantId) {
       setTenantProductsServices([]);
@@ -2294,6 +2415,18 @@ export default function Home() {
   useEffect(() => {
     void loadTenantProductsServices();
   }, [routeTenantId]);
+
+  useEffect(() => {
+    void loadTenantAiPrompts();
+  }, [routeTenantId]);
+
+  useEffect(() => {
+    const key = s(tenantAiPromptSelectedKey);
+    if (!key) return;
+    const row = tenantAiPrompts.find((x) => x.promptKey === key);
+    if (!row) return;
+    setTenantAiPromptEditorText(row.promptText);
+  }, [tenantAiPromptSelectedKey, tenantAiPrompts]);
 
   useEffect(() => {
     if (!routeTenantId) return;
@@ -3747,6 +3880,18 @@ export default function Home() {
     if (!term) return rows;
     return rows.filter((r) => r.state.toLowerCase().includes(term));
   }, [sheet, q]);
+
+  const filteredTenantAiPrompts = useMemo(() => {
+    const term = s(tenantAiPromptsSearch).toLowerCase();
+    if (!term) return tenantAiPrompts;
+    return tenantAiPrompts.filter((row) => {
+      const hay = `${row.name} ${row.module} ${row.routePath} ${row.promptKey}`.toLowerCase();
+      return hay.includes(term);
+    });
+  }, [tenantAiPrompts, tenantAiPromptsSearch]);
+
+  const selectedTenantAiPrompt =
+    tenantAiPrompts.find((row) => row.promptKey === s(tenantAiPromptSelectedKey)) || null;
 
   const totals = useMemo(() => {
     const rows = sheet?.states || [];
@@ -7744,6 +7889,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             Webhook
           </Link>
           <Link
+            className={`agencyNavItem ${activeProjectTab === "prompts" ? "agencyNavItemActive" : ""}`}
+            href={projectTabHref("prompts")}
+            onClick={() => setActiveProjectTab("prompts")}
+          >
+            Prompts
+          </Link>
+          <Link
             className={`agencyNavItem ${activeProjectTab === "logs" ? "agencyNavItemActive" : ""}`}
             href={projectTabHref("logs")}
             onClick={() => setActiveProjectTab("logs")}
@@ -10678,7 +10830,117 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </section>
       ) : null}
 
-      {/* Logs */}
+      {activeProjectTab === "prompts" ? (
+        <section className="card" style={{ marginTop: 12 }}>
+          <div className="cardHeader">
+            <div>
+              <h2 className="cardTitle">Prompts</h2>
+              <div className="cardSubtitle">
+                Tenant AI prompts editable por módulo/ruta. Integración actual: <b>{PROMPTS_INTEGRATION_KEY}</b>.
+              </div>
+            </div>
+            <div className="cardHeaderActions">
+              {tenantAiPromptsMsg ? <span className="badge">{tenantAiPromptsMsg}</span> : null}
+              <button className="smallBtn" onClick={() => void loadTenantAiPrompts()} disabled={tenantAiPromptsLoading}>
+                {tenantAiPromptsLoading ? "Refreshing..." : "Refresh"}
+              </button>
+              <button className="smallBtn" onClick={() => void saveTenantAiPrompt()} disabled={tenantAiPromptsSaving || !selectedTenantAiPrompt}>
+                {tenantAiPromptsSaving ? "Saving..." : "Save Prompt"}
+              </button>
+            </div>
+          </div>
+          <div className="cardBody">
+            {tenantAiPromptsErr ? (
+              <div className="mini" style={{ color: "var(--danger)", marginBottom: 10 }}>
+                ❌ {tenantAiPromptsErr}
+              </div>
+            ) : null}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 12 }}>
+              <div className="agencyFormPanel" style={{ maxHeight: 700, overflow: "auto" }}>
+                <label className="agencyField">
+                  <span className="agencyFieldLabel">Search prompts</span>
+                  <input
+                    className="input"
+                    placeholder="name, module, route..."
+                    value={tenantAiPromptsSearch}
+                    onChange={(e) => setTenantAiPromptsSearch(e.target.value)}
+                  />
+                </label>
+                <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                  {filteredTenantAiPrompts.map((row) => {
+                    const active = row.promptKey === s(tenantAiPromptSelectedKey);
+                    return (
+                      <button
+                        key={row.promptKey}
+                        type="button"
+                        className={`agencyNavItem ${active ? "agencyNavItemActive" : ""}`}
+                        onClick={() => {
+                          setTenantAiPromptSelectedKey(row.promptKey);
+                          setTenantAiPromptEditorText(row.promptText);
+                          setTenantAiPromptsMsg("");
+                          setTenantAiPromptsErr("");
+                        }}
+                        style={{ textAlign: "left" }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{row.name || row.promptKey}</div>
+                        <div className="mini">
+                          {row.module || "ai"} · {row.routePath || "n/a"}
+                        </div>
+                        <div className="mini">{row.customized ? "Customized (DB)" : "Default (fallback)"}</div>
+                      </button>
+                    );
+                  })}
+                  {!filteredTenantAiPrompts.length ? (
+                    <div className="mini">No prompts found.</div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="agencyFormPanel">
+                {!selectedTenantAiPrompt ? (
+                  <div className="mini">Select a prompt on the left.</div>
+                ) : (
+                  <>
+                    <div className="agencyWizardGrid agencyWizardGridTwo">
+                      <label className="agencyField">
+                        <span className="agencyFieldLabel">Prompt Name</span>
+                        <input className="input" value={selectedTenantAiPrompt.name} readOnly />
+                      </label>
+                      <label className="agencyField">
+                        <span className="agencyFieldLabel">Prompt Key</span>
+                        <input className="input" value={selectedTenantAiPrompt.promptKey} readOnly />
+                      </label>
+                      <label className="agencyField">
+                        <span className="agencyFieldLabel">Module</span>
+                        <input className="input" value={selectedTenantAiPrompt.module} readOnly />
+                      </label>
+                      <label className="agencyField">
+                        <span className="agencyFieldLabel">Route Usage</span>
+                        <input className="input" value={selectedTenantAiPrompt.routePath || "n/a"} readOnly />
+                      </label>
+                    </div>
+                    {selectedTenantAiPrompt.description ? (
+                      <div className="mini" style={{ margin: "6px 0 10px" }}>
+                        {selectedTenantAiPrompt.description}
+                      </div>
+                    ) : null}
+                    <label className="agencyField">
+                      <span className="agencyFieldLabel">Prompt Text</span>
+                      <textarea
+                        className="input agencyTextarea"
+                        rows={18}
+                        value={tenantAiPromptEditorText}
+                        onChange={(e) => setTenantAiPromptEditorText(e.target.value)}
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {activeProjectTab === "webhooks" ? (
         <section className="card" style={{ marginTop: 12 }} ref={webhooksRef}>
           <div className="cardHeader">

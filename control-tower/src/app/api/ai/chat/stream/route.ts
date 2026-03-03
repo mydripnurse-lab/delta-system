@@ -7,6 +7,7 @@ import {
     getRecentEvents,
 } from "@/lib/aiMemory";
 import { buildBusinessContextFromDb } from "@/lib/aiBusinessContext";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
         const agent = s(body?.agent || "overview");
         const threadId = normalizeThreadId(body?.threadId);
         const tenantId = s(body?.tenantId || "");
+        const integrationKey = s((body?.context as any)?.integrationKey || "default");
         const userMsg = s(body?.message);
         const context = body?.context || {};
 
@@ -71,12 +73,24 @@ export async function POST(req: Request) {
             metadata: { role: "user", threadId },
         });
 
-        const [convo, events, dbBusinessContext] = await Promise.all([
+        const [convo, events, dbBusinessContext, promptResolved] = await Promise.all([
             getConversationForThread(agent, threadId, 30, tenantId || null),
             getRecentEvents(80, tenantId || null),
             tenantId
                 ? buildBusinessContextFromDb(tenantId, String((context as any)?.integrationKey || "owner"))
                 : Promise.resolve(null),
+            resolveTenantAiPrompt({
+                tenantId: tenantId || null,
+                integrationKey,
+                promptKey: "ai.chat.stream.system.v1",
+                fallbackPrompt:
+                    "You are a multi-dashboard business copilot with CEO reasoning. " +
+                    "You can collaborate across Calls, Leads, GSC, GA, Ads, YouTube Ads and Overview agents. " +
+                    "Use conversation history, recent AI events, UI context, and DB business context when available. " +
+                    "Do not anchor only to UI date filters if DB business context has broader data. " +
+                    "Be concrete, action-oriented, and cite numeric evidence from context when available. " +
+                    "If data/setup is missing, clearly call it out and propose next best steps.",
+            }),
         ]);
         const eventsCompact = events.map((e) => ({
             ts: e.ts,
@@ -101,13 +115,7 @@ export async function POST(req: Request) {
                         input: [
                             {
                                 role: "system",
-                                content:
-                                    "You are a multi-dashboard business copilot with CEO reasoning. " +
-                                    "You can collaborate across Calls, Leads, GSC, GA, Ads, YouTube Ads and Overview agents. " +
-                                    "Use conversation history, recent AI events, UI context, and DB business context when available. " +
-                                    "Do not anchor only to UI date filters if DB business context has broader data. " +
-                                    "Be concrete, action-oriented, and cite numeric evidence from context when available. " +
-                                    "If data/setup is missing, clearly call it out and propose next best steps.",
+                                content: promptResolved.promptText,
                             },
                             {
                                 role: "user",

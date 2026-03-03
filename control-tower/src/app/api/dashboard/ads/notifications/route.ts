@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getDbPool } from "@/lib/db";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -202,6 +203,8 @@ function hasUrgentSignals(joinData: any) {
 }
 
 async function aiRefineSuggestions(input: {
+  tenantId?: string;
+  integrationKey?: string;
   joinData: any;
   heuristics: Suggestion[];
 }): Promise<Suggestion[] | null> {
@@ -245,16 +248,23 @@ async function aiRefineSuggestions(input: {
     required: ["notifications"],
   };
 
+  const promptResolved = await resolveTenantAiPrompt({
+    tenantId: s(input.tenantId) || null,
+    integrationKey: s(input.integrationKey) || "default",
+    promptKey: "dashboard.ads.notifications.system.v1",
+    fallbackPrompt:
+      "You are a senior Google Ads optimization lead, CRO specialist, and data analyst. " +
+      "Generate actionable daily campaign recommendations based only on the given metrics. " +
+      "Prioritize recommendations that can be approved/denied by an operator. Keep each recommendation concise and concrete.",
+  });
+
   const resp = await openaiClient.responses.create({
     model: "gpt-5.2",
     reasoning: { effort: "low" },
     input: [
       {
         role: "system",
-        content:
-          "You are a senior Google Ads optimization lead, CRO specialist, and data analyst. " +
-          "Generate actionable daily campaign recommendations based only on the given metrics. " +
-          "Prioritize recommendations that can be approved/denied by an operator. Keep each recommendation concise and concrete.",
+        content: promptResolved.promptText,
       },
       {
         role: "user",
@@ -460,7 +470,12 @@ async function generateNotifications(args: {
   const heuristics = buildHeuristicSuggestions(joinData);
   let suggestions: Suggestion[] = heuristics;
   try {
-    const ai = await aiRefineSuggestions({ joinData, heuristics });
+    const ai = await aiRefineSuggestions({
+      tenantId: args.tenantId,
+      integrationKey: args.integrationKey,
+      joinData,
+      heuristics,
+    });
     if (ai?.length) suggestions = ai;
   } catch {
     // fallback to heuristics

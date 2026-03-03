@@ -13,6 +13,7 @@ const ALLOWED_TABS = new Set([
   "sheet-explorer",
   "project-details",
   "webhooks",
+  "prompts",
   "logs",
 ]);
 

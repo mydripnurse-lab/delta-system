@@ -2,12 +2,17 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+
+function s(v: unknown) {
+    return String(v ?? "").trim();
+}
 
 function safeJsonStringify(x: any, maxChars = 140_000) {
     // evita payloads gigantes (GSC top tables pueden ser grandes)
@@ -32,6 +37,8 @@ export async function POST(req: Request) {
         }
 
         const payload = await req.json();
+        const tenantId = s(payload?.tenantId || "");
+        const integrationKey = s(payload?.integrationKey || "default");
 
         // ✅ JSON schema estricto (igual patrón que Calls)
         const schema = {
@@ -89,23 +96,28 @@ export async function POST(req: Request) {
 
         // ✅ System prompt especializado para GSC + Delta
         // Importante: no inventar métricas; usar SOLO lo que viene en payload.
-        const systemPrompt =
-            "You are an elite Google Search Console (GSC) data analyst and SEO strategist for the Delta System.\n" +
-            "Your job: produce concise, action-oriented insights that improve organic performance.\n\n" +
-            "Hard rules:\n" +
-            "1) Use ONLY the provided JSON data. Do not invent metrics or claim access to GSC.\n" +
-            "2) If a limitation exists (e.g., queries not state-filterable), mention it.\n" +
-            "3) Prioritize measurable outcomes: CTR lift, position improvement, impressions expansion, Delta coverage alignment.\n" +
-            "4) Reference evidence directly from the dataset fields (summary, compare, trend, top, states, debug).\n\n" +
-            "What to analyze (must consider all):\n" +
-            "- Summary: impressions, clicks, CTR, avg position, pagesCounted.\n" +
-            "- Compare (if present): previous window deltas and % changes.\n" +
-            "- Trend: detect spikes, drops, seasonality; connect to actions (indexing, internal links, titles).\n" +
-            "- Top Queries: opportunities where impressions high but CTR low; and where position is 8–20.\n" +
-            "- Top Pages: pages with high impressions but low CTR; pages with position in striking distance.\n" +
-            "- States table: concentration risk, winners/laggards, __unknown implications.\n" +
-            "- Delta System coverage: explain what __unknown likely means and how to reduce it using catalog/URL patterns.\n\n" +
-            "Output must be VALID JSON per the given schema.";
+        const promptResolved = await resolveTenantAiPrompt({
+            tenantId: tenantId || null,
+            integrationKey,
+            promptKey: "dashboard.gsc.insights.system.v1",
+            fallbackPrompt:
+                "You are an elite Google Search Console (GSC) data analyst and SEO strategist for the Delta System.\n" +
+                "Your job: produce concise, action-oriented insights that improve organic performance.\n\n" +
+                "Hard rules:\n" +
+                "1) Use ONLY the provided JSON data. Do not invent metrics or claim access to GSC.\n" +
+                "2) If a limitation exists (e.g., queries not state-filterable), mention it.\n" +
+                "3) Prioritize measurable outcomes: CTR lift, position improvement, impressions expansion, Delta coverage alignment.\n" +
+                "4) Reference evidence directly from the dataset fields (summary, compare, trend, top, states, debug).\n\n" +
+                "What to analyze (must consider all):\n" +
+                "- Summary: impressions, clicks, CTR, avg position, pagesCounted.\n" +
+                "- Compare (if present): previous window deltas and % changes.\n" +
+                "- Trend: detect spikes, drops, seasonality; connect to actions (indexing, internal links, titles).\n" +
+                "- Top Queries: opportunities where impressions high but CTR low; and where position is 8–20.\n" +
+                "- Top Pages: pages with high impressions but low CTR; pages with position in striking distance.\n" +
+                "- States table: concentration risk, winners/laggards, __unknown implications.\n" +
+                "- Delta System coverage: explain what __unknown likely means and how to reduce it using catalog/URL patterns.\n\n" +
+                "Output must be VALID JSON per the given schema.",
+        });
 
         // ✅ Reduce payload size prudently (pero aún usa “toda la data” del dashboard)
         // Recomendación: mandar top 25 ya lo estás haciendo; igual aquí protegemos por si llega grande.
@@ -115,7 +127,7 @@ export async function POST(req: Request) {
             model: "gpt-5.2",
             reasoning: { effort: "none" }, // rápido + consistente (como Calls)
             input: [
-                { role: "system", content: systemPrompt },
+                { role: "system", content: promptResolved.promptText },
                 { role: "user", content: inputData },
             ],
             text: {
@@ -159,6 +171,7 @@ export async function POST(req: Request) {
         }
 
         await appendAiEvent({
+            tenantId: tenantId || null,
             agent: "gsc",
             kind: "insight_run",
             summary: `GSC insights generated (${String(insights?.scorecard?.health || "mixed")})`,

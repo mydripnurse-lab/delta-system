@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,10 @@ type ResponseOutputText = {
     }>;
 };
 
+function s(v: unknown) {
+    return String(v ?? "").trim();
+}
+
 export async function POST(req: Request) {
     try {
         if (!process.env.OPENAI_API_KEY) {
@@ -28,6 +33,19 @@ export async function POST(req: Request) {
         }
 
         const payload = await req.json();
+        const tenantId = s((payload as any)?.tenantId || "");
+        const integrationKey = s((payload as any)?.integrationKey || "default");
+        const promptResolved = await resolveTenantAiPrompt({
+            tenantId: tenantId || null,
+            integrationKey,
+            promptKey: "dashboard.overview.insights.system.v1",
+            fallbackPrompt:
+                "You are the CEO and board strategist for a multi-dashboard growth stack. " +
+                "Act as a swarm coordinator across specialist agents: Calls, Leads, Conversations, Transactions, Appointments, GSC, GA, Ads, YouTube Ads. " +
+                "Make executive decisions with direct business impact. " +
+                "Return an execution-first board meeting narrative and concrete plan items with priorities. " +
+                "Use only provided data. Never invent metrics.",
+        });
 
         const schema = {
             type: "object",
@@ -111,12 +129,7 @@ export async function POST(req: Request) {
             input: [
                 {
                     role: "system",
-                    content:
-                        "You are the CEO and board strategist for a multi-dashboard growth stack. " +
-                        "Act as a swarm coordinator across specialist agents: Calls, Leads, Conversations, Transactions, Appointments, GSC, GA, Ads, YouTube Ads. " +
-                        "Make executive decisions with direct business impact. " +
-                        "Return an execution-first board meeting narrative and concrete plan items with priorities. " +
-                        "Use only provided data. Never invent metrics.",
+                    content: promptResolved.promptText,
                 },
                 {
                     role: "user",
@@ -160,6 +173,7 @@ export async function POST(req: Request) {
 
         const parsed = insights as Record<string, any>;
         await appendAiEvent({
+            tenantId: tenantId || null,
             agent: "overview",
             kind: "insight_run",
             summary: `CEO insights generated (${String(parsed?.board_scorecard?.health || "mixed")})`,
