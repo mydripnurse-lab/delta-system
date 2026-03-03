@@ -332,3 +332,88 @@ export async function PATCH(req: Request, ctx: Ctx) {
     client.release();
   }
 }
+
+export async function DELETE(req: Request, ctx: Ctx) {
+  const { id } = await ctx.params;
+  const tenantId = s(id);
+  if (!tenantId) {
+    return NextResponse.json({ ok: false, error: "Missing tenant id" }, { status: 400 });
+  }
+  if (!(await tenantExists(tenantId))) {
+    return NextResponse.json({ ok: false, error: "Tenant not found" }, { status: 404 });
+  }
+
+  const body = (await req.json().catch(() => null)) as IntegrationInput | null;
+  if (!body) {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const integrationId = s(body.id);
+  const provider = s(body.provider);
+  const integrationKey = s(body.integrationKey);
+
+  if (!integrationId && !(provider && integrationKey)) {
+    return NextResponse.json(
+      { ok: false, error: "id or provider+integrationKey is required" },
+      { status: 400 },
+    );
+  }
+
+  const pool = getDbPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    let whereSql = "";
+    let vals: unknown[] = [];
+    if (integrationId) {
+      vals = [tenantId, integrationId];
+      whereSql = `organization_id = $1 and id = $2`;
+    } else {
+      vals = [tenantId, provider, integrationKey];
+      whereSql = `organization_id = $1 and provider = $2 and integration_key = $3`;
+    }
+
+    const lookup = await client.query<{ id: string; provider: string; integration_key: string }>(
+      `
+        select id, provider, integration_key
+        from app.organization_integrations
+        where ${whereSql}
+        limit 1
+      `,
+      vals,
+    );
+    const row = lookup.rows[0];
+    if (!row) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ ok: false, error: "Integration not found" }, { status: 404 });
+    }
+
+    await client.query(
+      `delete from app.organization_integrations where organization_id = $1 and id = $2`,
+      [tenantId, row.id],
+    );
+
+    await writeAuditLog(client, {
+      organizationId: tenantId,
+      actorType: "user",
+      actorLabel: "agency-ui",
+      action: "integration.delete",
+      entityType: "integration",
+      entityId: row.id,
+      payload: {
+        provider: row.provider,
+        integrationKey: row.integration_key,
+      },
+    });
+
+    await client.query("COMMIT");
+    return NextResponse.json({ ok: true, id: row.id });
+  } catch (error: unknown) {
+    await client.query("ROLLBACK");
+    const message = error instanceof Error ? error.message : "Failed to delete integration";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}

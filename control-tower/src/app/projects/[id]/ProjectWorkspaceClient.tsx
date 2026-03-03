@@ -371,7 +371,17 @@ type TenantDetailResponse = {
   error?: string;
 };
 
-type ProjectTab = "runner" | "search_builder" | "location_nav" | "sheet" | "activation" | "logs" | "details" | "webhooks" | "prompts";
+type ProjectTab =
+  | "runner"
+  | "search_builder"
+  | "location_nav"
+  | "sheet"
+  | "activation"
+  | "logs"
+  | "details"
+  | "integrations"
+  | "webhooks"
+  | "prompts";
 const PROJECT_TAB_TO_SLUG: Record<ProjectTab, string> = {
   activation: "home",
   runner: "run-center",
@@ -379,6 +389,7 @@ const PROJECT_TAB_TO_SLUG: Record<ProjectTab, string> = {
   location_nav: "location-nav",
   sheet: "sheet-explorer",
   details: "project-details",
+  integrations: "integrations",
   webhooks: "webhooks",
   logs: "logs",
   prompts: "prompts",
@@ -390,6 +401,7 @@ const PROJECT_SLUG_TO_TAB: Record<string, ProjectTab> = {
   "location-nav": "location_nav",
   "sheet-explorer": "sheet",
   "project-details": "details",
+  integrations: "integrations",
   webhooks: "webhooks",
   logs: "logs",
   prompts: "prompts",
@@ -397,7 +409,6 @@ const PROJECT_SLUG_TO_TAB: Record<string, ProjectTab> = {
 type ProjectDetailsTab =
   | "business"
   | "ghl"
-  | "integrations"
   | "custom_values"
   | "products_services"
   | "seo_canva"
@@ -485,6 +496,31 @@ function escapeHtmlAttr(input: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function integrationProviderLabel(provider: string) {
+  const p = s(provider).toLowerCase();
+  if (p === "google_search_console") return "Google Search Console";
+  if (p === "google_ads") return "Google Ads";
+  if (p === "google_cloud" || p === "google_places" || p === "google_maps") return "Google Places";
+  if (p === "bing_webmaster") return "Bing Webmaster";
+  if (p === "ghl") return "GoHighLevel";
+  if (p === "openai") return "OpenAI";
+  if (p === "cloudflare") return "Cloudflare";
+  if (p === "custom") return "Custom";
+  return s(provider) || "Integration";
+}
+
+function integrationProviderLogoUrl(provider: string) {
+  const p = s(provider).toLowerCase();
+  if (p === "google_search_console" || p === "google_ads" || p === "google_cloud" || p === "google_places" || p === "google_maps") {
+    return "https://logo.clearbit.com/google.com";
+  }
+  if (p === "bing_webmaster") return "https://logo.clearbit.com/bing.com";
+  if (p === "openai") return "https://logo.clearbit.com/openai.com";
+  if (p === "cloudflare") return "https://logo.clearbit.com/cloudflare.com";
+  if (p === "ghl" || p === "custom") return "https://logo.clearbit.com/gohighlevel.com";
+  return "";
 }
 
 function fileSlugFromService(input: string) {
@@ -960,15 +996,24 @@ export default function Home() {
   >("healthcare");
   const [seoCanvaBusinessCategory, setSeoCanvaBusinessCategory] = useState("");
   const [seoCanvaQueueing, setSeoCanvaQueueing] = useState(false);
-  const [tenantBingWebmasterApiKey, setTenantBingWebmasterApiKey] = useState("");
-  const [tenantBingWebmasterSiteUrl, setTenantBingWebmasterSiteUrl] = useState("");
-  const [tenantBingIndexNowKey, setTenantBingIndexNowKey] = useState("");
-  const [tenantBingIndexNowKeyLocation, setTenantBingIndexNowKeyLocation] = useState("");
-  const [tenantBingSaving, setTenantBingSaving] = useState(false);
-  const [tenantBingMsg, setTenantBingMsg] = useState("");
-  const [tenantGooglePlacesApiKey, setTenantGooglePlacesApiKey] = useState("");
-  const [tenantGooglePlacesSaving, setTenantGooglePlacesSaving] = useState(false);
-  const [tenantGooglePlacesMsg, setTenantGooglePlacesMsg] = useState("");
+  const [integrationsSearch, setIntegrationsSearch] = useState("");
+  const [integrationActionsOpenId, setIntegrationActionsOpenId] = useState("");
+  const [integrationEditorOpen, setIntegrationEditorOpen] = useState(false);
+  const [integrationEditorSaving, setIntegrationEditorSaving] = useState(false);
+  const [integrationEditorErr, setIntegrationEditorErr] = useState("");
+  const [integrationEditorMsg, setIntegrationEditorMsg] = useState("");
+  const [integrationDeleteBusyId, setIntegrationDeleteBusyId] = useState("");
+  const [integrationEditId, setIntegrationEditId] = useState("");
+  const [integrationEditProvider, setIntegrationEditProvider] = useState("");
+  const [integrationEditKey, setIntegrationEditKey] = useState("default");
+  const [integrationEditStatus, setIntegrationEditStatus] = useState("connected");
+  const [integrationEditAuthType, setIntegrationEditAuthType] = useState("api_key");
+  const [integrationEditExternalAccountId, setIntegrationEditExternalAccountId] = useState("");
+  const [integrationEditExternalPropertyId, setIntegrationEditExternalPropertyId] = useState("");
+  const [integrationEditScopes, setIntegrationEditScopes] = useState("");
+  const [integrationEditLastError, setIntegrationEditLastError] = useState("");
+  const [integrationEditConfigText, setIntegrationEditConfigText] = useState("{}");
+  const [integrationEditApiKey, setIntegrationEditApiKey] = useState("");
   const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -2283,101 +2328,6 @@ export default function Home() {
     }
   }
 
-  function hydrateBingFormFromIntegrations(rows: TenantIntegrationRow[]) {
-    const key = "default";
-    const pick =
-      rows.find(
-        (it) =>
-          s(it.provider).toLowerCase() === "bing_webmaster" &&
-          s(it.integration_key || it.integrationKey).toLowerCase() === key.toLowerCase(),
-      ) ||
-      rows.find((it) => s(it.provider).toLowerCase() === "bing_webmaster") ||
-      null;
-    if (!pick) {
-      setTenantBingWebmasterApiKey("");
-      setTenantBingWebmasterSiteUrl("");
-      setTenantBingIndexNowKey("");
-      setTenantBingIndexNowKeyLocation("");
-      return;
-    }
-    const cfg =
-      pick.config && typeof pick.config === "object"
-        ? (pick.config as Record<string, unknown>)
-        : {};
-    const auth =
-      cfg.auth && typeof cfg.auth === "object"
-        ? (cfg.auth as Record<string, unknown>)
-        : {};
-    setTenantBingWebmasterApiKey(
-      s(cfg.webmasterApiKey) ||
-        s(cfg.webmaster_api_key) ||
-        s(cfg.apiKey) ||
-        s(cfg.api_key) ||
-        s(auth.webmasterApiKey) ||
-        s(auth.webmaster_api_key) ||
-        s(auth.apiKey) ||
-        s(auth.api_key),
-    );
-    setTenantBingWebmasterSiteUrl(
-      s(pick.external_property_id || pick.externalPropertyId) ||
-        s(cfg.siteUrl) ||
-        s(cfg.site_url),
-    );
-    setTenantBingIndexNowKey(
-      s(cfg.indexNowKey) ||
-        s(cfg.index_now_key) ||
-        s(cfg.apiKey) ||
-        s(cfg.api_key) ||
-        s(auth.indexNowKey) ||
-        s(auth.index_now_key),
-    );
-    setTenantBingIndexNowKeyLocation(
-      s(cfg.indexNowKeyLocation) ||
-        s(cfg.index_now_key_location) ||
-        s(cfg.keyLocation) ||
-        s(cfg.key_location),
-    );
-  }
-
-  function hydrateGooglePlacesFormFromIntegrations(rows: TenantIntegrationRow[]) {
-    const pick =
-      rows.find(
-        (it) =>
-          (s(it.provider).toLowerCase() === "google_maps" ||
-            s(it.provider).toLowerCase() === "google_places" ||
-            s(it.provider).toLowerCase() === "google_cloud") &&
-          s(it.integration_key || it.integrationKey || "default").toLowerCase() === "default",
-      ) ||
-      rows.find(
-        (it) =>
-          s(it.provider).toLowerCase() === "google_maps" ||
-          s(it.provider).toLowerCase() === "google_places" ||
-          s(it.provider).toLowerCase() === "google_cloud",
-      ) ||
-      null;
-    if (!pick) {
-      setTenantGooglePlacesApiKey("");
-      return;
-    }
-    const cfg =
-      pick.config && typeof pick.config === "object"
-        ? (pick.config as Record<string, unknown>)
-        : {};
-    const auth =
-      cfg.auth && typeof cfg.auth === "object"
-        ? (cfg.auth as Record<string, unknown>)
-        : {};
-    setTenantGooglePlacesApiKey(
-      s(cfg.apiKey) ||
-        s(cfg.mapsApiKey) ||
-        s(cfg.placesApiKey) ||
-        s(cfg.key) ||
-        s(cfg.api_key) ||
-        s(auth.apiKey) ||
-        s(auth.api_key),
-    );
-  }
-
   async function loadTenantProspectingWebhookSettings() {
     if (!routeTenantId) return;
     setTenantProspectingWebhookErr("");
@@ -2395,100 +2345,6 @@ export default function Home() {
       setTenantProspectingWebhookEnabled(payload.enabled !== false);
     } catch (e: any) {
       setTenantProspectingWebhookErr(e?.message || "Failed to load webhook settings.");
-    }
-  }
-
-  async function saveTenantBingIntegration() {
-    if (!routeTenantId) return;
-    setTenantBingMsg("");
-    setTenantBingSaving(true);
-    setTenantDetailErr("");
-    try {
-      if (!s(tenantBingWebmasterApiKey)) {
-        throw new Error("Bing Webmaster API key is required.");
-      }
-      if (!s(tenantBingWebmasterSiteUrl)) {
-        throw new Error("Bing Webmaster site URL is required.");
-      }
-      if (!s(tenantBingIndexNowKey)) {
-        throw new Error("Bing IndexNow key is required.");
-      }
-      const payload = {
-        provider: "bing_webmaster",
-        integrationKey: "default",
-        status: "connected",
-        authType: "api_key",
-        externalPropertyId: s(tenantBingWebmasterSiteUrl) || undefined,
-        config: {
-          webmasterApiKey: s(tenantBingWebmasterApiKey),
-          webmasterEndpoint: "https://ssl.bing.com/webmaster/api.svc/json",
-          siteUrl: s(tenantBingWebmasterSiteUrl),
-          indexNowKey: s(tenantBingIndexNowKey),
-          indexNowKeyLocation: s(tenantBingIndexNowKeyLocation) || undefined,
-          indexNowEndpoint: "https://api.indexnow.org/indexnow",
-        },
-      };
-      const res = await fetch(
-        `/api/tenants/${encodeURIComponent(routeTenantId)}/integrations`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-      const data = await safeJson(res);
-      if (!res.ok || !data?.ok) {
-        throw new Error((data as any)?.error || `HTTP ${res.status}`);
-      }
-      await refreshIntegrationsSnapshot();
-      setTenantBingMsg("Bing integration saved in tenant DB.");
-    } catch (e: any) {
-      setTenantBingMsg("");
-      setTenantDetailErr(e?.message || "Failed to save Bing integration.");
-    } finally {
-      setTenantBingSaving(false);
-    }
-  }
-
-  async function saveTenantGooglePlacesIntegration() {
-    if (!routeTenantId) return;
-    setTenantGooglePlacesMsg("");
-    setTenantGooglePlacesSaving(true);
-    setTenantDetailErr("");
-    try {
-      if (!s(tenantGooglePlacesApiKey)) {
-        throw new Error("Google Places API key is required.");
-      }
-      const payload = {
-        provider: "google_cloud",
-        integrationKey: "default",
-        status: "connected",
-        authType: "api_key",
-        config: {
-          apiKey: s(tenantGooglePlacesApiKey),
-          mapsApiKey: s(tenantGooglePlacesApiKey),
-          placesApiKey: s(tenantGooglePlacesApiKey),
-        },
-      };
-      const res = await fetch(
-        `/api/tenants/${encodeURIComponent(routeTenantId)}/integrations`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-      const data = await safeJson(res);
-      if (!res.ok || !data?.ok) {
-        throw new Error((data as any)?.error || `HTTP ${res.status}`);
-      }
-      await refreshIntegrationsSnapshot();
-      setTenantGooglePlacesMsg("Google Places integration saved in tenant DB.");
-    } catch (e: any) {
-      setTenantGooglePlacesMsg("");
-      setTenantDetailErr(e?.message || "Failed to save Google Places integration.");
-    } finally {
-      setTenantGooglePlacesSaving(false);
     }
   }
 
@@ -2566,7 +2422,6 @@ export default function Home() {
     if (
       tab === "business" ||
       tab === "ghl" ||
-      tab === "integrations" ||
       tab === "custom_values" ||
       tab === "products_services" ||
       tab === "seo_canva" ||
@@ -3207,11 +3062,6 @@ export default function Home() {
     } catch {}
   }
 
-  useEffect(() => {
-    hydrateBingFormFromIntegrations(tenantIntegrations);
-    hydrateGooglePlacesFormFromIntegrations(tenantIntegrations);
-  }, [tenantIntegrations]);
-
   async function saveTenantProspectingWebhookSettings() {
     if (!routeTenantId) return;
     setTenantProspectingWebhookBusy(true);
@@ -3334,8 +3184,6 @@ export default function Home() {
           status: s(t.status || "active"),
         });
         setTenantIntegrations(integrations);
-        hydrateBingFormFromIntegrations(integrations);
-        hydrateGooglePlacesFormFromIntegrations(integrations);
         setTenantDetailErr("");
 
         setTenantName(s(t.name));
@@ -3928,8 +3776,6 @@ export default function Home() {
     if (fresh.ok && freshData?.ok && freshData.tenant) {
       const rows = Array.isArray(freshData.integrations) ? freshData.integrations : [];
       setTenantIntegrations(rows);
-      hydrateBingFormFromIntegrations(rows);
-      hydrateGooglePlacesFormFromIntegrations(rows);
     }
   }
 
@@ -3982,6 +3828,164 @@ export default function Home() {
     }
   }
 
+  function closeIntegrationEditor() {
+    if (integrationEditorSaving) return;
+    setIntegrationEditorOpen(false);
+    setIntegrationEditorErr("");
+  }
+
+  function openIntegrationEditor(row?: TenantIntegrationRow | null) {
+    const item = row || null;
+    const provider = s(item?.provider).toLowerCase();
+    const cfg =
+      item?.config && typeof item.config === "object"
+        ? (item.config as Record<string, unknown>)
+        : {};
+    const auth =
+      cfg.auth && typeof cfg.auth === "object"
+        ? (cfg.auth as Record<string, unknown>)
+        : {};
+
+    setIntegrationEditId(s(item?.id));
+    setIntegrationEditProvider(provider || "openai");
+    setIntegrationEditKey(s(item?.integration_key || item?.integrationKey || "default") || "default");
+    setIntegrationEditStatus(s(item?.status) || "connected");
+    setIntegrationEditAuthType(s(item?.auth_type || item?.authType) || "api_key");
+    setIntegrationEditExternalAccountId(s(item?.external_account_id || item?.externalAccountId));
+    setIntegrationEditExternalPropertyId(s(item?.external_property_id || item?.externalPropertyId));
+    setIntegrationEditScopes(
+      Array.isArray((item as any)?.scopes) ? ((item as any).scopes as unknown[]).map((x) => s(x)).filter(Boolean).join(", ") : "",
+    );
+    setIntegrationEditLastError(s(item?.last_error || item?.lastError));
+    setIntegrationEditConfigText(JSON.stringify(cfg, null, 2));
+    setIntegrationEditApiKey(
+      s(cfg.apiKey) ||
+        s(cfg.api_key) ||
+        s(cfg.webmasterApiKey) ||
+        s(cfg.indexNowKey) ||
+        s(auth.apiKey) ||
+        s(auth.api_key),
+    );
+    setIntegrationEditorErr("");
+    setIntegrationEditorMsg("");
+    setIntegrationActionsOpenId("");
+    setIntegrationEditorOpen(true);
+  }
+
+  async function saveIntegrationFromEditor() {
+    if (!routeTenantId) return;
+    const provider = s(integrationEditProvider).toLowerCase();
+    const integrationKey = s(integrationEditKey).toLowerCase() || "default";
+    if (!provider) {
+      setIntegrationEditorErr("Provider is required.");
+      return;
+    }
+
+    setIntegrationEditorSaving(true);
+    setIntegrationEditorErr("");
+    setIntegrationEditorMsg("");
+    setTenantDetailErr("");
+    try {
+      let parsedConfig: Record<string, unknown> = {};
+      try {
+        const parsed = JSON.parse(s(integrationEditConfigText) || "{}");
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("Config must be a JSON object.");
+        }
+        parsedConfig = parsed as Record<string, unknown>;
+      } catch (e: any) {
+        throw new Error(e?.message || "Config JSON is invalid.");
+      }
+
+      if (s(integrationEditApiKey)) {
+        if (provider === "openai" || provider === "google_cloud" || provider === "google_places" || provider === "google_maps") {
+          parsedConfig = {
+            ...parsedConfig,
+            apiKey: s(integrationEditApiKey),
+          };
+        } else if (provider === "bing_webmaster") {
+          parsedConfig = {
+            ...parsedConfig,
+            webmasterApiKey: s(integrationEditApiKey),
+          };
+        } else {
+          parsedConfig = {
+            ...parsedConfig,
+            apiKey: s(integrationEditApiKey),
+          };
+        }
+      }
+
+      const scopes = s(integrationEditScopes)
+        .split(/[\s,]+/)
+        .map((x) => s(x))
+        .filter(Boolean);
+      const payload: Record<string, unknown> = {
+        provider,
+        integrationKey,
+        status: s(integrationEditStatus) || "connected",
+        authType: s(integrationEditAuthType) || "api_key",
+        externalAccountId: s(integrationEditExternalAccountId) || "",
+        externalPropertyId: s(integrationEditExternalPropertyId) || "",
+        scopes,
+        config: parsedConfig,
+        lastError: s(integrationEditLastError) || "",
+      };
+      if (s(integrationEditId)) payload.id = s(integrationEditId);
+
+      const method = s(integrationEditId) ? "PATCH" : "POST";
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/integrations`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s((data as any)?.error) || `HTTP ${res.status}`);
+      }
+
+      await refreshIntegrationsSnapshot();
+      await loadOAuthHealth();
+      setIntegrationEditorMsg("Integration saved in tenant DB.");
+      setIntegrationEditorOpen(false);
+      setIntegrationActionsOpenId("");
+    } catch (e: any) {
+      setIntegrationEditorErr(e?.message || "Failed to save integration.");
+    } finally {
+      setIntegrationEditorSaving(false);
+    }
+  }
+
+  async function deleteIntegration(row: TenantIntegrationRow) {
+    if (!routeTenantId) return;
+    const id = s(row.id);
+    if (!id) return;
+    setIntegrationDeleteBusyId(id);
+    setIntegrationEditorErr("");
+    setIntegrationEditorMsg("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/integrations`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s((data as any)?.error) || `HTTP ${res.status}`);
+      }
+      await refreshIntegrationsSnapshot();
+      await loadOAuthHealth();
+      setIntegrationEditorMsg("Integration deleted.");
+      setIntegrationActionsOpenId("");
+    } catch (e: any) {
+      setIntegrationEditorErr(e?.message || "Failed to delete integration.");
+    } finally {
+      setIntegrationDeleteBusyId("");
+    }
+  }
+
   function projectTabHref(tab: ProjectTab) {
     if (!routeTenantId) return "#";
     const slug = PROJECT_TAB_TO_SLUG[tab] || "home";
@@ -4005,6 +4009,35 @@ export default function Home() {
       return hay.includes(term);
     });
   }, [tenantAiPrompts, tenantAiPromptsSearch]);
+
+  const filteredTenantIntegrations = useMemo(() => {
+    const term = s(integrationsSearch).toLowerCase();
+    if (!term) return tenantIntegrations;
+    return tenantIntegrations.filter((row) => {
+      const haystack = [
+        integrationProviderLabel(s(row.provider)),
+        s(row.provider),
+        s(row.integration_key || row.integrationKey),
+        s(row.external_account_id || row.externalAccountId),
+        s(row.external_property_id || row.externalPropertyId),
+        s(row.status),
+        s(row.auth_type || row.authType),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [tenantIntegrations, integrationsSearch]);
+
+  const integrationHealthById = useMemo(() => {
+    const m = new Map<string, IntegrationHealthRow>();
+    for (const row of oauthHealthRows) {
+      const id = s(row.id);
+      if (!id) continue;
+      m.set(id, row);
+    }
+    return m;
+  }, [oauthHealthRows]);
 
   const selectedTenantAiPrompt =
     tenantAiPrompts.find((row) => row.promptKey === s(tenantAiPromptSelectedKey)) || null;
@@ -7998,6 +8031,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             Project Details
           </Link>
           <Link
+            className={`agencyNavItem ${activeProjectTab === "integrations" ? "agencyNavItemActive" : ""}`}
+            href={projectTabHref("integrations")}
+            onClick={() => setActiveProjectTab("integrations")}
+          >
+            Integrations
+          </Link>
+          <Link
             className={`agencyNavItem ${activeProjectTab === "webhooks" ? "agencyNavItemActive" : ""}`}
             href={projectTabHref("webhooks")}
             onClick={() => setActiveProjectTab("webhooks")}
@@ -8069,13 +8109,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               onClick={() => setDetailsTab("ghl")}
             >
               GHL + Cloudflare
-            </button>
-            <button
-              type="button"
-              className={`detailsTabBtn ${detailsTab === "integrations" ? "detailsTabBtnOn" : ""}`}
-              onClick={() => setDetailsTab("integrations")}
-            >
-              Integrations
             </button>
             <button
               type="button"
@@ -8245,154 +8278,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </div>
               </div>
 
-            </div>
-          ) : null}
-
-          {detailsTab === "integrations" ? (
-            <div className="detailsPane">
-              <div className="detailsPaneHeader">
-                <div className="detailsPaneTitle">Integrations</div>
-                <div className="detailsPaneSub">OAuth and provider connections. These credentials can be shared across tenants from Agency View.</div>
-              </div>
-
-              {routeTenantId ? (
-                <div className="detailsIntegrationsActions">
-                  <button
-                    type="button"
-                    className="smallBtn"
-                    onClick={openOAuthManager}
-                  >
-                    Open OAuth Integration Manager
-                  </button>
-                </div>
-              ) : null}
-
-              <div className="detailsCustomTop" style={{ marginTop: 8 }}>
-                <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
-                  <div className="detailsPaneTitle">Bing (Tenant)</div>
-                  <div className="detailsPaneSub">
-                    One Bing connection per tenant. Dashboard uses Webmaster key; Bing Counties/Cities use IndexNow key.
-                  </div>
-                </div>
-                <div className="row">
-                  <div className="field">
-                    <label>Bing Webmaster API Key</label>
-                    <input
-                      className="input"
-                      type="password"
-                      value={tenantBingWebmasterApiKey}
-                      onChange={(e) => setTenantBingWebmasterApiKey(e.target.value)}
-                      placeholder="Bing Webmaster API key"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Bing Webmaster Site URL</label>
-                    <input
-                      className="input"
-                      value={tenantBingWebmasterSiteUrl}
-                      onChange={(e) => setTenantBingWebmasterSiteUrl(e.target.value)}
-                      placeholder="https://telahagocrecer.com"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>IndexNow Key</label>
-                    <input
-                      className="input"
-                      type="password"
-                      value={tenantBingIndexNowKey}
-                      onChange={(e) => setTenantBingIndexNowKey(e.target.value)}
-                      placeholder="IndexNow key"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>IndexNow Key Location (optional)</label>
-                    <input
-                      className="input"
-                      value={tenantBingIndexNowKeyLocation}
-                      onChange={(e) => setTenantBingIndexNowKeyLocation(e.target.value)}
-                      placeholder="https://telahagocrecer.com/{key}.txt"
-                    />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                  {tenantBingMsg ? <span className="badge">{tenantBingMsg}</span> : null}
-                  <button
-                    type="button"
-                    className="smallBtn"
-                    disabled={!routeTenantId || tenantBingSaving}
-                    onClick={() => void saveTenantBingIntegration()}
-                  >
-                    {tenantBingSaving ? "Saving..." : "Save Bing Config"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="detailsCustomTop" style={{ marginTop: 12 }}>
-                <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
-                  <div className="detailsPaneTitle">Google Places (Tenant)</div>
-                  <div className="detailsPaneSub">
-                    API key used by Prospecting discovery runs to search businesses in Google Places.
-                  </div>
-                </div>
-                <div className="row">
-                  <div className="field">
-                    <label>Google Places API Key</label>
-                    <input
-                      className="input"
-                      type="password"
-                      value={tenantGooglePlacesApiKey}
-                      onChange={(e) => setTenantGooglePlacesApiKey(e.target.value)}
-                      placeholder="AIza..."
-                    />
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                  {tenantGooglePlacesMsg ? <span className="badge">{tenantGooglePlacesMsg}</span> : null}
-                  <button
-                    type="button"
-                    className="smallBtn"
-                    disabled={!routeTenantId || tenantGooglePlacesSaving}
-                    onClick={() => void saveTenantGooglePlacesIntegration()}
-                  >
-                    {tenantGooglePlacesSaving ? "Saving..." : "Save Google Places Config"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="tableWrap" style={{ marginTop: 12 }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th className="th">Provider</th>
-                      <th className="th">Key</th>
-                      <th className="th">Status</th>
-                      <th className="th">External Account</th>
-                      <th className="th">Auth</th>
-                      <th className="th">Last Error</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tenantIntegrations.length === 0 ? (
-                      <tr>
-                        <td className="td" colSpan={6}>
-                          <span className="mini">No integrations found.</span>
-                        </td>
-                      </tr>
-                    ) : (
-                      tenantIntegrations.map((it) => (
-                        <tr key={it.id} className="tr">
-                          <td className="td">{s(it.provider) || "—"}</td>
-                          <td className="td">{s(it.integration_key || it.integrationKey) || "—"}</td>
-                          <td className="td">{s(it.status) || "—"}</td>
-                          <td className="td">{s(it.external_account_id || it.externalAccountId) || "—"}</td>
-                          <td className="td">{s(it.auth_type || it.authType) || "—"}</td>
-                          <td className="td">{s(it.last_error || it.lastError) || "—"}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
             </div>
           ) : null}
 
@@ -9292,6 +9177,154 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               )}
             </div>
           ) : null}
+        </div>
+      </section>
+      ) : null}
+
+      {activeProjectTab === "integrations" ? (
+      <section className="card" style={{ marginTop: 12 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Connections</h2>
+            <div className="cardSubtitle">
+              Integraciones por tenant. Puedes editar credenciales, verificar estado y desconectar.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            {integrationEditorMsg ? <span className="badge">{integrationEditorMsg}</span> : null}
+            <button className="smallBtn" onClick={() => void refreshIntegrationsSnapshot()}>
+              Refresh
+            </button>
+            <button className="smallBtn" onClick={() => openIntegrationEditor(null)}>
+              Add OpenAI Key
+            </button>
+            <button className="smallBtn" onClick={openOAuthManager}>
+              OAuth Manager
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          {integrationEditorErr ? (
+            <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>
+              ❌ {integrationEditorErr}
+            </div>
+          ) : null}
+          {tenantDetailErr ? (
+            <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>
+              ❌ {tenantDetailErr}
+            </div>
+          ) : null}
+          <div className="field" style={{ maxWidth: 420, marginBottom: 10 }}>
+            <label>Search</label>
+            <input
+              className="input"
+              value={integrationsSearch}
+              onChange={(e) => setIntegrationsSearch(e.target.value)}
+              placeholder="Provider, key, status..."
+            />
+          </div>
+
+          <div className="integrationConnectionsList">
+            {filteredTenantIntegrations.length === 0 ? (
+              <div className="integrationConnectionRow integrationConnectionEmpty">
+                <span className="mini">No integrations found for this tenant.</span>
+              </div>
+            ) : (
+              filteredTenantIntegrations.map((it) => {
+                const integrationId = s(it.id);
+                const provider = s(it.provider);
+                const providerLabel = integrationProviderLabel(provider);
+                const logoUrl = integrationProviderLogoUrl(provider);
+                const integrationKey = s(it.integration_key || it.integrationKey || "default");
+                const externalRef =
+                  s(it.external_account_id || it.externalAccountId) ||
+                  s(it.external_property_id || it.externalPropertyId) ||
+                  "No external account";
+                const health = integrationHealthById.get(integrationId) || null;
+                const authType = s(it.auth_type || it.authType);
+                const isOauth = authType === "oauth";
+                const menuOpen = integrationActionsOpenId === integrationId;
+                return (
+                  <div key={integrationId} className="integrationConnectionRow">
+                    <div className="integrationRowLeft">
+                      <div className="integrationLogoChip">
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt={providerLabel}
+                            className="integrationLogoImg"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <span>{providerLabel.slice(0, 1).toUpperCase()}</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="integrationName">{providerLabel}</div>
+                        <div className="integrationSubline">
+                          {integrationKey} · {externalRef}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="integrationRowRight">
+                      <div className="integrationStat">
+                        <span className={`integrationDot ${s(it.status) === "connected" ? "isConnected" : "isOff"}`} />
+                        {s(it.status) || "unknown"}
+                      </div>
+                      {health ? (
+                        <div className="integrationStat">
+                          {health.hasAccessToken ? "token ok" : "token missing"}
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        disabled={!isOauth}
+                        onClick={() => openOAuthManager()}
+                        title={isOauth ? "Open OAuth manager and reauthorize" : "Only OAuth integrations can reauthorize"}
+                      >
+                        Reauthorize
+                      </button>
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        onClick={() => void loadOAuthHealth()}
+                      >
+                        Verify
+                      </button>
+                      <div className="integrationMenuWrap">
+                        <button
+                          type="button"
+                          className="smallBtn"
+                          onClick={() =>
+                            setIntegrationActionsOpenId((prev) => (prev === integrationId ? "" : integrationId))
+                          }
+                        >
+                          ⋮
+                        </button>
+                        {menuOpen ? (
+                          <div className="integrationMenu">
+                            <button type="button" className="integrationMenuBtn" onClick={() => openIntegrationEditor(it)}>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="integrationMenuBtn integrationMenuBtnDanger"
+                              onClick={() => void deleteIntegration(it)}
+                              disabled={integrationDeleteBusyId === integrationId}
+                            >
+                              {integrationDeleteBusyId === integrationId ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </section>
       ) : null}
@@ -12181,6 +12214,157 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {integrationEditorOpen && (
+        <>
+          <div className="modalBackdrop" onClick={closeIntegrationEditor} />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(860px, calc(100vw - 24px))",
+              height: "min(760px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader modalHeaderPro">
+              <div style={{ minWidth: 0 }}>
+                <div className="badge">INTEGRATION EDITOR</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  {s(integrationEditId) ? "Edit connection" : "Create connection"}
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  All values are saved in tenant DB.
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button className="smallBtn" onClick={closeIntegrationEditor} disabled={integrationEditorSaving}>
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="modalBody modalBodyPro" style={{ padding: 14, overflowY: "auto" }}>
+              {integrationEditorErr ? (
+                <div className="mini" style={{ color: "var(--danger)", marginBottom: 10 }}>
+                  ❌ {integrationEditorErr}
+                </div>
+              ) : null}
+
+              <div className="detailsPane">
+                <div className="row">
+                  <div className="field">
+                    <label>Provider</label>
+                    <input
+                      className="input"
+                      value={integrationEditProvider}
+                      onChange={(e) => setIntegrationEditProvider(s(e.target.value).toLowerCase())}
+                      placeholder="openai | google_ads | bing_webmaster ..."
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Integration Key</label>
+                    <input
+                      className="input"
+                      value={integrationEditKey}
+                      onChange={(e) => setIntegrationEditKey(s(e.target.value).toLowerCase())}
+                      placeholder="default"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Status</label>
+                    <select
+                      className="select"
+                      value={integrationEditStatus}
+                      onChange={(e) => setIntegrationEditStatus(e.target.value)}
+                    >
+                      <option value="connected">connected</option>
+                      <option value="disconnected">disconnected</option>
+                      <option value="error">error</option>
+                      <option value="needs_reconnect">needs_reconnect</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Auth Type</label>
+                    <input
+                      className="input"
+                      value={integrationEditAuthType}
+                      onChange={(e) => setIntegrationEditAuthType(e.target.value)}
+                      placeholder="api_key | oauth"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>API Key / Secret</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={integrationEditApiKey}
+                      onChange={(e) => setIntegrationEditApiKey(e.target.value)}
+                      placeholder="sk-... / AIza... / bing key"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>External Account ID</label>
+                    <input
+                      className="input"
+                      value={integrationEditExternalAccountId}
+                      onChange={(e) => setIntegrationEditExternalAccountId(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>External Property ID</label>
+                    <input
+                      className="input"
+                      value={integrationEditExternalPropertyId}
+                      onChange={(e) => setIntegrationEditExternalPropertyId(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Scopes (comma/space separated)</label>
+                    <input
+                      className="input"
+                      value={integrationEditScopes}
+                      onChange={(e) => setIntegrationEditScopes(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Last Error</label>
+                    <input
+                      className="input"
+                      value={integrationEditLastError}
+                      onChange={(e) => setIntegrationEditLastError(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="field" style={{ marginTop: 8 }}>
+                  <label>Config JSON</label>
+                  <textarea
+                    className="input"
+                    rows={12}
+                    value={integrationEditConfigText}
+                    onChange={(e) => setIntegrationEditConfigText(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                padding: 12,
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+              }}
+            >
+              <button className="smallBtn" onClick={closeIntegrationEditor} disabled={integrationEditorSaving}>
+                Cancel
+              </button>
+              <button className="smallBtn smallBtnOn" onClick={() => void saveIntegrationFromEditor()} disabled={integrationEditorSaving}>
+                {integrationEditorSaving ? "Saving..." : "Save"}
+              </button>
             </div>
           </div>
         </>
