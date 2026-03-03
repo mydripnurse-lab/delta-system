@@ -12,6 +12,7 @@ const ALLOWED_TABS = new Set([
   "location-nav",
   "sheet-explorer",
   "project-details",
+  "integrations",
   "webhooks",
   "prompts",
   "logs",
