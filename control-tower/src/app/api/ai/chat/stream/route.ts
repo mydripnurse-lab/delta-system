@@ -56,6 +56,9 @@ export async function POST(req: Request) {
         const agent = s(body?.agent || "overview");
         const threadId = normalizeThreadId(body?.threadId);
         const tenantId = s(body?.tenantId || "");
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
         const integrationKey = s((body?.context as any)?.integrationKey || "default");
         const userMsg = s(body?.message);
         const context = body?.context || {};

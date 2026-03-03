@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,10 @@ type ResponseOutputText = {
     }>;
 };
 
+function s(v: unknown) {
+    return String(v ?? "").trim();
+}
+
 export async function POST(req: Request) {
     try {
         if (!process.env.OPENAI_API_KEY) {
@@ -28,6 +33,21 @@ export async function POST(req: Request) {
         }
 
         const payload = await req.json();
+        const tenantId = s((payload as any)?.tenantId || "");
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
+        const integrationKey = s((payload as any)?.integrationKey || "default");
+        const promptResolved = await resolveTenantAiPrompt({
+            tenantId: tenantId || null,
+            integrationKey,
+            promptKey: "dashboard.contacts.insights.system.v1",
+            fallbackPrompt:
+                "You are an elite lead generation strategist for a contacts dashboard. " +
+                "Prioritize actionable recommendations that increase lead quality, speed-to-contact, " +
+                "and conversion potential by state. " +
+                "Use only the provided JSON metrics and comparisons; do not invent data.",
+        });
 
         const schema = {
             type: "object",
@@ -96,11 +116,7 @@ export async function POST(req: Request) {
             input: [
                 {
                     role: "system",
-                    content:
-                        "You are an elite lead generation strategist for a contacts dashboard. " +
-                        "Prioritize actionable recommendations that increase lead quality, speed-to-contact, " +
-                        "and conversion potential by state. " +
-                        "Use only the provided JSON metrics and comparisons; do not invent data.",
+                    content: promptResolved.promptText,
                 },
                 {
                     role: "user",
@@ -148,6 +164,7 @@ export async function POST(req: Request) {
 
         const parsed = insights as Record<string, any>;
         await appendAiEvent({
+            tenantId: tenantId || null,
             agent: "leads",
             kind: "insight_run",
             summary: `Leads insights generated (${String(parsed?.scorecard?.health || "mixed")})`,

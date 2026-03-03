@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+
+function s(v: unknown) {
+    return String(v ?? "").trim();
+}
 
 export async function POST(req: Request) {
     try {
@@ -18,6 +23,21 @@ export async function POST(req: Request) {
         }
 
         const payload = await req.json();
+        const tenantId = s(payload?.tenantId || "");
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
+        const integrationKey = s(payload?.integrationKey || "default");
+        const promptResolved = await resolveTenantAiPrompt({
+            tenantId: tenantId || null,
+            integrationKey,
+            promptKey: "dashboard.conversations.insights.system.v1",
+            fallbackPrompt:
+                "You are an elite Conversation & CRM strategist for a healthcare lead-gen pipeline. " +
+                "Analyze conversation channel mix, unread backlog, response operations, and state-level demand. " +
+                "Return concise, measurable actions to increase response speed, appointment conversion, and lead quality. " +
+                "Use only the provided data. Never invent metrics.",
+        });
 
         const schema = {
             type: "object",
@@ -86,11 +106,7 @@ export async function POST(req: Request) {
             input: [
                 {
                     role: "system",
-                    content:
-                        "You are an elite Conversation & CRM strategist for a healthcare lead-gen pipeline. " +
-                        "Analyze conversation channel mix, unread backlog, response operations, and state-level demand. " +
-                        "Return concise, measurable actions to increase response speed, appointment conversion, and lead quality. " +
-                        "Use only the provided data. Never invent metrics.",
+                    content: promptResolved.promptText,
                 },
                 {
                     role: "user",
@@ -136,6 +152,7 @@ export async function POST(req: Request) {
         }
 
         await appendAiEvent({
+            tenantId: tenantId || null,
             agent: "conversations",
             kind: "insight_run",
             summary: `Conversations insights generated (${String(insights?.scorecard?.health || "mixed")})`,

@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { getDbPool } from "@/lib/db";
 import { googleAdsGenerateKeywordIdeas } from "@/lib/ads/adsRest";
 import { loadTenantProductsServices } from "@/lib/tenantProductsServices";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -285,6 +286,8 @@ function pickCtaUrl(input: {
 }
 
 async function maybeAiSummary(input: {
+  tenantId?: string;
+  integrationKey?: string;
   summary: Record<string, unknown>;
   revenue: number;
   keywordStrategy: KeywordAgg[];
@@ -293,6 +296,17 @@ async function maybeAiSummary(input: {
 }) {
   if (!openaiClient) return null;
   try {
+    const promptResolved = await resolveTenantAiPrompt({
+      tenantId: s(input.tenantId) || null,
+      integrationKey: s(input.integrationKey) || "default",
+      promptKey: "dashboard.ads.strategy.system.v1",
+      fallbackPrompt:
+        "You are simultaneously: (1) a senior Google Ads specialist, " +
+        "(2) a conversion rate optimization expert, and (3) a marketing data analyst. " +
+        "You must use only provided data, avoid hallucinations, and make recommendations with numeric rationale. " +
+        "Prioritize profitable growth: conversion volume quality, CPA, ROAS, search demand, and geo relevance.",
+    });
+
     const schema = {
       type: "object",
       additionalProperties: false,
@@ -310,11 +324,7 @@ async function maybeAiSummary(input: {
       input: [
         {
           role: "system",
-          content:
-            "You are simultaneously: (1) a senior Google Ads specialist, " +
-            "(2) a conversion rate optimization expert, and (3) a marketing data analyst. " +
-            "You must use only provided data, avoid hallucinations, and make recommendations with numeric rationale. " +
-            "Prioritize profitable growth: conversion volume quality, CPA, ROAS, search demand, and geo relevance.",
+          content: promptResolved.promptText,
         },
         { role: "user", content: JSON.stringify(input) },
       ],
@@ -764,6 +774,8 @@ export async function GET(req: Request) {
     };
 
     const aiSummary = await maybeAiSummary({
+      tenantId,
+      integrationKey,
       summary,
       revenue: revenueNow,
       keywordStrategy: keywordStrategy.slice(0, 25),

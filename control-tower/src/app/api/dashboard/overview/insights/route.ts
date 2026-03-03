@@ -34,6 +34,9 @@ export async function POST(req: Request) {
 
         const payload = await req.json();
         const tenantId = s((payload as any)?.tenantId || "");
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
         const integrationKey = s((payload as any)?.integrationKey || "default");
         const promptResolved = await resolveTenantAiPrompt({
             tenantId: tenantId || null,

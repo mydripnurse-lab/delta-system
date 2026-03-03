@@ -38,6 +38,9 @@ export async function POST(req: Request) {
 
         const payload = await req.json();
         const tenantId = s(payload?.tenantId || "");
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
         const integrationKey = s(payload?.integrationKey || "default");
 
         // ✅ JSON schema estricto (igual patrón que Calls)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,10 @@ function safeJsonStringify(x: unknown, maxChars = 160_000) {
   return out.slice(0, maxChars) + `\n\n[TRUNCATED ${out.length - maxChars} chars]`;
 }
 
+function s(v: unknown) {
+  return String(v ?? "").trim();
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -34,6 +39,11 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
+    const tenantId = s((payload as any)?.tenantId || "");
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const integrationKey = s((payload as any)?.integrationKey || "default");
     const schema = {
       type: "object",
       additionalProperties: false,
@@ -71,16 +81,21 @@ export async function POST(req: Request) {
       required: ["executive_summary", "scorecard", "opportunities", "quick_wins_next_7_days", "experiments_next_30_days"],
     };
 
-    const systemPrompt =
-      "You are a Search Performance strategist combining Google Search Console + Bing Webmaster insights. " +
-      "Use only provided data, produce concise executive insights, and recommend measurable actions by geography and intent. " +
-      "Output only JSON following schema.";
+    const promptResolved = await resolveTenantAiPrompt({
+      tenantId: tenantId || null,
+      integrationKey,
+      promptKey: "dashboard.search_performance.insights.system.v1",
+      fallbackPrompt:
+        "You are a Search Performance strategist combining Google Search Console + Bing Webmaster insights. " +
+        "Use only provided data, produce concise executive insights, and recommend measurable actions by geography and intent. " +
+        "Output only JSON following schema.",
+    });
 
     const resp = await client.responses.create({
       model: "gpt-5.2",
       reasoning: { effort: "none" },
       input: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: promptResolved.promptText },
         { role: "user", content: safeJsonStringify(payload) },
       ],
       text: {
@@ -115,6 +130,7 @@ export async function POST(req: Request) {
     };
 
     await appendAiEvent({
+      tenantId: tenantId || null,
       agent: "search_performance",
       kind: "insight_run",
       summary: `Search Performance insights generated (${String(parsed?.scorecard?.health || "mixed")})`,

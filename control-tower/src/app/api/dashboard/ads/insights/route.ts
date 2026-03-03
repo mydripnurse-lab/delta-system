@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,10 @@ type InsightMeta = {
   };
 };
 
+function s(v: unknown) {
+  return String(v ?? "").trim();
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -31,6 +36,20 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
+    const tenantId = s((payload as any)?.tenantId || "");
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const integrationKey = s((payload as any)?.integrationKey || "default");
+    const promptResolved = await resolveTenantAiPrompt({
+      tenantId: tenantId || null,
+      integrationKey,
+      promptKey: "dashboard.ads.insights.system.v1",
+      fallbackPrompt:
+        "You are an elite Google Ads performance strategist for local healthcare lead generation. " +
+        "Generate practical campaign playbooks by geography, balancing scale and efficiency. " +
+        "Use only provided data. No hallucinations. Be specific and concise.",
+    });
 
     const schema = {
       type: "object",
@@ -85,10 +104,7 @@ export async function POST(req: Request) {
       input: [
         {
           role: "system",
-          content:
-            "You are an elite Google Ads performance strategist for local healthcare lead generation. " +
-            "Generate practical campaign playbooks by geography, balancing scale and efficiency. " +
-            "Use only provided data. No hallucinations. Be specific and concise.",
+          content: promptResolved.promptText,
         },
         { role: "user", content: JSON.stringify(payload) },
       ],
@@ -126,6 +142,7 @@ export async function POST(req: Request) {
 
     const parsed = insights as InsightMeta;
     await appendAiEvent({
+      tenantId: tenantId || null,
       agent: "ads",
       kind: "insight_run",
       summary: `Ads playbook generated (${String(parsed?.scorecard?.health || "mixed")})`,

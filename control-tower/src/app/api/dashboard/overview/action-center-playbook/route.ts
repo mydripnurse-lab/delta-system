@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,10 @@ type ResponseOutputText = {
   }>;
 };
 
+function s(v: unknown) {
+  return String(v ?? "").trim();
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -27,6 +32,20 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
+    const tenantId = s((payload as any)?.tenantId || "");
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const integrationKey = s((payload as any)?.integrationKey || "default");
+    const promptResolved = await resolveTenantAiPrompt({
+      tenantId: tenantId || null,
+      integrationKey,
+      promptKey: "dashboard.overview.action_center_playbook.system.v1",
+      fallbackPrompt:
+        "You are a CEO operator writing a board-meeting playbook. " +
+        "Write in clear, non-technical business language for stakeholders with limited analytics background. " +
+        "Use only provided data. Do not invent metrics. Keep recommendations concrete and actionable.",
+    });
 
     const schema = {
       type: "object",
@@ -102,10 +121,7 @@ export async function POST(req: Request) {
       input: [
         {
           role: "system",
-          content:
-            "You are a CEO operator writing a board-meeting playbook. " +
-            "Write in clear, non-technical business language for stakeholders with limited analytics background. " +
-            "Use only provided data. Do not invent metrics. Keep recommendations concrete and actionable.",
+          content: promptResolved.promptText,
         },
         {
           role: "user",

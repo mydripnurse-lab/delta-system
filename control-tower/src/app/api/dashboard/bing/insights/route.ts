@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,10 @@ function safeJsonStringify(x: unknown, maxChars = 140_000) {
   return out.slice(0, maxChars) + `\n\n[TRUNCATED ${out.length - maxChars} chars]`;
 }
 
+function s(v: unknown) {
+  return String(v ?? "").trim();
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -34,6 +39,11 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
+    const tenantId = s((payload as any)?.tenantId || "");
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const integrationKey = s((payload as any)?.integrationKey || "default");
     const schema = {
       type: "object",
       additionalProperties: false,
@@ -71,16 +81,21 @@ export async function POST(req: Request) {
       required: ["executive_summary", "scorecard", "opportunities", "quick_wins_next_7_days", "experiments_next_30_days"],
     };
 
-    const systemPrompt =
-      "You are an elite Bing Webmaster SEO analyst. Use only provided dataset and output concise, action-oriented insights. " +
-      "Do not invent data. Prioritize CTR, clicks, impressions, average position, and geo opportunities. " +
-      "Output valid JSON per schema.";
+    const promptResolved = await resolveTenantAiPrompt({
+      tenantId: tenantId || null,
+      integrationKey,
+      promptKey: "dashboard.bing.insights.system.v1",
+      fallbackPrompt:
+        "You are an elite Bing Webmaster SEO analyst. Use only provided dataset and output concise, action-oriented insights. " +
+        "Do not invent data. Prioritize CTR, clicks, impressions, average position, and geo opportunities. " +
+        "Output valid JSON per schema.",
+    });
 
     const resp = await client.responses.create({
       model: "gpt-5.2",
       reasoning: { effort: "none" },
       input: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: promptResolved.promptText },
         { role: "user", content: safeJsonStringify(payload, 160_000) },
       ],
       text: {
@@ -118,6 +133,7 @@ export async function POST(req: Request) {
     };
 
     await appendAiEvent({
+      tenantId: tenantId || null,
       agent: "bing_webmaster",
       kind: "insight_run",
       summary: `Bing insights generated (${String(parsed?.scorecard?.health || "mixed")})`,

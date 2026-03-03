@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
+
+function s(v: unknown) {
+    return String(v ?? "").trim();
+}
 
 function safeJsonStringify(x: any, maxChars = 160_000) {
     let s = "";
@@ -29,6 +34,11 @@ export async function POST(req: Request) {
         }
 
         const payload = await req.json();
+        const tenantId = s(payload?.tenantId || "");
+        if (!tenantId) {
+            return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+        }
+        const integrationKey = s(payload?.integrationKey || "default");
 
         // ✅ Schema estricto y consistente con el agente GSC
         const schema = {
@@ -91,24 +101,29 @@ export async function POST(req: Request) {
         };
 
         // ✅ System prompt ultra-especializado para GA4 + State drill-down
-        const systemPrompt =
-            "You are an elite Google Analytics 4 (GA4) data analyst and conversion strategist.\n" +
-            "Your job: produce concise, action-oriented insights that improve revenue outcomes.\n\n" +
-            "Hard rules:\n" +
-            "1) Use ONLY the provided JSON data. Do not invent metrics or claim access to GA.\n" +
-            "2) If a limitation exists (e.g., missing conversion tracking, (not set) regions/cities), mention it explicitly.\n" +
-            "3) Prioritize measurable outcomes: more qualified sessions, higher engagement rate, more conversions, better landing performance.\n" +
-            "4) Reference evidence directly from the dataset fields (summaryOverall, compare, trendFiltered, stateRows, topCities, topLanding, topSourceMedium, meta).\n" +
-            "5) Be decisive: pick the main risk and main opportunity.\n\n" +
-            "What to analyze (must consider all if available):\n" +
-            "- Summary overall: sessions, users, views, engagementRate, conversions; note timeframe (startDate/endDate).\n" +
-            "- Compare: identify meaningful deltas and % changes, and interpret whether growth is quality or noise.\n" +
-            "- TrendFiltered: detect spikes/drops, relate to acquisition or landing issues.\n" +
-            "- State/Region rows: concentration risk, winners/laggards, presence of Puerto Rico, impact of __unknown/(not set).\n" +
-            "- Top Cities: spot cities with high sessions but weak engagement/conversions; detect PR cities signal.\n" +
-            "- Top Landing Pages: identify pages with traffic but low conversions/engagement; call out what to improve (CTA, speed, copy, form friction).\n" +
-            "- Source/Medium: identify channels driving volume vs quality; recommend reallocations or fixes.\n\n" +
-            "Output must be VALID JSON per the given schema.";
+        const promptResolved = await resolveTenantAiPrompt({
+            tenantId: tenantId || null,
+            integrationKey,
+            promptKey: "dashboard.ga.insights.system.v1",
+            fallbackPrompt:
+                "You are an elite Google Analytics 4 (GA4) data analyst and conversion strategist.\n" +
+                "Your job: produce concise, action-oriented insights that improve revenue outcomes.\n\n" +
+                "Hard rules:\n" +
+                "1) Use ONLY the provided JSON data. Do not invent metrics or claim access to GA.\n" +
+                "2) If a limitation exists (e.g., missing conversion tracking, (not set) regions/cities), mention it explicitly.\n" +
+                "3) Prioritize measurable outcomes: more qualified sessions, higher engagement rate, more conversions, better landing performance.\n" +
+                "4) Reference evidence directly from the dataset fields (summaryOverall, compare, trendFiltered, stateRows, topCities, topLanding, topSourceMedium, meta).\n" +
+                "5) Be decisive: pick the main risk and main opportunity.\n\n" +
+                "What to analyze (must consider all if available):\n" +
+                "- Summary overall: sessions, users, views, engagementRate, conversions; note timeframe (startDate/endDate).\n" +
+                "- Compare: identify meaningful deltas and % changes, and interpret whether growth is quality or noise.\n" +
+                "- TrendFiltered: detect spikes/drops, relate to acquisition or landing issues.\n" +
+                "- State/Region rows: concentration risk, winners/laggards, presence of Puerto Rico, impact of __unknown/(not set).\n" +
+                "- Top Cities: spot cities with high sessions but weak engagement/conversions; detect PR cities signal.\n" +
+                "- Top Landing Pages: identify pages with traffic but low conversions/engagement; call out what to improve (CTA, speed, copy, form friction).\n" +
+                "- Source/Medium: identify channels driving volume vs quality; recommend reallocations or fixes.\n\n" +
+                "Output must be VALID JSON per the given schema.",
+        });
 
         const inputData = safeJsonStringify(payload, 170_000);
 
@@ -116,7 +131,7 @@ export async function POST(req: Request) {
             model: "gpt-5.2",
             reasoning: { effort: "none" }, // rápido + consistente
             input: [
-                { role: "system", content: systemPrompt },
+                { role: "system", content: promptResolved.promptText },
                 { role: "user", content: inputData },
             ],
             text: {
@@ -156,6 +171,7 @@ export async function POST(req: Request) {
         }
 
         await appendAiEvent({
+            tenantId: tenantId || null,
             agent: "ga",
             kind: "insight_run",
             summary: `GA insights generated (${String(insights?.scorecard?.health || "mixed")})`,

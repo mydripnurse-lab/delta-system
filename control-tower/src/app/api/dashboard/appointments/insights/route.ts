@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+function s(v: unknown) {
+  return String(v ?? "").trim();
+}
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +23,22 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
+    const tenantId = s(payload?.tenantId || "");
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const integrationKey = s(payload?.integrationKey || "default");
+    const promptResolved = await resolveTenantAiPrompt({
+      tenantId: tenantId || null,
+      integrationKey,
+      promptKey: "dashboard.appointments.insights.system.v1",
+      fallbackPrompt:
+        "You are an elite Appointments & Operations strategist for healthcare lead generation. " +
+        "Optimize booked-to-show rate, reduce no-shows/cancellations, and improve calendar utilization by state. " +
+        "Include lost booking attempts from pipeline stage analysis (qualified attempts not completed), estimate impact on revenue, " +
+        "and prioritize county/city recovery actions. " +
+        "Return clear, measurable actions and operational playbooks. Use only provided data.",
+    });
 
     const schema = {
       type: "object",
@@ -80,12 +101,7 @@ export async function POST(req: Request) {
       input: [
         {
           role: "system",
-          content:
-            "You are an elite Appointments & Operations strategist for healthcare lead generation. " +
-            "Optimize booked-to-show rate, reduce no-shows/cancellations, and improve calendar utilization by state. " +
-            "Include lost booking attempts from pipeline stage analysis (qualified attempts not completed), estimate impact on revenue, " +
-            "and prioritize county/city recovery actions. " +
-            "Return clear, measurable actions and operational playbooks. Use only provided data.",
+          content: promptResolved.promptText,
         },
         {
           role: "user",
@@ -131,6 +147,7 @@ export async function POST(req: Request) {
     }
 
     await appendAiEvent({
+      tenantId: tenantId || null,
       agent: "appointments",
       kind: "insight_run",
       summary: `Appointments insights generated (${String(insights?.scorecard?.health || "mixed")})`,

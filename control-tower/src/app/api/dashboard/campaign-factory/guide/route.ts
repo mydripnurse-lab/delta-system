@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { appendAiEvent } from "@/lib/aiMemory";
+import { resolveTenantAiPrompt } from "@/lib/aiPromptStore";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,11 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
+    const tenantId = s((payload as any)?.tenantId || "");
+    if (!tenantId) {
+      return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
+    }
+    const integrationKey = s((payload as any)?.integrationKey || "default");
     const p = (payload || {}) as Record<string, unknown>;
     const campaign = (p.campaign || {}) as Record<string, unknown>;
     const context = (p.context || {}) as Record<string, unknown>;
@@ -157,18 +163,25 @@ export async function POST(req: Request) {
       required: ["quick_summary", "scorecard", "setup_steps", "creative_pack", "launch_checklist"],
     };
 
+    const promptResolved = await resolveTenantAiPrompt({
+      tenantId: tenantId || null,
+      integrationKey,
+      promptKey: "dashboard.campaign_factory.guide.system.v1",
+      fallbackPrompt:
+        "You are a senior paid-ads operator and trainer for a multi-geo business architecture (state/county/city landing structure). " +
+        "Create a short, precise setup guide for a beginner with almost no ads knowledge. " +
+        "Use plain language, practical steps, and avoid jargon overload. " +
+        "Use the business context provided in payload and never mention internal project names in public ad copy. " +
+        "Output only structured JSON matching schema.",
+    });
+
     const resp = await client.responses.create({
       model: "gpt-5.2",
       reasoning: { effort: "none" },
       input: [
         {
           role: "system",
-          content:
-            "You are a senior paid-ads operator and trainer for a multi-geo business architecture (state/county/city landing structure). " +
-            "Create a short, precise setup guide for a beginner with almost no ads knowledge. " +
-            "Use plain language, practical steps, and avoid jargon overload. " +
-            "Use the business context provided in payload and never mention internal project names in public ad copy. " +
-            "Output only structured JSON matching schema.",
+          content: promptResolved.promptText,
         },
         {
           role: "user",
@@ -216,6 +229,7 @@ export async function POST(req: Request) {
 
     const parsed = insights as InsightMeta;
     await appendAiEvent({
+      tenantId: tenantId || null,
       agent: "overview",
       kind: "insight_run",
       summary: `Campaign setup guide generated (${String(parsed?.scorecard?.health || "mixed")})`,
