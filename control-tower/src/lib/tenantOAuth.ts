@@ -234,17 +234,35 @@ export async function resolveTenantOAuthConnection(input: ResolveInput): Promise
 
 export async function getTenantOAuthClientConfig(input: ResolveInput): Promise<OAuthClientConfig> {
   const provider = s(input.provider);
-  const resolved = await resolveTenantIntegrationInternal(input);
-  const requestedConfig = asObject(resolved.requested.config);
-  const effectiveConfig = asObject(resolved.effective.config);
-  const client = pickOAuthClientConfig(requestedConfig) || pickOAuthClientConfig(effectiveConfig);
-  if (!client) {
+  const preferred = s(input.integrationKey) || "default";
+  const candidateKeys = preferredIntegrationKeys(preferred);
+  let missingClientFor: string | null = null;
+  let firstErr: string | null = null;
+
+  for (const key of candidateKeys) {
+    try {
+      const resolved = await resolveTenantIntegrationInternal({
+        tenantId: s(input.tenantId),
+        provider,
+        integrationKey: key,
+      });
+      const requestedConfig = asObject(resolved.requested.config);
+      const effectiveConfig = asObject(resolved.effective.config);
+      const client = pickOAuthClientConfig(requestedConfig) || pickOAuthClientConfig(effectiveConfig);
+      if (client) return client;
+      missingClientFor = resolved.integrationKey;
+    } catch (e: unknown) {
+      if (!firstErr) firstErr = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  if (missingClientFor) {
     throw new Error(
-      `Missing OAuth client config for ${provider}:${resolved.integrationKey}.` +
+      `Missing OAuth client config for ${provider}:${missingClientFor}.` +
       " Set config.oauthClient.{clientId,clientSecret,redirectUri}.",
     );
   }
-  return client;
+  throw new Error(firstErr || `Missing integration ${provider}:${preferred} for tenant ${s(input.tenantId)}`);
 }
 
 export async function saveTenantOAuthTokens(input: {

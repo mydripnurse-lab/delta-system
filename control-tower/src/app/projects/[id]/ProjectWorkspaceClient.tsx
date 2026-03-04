@@ -404,7 +404,7 @@ const PROJECT_SLUG_TO_TAB: Record<string, ProjectTab> = {
   "project-details": "details",
   integrations: "integrations",
   webhooks: "webhooks",
-  logs: "logs",
+  // logs: "logs",
   prompts: "prompts",
 };
 type ProjectDetailsTab =
@@ -3920,14 +3920,12 @@ export default function Home() {
     const kind = oauthKindForIntegration(row);
     if (!kind) return;
     try {
-      hydrateOauthStateFromIntegration(row);
       setIntegrationEditorErr("");
       setIntegrationEditorMsg("");
       setOauthErr("");
       setOauthMsg("");
-      const integrationKey = await upsertOAuthIntegration(kind);
-      await refreshIntegrationsSnapshot();
-      await loadOAuthHealth();
+      // Reauthorize must use current DB integration config/tokens without forcing a UI save first.
+      const integrationKey = s(row.integration_key || row.integrationKey) || "default";
       const startPath =
         kind === "gsc"
           ? "/api/auth/gsc/start"
@@ -8393,6 +8391,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           >
             Prompts
           </Link>
+          {/*
           <Link
             className={`agencyNavItem ${activeProjectTab === "logs" ? "agencyNavItemActive" : ""}`}
             href={projectTabHref("logs")}
@@ -8400,6 +8399,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           >
             Logs
           </Link>
+          */}
           </nav>
         </aside>
 
@@ -8826,185 +8826,263 @@ return {totalRows:rows.length,matched:targets.length,clicked};
 
           {detailsTab === "custom_values" ? (
             <div className="detailsPane">
-              <div className="detailsPaneHeader">
-                <div className="detailsPaneTitle">Custom Values Template</div>
-                <div className="detailsPaneSub">Snapshot from Snapshot Location ID. Edit values in DB and apply to child subaccounts.</div>
-              </div>
-
-              <div className="detailsCustomTop">
-                <div className="row" style={{ marginBottom: 10 }}>
-                  <div className="field">
-                    <label>Snapshot Location ID (Custom Values Source)</label>
-                    <input
-                      className="input"
-                      value={tenantSnapshotLocationId}
-                      onChange={(e) => setTenantSnapshotLocationId(e.target.value)}
-                      placeholder="Location ID used for Custom Values sync"
-                    />
-                  </div>
-                </div>
+              <div
+                style={{
+                  border: "1px solid rgba(123,160,255,0.22)",
+                  borderRadius: 18,
+                  padding: 14,
+                  background:
+                    "linear-gradient(145deg, rgba(8,20,44,0.9), rgba(10,28,58,0.76) 55%, rgba(7,16,34,0.92))",
+                  boxShadow: "0 18px 48px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)",
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    gap: 10,
+                    alignItems: "flex-start",
+                    gap: 12,
                     flexWrap: "wrap",
-                    marginBottom: 8,
                   }}
                 >
-                  <div className="mini">
-                    Dynamic fields (`Business - County Domain`, `Business - County Name`, `Business ID`, `County Name And State`, `Website Url`) are managed automatically per county/city.
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: "rgba(163,191,255,0.84)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Template Studio
+                    </div>
+                    <h3
+                      style={{
+                        margin: "6px 0 0",
+                        fontSize: 24,
+                        lineHeight: 1.15,
+                        color: "#f5f8ff",
+                        fontWeight: 700,
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      Custom Values
+                    </h3>
+                    <div className="mini" style={{ marginTop: 8, maxWidth: 820, color: "rgba(212,225,255,0.88)" }}>
+                      Snapshot from Snapshot Location ID. Edit values in DB and apply to child subaccounts.
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <span className="badge">{tenantCustomValuesFiltered.length} keys</span>
                     {tenantCustomValuesMsg ? <span className="badge">{tenantCustomValuesMsg}</span> : null}
-                    <button
-                      type="button"
-                      className="smallBtn"
-                      disabled={!routeTenantId || tenantCustomValuesSnapshotBusy}
-                      onClick={() => void snapshotOwnerCustomValuesTemplate()}
-                      title="Sync custom value names from Snapshot Location ID."
-                    >
-                      {tenantCustomValuesSnapshotBusy ? "Syncing..." : "Sync from Snapshot Location"}
-                    </button>
-                    <button
-                      type="button"
-                      className="smallBtn"
-                      disabled={
-                        !routeTenantId ||
-                        tenantCustomValuesSaving ||
-                        tenantCustomValuesLoading ||
-                        tenantCustomValues.length === 0
-                      }
-                      onClick={() => void saveTenantCustomValuesTemplate()}
-                      title="Save edited template in DB."
-                    >
-                      {tenantCustomValuesSaving ? "Saving..." : "Save Custom Values"}
-                    </button>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <input
-                    className="input"
-                    style={{ maxWidth: 360 }}
-                    value={tenantCustomValuesSearch}
-                    onChange={(e) => {
-                      setTenantCustomValuesSearch(e.target.value);
-                      setTenantCustomValuesPage(1);
-                    }}
-                    placeholder="Search custom values..."
-                  />
-                  <span className="badge">{tenantCustomValuesFiltered.length} results</span>
+
+                <div
+                  style={{
+                    marginTop: 14,
+                    border: "1px solid rgba(120,146,220,0.2)",
+                    borderRadius: 14,
+                    padding: 12,
+                    background: "rgba(12,22,44,0.58)",
+                  }}
+                >
+                  <div className="row" style={{ marginBottom: 10 }}>
+                    <div className="field">
+                      <label>Snapshot Location ID</label>
+                      <input
+                        className="input"
+                        value={tenantSnapshotLocationId}
+                        onChange={(e) => setTenantSnapshotLocationId(e.target.value)}
+                        placeholder="Location ID used for template sync"
+                      />
+                    </div>
+                    <div className="field" style={{ minWidth: 240 }}>
+                      <label>Search</label>
+                      <input
+                        className="input"
+                        value={tenantCustomValuesSearch}
+                        onChange={(e) => {
+                          setTenantCustomValuesSearch(e.target.value);
+                          setTenantCustomValuesPage(1);
+                        }}
+                        placeholder="Find key..."
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <div className="mini" style={{ color: "rgba(197,212,248,0.82)" }}>
+                      Auto-managed keys by county/city: `Business - County Domain`, `Business - County Name`, `Business ID`, `County Name And State`, `Website Url`.
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="smallBtn"
+                        disabled={!routeTenantId || tenantCustomValuesSnapshotBusy}
+                        onClick={() => void snapshotOwnerCustomValuesTemplate()}
+                        title="Sync custom value names from Snapshot Location ID."
+                      >
+                        {tenantCustomValuesSnapshotBusy ? "Syncing..." : "Sync Snapshot"}
+                      </button>
+                      <button
+                        type="button"
+                        className="smallBtn smallBtnOn"
+                        disabled={
+                          !routeTenantId ||
+                          tenantCustomValuesSaving ||
+                          tenantCustomValuesLoading ||
+                          tenantCustomValues.length === 0
+                        }
+                        onClick={() => void saveTenantCustomValuesTemplate()}
+                        title="Save edited template in DB."
+                      >
+                        {tenantCustomValuesSaving ? "Saving..." : "Save Changes"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="tableWrap detailsCustomTableWrap" style={{ marginTop: 12 }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th className="th">Active</th>
-                      <th className="th">Name</th>
-                      <th className="th">Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tenantCustomValuesLoading ? (
-                      <tr>
-                        <td className="td" colSpan={3}>
-                          <span className="mini">Loading custom values template...</span>
-                        </td>
-                      </tr>
-                    ) : tenantCustomValuesFiltered.length === 0 ? (
-                      <tr>
-                        <td className="td" colSpan={3}>
-                          <span className="mini">
-                            {tenantCustomValues.length === 0
-                              ? <>No rows found. Use <b>Sync from Snapshot Location</b> first.</>
-                              : <>No matches found for current search.</>}
-                          </span>
-                        </td>
-                      </tr>
-                    ) : (
-                      tenantCustomValuesPagedRows.map(({ row, originalIndex }) => {
-                        return (
-                        <tr key={`${row.id || row.keyName || "row"}:${originalIndex}`} className="tr">
-                          <td className="td" style={{ width: 110 }}>
-                            <input
-                              type="checkbox"
-                              checked={row.isActive !== false}
-                              onChange={(e) =>
-                                updateTenantCustomValueAt(originalIndex, { isActive: e.target.checked })
-                              }
-                            />
-                          </td>
-                          <td className="td" style={{ minWidth: 260 }}>
-                            <input className="input" value={row.keyName} readOnly />
-                          </td>
-                          <td className="td" style={{ minWidth: 320 }}>
-                            <input
-                              className="input"
-                              value={row.keyValue}
-                              onChange={(e) =>
-                                updateTenantCustomValueAt(originalIndex, { keyValue: e.target.value })
-                              }
-                              placeholder="Leave empty to skip this key on apply."
-                            />
-                          </td>
-                        </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-                {tenantCustomValuesFiltered.length > tenantCustomValuesPageSize ? (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 8,
-                      marginTop: 8,
-                    }}
-                  >
-                    <div className="mini">
-                      Showing{" "}
-                      {Math.min(
-                        tenantCustomValuesFiltered.length,
-                        (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize + 1,
-                      )}{" "}
-                      to{" "}
-                      {Math.min(
-                        tenantCustomValuesFiltered.length,
-                        tenantCustomValuesPageSafe * tenantCustomValuesPageSize,
-                      )}{" "}
-                      of {tenantCustomValuesFiltered.length}
+              <div
+                style={{
+                  marginTop: 12,
+                  border: "1px solid rgba(120,146,220,0.18)",
+                  borderRadius: 16,
+                  background: "rgba(9,18,38,0.72)",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ overflowX: "auto" }}>
+                  <div style={{ minWidth: 780 }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "120px minmax(220px, 1fr) minmax(300px, 1.5fr)",
+                        gap: 10,
+                        padding: "10px 12px",
+                        borderBottom: "1px solid rgba(129,152,214,0.16)",
+                        background: "linear-gradient(180deg, rgba(18,32,62,0.84), rgba(10,22,46,0.84))",
+                        color: "rgba(224,236,255,0.9)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      <div>Active</div>
+                      <div>Key</div>
+                      <div>Value</div>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        type="button"
-                        className="smallBtn"
-                        disabled={tenantCustomValuesPageSafe <= 1}
-                        onClick={() => setTenantCustomValuesPage((p) => Math.max(1, p - 1))}
-                      >
-                        Prev
-                      </button>
-                      <span className="badge">
-                        Page {tenantCustomValuesPageSafe} / {tenantCustomValuesPages}
-                      </span>
-                      <button
-                        type="button"
-                        className="smallBtn"
-                        disabled={tenantCustomValuesPageSafe >= tenantCustomValuesPages}
-                        onClick={() =>
-                          setTenantCustomValuesPage((p) =>
-                            Math.min(tenantCustomValuesPages, p + 1),
-                          )
-                        }
-                      >
-                        Next
-                      </button>
+
+                    <div style={{ maxHeight: "66vh", overflow: "auto" }}>
+                      {tenantCustomValuesLoading ? (
+                        <div style={{ padding: 14 }} className="mini">
+                          Loading custom values template...
+                        </div>
+                      ) : tenantCustomValuesFiltered.length === 0 ? (
+                        <div style={{ padding: 14 }} className="mini">
+                          {tenantCustomValues.length === 0
+                            ? <>No rows found. Use <b>Sync Snapshot</b> first.</>
+                            : <>No matches found for current search.</>}
+                        </div>
+                      ) : (
+                        tenantCustomValuesPagedRows.map(({ row, originalIndex }) => (
+                          <div
+                            key={`${row.id || row.keyName || "row"}:${originalIndex}`}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "120px minmax(220px, 1fr) minmax(300px, 1.5fr)",
+                              gap: 10,
+                              padding: "10px 12px",
+                              borderBottom: "1px solid rgba(114,137,193,0.14)",
+                              background:
+                                originalIndex % 2 === 0 ? "rgba(12,22,44,0.56)" : "rgba(10,19,38,0.52)",
+                              alignItems: "center",
+                            }}
+                          >
+                            <div>
+                              <input
+                                type="checkbox"
+                                checked={row.isActive !== false}
+                                onChange={(e) =>
+                                  updateTenantCustomValueAt(originalIndex, { isActive: e.target.checked })
+                                }
+                              />
+                            </div>
+                            <div>
+                              <input className="input" value={row.keyName} readOnly />
+                            </div>
+                            <div>
+                              <input
+                                className="input"
+                                value={row.keyValue}
+                                onChange={(e) =>
+                                  updateTenantCustomValueAt(originalIndex, { keyValue: e.target.value })
+                                }
+                                placeholder="Leave empty to skip this key on apply."
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
-                ) : null}
+                </div>
+
+                <div
+                  style={{
+                    padding: 10,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                    flexWrap: "wrap",
+                    borderTop: "1px solid rgba(129,152,214,0.14)",
+                    background: "rgba(9,18,38,0.86)",
+                  }}
+                >
+                  <div className="mini">
+                    Showing{" "}
+                    {tenantCustomValuesFiltered.length === 0
+                      ? 0
+                      : Math.min(
+                          tenantCustomValuesFiltered.length,
+                          (tenantCustomValuesPageSafe - 1) * tenantCustomValuesPageSize + 1,
+                        )}{" "}
+                    to{" "}
+                    {Math.min(
+                      tenantCustomValuesFiltered.length,
+                      tenantCustomValuesPageSafe * tenantCustomValuesPageSize,
+                    )}{" "}
+                    of {tenantCustomValuesFiltered.length}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={tenantCustomValuesPageSafe <= 1}
+                      onClick={() => setTenantCustomValuesPage((p) => Math.max(1, p - 1))}
+                    >
+                      Prev
+                    </button>
+                    <span className="badge">
+                      Page {tenantCustomValuesPageSafe} / {tenantCustomValuesPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="smallBtn"
+                      disabled={tenantCustomValuesPageSafe >= tenantCustomValuesPages}
+                      onClick={() =>
+                        setTenantCustomValuesPage((p) =>
+                          Math.min(tenantCustomValuesPages, p + 1),
+                        )
+                      }
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}
@@ -11661,7 +11739,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </section>
       ) : null}
 
-      {/* Logs */}
+      {/* Logs tab disabled for now */}
+      {/*
       {activeProjectTab === "logs" ? (
       <section className="console" ref={logsRef}>
         <div className="consoleHeader">
@@ -11684,6 +11763,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         </div>
       </section>
       ) : null}
+      */}
         </section>
       </div>
 
