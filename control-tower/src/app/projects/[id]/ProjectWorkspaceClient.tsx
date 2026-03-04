@@ -505,7 +505,7 @@ function integrationProviderLabel(provider: string) {
   if (p === "google_ads") return "Google Ads";
   if (p === "google_cloud" || p === "google_places" || p === "google_maps") return "Google Places";
   if (p === "bing_webmaster") return "Bing Webmaster";
-  if (p === "ghl") return "GoHighLevel";
+  if (p === "ghl") return "Go High Level";
   if (p === "openai") return "OpenAI";
   if (p === "cloudflare") return "Cloudflare";
   if (p === "custom") return "Open Claw";
@@ -3907,6 +3907,8 @@ export default function Home() {
     setIntegrationEditConfigText(JSON.stringify(cfg, null, 2));
     const resolvedApiKey =
       s(cfg.apiKey) ||
+        s(cfg.agentApiKey) ||
+        s(cfg.openclawApiKey) ||
         s(cfg.api_key) ||
         s(cfg.webmasterApiKey) ||
         s(cfg.indexNowKey) ||
@@ -3973,6 +3975,13 @@ export default function Home() {
           parsedConfig = {
             ...parsedConfig,
             apiKey: s(integrationEditApiKey),
+          };
+        } else if (provider === "custom") {
+          parsedConfig = {
+            ...parsedConfig,
+            apiKey: s(integrationEditApiKey),
+            agentApiKey: s(integrationEditApiKey),
+            openclawApiKey: s(integrationEditApiKey),
           };
         } else if (provider === "bing_webmaster") {
           parsedConfig = {
@@ -9335,11 +9344,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 const provider = s(it.provider);
                 const providerLabel = integrationProviderLabel(provider);
                 const logoUrl = integrationProviderLogoUrl(provider);
-                const integrationKey = s(it.integration_key || it.integrationKey || "default");
-                const externalRef =
-                  s(it.external_account_id || it.externalAccountId) ||
-                  s(it.external_property_id || it.externalPropertyId) ||
-                  "No external account";
                 const health = integrationHealthById.get(integrationId) || null;
                 const authType = s(it.auth_type || it.authType);
                 const isOauth = authType === "oauth" && !isVirtual;
@@ -9365,9 +9369,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       </div>
                       <div>
                         <div className="integrationName">{providerLabel}</div>
-                        <div className="integrationSubline">
-                          {integrationKey} · {externalRef}
-                        </div>
                       </div>
                     </div>
                     <div className="integrationRowRight">
@@ -12442,21 +12443,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               <div className="detailsPane">
                 <div className="row">
                   <div className="field">
-                    <label>Provider</label>
+                    <label>Connection</label>
                     <input
                       className="input"
-                      value={integrationEditProvider}
-                      onChange={(e) => setIntegrationEditProvider(s(e.target.value).toLowerCase())}
-                      placeholder="openai | google_ads | bing_webmaster ..."
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Integration Key</label>
-                    <input
-                      className="input"
-                      value={integrationEditKey}
-                      onChange={(e) => setIntegrationEditKey(s(e.target.value).toLowerCase())}
-                      placeholder="default"
+                      value={integrationProviderLabel(integrationEditProvider)}
+                      readOnly
                     />
                   </div>
                   <div className="field">
@@ -12473,16 +12464,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     </select>
                   </div>
                   <div className="field">
-                    <label>Auth Type</label>
-                    <input
-                      className="input"
-                      value={integrationEditAuthType}
-                      onChange={(e) => setIntegrationEditAuthType(e.target.value)}
-                      placeholder="api_key | oauth"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>API Key / Secret</label>
+                    <label>API Key / Token</label>
                     <input
                       className="input"
                       type="text"
@@ -12507,31 +12489,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       onChange={(e) => setIntegrationEditExternalPropertyId(e.target.value)}
                     />
                   </div>
-                  <div className="field">
-                    <label>Scopes (comma/space separated)</label>
-                    <input
-                      className="input"
-                      value={integrationEditScopes}
-                      onChange={(e) => setIntegrationEditScopes(e.target.value)}
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Last Error</label>
-                    <input
-                      className="input"
-                      value={integrationEditLastError}
-                      onChange={(e) => setIntegrationEditLastError(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="field" style={{ marginTop: 8 }}>
-                  <label>Config JSON</label>
-                  <textarea
-                    className="input"
-                    rows={12}
-                    value={integrationEditConfigText}
-                    onChange={(e) => setIntegrationEditConfigText(e.target.value)}
-                  />
                 </div>
               </div>
             </div>
@@ -12698,7 +12655,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <section className="card">
                   <div className="cardHeader">
                     <div>
-                      <h4 className="cardTitle">GoHighLevel OAuth (Owner)</h4>
+                      <h4 className="cardTitle">Go High Level OAuth (Owner)</h4>
                       <div className="cardSubtitle">Tenant owner integration. Tokens and refresh stay in DB and are reused by runner/APIs.</div>
                     </div>
                     <div className="badge">{s(ghlHealth?.status) || "not_saved"}</div>
