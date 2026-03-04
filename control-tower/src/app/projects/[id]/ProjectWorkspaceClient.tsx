@@ -3863,7 +3863,6 @@ export default function Home() {
 
   function hydrateOauthStateFromIntegration(row: TenantIntegrationRow) {
     const provider = s(row.provider).toLowerCase();
-    const key = s(row.integration_key || row.integrationKey || "default") || "default";
     const cfg =
       row.config && typeof row.config === "object"
         ? (row.config as Record<string, unknown>)
@@ -3874,7 +3873,6 @@ export default function Home() {
         : {};
 
     if (provider === "google_search_console") {
-      setGscIntegrationKey(key);
       setGscClientId(s(oauthClient.clientId || oauthClient.client_id || cfg.clientId || cfg.client_id));
       setGscClientSecret(
         s(oauthClient.clientSecret || oauthClient.client_secret || cfg.clientSecret || cfg.client_secret),
@@ -3888,7 +3886,6 @@ export default function Home() {
     }
 
     if (provider === "google_ads") {
-      setAdsIntegrationKey(key);
       setAdsClientId(s(oauthClient.clientId || oauthClient.client_id || cfg.clientId || cfg.client_id));
       setAdsClientSecret(
         s(oauthClient.clientSecret || oauthClient.client_secret || cfg.clientSecret || cfg.client_secret),
@@ -3903,7 +3900,6 @@ export default function Home() {
     }
 
     if (provider === "ghl" || (provider === "custom" && s(row.auth_type || row.authType).toLowerCase() === "oauth")) {
-      setGhlIntegrationKey(key || "owner");
       setGhlClientId(s(oauthClient.clientId || oauthClient.client_id || cfg.clientId || cfg.client_id));
       setGhlClientSecret(
         s(oauthClient.clientSecret || oauthClient.client_secret || cfg.clientSecret || cfg.client_secret),
@@ -3981,22 +3977,18 @@ export default function Home() {
     const kind = oauthKindForProviderAuth(provider, authType);
     if (!kind) return;
 
-    const key = s(integrationEditKey) || "default";
     if (kind === "gsc") {
-      setGscIntegrationKey(key);
       setGscClientId(s(integrationEditOauthClientId));
       setGscClientSecret(s(integrationEditOauthClientSecret));
       setGscRedirectUri(s(integrationEditOauthRedirectUri));
       setGscSiteUrl(s(integrationEditExternalPropertyId));
     } else if (kind === "ads") {
-      setAdsIntegrationKey(key);
       setAdsClientId(s(integrationEditOauthClientId));
       setAdsClientSecret(s(integrationEditOauthClientSecret));
       setAdsRedirectUri(s(integrationEditOauthRedirectUri));
       setAdsCustomerId(s(integrationEditExternalAccountId));
       setAdsDeveloperToken(s(integrationEditApiKey));
     } else {
-      setGhlIntegrationKey(key || "owner");
       setGhlClientId(s(integrationEditOauthClientId));
       setGhlClientSecret(s(integrationEditOauthClientSecret));
       setGhlRedirectUri(s(integrationEditOauthRedirectUri));
