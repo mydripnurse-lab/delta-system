@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="96" fill="#0B1220"/>
+  <path d="M256 132c-68.5 0-124 55.5-124 124s55.5 124 124 124 124-55.5 124-124-55.5-124-124-124Zm0 52a72 72 0 1 1 0 144 72 72 0 0 1 0-144Z" fill="#60A5FA"/>
+  <path d="M256 220a36 36 0 1 0 0 72 36 36 0 0 0 0-72Z" fill="#93C5FD"/>
+  <text x="256" y="458" text-anchor="middle" font-family="Arial, sans-serif" font-size="52" fill="#E2E8F0">Custom</text>
+</svg>

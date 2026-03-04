@@ -7562,7 +7562,9 @@ button, input, select { font-family: inherit; }
 .integrationLogoImg {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 6px;
+  background: rgba(255,255,255,0.96);
 }
 
 .integrationName {

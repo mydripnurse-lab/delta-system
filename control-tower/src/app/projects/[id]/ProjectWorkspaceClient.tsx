@@ -513,15 +513,16 @@ function integrationProviderLabel(provider: string) {
 
 function integrationProviderLogoUrl(provider: string) {
   const p = s(provider).toLowerCase();
-  if (p === "google_search_console" || p === "google_cloud" || p === "google_places" || p === "google_maps") {
-    return "https://img.icons8.com/color/96/google-logo.png";
+  if (p === "bing_webmaster") return "/brand/integrations/bing-webmaster.svg";
+  if (p === "google_ads") return "/brand/integrations/google-ads.svg";
+  if (p === "google_search_console") return "/brand/integrations/google-search-console.svg";
+  if (p === "google_cloud" || p === "google_places" || p === "google_maps") {
+    return "/brand/integrations/google-places.svg";
   }
-  if (p === "google_ads") return "https://img.icons8.com/color/96/google-ads.png";
-  if (p === "bing_webmaster") return "https://img.icons8.com/color/96/bing.png";
-  if (p === "openai") return "https://img.icons8.com/color/96/chatgpt.png";
-  if (p === "cloudflare") return "https://img.icons8.com/color/96/cloudflare.png";
-  if (p === "ghl") return "https://logo.clearbit.com/gohighlevel.com";
-  if (p === "custom") return "https://img.icons8.com/color/96/services.png";
+  if (p === "ghl") return "/brand/integrations/gohighlevel.png";
+  if (p === "openai") return "/brand/integrations/openai.svg";
+  if (p === "cloudflare") return "/brand/integrations/cloudflare.svg";
+  if (p === "custom") return "/brand/integrations/custom.svg";
   return "";
 }
 
