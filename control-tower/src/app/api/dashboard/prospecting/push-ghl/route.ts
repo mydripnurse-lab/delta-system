@@ -99,7 +99,7 @@ async function resolveTenantWebhookUrl(tenantId: string) {
     s(((cfg.webhooks as Record<string, unknown> | undefined)?.prospecting as unknown)) ||
     s(((cfg.webhooks as Record<string, unknown> | undefined)?.default as unknown));
   const settingsUrl = s(row?.settings_webhook_url);
-  return webhookFromProspectingCfg || webhookFromGhlCfg || settingsUrl || s(process.env.PROSPECTING_GHL_WEBHOOK_URL);
+  return webhookFromProspectingCfg || webhookFromGhlCfg || settingsUrl;
 }
 
 export async function POST(req: Request) {
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
         {
           ok: false,
           error:
-            "Missing webhook URL. Configure integration config webhooks.prospecting (or alerts.prospectingWebhookUrl), or PROSPECTING_GHL_WEBHOOK_URL.",
+            "Missing webhook URL. Configure tenant webhook in DB (prospecting/ghl integration config or tenant settings).",
         },
         { status: 400 },
       );

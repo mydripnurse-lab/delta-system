@@ -103,15 +103,14 @@ export async function POST(req: Request, ctx: Ctx) {
   const webhookUrl =
     overrideWebhookUrl ||
     s(row.settings_webhook_url || "") ||
-    s(row.cfg_webhook_url || "") ||
-    s(process.env.ADS_ALERT_GHL_WEBHOOK_URL || "");
+    s(row.cfg_webhook_url || "");
 
   if (!webhookUrl) {
     return NextResponse.json(
       {
         ok: false,
         error:
-          "No webhook configured. Set Ads Alerts Webhook in tenant settings or ADS_ALERT_GHL_WEBHOOK_URL.",
+          "No webhook configured. Set Ads Alerts Webhook in tenant settings or integration config.",
       },
       { status: 400 },
     );

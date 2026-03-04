@@ -183,6 +183,38 @@ async function loadTenantHunterApiKey(tenantId: string) {
   return pick("apiKey", "hunterApiKey", "key");
 }
 
+async function loadTenantOvertureEndpoint(tenantId: string) {
+  const pool = getDbPool();
+  const q = await pool.query<{
+    config: Record<string, unknown> | null;
+    metadata: Record<string, unknown> | null;
+  }>(
+    `
+      select config, metadata
+      from app.organization_integrations
+      where organization_id = $1::uuid
+        and provider in ('overture', 'place_search')
+        and integration_key in ('default', 'owner')
+      order by case when integration_key = 'default' then 0 else 1 end
+      limit 1
+    `,
+    [tenantId],
+  );
+  const row = q.rows[0];
+  const cfg = row?.config || {};
+  const meta = row?.metadata || {};
+  const pick = (...keys: string[]) => {
+    for (const k of keys) {
+      const v =
+        s((cfg as Record<string, unknown>)[k]) ||
+        s((meta as Record<string, unknown>)[k]);
+      if (v) return v;
+    }
+    return "";
+  };
+  return pick("endpoint", "baseUrl", "searchUrl", "url");
+}
+
 async function fetchText(url: string, timeoutMs = 7000) {
   const ctrl = new AbortController();
   const to = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -424,8 +456,9 @@ async function discoverByOvertureEndpoint(opts: {
   services: string[];
   locationText: string;
   maxResults: number;
+  endpoint: string;
 }) {
-  const endpoint = s(process.env.OVERTURE_PLACE_SEARCH_URL);
+  const endpoint = s(opts.endpoint);
   if (!endpoint) return [];
   const out: PlaceCandidate[] = [];
   const perService = Math.max(1, Math.ceil(opts.maxResults / Math.max(1, opts.services.length)));
@@ -518,11 +551,10 @@ export async function POST(req: Request) {
     const rawSources = ((body?.sources as JsonMap | undefined) || {}) as JsonMap;
     const rawEnrichment = ((body?.enrichment as JsonMap | undefined) || {}) as JsonMap;
     const placesApiKey =
-      (await loadTenantPlacesApiKey(tenantId)) ||
-      s(process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_PLACES_API_KEY);
+      (await loadTenantPlacesApiKey(tenantId));
     const hunterApiKey =
-      (await loadTenantHunterApiKey(tenantId)) ||
-      s(process.env.HUNTER_API_KEY);
+      (await loadTenantHunterApiKey(tenantId));
+    const overtureEndpoint = await loadTenantOvertureEndpoint(tenantId);
     const sources: SourceFlags = {
       googlePlaces: boolish(rawSources.googlePlaces, Boolean(placesApiKey)),
       osmOverpass: boolish(rawSources.osmOverpass, true),
@@ -593,13 +625,14 @@ export async function POST(req: Request) {
         services: servicesFinal,
         locationText,
         maxResults,
+        endpoint: overtureEndpoint,
       }).catch((e: unknown) => {
         warnings.push(`Overture failed: ${e instanceof Error ? e.message : "unknown error"}`);
         return [] as PlaceCandidate[];
       });
       sourceCounts.overture = overtureRows.length;
-      if (!overtureRows.length && !process.env.OVERTURE_PLACE_SEARCH_URL) {
-        warnings.push("Overture enabled but OVERTURE_PLACE_SEARCH_URL is not configured.");
+      if (!overtureRows.length && !overtureEndpoint) {
+        warnings.push("Overture enabled but tenant integration is not configured.");
       }
       discoveredRaw.push(...overtureRows);
     }

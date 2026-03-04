@@ -4065,9 +4065,13 @@ export default function Home() {
       s(item?.external_property_id || item?.externalPropertyId) ||
         (provider === "cloudflare" ? s(tenantCloudflareCnameTarget) : ""),
     );
-    setIntegrationEditScopes(
-      Array.isArray((item as any)?.scopes) ? ((item as any).scopes as unknown[]).map((x) => s(x)).filter(Boolean).join(", ") : "",
-    );
+    const rowScopes = Array.isArray((item as any)?.scopes)
+      ? ((item as any).scopes as unknown[]).map((x) => s(x)).filter(Boolean).join(", ")
+      : "";
+    const oauthScopes = Array.isArray((cfg as any)?.oauthScopes)
+      ? ((cfg as any).oauthScopes as unknown[]).map((x) => s(x)).filter(Boolean).join(", ")
+      : s((cfg as any)?.oauthScopes);
+    setIntegrationEditScopes(oauthScopes || rowScopes || "");
     setIntegrationEditLastError(s(item?.last_error || item?.lastError));
     setIntegrationEditConfigText(JSON.stringify(cfg, null, 2));
     const resolvedApiKey =
@@ -4158,6 +4162,15 @@ export default function Home() {
             redirectUri: s(integrationEditOauthRedirectUri),
           },
         };
+        if (provider === "ghl" || provider === "custom") {
+          parsedConfig = {
+            ...parsedConfig,
+            oauthScopes: s(integrationEditScopes)
+              .split(/[\s,]+/)
+              .map((x) => s(x))
+              .filter(Boolean),
+          };
+        }
       }
 
       if (s(integrationEditApiKey)) {
@@ -4195,10 +4208,14 @@ export default function Home() {
         .split(/[\s,]+/)
         .map((x) => s(x))
         .filter(Boolean);
+      const nextStatus =
+        provider === "openai" && s(integrationEditApiKey)
+          ? "connected"
+          : s(integrationEditStatus) || "connected";
       const payload: Record<string, unknown> = {
         provider,
         integrationKey,
-        status: s(integrationEditStatus) || "connected",
+        status: nextStatus,
         authType: s(integrationEditAuthType) || "api_key",
         externalAccountId: s(integrationEditExternalAccountId) || "",
         externalPropertyId: s(integrationEditExternalPropertyId) || "",
@@ -9497,9 +9514,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             <button className="smallBtn" onClick={() => void refreshIntegrationsSnapshot()}>
               Refresh
             </button>
-            <button className="smallBtn" onClick={() => openIntegrationEditor(null)}>
-              Add OpenAI Key
-            </button>
           </div>
         </div>
         <div className="cardBody integrationsCardBody">
@@ -12670,6 +12684,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                 : "API Key / Token";
                   const showExternalAccount =
                     providerKey === "ghl" || providerKey === "google_ads" || providerKey === "custom";
+                  const showGhlScopes =
+                    providerKey === "ghl" || (providerKey === "custom" && isOAuth);
                   const externalAccountLabel =
                     providerKey === "ghl"
                       ? "Go High Level Location ID"
@@ -12758,6 +12774,17 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         className="input"
                         value={integrationEditExternalPropertyId}
                         onChange={(e) => setIntegrationEditExternalPropertyId(e.target.value)}
+                      />
+                    </div>
+                  ) : null}
+                  {showGhlScopes ? (
+                    <div className="field">
+                      <label>OAuth Scopes</label>
+                      <input
+                        className="input"
+                        value={integrationEditScopes}
+                        onChange={(e) => setIntegrationEditScopes(e.target.value)}
+                        placeholder="contacts.readonly contacts.write opportunities.readonly opportunities.write"
                       />
                     </div>
                   ) : null}

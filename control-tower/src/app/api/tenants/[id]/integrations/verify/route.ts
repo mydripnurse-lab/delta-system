@@ -235,6 +235,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const cfg = asObj(row.config);
     const credential = pickApiCredential(row.provider, cfg);
     if (!credential) {
+      await pool.query(
+        `
+          update app.organization_integrations
+          set
+            status = 'disconnected',
+            last_error = 'Credential missing in DB config.',
+            updated_at = now()
+          where organization_id = $1
+            and id = $2
+        `,
+        [tenantId, row.id],
+      );
       return NextResponse.json({
         ok: false,
         id: row.id,
@@ -243,6 +255,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         error: "Credential missing in DB config.",
       });
     }
+    await pool.query(
+      `
+        update app.organization_integrations
+        set
+          status = 'connected',
+          last_error = null,
+          updated_at = now()
+        where organization_id = $1
+          and id = $2
+      `,
+      [tenantId, row.id],
+    );
     return NextResponse.json({
       ok: true,
       id: row.id,
@@ -258,4 +282,3 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     );
   }
 }
-

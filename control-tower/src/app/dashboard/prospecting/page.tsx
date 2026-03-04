@@ -1806,7 +1806,7 @@ function ProspectingDashboardContent() {
             {pushMessage ? <div className="mini">{pushMessage}</div> : null}
           </div>
           <div className="mini" style={{ marginTop: 8 }}>
-            Config priority: Google key from tenant integration `google_cloud/google_maps/google_places:default` config.apiKey, then env `GOOGLE_MAPS_API_KEY`; Hunter key from tenant integration `hunter:default` config.apiKey, then env `HUNTER_API_KEY`; Overture uses optional env `OVERTURE_PLACE_SEARCH_URL`.
+            Config source: tenant DB integrations only. Google key from `google_cloud/google_maps/google_places:default`; Hunter key from `hunter:default`; Overture endpoint from `overture/place_search:default`.
           </div>
         </div>
       </section>
