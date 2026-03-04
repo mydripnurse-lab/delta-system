@@ -12428,6 +12428,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  className="smallBtn smallBtnOn"
+                  onClick={() => void saveIntegrationFromEditor()}
+                  disabled={integrationEditorSaving}
+                >
+                  {integrationEditorSaving ? "Saving..." : "Save"}
+                </button>
                 <button className="smallBtn" onClick={closeIntegrationEditor} disabled={integrationEditorSaving}>
                   Close
                 </button>
