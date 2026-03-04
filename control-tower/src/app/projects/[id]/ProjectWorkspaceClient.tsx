@@ -12441,6 +12441,43 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               ) : null}
 
               <div className="detailsPane">
+                {(() => {
+                  const providerKey = s(integrationEditProvider).toLowerCase();
+                  const apiLabel =
+                    providerKey === "openai"
+                      ? "OpenAI API Key"
+                      : providerKey === "custom"
+                        ? "Open Claw API Key"
+                        : providerKey === "bing_webmaster"
+                          ? "Bing Webmaster API Key"
+                          : providerKey === "cloudflare"
+                            ? "Cloudflare API Token"
+                            : providerKey === "google_ads"
+                              ? "Google Ads Token / Key"
+                              : providerKey === "google_search_console"
+                                ? "Google Search Console Token / Key"
+                                : "API Key / Token";
+                  const showExternalAccount =
+                    providerKey === "ghl" || providerKey === "google_ads" || providerKey === "custom";
+                  const externalAccountLabel =
+                    providerKey === "ghl"
+                      ? "Go High Level Location ID"
+                      : providerKey === "google_ads"
+                        ? "Google Ads Customer ID"
+                        : "External Account ID";
+                  const showExternalProperty =
+                    providerKey === "google_search_console" ||
+                    providerKey === "cloudflare" ||
+                    providerKey === "google_places" ||
+                    providerKey === "google_cloud" ||
+                    providerKey === "google_maps";
+                  const externalPropertyLabel =
+                    providerKey === "google_search_console"
+                      ? "Google Search Console Property"
+                      : providerKey === "cloudflare"
+                        ? "Cloudflare CNAME Target"
+                        : "External Property ID";
+                  return (
                 <div className="row">
                   <div className="field">
                     <label>Connection</label>
@@ -12451,20 +12488,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     />
                   </div>
                   <div className="field">
-                    <label>Status</label>
-                    <select
-                      className="select"
-                      value={integrationEditStatus}
-                      onChange={(e) => setIntegrationEditStatus(e.target.value)}
-                    >
-                      <option value="connected">connected</option>
-                      <option value="disconnected">disconnected</option>
-                      <option value="error">error</option>
-                      <option value="needs_reconnect">needs_reconnect</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label>API Key / Token</label>
+                    <label>{apiLabel}</label>
                     <input
                       className="input"
                       type="text"
@@ -12473,23 +12497,29 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       placeholder="sk-... / AIza... / bing key"
                     />
                   </div>
-                  <div className="field">
-                    <label>External Account ID</label>
-                    <input
-                      className="input"
-                      value={integrationEditExternalAccountId}
-                      onChange={(e) => setIntegrationEditExternalAccountId(e.target.value)}
-                    />
-                  </div>
-                  <div className="field">
-                    <label>External Property ID</label>
-                    <input
-                      className="input"
-                      value={integrationEditExternalPropertyId}
-                      onChange={(e) => setIntegrationEditExternalPropertyId(e.target.value)}
-                    />
-                  </div>
+                  {showExternalAccount ? (
+                    <div className="field">
+                      <label>{externalAccountLabel}</label>
+                      <input
+                        className="input"
+                        value={integrationEditExternalAccountId}
+                        onChange={(e) => setIntegrationEditExternalAccountId(e.target.value)}
+                      />
+                    </div>
+                  ) : null}
+                  {showExternalProperty ? (
+                    <div className="field">
+                      <label>{externalPropertyLabel}</label>
+                      <input
+                        className="input"
+                        value={integrationEditExternalPropertyId}
+                        onChange={(e) => setIntegrationEditExternalPropertyId(e.target.value)}
+                      />
+                    </div>
+                  ) : null}
                 </div>
+                  );
+                })()}
               </div>
             </div>
             <div
