@@ -507,22 +507,22 @@ function integrationProviderLabel(provider: string) {
   if (p === "ghl") return "GoHighLevel";
   if (p === "openai") return "OpenAI";
   if (p === "cloudflare") return "Cloudflare";
-  if (p === "custom") return "Custom";
+  if (p === "custom") return "Open Claw";
   return s(provider) || "Integration";
 }
 
 function integrationProviderLogoUrl(provider: string) {
   const p = s(provider).toLowerCase();
-  if (p === "bing_webmaster") return "/brand/integrations/bing-webmaster.svg";
-  if (p === "google_ads") return "/brand/integrations/google-ads.svg";
-  if (p === "google_search_console") return "/brand/integrations/google-search-console.svg";
+  if (p === "bing_webmaster") return "/brand/integrations/bing-webmaster.png";
+  if (p === "google_ads") return "/brand/integrations/google-ads.png";
+  if (p === "google_search_console") return "/brand/integrations/google-search-console.png";
   if (p === "google_cloud" || p === "google_places" || p === "google_maps") {
-    return "/brand/integrations/google-places.svg";
+    return "/brand/integrations/google-places.png";
   }
   if (p === "ghl") return "/brand/integrations/gohighlevel.png";
-  if (p === "openai") return "/brand/integrations/openai.svg";
-  if (p === "cloudflare") return "/brand/integrations/cloudflare.svg";
-  if (p === "custom") return "/brand/integrations/custom.svg";
+  if (p === "openai") return "/brand/integrations/openai.png";
+  if (p === "cloudflare") return "/brand/integrations/cloudflare.png";
+  if (p === "custom") return "/brand/integrations/openclaw.png";
   return "";
 }
 

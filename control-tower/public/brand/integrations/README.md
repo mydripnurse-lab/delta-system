@@ -1,13 +1,14 @@
 Official integration logos used by `ProjectWorkspaceClient`:
 
-- `bing-webmaster.svg`
-- `google-ads.svg`
-- `google-search-console.svg`
-- `google-places.svg`
+- `bing-webmaster.png`
+- `google-ads.png`
+- `google-search-console.png`
+- `google-places.png`
 - `gohighlevel.png`
-- `openai.svg`
-- `cloudflare.svg`
-- `custom.svg` (fallback for custom integrations)
+- `openclaw.png` (used by provider `custom`, shown as "Open Claw")
+- `openai.png`
+- `cloudflare.png`
+- `custom.png` (fallback for custom integrations)
 
 Recommended:
 - PNG with transparent background
