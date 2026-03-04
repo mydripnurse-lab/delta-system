@@ -944,6 +944,8 @@ export default function Home() {
   const [tenantCloudflareCnameTarget, setTenantCloudflareCnameTarget] = useState("");
   const [tenantCloudflareApiToken, setTenantCloudflareApiToken] = useState("");
   const [tenantCloudflareHasToken, setTenantCloudflareHasToken] = useState(false);
+  const [tenantCloudflareSaving, setTenantCloudflareSaving] = useState(false);
+  const [tenantCloudflareMsg, setTenantCloudflareMsg] = useState("");
   const [tenantTimezone, setTenantTimezone] = useState("UTC");
   const [tenantLocale, setTenantLocale] = useState("en-US");
   const [tenantCurrency, setTenantCurrency] = useState("USD");
@@ -1006,6 +1008,10 @@ export default function Home() {
   const [integrationEditorErr, setIntegrationEditorErr] = useState("");
   const [integrationEditorMsg, setIntegrationEditorMsg] = useState("");
   const [integrationDeleteBusyId, setIntegrationDeleteBusyId] = useState("");
+  const [integrationDeleteConfirmOpen, setIntegrationDeleteConfirmOpen] = useState(false);
+  const [integrationDeleteConfirmTarget, setIntegrationDeleteConfirmTarget] = useState<TenantIntegrationRow | null>(null);
+  const [integrationDeleteConfirmInput, setIntegrationDeleteConfirmInput] = useState("");
+  const [integrationDeleteConfirmErr, setIntegrationDeleteConfirmErr] = useState("");
   const [integrationEditId, setIntegrationEditId] = useState("");
   const [integrationEditProvider, setIntegrationEditProvider] = useState("");
   const [integrationEditKey, setIntegrationEditKey] = useState("default");
@@ -3318,6 +3324,38 @@ export default function Home() {
     }
   }
 
+  async function saveTenantCloudflareSettings() {
+    if (!routeTenantId) return;
+    setTenantCloudflareSaving(true);
+    setTenantCloudflareMsg("");
+    setTenantDetailErr("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cloudflareCnameTarget: s(tenantCloudflareCnameTarget) || undefined,
+          cloudflareApiToken: s(tenantCloudflareApiToken) || undefined,
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      if (s(tenantCloudflareApiToken)) {
+        setTenantCloudflareHasToken(true);
+        setTenantCloudflareApiToken("");
+      }
+      setTenantCloudflareMsg("Cloudflare settings saved.");
+      await refreshIntegrationsSnapshot();
+    } catch (e: any) {
+      setTenantCloudflareMsg("");
+      setTenantDetailErr(e?.message || "Failed to save Cloudflare settings.");
+    } finally {
+      setTenantCloudflareSaving(false);
+    }
+  }
+
   async function saveTenantAdsWebhookFromWebhooksTab() {
     if (!routeTenantId) return;
     setTenantProspectingWebhookErr("");
@@ -3837,6 +3875,33 @@ export default function Home() {
     setIntegrationEditorErr("");
   }
 
+  function integrationDeletePhrase(row: TenantIntegrationRow | null) {
+    if (!row) return "";
+    const providerLabel = integrationProviderLabel(s(row.provider));
+    const integrationKey = s(row.integration_key || row.integrationKey || "default");
+    const nameToken = kebabToken(`${providerLabel}-${integrationKey}`) || "integration";
+    return `delete-${nameToken}`;
+  }
+
+  function closeIntegrationDeleteConfirm() {
+    const targetId = s(integrationDeleteConfirmTarget?.id);
+    if (targetId && integrationDeleteBusyId === targetId) return;
+    setIntegrationDeleteConfirmOpen(false);
+    setIntegrationDeleteConfirmTarget(null);
+    setIntegrationDeleteConfirmInput("");
+    setIntegrationDeleteConfirmErr("");
+  }
+
+  function openIntegrationDeleteConfirm(row: TenantIntegrationRow) {
+    const id = s(row.id);
+    if (!id || id.startsWith("virtual:")) return;
+    setIntegrationActionsOpenId("");
+    setIntegrationDeleteConfirmTarget(row);
+    setIntegrationDeleteConfirmInput("");
+    setIntegrationDeleteConfirmErr("");
+    setIntegrationDeleteConfirmOpen(true);
+  }
+
   function openIntegrationEditor(row?: TenantIntegrationRow | null) {
     const item = row || null;
     const rowId = s(item?.id);
@@ -3970,9 +4035,9 @@ export default function Home() {
   }
 
   async function deleteIntegration(row: TenantIntegrationRow) {
-    if (!routeTenantId) return;
+    if (!routeTenantId) return false;
     const id = s(row.id);
-    if (!id || id.startsWith("virtual:")) return;
+    if (!id || id.startsWith("virtual:")) return false;
     setIntegrationDeleteBusyId(id);
     setIntegrationEditorErr("");
     setIntegrationEditorMsg("");
@@ -3992,11 +4057,26 @@ export default function Home() {
       await loadOAuthHealth();
       setIntegrationEditorMsg("Integration deleted.");
       setIntegrationActionsOpenId("");
+      return true;
     } catch (e: any) {
       setIntegrationEditorErr(e?.message || "Failed to delete integration.");
+      return false;
     } finally {
       setIntegrationDeleteBusyId("");
     }
+  }
+
+  async function confirmDeleteIntegration() {
+    const target = integrationDeleteConfirmTarget;
+    if (!target) return;
+    const phrase = integrationDeletePhrase(target);
+    if (s(integrationDeleteConfirmInput).toLowerCase() !== phrase.toLowerCase()) {
+      setIntegrationDeleteConfirmErr(`Type "${phrase}" to confirm.`);
+      return;
+    }
+    setIntegrationDeleteConfirmErr("");
+    const ok = await deleteIntegration(target);
+    if (ok) closeIntegrationDeleteConfirm();
   }
 
   function projectTabHref(tab: ProjectTab) {
@@ -4039,8 +4119,23 @@ export default function Home() {
         authType: "api_key",
       });
     }
+    const hasCloudflare = rows.some(
+      (row) =>
+        s(row.provider).toLowerCase() === "cloudflare" &&
+        s(row.integration_key || row.integrationKey || "default").toLowerCase() === "default",
+    );
+    if (!hasCloudflare) {
+      rows.push({
+        id: "virtual:cloudflare:default",
+        provider: "cloudflare",
+        integrationKey: "default",
+        status: tenantCloudflareHasToken ? "connected" : "not_configured",
+        authType: "api_key",
+        externalPropertyId: s(tenantCloudflareCnameTarget),
+      });
+    }
     return rows;
-  }, [tenantIntegrations]);
+  }, [tenantIntegrations, tenantCloudflareHasToken, tenantCloudflareCnameTarget]);
 
   const filteredTenantIntegrations = useMemo(() => {
     const term = s(integrationsSearch).toLowerCase();
@@ -8140,7 +8235,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               className={`detailsTabBtn ${detailsTab === "ghl" ? "detailsTabBtnOn" : ""}`}
               onClick={() => setDetailsTab("ghl")}
             >
-              GHL + Cloudflare
+              GHL
             </button>
             <button
               type="button"
@@ -8251,8 +8346,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           {detailsTab === "ghl" ? (
             <div className="detailsPane">
               <div className="detailsPaneHeader">
-                <div className="detailsPaneTitle">GHL + Cloudflare Setup</div>
-                <div className="detailsPaneSub">Tenant-level DNS and owner account linkage used by activation flows.</div>
+                <div className="detailsPaneTitle">GHL Setup</div>
+                <div className="detailsPaneSub">Owner account linkage used by activation flows.</div>
               </div>
               <div className="row">
                 <div className="field">
@@ -8262,29 +8357,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <div className="field">
                   <label>Company ID (GHL)</label>
                   <input className="input" value={tenantCompanyId} onChange={(e) => setTenantCompanyId(e.target.value)} />
-                </div>
-                <div className="field">
-                  <label>Cloudflare CNAME target</label>
-                  <input
-                    className="input"
-                    value={tenantCloudflareCnameTarget}
-                    onChange={(e) => setTenantCloudflareCnameTarget(e.target.value)}
-                    placeholder="sites.ludicrous.cloud"
-                  />
-                </div>
-                <div className="field">
-                  <label>Cloudflare API token</label>
-                  <input
-                    className="input"
-                    type="password"
-                    value={tenantCloudflareApiToken}
-                    onChange={(e) => setTenantCloudflareApiToken(e.target.value)}
-                    placeholder={
-                      tenantCloudflareHasToken
-                        ? "Token saved. Enter a new token only if you want to rotate it."
-                        : "cf_api_token..."
-                    }
-                  />
                 </div>
                 <div className="field">
                   <label>Ads Alerts Enabled</label>
@@ -9246,6 +9318,52 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               ❌ {tenantDetailErr}
             </div>
           ) : null}
+
+          <div className="detailsCustomTop" style={{ marginBottom: 12 }}>
+            <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
+              <div className="detailsPaneTitle">Cloudflare (Tenant)</div>
+              <div className="detailsPaneSub">
+                DNS target + API token used by activation/DNS flows.
+              </div>
+            </div>
+            <div className="row">
+              <div className="field">
+                <label>Cloudflare CNAME target</label>
+                <input
+                  className="input"
+                  value={tenantCloudflareCnameTarget}
+                  onChange={(e) => setTenantCloudflareCnameTarget(e.target.value)}
+                  placeholder="sites.ludicrous.cloud"
+                />
+              </div>
+              <div className="field">
+                <label>Cloudflare API token</label>
+                <input
+                  className="input"
+                  type="password"
+                  value={tenantCloudflareApiToken}
+                  onChange={(e) => setTenantCloudflareApiToken(e.target.value)}
+                  placeholder={
+                    tenantCloudflareHasToken
+                      ? "Token saved. Enter new token only to rotate."
+                      : "cf_api_token..."
+                  }
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {tenantCloudflareMsg ? <span className="badge">{tenantCloudflareMsg}</span> : null}
+              <button
+                type="button"
+                className="smallBtn"
+                disabled={tenantCloudflareSaving}
+                onClick={() => void saveTenantCloudflareSettings()}
+              >
+                {tenantCloudflareSaving ? "Saving..." : "Save Cloudflare"}
+              </button>
+            </div>
+          </div>
+
           <div className="field" style={{ maxWidth: 420, marginBottom: 10 }}>
             <label>Search</label>
             <input
@@ -9276,6 +9394,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 const health = integrationHealthById.get(integrationId) || null;
                 const authType = s(it.auth_type || it.authType);
                 const isOauth = authType === "oauth" && !isVirtual;
+                const isVirtualCloudflare = isVirtual && provider.toLowerCase() === "cloudflare";
                 const menuOpen = integrationActionsOpenId === integrationId;
                 return (
                   <div key={integrationId} className="integrationConnectionRow">
@@ -9342,13 +9461,19 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </button>
                         {menuOpen ? (
                           <div className="integrationMenu">
-                            <button type="button" className="integrationMenuBtn" onClick={() => openIntegrationEditor(it)}>
+                            <button
+                              type="button"
+                              className="integrationMenuBtn"
+                              onClick={() => openIntegrationEditor(it)}
+                              disabled={isVirtualCloudflare}
+                              title={isVirtualCloudflare ? "Edit Cloudflare in the Cloudflare section above." : ""}
+                            >
                               Edit
                             </button>
                             <button
                               type="button"
                               className="integrationMenuBtn integrationMenuBtnDanger"
-                              onClick={() => void deleteIntegration(it)}
+                              onClick={() => openIntegrationDeleteConfirm(it)}
                               disabled={isVirtual || integrationDeleteBusyId === integrationId}
                             >
                               {integrationDeleteBusyId === integrationId ? "Deleting..." : "Delete"}
@@ -12251,6 +12376,83 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {integrationDeleteConfirmOpen && (
+        <>
+          <div className="modalBackdrop" onClick={closeIntegrationDeleteConfirm} />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(620px, calc(100vw - 24px))",
+              height: "auto",
+              maxHeight: "min(420px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader modalHeaderPro">
+              <div style={{ minWidth: 0 }}>
+                <div className="badge">DELETE INTEGRATION</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  Confirm delete
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  This action removes this integration from tenant DB.
+                </div>
+              </div>
+              <button className="smallBtn" onClick={closeIntegrationDeleteConfirm}>
+                Close
+              </button>
+            </div>
+            <div className="modalBody modalBodyPro" style={{ padding: 14 }}>
+              <div className="mini" style={{ marginBottom: 12 }}>
+                Type{" "}
+                <code>{integrationDeletePhrase(integrationDeleteConfirmTarget)}</code> to confirm deletion of{" "}
+                <b>{integrationProviderLabel(s(integrationDeleteConfirmTarget?.provider || ""))}</b>.
+              </div>
+              <div className="field">
+                <label>Confirmation phrase</label>
+                <input
+                  className="input"
+                  value={integrationDeleteConfirmInput}
+                  onChange={(e) => setIntegrationDeleteConfirmInput(e.target.value)}
+                  placeholder={integrationDeletePhrase(integrationDeleteConfirmTarget)}
+                  autoFocus
+                />
+              </div>
+              {integrationDeleteConfirmErr ? (
+                <div className="mini" style={{ color: "var(--danger)", marginTop: 10 }}>
+                  ❌ {integrationDeleteConfirmErr}
+                </div>
+              ) : null}
+            </div>
+            <div
+              style={{
+                padding: 12,
+                borderTop: "1px solid rgba(255,255,255,0.08)",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+              }}
+            >
+              <button className="smallBtn" onClick={closeIntegrationDeleteConfirm}>
+                Cancel
+              </button>
+              <button
+                className="smallBtn"
+                style={{ borderColor: "rgba(248,113,113,.66)", color: "#fecaca" }}
+                onClick={() => void confirmDeleteIntegration()}
+                disabled={
+                  integrationDeleteBusyId === s(integrationDeleteConfirmTarget?.id) ||
+                  !integrationDeleteConfirmTarget
+                }
+              >
+                {integrationDeleteBusyId === s(integrationDeleteConfirmTarget?.id) ? "Deleting..." : "Delete"}
+              </button>
             </div>
           </div>
         </>
