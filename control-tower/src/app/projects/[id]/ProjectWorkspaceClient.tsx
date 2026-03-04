@@ -1007,6 +1007,7 @@ export default function Home() {
   const [integrationEditorErr, setIntegrationEditorErr] = useState("");
   const [integrationEditorMsg, setIntegrationEditorMsg] = useState("");
   const [integrationDeleteBusyId, setIntegrationDeleteBusyId] = useState("");
+  const [integrationVerifyBusyId, setIntegrationVerifyBusyId] = useState("");
   const [integrationDeleteConfirmOpen, setIntegrationDeleteConfirmOpen] = useState(false);
   const [integrationDeleteConfirmTarget, setIntegrationDeleteConfirmTarget] = useState<TenantIntegrationRow | null>(null);
   const [integrationDeleteConfirmInput, setIntegrationDeleteConfirmInput] = useState("");
@@ -1022,6 +1023,9 @@ export default function Home() {
   const [integrationEditLastError, setIntegrationEditLastError] = useState("");
   const [integrationEditConfigText, setIntegrationEditConfigText] = useState("{}");
   const [integrationEditApiKey, setIntegrationEditApiKey] = useState("");
+  const [integrationEditOauthClientId, setIntegrationEditOauthClientId] = useState("");
+  const [integrationEditOauthClientSecret, setIntegrationEditOauthClientSecret] = useState("");
+  const [integrationEditOauthRedirectUri, setIntegrationEditOauthRedirectUri] = useState("");
   const [authMe, setAuthMe] = useState<AuthMeUser | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -3608,6 +3612,13 @@ export default function Home() {
     if (!routeTenantId) return;
     setOauthHealthLoading(true);
     try {
+      // Best-effort proactive refresh for OAuth tokens that are due/near expiry.
+      await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/integrations/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "refresh_due" }),
+      }).catch(() => null);
+
       const res = await fetch(
         `/api/tenants/${encodeURIComponent(routeTenantId)}/integrations/health`,
         { cache: "no-store" },
@@ -3835,6 +3846,164 @@ export default function Home() {
     }
   }
 
+  function oauthKindForProviderAuth(providerRaw: string, authTypeRaw: string): "" | "gsc" | "ads" | "ghl" {
+    const provider = s(providerRaw).toLowerCase();
+    const authType = s(authTypeRaw).toLowerCase();
+    if (provider === "google_search_console") return "gsc";
+    if (provider === "google_ads") return "ads";
+    if (provider === "ghl") return "ghl";
+    if (provider === "custom" && authType === "oauth") return "ghl";
+    return "";
+  }
+
+  function oauthKindForIntegration(row: TenantIntegrationRow | null): "" | "gsc" | "ads" | "ghl" {
+    if (!row) return "";
+    return oauthKindForProviderAuth(s(row.provider), s(row.auth_type || row.authType));
+  }
+
+  function hydrateOauthStateFromIntegration(row: TenantIntegrationRow) {
+    const provider = s(row.provider).toLowerCase();
+    const key = s(row.integration_key || row.integrationKey || "default") || "default";
+    const cfg =
+      row.config && typeof row.config === "object"
+        ? (row.config as Record<string, unknown>)
+        : {};
+    const oauthClient =
+      cfg.oauthClient && typeof cfg.oauthClient === "object"
+        ? (cfg.oauthClient as Record<string, unknown>)
+        : {};
+
+    if (provider === "google_search_console") {
+      setGscIntegrationKey(key);
+      setGscClientId(s(oauthClient.clientId || oauthClient.client_id || cfg.clientId || cfg.client_id));
+      setGscClientSecret(
+        s(oauthClient.clientSecret || oauthClient.client_secret || cfg.clientSecret || cfg.client_secret),
+      );
+      setGscRedirectUri(
+        s(oauthClient.redirectUri || oauthClient.redirect_uri || cfg.redirectUri || cfg.redirect_uri),
+      );
+      setGscSiteUrl(s(row.external_property_id || row.externalPropertyId || cfg.siteUrl || cfg.gscSiteUrl));
+      setGscGa4PropertyId(s(cfg.ga4PropertyId || cfg.propertyId));
+      return;
+    }
+
+    if (provider === "google_ads") {
+      setAdsIntegrationKey(key);
+      setAdsClientId(s(oauthClient.clientId || oauthClient.client_id || cfg.clientId || cfg.client_id));
+      setAdsClientSecret(
+        s(oauthClient.clientSecret || oauthClient.client_secret || cfg.clientSecret || cfg.client_secret),
+      );
+      setAdsRedirectUri(
+        s(oauthClient.redirectUri || oauthClient.redirect_uri || cfg.redirectUri || cfg.redirect_uri),
+      );
+      setAdsCustomerId(s(row.external_account_id || row.externalAccountId || cfg.customerId || cfg.googleAdsCustomerId));
+      setAdsLoginCustomerId(s(cfg.loginCustomerId || cfg.googleAdsLoginCustomerId));
+      setAdsDeveloperToken(s(cfg.developerToken || cfg.googleAdsDeveloperToken));
+      return;
+    }
+
+    if (provider === "ghl" || (provider === "custom" && s(row.auth_type || row.authType).toLowerCase() === "oauth")) {
+      setGhlIntegrationKey(key || "owner");
+      setGhlClientId(s(oauthClient.clientId || oauthClient.client_id || cfg.clientId || cfg.client_id));
+      setGhlClientSecret(
+        s(oauthClient.clientSecret || oauthClient.client_secret || cfg.clientSecret || cfg.client_secret),
+      );
+      setGhlRedirectUri(
+        s(oauthClient.redirectUri || oauthClient.redirect_uri || cfg.redirectUri || cfg.redirect_uri),
+      );
+      const scopesJoined = Array.isArray((cfg as any)?.oauthScopes)
+        ? ((cfg as any).oauthScopes as unknown[]).map((x) => s(x)).filter(Boolean).join(" ")
+        : s((cfg as any)?.oauthScopes);
+      setGhlScopes(scopesJoined || "contacts.readonly contacts.write opportunities.readonly opportunities.write");
+      setGhlUserType(s((cfg as any)?.oauthUserType) || "Location");
+    }
+  }
+
+  async function reauthorizeIntegration(row: TenantIntegrationRow) {
+    if (!routeTenantId) return;
+    const kind = oauthKindForIntegration(row);
+    if (!kind) return;
+    try {
+      hydrateOauthStateFromIntegration(row);
+      setIntegrationEditorErr("");
+      setIntegrationEditorMsg("");
+      setOauthErr("");
+      setOauthMsg("");
+      const integrationKey = await upsertOAuthIntegration(kind);
+      await refreshIntegrationsSnapshot();
+      await loadOAuthHealth();
+      const startPath =
+        kind === "gsc"
+          ? "/api/auth/gsc/start"
+          : kind === "ads"
+            ? "/api/auth/ads/start"
+            : "/api/auth/ghl/start";
+      const returnTo = `/projects/${routeTenantId}/integrations`;
+      const target =
+        `${startPath}?tenantId=${encodeURIComponent(routeTenantId)}` +
+        `&integrationKey=${encodeURIComponent(integrationKey)}` +
+        `&returnTo=${encodeURIComponent(returnTo)}`;
+      window.location.assign(target);
+    } catch (e: any) {
+      setIntegrationEditorErr(e?.message || "Failed to start reauthorization.");
+    }
+  }
+
+  async function verifyIntegration(row: TenantIntegrationRow) {
+    if (!routeTenantId) return;
+    const id = s(row.id);
+    if (!id || id.startsWith("virtual:")) return;
+    setIntegrationVerifyBusyId(id);
+    setIntegrationEditorErr("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/integrations/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s((data as any)?.error) || `HTTP ${res.status}`);
+      }
+      setIntegrationEditorMsg(s((data as any)?.message) || "Integration verified.");
+      await loadOAuthHealth();
+      await refreshIntegrationsSnapshot();
+    } catch (e: any) {
+      setIntegrationEditorErr(e?.message || "Failed to verify integration.");
+    } finally {
+      setIntegrationVerifyBusyId("");
+    }
+  }
+
+  async function reauthorizeFromEditor() {
+    const provider = s(integrationEditProvider).toLowerCase();
+    const authType = s(integrationEditAuthType).toLowerCase();
+    const kind = oauthKindForProviderAuth(provider, authType);
+    if (!kind) return;
+
+    const key = s(integrationEditKey) || "default";
+    if (kind === "gsc") {
+      setGscIntegrationKey(key);
+      setGscClientId(s(integrationEditOauthClientId));
+      setGscClientSecret(s(integrationEditOauthClientSecret));
+      setGscRedirectUri(s(integrationEditOauthRedirectUri));
+      setGscSiteUrl(s(integrationEditExternalPropertyId));
+    } else if (kind === "ads") {
+      setAdsIntegrationKey(key);
+      setAdsClientId(s(integrationEditOauthClientId));
+      setAdsClientSecret(s(integrationEditOauthClientSecret));
+      setAdsRedirectUri(s(integrationEditOauthRedirectUri));
+      setAdsCustomerId(s(integrationEditExternalAccountId));
+      setAdsDeveloperToken(s(integrationEditApiKey));
+    } else {
+      setGhlIntegrationKey(key || "owner");
+      setGhlClientId(s(integrationEditOauthClientId));
+      setGhlClientSecret(s(integrationEditOauthClientSecret));
+      setGhlRedirectUri(s(integrationEditOauthRedirectUri));
+    }
+    await connectOAuth(kind);
+  }
+
   function closeIntegrationEditor() {
     if (integrationEditorSaving) return;
     setIntegrationEditorOpen(false);
@@ -3881,6 +4050,10 @@ export default function Home() {
       cfg.auth && typeof cfg.auth === "object"
         ? (cfg.auth as Record<string, unknown>)
         : {};
+    const oauthClient =
+      cfg.oauthClient && typeof cfg.oauthClient === "object"
+        ? (cfg.oauthClient as Record<string, unknown>)
+        : {};
 
     setIntegrationEditId(isVirtual ? "" : rowId);
     setIntegrationEditProvider(provider || "openai");
@@ -3909,6 +4082,8 @@ export default function Home() {
       s(cfg.apiKey) ||
         s(cfg.agentApiKey) ||
         s(cfg.openclawApiKey) ||
+        s(cfg.developerToken) ||
+        s(cfg.googleAdsDeveloperToken) ||
         s(cfg.api_key) ||
         s(cfg.webmasterApiKey) ||
         s(cfg.indexNowKey) ||
@@ -3916,6 +4091,15 @@ export default function Home() {
         s(auth.api_key) ||
         (provider === "cloudflare" ? s(tenantCloudflareApiToken) : "");
     setIntegrationEditApiKey(resolvedApiKey);
+    setIntegrationEditOauthClientId(
+      s(oauthClient.clientId || oauthClient.client_id || cfg.clientId || cfg.client_id),
+    );
+    setIntegrationEditOauthClientSecret(
+      s(oauthClient.clientSecret || oauthClient.client_secret || cfg.clientSecret || cfg.client_secret),
+    );
+    setIntegrationEditOauthRedirectUri(
+      s(oauthClient.redirectUri || oauthClient.redirect_uri || cfg.redirectUri || cfg.redirect_uri),
+    );
     setIntegrationEditorErr("");
     setIntegrationEditorMsg("");
     setIntegrationActionsOpenId("");
@@ -3970,11 +4154,30 @@ export default function Home() {
         throw new Error(e?.message || "Config JSON is invalid.");
       }
 
+      if (s(integrationEditAuthType).toLowerCase() === "oauth") {
+        parsedConfig = {
+          ...parsedConfig,
+          oauthClient: {
+            ...(parsedConfig.oauthClient && typeof parsedConfig.oauthClient === "object"
+              ? (parsedConfig.oauthClient as Record<string, unknown>)
+              : {}),
+            clientId: s(integrationEditOauthClientId),
+            clientSecret: s(integrationEditOauthClientSecret),
+            redirectUri: s(integrationEditOauthRedirectUri),
+          },
+        };
+      }
+
       if (s(integrationEditApiKey)) {
         if (provider === "openai" || provider === "google_cloud" || provider === "google_places" || provider === "google_maps") {
           parsedConfig = {
             ...parsedConfig,
             apiKey: s(integrationEditApiKey),
+          };
+        } else if (provider === "google_ads" && s(integrationEditAuthType).toLowerCase() === "oauth") {
+          parsedConfig = {
+            ...parsedConfig,
+            developerToken: s(integrationEditApiKey),
           };
         } else if (provider === "custom") {
           parsedConfig = {
@@ -9305,9 +9508,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             <button className="smallBtn" onClick={() => openIntegrationEditor(null)}>
               Add OpenAI Key
             </button>
-            <button className="smallBtn" onClick={openOAuthManager}>
-              OAuth Manager
-            </button>
           </div>
         </div>
         <div className="cardBody integrationsCardBody">
@@ -9385,18 +9585,18 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         type="button"
                         className="smallBtn"
                         disabled={!isOauth}
-                        onClick={() => openOAuthManager()}
-                        title={isOauth ? "Open OAuth manager and reauthorize" : "Only OAuth integrations can reauthorize"}
+                        onClick={() => void reauthorizeIntegration(it)}
+                        title={isOauth ? "Start OAuth reauthorization flow" : "Only OAuth integrations can reauthorize"}
                       >
                         Reauthorize
                       </button>
                       <button
                         type="button"
                         className="smallBtn"
-                        onClick={() => void loadOAuthHealth()}
-                        disabled={isVirtual}
+                        onClick={() => void verifyIntegration(it)}
+                        disabled={isVirtual || integrationVerifyBusyId === integrationId}
                       >
-                        Verify
+                        {integrationVerifyBusyId === integrationId ? "Verifying..." : "Verify"}
                       </button>
                       <div className="integrationMenuWrap">
                         <button
@@ -12428,6 +12628,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {oauthKindForProviderAuth(s(integrationEditProvider), s(integrationEditAuthType)) ? (
+                  <button
+                    className="smallBtn"
+                    onClick={() => void reauthorizeFromEditor()}
+                    disabled={integrationEditorSaving || oauthSaving !== ""}
+                  >
+                    Reauthorize
+                  </button>
+                ) : null}
                 <button
                   className="smallBtn smallBtnOn"
                   onClick={() => void saveIntegrationFromEditor()}
@@ -12450,8 +12659,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               <div className="detailsPane">
                 {(() => {
                   const providerKey = s(integrationEditProvider).toLowerCase();
+                  const isOAuth = oauthKindForProviderAuth(providerKey, s(integrationEditAuthType)) !== "";
                   const apiLabel =
-                    providerKey === "openai"
+                    isOAuth && providerKey === "google_ads"
+                      ? "Google Ads Developer Token"
+                      : providerKey === "openai"
                       ? "OpenAI API Key"
                       : providerKey === "custom"
                         ? "Open Claw API Key"
@@ -12462,7 +12674,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             : providerKey === "google_ads"
                               ? "Google Ads Token / Key"
                               : providerKey === "google_search_console"
-                                ? "Google Search Console Token / Key"
+                                ? "Google Search Console API Key"
                                 : "API Key / Token";
                   const showExternalAccount =
                     providerKey === "ghl" || providerKey === "google_ads" || providerKey === "custom";
@@ -12494,16 +12706,49 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       readOnly
                     />
                   </div>
-                  <div className="field">
-                    <label>{apiLabel}</label>
-                    <input
-                      className="input"
-                      type="text"
-                      value={integrationEditApiKey}
-                      onChange={(e) => setIntegrationEditApiKey(e.target.value)}
-                      placeholder="sk-... / AIza... / bing key"
-                    />
-                  </div>
+                  {isOAuth ? (
+                    <>
+                      <div className="field">
+                        <label>OAuth Client ID</label>
+                        <input
+                          className="input"
+                          type="text"
+                          value={integrationEditOauthClientId}
+                          onChange={(e) => setIntegrationEditOauthClientId(e.target.value)}
+                        />
+                      </div>
+                      <div className="field">
+                        <label>OAuth Client Secret</label>
+                        <input
+                          className="input"
+                          type="text"
+                          value={integrationEditOauthClientSecret}
+                          onChange={(e) => setIntegrationEditOauthClientSecret(e.target.value)}
+                        />
+                      </div>
+                      <div className="field">
+                        <label>OAuth Redirect URI</label>
+                        <input
+                          className="input"
+                          type="text"
+                          value={integrationEditOauthRedirectUri}
+                          onChange={(e) => setIntegrationEditOauthRedirectUri(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  ) : null}
+                  {!isOAuth || providerKey === "google_ads" ? (
+                    <div className="field">
+                      <label>{apiLabel}</label>
+                      <input
+                        className="input"
+                        type="text"
+                        value={integrationEditApiKey}
+                        onChange={(e) => setIntegrationEditApiKey(e.target.value)}
+                        placeholder="sk-... / AIza... / bing key"
+                      />
+                    </div>
+                  ) : null}
                   {showExternalAccount ? (
                     <div className="field">
                       <label>{externalAccountLabel}</label>

@@ -27,9 +27,36 @@ type Row = {
   access_token_enc: string | null;
   refresh_token_enc: string | null;
   token_expires_at: string | null;
+  config: Record<string, unknown> | null;
   updated_at: string;
   last_error: string | null;
 };
+
+function asObj(v: unknown): Record<string, unknown> {
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
+function hasApiCredential(provider: string, rawConfig: unknown) {
+  const p = s(provider).toLowerCase();
+  const cfg = asObj(rawConfig);
+  const auth = asObj(cfg.auth);
+  if (p === "bing_webmaster") {
+    return !!(
+      s(cfg.webmasterApiKey) ||
+      s(cfg.indexNowKey) ||
+      s(cfg.apiKey) ||
+      s(auth.webmasterApiKey) ||
+      s(auth.apiKey)
+    );
+  }
+  if (p === "custom") {
+    return !!(s(cfg.agentApiKey) || s(cfg.openclawApiKey) || s(cfg.apiKey) || s(auth.apiKey));
+  }
+  if (p === "google_ads") {
+    return !!(s(cfg.developerToken) || s(cfg.googleAdsDeveloperToken) || s(cfg.apiKey) || s(auth.apiKey));
+  }
+  return !!(s(cfg.apiKey) || s(cfg.api_key) || s(auth.apiKey) || s(auth.api_key));
+}
 
 export async function GET(
   req: Request,
@@ -74,6 +101,7 @@ export async function GET(
           access_token_enc,
           refresh_token_enc,
           token_expires_at,
+          config,
           updated_at,
           last_error
         from app.organization_integrations
@@ -84,13 +112,14 @@ export async function GET(
     );
 
     const rows = q.rows.map((r) => {
-      const hasAccessToken = !!s(r.access_token_enc);
+      const oauth = s(r.auth_type).toLowerCase() === "oauth";
+      const hasAccessToken = oauth ? !!s(r.access_token_enc) : hasApiCredential(r.provider, r.config);
       const hasRefreshToken = !!s(r.refresh_token_enc);
       const health = tokenHealth(r.token_expires_at);
       const reconnectRecommended =
         r.status === "needs_reconnect" ||
         r.status === "error" ||
-        (r.auth_type === "oauth" && !hasRefreshToken);
+        (oauth && !hasRefreshToken);
 
       return {
         id: r.id,
