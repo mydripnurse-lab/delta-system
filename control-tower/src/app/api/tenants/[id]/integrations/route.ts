@@ -8,6 +8,13 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function canonicalIntegrationKey(providerRaw: string, integrationKeyRaw: string) {
+  const provider = s(providerRaw).toLowerCase();
+  const integrationKey = s(integrationKeyRaw) || "default";
+  if (provider === "google_ads" || provider === "google_search_console") return "default";
+  return integrationKey;
+}
+
 function jsonb(v: unknown) {
   if (v && typeof v === "object") return JSON.stringify(v);
   return "{}";
@@ -104,7 +111,7 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   const provider = s(body.provider);
-  const integrationKey = s(body.integrationKey);
+  const integrationKey = canonicalIntegrationKey(provider, s(body.integrationKey));
   if (!provider || !integrationKey) {
     return NextResponse.json(
       { ok: false, error: "provider and integrationKey are required" },
@@ -208,7 +215,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const integrationId = s(body.id);
   const provider = s(body.provider);
-  const integrationKey = s(body.integrationKey);
+  const integrationKey = canonicalIntegrationKey(provider, s(body.integrationKey));
 
   if (!integrationId && !(provider && integrationKey)) {
     return NextResponse.json(

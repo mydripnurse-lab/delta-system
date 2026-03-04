@@ -4,6 +4,13 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function canonicalIntegrationKey(providerRaw: string, integrationKeyRaw: string) {
+  const provider = s(providerRaw).toLowerCase();
+  const integrationKey = s(integrationKeyRaw) || "default";
+  if (provider === "google_ads" || provider === "google_search_console") return "default";
+  return integrationKey;
+}
+
 export type TenantIntegrationRow = {
   id: string;
   organizationId: string;
@@ -28,6 +35,7 @@ export async function getTenantIntegration(
   provider: string,
   integrationKey = "default",
 ): Promise<TenantIntegrationRow | null> {
+  const key = canonicalIntegrationKey(provider, integrationKey);
   const pool = getDbPool();
   const q = await pool.query<TenantIntegrationRow>(
     `
@@ -54,7 +62,7 @@ export async function getTenantIntegration(
         and integration_key = $3
       limit 1
     `,
-    [s(organizationId), s(provider), s(integrationKey) || "default"],
+    [s(organizationId), s(provider), key],
   );
   return q.rows[0] || null;
 }
@@ -78,7 +86,8 @@ type UpsertIntegrationInput = {
 
 export async function upsertTenantIntegration(input: UpsertIntegrationInput) {
   const pool = getDbPool();
-  const integrationKey = s(input.integrationKey) || "default";
+  const provider = s(input.provider);
+  const integrationKey = canonicalIntegrationKey(provider, s(input.integrationKey) || "default");
   const scopes = Array.isArray(input.scopes) ? input.scopes.map((x) => s(x)).filter(Boolean) : [];
 
   const q = await pool.query<{ id: string }>(
@@ -120,7 +129,7 @@ export async function upsertTenantIntegration(input: UpsertIntegrationInput) {
     `,
     [
       s(input.organizationId),
-      s(input.provider),
+      provider,
       integrationKey,
       s(input.status) || "connected",
       s(input.authType) || "oauth",

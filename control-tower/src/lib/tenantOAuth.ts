@@ -76,6 +76,13 @@ function pickShareRef(config: OAuthConfigObject) {
   return { tenantId, integrationKey };
 }
 
+function canonicalIntegrationKey(providerRaw: string, integrationKeyRaw: string) {
+  const provider = s(providerRaw).toLowerCase();
+  const integrationKey = s(integrationKeyRaw) || "default";
+  if (provider === "google_ads" || provider === "google_search_console") return "default";
+  return integrationKey;
+}
+
 type ResolveInput = {
   tenantId: string;
   provider: string;
@@ -277,7 +284,7 @@ export async function saveTenantOAuthTokens(input: {
 }) {
   const tenantId = s(input.tenantId);
   const provider = s(input.provider);
-  const integrationKey = s(input.integrationKey) || "default";
+  const integrationKey = canonicalIntegrationKey(provider, s(input.integrationKey) || "default");
   if (!tenantId || !provider) throw new Error("Missing tenantId/provider");
 
   const existing = await getTenantIntegration(tenantId, provider, integrationKey);
