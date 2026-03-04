@@ -355,6 +355,7 @@ type TenantDetailResponse = {
     root_domain?: string | null;
     snapshot_location_id?: string | null;
     cloudflare_cname_target?: string | null;
+    cloudflare_api_token?: string | null;
     has_cloudflare_api_token?: boolean | null;
     ghl_company_id?: string | null;
     owner_first_name?: string | null;
@@ -944,8 +945,6 @@ export default function Home() {
   const [tenantCloudflareCnameTarget, setTenantCloudflareCnameTarget] = useState("");
   const [tenantCloudflareApiToken, setTenantCloudflareApiToken] = useState("");
   const [tenantCloudflareHasToken, setTenantCloudflareHasToken] = useState(false);
-  const [tenantCloudflareSaving, setTenantCloudflareSaving] = useState(false);
-  const [tenantCloudflareMsg, setTenantCloudflareMsg] = useState("");
   const [tenantTimezone, setTenantTimezone] = useState("UTC");
   const [tenantLocale, setTenantLocale] = useState("en-US");
   const [tenantCurrency, setTenantCurrency] = useState("USD");
@@ -3203,7 +3202,7 @@ export default function Home() {
         setTenantRootDomain(s(settings.root_domain));
         setTenantCloudflareCnameTarget(s(settings.cloudflare_cname_target));
         setTenantCloudflareHasToken(settings.has_cloudflare_api_token === true);
-        setTenantCloudflareApiToken("");
+        setTenantCloudflareApiToken(s(settings.cloudflare_api_token));
         setTenantTimezone(s(settings.timezone) || "UTC");
         setTenantLocale(s(settings.locale) || "en-US");
         setTenantCurrency(s(settings.currency) || "USD");
@@ -3300,7 +3299,6 @@ export default function Home() {
       setTenantDetailErr("");
       if (s(tenantCloudflareApiToken)) {
         setTenantCloudflareHasToken(true);
-        setTenantCloudflareApiToken("");
       }
       // refresh snapshot
       const fresh = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}`, {
@@ -3321,38 +3319,6 @@ export default function Home() {
       setTenantDetailErr(e?.message || "Failed to save tenant.");
     } finally {
       setTenantSaving(false);
-    }
-  }
-
-  async function saveTenantCloudflareSettings() {
-    if (!routeTenantId) return;
-    setTenantCloudflareSaving(true);
-    setTenantCloudflareMsg("");
-    setTenantDetailErr("");
-    try {
-      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cloudflareCnameTarget: s(tenantCloudflareCnameTarget) || undefined,
-          cloudflareApiToken: s(tenantCloudflareApiToken) || undefined,
-        }),
-      });
-      const data = await safeJson(res);
-      if (!res.ok || !data?.ok) {
-        throw new Error(s(data?.error) || `HTTP ${res.status}`);
-      }
-      if (s(tenantCloudflareApiToken)) {
-        setTenantCloudflareHasToken(true);
-        setTenantCloudflareApiToken("");
-      }
-      setTenantCloudflareMsg("Cloudflare settings saved.");
-      await refreshIntegrationsSnapshot();
-    } catch (e: any) {
-      setTenantCloudflareMsg("");
-      setTenantDetailErr(e?.message || "Failed to save Cloudflare settings.");
-    } finally {
-      setTenantCloudflareSaving(false);
     }
   }
 
@@ -3880,7 +3846,7 @@ export default function Home() {
     const providerLabel = integrationProviderLabel(s(row.provider));
     const integrationKey = s(row.integration_key || row.integrationKey || "default");
     const nameToken = kebabToken(`${providerLabel}-${integrationKey}`) || "integration";
-    return `delete-${nameToken}`;
+    return `disconnect-${nameToken}`;
   }
 
   function closeIntegrationDeleteConfirm() {
@@ -3930,20 +3896,24 @@ export default function Home() {
     );
     setIntegrationEditAuthType(s(item?.auth_type || item?.authType) || "api_key");
     setIntegrationEditExternalAccountId(s(item?.external_account_id || item?.externalAccountId));
-    setIntegrationEditExternalPropertyId(s(item?.external_property_id || item?.externalPropertyId));
+    setIntegrationEditExternalPropertyId(
+      s(item?.external_property_id || item?.externalPropertyId) ||
+        (provider === "cloudflare" ? s(tenantCloudflareCnameTarget) : ""),
+    );
     setIntegrationEditScopes(
       Array.isArray((item as any)?.scopes) ? ((item as any).scopes as unknown[]).map((x) => s(x)).filter(Boolean).join(", ") : "",
     );
     setIntegrationEditLastError(s(item?.last_error || item?.lastError));
     setIntegrationEditConfigText(JSON.stringify(cfg, null, 2));
-    setIntegrationEditApiKey(
+    const resolvedApiKey =
       s(cfg.apiKey) ||
         s(cfg.api_key) ||
         s(cfg.webmasterApiKey) ||
         s(cfg.indexNowKey) ||
         s(auth.apiKey) ||
-        s(auth.api_key),
-    );
+        s(auth.api_key) ||
+        (provider === "cloudflare" ? s(tenantCloudflareApiToken) : "");
+    setIntegrationEditApiKey(resolvedApiKey);
     setIntegrationEditorErr("");
     setIntegrationEditorMsg("");
     setIntegrationActionsOpenId("");
@@ -3964,6 +3934,29 @@ export default function Home() {
     setIntegrationEditorMsg("");
     setTenantDetailErr("");
     try {
+      if (provider === "cloudflare") {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cloudflareCnameTarget: s(integrationEditExternalPropertyId) || undefined,
+            cloudflareApiToken: s(integrationEditApiKey) || undefined,
+          }),
+        });
+        const data = await safeJson(res);
+        if (!res.ok || !data?.ok) {
+          throw new Error(s((data as any)?.error) || `HTTP ${res.status}`);
+        }
+        setTenantCloudflareCnameTarget(s(integrationEditExternalPropertyId));
+        if (s(integrationEditApiKey)) setTenantCloudflareHasToken(true);
+        await refreshIntegrationsSnapshot();
+        await loadOAuthHealth();
+        setIntegrationEditorMsg("Cloudflare settings saved in tenant DB.");
+        setIntegrationEditorOpen(false);
+        setIntegrationActionsOpenId("");
+        return;
+      }
+
       let parsedConfig: Record<string, unknown> = {};
       try {
         const parsed = JSON.parse(s(integrationEditConfigText) || "{}");
@@ -4034,7 +4027,7 @@ export default function Home() {
     }
   }
 
-  async function deleteIntegration(row: TenantIntegrationRow) {
+  async function disconnectIntegration(row: TenantIntegrationRow) {
     if (!routeTenantId) return false;
     const id = s(row.id);
     if (!id || id.startsWith("virtual:")) return false;
@@ -4043,10 +4036,11 @@ export default function Home() {
     setIntegrationEditorMsg("");
     try {
       const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/integrations`, {
-        method: "DELETE",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id,
+          status: "disconnected",
         }),
       });
       const data = await safeJson(res);
@@ -4055,18 +4049,18 @@ export default function Home() {
       }
       await refreshIntegrationsSnapshot();
       await loadOAuthHealth();
-      setIntegrationEditorMsg("Integration deleted.");
+      setIntegrationEditorMsg("Integration disconnected.");
       setIntegrationActionsOpenId("");
       return true;
     } catch (e: any) {
-      setIntegrationEditorErr(e?.message || "Failed to delete integration.");
+      setIntegrationEditorErr(e?.message || "Failed to disconnect integration.");
       return false;
     } finally {
       setIntegrationDeleteBusyId("");
     }
   }
 
-  async function confirmDeleteIntegration() {
+  async function confirmDisconnectIntegration() {
     const target = integrationDeleteConfirmTarget;
     if (!target) return;
     const phrase = integrationDeletePhrase(target);
@@ -4075,7 +4069,7 @@ export default function Home() {
       return;
     }
     setIntegrationDeleteConfirmErr("");
-    const ok = await deleteIntegration(target);
+    const ok = await disconnectIntegration(target);
     if (ok) closeIntegrationDeleteConfirm();
   }
 
@@ -9319,51 +9313,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             </div>
           ) : null}
 
-          <div className="detailsCustomTop" style={{ marginBottom: 12 }}>
-            <div className="detailsPaneHeader" style={{ marginBottom: 8 }}>
-              <div className="detailsPaneTitle">Cloudflare (Tenant)</div>
-              <div className="detailsPaneSub">
-                DNS target + API token used by activation/DNS flows.
-              </div>
-            </div>
-            <div className="row">
-              <div className="field">
-                <label>Cloudflare CNAME target</label>
-                <input
-                  className="input"
-                  value={tenantCloudflareCnameTarget}
-                  onChange={(e) => setTenantCloudflareCnameTarget(e.target.value)}
-                  placeholder="sites.ludicrous.cloud"
-                />
-              </div>
-              <div className="field">
-                <label>Cloudflare API token</label>
-                <input
-                  className="input"
-                  type="password"
-                  value={tenantCloudflareApiToken}
-                  onChange={(e) => setTenantCloudflareApiToken(e.target.value)}
-                  placeholder={
-                    tenantCloudflareHasToken
-                      ? "Token saved. Enter new token only to rotate."
-                      : "cf_api_token..."
-                  }
-                />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-              {tenantCloudflareMsg ? <span className="badge">{tenantCloudflareMsg}</span> : null}
-              <button
-                type="button"
-                className="smallBtn"
-                disabled={tenantCloudflareSaving}
-                onClick={() => void saveTenantCloudflareSettings()}
-              >
-                {tenantCloudflareSaving ? "Saving..." : "Save Cloudflare"}
-              </button>
-            </div>
-          </div>
-
           <div className="field" style={{ maxWidth: 420, marginBottom: 10 }}>
             <label>Search</label>
             <input
@@ -9394,7 +9343,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 const health = integrationHealthById.get(integrationId) || null;
                 const authType = s(it.auth_type || it.authType);
                 const isOauth = authType === "oauth" && !isVirtual;
-                const isVirtualCloudflare = isVirtual && provider.toLowerCase() === "cloudflare";
                 const menuOpen = integrationActionsOpenId === integrationId;
                 return (
                   <div key={integrationId} className="integrationConnectionRow">
@@ -9465,8 +9413,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               type="button"
                               className="integrationMenuBtn"
                               onClick={() => openIntegrationEditor(it)}
-                              disabled={isVirtualCloudflare}
-                              title={isVirtualCloudflare ? "Edit Cloudflare in the Cloudflare section above." : ""}
                             >
                               Edit
                             </button>
@@ -9476,7 +9422,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               onClick={() => openIntegrationDeleteConfirm(it)}
                               disabled={isVirtual || integrationDeleteBusyId === integrationId}
                             >
-                              {integrationDeleteBusyId === integrationId ? "Deleting..." : "Delete"}
+                              {integrationDeleteBusyId === integrationId ? "Disconnecting..." : "Disconnect"}
                             </button>
                           </div>
                         ) : null}
@@ -12396,12 +12342,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           >
             <div className="modalHeader modalHeaderPro">
               <div style={{ minWidth: 0 }}>
-                <div className="badge">DELETE INTEGRATION</div>
+                <div className="badge">DISCONNECT INTEGRATION</div>
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
-                  Confirm delete
+                  Confirm disconnect
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
-                  This action removes this integration from tenant DB.
+                  This action keeps the integration in DB and sets it as disconnected.
                 </div>
               </div>
               <button className="smallBtn" onClick={closeIntegrationDeleteConfirm}>
@@ -12411,7 +12357,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             <div className="modalBody modalBodyPro" style={{ padding: 14 }}>
               <div className="mini" style={{ marginBottom: 12 }}>
                 Type{" "}
-                <code>{integrationDeletePhrase(integrationDeleteConfirmTarget)}</code> to confirm deletion of{" "}
+                <code>{integrationDeletePhrase(integrationDeleteConfirmTarget)}</code> to confirm disconnect of{" "}
                 <b>{integrationProviderLabel(s(integrationDeleteConfirmTarget?.provider || ""))}</b>.
               </div>
               <div className="field">
@@ -12445,13 +12391,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               <button
                 className="smallBtn"
                 style={{ borderColor: "rgba(248,113,113,.66)", color: "#fecaca" }}
-                onClick={() => void confirmDeleteIntegration()}
+                onClick={() => void confirmDisconnectIntegration()}
                 disabled={
                   integrationDeleteBusyId === s(integrationDeleteConfirmTarget?.id) ||
                   !integrationDeleteConfirmTarget
                 }
               >
-                {integrationDeleteBusyId === s(integrationDeleteConfirmTarget?.id) ? "Deleting..." : "Delete"}
+                {integrationDeleteBusyId === s(integrationDeleteConfirmTarget?.id) ? "Disconnecting..." : "Disconnect"}
               </button>
             </div>
           </div>
@@ -12539,7 +12485,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <label>API Key / Secret</label>
                     <input
                       className="input"
-                      type="password"
+                      type="text"
                       value={integrationEditApiKey}
                       onChange={(e) => setIntegrationEditApiKey(e.target.value)}
                       placeholder="sk-... / AIza... / bing key"

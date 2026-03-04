@@ -390,7 +390,14 @@ export async function DELETE(req: Request, ctx: Ctx) {
     }
 
     await client.query(
-      `delete from app.organization_integrations where organization_id = $1 and id = $2`,
+      `
+        update app.organization_integrations
+        set
+          status = 'disconnected',
+          updated_at = now()
+        where organization_id = $1
+          and id = $2
+      `,
       [tenantId, row.id],
     );
 
@@ -398,20 +405,21 @@ export async function DELETE(req: Request, ctx: Ctx) {
       organizationId: tenantId,
       actorType: "user",
       actorLabel: "agency-ui",
-      action: "integration.delete",
+      action: "integration.disconnect",
       entityType: "integration",
       entityId: row.id,
       payload: {
         provider: row.provider,
         integrationKey: row.integration_key,
+        via: "DELETE->soft_disconnect",
       },
     });
 
     await client.query("COMMIT");
-    return NextResponse.json({ ok: true, id: row.id });
+    return NextResponse.json({ ok: true, id: row.id, status: "disconnected" });
   } catch (error: unknown) {
     await client.query("ROLLBACK");
-    const message = error instanceof Error ? error.message : "Failed to delete integration";
+    const message = error instanceof Error ? error.message : "Failed to disconnect integration";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   } finally {
     client.release();

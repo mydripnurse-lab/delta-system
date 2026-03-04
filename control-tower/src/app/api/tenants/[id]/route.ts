@@ -81,6 +81,7 @@ export async function GET(_req: Request, ctx: Ctx) {
             root_domain,
             snapshot_location_id,
             cloudflare_cname_target,
+            cloudflare_api_token,
             (nullif(cloudflare_api_token, '') is not null) as has_cloudflare_api_token,
             ghl_company_id,
             snapshot_id,
@@ -150,6 +151,7 @@ export async function GET(_req: Request, ctx: Ctx) {
             ...row,
             snapshot_location_id: row?.snapshot_location_id ?? null,
             cloudflare_cname_target: null,
+            cloudflare_api_token: null,
             has_cloudflare_api_token: false,
           }
         : null;
