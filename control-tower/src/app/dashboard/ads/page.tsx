@@ -6,7 +6,6 @@ import AdsTrendChart from "@/components/AdsTrendChart";
 import AdsMetricsGridCharts from "@/components/AdsMetricsGridCharts";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
-import DashboardModuleShell from "@/components/DashboardModuleShell";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
 
@@ -26,6 +25,8 @@ type AdsMetric =
   | "cost"
   | "avgCpc"
   | "ctr";
+
+type AdsNavTab = "overview" | "ops" | "strategy" | "ai_chat";
 
 type CampaignPlaybook = {
   region: string;
@@ -149,6 +150,29 @@ function extractRegionFromCampaignName(name: string) {
   return raw.split("-")[0]?.trim() || "Unknown region";
 }
 
+function extractAdsErrorMessage(rawError: string) {
+  const text = String(rawError || "").trim();
+  if (!text) return "Failed to load Google Ads dashboard";
+
+  const low = text.toLowerCase();
+  if (
+    low.includes("permission_denied") ||
+    low.includes("authorizationerror") ||
+    low.includes("customer_not_enabled") ||
+    low.includes("does not have permission") ||
+    low.includes("deactivated")
+  ) {
+    return "No hay acceso autorizado al customer de Google Ads (permiso denegado o cuenta desactivada).";
+  }
+  if (low.includes("missing tenant context")) {
+    return "Falta el contexto del tenant. Abre este dashboard desde Control Tower.";
+  }
+  if (low.includes("sync http") || low.includes("join http")) {
+    return "No se pudo sincronizar Google Ads en este momento. Intenta refresh o verifica la integración.";
+  }
+  return text;
+}
+
 export default function AdsDashboardPage() {
   const searchParams = useBrowserSearchParams();
   const [loading, setLoading] = useState(false);
@@ -181,6 +205,7 @@ export default function AdsDashboardPage() {
   const [decisionNotes, setDecisionNotes] = useState<Record<number, string>>({});
   const [playbookIndex, setPlaybookIndex] = useState(0);
   const [draftIndex, setDraftIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<AdsNavTab>("overview");
 
   const { tenantId, tenantReady } = useResolvedTenantId(searchParams);
   const integrationKeyRaw =
@@ -254,10 +279,52 @@ export default function AdsDashboardPage() {
       setData(joinJson);
     } catch (e: any) {
       setData(null);
-      setErr(e?.message || "Failed to load Google Ads dashboard");
+      setErr(extractAdsErrorMessage(e?.message || "Failed to load Google Ads dashboard"));
     } finally {
       setLoading(false);
       setHardRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    function syncTabFromHash() {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      if (hash === "#ai-chat") {
+        setActiveTab("ai_chat");
+        return;
+      }
+      if (hash === "#strategy") {
+        setActiveTab("strategy");
+        return;
+      }
+      if (hash === "#opportunities") {
+        setActiveTab("ops");
+        return;
+      }
+      setActiveTab("overview");
+    }
+    syncTabFromHash();
+    window.addEventListener("hashchange", syncTabFromHash);
+    return () => window.removeEventListener("hashchange", syncTabFromHash);
+  }, []);
+
+  function jumpToTab(tab: AdsNavTab) {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const hash =
+        tab === "ai_chat"
+          ? "#ai-chat"
+          : tab === "strategy"
+            ? "#strategy"
+            : tab === "ops"
+              ? "#opportunities"
+              : "#overview";
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}${window.location.search}${hash}`,
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
@@ -724,19 +791,14 @@ export default function AdsDashboardPage() {
   }
 
   return (
-    <div className="shell callsDash gaDash adsCinema dashboardPremium">
+    <main className="agencyShell callsDash gaDash adsCinema dashboardPremium">
       <DashboardTopbar
-        title="My Drip Nurse — Google Ads Dashboard"
-        subtitle={(
-          <>
-            Performance + budget efficiency + keyword leakage + Delta opportunities. Customer:{" "}
-            <b className="mono">{data?.meta?.customerId || "—"}</b>
-          </>
-        )}
-        details={data?.meta?.warning ? (
-          <span style={{ color: "var(--warning)" }}>⚠ {String(data.meta.warning)}</span>
-        ) : undefined}
+        title="Dashboard"
         backHref={backHref}
+        showBackButton={false}
+        showLivePill={false}
+        useTenantNameInTitle
+        tenantTitleSuffix=" — Dashboard"
         tenantId={tenantId}
         notificationsHref={notificationsHref}
         className="adsTopbar"
@@ -755,7 +817,46 @@ export default function AdsDashboardPage() {
         )}
       />
 
-      <DashboardModuleShell backHref={backHref} active="ads">
+      <div className="agencyRoot">
+        <aside className="agencySidebar">
+          <nav className="agencyNav">
+            <a className="agencyNavItem agencyNavBackItem" href={backHref}>
+              ← Back to Dashboard
+            </a>
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "overview" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("overview")}
+            >
+              Overview
+            </button>
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "ops" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("ops")}
+            >
+              Opportunities
+            </button>
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "strategy" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("strategy")}
+            >
+              Strategy
+            </button>
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "ai_chat" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("ai_chat")}
+            >
+              AI Chat
+            </button>
+          </nav>
+        </aside>
+
+        <section className="agencyMain">
+      {activeTab === "overview" ? (
+      <div className="spRouteAnim" key="ads-tab-overview">
       <section className="card adsHeroCard" style={{ marginTop: 14 }}>
         <div className="adsHeroGlow" />
         <div className="cardBody adsHeroBody">
@@ -1185,8 +1286,11 @@ export default function AdsDashboardPage() {
           </div>
         </div>
       </section>
+      </div>
+      ) : null}
 
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeTab === "ops" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }} id="opportunities">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Multi-Metric Trend Board</h2>
@@ -1276,7 +1380,10 @@ export default function AdsDashboardPage() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 14 }} id="ai-playbook">
+      ) : null}
+
+      {activeTab === "strategy" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }} id="ai-playbook">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">AI Playbook (Google Ads Expert)</h2>
@@ -1330,8 +1437,10 @@ export default function AdsDashboardPage() {
           )}
         </div>
       </section>
+      ) : null}
 
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeTab === "strategy" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }} id="strategy">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Campaign Planner (Google Ads)</h2>
@@ -1457,8 +1566,10 @@ export default function AdsDashboardPage() {
           </div>
         </div>
       </section>
+      ) : null}
 
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeTab === "ai_chat" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }} id="ai-chat">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">AI Strategist (Ads)</h2>
@@ -1489,8 +1600,10 @@ export default function AdsDashboardPage() {
           />
         </div>
       </section>
+      ) : null}
 
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeTab === "strategy" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Keyword Strategy + Campaign Generator</h2>
@@ -1731,9 +1844,11 @@ export default function AdsDashboardPage() {
           )}
         </div>
       </section>
+      ) : null}
 
       {/* Opportunities */}
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeTab === "ops" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Opportunities (Delta-Aware)</h2>
@@ -1961,9 +2076,11 @@ export default function AdsDashboardPage() {
           </div>
         </div>
       </section>
+      ) : null}
 
       {/* Tables */}
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeTab === "ops" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }} id="tables">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Campaigns, Keywords, Search Terms</h2>
@@ -2122,6 +2239,7 @@ export default function AdsDashboardPage() {
           </div>
         </div>
       </section>
+      ) : null}
 
       {notificationsOpen ? (
         <div
@@ -2238,7 +2356,8 @@ export default function AdsDashboardPage() {
           </aside>
         </div>
       ) : null}
-      </DashboardModuleShell>
-    </div>
+        </section>
+      </div>
+    </main>
   );
 }
