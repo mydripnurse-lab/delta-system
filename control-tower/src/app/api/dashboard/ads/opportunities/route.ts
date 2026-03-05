@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { requireTenantPermission } from "@/lib/authz";
-import { createProposal } from "@/lib/agentProposalStore";
+import { createProposal, type AgentActionType } from "@/lib/agentProposalStore";
+import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
 
 type JsonMap = Record<string, unknown>;
+
+type ProposalBlueprint = {
+  actionType: AgentActionType;
+  summary: string;
+  priority: "P1" | "P2" | "P3";
+  riskLevel: "low" | "medium" | "high";
+  expectedImpact: "low" | "medium" | "high";
+  payload: JsonMap;
+  targetTokens: string[];
+};
 
 function s(v: unknown) {
   return String(v ?? "").trim();
@@ -25,17 +36,30 @@ function asArray(v: unknown) {
   return Array.isArray(v) ? v : [];
 }
 
+function isSystemAuthorized(req: Request) {
+  const vercelCron = s(req.headers.get("x-vercel-cron"));
+  if (vercelCron === "1") return true;
+  const expected = s(process.env.CRON_SECRET || process.env.DASHBOARD_CRON_SECRET || process.env.PROSPECTING_CRON_SECRET);
+  if (!expected) return false;
+  const tokenHeader = s(req.headers.get("x-dashboard-cron-secret"));
+  const auth = s(req.headers.get("authorization"));
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  const tokenQuery = s(new URL(req.url).searchParams.get("secret"));
+  const token = tokenHeader || bearer || tokenQuery;
+  return token === expected;
+}
+
 function normKeyword(v: unknown) {
   return s(v).toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function compactKeyword(raw: string) {
+  return s(raw).replace(/[^\w\s-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
 function isBrandKeyword(keyword: string) {
   const k = normKeyword(keyword);
   return k.includes("my drip nurse") || k.includes("drip nurse");
-}
-
-function compactKeyword(raw: string) {
-  return s(raw).replace(/[^\w\s-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
 }
 
 function scoreKeywordOpportunity(row: JsonMap) {
@@ -126,16 +150,17 @@ async function computeOpportunityPack(input: {
     input.source === "gsc" ? Promise.resolve({ ok: true, status: 200, json: {} as JsonMap }) : fetchJson(bingUrl),
   ]);
 
-  if (!adsJoinRes.ok) {
-    throw new Error(s(adsJoinRes.json.error) || `ads/join failed (${adsJoinRes.status})`);
-  }
+  if (!adsJoinRes.ok) throw new Error(s(adsJoinRes.json.error) || `ads/join failed (${adsJoinRes.status})`);
+  if (!strategyRes.ok) throw new Error(s(strategyRes.json.error) || `ads/strategy failed (${strategyRes.status})`);
 
   const adsJoin = adsJoinRes.json;
-  void strategyRes;
+  const strategy = strategyRes.json;
   const winners = asArray((adsJoin.opportunities as JsonMap)?.winners) as JsonMap[];
   const losers = asArray((adsJoin.opportunities as JsonMap)?.losers) as JsonMap[];
   const negativeIdeas = asArray((adsJoin.opportunities as JsonMap)?.negativeIdeas) as JsonMap[];
   const topKeywords = asArray(adsJoin.topKeywords) as JsonMap[];
+  const campaigns = asArray(adsJoin.campaigns) as JsonMap[];
+  const campaignDrafts = asArray(strategy.campaignDrafts) as JsonMap[];
   const meta = (adsJoin.meta || {}) as JsonMap;
   const customerId = s(meta.customerId).replace(/-/g, "");
 
@@ -177,7 +202,28 @@ async function computeOpportunityPack(input: {
     negativeIdeas,
     searchKeywordPool,
     bestAdGroup,
+    campaignDrafts,
+    activeCampaignCount: campaigns.length,
+    isBootstrap: campaigns.length === 0 || topKeywords.length === 0,
   };
+}
+
+function extractTargetTokensFromPayload(payload: JsonMap) {
+  const out = new Set<string>();
+  const ops = asArray(payload.operations);
+  for (const raw of ops) {
+    const row = (raw && typeof raw === "object" ? (raw as JsonMap) : {}) as JsonMap;
+    const campaignId = s(row.campaign_id || row.campaignId);
+    const adGroupId = s(row.ad_group_id || row.adGroupId);
+    if (campaignId) out.add(`campaign:${campaignId}`);
+    if (adGroupId) out.add(`adgroup:${adGroupId}`);
+  }
+  for (const d of asArray(payload.campaign_drafts)) {
+    const row = (d && typeof d === "object" ? (d as JsonMap) : {}) as JsonMap;
+    const name = s(row.campaignName || row.name);
+    if (name) out.add(`draft:${name.toLowerCase()}`);
+  }
+  return Array.from(out);
 }
 
 function buildProposalBlueprints(input: {
@@ -192,105 +238,73 @@ function buildProposalBlueprints(input: {
   searchKeywordPool: Array<{ keyword: string; impressions: number; position: number; ctr: number; source: string }>;
   bestAdGroup: { adGroupId: string; campaignId: string; campaign: string } | null;
   source: "gsc" | "bing" | "all";
+  campaignDrafts: JsonMap[];
+  isBootstrap: boolean;
 }) {
-  const proposals: Array<{
-    summary: string;
-    priority: "P1" | "P2" | "P3";
-    riskLevel: "low" | "medium" | "high";
-    expectedImpact: "low" | "medium" | "high";
-    payload: JsonMap;
-  }> = [];
+  const proposals: ProposalBlueprint[] = [];
 
   const winner = input.winners[0] || null;
   if (winner && s(winner.id)) {
+    const payload: JsonMap = {
+      tenant_id: input.tenantId,
+      integration_key: input.integrationKey,
+      customer_id: input.customerId,
+      login_customer_id: s(input.loginCustomerId),
+      dry_run: input.dryRun,
+      operations: [
+        {
+          kind: "campaign_budget_percent",
+          campaign_id: s(winner.id),
+          percentDelta: 0.1,
+        },
+      ],
+    };
     proposals.push({
+      actionType: "optimize_ads",
       summary: `Scale budget on winner campaign ${s(winner.campaign) || s(winner.id)}`,
       priority: "P2",
       riskLevel: "low",
       expectedImpact: "high",
-      payload: {
-        tenant_id: input.tenantId,
-        integration_key: input.integrationKey,
-        customer_id: input.customerId,
-        login_customer_id: s(input.loginCustomerId),
-        dry_run: input.dryRun,
-        operations: [
-          {
-            kind: "campaign_budget_percent",
-            campaign_id: s(winner.id),
-            percentDelta: 0.1,
-          },
-        ],
-      },
+      payload,
+      targetTokens: extractTargetTokensFromPayload(payload),
     });
   }
 
   const loser = input.losers[0] || null;
   if (loser && s(loser.id)) {
+    const payload: JsonMap = {
+      tenant_id: input.tenantId,
+      integration_key: input.integrationKey,
+      customer_id: input.customerId,
+      login_customer_id: s(input.loginCustomerId),
+      dry_run: input.dryRun,
+      operations: [
+        {
+          kind: "campaign_budget_percent",
+          campaign_id: s(loser.id),
+          percentDelta: -0.18,
+        },
+      ],
+    };
     proposals.push({
+      actionType: "optimize_ads",
       summary: `Reduce budget leakage on ${s(loser.campaign) || s(loser.id)}`,
       priority: "P1",
       riskLevel: "medium",
       expectedImpact: "high",
-      payload: {
-        tenant_id: input.tenantId,
-        integration_key: input.integrationKey,
-        customer_id: input.customerId,
-        login_customer_id: s(input.loginCustomerId),
-        dry_run: input.dryRun,
-        operations: [
-          {
-            kind: "campaign_budget_percent",
-            campaign_id: s(loser.id),
-            percentDelta: -0.18,
-          },
-        ],
-      },
+      payload,
+      targetTokens: extractTargetTokensFromPayload(payload),
     });
   }
 
-  const negativeTargetCampaignId =
-    s(loser?.id) ||
-    s(winner?.id) ||
-    s(input.bestAdGroup?.campaignId);
+  const negativeTargetCampaignId = s(loser?.id) || s(winner?.id) || s(input.bestAdGroup?.campaignId);
   if (negativeTargetCampaignId) {
     const negatives = input.negativeIdeas
       .map((x) => compactKeyword(s(x.term)))
       .filter(Boolean)
       .slice(0, 12);
     if (negatives.length) {
-      proposals.push({
-        summary: `Add negative keyword guardrail (${negatives.length} terms)`,
-        priority: "P2",
-        riskLevel: "low",
-        expectedImpact: "medium",
-        payload: {
-          tenant_id: input.tenantId,
-          integration_key: input.integrationKey,
-          customer_id: input.customerId,
-          login_customer_id: s(input.loginCustomerId),
-          dry_run: input.dryRun,
-          operations: [
-            {
-              kind: "add_campaign_negative_keywords",
-              campaign_id: negativeTargetCampaignId,
-              matchType: "PHRASE",
-              keywords: negatives,
-            },
-          ],
-        },
-      });
-    }
-  }
-
-  if (input.bestAdGroup && input.searchKeywordPool.length) {
-    const newKeywords = input.searchKeywordPool.slice(0, 8).map((x) => x.keyword);
-    proposals.push({
-      summary: `Keyword opportunity bot (${input.source.toUpperCase()}): add ${newKeywords.length} terms to ${input.bestAdGroup.campaign}`,
-      priority: "P2",
-      riskLevel: "low",
-      expectedImpact: "high",
-      payload: {
+      const payload: JsonMap = {
         tenant_id: input.tenantId,
         integration_key: input.integrationKey,
         customer_id: input.customerId,
@@ -298,18 +312,125 @@ function buildProposalBlueprints(input: {
         dry_run: input.dryRun,
         operations: [
           {
-            kind: "add_adgroup_keywords",
-            ad_group_id: input.bestAdGroup.adGroupId,
+            kind: "add_campaign_negative_keywords",
+            campaign_id: negativeTargetCampaignId,
             matchType: "PHRASE",
-            keywords: newKeywords,
+            keywords: negatives,
           },
         ],
-        keyword_opportunity_context: input.searchKeywordPool.slice(0, 12),
-      },
+      };
+      proposals.push({
+        actionType: "optimize_ads",
+        summary: `Add negative keyword guardrail (${negatives.length} terms)`,
+        priority: "P2",
+        riskLevel: "low",
+        expectedImpact: "medium",
+        payload,
+        targetTokens: extractTargetTokensFromPayload(payload),
+      });
+    }
+  }
+
+  if (input.bestAdGroup && input.searchKeywordPool.length) {
+    const newKeywords = input.searchKeywordPool.slice(0, 8).map((x) => x.keyword);
+    const payload: JsonMap = {
+      tenant_id: input.tenantId,
+      integration_key: input.integrationKey,
+      customer_id: input.customerId,
+      login_customer_id: s(input.loginCustomerId),
+      dry_run: input.dryRun,
+      operations: [
+        {
+          kind: "add_adgroup_keywords",
+          ad_group_id: input.bestAdGroup.adGroupId,
+          matchType: "PHRASE",
+          keywords: newKeywords,
+        },
+      ],
+      keyword_opportunity_context: input.searchKeywordPool.slice(0, 12),
+    };
+    proposals.push({
+      actionType: "optimize_ads",
+      summary: `Keyword opportunity bot (${input.source.toUpperCase()}): add ${newKeywords.length} terms to ${input.bestAdGroup.campaign}`,
+      priority: "P2",
+      riskLevel: "low",
+      expectedImpact: "high",
+      payload,
+      targetTokens: extractTargetTokensFromPayload(payload),
+    });
+  }
+
+  if (input.isBootstrap && input.campaignDrafts.length) {
+    const seedDrafts = input.campaignDrafts.slice(0, 3);
+    const payload: JsonMap = {
+      tenant_id: input.tenantId,
+      integration_key: input.integrationKey,
+      dry_run: true,
+      bootstrap_mode: true,
+      source: "ads_strategy_cold_start",
+      campaign_drafts: seedDrafts,
+      recommended_next_step: "Review and approve initial campaign publish plan.",
+    };
+    proposals.push({
+      actionType: "publish_ads",
+      summary: `Bootstrap Google Ads launch plan (${seedDrafts.length} draft campaigns)`,
+      priority: "P1",
+      riskLevel: "medium",
+      expectedImpact: "high",
+      payload,
+      targetTokens: extractTargetTokensFromPayload(payload),
     });
   }
 
   return proposals;
+}
+
+async function loadRecentProposalTokens(input: {
+  organizationId: string;
+  lookbackHours: number;
+}) {
+  const pool = getDbPool();
+  const q = await pool.query<{
+    action_type: string;
+    summary: string;
+    payload: JsonMap | null;
+  }>(
+    `
+      select action_type, summary, payload
+      from app.agent_proposals
+      where organization_id = $1::uuid
+        and status in ('proposed', 'approved', 'executed')
+        and created_at >= now() - make_interval(hours => $2::int)
+        and action_type in ('optimize_ads', 'publish_ads')
+      order by created_at desc
+      limit 300
+    `,
+    [input.organizationId, input.lookbackHours],
+  );
+
+  return (q.rows || []).map((r) => ({
+    actionType: s(r.action_type),
+    summary: s(r.summary).toLowerCase(),
+    tokens: extractTargetTokensFromPayload((r.payload || {}) as JsonMap),
+  }));
+}
+
+function dedupeBlueprints(input: {
+  blueprints: ProposalBlueprint[];
+  recent: Array<{ actionType: string; summary: string; tokens: string[] }>;
+}) {
+  return input.blueprints.filter((bp) => {
+    const summary = s(bp.summary).toLowerCase();
+    const target = new Set(bp.targetTokens);
+    for (const row of input.recent) {
+      if (row.actionType !== bp.actionType) continue;
+      if (row.summary === summary) return false;
+      if (!target.size) continue;
+      const overlap = row.tokens.some((t) => target.has(t));
+      if (overlap) return false;
+    }
+    return true;
+  });
 }
 
 async function handle(req: Request, mode: "preview" | "queue") {
@@ -325,11 +446,16 @@ async function handle(req: Request, mode: "preview" | "queue") {
   const end = s(body.end || url.searchParams.get("end"));
   const maxProposals = Math.max(1, Math.min(8, n(body.maxProposals || url.searchParams.get("maxProposals"), 4)));
   const dryRun = boolish(body.dryRun ?? url.searchParams.get("dryRun"), true);
-  const agentId = s(body.agentId) || "soul_ads_optimizer";
+  const agentId = s(body.agentId || url.searchParams.get("agentId")) || "soul_ads_optimizer";
+  const cooldownHours = Math.max(1, Math.min(168, n(body.cooldownHours || url.searchParams.get("cooldownHours"), 24)));
+  const disableCooldown = boolish(body.disableCooldown ?? url.searchParams.get("disableCooldown"), false);
+  const loginCustomerId = s(body.loginCustomerId || url.searchParams.get("loginCustomerId"));
 
   if (!tenantId) return NextResponse.json({ ok: false, error: "Missing tenantId" }, { status: 400 });
-  const auth = await requireTenantPermission(req, tenantId, mode === "queue" ? "tenant.manage" : "tenant.read");
-  if ("response" in auth) return auth.response;
+  if (!isSystemAuthorized(req)) {
+    const auth = await requireTenantPermission(req, tenantId, mode === "queue" ? "tenant.manage" : "tenant.read");
+    if ("response" in auth) return auth.response;
+  }
 
   const pack = await computeOpportunityPack({
     origin: url.origin,
@@ -341,10 +467,11 @@ async function handle(req: Request, mode: "preview" | "queue") {
     source,
   });
 
-  const blueprints = buildProposalBlueprints({
+  const blueprintsRaw = buildProposalBlueprints({
     tenantId,
     integrationKey,
     customerId: pack.customerId,
+    loginCustomerId: loginCustomerId || undefined,
     dryRun,
     winners: pack.winners,
     losers: pack.losers,
@@ -352,6 +479,19 @@ async function handle(req: Request, mode: "preview" | "queue") {
     searchKeywordPool: pack.searchKeywordPool,
     bestAdGroup: pack.bestAdGroup,
     source,
+    campaignDrafts: pack.campaignDrafts,
+    isBootstrap: pack.isBootstrap,
+  });
+
+  const recent = disableCooldown
+    ? []
+    : await loadRecentProposalTokens({
+        organizationId: tenantId,
+        lookbackHours: cooldownHours,
+      });
+  const blueprints = dedupeBlueprints({
+    blueprints: blueprintsRaw,
+    recent,
   }).slice(0, maxProposals);
 
   if (mode === "preview") {
@@ -362,7 +502,12 @@ async function handle(req: Request, mode: "preview" | "queue") {
       range,
       source,
       dryRun,
+      cooldownHours,
+      cooldownApplied: !disableCooldown,
+      isBootstrap: pack.isBootstrap,
+      activeCampaignCount: pack.activeCampaignCount,
       previewCount: blueprints.length,
+      candidatesBeforeCooldown: blueprintsRaw.length,
       bestAdGroup: pack.bestAdGroup,
       searchKeywordPool: pack.searchKeywordPool.slice(0, 12),
       proposals: blueprints,
@@ -373,7 +518,7 @@ async function handle(req: Request, mode: "preview" | "queue") {
   for (const bp of blueprints) {
     const proposal = await createProposal({
       organizationId: tenantId,
-      actionType: "optimize_ads",
+      actionType: bp.actionType,
       agentId,
       dashboardId: "ads",
       summary: bp.summary,
@@ -394,7 +539,12 @@ async function handle(req: Request, mode: "preview" | "queue") {
     range,
     source,
     dryRun,
+    cooldownHours,
+    cooldownApplied: !disableCooldown,
+    isBootstrap: pack.isBootstrap,
+    activeCampaignCount: pack.activeCampaignCount,
     queued: created.length,
+    candidatesBeforeCooldown: blueprintsRaw.length,
     proposals: created,
   });
 }

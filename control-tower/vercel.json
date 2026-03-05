@@ -26,6 +26,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/dashboard/ads/opportunities/cron?source=all&range=last_28_days&dryRun=1&maxPerTenant=4&cooldownHours=24",
+      "schedule": "*/20 * * * *"
+    },
+    {
       "path": "/api/cron/prospecting-auto-run",
       "schedule": "*/30 * * * *"
     },
