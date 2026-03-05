@@ -179,7 +179,9 @@ export async function GET(req: Request) {
             const clicks = num(m.clicks);
             const conversions = num(m.conversions);
             return {
+                campaignId: s(row.campaign?.id),
                 campaign: s(row.campaign?.name),
+                adGroupId: s(row.adGroup?.id),
                 adGroup: s(row.adGroup?.name),
                 keyword: s(row.adGroupCriterion?.keyword?.text),
                 matchType: s(row.adGroupCriterion?.keyword?.matchType),
@@ -201,7 +203,9 @@ export async function GET(req: Request) {
             const clicks = num(m.clicks);
             const conversions = num(m.conversions);
             return {
+                campaignId: s(row.campaign?.id),
                 campaign: s(row.campaign?.name),
+                adGroupId: s(row.adGroup?.id),
                 adGroup: s(row.adGroup?.name),
                 term: s(row.searchTermView?.searchTerm),
                 impressions: num(m.impressions),

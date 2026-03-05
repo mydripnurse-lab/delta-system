@@ -17,6 +17,7 @@ type NormalizedOperation =
   | { kind: "enable_campaign"; campaignId: string }
   | { kind: "campaign_budget_daily"; campaignId: string; amount: number }
   | { kind: "campaign_budget_percent"; campaignId: string; percentDelta: number }
+  | { kind: "add_adgroup_keywords"; adGroupId: string; keywords: string[]; matchType: "EXACT" | "PHRASE" | "BROAD"; cpcBidMicros?: number }
   | { kind: "add_campaign_negative_keywords"; campaignId: string; keywords: string[]; matchType: "EXACT" | "PHRASE" | "BROAD" };
 
 function s(v: unknown) {
@@ -118,6 +119,20 @@ function normalizeOperations(payload: JsonMap): NormalizedOperation[] {
       }
       continue;
     }
+    if (kind === "add_adgroup_keywords") {
+      const adGroupId = s(row.ad_group_id || row.adGroupId || row.entity_id || row.entityId);
+      const keywords = asArray(row.keywords).map((x) => s(x)).filter(Boolean).slice(0, 50);
+      if (adGroupId && keywords.length) {
+        out.push({
+          kind,
+          adGroupId,
+          keywords,
+          matchType: matchType(row.matchType || row.match_type),
+          cpcBidMicros: n(row.cpcBidMicros ?? row.cpc_bid_micros ?? 0, 0) || undefined,
+        });
+      }
+      continue;
+    }
   }
 
   if (!out.length) {
@@ -179,6 +194,25 @@ function budgetMicrosFromCurrency(amount: number) {
   return Math.max(1, Math.trunc(amount * 1_000_000));
 }
 
+async function resolveEffectiveCustomerId(ctx: NormalizeContext) {
+  if (ctx.customerId) return cleanCid(ctx.customerId);
+  const out = await googleAdsSearch({
+    tenantId: ctx.tenantId,
+    integrationKey: ctx.integrationKey,
+    loginCustomerId: ctx.loginCustomerId,
+    query: `
+      SELECT customer.id
+      FROM customer
+      LIMIT 1
+    `.trim(),
+  });
+  const row = Array.isArray(out.results) ? out.results[0] : null;
+  const customer = (row as JsonMap | null)?.customer as JsonMap | undefined;
+  const resolved = cleanCid(s(customer?.id));
+  if (!resolved) throw new Error("Could not resolve customer_id from Google Ads.");
+  return resolved;
+}
+
 export async function executeOptimizeAdsProposal(input: {
   payload: JsonMap;
   riskLevel?: string;
@@ -205,16 +239,14 @@ export async function executeOptimizeAdsProposal(input: {
 
   const mutateOperations: Array<Record<string, unknown>> = [];
   const notes: string[] = [];
-  const customerId = ctx.customerId;
+  const customerId = await resolveEffectiveCustomerId(ctx);
   for (const op of operations) {
-    const campaignResourceName = customerId
-      ? `customers/${cleanCid(customerId)}/campaigns/${cleanCid(op.campaignId)}`
-      : "";
+    const campaignResourceName =
+      "campaignId" in op
+        ? `customers/${cleanCid(customerId)}/campaigns/${cleanCid(op.campaignId)}`
+        : "";
 
     if (op.kind === "pause_campaign" || op.kind === "enable_campaign") {
-      if (!campaignResourceName) {
-        throw new Error(`Missing customer_id for campaign operation (${op.kind}).`);
-      }
       mutateOperations.push({
         campaignOperation: {
           update: {
@@ -229,9 +261,6 @@ export async function executeOptimizeAdsProposal(input: {
     }
 
     if (op.kind === "add_campaign_negative_keywords") {
-      if (!campaignResourceName) {
-        throw new Error("Missing customer_id for negative keywords operation.");
-      }
       for (const keyword of op.keywords) {
         mutateOperations.push({
           campaignCriterionOperation: {
@@ -247,6 +276,30 @@ export async function executeOptimizeAdsProposal(input: {
         });
       }
       notes.push(`${op.kind}:${op.campaignId}:${op.keywords.length}`);
+      continue;
+    }
+
+    if (op.kind === "add_adgroup_keywords") {
+      const adGroupResourceName = `customers/${cleanCid(customerId)}/adGroups/${cleanCid(op.adGroupId)}`;
+      for (const keyword of op.keywords) {
+        const keywordCreate: JsonMap = {
+          adGroup: adGroupResourceName,
+          status: "ENABLED",
+          keyword: {
+            text: keyword,
+            matchType: op.matchType,
+          },
+        };
+        if (n(op.cpcBidMicros, 0) > 0) {
+          keywordCreate.cpcBidMicros = String(Math.trunc(n(op.cpcBidMicros, 0)));
+        }
+        mutateOperations.push({
+          adGroupCriterionOperation: {
+            create: keywordCreate,
+          },
+        });
+      }
+      notes.push(`${op.kind}:${op.adGroupId}:${op.keywords.length}`);
       continue;
     }
 
@@ -312,4 +365,3 @@ export async function executeOptimizeAdsProposal(input: {
     },
   };
 }
-

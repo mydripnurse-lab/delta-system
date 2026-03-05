@@ -65,6 +65,18 @@ Workspace bootstrap template for YouTube Ads soul:
 - `docs/openclaw/workspaces/soul_youtube_ads/BOOTSTRAP.md`
 - `docs/openclaw/workspaces/soul_youtube_ads/MEMORY.md`
 
+Workspace bootstrap template for Ads Optimizer soul:
+
+- `docs/openclaw/workspaces/soul_ads_optimizer/AGENTS.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/SOUL.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/TOOLS.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/IDENTITY.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/USER.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/HEARTBEAT.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/BOOTSTRAP.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/MEMORY.md`
+- `docs/openclaw/workspaces/soul_ads_optimizer/SKILLS.md`
+
 ## 4) OpenClaw proposal call contract
 
 Each soul should call:

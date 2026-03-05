@@ -193,6 +193,9 @@ export default function AdsDashboardPage() {
   const [strategyLoading, setStrategyLoading] = useState(false);
   const [strategyErr, setStrategyErr] = useState("");
   const [strategyData, setStrategyData] = useState<any>(null);
+  const [oppsQueueLoading, setOppsQueueLoading] = useState(false);
+  const [oppsQueueErr, setOppsQueueErr] = useState("");
+  const [oppsQueueMsg, setOppsQueueMsg] = useState("");
 
   const [data, setData] = useState<any>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -491,6 +494,48 @@ export default function AdsDashboardPage() {
       );
     } finally {
       setStrategyLoading(false);
+    }
+  }
+
+  async function queueOpportunityBotProposals() {
+    if (!tenantId) {
+      setOppsQueueErr("Missing tenant context.");
+      return;
+    }
+    setOppsQueueLoading(true);
+    setOppsQueueErr("");
+    setOppsQueueMsg("");
+    try {
+      const payload: Record<string, unknown> = {
+        tenantId,
+        integrationKey,
+        range: preset,
+        source: "all",
+        dryRun: true,
+        maxProposals: 4,
+      };
+      if (preset === "custom") {
+        payload.start = customStart || undefined;
+        payload.end = customEnd || undefined;
+      }
+      const res = await fetch("/api/dashboard/ads/opportunities", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.error || "Failed to queue opportunity proposals");
+      }
+      setOppsQueueMsg(
+        `Queued ${fmtInt(json?.queued || 0)} optimize_ads proposal(s) in dry-run mode.`,
+      );
+    } catch (e: unknown) {
+      setOppsQueueErr(
+        e instanceof Error ? e.message : "Failed to queue opportunity proposals",
+      );
+    } finally {
+      setOppsQueueLoading(false);
     }
   }
 
@@ -1615,6 +1660,15 @@ export default function AdsDashboardPage() {
           </div>
           <div className="cardHeaderActions">
             <button
+              className="smallBtn"
+              onClick={queueOpportunityBotProposals}
+              disabled={oppsQueueLoading || loading}
+              type="button"
+              title="Genera propuestas optimize_ads (dry-run) desde Ads + Search opportunities"
+            >
+              {oppsQueueLoading ? "Queueing..." : "Queue Opportunity Bot"}
+            </button>
+            <button
               className="smallBtn aiBtn"
               onClick={generateKeywordStrategyAndCampaigns}
               disabled={strategyLoading || loading}
@@ -1628,6 +1682,16 @@ export default function AdsDashboardPage() {
           {strategyErr ? (
             <div className="mini" style={{ color: "var(--danger)" }}>
               X {strategyErr}
+            </div>
+          ) : null}
+          {oppsQueueErr ? (
+            <div className="mini" style={{ color: "var(--danger)", marginBottom: 8 }}>
+              X {oppsQueueErr}
+            </div>
+          ) : null}
+          {oppsQueueMsg ? (
+            <div className="mini" style={{ color: "var(--success)", marginBottom: 8 }}>
+              {oppsQueueMsg}
             </div>
           ) : null}
 
