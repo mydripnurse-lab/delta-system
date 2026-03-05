@@ -1290,7 +1290,8 @@ export default function AdsDashboardPage() {
       ) : null}
 
       {activeTab === "ops" ? (
-      <section className="card spRouteAnim" style={{ marginTop: 14 }} id="opportunities">
+      <div className="spRouteAnim" key="ads-tab-ops">
+      <section className="card" style={{ marginTop: 14 }} id="opportunities">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Multi-Metric Trend Board</h2>
@@ -1380,6 +1381,7 @@ export default function AdsDashboardPage() {
         </div>
       </section>
 
+      </div>
       ) : null}
 
       {activeTab === "strategy" ? (
