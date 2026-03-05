@@ -14,6 +14,10 @@ function n(v: unknown) {
   return Number.isFinite(x) ? x : 0;
 }
 
+function pickTrendDate(r: AnyObj) {
+  return s(r.date) || s(r.day) || s(Array.isArray(r.keys) ? r.keys[0] : "");
+}
+
 function weightedAvg(values: Array<{ value: number; weight: number }>) {
   let acc = 0;
   let w = 0;
@@ -171,7 +175,7 @@ function mergePrMunicipioRows(aRows: AnyObj[], bRows: AnyObj[]) {
 function mergeTrendRows(aRows: AnyObj[], bRows: AnyObj[]) {
   const by = new Map<string, AnyObj>();
   const ingest = (r: AnyObj) => {
-    const d = s(r.date);
+    const d = pickTrendDate(r);
     if (!d) return;
     const prev: any = by.get(d) || { date: d, impressions: 0, clicks: 0, ctrAcc: 0, ctrW: 0, posAcc: 0, posW: 0 };
     const impressions = n(r.impressions);
