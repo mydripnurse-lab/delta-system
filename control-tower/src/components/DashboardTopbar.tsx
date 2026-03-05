@@ -21,6 +21,8 @@ type Props = {
   backLabel?: string;
   showLivePill?: boolean;
   liveLabel?: string;
+  useTenantNameInTitle?: boolean;
+  tenantTitleSuffix?: string;
   tenantId?: string;
   notificationsHref?: string;
   showNotifications?: boolean;
@@ -38,6 +40,8 @@ export default function DashboardTopbar({
   backLabel = "← Back",
   showLivePill = true,
   liveLabel = "Live",
+  useTenantNameInTitle = false,
+  tenantTitleSuffix = "",
   tenantId = "",
   notificationsHref = "/dashboard/notification-hub",
   showNotifications = true,
@@ -197,7 +201,7 @@ export default function DashboardTopbar({
           <div className="agencyBrandLogo agencyBrandLogoDelta" />
         )}
         <div>
-          <h1>{title}</h1>
+          <h1>{useTenantNameInTitle ? `${tenantHeaderName}${tenantTitleSuffix}` : title}</h1>
           <p>@{tenantHeaderSlug || "tenant"}</p>
           {subtitle ? <div className="mini" style={{ opacity: 0.82, marginTop: 4 }}>{subtitle}</div> : null}
           {details ? <div className="mini" style={{ marginTop: 6 }}>{details}</div> : null}

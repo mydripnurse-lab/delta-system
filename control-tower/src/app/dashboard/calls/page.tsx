@@ -774,12 +774,14 @@ function CallsDashboardPageContent() {
   }
 
   return (
-    <div className="shell callsDash dashboardPremium">
+    <main className="agencyShell callsDash dashboardPremium">
       <DashboardTopbar
-        title="My Drip Nurse — Dashboard"
+        title="Dashboard"
         backHref={backHref}
         showBackButton={false}
         showLivePill={false}
+        useTenantNameInTitle
+        tenantTitleSuffix=" — Dashboard"
         tenantId={tenantId}
         notificationsHref={notificationsHref}
       />
@@ -1899,7 +1901,7 @@ function CallsDashboardPageContent() {
       </section>
         </section>
       </div>
-    </div>
+    </main>
   );
 }
 
