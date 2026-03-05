@@ -68,7 +68,8 @@ export async function POST(req: Request) {
       nextDecision === "approved" &&
       executeOnApprove &&
       isUserActor(actor || auth.actor) &&
-      s(updated.action_type).toLowerCase() === "send_leads_ghl"
+      (s(updated.action_type).toLowerCase() === "send_leads_ghl" ||
+        s(updated.action_type).toLowerCase() === "optimize_ads")
     ) {
       try {
         const origin = new URL(req.url).origin;

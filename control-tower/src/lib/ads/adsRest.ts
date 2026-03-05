@@ -68,6 +68,14 @@ function buildSearchStreamUrl(opts: { version?: string; customerId: string }) {
     return `${base}/${path}`; // ✅ slash correcto
 }
 
+function buildMutateUrl(opts: { version?: string; customerId: string }) {
+    const version = s(opts.version) || "v22";
+    const customerId = cleanCid(opts.customerId);
+    const base = `https://googleads.googleapis.com/${version}`;
+    const path = `customers/${customerId}/googleAds:mutate`;
+    return `${base}/${path}`;
+}
+
 function versionCandidates(preferred?: string) {
     const seed = [s(preferred), "v22", "v21", "v20"].filter(Boolean);
     const out: string[] = [];
@@ -173,6 +181,82 @@ export async function googleAdsSearch(opts: {
     }
 
     throw new Error(lastErr || "Google Ads request failed for all API versions.");
+}
+
+export async function googleAdsMutate(opts: {
+    tenantId: string;
+    integrationKey?: string;
+    customerId?: string;
+    loginCustomerId?: string;
+    version?: string;
+    mutateOperations: Array<Record<string, unknown>>;
+    validateOnly?: boolean;
+    partialFailure?: boolean;
+}) {
+    const tenantId = s(opts.tenantId);
+    if (!tenantId) throw new Error("Missing tenantId");
+    const tenantAccess = await getTenantAccess({ tenantId, integrationKey: opts.integrationKey });
+
+    const customerId = cleanCid(opts.customerId || tenantAccess.customerId);
+    if (!customerId) throw new Error("Missing Google Ads customerId.");
+    const operations = Array.isArray(opts.mutateOperations)
+        ? opts.mutateOperations.filter((x) => x && typeof x === "object")
+        : [];
+    if (!operations.length) throw new Error("No mutateOperations provided.");
+
+    const accessToken = tenantAccess.accessToken;
+    const versions = versionCandidates(opts.version || tenantAccess.apiVersion);
+    let lastErr = "";
+    const validateOnly = opts.validateOnly !== false;
+    const partialFailure = opts.partialFailure === true;
+
+    for (const version of versions) {
+        const endpoint = buildMutateUrl({ version, customerId });
+        const res = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                ...headersBase(
+                    tenantAccess.developerToken,
+                    opts.loginCustomerId || tenantAccess.loginCustomerId,
+                ),
+            },
+            body: JSON.stringify({
+                mutateOperations: operations,
+                validateOnly,
+                partialFailure,
+            }),
+        });
+
+        const text = await res.text();
+        let json: any;
+        try {
+            json = text ? JSON.parse(text) : null;
+        } catch {
+            json = { raw: text };
+        }
+
+        if (res.ok) {
+            return {
+                version,
+                customerId,
+                validateOnly,
+                partialFailure,
+                requestId:
+                    s(json?.requestId) ||
+                    s(json?.request_id) ||
+                    s(json?.responseMetadata?.requestId),
+                result: json || {},
+            };
+        }
+
+        lastErr = `Google Ads mutate ${version} HTTP ${res.status}: ${JSON.stringify(json).slice(0, 3000)}`;
+        if (!shouldRetryWithAnotherVersion(res.status, json)) {
+            throw new Error(lastErr);
+        }
+    }
+
+    throw new Error(lastErr || "Google Ads mutate failed for all API versions.");
 }
 
 export type GoogleAdsKeywordIdea = {

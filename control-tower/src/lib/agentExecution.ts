@@ -4,6 +4,7 @@ import {
   markExecutionStart,
   normalizeActionType,
 } from "@/lib/agentProposalStore";
+import { executeOptimizeAdsProposal } from "@/lib/ads/adsProposalExecutor";
 
 type JsonMap = Record<string, unknown>;
 
@@ -62,7 +63,16 @@ export async function executeApprovedProposal(input: {
       }
       if (!pushBody.webhookUrl) delete pushBody.webhookUrl;
       executionResult = await postJson(`${origin}/api/dashboard/prospecting/push-ghl`, pushBody);
-    } else if (actionType === "publish_content" || actionType === "publish_ads" || actionType === "optimize_ads") {
+    } else if (actionType === "optimize_ads") {
+      const payloadWithDefaults: JsonMap = {
+        tenant_id: s(payload.tenant_id || payload.tenantId || proposal.organization_id),
+        ...payload,
+      };
+      executionResult = await executeOptimizeAdsProposal({
+        payload: payloadWithDefaults,
+        riskLevel: s(proposal.risk_level),
+      });
+    } else if (actionType === "publish_content" || actionType === "publish_ads") {
       executionResult = {
         mode: "queued",
         detail: "Action recorded as executed. Connect your publication/ad provider executor next.",
