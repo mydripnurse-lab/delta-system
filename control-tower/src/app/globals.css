@@ -4584,6 +4584,40 @@ button, input, select { font-family: inherit; }
   overflow-wrap: anywhere;
 }
 
+.callsDash .callsNavItemContent {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.callsDash .callsNavBadge {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background: rgba(15, 23, 42, 0.38);
+  color: rgba(226, 232, 240, 0.92);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: 5px 8px;
+  min-width: 34px;
+  text-align: center;
+}
+
+.callsDash .callsNavBadgeLive {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.18);
+  color: rgba(167, 243, 208, 0.98);
+}
+
+.callsDash .agencyNavItemActive .callsNavBadge {
+  border-color: rgba(125, 211, 252, 0.62);
+  background: rgba(30, 64, 175, 0.3);
+  color: rgba(239, 246, 255, 0.98);
+}
+
 /* ---- GSC extras ---- */
 .gscTopGrid {
   display: grid;

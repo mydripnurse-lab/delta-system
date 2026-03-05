@@ -35,7 +35,7 @@ type RangePreset = DashboardRangePreset;
 type TrendGrain = "day" | "week" | "month";
 type StatusFilter = "all" | "missed" | "completed";
 type DirFilter = "all" | "inbound" | "outbound";
-type CallsSubmenu = "overview" | "ai_chat";
+type CallsNavTab = "overview" | "performance" | "table" | "ai_chat";
 
 function norm(v: any) {
   return String(v ?? "").trim();
@@ -312,7 +312,7 @@ function CallsDashboardPageContent() {
 
   // ✅ UI: show/hide advanced panel
   const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [activeSubmenu, setActiveSubmenu] = useState<CallsSubmenu>("overview");
+  const [activeTab, setActiveTab] = useState<CallsNavTab>("overview");
 
   // AI
   const [aiLoading, setAiLoading] = useState(false);
@@ -449,14 +449,42 @@ function CallsDashboardPageContent() {
   }, [preset, customStart, customEnd, tenantReady, tenantId]);
 
   useEffect(() => {
-    function syncSubmenuFromHash() {
+    function syncTabFromHash() {
       const hash = typeof window !== "undefined" ? window.location.hash : "";
-      setActiveSubmenu(hash === "#ai-chat" ? "ai_chat" : "overview");
+      if (hash === "#ai-chat") {
+        setActiveTab("ai_chat");
+        return;
+      }
+      if (hash === "#table") {
+        setActiveTab("table");
+        return;
+      }
+      if (hash === "#performance") {
+        setActiveTab("performance");
+        return;
+      }
+      setActiveTab("overview");
     }
-    syncSubmenuFromHash();
-    window.addEventListener("hashchange", syncSubmenuFromHash);
-    return () => window.removeEventListener("hashchange", syncSubmenuFromHash);
+    syncTabFromHash();
+    window.addEventListener("hashchange", syncTabFromHash);
+    return () => window.removeEventListener("hashchange", syncTabFromHash);
   }, []);
+
+  function jumpToTab(tab: CallsNavTab) {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      const hash =
+        tab === "ai_chat"
+          ? "#ai-chat"
+          : tab === "performance"
+            ? "#performance"
+            : tab === "table"
+              ? "#table"
+              : "#overview";
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}${hash}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
 
   /** ========= Apply advanced filters (status/direction/city) ========= */
   const filteredRows = useMemo(() => {
@@ -594,6 +622,15 @@ function CallsDashboardPageContent() {
     const avg = points ? total / points : 0;
     return { total, points, max, avg };
   }, [trendPoints, filteredRows]);
+
+  const navBadges = useMemo(() => {
+    return {
+      overview: `${kpis.total}`,
+      performance: `${mapRows.length}`,
+      table: `${tableRows.length}`,
+      ai_chat: "live",
+    };
+  }, [kpis.total, mapRows.length, tableRows.length]);
 
   /** ========= Range label ========= */
   const rangeLabel = useMemo(() => {
@@ -792,26 +829,52 @@ function CallsDashboardPageContent() {
             <Link className="agencyNavItem agencyNavBackItem" href={backHref}>
               ← Back to Dashboard
             </Link>
-            <Link
-              className={`agencyNavItem ${activeSubmenu === "overview" ? "agencyNavItemActive" : ""}`}
-              href="/dashboard/calls"
-              onClick={() => setActiveSubmenu("overview")}
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "overview" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("overview")}
             >
-              Overview
-            </Link>
-            <div className="dashboardSubmenu">
-              <Link
-                className={`dashboardSubmenuItem ${activeSubmenu === "ai_chat" ? "dashboardSubmenuItemActive" : ""}`}
-                href="/dashboard/calls#ai-chat"
-                onClick={() => setActiveSubmenu("ai_chat")}
-              >
-                AI Chat
-              </Link>
-            </div>
+              <span className="callsNavItemContent">
+                <span>Overview</span>
+                <span className="callsNavBadge">{navBadges.overview}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "performance" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("performance")}
+            >
+              <span className="callsNavItemContent">
+                <span>Performance</span>
+                <span className="callsNavBadge">{navBadges.performance}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "table" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("table")}
+            >
+              <span className="callsNavItemContent">
+                <span>Data Table</span>
+                <span className="callsNavBadge">{navBadges.table}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`agencyNavItem ${activeTab === "ai_chat" ? "agencyNavItemActive" : ""}`}
+              onClick={() => jumpToTab("ai_chat")}
+            >
+              <span className="callsNavItemContent">
+                <span>AI Chat</span>
+                <span className="callsNavBadge callsNavBadgeLive">{navBadges.ai_chat}</span>
+              </span>
+            </button>
           </nav>
         </aside>
 
         <section className="agencyMain">
+      {activeTab === "overview" ? (
+      <div className="spRouteAnim" key="tab-overview">
       {/* Filters */}
       <section className="card" style={{ marginTop: 14 }} id="overview">
         <div className="cardHeader">
@@ -1271,8 +1334,12 @@ function CallsDashboardPageContent() {
           </div>
         </div>
       </section>
+      </div>
+      ) : null}
 
       {/* Calls by state */}
+      {activeTab === "performance" ? (
+      <div className="spRouteAnim" key="tab-performance">
       <section className="card" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
@@ -1691,22 +1758,6 @@ function CallsDashboardPageContent() {
                     )}
                   </div>
 
-                  <div style={{ marginTop: 12 }} id="ai-chat">
-                    <AiAgentChatPanel
-                      agent="calls"
-                      title="Calls Agent Chat"
-                      context={{
-                        preset,
-                        customStart,
-                        customEnd,
-                        selectedState: mapSelected || null,
-                        statusFilter,
-                        dirFilter,
-                        trendGrain: grain,
-                        kpis,
-                      }}
-                    />
-                  </div>
                 </aside>
               </div>
 
@@ -1818,9 +1869,12 @@ function CallsDashboardPageContent() {
           )}
         </div>
       </section>
+      </div>
+      ) : null}
 
       {/* Table */}
-      <section className="card" style={{ marginTop: 14 }}>
+      {activeTab === "table" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }}>
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Calls table</h2>
@@ -1899,6 +1953,36 @@ function CallsDashboardPageContent() {
           </div>
         </div>
       </section>
+      ) : null}
+
+      {activeTab === "ai_chat" ? (
+      <section className="card spRouteAnim" style={{ marginTop: 14 }} id="ai-chat">
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Calls Agent Chat</h2>
+            <div className="cardSubtitle">
+              Chat operativo con contexto del dashboard activo y filtros actuales.
+            </div>
+          </div>
+        </div>
+        <div className="cardBody">
+          <AiAgentChatPanel
+            agent="calls"
+            title="Calls Agent Chat"
+            context={{
+              preset,
+              customStart,
+              customEnd,
+              selectedState: mapSelected || null,
+              statusFilter,
+              dirFilter,
+              trendGrain: grain,
+              kpis,
+            }}
+          />
+        </div>
+      </section>
+      ) : null}
         </section>
       </div>
     </main>
