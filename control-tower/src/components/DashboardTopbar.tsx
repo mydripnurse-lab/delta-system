@@ -17,7 +17,9 @@ type Props = {
   subtitle?: ReactNode;
   details?: ReactNode;
   backHref: string;
+  showBackButton?: boolean;
   backLabel?: string;
+  showLivePill?: boolean;
   liveLabel?: string;
   tenantId?: string;
   notificationsHref?: string;
@@ -32,7 +34,9 @@ export default function DashboardTopbar({
   subtitle,
   details,
   backHref,
+  showBackButton = true,
   backLabel = "← Back",
+  showLivePill = true,
   liveLabel = "Live",
   tenantId = "",
   notificationsHref = "/dashboard/notification-hub",
@@ -201,14 +205,18 @@ export default function DashboardTopbar({
       </div>
 
       <nav className="agencyGlobalNav agencyGlobalNavRight">
-        <Link className="agencyGlobalNavItem" href={backHref} style={{ textDecoration: "none" }}>
-          {backLabel}
-        </Link>
+        {showBackButton ? (
+          <Link className="agencyGlobalNavItem" href={backHref} style={{ textDecoration: "none" }}>
+            {backLabel}
+          </Link>
+        ) : null}
 
-        <div className="agencyLivePill">
-          <span className="dot" />
-          <span>{liveLabel}</span>
-        </div>
+        {showLivePill ? (
+          <div className="agencyLivePill">
+            <span className="dot" />
+            <span>{liveLabel}</span>
+          </div>
+        ) : null}
 
         {extraPill}
 

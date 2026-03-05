@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useBrowserSearchParams } from "@/lib/useBrowserSearchParams";
 import { useResolvedTenantId } from "@/lib/useResolvedTenantId";
@@ -7,7 +8,6 @@ import UsaChoroplethProgressMap from "@/components/UsaChoroplethProgressMap";
 import HourlyHeatmap from "@/components/HourlyHeatmap";
 import AiAgentChatPanel from "@/components/AiAgentChatPanel";
 import DashboardTopbar from "@/components/DashboardTopbar";
-import DashboardModuleShell from "@/components/DashboardModuleShell";
 import PremiumTrendChart from "@/components/PremiumTrendChart";
 import { computeDashboardRange, type DashboardRangePreset } from "@/lib/dateRangePresets";
 import {
@@ -35,6 +35,7 @@ type RangePreset = DashboardRangePreset;
 type TrendGrain = "day" | "week" | "month";
 type StatusFilter = "all" | "missed" | "completed";
 type DirFilter = "all" | "inbound" | "outbound";
+type CallsSubmenu = "overview" | "ai_chat";
 
 function norm(v: any) {
   return String(v ?? "").trim();
@@ -311,6 +312,7 @@ function CallsDashboardPageContent() {
 
   // ✅ UI: show/hide advanced panel
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<CallsSubmenu>("overview");
 
   // AI
   const [aiLoading, setAiLoading] = useState(false);
@@ -445,6 +447,16 @@ function CallsDashboardPageContent() {
     else if (customStart && customEnd) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset, customStart, customEnd, tenantReady, tenantId]);
+
+  useEffect(() => {
+    function syncSubmenuFromHash() {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      setActiveSubmenu(hash === "#ai-chat" ? "ai_chat" : "overview");
+    }
+    syncSubmenuFromHash();
+    window.addEventListener("hashchange", syncSubmenuFromHash);
+    return () => window.removeEventListener("hashchange", syncSubmenuFromHash);
+  }, []);
 
   /** ========= Apply advanced filters (status/direction/city) ========= */
   const filteredRows = useMemo(() => {
@@ -764,15 +776,42 @@ function CallsDashboardPageContent() {
   return (
     <div className="shell callsDash dashboardPremium">
       <DashboardTopbar
-        title="My Drip Nurse — Calls Dashboard"
+        title="My Drip Nurse — Dashboard"
         backHref={backHref}
+        showBackButton={false}
+        showLivePill={false}
         tenantId={tenantId}
         notificationsHref={notificationsHref}
       />
 
-      <DashboardModuleShell backHref={backHref} active="calls">
+      <div className="agencyRoot">
+        <aside className="agencySidebar">
+          <nav className="agencyNav">
+            <Link className="agencyNavItem agencyNavBackItem" href={backHref}>
+              ← Back to Dashboard
+            </Link>
+            <Link
+              className={`agencyNavItem ${activeSubmenu === "overview" ? "agencyNavItemActive" : ""}`}
+              href="/dashboard/calls"
+              onClick={() => setActiveSubmenu("overview")}
+            >
+              Overview
+            </Link>
+            <div className="dashboardSubmenu">
+              <Link
+                className={`dashboardSubmenuItem ${activeSubmenu === "ai_chat" ? "dashboardSubmenuItemActive" : ""}`}
+                href="/dashboard/calls#ai-chat"
+                onClick={() => setActiveSubmenu("ai_chat")}
+              >
+                AI Chat
+              </Link>
+            </div>
+          </nav>
+        </aside>
+
+        <section className="agencyMain">
       {/* Filters */}
-      <section className="card" style={{ marginTop: 14 }}>
+      <section className="card" style={{ marginTop: 14 }} id="overview">
         <div className="cardHeader">
           <div>
             <h2 className="cardTitle">Filters</h2>
@@ -1650,7 +1689,7 @@ function CallsDashboardPageContent() {
                     )}
                   </div>
 
-                  <div style={{ marginTop: 12 }}>
+                  <div style={{ marginTop: 12 }} id="ai-chat">
                     <AiAgentChatPanel
                       agent="calls"
                       title="Calls Agent Chat"
@@ -1858,7 +1897,8 @@ function CallsDashboardPageContent() {
           </div>
         </div>
       </section>
-      </DashboardModuleShell>
+        </section>
+      </div>
     </div>
   );
 }
