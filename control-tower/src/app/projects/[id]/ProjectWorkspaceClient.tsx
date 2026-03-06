@@ -216,6 +216,15 @@ type SolarSurveyBuilder = {
   themeAccent: string;
   themeAccentSecondary: string;
   themeSurface: string;
+  embedButtonGradientFrom: string;
+  embedButtonGradientTo: string;
+  embedButtonTextColor: string;
+  embedButtonRadius: number;
+  embedButtonPaddingY: number;
+  embedButtonPaddingX: number;
+  embedButtonFontSize: number;
+  embedButtonFontWeight: number;
+  embedButtonShadow: number;
 };
 
 type SolarSurveyIntegrationSettings = {
@@ -1146,6 +1155,17 @@ export default function Home() {
   const [solarSurveyThemeAccent, setSolarSurveyThemeAccent] = useState("#2f6df6");
   const [solarSurveyThemeAccentSecondary, setSolarSurveyThemeAccentSecondary] = useState("#1ecf98");
   const [solarSurveyThemeSurface, setSolarSurveyThemeSurface] = useState("#0f1219");
+  const [solarSurveyEmbedButtonGradientFrom, setSolarSurveyEmbedButtonGradientFrom] = useState("#2f6df6");
+  const [solarSurveyEmbedButtonGradientTo, setSolarSurveyEmbedButtonGradientTo] = useState("#1ecf98");
+  const [solarSurveyEmbedButtonTextColor, setSolarSurveyEmbedButtonTextColor] = useState("#ffffff");
+  const [solarSurveyEmbedButtonRadius, setSolarSurveyEmbedButtonRadius] = useState(999);
+  const [solarSurveyEmbedButtonPaddingY, setSolarSurveyEmbedButtonPaddingY] = useState(12);
+  const [solarSurveyEmbedButtonPaddingX, setSolarSurveyEmbedButtonPaddingX] = useState(18);
+  const [solarSurveyEmbedButtonFontSize, setSolarSurveyEmbedButtonFontSize] = useState(14);
+  const [solarSurveyEmbedButtonFontWeight, setSolarSurveyEmbedButtonFontWeight] = useState(700);
+  const [solarSurveyEmbedButtonShadow, setSolarSurveyEmbedButtonShadow] = useState(28);
+  const [solarSurveyEditorPanel, setSolarSurveyEditorPanel] = useState<"button" | "modal" | "integrations" | "embed">("button");
+  const [solarSurveyPreviewTone, setSolarSurveyPreviewTone] = useState<"dark" | "light">("light");
   const [solarSurveyGoogleMapsApiKey, setSolarSurveyGoogleMapsApiKey] = useState("");
   const [solarSurveyGoogleSolarApiKey, setSolarSurveyGoogleSolarApiKey] = useState("");
   const [solarSurveyWebhookUrl, setSolarSurveyWebhookUrl] = useState("");
@@ -2721,6 +2741,15 @@ export default function Home() {
       themeAccent: "#2f6df6",
       themeAccentSecondary: "#1ecf98",
       themeSurface: "#0f1219",
+      embedButtonGradientFrom: "#2f6df6",
+      embedButtonGradientTo: "#1ecf98",
+      embedButtonTextColor: "#ffffff",
+      embedButtonRadius: 999,
+      embedButtonPaddingY: 12,
+      embedButtonPaddingX: 18,
+      embedButtonFontSize: 14,
+      embedButtonFontWeight: 700,
+      embedButtonShadow: 28,
     };
   }
 
@@ -2745,6 +2774,15 @@ export default function Home() {
     setSolarSurveyThemeAccent(s(next.themeAccent) || "#2f6df6");
     setSolarSurveyThemeAccentSecondary(s(next.themeAccentSecondary) || "#1ecf98");
     setSolarSurveyThemeSurface(s(next.themeSurface) || "#0f1219");
+    setSolarSurveyEmbedButtonGradientFrom(s(next.embedButtonGradientFrom) || "#2f6df6");
+    setSolarSurveyEmbedButtonGradientTo(s(next.embedButtonGradientTo) || "#1ecf98");
+    setSolarSurveyEmbedButtonTextColor(s(next.embedButtonTextColor) || "#ffffff");
+    setSolarSurveyEmbedButtonRadius(Math.max(0, Number(next.embedButtonRadius || 999)));
+    setSolarSurveyEmbedButtonPaddingY(Math.max(6, Number(next.embedButtonPaddingY || 12)));
+    setSolarSurveyEmbedButtonPaddingX(Math.max(8, Number(next.embedButtonPaddingX || 18)));
+    setSolarSurveyEmbedButtonFontSize(Math.max(11, Number(next.embedButtonFontSize || 14)));
+    setSolarSurveyEmbedButtonFontWeight(Math.max(400, Number(next.embedButtonFontWeight || 700)));
+    setSolarSurveyEmbedButtonShadow(Math.max(0, Number(next.embedButtonShadow || 28)));
     setSolarSurveyGoogleMapsApiKey(s(integrations?.googleMapsApiKey));
     setSolarSurveyGoogleSolarApiKey(s(integrations?.googleSolarApiKey));
     setSolarSurveyWebhookUrl(s(integrations?.webhookUrl));
@@ -2771,6 +2809,15 @@ export default function Home() {
       themeAccent: s(solarSurveyThemeAccent) || fallback.themeAccent,
       themeAccentSecondary: s(solarSurveyThemeAccentSecondary) || fallback.themeAccentSecondary,
       themeSurface: s(solarSurveyThemeSurface) || fallback.themeSurface,
+      embedButtonGradientFrom: s(solarSurveyEmbedButtonGradientFrom) || fallback.embedButtonGradientFrom,
+      embedButtonGradientTo: s(solarSurveyEmbedButtonGradientTo) || fallback.embedButtonGradientTo,
+      embedButtonTextColor: s(solarSurveyEmbedButtonTextColor) || fallback.embedButtonTextColor,
+      embedButtonRadius: Math.max(0, Number(solarSurveyEmbedButtonRadius) || fallback.embedButtonRadius),
+      embedButtonPaddingY: Math.max(6, Number(solarSurveyEmbedButtonPaddingY) || fallback.embedButtonPaddingY),
+      embedButtonPaddingX: Math.max(8, Number(solarSurveyEmbedButtonPaddingX) || fallback.embedButtonPaddingX),
+      embedButtonFontSize: Math.max(11, Number(solarSurveyEmbedButtonFontSize) || fallback.embedButtonFontSize),
+      embedButtonFontWeight: Math.max(400, Number(solarSurveyEmbedButtonFontWeight) || fallback.embedButtonFontWeight),
+      embedButtonShadow: Math.max(0, Number(solarSurveyEmbedButtonShadow) || fallback.embedButtonShadow),
     };
   }
 
@@ -2875,12 +2922,79 @@ export default function Home() {
     }
   }
 
+  function buildSolarSurveyWidgetBaseUrl() {
+    if (!routeTenantId) return "";
+    return (
+      s(solarSurveyLastPublish?.url) ||
+      `https://${SEARCH_EMBEDDED_HOST}/embedded/${encodeURIComponent(routeTenantId)}/${encodeURIComponent(
+        s(solarSurveyFolder) || "solar-survey",
+      )}/${encodeURIComponent(s(solarSurveyPageSlug) || "solar-survey-widget")}.html`
+    );
+  }
+
+  function buildSolarSurveyWidgetSrcForModal() {
+    const baseUrl = buildSolarSurveyWidgetBaseUrl();
+    if (!baseUrl) return "";
+    const params = new URLSearchParams(s(solarSurveyQuery));
+    params.set("embed", "1");
+    params.set("open", "1");
+    const q = params.toString();
+    return q ? `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}${q}` : baseUrl;
+  }
+
+  function buildSolarSurveyEmbedButtonCode() {
+    const src = buildSolarSurveyWidgetSrcForModal();
+    const gradientFrom = escapeHtmlAttr(s(solarSurveyEmbedButtonGradientFrom) || "#2f6df6");
+    const gradientTo = escapeHtmlAttr(s(solarSurveyEmbedButtonGradientTo) || "#1ecf98");
+    const textColor = escapeHtmlAttr(s(solarSurveyEmbedButtonTextColor) || "#ffffff");
+    const radius = Math.max(0, Number(solarSurveyEmbedButtonRadius) || 999);
+    const padY = Math.max(6, Number(solarSurveyEmbedButtonPaddingY) || 12);
+    const padX = Math.max(8, Number(solarSurveyEmbedButtonPaddingX) || 18);
+    const fontSize = Math.max(11, Number(solarSurveyEmbedButtonFontSize) || 14);
+    const fontWeight = Math.max(400, Number(solarSurveyEmbedButtonFontWeight) || 700);
+    const shadow = Math.max(0, Number(solarSurveyEmbedButtonShadow) || 28);
+    const buttonText = escapeHtmlAttr(s(solarSurveyButtonText) || "Get Solar Estimate");
+    const titleText = escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey");
+    return `<button id="ct-solar-open-btn" type="button" style="border:0;border-radius:${radius}px;padding:${padY}px ${padX}px;font:${fontWeight} ${fontSize}px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:${textColor};background:linear-gradient(90deg,${gradientFrom},${gradientTo});cursor:pointer;box-shadow:0 12px ${shadow}px rgba(10,20,40,.3);">${buttonText}</button>
+<script>
+(function(){
+  var src = ${JSON.stringify(src)};
+  var btn = document.getElementById("ct-solar-open-btn");
+  if (!btn || !src) return;
+  var overlay = null;
+  function closeModal(){
+    if (!overlay) return;
+    window.removeEventListener("message", onMessage);
+    overlay.remove();
+    overlay = null;
+  }
+  function onMessage(event){
+    var data = event && event.data;
+    if (data && data.type === "solar-survey-close") closeModal();
+  }
+  function openModal(){
+    if (overlay) return;
+    overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.zIndex = "2147483647";
+    overlay.style.background = "rgba(10,14,24,.58)";
+    overlay.style.backdropFilter = "blur(8px)";
+    overlay.innerHTML = '<div style="position:absolute;inset:16px;max-width:1300px;margin:auto;height:calc(100vh - 32px);background:transparent;border-radius:20px;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.42)"><button aria-label="Close modal" style="position:absolute;right:10px;top:10px;z-index:2;width:38px;height:38px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:#f6f8fc;color:#22304a;font:700 20px/1 system-ui;cursor:pointer">×</button><iframe src="' + src + '" title="${titleText}" style="width:100%;height:100%;border:0;background:transparent" loading="lazy" allow="clipboard-write"></iframe></div>';
+    document.body.appendChild(overlay);
+    var closeBtn = overlay.querySelector("button");
+    if (closeBtn) closeBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", function(e){ if (e.target === overlay) closeModal(); });
+    window.addEventListener("message", onMessage);
+  }
+  btn.addEventListener("click", openModal);
+})();
+</script>`;
+  }
+
   async function copySolarSurveyEmbedCode() {
     if (!routeTenantId) return;
-    const fileUrl = s(solarSurveyLastPublish?.url);
-    const fallbackUrl = `https://${SEARCH_EMBEDDED_HOST}/embedded/${encodeURIComponent(routeTenantId)}/${encodeURIComponent(s(solarSurveyFolder) || "solar-survey")}/${encodeURIComponent(s(solarSurveyPageSlug) || "solar-survey-widget")}.html`;
-    const src = `${fileUrl || fallbackUrl}${s(solarSurveyQuery) ? (String(fileUrl || fallbackUrl).includes("?") ? "&" : "?") + s(solarSurveyQuery) : ""}`;
-    const embed = `<iframe\n  src="${src}"\n  title="${escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey")}"\n  style="width:100%;min-height:860px;border:0;"\n  loading="lazy"\n></iframe>`;
+    const embed = buildSolarSurveyEmbedButtonCode();
     try {
       await navigator.clipboard.writeText(embed);
       setSolarSurveyCopied(true);
@@ -10856,95 +10970,221 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           </div>
         </div>
         <div className="cardBody">
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(320px,1.2fr) minmax(320px,1fr)", gap: 12 }}>
-            <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
-              <div style={{ fontWeight: 800, marginBottom: 8 }}>Builder</div>
-              <div className="agencyWizardGrid agencyWizardGridTwo">
-                <label className="agencyField"><span className="agencyFieldLabel">Name</span><input className="input" value={solarSurveyName} onChange={(e) => setSolarSurveyName(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Folder</span><input className="input" value={solarSurveyFolder} onChange={(e) => setSolarSurveyFolder(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Page slug</span><input className="input" value={solarSurveyPageSlug} onChange={(e) => setSolarSurveyPageSlug(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Query</span><input className="input" value={solarSurveyQuery} onChange={(e) => setSolarSurveyQuery(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Button text</span><input className="input" value={solarSurveyButtonText} onChange={(e) => setSolarSurveyButtonText(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Modal title</span><input className="input" value={solarSurveyModalTitle} onChange={(e) => setSolarSurveyModalTitle(e.target.value)} /></label>
-                <label className="agencyField agencyFieldFull"><span className="agencyFieldLabel">Modal subtitle</span><textarea className="input agencyTextarea" rows={2} value={solarSurveyModalSubtitle} onChange={(e) => setSolarSurveyModalSubtitle(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Address label</span><input className="input" value={solarSurveyAddressLabel} onChange={(e) => setSolarSurveyAddressLabel(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Address placeholder</span><input className="input" value={solarSurveyAddressPlaceholder} onChange={(e) => setSolarSurveyAddressPlaceholder(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Step 1</span><input className="input" value={solarSurveyStepAddressLabel} onChange={(e) => setSolarSurveyStepAddressLabel(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Step 2</span><input className="input" value={solarSurveyStepInfoLabel} onChange={(e) => setSolarSurveyStepInfoLabel(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Step 3</span><input className="input" value={solarSurveyStepPricingLabel} onChange={(e) => setSolarSurveyStepPricingLabel(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Next button</span><input className="input" value={solarSurveyNextLabel} onChange={(e) => setSolarSurveyNextLabel(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Submit button</span><input className="input" value={solarSurveySubmitLabel} onChange={(e) => setSolarSurveySubmitLabel(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Accent</span><input className="input" value={solarSurveyThemeAccent} onChange={(e) => setSolarSurveyThemeAccent(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Accent secondary</span><input className="input" value={solarSurveyThemeAccentSecondary} onChange={(e) => setSolarSurveyThemeAccentSecondary(e.target.value)} /></label>
-                <label className="agencyField"><span className="agencyFieldLabel">Surface</span><input className="input" value={solarSurveyThemeSurface} onChange={(e) => setSolarSurveyThemeSurface(e.target.value)} /></label>
-              </div>
-            </div>
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
-                <div style={{ fontWeight: 800, marginBottom: 8 }}>Integrations (Tenant)</div>
-                <div className="agencyWizardGrid">
-                  <label className="agencyField">
-                    <span className="agencyFieldLabel">GOOGLE_MAPS_API_KEY</span>
-                    <input className="input" value={solarSurveyGoogleMapsApiKey} onChange={(e) => setSolarSurveyGoogleMapsApiKey(e.target.value)} />
-                  </label>
-                  <label className="agencyField">
-                    <span className="agencyFieldLabel">GOOGLE_SOLAR_API_KEY</span>
-                    <input className="input" value={solarSurveyGoogleSolarApiKey} onChange={(e) => setSolarSurveyGoogleSolarApiKey(e.target.value)} />
-                  </label>
-                  <label className="agencyField">
-                    <span className="agencyFieldLabel">WEBHOOK_URL</span>
-                    <input className="input" value={solarSurveyWebhookUrl} onChange={(e) => setSolarSurveyWebhookUrl(e.target.value)} />
-                  </label>
-                </div>
-              </div>
-              <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
-                <div style={{ fontWeight: 800, marginBottom: 8 }}>Live Preview</div>
-                <div style={{ padding: 14, borderRadius: 14, background: "linear-gradient(165deg, rgba(2,6,23,.92), rgba(15,23,42,.92))" }}>
-                  <button
-                    type="button"
-                    className="smallBtn"
-                    style={{
-                      background: `linear-gradient(90deg, ${s(solarSurveyThemeAccent) || "#2f6df6"}, ${s(solarSurveyThemeAccentSecondary) || "#1ecf98"})`,
-                      color: "#fff",
-                      border: "0",
-                      borderRadius: 999,
-                      padding: "10px 18px",
-                    }}
-                  >
-                    {s(solarSurveyButtonText) || "Get Solar Estimate"}
+          <div className="searchBuilderEditorPage">
+            <div className="searchBuilderEditorPageBody">
+              <div className="sbStudio">
+                <aside className="sbStudioNav">
+                  <div className="sbStudioNavTitle">Editor</div>
+                  <button type="button" className={`sbStudioNavBtn ${solarSurveyEditorPanel === "button" ? "isActive" : ""}`} onClick={() => setSolarSurveyEditorPanel("button")}>
+                    1. Button
                   </button>
-                  <div style={{ marginTop: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, overflow: "hidden", background: s(solarSurveyThemeSurface) || "#0f1219" }}>
-                    <div style={{ padding: 12, borderBottom: "1px solid rgba(255,255,255,.08)" }}>
-                      <div style={{ fontWeight: 800, fontSize: 18 }}>{s(solarSurveyModalTitle) || "What Will Your Solar System Cost?"}</div>
-                      <div className="mini" style={{ marginTop: 4 }}>{s(solarSurveyModalSubtitle) || "Enter your street address to get an accurate solar estimate instantly."}</div>
-                    </div>
-                    <div style={{ padding: 12 }}>
-                      <div className="mini" style={{ marginBottom: 6 }}>
-                        Step 1 of 3 · {s(solarSurveyStepAddressLabel) || "Address"}
-                      </div>
-                      <input className="input" readOnly value={s(solarSurveyAddressPlaceholder) || "Ex: 1157 Palo Alto St SE, Palm Bay, FL"} />
-                      <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <button type="button" className="smallBtn">Back</button>
-                        <button type="button" className="smallBtn">{s(solarSurveyNextLabel) || "Next Step"}</button>
-                      </div>
+                  <button type="button" className={`sbStudioNavBtn ${solarSurveyEditorPanel === "modal" ? "isActive" : ""}`} onClick={() => setSolarSurveyEditorPanel("modal")}>
+                    2. Modal
+                  </button>
+                  <button type="button" className={`sbStudioNavBtn ${solarSurveyEditorPanel === "integrations" ? "isActive" : ""}`} onClick={() => setSolarSurveyEditorPanel("integrations")}>
+                    3. Integrations
+                  </button>
+                  <button type="button" className={`sbStudioNavBtn ${solarSurveyEditorPanel === "embed" ? "isActive" : ""}`} onClick={() => setSolarSurveyEditorPanel("embed")}>
+                    4. Embed
+                  </button>
+                </aside>
+
+                <section className="sbStudioPreview">
+                  <div className="sbStudioPreviewTop">
+                    <div className="mini">Live Preview ({solarSurveyEditorPanel === "button" ? "Button" : "Modal"})</div>
+                    <div className="sbStudioToneGroup">
+                      <button
+                        type="button"
+                        className={`sbStudioToneBtn ${solarSurveyPreviewTone === "dark" ? "isActive" : ""}`}
+                        onClick={() => setSolarSurveyPreviewTone("dark")}
+                      >
+                        Dark
+                      </button>
+                      <button
+                        type="button"
+                        className={`sbStudioToneBtn ${solarSurveyPreviewTone === "light" ? "isActive" : ""}`}
+                        onClick={() => setSolarSurveyPreviewTone("light")}
+                      >
+                        Light
+                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
-              <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
-                <div style={{ fontWeight: 800, marginBottom: 8 }}>Embed Code</div>
-                <textarea
-                  className="input agencyTextarea"
-                  rows={8}
-                  readOnly
-                  value={`<iframe\n  src="${s(solarSurveyLastPublish?.url) || `https://${SEARCH_EMBEDDED_HOST}/embedded/${routeTenantId}/${s(solarSurveyFolder) || "solar-survey"}/${s(solarSurveyPageSlug) || "solar-survey-widget"}.html`}${s(solarSurveyQuery) ? `?${s(solarSurveyQuery)}` : ""}"\n  title="${escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey")}"\n  style="width:100%;min-height:860px;border:0;"\n  loading="lazy"\n></iframe>`}
-                  style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
-                />
-                {solarSurveyLastPublish ? (
-                  <div className="mini" style={{ marginTop: 6 }}>
-                    Published: {new Date(solarSurveyLastPublish.generatedAt).toLocaleString()}
+                  <div className={`sbStudioPreviewSurface ${solarSurveyPreviewTone === "light" ? "isLight" : "isDark"}`}>
+                    {solarSurveyEditorPanel === "button" ? (
+                      <div className="sbStudioButtonLane sbStudioButtonOnly" style={{ justifyContent: "center" }}>
+                        <span
+                          className="sbStudioBookBtn"
+                          style={{
+                            padding: `${Math.max(6, Number(solarSurveyEmbedButtonPaddingY) || 12)}px ${Math.max(8, Number(solarSurveyEmbedButtonPaddingX) || 18)}px`,
+                            borderRadius: Math.max(0, Number(solarSurveyEmbedButtonRadius) || 999),
+                            fontWeight: Math.max(400, Number(solarSurveyEmbedButtonFontWeight) || 700),
+                            fontSize: Math.max(11, Number(solarSurveyEmbedButtonFontSize) || 14),
+                            color: s(solarSurveyEmbedButtonTextColor) || "#ffffff",
+                            background: `linear-gradient(90deg, ${s(solarSurveyEmbedButtonGradientFrom) || "#2f6df6"}, ${s(solarSurveyEmbedButtonGradientTo) || "#1ecf98"})`,
+                            boxShadow: `0 12px ${Math.max(0, Number(solarSurveyEmbedButtonShadow) || 28)}px rgba(10,20,40,.3)`,
+                          }}
+                        >
+                          {s(solarSurveyButtonText) || "Get Solar Estimate"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="sbStudioModalPreview" style={{ borderRadius: 30, minHeight: 530 }}>
+                        <div className="sbStudioModalBody" style={{ background: "#f3f5f8", minHeight: 530, padding: 20 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.1, maxWidth: "80%" }}>{s(solarSurveyModalTitle) || "What Will Your Solar System Cost?"}</div>
+                            <span className="sbStudioModalClose">x</span>
+                          </div>
+                          <div style={{ marginTop: 8, fontSize: 15, color: "#475569" }}>{s(solarSurveyModalSubtitle) || "Enter your street address to get an accurate solar estimate instantly."}</div>
+                          <div style={{ marginTop: 14, fontWeight: 700, color: "#475569" }}>Step 1 of 3 · {s(solarSurveyStepAddressLabel) || "Address"}</div>
+                          <div style={{ marginTop: 8, height: 8, borderRadius: 999, background: "#d7dde7", overflow: "hidden" }}>
+                            <div style={{ width: "34%", height: "100%", borderRadius: 999, background: s(solarSurveyThemeAccent) || "#2f6df6" }} />
+                          </div>
+                          <div style={{ marginTop: 14, fontWeight: 700, color: "#1e293b" }}>{s(solarSurveyAddressLabel) || "Property address"}</div>
+                          <input
+                            readOnly
+                            value={s(solarSurveyAddressPlaceholder) || "Ex: 1157 Palo Alto St SE, Palm Bay, FL"}
+                            style={{
+                              width: "100%",
+                              border: "1px solid #cbd5e1",
+                              borderRadius: 14,
+                              padding: "11px 13px",
+                              fontSize: 15,
+                              marginTop: 8,
+                              color: "#334155",
+                              background: "#fff",
+                            }}
+                          />
+                          <div style={{ marginTop: 14, border: "1px solid #d3dbe7", borderRadius: 18, background: "#e8edf4", minHeight: 220, position: "relative", overflow: "hidden" }}>
+                            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(130deg, #d9e2ef, #cfd8e8 45%, #b8c4d8 100%)" }} />
+                            <button
+                              type="button"
+                              style={{
+                                position: "absolute",
+                                right: 16,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                width: 46,
+                                height: 46,
+                                borderRadius: 999,
+                                border: "1px solid #d2dae7",
+                                background: "#ffffff",
+                                color: "#334155",
+                                fontWeight: 800,
+                                boxShadow: "0 8px 20px rgba(15,23,42,.18)",
+                              }}
+                            >Edit</button>
+                          </div>
+                          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+                            <button
+                              type="button"
+                              className="smallBtn"
+                              style={{
+                                border: "0",
+                                borderRadius: 14,
+                                padding: "11px 18px",
+                                color: "#fff",
+                                background: `linear-gradient(90deg, ${s(solarSurveyThemeAccent) || "#2f6df6"}, ${s(solarSurveyThemeAccentSecondary) || "#1ecf98"})`,
+                              }}
+                            >
+                              {s(solarSurveyNextLabel) || "Next Step"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ) : null}
+                </section>
+
+                <aside className="sbStudioSettings">
+                  <div className="sbStudioSettingsTitle">
+                    {solarSurveyEditorPanel === "button"
+                      ? "Button Controls"
+                      : solarSurveyEditorPanel === "modal"
+                        ? "Modal Controls"
+                        : solarSurveyEditorPanel === "integrations"
+                          ? "Integration Keys"
+                          : "Embed Code"}
+                  </div>
+                  <div className="field">
+                    <label>Builder Name</label>
+                    <input className="input" value={solarSurveyName} onChange={(e) => setSolarSurveyName(e.target.value)} />
+                  </div>
+                  {solarSurveyEditorPanel === "button" ? (
+                    <>
+                      <div className="field">
+                        <label>Button Text</label>
+                        <input className="input" value={solarSurveyButtonText} onChange={(e) => setSolarSurveyButtonText(e.target.value)} />
+                      </div>
+                      <div className="field"><label>Gradient From</label><input className="input" value={solarSurveyEmbedButtonGradientFrom} onChange={(e) => setSolarSurveyEmbedButtonGradientFrom(e.target.value)} /></div>
+                      <div className="field"><label>Gradient To</label><input className="input" value={solarSurveyEmbedButtonGradientTo} onChange={(e) => setSolarSurveyEmbedButtonGradientTo(e.target.value)} /></div>
+                      <div className="field"><label>Text Color</label><input className="input" value={solarSurveyEmbedButtonTextColor} onChange={(e) => setSolarSurveyEmbedButtonTextColor(e.target.value)} /></div>
+                      <div className="field"><label>Border Radius</label><input className="input" type="number" min={0} max={999} value={solarSurveyEmbedButtonRadius} onChange={(e) => setSolarSurveyEmbedButtonRadius(Number(e.target.value) || 0)} /></div>
+                      <div className="field"><label>Padding Y</label><input className="input" type="number" min={6} max={40} value={solarSurveyEmbedButtonPaddingY} onChange={(e) => setSolarSurveyEmbedButtonPaddingY(Number(e.target.value) || 12)} /></div>
+                      <div className="field"><label>Padding X</label><input className="input" type="number" min={8} max={80} value={solarSurveyEmbedButtonPaddingX} onChange={(e) => setSolarSurveyEmbedButtonPaddingX(Number(e.target.value) || 18)} /></div>
+                      <div className="field"><label>Font Size</label><input className="input" type="number" min={11} max={32} value={solarSurveyEmbedButtonFontSize} onChange={(e) => setSolarSurveyEmbedButtonFontSize(Number(e.target.value) || 14)} /></div>
+                      <div className="field"><label>Font Weight</label><input className="input" type="number" min={400} max={900} step={100} value={solarSurveyEmbedButtonFontWeight} onChange={(e) => setSolarSurveyEmbedButtonFontWeight(Number(e.target.value) || 700)} /></div>
+                      <div className="field"><label>Shadow</label><input className="input" type="number" min={0} max={80} value={solarSurveyEmbedButtonShadow} onChange={(e) => setSolarSurveyEmbedButtonShadow(Number(e.target.value) || 28)} /></div>
+                    </>
+                  ) : solarSurveyEditorPanel === "modal" ? (
+                    <>
+                      <div className="field"><label>Modal Title</label><input className="input" value={solarSurveyModalTitle} onChange={(e) => setSolarSurveyModalTitle(e.target.value)} /></div>
+                      <div className="field"><label>Modal Subtitle</label><textarea className="input agencyTextarea" rows={2} value={solarSurveyModalSubtitle} onChange={(e) => setSolarSurveyModalSubtitle(e.target.value)} /></div>
+                      <div className="field"><label>Address Label</label><input className="input" value={solarSurveyAddressLabel} onChange={(e) => setSolarSurveyAddressLabel(e.target.value)} /></div>
+                      <div className="field"><label>Address Placeholder</label><input className="input" value={solarSurveyAddressPlaceholder} onChange={(e) => setSolarSurveyAddressPlaceholder(e.target.value)} /></div>
+                      <div className="field"><label>Step 1 Label</label><input className="input" value={solarSurveyStepAddressLabel} onChange={(e) => setSolarSurveyStepAddressLabel(e.target.value)} /></div>
+                      <div className="field"><label>Step 2 Label</label><input className="input" value={solarSurveyStepInfoLabel} onChange={(e) => setSolarSurveyStepInfoLabel(e.target.value)} /></div>
+                      <div className="field"><label>Step 3 Label</label><input className="input" value={solarSurveyStepPricingLabel} onChange={(e) => setSolarSurveyStepPricingLabel(e.target.value)} /></div>
+                      <div className="field"><label>Next Button</label><input className="input" value={solarSurveyNextLabel} onChange={(e) => setSolarSurveyNextLabel(e.target.value)} /></div>
+                      <div className="field"><label>Submit Button</label><input className="input" value={solarSurveySubmitLabel} onChange={(e) => setSolarSurveySubmitLabel(e.target.value)} /></div>
+                      <div className="field"><label>Accent</label><input className="input" value={solarSurveyThemeAccent} onChange={(e) => setSolarSurveyThemeAccent(e.target.value)} /></div>
+                      <div className="field"><label>Accent Secondary</label><input className="input" value={solarSurveyThemeAccentSecondary} onChange={(e) => setSolarSurveyThemeAccentSecondary(e.target.value)} /></div>
+                      <div className="field"><label>Surface</label><input className="input" value={solarSurveyThemeSurface} onChange={(e) => setSolarSurveyThemeSurface(e.target.value)} /></div>
+                    </>
+                  ) : solarSurveyEditorPanel === "integrations" ? (
+                    <>
+                      <div className="field">
+                        <label>GOOGLE_MAPS_API_KEY</label>
+                        <input className="input" value={solarSurveyGoogleMapsApiKey} onChange={(e) => setSolarSurveyGoogleMapsApiKey(e.target.value)} />
+                      </div>
+                      <div className="field">
+                        <label>GOOGLE_SOLAR_API_KEY</label>
+                        <input className="input" value={solarSurveyGoogleSolarApiKey} onChange={(e) => setSolarSurveyGoogleSolarApiKey(e.target.value)} />
+                      </div>
+                      <div className="field">
+                        <label>WEBHOOK_URL</label>
+                        <input className="input" value={solarSurveyWebhookUrl} onChange={(e) => setSolarSurveyWebhookUrl(e.target.value)} />
+                      </div>
+                      <div className="mini" style={{ opacity: 0.86 }}>
+                        Estas keys se guardan por tenant en DB y el widget publicado las consume automáticamente.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="field"><label>Folder</label><input className="input" value={solarSurveyFolder} onChange={(e) => setSolarSurveyFolder(e.target.value)} /></div>
+                      <div className="field"><label>Page Slug</label><input className="input" value={solarSurveyPageSlug} onChange={(e) => setSolarSurveyPageSlug(e.target.value)} /></div>
+                      <div className="field"><label>Query Params</label><input className="input" value={solarSurveyQuery} onChange={(e) => setSolarSurveyQuery(e.target.value)} /></div>
+                      <div className="field">
+                        <label>Published Widget URL</label>
+                        <input className="input" readOnly value={buildSolarSurveyWidgetSrcForModal()} />
+                      </div>
+                      <div className="field">
+                        <label>Button Embed Code</label>
+                        <textarea
+                          className="input agencyTextarea"
+                          rows={14}
+                          readOnly
+                          value={buildSolarSurveyEmbedButtonCode()}
+                          style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
+                        />
+                      </div>
+                      {solarSurveyLastPublish ? (
+                        <div className="mini" style={{ marginTop: 6 }}>
+                          Published: {new Date(solarSurveyLastPublish.generatedAt).toLocaleString()}
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </aside>
               </div>
             </div>
           </div>

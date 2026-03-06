@@ -162,36 +162,42 @@ function buildWidgetHtml(args: {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#edf3ff;--muted:#9fb0cd;}
-    *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(70rem 35rem at -15% -12%,rgba(47,109,246,.30),transparent 40%),radial-gradient(70rem 35rem at 120% 115%,rgba(30,207,152,.20),transparent 45%),#050812}
+    :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#171b27;--muted:#5f6a7d;--line:#d8deea;}
+    *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(70rem 35rem at -15% -12%,rgba(47,109,246,.28),transparent 40%),radial-gradient(70rem 35rem at 120% 115%,rgba(30,207,152,.18),transparent 45%),#0f1624}
     .shell{min-height:100vh;padding:18px;display:grid;place-items:center}
     .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(90deg,var(--accent),#4275ff,var(--accent2));cursor:pointer;box-shadow:0 16px 36px rgba(0,0,0,.35)}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:10px;z-index:20}
     .modal.open{display:flex}
-    .backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(9px)}
-    .card{position:relative;z-index:2;width:min(1020px,100%);max-height:calc(100vh - 20px);overflow:auto;border:1px solid rgba(255,255,255,.18);border-radius:24px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.12),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.08),transparent 45%),var(--surface);padding:18px 18px 16px}
-    .close{position:absolute;right:12px;top:10px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(10,14,24,.9);color:#fff;width:36px;height:36px;cursor:pointer}
+    .backdrop{position:absolute;inset:0;background:rgba(11,15,24,.62);backdrop-filter:blur(10px)}
+    .card{position:relative;z-index:2;width:min(1300px,96%);max-height:calc(100vh - 20px);overflow:auto;border:1px solid rgba(255,255,255,.7);border-radius:24px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.08),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.06),transparent 45%),#f4f6fb;padding:26px 26px 22px;box-shadow:0 32px 80px rgba(0,0,0,.36)}
+    .close{position:absolute;right:12px;top:10px;border:1px solid #cfd5e2;border-radius:999px;background:#f4f7fb;color:#3d4658;width:36px;height:36px;cursor:pointer}
     h1{margin:0;font-size:clamp(26px,3vw,44px);letter-spacing:-.03em;max-width:22ch}
-    .sub{margin:8px 0 0;color:var(--muted)}
-    .progressLabel{margin:14px 0 6px;font-size:13px;color:#c2d1eb;font-weight:700}
-    .track{height:8px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+    .sub{margin:8px 0 0;color:var(--muted);font-size:clamp(18px,1.9vw,22px)}
+    .progressLabel{margin:14px 0 6px;font-size:13px;color:#5b6882;font-weight:700}
+    .track{height:8px;border-radius:999px;background:#dde3ef;overflow:hidden}
     .fill{height:100%;width:33.33%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .24s ease}
     .step{display:none;margin-top:14px}.step.on{display:block}
-    label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:#dbe7ff}
+    label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:#2a3241}
     input,textarea,button{font:inherit}
-    input,textarea{width:100%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.03);color:var(--text);border-radius:14px;padding:11px 12px}
+    input,textarea{width:100%;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:14px;padding:11px 12px}
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    #map{margin-top:10px;height:min(45vh,420px);border-radius:18px;border:1px solid rgba(255,255,255,.18);overflow:hidden;background:rgba(255,255,255,.04)}
-    .price{margin-top:8px;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(255,255,255,.03);padding:10px}
+    .mapWrap{margin-top:10px;position:relative}
+    #map{height:min(45vh,500px);border-radius:18px;border:1px solid #d8deea;overflow:hidden;background:#eef2f8}
+    .mapEditFab{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:1px solid rgba(39,47,66,.12);border-radius:999px;background:rgba(255,255,255,.98);color:#374154;width:44px;height:44px;cursor:pointer;display:grid;place-items:center;box-shadow:0 12px 26px rgba(8,12,22,.18)}
+    .mapEditFab.on{background:rgba(46,108,246,.12);border-color:rgba(46,108,246,.36);color:#1942ad}
+    .mapEditFab svg{width:18px;height:18px;fill:currentColor}
+    .mapTip{display:none}
+    .price{margin-top:8px;border:1px solid #dce2ef;border-radius:16px;background:#fff;padding:10px}
     .price h3{margin:0 0 8px;font-size:16px}
     .pg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-    .pg article{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px}
-    .pg p{margin:0;font-size:11px;color:#b7c4dc}.pg strong{display:block;margin-top:3px}
+    .pg article{border:1px solid #e1e6f1;border-radius:10px;padding:8px}
+    .pg p{margin:0;font-size:11px;color:#6a768d}.pg strong{display:block;margin-top:3px}
     .actions{margin-top:10px;display:flex;gap:8px}
     .btn{border:0;border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer}
-    .ghost{background:rgba(255,255,255,.1);color:#fff}
+    .ghost{background:#e8edf6;color:#253146}
     .primary{margin-left:auto;color:#fff;background:linear-gradient(90deg,var(--accent),#4c7aff)}
-    .status{margin-top:10px;min-height:19px;font-size:13px;color:#9ec3f8}.err{color:#ff9ab2}
+    .status{margin-top:10px;min-height:19px;font-size:13px;color:#355db7}.err{color:#d42253}
+    .embedMode .shell{display:none}
     @media (max-width:760px){.grid2,.pg{grid-template-columns:1fr}.actions{flex-wrap:wrap}.btn,.primary{width:100%;margin-left:0}}
   </style>
 </head>
@@ -209,7 +215,15 @@ function buildWidgetHtml(args: {
         <section class="step on" data-step="1">
           <label for="address">${esc(cfg.addressLabel)}</label>
           <input id="address" name="address" placeholder="${esc(cfg.addressPlaceholder)}" required />
-          <div id="map"></div>
+          <div class="mapWrap">
+            <div id="map"></div>
+            <button type="button" id="roofEditBtn" class="mapEditFab" aria-label="Draw roof">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 17.25V21h3.75L18.37 9.38l-3.75-3.75L3 17.25zm2.92 2.33h-.84v-.84l8.9-8.9.84.84-8.9 8.9zM20.71 7.04a1.003 1.003 0 0 0 0-1.42L18.37 3.29a1.003 1.003 0 0 0-1.42 0L15.13 5.1l3.75 3.75 1.83-1.81z"/>
+              </svg>
+            </button>
+            <span class="mapTip" id="roofTip">Draw roof</span>
+          </div>
         </section>
         <section class="step" data-step="2">
           <div class="grid2">
@@ -248,7 +262,9 @@ function buildWidgetHtml(args: {
   <script>
   (() => {
     const cfg = ${JSON.stringify(cfg)};
-    const state = { step:1, selectedPlace:null, solarSummary:null };
+    const params = new URLSearchParams(window.location.search);
+    const embedMode = params.get("embed") === "1";
+    const state = { step:1, selectedPlace:null, solarSummary:null, roofPolygon:null };
     const modal = document.getElementById("modal");
     const openBtn = document.getElementById("openBtn");
     const closeBtn = document.getElementById("closeBtn");
@@ -260,10 +276,12 @@ function buildWidgetHtml(args: {
     const nextBtn = document.getElementById("nextBtn");
     const submitBtn = document.getElementById("submitBtn");
     const status = document.getElementById("status");
+    const roofEditBtn = document.getElementById("roofEditBtn");
+    const roofTip = document.getElementById("roofTip");
     const steps = Array.from(document.querySelectorAll(".step"));
     const billInput = document.getElementById("monthlyBill");
     const addressInput = document.getElementById("address");
-    let map = null, marker = null, autocomplete = null, geocoder = null;
+    let map = null, marker = null, autocomplete = null, geocoder = null, drawingManager = null, roofOverlay = null;
     function setStatus(msg, err){ status.textContent = String(msg || ""); status.className = err ? "status err" : "status"; }
     function stepLabel(s){ return s===1?cfg.stepAddressLabel:s===2?cfg.stepInfoLabel:cfg.stepPricingLabel; }
     function renderStep(){
@@ -275,7 +293,92 @@ function buildWidgetHtml(args: {
       submitBtn.style.display = state.step === 3 ? "inline-flex" : "none";
     }
     function openModal(){ modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); setTimeout(() => { if (map && window.google) google.maps.event.trigger(map, "resize"); }, 60); }
-    function closeModal(){ modal.classList.remove("open"); modal.setAttribute("aria-hidden","true"); }
+    function closeModal(){
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden","true");
+      if (embedMode && window.parent && window.parent !== window) {
+        try { window.parent.postMessage({ type: "solar-survey-close", tenantId: cfg.tenantId }, "*"); } catch {}
+      }
+    }
+    function getPolygonPathCoords(polygon){
+      if (!polygon) return [];
+      const path = polygon.getPath();
+      const out = [];
+      for (let i = 0; i < path.getLength(); i += 1) {
+        const p = path.getAt(i);
+        out.push({ lat: Number(p.lat()), lng: Number(p.lng()) });
+      }
+      return out;
+    }
+    function saveRoofPolygon(){ state.roofPolygon = getPolygonPathCoords(roofOverlay); }
+    function clearRoofPolygon(){
+      if (roofOverlay) roofOverlay.setMap(null);
+      roofOverlay = null;
+      state.roofPolygon = null;
+      if (roofEditBtn) roofEditBtn.classList.remove("on");
+      if (roofTip) roofTip.textContent = "Draw roof";
+    }
+    function setRoofEditable(editable){
+      if (!roofOverlay) return;
+      roofOverlay.setEditable(!!editable);
+      roofOverlay.setDraggable(false);
+      if (roofEditBtn) roofEditBtn.classList.toggle("on", !!editable);
+      if (roofTip) roofTip.textContent = editable ? "Editing roof" : "Draw roof";
+    }
+    function attachRoofPathListeners(){
+      if (!roofOverlay || !window.google) return;
+      const path = roofOverlay.getPath();
+      const sync = () => saveRoofPolygon();
+      google.maps.event.addListener(path, "set_at", sync);
+      google.maps.event.addListener(path, "insert_at", sync);
+      google.maps.event.addListener(path, "remove_at", sync);
+    }
+    function cross(o,a,b){ return (a.lng-o.lng)*(b.lat-o.lat) - (a.lat-o.lat)*(b.lng-o.lng); }
+    function convexHull(points){
+      if (!Array.isArray(points) || points.length < 3) return points || [];
+      const sorted = [...points].sort((p1,p2) => (p1.lng === p2.lng ? p1.lat - p2.lat : p1.lng - p2.lng));
+      const lower = [];
+      for (const p of sorted) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+        lower.push(p);
+      }
+      const upper = [];
+      for (let i = sorted.length - 1; i >= 0; i -= 1) {
+        const p = sorted[i];
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+        upper.push(p);
+      }
+      lower.pop();
+      upper.pop();
+      return lower.concat(upper);
+    }
+    function drawRoofHullFromPanels(panels){
+      if (!Array.isArray(panels) || !map || !window.google) return;
+      const points = panels
+        .slice(0, 320)
+        .map((panel) => panel && panel.center ? panel.center : null)
+        .filter(Boolean)
+        .map((c) => ({ lat: Number(c.latitude), lng: Number(c.longitude) }))
+        .filter((c) => Number.isFinite(c.lat) && Number.isFinite(c.lng));
+      if (points.length < 3) return;
+      const hull = convexHull(points);
+      if (hull.length < 3) return;
+      if (roofOverlay) roofOverlay.setMap(null);
+      roofOverlay = new google.maps.Polygon({
+        map,
+        paths: hull,
+        strokeColor: "#2f6df6",
+        strokeOpacity: 0.96,
+        strokeWeight: 2,
+        fillColor: "#2f6df6",
+        fillOpacity: 0.23,
+        editable: false,
+        draggable: false,
+      });
+      attachRoofPathListeners();
+      saveRoofPolygon();
+      setRoofEditable(false);
+    }
     async function loadMaps(){
       if (!cfg.mapsApiKey) {
         document.getElementById("map").innerHTML = "<p style='padding:12px;color:#ff9ab2;font-size:12px'>Missing GOOGLE_MAPS_API_KEY</p>";
@@ -284,7 +387,7 @@ function buildWidgetHtml(args: {
       if (!window.google || !window.google.maps) {
         await new Promise((resolve, reject) => {
           const sc = document.createElement("script");
-          sc.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(cfg.mapsApiKey) + "&libraries=places";
+          sc.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(cfg.mapsApiKey) + "&libraries=places,drawing";
           sc.async = true; sc.defer = true;
           sc.onload = () => resolve();
           sc.onerror = () => reject(new Error("Unable to load Google Maps"));
@@ -308,6 +411,44 @@ function buildWidgetHtml(args: {
         const place = autocomplete.getPlace();
         if (!place || !place.geometry || !place.geometry.location) return;
         placeOnMap(place);
+      });
+      addressInput.addEventListener("keydown", async (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        await resolveAddressFromInput();
+      });
+      addressInput.addEventListener("blur", async () => {
+        const raw = String(addressInput.value || "").trim();
+        if (!raw) return;
+        if (state.selectedPlace && state.selectedPlace.formattedAddress === raw) return;
+        await resolveAddressFromInput();
+      });
+      addressInput.addEventListener("input", () => {
+        state.selectedPlace = null;
+      });
+      drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: null,
+        drawingControl: false,
+        polygonOptions: {
+          strokeColor: "#2f6df6",
+          strokeOpacity: 0.96,
+          strokeWeight: 2,
+          fillColor: "#2f6df6",
+          fillOpacity: 0.23,
+          editable: true,
+          draggable: false,
+        },
+      });
+      drawingManager.setMap(map);
+      google.maps.event.addListener(drawingManager, "overlaycomplete", (evt) => {
+        if (!evt || evt.type !== google.maps.drawing.OverlayType.POLYGON) return;
+        clearRoofPolygon();
+        roofOverlay = evt.overlay;
+        drawingManager.setDrawingMode(null);
+        attachRoofPathListeners();
+        saveRoofPolygon();
+        setRoofEditable(false);
+        setStatus("");
       });
     }
     async function resolveAddressFromInput() {
@@ -355,12 +496,15 @@ function buildWidgetHtml(args: {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) throw new Error(data.error || ("Solar API error " + res.status));
         const sp = (data.buildingInsights && data.buildingInsights.solarPotential) || {};
+        const panels = Array.isArray(sp.solarPanels) ? sp.solarPanels : [];
         state.solarSummary = {
           maxPanels: Number(sp.maxArrayPanelsCount || 0) || null,
           maxSystemKw: sp.maxArrayAreaMeters2 ? Number((Number(sp.maxArrayAreaMeters2) / 5.2).toFixed(1)) : null,
           maxSunHoursYear: Number(sp.maxSunshineHoursPerYear || 0) || null,
           panelCapacityWatts: Number(sp.panelCapacityWatts || 400) || 400
         };
+        clearRoofPolygon();
+        drawRoofHullFromPanels(panels);
         setStatus(state.solarSummary.maxPanels ? ("Roof detected: up to " + state.solarSummary.maxPanels + " potential panels.") : "Address validated.");
         if (state.step === 3) renderEstimate();
       } catch (error) {
@@ -451,7 +595,8 @@ function buildWidgetHtml(args: {
           context: {
             pageUrl: window.location.href,
             referrer: document.referrer || "",
-            solarSummary: state.solarSummary
+            solarSummary: state.solarSummary,
+            roofPolygon: state.roofPolygon
           }
         };
         const res = await fetch("/api/public/solar/lead", {
@@ -472,8 +617,31 @@ function buildWidgetHtml(args: {
     openBtn.addEventListener("click", openModal);
     closeBtn.addEventListener("click", closeModal);
     backdrop.addEventListener("click", closeModal);
+    roofEditBtn.addEventListener("click", () => {
+      if (!drawingManager || !window.google) return;
+      const isDrawing = drawingManager.getDrawingMode() === google.maps.drawing.OverlayType.POLYGON;
+      if (isDrawing) {
+        drawingManager.setDrawingMode(null);
+        if (roofEditBtn) roofEditBtn.classList.remove("on");
+        if (roofTip) roofTip.textContent = "Draw roof";
+        return;
+      }
+      if (roofOverlay) {
+        const editable = !!roofOverlay.getEditable();
+        if (editable) {
+          setRoofEditable(false);
+        } else {
+          setRoofEditable(true);
+        }
+        return;
+      }
+      drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+      if (roofEditBtn) roofEditBtn.classList.add("on");
+      if (roofTip) roofTip.textContent = "Drawing roof";
+    });
     window.addEventListener("keydown", (event) => { if (event.key === "Escape") closeModal(); });
-    if ((new URLSearchParams(window.location.search)).get("open") === "1") openModal();
+    if (embedMode) document.body.classList.add("embedMode");
+    if (params.get("open") === "1" || embedMode) openModal();
     renderStep();
     loadMaps().catch((e) => setStatus(e && e.message ? e.message : "Map bootstrap failed.", true));
   })();
