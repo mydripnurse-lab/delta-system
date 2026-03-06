@@ -10942,7 +10942,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 />
                 {solarSurveyLastPublish ? (
                   <div className="mini" style={{ marginTop: 6 }}>
-                    Published: {new Date(solarSurveyLastPublish.generatedAt)).toLocaleString()}
+                    Published: {new Date(solarSurveyLastPublish.generatedAt).toLocaleString()}
                   </div>
                 ) : null}
               </div>
