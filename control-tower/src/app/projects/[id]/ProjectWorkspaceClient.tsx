@@ -217,6 +217,8 @@ type SolarSurveyBuilder = {
   themeAccent: string;
   themeAccentSecondary: string;
   themeSurface: string;
+  modalFontKey: string;
+  buttonFontKey: string;
   modalTitleFontSize: number;
   modalBodyFontSize: number;
   pricingUtilityRate: number;
@@ -1168,6 +1170,8 @@ export default function Home() {
   const [solarSurveyThemeAccent, setSolarSurveyThemeAccent] = useState("#2f6df6");
   const [solarSurveyThemeAccentSecondary, setSolarSurveyThemeAccentSecondary] = useState("#1ecf98");
   const [solarSurveyThemeSurface, setSolarSurveyThemeSurface] = useState("#0f1219");
+  const [solarSurveyModalFontKey, setSolarSurveyModalFontKey] = useState("manrope");
+  const [solarSurveyButtonFontKey, setSolarSurveyButtonFontKey] = useState("montserrat");
   const [solarSurveyModalTitleFontSize, setSolarSurveyModalTitleFontSize] = useState(64);
   const [solarSurveyModalBodyFontSize, setSolarSurveyModalBodyFontSize] = useState(15);
   const [solarSurveyPricingUtilityRate, setSolarSurveyPricingUtilityRate] = useState(0.27);
@@ -2766,6 +2770,8 @@ export default function Home() {
       themeAccent: "#2f6df6",
       themeAccentSecondary: "#1ecf98",
       themeSurface: "#0f1219",
+      modalFontKey: "manrope",
+      buttonFontKey: "montserrat",
       modalTitleFontSize: 64,
       modalBodyFontSize: 15,
       pricingUtilityRate: 0.27,
@@ -2815,6 +2821,16 @@ export default function Home() {
     setSolarSurveyThemeAccent(s(next.themeAccent) || "#2f6df6");
     setSolarSurveyThemeAccentSecondary(s(next.themeAccentSecondary) || "#1ecf98");
     setSolarSurveyThemeSurface(s(next.themeSurface) || "#0f1219");
+    setSolarSurveyModalFontKey(
+      SEARCH_BUILDER_FONT_OPTIONS.some((f) => f.key === s(next.modalFontKey))
+        ? s(next.modalFontKey)
+        : "manrope",
+    );
+    setSolarSurveyButtonFontKey(
+      SEARCH_BUILDER_FONT_OPTIONS.some((f) => f.key === s(next.buttonFontKey))
+        ? s(next.buttonFontKey)
+        : "montserrat",
+    );
     setSolarSurveyModalTitleFontSize(Math.max(28, Number(next.modalTitleFontSize || 64)));
     setSolarSurveyModalBodyFontSize(Math.max(12, Number(next.modalBodyFontSize || 15)));
     setSolarSurveyPricingUtilityRate(Math.max(0.05, Number(next.pricingUtilityRate || 0.27)));
@@ -2862,6 +2878,8 @@ export default function Home() {
       themeAccent: s(solarSurveyThemeAccent) || fallback.themeAccent,
       themeAccentSecondary: s(solarSurveyThemeAccentSecondary) || fallback.themeAccentSecondary,
       themeSurface: s(solarSurveyThemeSurface) || fallback.themeSurface,
+      modalFontKey: s(solarSurveyModalFontKey) || fallback.modalFontKey,
+      buttonFontKey: s(solarSurveyButtonFontKey) || fallback.buttonFontKey,
       modalTitleFontSize: Math.max(28, Number(solarSurveyModalTitleFontSize) || fallback.modalTitleFontSize),
       modalBodyFontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || fallback.modalBodyFontSize),
       pricingUtilityRate: Math.max(0.05, Number(solarSurveyPricingUtilityRate) || fallback.pricingUtilityRate),
@@ -3018,9 +3036,12 @@ export default function Home() {
     const fontWeight = Math.max(400, Number(solarSurveyEmbedButtonFontWeight) || 700);
     const shadow = Math.max(0, Number(solarSurveyEmbedButtonShadow) || 28);
     const btnPos = solarSurveyButtonPosition === "left" ? "flex-start" : solarSurveyButtonPosition === "right" ? "flex-end" : "center";
+    const buttonFontFamily = escapeHtmlAttr(selectedSolarButtonFont.family || "Montserrat");
+    const buttonFontImport = escapeHtmlAttr(selectedSolarButtonFont.importUrl || "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap");
     const buttonText = escapeHtmlAttr(s(solarSurveyButtonText) || "Get Solar Estimate");
     const titleText = escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey");
-    return `<div style="display:flex;justify-content:${btnPos};width:100%"><button id="ct-solar-open-btn" type="button" style="border:0;border-radius:${radius}px;padding:${padY}px ${padX}px;font:${fontWeight} ${fontSize}px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:${textColor};background:linear-gradient(90deg,${gradientFrom},${gradientTo});cursor:pointer;box-shadow:0 12px ${shadow}px rgba(10,20,40,.3);">${buttonText}</button></div>
+    return `<link rel="stylesheet" href="${buttonFontImport}" />
+<div style="display:flex;justify-content:${btnPos};width:100%"><button id="ct-solar-open-btn" type="button" style="border:0;border-radius:${radius}px;padding:${padY}px ${padX}px;font:${fontWeight} ${fontSize}px/1.1 '${buttonFontFamily}',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:${textColor};background:linear-gradient(90deg,${gradientFrom},${gradientTo});cursor:pointer;box-shadow:0 12px ${shadow}px rgba(10,20,40,.3);">${buttonText}</button></div>
 <script>
 (function(){
   var src = ${JSON.stringify(src)};
@@ -7814,6 +7835,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     () => SEARCH_BUILDER_FONT_OPTIONS.find((f) => f.key === s(searchBuilderFontKey)) || SEARCH_BUILDER_FONT_OPTIONS[0],
     [searchBuilderFontKey],
   );
+  const selectedSolarModalFont = useMemo(
+    () => SEARCH_BUILDER_FONT_OPTIONS.find((f) => f.key === s(solarSurveyModalFontKey)) || SEARCH_BUILDER_FONT_OPTIONS[9],
+    [solarSurveyModalFontKey],
+  );
+  const selectedSolarButtonFont = useMemo(
+    () => SEARCH_BUILDER_FONT_OPTIONS.find((f) => f.key === s(solarSurveyButtonFontKey)) || SEARCH_BUILDER_FONT_OPTIONS[3],
+    [solarSurveyButtonFontKey],
+  );
   const selectedLocationNavFont = useMemo(
     () => SEARCH_BUILDER_FONT_OPTIONS.find((f) => f.key === s(locationNavFontKey)) || SEARCH_BUILDER_FONT_OPTIONS[0],
     [locationNavFontKey],
@@ -11035,6 +11064,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         <div className="cardBody">
           <div className="searchBuilderEditorPage">
             <div className="searchBuilderEditorPageBody">
+              <link rel="preconnect" href="https://fonts.googleapis.com" />
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+              <link href={selectedSolarModalFont.importUrl} rel="stylesheet" />
+              {selectedSolarButtonFont.key !== selectedSolarModalFont.key ? (
+                <link href={selectedSolarButtonFont.importUrl} rel="stylesheet" />
+              ) : null}
               <div className="sbStudio">
                 <aside className="sbStudioNav">
                   <div className="sbStudioNavTitle">Editor</div>
@@ -11092,6 +11127,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             borderRadius: Math.max(0, Number(solarSurveyEmbedButtonRadius) || 999),
                             fontWeight: Math.max(400, Number(solarSurveyEmbedButtonFontWeight) || 700),
                             fontSize: Math.max(11, Number(solarSurveyEmbedButtonFontSize) || 14),
+                            fontFamily: `${selectedSolarButtonFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial`,
                             color: s(solarSurveyEmbedButtonTextColor) || "#ffffff",
                             background: `linear-gradient(90deg, ${s(solarSurveyEmbedButtonGradientFrom) || "#2f6df6"}, ${s(solarSurveyEmbedButtonGradientTo) || "#1ecf98"})`,
                             boxShadow: `0 12px ${Math.max(0, Number(solarSurveyEmbedButtonShadow) || 28)}px rgba(10,20,40,.3)`,
@@ -11102,7 +11138,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       </div>
                     ) : (
                       <div className="sbStudioModalPreview" style={{ borderRadius: 30, minHeight: 530 }}>
-                        <div className="sbStudioModalBody" style={{ background: "#f3f5f8", minHeight: 530, padding: 20 }}>
+                        <div className="sbStudioModalBody" style={{ background: "#f3f5f8", minHeight: 530, padding: 20, fontFamily: `${selectedSolarModalFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial` }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div
                               style={{
@@ -11163,6 +11199,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                 border: "0",
                                 borderRadius: 14,
                                 padding: "11px 18px",
+                                fontFamily: `${selectedSolarButtonFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial`,
                                 color: "#fff",
                                 background: `linear-gradient(90deg, ${s(solarSurveyThemeAccent) || "#2f6df6"}, ${s(solarSurveyThemeAccentSecondary) || "#1ecf98"})`,
                               }}
@@ -11197,6 +11234,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         <input className="input" value={solarSurveyButtonText} onChange={(e) => setSolarSurveyButtonText(e.target.value)} />
                       </div>
                       <div className="field">
+                        <label>Button Font</label>
+                        <select className="select" value={solarSurveyButtonFontKey} onChange={(e) => setSolarSurveyButtonFontKey(e.target.value)}>
+                          {SEARCH_BUILDER_FONT_OPTIONS.map((f) => (
+                            <option key={`solar-btn-font:${f.key}`} value={f.key}>{f.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="field">
                         <label>Button Position</label>
                         <select className="select" value={solarSurveyButtonPosition} onChange={(e) => setSolarSurveyButtonPosition(e.target.value as "left" | "center" | "right")}>
                           <option value="left">Left</option>
@@ -11217,6 +11262,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   ) : solarSurveyEditorPanel === "modal" ? (
                     <>
                       <div className="field"><label>Modal Title</label><input className="input" value={solarSurveyModalTitle} onChange={(e) => setSolarSurveyModalTitle(e.target.value)} /></div>
+                      <div className="field">
+                        <label>Modal Font</label>
+                        <select className="select" value={solarSurveyModalFontKey} onChange={(e) => setSolarSurveyModalFontKey(e.target.value)}>
+                          {SEARCH_BUILDER_FONT_OPTIONS.map((f) => (
+                            <option key={`solar-modal-font:${f.key}`} value={f.key}>{f.label}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="field"><label>Modal Subtitle</label><textarea className="input agencyTextarea" rows={2} value={solarSurveyModalSubtitle} onChange={(e) => setSolarSurveyModalSubtitle(e.target.value)} /></div>
                       <div className="field"><label>Address Label</label><input className="input" value={solarSurveyAddressLabel} onChange={(e) => setSolarSurveyAddressLabel(e.target.value)} /></div>
                       <div className="field"><label>Address Placeholder</label><input className="input" value={solarSurveyAddressPlaceholder} onChange={(e) => setSolarSurveyAddressPlaceholder(e.target.value)} /></div>

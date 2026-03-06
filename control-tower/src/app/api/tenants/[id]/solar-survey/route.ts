@@ -52,6 +52,12 @@ function normalizeButtonPosition(input: unknown): "left" | "center" | "right" {
   return "center";
 }
 
+function normalizeFontKey(input: unknown, fallback: string) {
+  const key = s(input).toLowerCase();
+  if (!key) return fallback;
+  return key.replace(/[^a-z0-9_]+/g, "_");
+}
+
 function normalizePayload(input: Record<string, unknown> | null | undefined) {
   return {
     id: "default",
@@ -74,6 +80,8 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     themeAccent: normalizeColor(input?.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(input?.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(input?.themeSurface, "#0f1219"),
+    modalFontKey: normalizeFontKey(input?.modalFontKey, "manrope"),
+    buttonFontKey: normalizeFontKey(input?.buttonFontKey, "montserrat"),
     modalTitleFontSize: normalizeNum(input?.modalTitleFontSize, 64, 28, 100),
     modalBodyFontSize: normalizeNum(input?.modalBodyFontSize, 15, 12, 30),
     pricingUtilityRate: normalizeFloat(input?.pricingUtilityRate, 0.27, 0.05, 2),

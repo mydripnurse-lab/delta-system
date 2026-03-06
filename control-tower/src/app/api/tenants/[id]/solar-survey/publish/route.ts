@@ -71,6 +71,31 @@ function normalizeButtonPosition(input: unknown): "left" | "center" | "right" {
   return "center";
 }
 
+const SOLAR_FONT_OPTIONS: Record<string, { family: string; importUrl: string }> = {
+  lato: { family: "Lato", importUrl: "https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" },
+  inter: { family: "Inter", importUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" },
+  poppins: { family: "Poppins", importUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" },
+  montserrat: { family: "Montserrat", importUrl: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" },
+  oswald: { family: "Oswald", importUrl: "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" },
+  raleway: { family: "Raleway", importUrl: "https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&display=swap" },
+  nunito: { family: "Nunito", importUrl: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" },
+  dm_sans: { family: "DM Sans", importUrl: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" },
+  plus_jakarta_sans: { family: "Plus Jakarta Sans", importUrl: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" },
+  manrope: { family: "Manrope", importUrl: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" },
+  rubik: { family: "Rubik", importUrl: "https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" },
+  merriweather: { family: "Merriweather", importUrl: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap" },
+};
+
+function normalizeFontKey(input: unknown, fallback: string) {
+  const key = s(input).toLowerCase().replace(/[^a-z0-9_]+/g, "_");
+  return SOLAR_FONT_OPTIONS[key] ? key : fallback;
+}
+
+function fontByKey(key: string, fallback: string) {
+  const safeKey = normalizeFontKey(key, fallback);
+  return SOLAR_FONT_OPTIONS[safeKey] || SOLAR_FONT_OPTIONS[fallback] || SOLAR_FONT_OPTIONS.manrope;
+}
+
 function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
   return {
     folder: kebabToken(s(input?.folder) || "solar-survey") || "solar-survey",
@@ -91,6 +116,8 @@ function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
     themeAccent: normalizeColor(input?.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(input?.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(input?.themeSurface, "#0f1219"),
+    modalFontKey: normalizeFontKey(input?.modalFontKey, "manrope"),
+    buttonFontKey: normalizeFontKey(input?.buttonFontKey, "montserrat"),
     modalTitleFontSize: normalizeNum(input?.modalTitleFontSize, 64, 28, 100),
     modalBodyFontSize: normalizeNum(input?.modalBodyFontSize, 15, 12, 30),
     pricingUtilityRate: normalizeFloat(input?.pricingUtilityRate, 0.27, 0.05, 2),
@@ -165,6 +192,8 @@ function buildWidgetHtml(args: {
   themeAccent: string;
   themeAccentSecondary: string;
   themeSurface: string;
+  modalFontKey: string;
+  buttonFontKey: string;
   modalTitleFontSize: number;
   modalBodyFontSize: number;
   pricingUtilityRate: number;
@@ -194,6 +223,8 @@ function buildWidgetHtml(args: {
     themeAccent: normalizeColor(args.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(args.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(args.themeSurface, "#0f1219"),
+    modalFontKey: normalizeFontKey(args.modalFontKey, "manrope"),
+    buttonFontKey: normalizeFontKey(args.buttonFontKey, "montserrat"),
     modalTitleFontSize: normalizeNum(args.modalTitleFontSize, 64, 28, 100),
     modalBodyFontSize: normalizeNum(args.modalBodyFontSize, 15, 12, 30),
     pricingUtilityRate: normalizeFloat(args.pricingUtilityRate, 0.27, 0.05, 2),
@@ -206,6 +237,9 @@ function buildWidgetHtml(args: {
     pricingMinSystemKw: normalizeFloat(args.pricingMinSystemKw, 4, 1, 30),
     pricingSystemSizingDivisor: normalizeFloat(args.pricingSystemSizingDivisor, 30, 5, 120),
   };
+  const modalFont = fontByKey(cfg.modalFontKey, "manrope");
+  const buttonFont = fontByKey(cfg.buttonFontKey, "montserrat");
+  const fontImports = Array.from(new Set([modalFont.importUrl, buttonFont.importUrl]));
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -214,12 +248,12 @@ function buildWidgetHtml(args: {
   <title>${esc(cfg.modalTitle)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  ${fontImports.map((u) => `<link href="${esc(u)}" rel="stylesheet" />`).join("\n  ")}
   <style>
     :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#131925;--muted:#5f6a7d;--line:#d8deea;--title-size:${cfg.modalTitleFontSize}px;--body-size:${cfg.modalBodyFontSize}px;}
-    *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(80rem 40rem at -10% 110%,rgba(58,103,195,.26),transparent 40%),radial-gradient(80rem 40rem at 110% -10%,rgba(30,207,152,.14),transparent 36%),#0b1324}
+    *{box-sizing:border-box}body{margin:0;font-family:'${esc(modalFont.family)}',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(80rem 40rem at -10% 110%,rgba(58,103,195,.26),transparent 40%),radial-gradient(80rem 40rem at 110% -10%,rgba(30,207,152,.14),transparent 36%),#0b1324}
     .shell{min-height:100vh;padding:18px;display:flex;align-items:center;justify-content:${cfg.buttonPosition === "left" ? "flex-start" : cfg.buttonPosition === "right" ? "flex-end" : "center"}}
-    .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(115deg,var(--accent),var(--accent2));cursor:pointer;box-shadow:0 18px 34px rgba(10,18,38,.42);letter-spacing:.01em}
+    .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;font-family:'${esc(buttonFont.family)}',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff;background:linear-gradient(115deg,var(--accent),var(--accent2));cursor:pointer;box-shadow:0 18px 34px rgba(10,18,38,.42);letter-spacing:.01em}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:10px;z-index:20}
     .modal.open{display:flex}
     .backdrop{position:absolute;inset:0;background:rgba(2,8,23,.72);backdrop-filter:blur(8px)}
@@ -248,7 +282,7 @@ function buildWidgetHtml(args: {
     .pg article{border:1px solid #e1e6f1;border-radius:12px;padding:10px;background:#fff}
     .pg p{margin:0;font-size:11px;color:#6a768d}.pg strong{display:block;margin-top:4px;font-size:19px;letter-spacing:-.01em}
     .actions{margin-top:10px;display:flex;gap:8px}
-    .btn{border:0;border-radius:14px;padding:11px 16px;font-weight:700;cursor:pointer}
+    .btn{border:0;border-radius:14px;padding:11px 16px;font-weight:700;font-family:'${esc(buttonFont.family)}',system-ui,-apple-system,Segoe UI,Roboto,Arial;cursor:pointer}
     .ghost{background:#e9eef8;color:#22314f}
     .primary{margin-left:auto;color:#fff;background:linear-gradient(115deg,var(--accent),var(--accent2));box-shadow:0 12px 22px rgba(44,101,217,.26)}
     .status{margin-top:10px;min-height:19px;font-size:var(--body-size);color:#355db7}.err{color:#d42253}
@@ -870,6 +904,8 @@ export async function POST(req: Request, ctx: Ctx) {
       themeAccent: builder.themeAccent,
       themeAccentSecondary: builder.themeAccentSecondary,
       themeSurface: builder.themeSurface,
+      modalFontKey: builder.modalFontKey,
+      buttonFontKey: builder.buttonFontKey,
       modalTitleFontSize: builder.modalTitleFontSize,
       modalBodyFontSize: builder.modalBodyFontSize,
       pricingUtilityRate: builder.pricingUtilityRate,
