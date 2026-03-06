@@ -197,6 +197,42 @@ type SearchBuilderManifest = {
   files: Array<{ serviceId: string; name: string; fileName: string; relativePath: string; blobPath?: string; url?: string }>;
 };
 
+type SolarSurveyBuilder = {
+  id: string;
+  name: string;
+  folder: string;
+  pageSlug: string;
+  query: string;
+  buttonText: string;
+  modalTitle: string;
+  modalSubtitle: string;
+  addressLabel: string;
+  addressPlaceholder: string;
+  stepAddressLabel: string;
+  stepInfoLabel: string;
+  stepPricingLabel: string;
+  nextLabel: string;
+  submitLabel: string;
+  themeAccent: string;
+  themeAccentSecondary: string;
+  themeSurface: string;
+};
+
+type SolarSurveyIntegrationSettings = {
+  googleMapsApiKey: string;
+  googleSolarApiKey: string;
+  webhookUrl: string;
+};
+
+type SolarSurveyPublishManifest = {
+  tenantId: string;
+  folder: string;
+  fileName: string;
+  host: string;
+  url: string;
+  generatedAt: string;
+};
+
 type LocationNavStylePreset =
   | "pill_grid"
   | "minimal_links"
@@ -375,6 +411,7 @@ type TenantDetailResponse = {
 type ProjectTab =
   | "runner"
   | "search_builder"
+  | "solar_survey"
   | "location_nav"
   | "sheet"
   | "activation"
@@ -387,6 +424,7 @@ const PROJECT_TAB_TO_SLUG: Record<ProjectTab, string> = {
   activation: "home",
   runner: "run-center",
   search_builder: "search-builder",
+  solar_survey: "solar-survey",
   location_nav: "location-nav",
   sheet: "sheet-explorer",
   details: "project-details",
@@ -399,6 +437,7 @@ const PROJECT_SLUG_TO_TAB: Record<string, ProjectTab> = {
   home: "activation",
   "run-center": "runner",
   "search-builder": "search_builder",
+  "solar-survey": "solar_survey",
   "location-nav": "location_nav",
   "sheet-explorer": "sheet",
   "project-details": "details",
@@ -1083,6 +1122,33 @@ export default function Home() {
   const [searchBuilderCopiedFolderPath, setSearchBuilderCopiedFolderPath] = useState(false);
   const [searchBuilderEditorPanel, setSearchBuilderEditorPanel] = useState<"button" | "modal">("button");
   const [searchBuilderPreviewTone, setSearchBuilderPreviewTone] = useState<"dark" | "light">("dark");
+  const [solarSurveyLoading, setSolarSurveyLoading] = useState(false);
+  const [solarSurveySaving, setSolarSurveySaving] = useState(false);
+  const [solarSurveyPublishing, setSolarSurveyPublishing] = useState(false);
+  const [solarSurveyMsg, setSolarSurveyMsg] = useState("");
+  const [solarSurveyErr, setSolarSurveyErr] = useState("");
+  const [solarSurveyCopied, setSolarSurveyCopied] = useState(false);
+  const [solarSurveyLastPublish, setSolarSurveyLastPublish] = useState<SolarSurveyPublishManifest | null>(null);
+  const [solarSurveyName, setSolarSurveyName] = useState("");
+  const [solarSurveyFolder, setSolarSurveyFolder] = useState("solar-survey");
+  const [solarSurveyPageSlug, setSolarSurveyPageSlug] = useState("solar-survey-widget");
+  const [solarSurveyQuery, setSolarSurveyQuery] = useState("embed=1");
+  const [solarSurveyButtonText, setSolarSurveyButtonText] = useState("Get Solar Estimate");
+  const [solarSurveyModalTitle, setSolarSurveyModalTitle] = useState("What Will Your Solar System Cost?");
+  const [solarSurveyModalSubtitle, setSolarSurveyModalSubtitle] = useState("Enter your street address to get an accurate solar estimate instantly.");
+  const [solarSurveyAddressLabel, setSolarSurveyAddressLabel] = useState("Property address");
+  const [solarSurveyAddressPlaceholder, setSolarSurveyAddressPlaceholder] = useState("Ex: 1157 Palo Alto St SE, Palm Bay, FL");
+  const [solarSurveyStepAddressLabel, setSolarSurveyStepAddressLabel] = useState("Address");
+  const [solarSurveyStepInfoLabel, setSolarSurveyStepInfoLabel] = useState("Info");
+  const [solarSurveyStepPricingLabel, setSolarSurveyStepPricingLabel] = useState("Pricing");
+  const [solarSurveyNextLabel, setSolarSurveyNextLabel] = useState("Next Step");
+  const [solarSurveySubmitLabel, setSolarSurveySubmitLabel] = useState("See My Prices");
+  const [solarSurveyThemeAccent, setSolarSurveyThemeAccent] = useState("#2f6df6");
+  const [solarSurveyThemeAccentSecondary, setSolarSurveyThemeAccentSecondary] = useState("#1ecf98");
+  const [solarSurveyThemeSurface, setSolarSurveyThemeSurface] = useState("#0f1219");
+  const [solarSurveyGoogleMapsApiKey, setSolarSurveyGoogleMapsApiKey] = useState("");
+  const [solarSurveyGoogleSolarApiKey, setSolarSurveyGoogleSolarApiKey] = useState("");
+  const [solarSurveyWebhookUrl, setSolarSurveyWebhookUrl] = useState("");
   const [locationNavBuilders, setLocationNavBuilders] = useState<LocationNavBuilder[]>([]);
   const [locationNavBuildersLoading, setLocationNavBuildersLoading] = useState(false);
   const [locationNavCreating, setLocationNavCreating] = useState(false);
@@ -2634,6 +2700,199 @@ export default function Home() {
     }
     void loadLastPublishedSearchBuilderFiles(searchBuilderActiveSearchId);
   }, [routeTenantId, searchBuilderActiveSearchId]);
+
+  function newSolarSurveyDraft(): SolarSurveyBuilder {
+    return {
+      id: "default",
+      name: `${s(tenantName) || "Project"} Solar Survey`,
+      folder: "solar-survey",
+      pageSlug: "solar-survey-widget",
+      query: "embed=1",
+      buttonText: "Get Solar Estimate",
+      modalTitle: "What Will Your Solar System Cost?",
+      modalSubtitle: "Enter your street address to get an accurate solar estimate instantly.",
+      addressLabel: "Property address",
+      addressPlaceholder: "Ex: 1157 Palo Alto St SE, Palm Bay, FL",
+      stepAddressLabel: "Address",
+      stepInfoLabel: "Info",
+      stepPricingLabel: "Pricing",
+      nextLabel: "Next Step",
+      submitLabel: "See My Prices",
+      themeAccent: "#2f6df6",
+      themeAccentSecondary: "#1ecf98",
+      themeSurface: "#0f1219",
+    };
+  }
+
+  function applySolarSurveyPayload(payload: SolarSurveyBuilder | null, integrations?: SolarSurveyIntegrationSettings | null) {
+    const next = payload || newSolarSurveyDraft();
+    setSolarSurveyName(s(next.name) || "Solar Survey");
+    setSolarSurveyFolder(kebabToken(s(next.folder) || "solar-survey") || "solar-survey");
+    setSolarSurveyPageSlug(kebabToken(s(next.pageSlug) || "solar-survey-widget") || "solar-survey-widget");
+    setSolarSurveyQuery(s(next.query) || "embed=1");
+    setSolarSurveyButtonText(s(next.buttonText) || "Get Solar Estimate");
+    setSolarSurveyModalTitle(s(next.modalTitle) || "What Will Your Solar System Cost?");
+    setSolarSurveyModalSubtitle(
+      s(next.modalSubtitle) || "Enter your street address to get an accurate solar estimate instantly.",
+    );
+    setSolarSurveyAddressLabel(s(next.addressLabel) || "Property address");
+    setSolarSurveyAddressPlaceholder(s(next.addressPlaceholder) || "Ex: 1157 Palo Alto St SE, Palm Bay, FL");
+    setSolarSurveyStepAddressLabel(s(next.stepAddressLabel) || "Address");
+    setSolarSurveyStepInfoLabel(s(next.stepInfoLabel) || "Info");
+    setSolarSurveyStepPricingLabel(s(next.stepPricingLabel) || "Pricing");
+    setSolarSurveyNextLabel(s(next.nextLabel) || "Next Step");
+    setSolarSurveySubmitLabel(s(next.submitLabel) || "See My Prices");
+    setSolarSurveyThemeAccent(s(next.themeAccent) || "#2f6df6");
+    setSolarSurveyThemeAccentSecondary(s(next.themeAccentSecondary) || "#1ecf98");
+    setSolarSurveyThemeSurface(s(next.themeSurface) || "#0f1219");
+    setSolarSurveyGoogleMapsApiKey(s(integrations?.googleMapsApiKey));
+    setSolarSurveyGoogleSolarApiKey(s(integrations?.googleSolarApiKey));
+    setSolarSurveyWebhookUrl(s(integrations?.webhookUrl));
+  }
+
+  function collectSolarSurveyPayload(): SolarSurveyBuilder {
+    const fallback = newSolarSurveyDraft();
+    return {
+      id: "default",
+      name: s(solarSurveyName) || fallback.name,
+      folder: kebabToken(s(solarSurveyFolder) || fallback.folder) || fallback.folder,
+      pageSlug: kebabToken(s(solarSurveyPageSlug) || fallback.pageSlug) || fallback.pageSlug,
+      query: s(solarSurveyQuery) || fallback.query,
+      buttonText: s(solarSurveyButtonText) || fallback.buttonText,
+      modalTitle: s(solarSurveyModalTitle) || fallback.modalTitle,
+      modalSubtitle: s(solarSurveyModalSubtitle) || fallback.modalSubtitle,
+      addressLabel: s(solarSurveyAddressLabel) || fallback.addressLabel,
+      addressPlaceholder: s(solarSurveyAddressPlaceholder) || fallback.addressPlaceholder,
+      stepAddressLabel: s(solarSurveyStepAddressLabel) || fallback.stepAddressLabel,
+      stepInfoLabel: s(solarSurveyStepInfoLabel) || fallback.stepInfoLabel,
+      stepPricingLabel: s(solarSurveyStepPricingLabel) || fallback.stepPricingLabel,
+      nextLabel: s(solarSurveyNextLabel) || fallback.nextLabel,
+      submitLabel: s(solarSurveySubmitLabel) || fallback.submitLabel,
+      themeAccent: s(solarSurveyThemeAccent) || fallback.themeAccent,
+      themeAccentSecondary: s(solarSurveyThemeAccentSecondary) || fallback.themeAccentSecondary,
+      themeSurface: s(solarSurveyThemeSurface) || fallback.themeSurface,
+    };
+  }
+
+  function collectSolarSurveyIntegrationPayload(): SolarSurveyIntegrationSettings {
+    return {
+      googleMapsApiKey: s(solarSurveyGoogleMapsApiKey),
+      googleSolarApiKey: s(solarSurveyGoogleSolarApiKey),
+      webhookUrl: s(solarSurveyWebhookUrl),
+    };
+  }
+
+  async function loadSolarSurveyBuilder() {
+    if (!routeTenantId) return;
+    setSolarSurveyLoading(true);
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/solar-survey`, {
+        cache: "no-store",
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      applySolarSurveyPayload((data?.payload || null) as SolarSurveyBuilder | null, (data?.integrations || null) as SolarSurveyIntegrationSettings | null);
+      setSolarSurveyErr("");
+    } catch (e: unknown) {
+      setSolarSurveyErr(e instanceof Error ? e.message : "Failed to load Solar Survey Builder.");
+    } finally {
+      setSolarSurveyLoading(false);
+    }
+  }
+
+  async function saveSolarSurveyBuilder(opts?: { silent?: boolean }) {
+    if (!routeTenantId) return false;
+    const silent = opts?.silent === true;
+    setSolarSurveySaving(true);
+    if (!silent) {
+      setSolarSurveyErr("");
+      setSolarSurveyMsg("");
+    }
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/solar-survey`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payload: collectSolarSurveyPayload(),
+          integrations: collectSolarSurveyIntegrationPayload(),
+        }),
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      applySolarSurveyPayload((data?.payload || null) as SolarSurveyBuilder | null, (data?.integrations || null) as SolarSurveyIntegrationSettings | null);
+      if (!silent) setSolarSurveyMsg("Solar Survey Builder saved.");
+      await refreshIntegrationsSnapshot();
+      return true;
+    } catch (e: unknown) {
+      setSolarSurveyErr(e instanceof Error ? e.message : "Failed to save Solar Survey Builder.");
+      return false;
+    } finally {
+      setSolarSurveySaving(false);
+    }
+  }
+
+  async function publishSolarSurveyBuilder() {
+    if (!routeTenantId) return;
+    const saved = await saveSolarSurveyBuilder({ silent: true });
+    if (!saved) return;
+    setSolarSurveyPublishing(true);
+    setSolarSurveyErr("");
+    setSolarSurveyMsg("");
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/solar-survey/publish`, {
+        method: "POST",
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) {
+        throw new Error(s(data?.error) || `HTTP ${res.status}`);
+      }
+      const manifest = (data?.manifest || null) as SolarSurveyPublishManifest | null;
+      setSolarSurveyLastPublish(manifest);
+      setSolarSurveyMsg("Solar survey widget published.");
+    } catch (e: unknown) {
+      setSolarSurveyErr(e instanceof Error ? e.message : "Failed to publish solar survey widget.");
+    } finally {
+      setSolarSurveyPublishing(false);
+    }
+  }
+
+  async function loadSolarSurveyPublishedManifest() {
+    if (!routeTenantId) return;
+    try {
+      const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/solar-survey/publish`, {
+        cache: "no-store",
+      });
+      const data = await safeJson(res);
+      if (!res.ok || !data?.ok) return;
+      const manifest = (data?.manifest || null) as SolarSurveyPublishManifest | null;
+      setSolarSurveyLastPublish(manifest);
+    } catch {
+      setSolarSurveyLastPublish(null);
+    }
+  }
+
+  async function copySolarSurveyEmbedCode() {
+    if (!routeTenantId) return;
+    const fileUrl = s(solarSurveyLastPublish?.url);
+    const fallbackUrl = `https://${SEARCH_EMBEDDED_HOST}/embedded/${encodeURIComponent(routeTenantId)}/${encodeURIComponent(s(solarSurveyFolder) || "solar-survey")}/${encodeURIComponent(s(solarSurveyPageSlug) || "solar-survey-widget")}.html`;
+    const src = `${fileUrl || fallbackUrl}${s(solarSurveyQuery) ? (String(fileUrl || fallbackUrl).includes("?") ? "&" : "?") + s(solarSurveyQuery) : ""}`;
+    const embed = `<iframe\n  src="${src}"\n  title="${escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey")}"\n  style="width:100%;min-height:860px;border:0;"\n  loading="lazy"\n></iframe>`;
+    try {
+      await navigator.clipboard.writeText(embed);
+      setSolarSurveyCopied(true);
+      setTimeout(() => setSolarSurveyCopied(false), 1400);
+    } catch {}
+  }
+
+  useEffect(() => {
+    if (!routeTenantId) return;
+    void loadSolarSurveyBuilder();
+    void loadSolarSurveyPublishedManifest();
+  }, [routeTenantId]);
 
   async function createNewSearchBuilder() {
     if (!routeTenantId) return;
@@ -8350,6 +8609,13 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             Search Builder
           </Link>
           <Link
+            className={`agencyNavItem ${activeProjectTab === "solar_survey" ? "agencyNavItemActive" : ""}`}
+            href={projectTabHref("solar_survey")}
+            onClick={() => setActiveProjectTab("solar_survey")}
+          >
+            Solar Survey
+          </Link>
+          <Link
             className={`agencyNavItem ${activeProjectTab === "location_nav" ? "agencyNavItemActive" : ""}`}
             href={projectTabHref("location_nav")}
             onClick={() => setActiveProjectTab("location_nav")}
@@ -10559,6 +10825,129 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               </div>
             </div>
           ) : null}
+        </div>
+      </section>
+      ) : null}
+
+      {activeProjectTab === "solar_survey" ? (
+      <section className="card" style={{ marginTop: 14 }}>
+        <div className="cardHeader">
+          <div>
+            <h2 className="cardTitle">Solar Survey Builder</h2>
+            <div className="cardSubtitle">
+              Builder editable por tenant para botón + modal de 3 pasos, con Google Maps/Solar keys desde Integrations y embed code listo.
+            </div>
+          </div>
+          <div className="cardHeaderActions">
+            {solarSurveyMsg ? <span className="badge">{solarSurveyMsg}</span> : null}
+            {solarSurveyErr ? <span className="badge" style={{ color: "var(--danger)" }}>{solarSurveyErr}</span> : null}
+            <button className="smallBtn" onClick={() => void loadSolarSurveyBuilder()} disabled={solarSurveyLoading}>
+              {solarSurveyLoading ? "Loading..." : "Reload"}
+            </button>
+            <button className="smallBtn" onClick={() => void saveSolarSurveyBuilder()} disabled={solarSurveySaving || solarSurveyPublishing}>
+              {solarSurveySaving ? "Saving..." : "Save"}
+            </button>
+            <button className="smallBtn" onClick={() => void publishSolarSurveyBuilder()} disabled={solarSurveySaving || solarSurveyPublishing}>
+              {solarSurveyPublishing ? "Publishing..." : "Publish"}
+            </button>
+            <button className="smallBtn" onClick={() => void copySolarSurveyEmbedCode()}>
+              {solarSurveyCopied ? "Copied" : "Copy Embed"}
+            </button>
+          </div>
+        </div>
+        <div className="cardBody">
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(320px,1.2fr) minmax(320px,1fr)", gap: 12 }}>
+            <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>Builder</div>
+              <div className="agencyWizardGrid agencyWizardGridTwo">
+                <label className="agencyField"><span className="agencyFieldLabel">Name</span><input className="input" value={solarSurveyName} onChange={(e) => setSolarSurveyName(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Folder</span><input className="input" value={solarSurveyFolder} onChange={(e) => setSolarSurveyFolder(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Page slug</span><input className="input" value={solarSurveyPageSlug} onChange={(e) => setSolarSurveyPageSlug(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Query</span><input className="input" value={solarSurveyQuery} onChange={(e) => setSolarSurveyQuery(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Button text</span><input className="input" value={solarSurveyButtonText} onChange={(e) => setSolarSurveyButtonText(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Modal title</span><input className="input" value={solarSurveyModalTitle} onChange={(e) => setSolarSurveyModalTitle(e.target.value)} /></label>
+                <label className="agencyField agencyFieldFull"><span className="agencyFieldLabel">Modal subtitle</span><textarea className="input agencyTextarea" rows={2} value={solarSurveyModalSubtitle} onChange={(e) => setSolarSurveyModalSubtitle(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Address label</span><input className="input" value={solarSurveyAddressLabel} onChange={(e) => setSolarSurveyAddressLabel(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Address placeholder</span><input className="input" value={solarSurveyAddressPlaceholder} onChange={(e) => setSolarSurveyAddressPlaceholder(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Step 1</span><input className="input" value={solarSurveyStepAddressLabel} onChange={(e) => setSolarSurveyStepAddressLabel(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Step 2</span><input className="input" value={solarSurveyStepInfoLabel} onChange={(e) => setSolarSurveyStepInfoLabel(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Step 3</span><input className="input" value={solarSurveyStepPricingLabel} onChange={(e) => setSolarSurveyStepPricingLabel(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Next button</span><input className="input" value={solarSurveyNextLabel} onChange={(e) => setSolarSurveyNextLabel(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Submit button</span><input className="input" value={solarSurveySubmitLabel} onChange={(e) => setSolarSurveySubmitLabel(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Accent</span><input className="input" value={solarSurveyThemeAccent} onChange={(e) => setSolarSurveyThemeAccent(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Accent secondary</span><input className="input" value={solarSurveyThemeAccentSecondary} onChange={(e) => setSolarSurveyThemeAccentSecondary(e.target.value)} /></label>
+                <label className="agencyField"><span className="agencyFieldLabel">Surface</span><input className="input" value={solarSurveyThemeSurface} onChange={(e) => setSolarSurveyThemeSurface(e.target.value)} /></label>
+              </div>
+            </div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
+                <div style={{ fontWeight: 800, marginBottom: 8 }}>Integrations (Tenant)</div>
+                <div className="agencyWizardGrid">
+                  <label className="agencyField">
+                    <span className="agencyFieldLabel">GOOGLE_MAPS_API_KEY</span>
+                    <input className="input" value={solarSurveyGoogleMapsApiKey} onChange={(e) => setSolarSurveyGoogleMapsApiKey(e.target.value)} />
+                  </label>
+                  <label className="agencyField">
+                    <span className="agencyFieldLabel">GOOGLE_SOLAR_API_KEY</span>
+                    <input className="input" value={solarSurveyGoogleSolarApiKey} onChange={(e) => setSolarSurveyGoogleSolarApiKey(e.target.value)} />
+                  </label>
+                  <label className="agencyField">
+                    <span className="agencyFieldLabel">WEBHOOK_URL</span>
+                    <input className="input" value={solarSurveyWebhookUrl} onChange={(e) => setSolarSurveyWebhookUrl(e.target.value)} />
+                  </label>
+                </div>
+              </div>
+              <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
+                <div style={{ fontWeight: 800, marginBottom: 8 }}>Live Preview</div>
+                <div style={{ padding: 14, borderRadius: 14, background: "linear-gradient(165deg, rgba(2,6,23,.92), rgba(15,23,42,.92))" }}>
+                  <button
+                    type="button"
+                    className="smallBtn"
+                    style={{
+                      background: `linear-gradient(90deg, ${s(solarSurveyThemeAccent) || "#2f6df6"}, ${s(solarSurveyThemeAccentSecondary) || "#1ecf98"})`,
+                      color: "#fff",
+                      border: "0",
+                      borderRadius: 999,
+                      padding: "10px 18px",
+                    }}
+                  >
+                    {s(solarSurveyButtonText) || "Get Solar Estimate"}
+                  </button>
+                  <div style={{ marginTop: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, overflow: "hidden", background: s(solarSurveyThemeSurface) || "#0f1219" }}>
+                    <div style={{ padding: 12, borderBottom: "1px solid rgba(255,255,255,.08)" }}>
+                      <div style={{ fontWeight: 800, fontSize: 18 }}>{s(solarSurveyModalTitle) || "What Will Your Solar System Cost?"}</div>
+                      <div className="mini" style={{ marginTop: 4 }}>{s(solarSurveyModalSubtitle) || "Enter your street address to get an accurate solar estimate instantly."}</div>
+                    </div>
+                    <div style={{ padding: 12 }}>
+                      <div className="mini" style={{ marginBottom: 6 }}>
+                        Step 1 of 3 · {s(solarSurveyStepAddressLabel) || "Address"}
+                      </div>
+                      <input className="input" readOnly value={s(solarSurveyAddressPlaceholder) || "Ex: 1157 Palo Alto St SE, Palm Bay, FL"} />
+                      <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <button type="button" className="smallBtn">Back</button>
+                        <button type="button" className="smallBtn">{s(solarSurveyNextLabel) || "Next Step"}</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ border: "1px solid rgba(255,255,255,.14)", borderRadius: 14, padding: 12, background: "rgba(2,6,23,.45)" }}>
+                <div style={{ fontWeight: 800, marginBottom: 8 }}>Embed Code</div>
+                <textarea
+                  className="input agencyTextarea"
+                  rows={8}
+                  readOnly
+                  value={`<iframe\n  src="${s(solarSurveyLastPublish?.url) || `https://${SEARCH_EMBEDDED_HOST}/embedded/${routeTenantId}/${s(solarSurveyFolder) || "solar-survey"}/${s(solarSurveyPageSlug) || "solar-survey-widget"}.html`}${s(solarSurveyQuery) ? `?${s(solarSurveyQuery)}` : ""}"\n  title="${escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey")}"\n  style="width:100%;min-height:860px;border:0;"\n  loading="lazy"\n></iframe>`}
+                  style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}
+                />
+                {solarSurveyLastPublish ? (
+                  <div className="mini" style={{ marginTop: 6 }}>
+                    Published: {new Date(solarSurveyLastPublish.generatedAt)).toLocaleString()}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       ) : null}
