@@ -219,18 +219,18 @@ function buildWidgetHtml(args: {
     :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#131925;--muted:#5f6a7d;--line:#d8deea;--title-size:${cfg.modalTitleFontSize}px;--body-size:${cfg.modalBodyFontSize}px;}
     *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(80rem 40rem at -10% 110%,rgba(58,103,195,.26),transparent 40%),radial-gradient(80rem 40rem at 110% -10%,rgba(30,207,152,.14),transparent 36%),#0b1324}
     .shell{min-height:100vh;padding:18px;display:flex;align-items:center;justify-content:${cfg.buttonPosition === "left" ? "flex-start" : cfg.buttonPosition === "right" ? "flex-end" : "center"}}
-    .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(115deg,var(--accent),#4f7dff 52%,var(--accent2));cursor:pointer;box-shadow:0 18px 34px rgba(10,18,38,.42);letter-spacing:.01em}
+    .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(115deg,var(--accent),var(--accent2));cursor:pointer;box-shadow:0 18px 34px rgba(10,18,38,.42);letter-spacing:.01em}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:10px;z-index:20}
     .modal.open{display:flex}
     .backdrop{position:absolute;inset:0;background:rgba(2,8,23,.72);backdrop-filter:blur(8px)}
     .card{position:relative;z-index:2;width:min(1040px,92%);height:min(780px,calc(100vh - 60px));overflow:auto;border:1px solid rgba(255,255,255,.22);border-radius:24px;background:linear-gradient(165deg,rgba(249,251,255,.96),rgba(243,246,252,.94));padding:24px 24px 18px;box-shadow:0 26px 70px rgba(5,10,24,.46)}
     .close{position:absolute;right:14px;top:14px;width:42px;height:42px;border-radius:999px;border:1px solid rgba(123,139,169,.32);background:rgba(255,255,255,.85);backdrop-filter:blur(8px);color:#243049;font-size:24px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:all .18s ease}
     .close:hover{background:#fff;border-color:rgba(67,88,128,.42)}
-    .title{margin:0;font-size:clamp(26px,3vw,var(--title-size));letter-spacing:-.038em;max-width:22ch;font-weight:800;line-height:1.04;padding-right:56px}
+    .title{margin:0;font-size:clamp(26px,2.4vw,var(--title-size));letter-spacing:-.038em;max-width:none;font-weight:800;line-height:1.04;padding-right:56px;white-space:nowrap}
     .sub{margin:8px 0 0;color:var(--muted);font-size:var(--body-size)}
     .progressLabel{margin:14px 0 6px;font-size:var(--body-size);color:#5b6882;font-weight:700}
     .track{height:9px;border-radius:999px;background:#d8deea;overflow:hidden;box-shadow:inset 0 1px 2px rgba(18,34,62,.08)}
-    .fill{height:100%;width:33.33%;background:linear-gradient(90deg,var(--accent),#3b92f9,var(--accent2));transition:width .24s ease}
+    .fill{height:100%;width:33.33%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .24s ease}
     .step{display:none;margin-top:14px}.step.on{display:block}
     label{display:block;font-size:var(--body-size);font-weight:700;margin-bottom:6px;color:#2a3241}
     input,textarea,button{font:inherit}
@@ -250,13 +250,14 @@ function buildWidgetHtml(args: {
     .actions{margin-top:10px;display:flex;gap:8px}
     .btn{border:0;border-radius:14px;padding:11px 16px;font-weight:700;cursor:pointer}
     .ghost{background:#e9eef8;color:#22314f}
-    .primary{margin-left:auto;color:#fff;background:linear-gradient(115deg,var(--accent),#4f7dff 55%,var(--accent2));box-shadow:0 12px 22px rgba(44,101,217,.26)}
+    .primary{margin-left:auto;color:#fff;background:linear-gradient(115deg,var(--accent),var(--accent2));box-shadow:0 12px 22px rgba(44,101,217,.26)}
     .status{margin-top:10px;min-height:19px;font-size:var(--body-size);color:#355db7}.err{color:#d42253}
     .embedMode .shell{display:none}
     .embedMode{background:transparent}
     .embedMode .modal{padding:12px}
     .embedMode .backdrop{background:transparent;backdrop-filter:none}
     .embedMode .card{width:min(1040px,92%);height:min(780px,calc(100vh - 34px));border-radius:20px;border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 36px rgba(10,20,40,.16)}
+    @media (max-width:1024px){.title{white-space:normal}}
     @media (max-width:760px){.grid2,.pg{grid-template-columns:1fr}.actions{flex-wrap:wrap}.btn,.primary{width:100%;margin-left:0}}
   </style>
 </head>
