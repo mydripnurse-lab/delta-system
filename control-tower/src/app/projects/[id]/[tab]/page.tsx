@@ -9,6 +9,7 @@ const ALLOWED_TABS = new Set([
   "home",
   "run-center",
   "search-builder",
+  "solar-survey",
   "location-nav",
   "sheet-explorer",
   "project-details",
