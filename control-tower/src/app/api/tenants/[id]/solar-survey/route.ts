@@ -85,6 +85,15 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     pricingBatteryKwPerUnit: normalizeFloat(input?.pricingBatteryKwPerUnit, 5, 1, 20),
     pricingMinSystemKw: normalizeFloat(input?.pricingMinSystemKw, 4, 1, 30),
     pricingSystemSizingDivisor: normalizeFloat(input?.pricingSystemSizingDivisor, 30, 5, 120),
+    embedButtonGradientFrom: normalizeColor(input?.embedButtonGradientFrom, "#2f6df6"),
+    embedButtonGradientTo: normalizeColor(input?.embedButtonGradientTo, "#1ecf98"),
+    embedButtonTextColor: normalizeColor(input?.embedButtonTextColor, "#ffffff"),
+    embedButtonRadius: normalizeNum(input?.embedButtonRadius, 999, 0, 999),
+    embedButtonPaddingY: normalizeNum(input?.embedButtonPaddingY, 12, 6, 40),
+    embedButtonPaddingX: normalizeNum(input?.embedButtonPaddingX, 18, 8, 80),
+    embedButtonFontSize: normalizeNum(input?.embedButtonFontSize, 14, 11, 32),
+    embedButtonFontWeight: normalizeNum(input?.embedButtonFontWeight, 700, 400, 900),
+    embedButtonShadow: normalizeNum(input?.embedButtonShadow, 28, 0, 80),
   };
 }
 

@@ -255,7 +255,7 @@ function buildWidgetHtml(args: {
     .embedMode .shell{display:none}
     .embedMode{background:transparent}
     .embedMode .modal{padding:12px}
-    .embedMode .backdrop{background:rgba(2,8,23,.72);backdrop-filter:blur(8px)}
+    .embedMode .backdrop{background:transparent;backdrop-filter:none}
     .embedMode .card{width:min(1040px,92%);height:min(780px,calc(100vh - 34px));border-radius:20px;border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 36px rgba(10,20,40,.16)}
     @media (max-width:760px){.grid2,.pg{grid-template-columns:1fr}.actions{flex-wrap:wrap}.btn,.primary{width:100%;margin-left:0}}
   </style>
