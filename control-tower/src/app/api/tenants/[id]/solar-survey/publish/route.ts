@@ -59,6 +59,12 @@ function normalizeNum(input: unknown, fallback: number, min: number, max: number
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
+function normalizeFloat(input: unknown, fallback: number, min: number, max: number) {
+  const n = Number(input);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
 function normalizeButtonPosition(input: unknown): "left" | "center" | "right" {
   const v = s(input).toLowerCase();
   if (v === "left" || v === "right") return v;
@@ -87,6 +93,15 @@ function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
     themeSurface: normalizeColor(input?.themeSurface, "#0f1219"),
     modalTitleFontSize: normalizeNum(input?.modalTitleFontSize, 64, 28, 100),
     modalBodyFontSize: normalizeNum(input?.modalBodyFontSize, 15, 12, 30),
+    pricingUtilityRate: normalizeFloat(input?.pricingUtilityRate, 0.27, 0.05, 2),
+    pricingOffsetTarget: normalizeFloat(input?.pricingOffsetTarget, 0.95, 0.4, 1.5),
+    pricingPerformanceRatio: normalizeFloat(input?.pricingPerformanceRatio, 0.82, 0.4, 1.2),
+    pricingSystemCostPerKw: normalizeFloat(input?.pricingSystemCostPerKw, 3050, 500, 20000),
+    pricingBatteryCost: normalizeFloat(input?.pricingBatteryCost, 14900, 1000, 50000),
+    pricingMonthlyFactor: normalizeFloat(input?.pricingMonthlyFactor, 0.0068, 0.001, 0.1),
+    pricingBatteryKwPerUnit: normalizeFloat(input?.pricingBatteryKwPerUnit, 5, 1, 20),
+    pricingMinSystemKw: normalizeFloat(input?.pricingMinSystemKw, 4, 1, 30),
+    pricingSystemSizingDivisor: normalizeFloat(input?.pricingSystemSizingDivisor, 30, 5, 120),
   };
 }
 
@@ -152,6 +167,15 @@ function buildWidgetHtml(args: {
   themeSurface: string;
   modalTitleFontSize: number;
   modalBodyFontSize: number;
+  pricingUtilityRate: number;
+  pricingOffsetTarget: number;
+  pricingPerformanceRatio: number;
+  pricingSystemCostPerKw: number;
+  pricingBatteryCost: number;
+  pricingMonthlyFactor: number;
+  pricingBatteryKwPerUnit: number;
+  pricingMinSystemKw: number;
+  pricingSystemSizingDivisor: number;
 }) {
   const cfg = {
     tenantId: s(args.tenantId),
@@ -172,6 +196,15 @@ function buildWidgetHtml(args: {
     themeSurface: normalizeColor(args.themeSurface, "#0f1219"),
     modalTitleFontSize: normalizeNum(args.modalTitleFontSize, 64, 28, 100),
     modalBodyFontSize: normalizeNum(args.modalBodyFontSize, 15, 12, 30),
+    pricingUtilityRate: normalizeFloat(args.pricingUtilityRate, 0.27, 0.05, 2),
+    pricingOffsetTarget: normalizeFloat(args.pricingOffsetTarget, 0.95, 0.4, 1.5),
+    pricingPerformanceRatio: normalizeFloat(args.pricingPerformanceRatio, 0.82, 0.4, 1.2),
+    pricingSystemCostPerKw: normalizeFloat(args.pricingSystemCostPerKw, 3050, 500, 20000),
+    pricingBatteryCost: normalizeFloat(args.pricingBatteryCost, 14900, 1000, 50000),
+    pricingMonthlyFactor: normalizeFloat(args.pricingMonthlyFactor, 0.0068, 0.001, 0.1),
+    pricingBatteryKwPerUnit: normalizeFloat(args.pricingBatteryKwPerUnit, 5, 1, 20),
+    pricingMinSystemKw: normalizeFloat(args.pricingMinSystemKw, 4, 1, 30),
+    pricingSystemSizingDivisor: normalizeFloat(args.pricingSystemSizingDivisor, 30, 5, 120),
   };
   return `<!doctype html>
 <html lang="en">
@@ -183,44 +216,46 @@ function buildWidgetHtml(args: {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#171b27;--muted:#5f6a7d;--line:#d8deea;--title-size:${cfg.modalTitleFontSize}px;--body-size:${cfg.modalBodyFontSize}px;}
-    *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:linear-gradient(180deg,#eef2f9,#e8edf7)}
+    :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#131925;--muted:#5f6a7d;--line:#d8deea;--title-size:${cfg.modalTitleFontSize}px;--body-size:${cfg.modalBodyFontSize}px;}
+    *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(80rem 40rem at -10% 110%,rgba(58,103,195,.26),transparent 40%),radial-gradient(80rem 40rem at 110% -10%,rgba(30,207,152,.14),transparent 36%),#0b1324}
     .shell{min-height:100vh;padding:18px;display:flex;align-items:center;justify-content:${cfg.buttonPosition === "left" ? "flex-start" : cfg.buttonPosition === "right" ? "flex-end" : "center"}}
-    .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(90deg,var(--accent),#4275ff,var(--accent2));cursor:pointer;box-shadow:0 16px 36px rgba(0,0,0,.35)}
+    .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(115deg,var(--accent),#4f7dff 52%,var(--accent2));cursor:pointer;box-shadow:0 18px 34px rgba(10,18,38,.42);letter-spacing:.01em}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:10px;z-index:20}
     .modal.open{display:flex}
-    .backdrop{position:absolute;inset:0;background:rgba(15,23,42,.08);backdrop-filter:none}
-    .card{position:relative;z-index:2;width:min(1040px,92%);height:min(780px,calc(100vh - 60px));overflow:auto;border:1px solid rgba(255,255,255,.82);border-radius:20px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.08),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.06),transparent 45%),#f4f6fb;padding:22px 22px 18px;box-shadow:0 14px 42px rgba(10,20,40,.18)}
-    h1{margin:0;font-size:clamp(26px,3vw,var(--title-size));letter-spacing:-.03em;max-width:22ch}
+    .backdrop{position:absolute;inset:0;background:rgba(2,8,23,.72);backdrop-filter:blur(8px)}
+    .card{position:relative;z-index:2;width:min(1040px,92%);height:min(780px,calc(100vh - 60px));overflow:auto;border:1px solid rgba(255,255,255,.22);border-radius:24px;background:linear-gradient(165deg,rgba(249,251,255,.96),rgba(243,246,252,.94));padding:24px 24px 18px;box-shadow:0 26px 70px rgba(5,10,24,.46)}
+    .close{position:absolute;right:14px;top:14px;width:42px;height:42px;border-radius:999px;border:1px solid rgba(123,139,169,.32);background:rgba(255,255,255,.85);backdrop-filter:blur(8px);color:#243049;font-size:24px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:all .18s ease}
+    .close:hover{background:#fff;border-color:rgba(67,88,128,.42)}
+    .title{margin:0;font-size:clamp(26px,3vw,var(--title-size));letter-spacing:-.038em;max-width:22ch;font-weight:800;line-height:1.04;padding-right:56px}
     .sub{margin:8px 0 0;color:var(--muted);font-size:var(--body-size)}
     .progressLabel{margin:14px 0 6px;font-size:var(--body-size);color:#5b6882;font-weight:700}
-    .track{height:8px;border-radius:999px;background:#dde3ef;overflow:hidden}
-    .fill{height:100%;width:33.33%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .24s ease}
+    .track{height:9px;border-radius:999px;background:#d8deea;overflow:hidden;box-shadow:inset 0 1px 2px rgba(18,34,62,.08)}
+    .fill{height:100%;width:33.33%;background:linear-gradient(90deg,var(--accent),#3b92f9,var(--accent2));transition:width .24s ease}
     .step{display:none;margin-top:14px}.step.on{display:block}
     label{display:block;font-size:var(--body-size);font-weight:700;margin-bottom:6px;color:#2a3241}
     input,textarea,button{font:inherit}
-    input,textarea{width:100%;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:14px;padding:11px 12px;font-size:var(--body-size)}
+    input,textarea{width:100%;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:14px;padding:12px 13px;font-size:var(--body-size);box-shadow:inset 0 1px 1px rgba(14,28,53,.04)}
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .mapWrap{margin-top:10px;position:relative}
-    #map{height:min(45vh,500px);border-radius:18px;border:1px solid #d8deea;overflow:hidden;background:#eef2f8}
-    .mapEditFab{position:absolute;right:12px;top:12px;transform:none;border:1px solid rgba(39,47,66,.12);border-radius:999px;background:rgba(255,255,255,.98);color:#374154;width:44px;height:44px;cursor:pointer;display:grid;place-items:center;box-shadow:0 12px 26px rgba(8,12,22,.18)}
+    #map{height:min(45vh,500px);border-radius:18px;border:1px solid #d8deea;overflow:hidden;background:#eef2f8;box-shadow:0 10px 24px rgba(10,20,40,.12)}
+    .mapEditFab{position:relative;margin:10px 10px 0 0;border:1px solid rgba(39,47,66,.12);border-radius:999px;background:rgba(255,255,255,.98);color:#374154;width:44px;height:44px;cursor:pointer;display:grid;place-items:center;box-shadow:0 12px 26px rgba(8,12,22,.18)}
     .mapEditFab.on{background:rgba(46,108,246,.12);border-color:rgba(46,108,246,.36);color:#1942ad}
     .mapEditFab svg{width:18px;height:18px;fill:currentColor}
     .mapTip{display:none}
-    .price{margin-top:8px;border:1px solid #dce2ef;border-radius:16px;background:#fff;padding:10px}
-    .price h3{margin:0 0 8px;font-size:16px}
+    .price{margin-top:8px;border:1px solid #dce2ef;border-radius:16px;background:linear-gradient(180deg,#ffffff,#f9fbff);padding:12px}
+    .priceTitle{margin:0 0 8px;font-size:16px;font-weight:700}
     .pg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-    .pg article{border:1px solid #e1e6f1;border-radius:10px;padding:8px}
-    .pg p{margin:0;font-size:11px;color:#6a768d}.pg strong{display:block;margin-top:3px}
+    .pg article{border:1px solid #e1e6f1;border-radius:12px;padding:10px;background:#fff}
+    .pg p{margin:0;font-size:11px;color:#6a768d}.pg strong{display:block;margin-top:4px;font-size:19px;letter-spacing:-.01em}
     .actions{margin-top:10px;display:flex;gap:8px}
-    .btn{border:0;border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer}
-    .ghost{background:#e8edf6;color:#253146}
-    .primary{margin-left:auto;color:#fff;background:linear-gradient(90deg,var(--accent),#4c7aff)}
+    .btn{border:0;border-radius:14px;padding:11px 16px;font-weight:700;cursor:pointer}
+    .ghost{background:#e9eef8;color:#22314f}
+    .primary{margin-left:auto;color:#fff;background:linear-gradient(115deg,var(--accent),#4f7dff 55%,var(--accent2));box-shadow:0 12px 22px rgba(44,101,217,.26)}
     .status{margin-top:10px;min-height:19px;font-size:var(--body-size);color:#355db7}.err{color:#d42253}
     .embedMode .shell{display:none}
     .embedMode{background:transparent}
     .embedMode .modal{padding:12px}
-    .embedMode .backdrop{background:rgba(15,23,42,.05);backdrop-filter:none}
+    .embedMode .backdrop{background:rgba(2,8,23,.72);backdrop-filter:blur(8px)}
     .embedMode .card{width:min(1040px,92%);height:min(780px,calc(100vh - 34px));border-radius:20px;border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 36px rgba(10,20,40,.16)}
     @media (max-width:760px){.grid2,.pg{grid-template-columns:1fr}.actions{flex-wrap:wrap}.btn,.primary{width:100%;margin-left:0}}
   </style>
@@ -230,7 +265,8 @@ function buildWidgetHtml(args: {
   <div class="modal" id="modal" aria-hidden="true">
     <div class="backdrop" id="backdrop"></div>
     <div class="card">
-      <h1 id="title">${esc(cfg.modalTitle)}</h1>
+      <button id="closeBtn" class="close" type="button" aria-label="Close">×</button>
+      <p id="title" class="title">${esc(cfg.modalTitle)}</p>
       <p class="sub" id="subtitle">${esc(cfg.modalSubtitle)}</p>
       <div class="progressLabel" id="pLabel">Step 1 of 3 · ${esc(cfg.stepAddressLabel)}</div>
       <div class="track"><div id="fill" class="fill"></div></div>
@@ -262,7 +298,7 @@ function buildWidgetHtml(args: {
         </section>
         <section class="step" data-step="3">
           <div class="price">
-            <h3>Estimated Solar Pricing</h3>
+            <p class="priceTitle">Estimated Solar Pricing</p>
             <div class="pg">
               <article><p>Estimated System</p><strong id="estSystem">-</strong></article>
               <article><p>Panels</p><strong id="estPanels">-</strong></article>
@@ -290,6 +326,7 @@ function buildWidgetHtml(args: {
     const state = { step:1, selectedPlace:null, solarSummary:null, roofPolygon:null };
     const modal = document.getElementById("modal");
     const openBtn = document.getElementById("openBtn");
+    const closeBtn = document.getElementById("closeBtn");
     const backdrop = document.getElementById("backdrop");
     const pLabel = document.getElementById("pLabel");
     const fill = document.getElementById("fill");
@@ -431,7 +468,13 @@ function buildWidgetHtml(args: {
         mapTypeId: "satellite",
         mapTypeControl: false,
         fullscreenControl: false,
-        streetViewControl: false
+        streetViewControl: false,
+        rotateControl: false,
+        tilt: 0,
+      });
+      map.setTilt(0);
+      google.maps.event.addListener(map, "tilt_changed", () => {
+        if (map && typeof map.getTilt === "function" && Number(map.getTilt() || 0) !== 0) map.setTilt(0);
       });
       geocoder = new google.maps.Geocoder();
       autocomplete = new google.maps.places.Autocomplete(addressInput, {
@@ -471,6 +514,9 @@ function buildWidgetHtml(args: {
         },
       });
       drawingManager.setMap(map);
+      if (roofEditBtn) {
+        map.controls[google.maps.ControlPosition.RIGHT_TOP].push(roofEditBtn);
+      }
       google.maps.event.addListener(drawingManager, "overlaycomplete", (evt) => {
         if (!evt || evt.type !== google.maps.drawing.OverlayType.POLYGON) return;
         clearRoofPolygon();
@@ -555,19 +601,23 @@ function buildWidgetHtml(args: {
         document.getElementById("estAddress").textContent = state.selectedPlace ? state.selectedPlace.formattedAddress : "-";
         return;
       }
-      const utilityRate = 0.27;
+      const utilityRate = Number(cfg.pricingUtilityRate || 0.27);
       const monthlyKwh = bill / Math.max(0.01, utilityRate);
       const panelKw = Number(summary.panelCapacityWatts || 400) / 1000;
       const sunHoursYear = Number(summary.maxSunHoursYear || 1550);
-      const annualKwhPerPanel = panelKw * sunHoursYear * 0.82;
-      const targetAnnualKwh = monthlyKwh * 12 * 0.95;
+      const annualKwhPerPanel = panelKw * sunHoursYear * Number(cfg.pricingPerformanceRatio || 0.82);
+      const targetAnnualKwh = monthlyKwh * 12 * Number(cfg.pricingOffsetTarget || 0.95);
       const rawPanels = Math.max(4, Math.ceil(targetAnnualKwh / Math.max(1, annualKwhPerPanel)));
       const maxPanels = Number(summary.maxPanels || 0) || 0;
       const panels = maxPanels ? Math.min(rawPanels, maxPanels) : rawPanels;
-      const systemKw = Number(summary.maxSystemKw || 0) ? Math.min(Math.max(4, bill/30), Number(summary.maxSystemKw)) : Math.max(4, bill/30);
-      const batteries = Math.max(1, Math.ceil(systemKw / 5));
-      const projectCost = (systemKw * 3050) + (batteries * 14900);
-      const monthlyPayment = projectCost * 0.0068;
+      const minSystemKw = Number(cfg.pricingMinSystemKw || 4);
+      const sizingDivisor = Number(cfg.pricingSystemSizingDivisor || 30);
+      const systemKw = Number(summary.maxSystemKw || 0)
+        ? Math.min(Math.max(minSystemKw, bill/Math.max(1, sizingDivisor)), Number(summary.maxSystemKw))
+        : Math.max(minSystemKw, bill/Math.max(1, sizingDivisor));
+      const batteries = Math.max(1, Math.ceil(systemKw / Math.max(1, Number(cfg.pricingBatteryKwPerUnit || 5))));
+      const projectCost = (systemKw * Number(cfg.pricingSystemCostPerKw || 3050)) + (batteries * Number(cfg.pricingBatteryCost || 14900));
+      const monthlyPayment = projectCost * Number(cfg.pricingMonthlyFactor || 0.0068);
       const savings = Math.max(0, (bill - monthlyPayment) * 12);
       document.getElementById("estSystem").textContent = systemKw.toFixed(1) + " kW";
       document.getElementById("estPanels").textContent = String(panels);
@@ -646,6 +696,7 @@ function buildWidgetHtml(args: {
       }
     });
     openBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
     backdrop.addEventListener("click", closeModal);
     roofEditBtn.addEventListener("click", () => {
       if (!drawingManager || !window.google) return;
@@ -801,6 +852,15 @@ export async function POST(req: Request, ctx: Ctx) {
       themeSurface: builder.themeSurface,
       modalTitleFontSize: builder.modalTitleFontSize,
       modalBodyFontSize: builder.modalBodyFontSize,
+      pricingUtilityRate: builder.pricingUtilityRate,
+      pricingOffsetTarget: builder.pricingOffsetTarget,
+      pricingPerformanceRatio: builder.pricingPerformanceRatio,
+      pricingSystemCostPerKw: builder.pricingSystemCostPerKw,
+      pricingBatteryCost: builder.pricingBatteryCost,
+      pricingMonthlyFactor: builder.pricingMonthlyFactor,
+      pricingBatteryKwPerUnit: builder.pricingBatteryKwPerUnit,
+      pricingMinSystemKw: builder.pricingMinSystemKw,
+      pricingSystemSizingDivisor: builder.pricingSystemSizingDivisor,
     });
 
     await upsertPublishedFile(tenantId, keyName, html);

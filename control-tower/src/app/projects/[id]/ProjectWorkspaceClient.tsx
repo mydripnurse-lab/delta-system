@@ -219,6 +219,15 @@ type SolarSurveyBuilder = {
   themeSurface: string;
   modalTitleFontSize: number;
   modalBodyFontSize: number;
+  pricingUtilityRate: number;
+  pricingOffsetTarget: number;
+  pricingPerformanceRatio: number;
+  pricingSystemCostPerKw: number;
+  pricingBatteryCost: number;
+  pricingMonthlyFactor: number;
+  pricingBatteryKwPerUnit: number;
+  pricingMinSystemKw: number;
+  pricingSystemSizingDivisor: number;
   embedButtonGradientFrom: string;
   embedButtonGradientTo: string;
   embedButtonTextColor: string;
@@ -1161,6 +1170,15 @@ export default function Home() {
   const [solarSurveyThemeSurface, setSolarSurveyThemeSurface] = useState("#0f1219");
   const [solarSurveyModalTitleFontSize, setSolarSurveyModalTitleFontSize] = useState(64);
   const [solarSurveyModalBodyFontSize, setSolarSurveyModalBodyFontSize] = useState(15);
+  const [solarSurveyPricingUtilityRate, setSolarSurveyPricingUtilityRate] = useState(0.27);
+  const [solarSurveyPricingOffsetTarget, setSolarSurveyPricingOffsetTarget] = useState(0.95);
+  const [solarSurveyPricingPerformanceRatio, setSolarSurveyPricingPerformanceRatio] = useState(0.82);
+  const [solarSurveyPricingSystemCostPerKw, setSolarSurveyPricingSystemCostPerKw] = useState(3050);
+  const [solarSurveyPricingBatteryCost, setSolarSurveyPricingBatteryCost] = useState(14900);
+  const [solarSurveyPricingMonthlyFactor, setSolarSurveyPricingMonthlyFactor] = useState(0.0068);
+  const [solarSurveyPricingBatteryKwPerUnit, setSolarSurveyPricingBatteryKwPerUnit] = useState(5);
+  const [solarSurveyPricingMinSystemKw, setSolarSurveyPricingMinSystemKw] = useState(4);
+  const [solarSurveyPricingSystemSizingDivisor, setSolarSurveyPricingSystemSizingDivisor] = useState(30);
   const [solarSurveyEmbedButtonGradientFrom, setSolarSurveyEmbedButtonGradientFrom] = useState("#2f6df6");
   const [solarSurveyEmbedButtonGradientTo, setSolarSurveyEmbedButtonGradientTo] = useState("#1ecf98");
   const [solarSurveyEmbedButtonTextColor, setSolarSurveyEmbedButtonTextColor] = useState("#ffffff");
@@ -2750,6 +2768,15 @@ export default function Home() {
       themeSurface: "#0f1219",
       modalTitleFontSize: 64,
       modalBodyFontSize: 15,
+      pricingUtilityRate: 0.27,
+      pricingOffsetTarget: 0.95,
+      pricingPerformanceRatio: 0.82,
+      pricingSystemCostPerKw: 3050,
+      pricingBatteryCost: 14900,
+      pricingMonthlyFactor: 0.0068,
+      pricingBatteryKwPerUnit: 5,
+      pricingMinSystemKw: 4,
+      pricingSystemSizingDivisor: 30,
       embedButtonGradientFrom: "#2f6df6",
       embedButtonGradientTo: "#1ecf98",
       embedButtonTextColor: "#ffffff",
@@ -2790,6 +2817,15 @@ export default function Home() {
     setSolarSurveyThemeSurface(s(next.themeSurface) || "#0f1219");
     setSolarSurveyModalTitleFontSize(Math.max(28, Number(next.modalTitleFontSize || 64)));
     setSolarSurveyModalBodyFontSize(Math.max(12, Number(next.modalBodyFontSize || 15)));
+    setSolarSurveyPricingUtilityRate(Math.max(0.05, Number(next.pricingUtilityRate || 0.27)));
+    setSolarSurveyPricingOffsetTarget(Math.max(0.4, Number(next.pricingOffsetTarget || 0.95)));
+    setSolarSurveyPricingPerformanceRatio(Math.max(0.4, Number(next.pricingPerformanceRatio || 0.82)));
+    setSolarSurveyPricingSystemCostPerKw(Math.max(500, Number(next.pricingSystemCostPerKw || 3050)));
+    setSolarSurveyPricingBatteryCost(Math.max(1000, Number(next.pricingBatteryCost || 14900)));
+    setSolarSurveyPricingMonthlyFactor(Math.max(0.001, Number(next.pricingMonthlyFactor || 0.0068)));
+    setSolarSurveyPricingBatteryKwPerUnit(Math.max(1, Number(next.pricingBatteryKwPerUnit || 5)));
+    setSolarSurveyPricingMinSystemKw(Math.max(1, Number(next.pricingMinSystemKw || 4)));
+    setSolarSurveyPricingSystemSizingDivisor(Math.max(5, Number(next.pricingSystemSizingDivisor || 30)));
     setSolarSurveyEmbedButtonGradientFrom(s(next.embedButtonGradientFrom) || "#2f6df6");
     setSolarSurveyEmbedButtonGradientTo(s(next.embedButtonGradientTo) || "#1ecf98");
     setSolarSurveyEmbedButtonTextColor(s(next.embedButtonTextColor) || "#ffffff");
@@ -2828,6 +2864,15 @@ export default function Home() {
       themeSurface: s(solarSurveyThemeSurface) || fallback.themeSurface,
       modalTitleFontSize: Math.max(28, Number(solarSurveyModalTitleFontSize) || fallback.modalTitleFontSize),
       modalBodyFontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || fallback.modalBodyFontSize),
+      pricingUtilityRate: Math.max(0.05, Number(solarSurveyPricingUtilityRate) || fallback.pricingUtilityRate),
+      pricingOffsetTarget: Math.max(0.4, Number(solarSurveyPricingOffsetTarget) || fallback.pricingOffsetTarget),
+      pricingPerformanceRatio: Math.max(0.4, Number(solarSurveyPricingPerformanceRatio) || fallback.pricingPerformanceRatio),
+      pricingSystemCostPerKw: Math.max(500, Number(solarSurveyPricingSystemCostPerKw) || fallback.pricingSystemCostPerKw),
+      pricingBatteryCost: Math.max(1000, Number(solarSurveyPricingBatteryCost) || fallback.pricingBatteryCost),
+      pricingMonthlyFactor: Math.max(0.001, Number(solarSurveyPricingMonthlyFactor) || fallback.pricingMonthlyFactor),
+      pricingBatteryKwPerUnit: Math.max(1, Number(solarSurveyPricingBatteryKwPerUnit) || fallback.pricingBatteryKwPerUnit),
+      pricingMinSystemKw: Math.max(1, Number(solarSurveyPricingMinSystemKw) || fallback.pricingMinSystemKw),
+      pricingSystemSizingDivisor: Math.max(5, Number(solarSurveyPricingSystemSizingDivisor) || fallback.pricingSystemSizingDivisor),
       embedButtonGradientFrom: s(solarSurveyEmbedButtonGradientFrom) || fallback.embedButtonGradientFrom,
       embedButtonGradientTo: s(solarSurveyEmbedButtonGradientTo) || fallback.embedButtonGradientTo,
       embedButtonTextColor: s(solarSurveyEmbedButtonTextColor) || fallback.embedButtonTextColor,
@@ -2998,8 +3043,8 @@ export default function Home() {
     overlay.style.position = "fixed";
     overlay.style.inset = "0";
     overlay.style.zIndex = "2147483647";
-    overlay.style.background = "transparent";
-    overlay.style.backdropFilter = "none";
+    overlay.style.background = "rgba(2,8,23,.66)";
+    overlay.style.backdropFilter = "blur(4px)";
     overlay.innerHTML = '<div style="position:absolute;inset:18px;max-width:1080px;margin:auto;height:calc(100vh - 36px);background:transparent;border-radius:20px;overflow:hidden;box-shadow:0 14px 42px rgba(10,20,40,.18)"><iframe src="' + src + '" title="${titleText}" style="width:100%;height:100%;border:0;background:transparent" loading="lazy" allow="clipboard-write"></iframe></div>';
     document.body.appendChild(overlay);
     overlay.addEventListener("click", function(e){ if (e.target === overlay) closeModal(); });
@@ -11182,6 +11227,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <div className="field"><label>Submit Button</label><input className="input" value={solarSurveySubmitLabel} onChange={(e) => setSolarSurveySubmitLabel(e.target.value)} /></div>
                       <div className="field"><label>Title Font Size</label><input className="input" type="number" min={28} max={100} value={solarSurveyModalTitleFontSize} onChange={(e) => setSolarSurveyModalTitleFontSize(Number(e.target.value) || 64)} /></div>
                       <div className="field"><label>Body Font Size</label><input className="input" type="number" min={12} max={30} value={solarSurveyModalBodyFontSize} onChange={(e) => setSolarSurveyModalBodyFontSize(Number(e.target.value) || 15)} /></div>
+                      <div className="field"><label>Utility Rate ($/kWh)</label><input className="input" type="number" step="0.01" min={0.05} max={2} value={solarSurveyPricingUtilityRate} onChange={(e) => setSolarSurveyPricingUtilityRate(Number(e.target.value) || 0.27)} /></div>
+                      <div className="field"><label>Target Offset</label><input className="input" type="number" step="0.01" min={0.4} max={1.5} value={solarSurveyPricingOffsetTarget} onChange={(e) => setSolarSurveyPricingOffsetTarget(Number(e.target.value) || 0.95)} /></div>
+                      <div className="field"><label>Performance Ratio</label><input className="input" type="number" step="0.01" min={0.4} max={1.2} value={solarSurveyPricingPerformanceRatio} onChange={(e) => setSolarSurveyPricingPerformanceRatio(Number(e.target.value) || 0.82)} /></div>
+                      <div className="field"><label>System Cost per kW</label><input className="input" type="number" step="10" min={500} max={20000} value={solarSurveyPricingSystemCostPerKw} onChange={(e) => setSolarSurveyPricingSystemCostPerKw(Number(e.target.value) || 3050)} /></div>
+                      <div className="field"><label>Battery Cost</label><input className="input" type="number" step="100" min={1000} max={50000} value={solarSurveyPricingBatteryCost} onChange={(e) => setSolarSurveyPricingBatteryCost(Number(e.target.value) || 14900)} /></div>
+                      <div className="field"><label>Monthly Finance Factor</label><input className="input" type="number" step="0.0001" min={0.001} max={0.1} value={solarSurveyPricingMonthlyFactor} onChange={(e) => setSolarSurveyPricingMonthlyFactor(Number(e.target.value) || 0.0068)} /></div>
+                      <div className="field"><label>Battery kW per Unit</label><input className="input" type="number" step="0.1" min={1} max={20} value={solarSurveyPricingBatteryKwPerUnit} onChange={(e) => setSolarSurveyPricingBatteryKwPerUnit(Number(e.target.value) || 5)} /></div>
+                      <div className="field"><label>Min System kW</label><input className="input" type="number" step="0.1" min={1} max={30} value={solarSurveyPricingMinSystemKw} onChange={(e) => setSolarSurveyPricingMinSystemKw(Number(e.target.value) || 4)} /></div>
+                      <div className="field"><label>System Sizing Divisor</label><input className="input" type="number" step="0.1" min={5} max={120} value={solarSurveyPricingSystemSizingDivisor} onChange={(e) => setSolarSurveyPricingSystemSizingDivisor(Number(e.target.value) || 30)} /></div>
                       <div className="field"><label>Accent</label><input className="input" value={solarSurveyThemeAccent} onChange={(e) => setSolarSurveyThemeAccent(e.target.value)} /></div>
                       <div className="field"><label>Accent Secondary</label><input className="input" value={solarSurveyThemeAccentSecondary} onChange={(e) => setSolarSurveyThemeAccentSecondary(e.target.value)} /></div>
                       <div className="field"><label>Surface</label><input className="input" value={solarSurveyThemeSurface} onChange={(e) => setSolarSurveyThemeSurface(e.target.value)} /></div>

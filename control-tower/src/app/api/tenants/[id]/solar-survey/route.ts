@@ -40,6 +40,12 @@ function normalizeNum(input: unknown, fallback: number, min: number, max: number
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
+function normalizeFloat(input: unknown, fallback: number, min: number, max: number) {
+  const n = Number(input);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
 function normalizeButtonPosition(input: unknown): "left" | "center" | "right" {
   const v = s(input).toLowerCase();
   if (v === "left" || v === "right") return v;
@@ -70,6 +76,15 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     themeSurface: normalizeColor(input?.themeSurface, "#0f1219"),
     modalTitleFontSize: normalizeNum(input?.modalTitleFontSize, 64, 28, 100),
     modalBodyFontSize: normalizeNum(input?.modalBodyFontSize, 15, 12, 30),
+    pricingUtilityRate: normalizeFloat(input?.pricingUtilityRate, 0.27, 0.05, 2),
+    pricingOffsetTarget: normalizeFloat(input?.pricingOffsetTarget, 0.95, 0.4, 1.5),
+    pricingPerformanceRatio: normalizeFloat(input?.pricingPerformanceRatio, 0.82, 0.4, 1.2),
+    pricingSystemCostPerKw: normalizeFloat(input?.pricingSystemCostPerKw, 3050, 500, 20000),
+    pricingBatteryCost: normalizeFloat(input?.pricingBatteryCost, 14900, 1000, 50000),
+    pricingMonthlyFactor: normalizeFloat(input?.pricingMonthlyFactor, 0.0068, 0.001, 0.1),
+    pricingBatteryKwPerUnit: normalizeFloat(input?.pricingBatteryKwPerUnit, 5, 1, 20),
+    pricingMinSystemKw: normalizeFloat(input?.pricingMinSystemKw, 4, 1, 30),
+    pricingSystemSizingDivisor: normalizeFloat(input?.pricingSystemSizingDivisor, 30, 5, 120),
   };
 }
 
