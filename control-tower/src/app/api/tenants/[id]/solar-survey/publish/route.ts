@@ -53,6 +53,12 @@ function normalizeColor(input: unknown, fallback: string) {
   return fallback;
 }
 
+function normalizeNum(input: unknown, fallback: number, min: number, max: number) {
+  const n = Number(input);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
 function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
   return {
     folder: kebabToken(s(input?.folder) || "solar-survey") || "solar-survey",
@@ -72,6 +78,8 @@ function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
     themeAccent: normalizeColor(input?.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(input?.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(input?.themeSurface, "#0f1219"),
+    modalTitleFontSize: normalizeNum(input?.modalTitleFontSize, 64, 28, 100),
+    modalBodyFontSize: normalizeNum(input?.modalBodyFontSize, 15, 12, 30),
   };
 }
 
@@ -134,6 +142,8 @@ function buildWidgetHtml(args: {
   themeAccent: string;
   themeAccentSecondary: string;
   themeSurface: string;
+  modalTitleFontSize: number;
+  modalBodyFontSize: number;
 }) {
   const cfg = {
     tenantId: s(args.tenantId),
@@ -151,6 +161,8 @@ function buildWidgetHtml(args: {
     themeAccent: normalizeColor(args.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(args.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(args.themeSurface, "#0f1219"),
+    modalTitleFontSize: normalizeNum(args.modalTitleFontSize, 64, 28, 100),
+    modalBodyFontSize: normalizeNum(args.modalBodyFontSize, 15, 12, 30),
   };
   return `<!doctype html>
 <html lang="en">
@@ -162,24 +174,24 @@ function buildWidgetHtml(args: {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#171b27;--muted:#5f6a7d;--line:#d8deea;}
-    *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(70rem 35rem at -15% -12%,rgba(47,109,246,.28),transparent 40%),radial-gradient(70rem 35rem at 120% 115%,rgba(30,207,152,.18),transparent 45%),#0f1624}
+    :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#171b27;--muted:#5f6a7d;--line:#d8deea;--title-size:${cfg.modalTitleFontSize}px;--body-size:${cfg.modalBodyFontSize}px;}
+    *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:linear-gradient(180deg,#eef2f9,#e8edf7)}
     .shell{min-height:100vh;padding:18px;display:grid;place-items:center}
     .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(90deg,var(--accent),#4275ff,var(--accent2));cursor:pointer;box-shadow:0 16px 36px rgba(0,0,0,.35)}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:10px;z-index:20}
     .modal.open{display:flex}
-    .backdrop{position:absolute;inset:0;background:rgba(11,15,24,.62);backdrop-filter:blur(10px)}
+    .backdrop{position:absolute;inset:0;background:rgba(236,241,249,.82);backdrop-filter:blur(4px)}
     .card{position:relative;z-index:2;width:min(1300px,96%);max-height:calc(100vh - 20px);overflow:auto;border:1px solid rgba(255,255,255,.7);border-radius:24px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.08),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.06),transparent 45%),#f4f6fb;padding:26px 26px 22px;box-shadow:0 32px 80px rgba(0,0,0,.36)}
     .close{position:absolute;right:12px;top:10px;border:1px solid #cfd5e2;border-radius:999px;background:#f4f7fb;color:#3d4658;width:36px;height:36px;cursor:pointer}
-    h1{margin:0;font-size:clamp(26px,3vw,44px);letter-spacing:-.03em;max-width:22ch}
-    .sub{margin:8px 0 0;color:var(--muted);font-size:clamp(18px,1.9vw,22px)}
-    .progressLabel{margin:14px 0 6px;font-size:13px;color:#5b6882;font-weight:700}
+    h1{margin:0;font-size:clamp(26px,3vw,var(--title-size));letter-spacing:-.03em;max-width:22ch}
+    .sub{margin:8px 0 0;color:var(--muted);font-size:var(--body-size)}
+    .progressLabel{margin:14px 0 6px;font-size:var(--body-size);color:#5b6882;font-weight:700}
     .track{height:8px;border-radius:999px;background:#dde3ef;overflow:hidden}
     .fill{height:100%;width:33.33%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .24s ease}
     .step{display:none;margin-top:14px}.step.on{display:block}
-    label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:#2a3241}
+    label{display:block;font-size:var(--body-size);font-weight:700;margin-bottom:6px;color:#2a3241}
     input,textarea,button{font:inherit}
-    input,textarea{width:100%;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:14px;padding:11px 12px}
+    input,textarea{width:100%;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:14px;padding:11px 12px;font-size:var(--body-size)}
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .mapWrap{margin-top:10px;position:relative}
     #map{height:min(45vh,500px);border-radius:18px;border:1px solid #d8deea;overflow:hidden;background:#eef2f8}
@@ -196,8 +208,12 @@ function buildWidgetHtml(args: {
     .btn{border:0;border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer}
     .ghost{background:#e8edf6;color:#253146}
     .primary{margin-left:auto;color:#fff;background:linear-gradient(90deg,var(--accent),#4c7aff)}
-    .status{margin-top:10px;min-height:19px;font-size:13px;color:#355db7}.err{color:#d42253}
+    .status{margin-top:10px;min-height:19px;font-size:var(--body-size);color:#355db7}.err{color:#d42253}
     .embedMode .shell{display:none}
+    .embedMode{background:transparent}
+    .embedMode .modal{padding:0}
+    .embedMode .backdrop{background:transparent;backdrop-filter:none}
+    .embedMode .card{width:100%;max-width:none;max-height:100vh;border-radius:0;border:0;box-shadow:none}
     @media (max-width:760px){.grid2,.pg{grid-template-columns:1fr}.actions{flex-wrap:wrap}.btn,.primary{width:100%;margin-left:0}}
   </style>
 </head>
@@ -776,6 +792,8 @@ export async function POST(req: Request, ctx: Ctx) {
       themeAccent: builder.themeAccent,
       themeAccentSecondary: builder.themeAccentSecondary,
       themeSurface: builder.themeSurface,
+      modalTitleFontSize: builder.modalTitleFontSize,
+      modalBodyFontSize: builder.modalBodyFontSize,
     });
 
     await upsertPublishedFile(tenantId, keyName, html);

@@ -216,6 +216,8 @@ type SolarSurveyBuilder = {
   themeAccent: string;
   themeAccentSecondary: string;
   themeSurface: string;
+  modalTitleFontSize: number;
+  modalBodyFontSize: number;
   embedButtonGradientFrom: string;
   embedButtonGradientTo: string;
   embedButtonTextColor: string;
@@ -1155,6 +1157,8 @@ export default function Home() {
   const [solarSurveyThemeAccent, setSolarSurveyThemeAccent] = useState("#2f6df6");
   const [solarSurveyThemeAccentSecondary, setSolarSurveyThemeAccentSecondary] = useState("#1ecf98");
   const [solarSurveyThemeSurface, setSolarSurveyThemeSurface] = useState("#0f1219");
+  const [solarSurveyModalTitleFontSize, setSolarSurveyModalTitleFontSize] = useState(64);
+  const [solarSurveyModalBodyFontSize, setSolarSurveyModalBodyFontSize] = useState(15);
   const [solarSurveyEmbedButtonGradientFrom, setSolarSurveyEmbedButtonGradientFrom] = useState("#2f6df6");
   const [solarSurveyEmbedButtonGradientTo, setSolarSurveyEmbedButtonGradientTo] = useState("#1ecf98");
   const [solarSurveyEmbedButtonTextColor, setSolarSurveyEmbedButtonTextColor] = useState("#ffffff");
@@ -2741,6 +2745,8 @@ export default function Home() {
       themeAccent: "#2f6df6",
       themeAccentSecondary: "#1ecf98",
       themeSurface: "#0f1219",
+      modalTitleFontSize: 64,
+      modalBodyFontSize: 15,
       embedButtonGradientFrom: "#2f6df6",
       embedButtonGradientTo: "#1ecf98",
       embedButtonTextColor: "#ffffff",
@@ -2774,6 +2780,8 @@ export default function Home() {
     setSolarSurveyThemeAccent(s(next.themeAccent) || "#2f6df6");
     setSolarSurveyThemeAccentSecondary(s(next.themeAccentSecondary) || "#1ecf98");
     setSolarSurveyThemeSurface(s(next.themeSurface) || "#0f1219");
+    setSolarSurveyModalTitleFontSize(Math.max(28, Number(next.modalTitleFontSize || 64)));
+    setSolarSurveyModalBodyFontSize(Math.max(12, Number(next.modalBodyFontSize || 15)));
     setSolarSurveyEmbedButtonGradientFrom(s(next.embedButtonGradientFrom) || "#2f6df6");
     setSolarSurveyEmbedButtonGradientTo(s(next.embedButtonGradientTo) || "#1ecf98");
     setSolarSurveyEmbedButtonTextColor(s(next.embedButtonTextColor) || "#ffffff");
@@ -2809,6 +2817,8 @@ export default function Home() {
       themeAccent: s(solarSurveyThemeAccent) || fallback.themeAccent,
       themeAccentSecondary: s(solarSurveyThemeAccentSecondary) || fallback.themeAccentSecondary,
       themeSurface: s(solarSurveyThemeSurface) || fallback.themeSurface,
+      modalTitleFontSize: Math.max(28, Number(solarSurveyModalTitleFontSize) || fallback.modalTitleFontSize),
+      modalBodyFontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || fallback.modalBodyFontSize),
       embedButtonGradientFrom: s(solarSurveyEmbedButtonGradientFrom) || fallback.embedButtonGradientFrom,
       embedButtonGradientTo: s(solarSurveyEmbedButtonGradientTo) || fallback.embedButtonGradientTo,
       embedButtonTextColor: s(solarSurveyEmbedButtonTextColor) || fallback.embedButtonTextColor,
@@ -2978,9 +2988,9 @@ export default function Home() {
     overlay.style.position = "fixed";
     overlay.style.inset = "0";
     overlay.style.zIndex = "2147483647";
-    overlay.style.background = "rgba(10,14,24,.58)";
-    overlay.style.backdropFilter = "blur(8px)";
-    overlay.innerHTML = '<div style="position:absolute;inset:16px;max-width:1300px;margin:auto;height:calc(100vh - 32px);background:transparent;border-radius:20px;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.42)"><button aria-label="Close modal" style="position:absolute;right:10px;top:10px;z-index:2;width:38px;height:38px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:#f6f8fc;color:#22304a;font:700 20px/1 system-ui;cursor:pointer">×</button><iframe src="' + src + '" title="${titleText}" style="width:100%;height:100%;border:0;background:transparent" loading="lazy" allow="clipboard-write"></iframe></div>';
+    overlay.style.background = "transparent";
+    overlay.style.backdropFilter = "none";
+    overlay.innerHTML = '<div style="position:absolute;inset:0;max-width:none;margin:0;height:100vh;background:transparent;border-radius:0;overflow:hidden;box-shadow:none"><button aria-label="Close modal" style="position:absolute;right:10px;top:10px;z-index:2;width:38px;height:38px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:#f6f8fc;color:#22304a;font:700 20px/1 system-ui;cursor:pointer">×</button><iframe src="' + src + '" title="${titleText}" style="width:100%;height:100%;border:0;background:transparent" loading="lazy" allow="clipboard-write"></iframe></div>';
     document.body.appendChild(overlay);
     var closeBtn = overlay.querySelector("button");
     if (closeBtn) closeBtn.addEventListener("click", closeModal);
@@ -11031,15 +11041,24 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <div className="sbStudioModalPreview" style={{ borderRadius: 30, minHeight: 530 }}>
                         <div className="sbStudioModalBody" style={{ background: "#f3f5f8", minHeight: 530, padding: 20 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.1, maxWidth: "80%" }}>{s(solarSurveyModalTitle) || "What Will Your Solar System Cost?"}</div>
+                            <div
+                              style={{
+                                fontSize: Math.max(28, Number(solarSurveyModalTitleFontSize) || 64),
+                                fontWeight: 800,
+                                lineHeight: 1.1,
+                                maxWidth: "80%",
+                              }}
+                            >
+                              {s(solarSurveyModalTitle) || "What Will Your Solar System Cost?"}
+                            </div>
                             <span className="sbStudioModalClose">x</span>
                           </div>
-                          <div style={{ marginTop: 8, fontSize: 15, color: "#475569" }}>{s(solarSurveyModalSubtitle) || "Enter your street address to get an accurate solar estimate instantly."}</div>
-                          <div style={{ marginTop: 14, fontWeight: 700, color: "#475569" }}>Step 1 of 3 · {s(solarSurveyStepAddressLabel) || "Address"}</div>
+                          <div style={{ marginTop: 8, fontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || 15), color: "#475569" }}>{s(solarSurveyModalSubtitle) || "Enter your street address to get an accurate solar estimate instantly."}</div>
+                          <div style={{ marginTop: 14, fontWeight: 700, color: "#475569", fontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || 15) }}>Step 1 of 3 · {s(solarSurveyStepAddressLabel) || "Address"}</div>
                           <div style={{ marginTop: 8, height: 8, borderRadius: 999, background: "#d7dde7", overflow: "hidden" }}>
                             <div style={{ width: "34%", height: "100%", borderRadius: 999, background: s(solarSurveyThemeAccent) || "#2f6df6" }} />
                           </div>
-                          <div style={{ marginTop: 14, fontWeight: 700, color: "#1e293b" }}>{s(solarSurveyAddressLabel) || "Property address"}</div>
+                          <div style={{ marginTop: 14, fontWeight: 700, color: "#1e293b", fontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || 15) }}>{s(solarSurveyAddressLabel) || "Property address"}</div>
                           <input
                             readOnly
                             value={s(solarSurveyAddressPlaceholder) || "Ex: 1157 Palo Alto St SE, Palm Bay, FL"}
@@ -11048,7 +11067,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               border: "1px solid #cbd5e1",
                               borderRadius: 14,
                               padding: "11px 13px",
-                              fontSize: 15,
+                              fontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || 15),
                               marginTop: 8,
                               color: "#334155",
                               background: "#fff",
@@ -11136,6 +11155,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <div className="field"><label>Step 3 Label</label><input className="input" value={solarSurveyStepPricingLabel} onChange={(e) => setSolarSurveyStepPricingLabel(e.target.value)} /></div>
                       <div className="field"><label>Next Button</label><input className="input" value={solarSurveyNextLabel} onChange={(e) => setSolarSurveyNextLabel(e.target.value)} /></div>
                       <div className="field"><label>Submit Button</label><input className="input" value={solarSurveySubmitLabel} onChange={(e) => setSolarSurveySubmitLabel(e.target.value)} /></div>
+                      <div className="field"><label>Title Font Size</label><input className="input" type="number" min={28} max={100} value={solarSurveyModalTitleFontSize} onChange={(e) => setSolarSurveyModalTitleFontSize(Number(e.target.value) || 64)} /></div>
+                      <div className="field"><label>Body Font Size</label><input className="input" type="number" min={12} max={30} value={solarSurveyModalBodyFontSize} onChange={(e) => setSolarSurveyModalBodyFontSize(Number(e.target.value) || 15)} /></div>
                       <div className="field"><label>Accent</label><input className="input" value={solarSurveyThemeAccent} onChange={(e) => setSolarSurveyThemeAccent(e.target.value)} /></div>
                       <div className="field"><label>Accent Secondary</label><input className="input" value={solarSurveyThemeAccentSecondary} onChange={(e) => setSolarSurveyThemeAccentSecondary(e.target.value)} /></div>
                       <div className="field"><label>Surface</label><input className="input" value={solarSurveyThemeSurface} onChange={(e) => setSolarSurveyThemeSurface(e.target.value)} /></div>

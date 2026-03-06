@@ -34,6 +34,12 @@ function normalizeColor(input: unknown, fallback: string) {
   return fallback;
 }
 
+function normalizeNum(input: unknown, fallback: number, min: number, max: number) {
+  const n = Number(input);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
 function normalizePayload(input: Record<string, unknown> | null | undefined) {
   return {
     id: "default",
@@ -55,6 +61,8 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     themeAccent: normalizeColor(input?.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(input?.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(input?.themeSurface, "#0f1219"),
+    modalTitleFontSize: normalizeNum(input?.modalTitleFontSize, 64, 28, 100),
+    modalBodyFontSize: normalizeNum(input?.modalBodyFontSize, 15, 12, 30),
   };
 }
 
