@@ -189,8 +189,8 @@ function buildWidgetHtml(args: {
     .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(90deg,var(--accent),#4275ff,var(--accent2));cursor:pointer;box-shadow:0 16px 36px rgba(0,0,0,.35)}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:10px;z-index:20}
     .modal.open{display:flex}
-    .backdrop{position:absolute;inset:0;background:rgba(232,238,248,.52);backdrop-filter:blur(2px)}
-    .card{position:relative;z-index:2;width:min(1040px,92%);max-height:calc(100vh - 60px);overflow:auto;border:1px solid rgba(255,255,255,.82);border-radius:20px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.08),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.06),transparent 45%),#f4f6fb;padding:22px 22px 18px;box-shadow:0 14px 42px rgba(10,20,40,.18)}
+    .backdrop{position:absolute;inset:0;background:rgba(15,23,42,.08);backdrop-filter:none}
+    .card{position:relative;z-index:2;width:min(1040px,92%);height:min(780px,calc(100vh - 60px));overflow:auto;border:1px solid rgba(255,255,255,.82);border-radius:20px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.08),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.06),transparent 45%),#f4f6fb;padding:22px 22px 18px;box-shadow:0 14px 42px rgba(10,20,40,.18)}
     h1{margin:0;font-size:clamp(26px,3vw,var(--title-size));letter-spacing:-.03em;max-width:22ch}
     .sub{margin:8px 0 0;color:var(--muted);font-size:var(--body-size)}
     .progressLabel{margin:14px 0 6px;font-size:var(--body-size);color:#5b6882;font-weight:700}
@@ -203,7 +203,7 @@ function buildWidgetHtml(args: {
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .mapWrap{margin-top:10px;position:relative}
     #map{height:min(45vh,500px);border-radius:18px;border:1px solid #d8deea;overflow:hidden;background:#eef2f8}
-    .mapEditFab{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:1px solid rgba(39,47,66,.12);border-radius:999px;background:rgba(255,255,255,.98);color:#374154;width:44px;height:44px;cursor:pointer;display:grid;place-items:center;box-shadow:0 12px 26px rgba(8,12,22,.18)}
+    .mapEditFab{position:absolute;right:12px;top:12px;transform:none;border:1px solid rgba(39,47,66,.12);border-radius:999px;background:rgba(255,255,255,.98);color:#374154;width:44px;height:44px;cursor:pointer;display:grid;place-items:center;box-shadow:0 12px 26px rgba(8,12,22,.18)}
     .mapEditFab.on{background:rgba(46,108,246,.12);border-color:rgba(46,108,246,.36);color:#1942ad}
     .mapEditFab svg{width:18px;height:18px;fill:currentColor}
     .mapTip{display:none}
@@ -220,8 +220,8 @@ function buildWidgetHtml(args: {
     .embedMode .shell{display:none}
     .embedMode{background:transparent}
     .embedMode .modal{padding:12px}
-    .embedMode .backdrop{background:rgba(232,238,248,.36);backdrop-filter:blur(1px)}
-    .embedMode .card{width:min(1040px,92%);max-height:calc(100vh - 34px);border-radius:20px;border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 36px rgba(10,20,40,.16)}
+    .embedMode .backdrop{background:rgba(15,23,42,.05);backdrop-filter:none}
+    .embedMode .card{width:min(1040px,92%);height:min(780px,calc(100vh - 34px));border-radius:20px;border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 36px rgba(10,20,40,.16)}
     @media (max-width:760px){.grid2,.pg{grid-template-columns:1fr}.actions{flex-wrap:wrap}.btn,.primary{width:100%;margin-left:0}}
   </style>
 </head>
@@ -313,6 +313,15 @@ function buildWidgetHtml(args: {
       backBtn.style.visibility = state.step === 1 ? "hidden" : "visible";
       nextBtn.style.display = state.step === 3 ? "none" : "inline-flex";
       submitBtn.style.display = state.step === 3 ? "inline-flex" : "none";
+      if (state.step === 1 && map && window.google) {
+        setTimeout(() => {
+          google.maps.event.trigger(map, "resize");
+          if (marker && marker.getPosition) {
+            const pos = marker.getPosition();
+            if (pos) map.setCenter(pos);
+          }
+        }, 70);
+      }
     }
     function openModal(){ modal.classList.add("open"); modal.setAttribute("aria-hidden","false"); setTimeout(() => { if (map && window.google) google.maps.event.trigger(map, "resize"); }, 60); }
     function closeModal(){
@@ -342,10 +351,10 @@ function buildWidgetHtml(args: {
     }
     function setRoofEditable(editable){
       if (!roofOverlay) return;
-      roofOverlay.setEditable(!!editable);
+      roofOverlay.setEditable(false);
       roofOverlay.setDraggable(false);
       if (roofEditBtn) roofEditBtn.classList.toggle("on", !!editable);
-      if (roofTip) roofTip.textContent = editable ? "Editing roof" : "Draw roof";
+      if (roofTip) roofTip.textContent = editable ? "Drawing roof" : "Draw roof";
     }
     function attachRoofPathListeners(){
       if (!roofOverlay || !window.google) return;
@@ -457,7 +466,7 @@ function buildWidgetHtml(args: {
           strokeWeight: 2,
           fillColor: "#2f6df6",
           fillOpacity: 0.23,
-          editable: true,
+          editable: false,
           draggable: false,
         },
       });
@@ -502,7 +511,7 @@ function buildWidgetHtml(args: {
     }
     async function loadSolarInsights(){
       if (!state.selectedPlace || !Number.isFinite(state.selectedPlace.lat) || !Number.isFinite(state.selectedPlace.lng)) return;
-      setStatus("Analyzing solar potential...");
+      setStatus("");
       try {
         const res = await fetch("/api/public/solar/insights", {
           method: "POST",
@@ -527,7 +536,7 @@ function buildWidgetHtml(args: {
         };
         clearRoofPolygon();
         drawRoofHullFromPanels(panels);
-        setStatus(state.solarSummary.maxPanels ? ("Roof detected: up to " + state.solarSummary.maxPanels + " potential panels.") : "Address validated.");
+        setStatus("");
         if (state.step === 3) renderEstimate();
       } catch (error) {
         state.solarSummary = null;
@@ -647,15 +656,7 @@ function buildWidgetHtml(args: {
         if (roofTip) roofTip.textContent = "Draw roof";
         return;
       }
-      if (roofOverlay) {
-        const editable = !!roofOverlay.getEditable();
-        if (editable) {
-          setRoofEditable(false);
-        } else {
-          setRoofEditable(true);
-        }
-        return;
-      }
+      if (roofOverlay) clearRoofPolygon();
       drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
       if (roofEditBtn) roofEditBtn.classList.add("on");
       if (roofTip) roofTip.textContent = "Drawing roof";

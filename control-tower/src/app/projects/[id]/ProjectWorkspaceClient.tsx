@@ -2998,8 +2998,8 @@ export default function Home() {
     overlay.style.position = "fixed";
     overlay.style.inset = "0";
     overlay.style.zIndex = "2147483647";
-    overlay.style.background = "rgba(232,238,248,.36)";
-    overlay.style.backdropFilter = "blur(2px)";
+    overlay.style.background = "transparent";
+    overlay.style.backdropFilter = "none";
     overlay.innerHTML = '<div style="position:absolute;inset:18px;max-width:1080px;margin:auto;height:calc(100vh - 36px);background:transparent;border-radius:20px;overflow:hidden;box-shadow:0 14px 42px rgba(10,20,40,.18)"><iframe src="' + src + '" title="${titleText}" style="width:100%;height:100%;border:0;background:transparent" loading="lazy" allow="clipboard-write"></iframe></div>';
     document.body.appendChild(overlay);
     overlay.addEventListener("click", function(e){ if (e.target === overlay) closeModal(); });
