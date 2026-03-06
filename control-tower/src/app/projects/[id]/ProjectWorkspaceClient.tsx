@@ -204,6 +204,7 @@ type SolarSurveyBuilder = {
   pageSlug: string;
   query: string;
   buttonText: string;
+  buttonPosition: "left" | "center" | "right";
   modalTitle: string;
   modalSubtitle: string;
   addressLabel: string;
@@ -1145,6 +1146,7 @@ export default function Home() {
   const [solarSurveyPageSlug, setSolarSurveyPageSlug] = useState("solar-survey-widget");
   const [solarSurveyQuery, setSolarSurveyQuery] = useState("embed=1");
   const [solarSurveyButtonText, setSolarSurveyButtonText] = useState("Get Solar Estimate");
+  const [solarSurveyButtonPosition, setSolarSurveyButtonPosition] = useState<"left" | "center" | "right">("center");
   const [solarSurveyModalTitle, setSolarSurveyModalTitle] = useState("What Will Your Solar System Cost?");
   const [solarSurveyModalSubtitle, setSolarSurveyModalSubtitle] = useState("Enter your street address to get an accurate solar estimate instantly.");
   const [solarSurveyAddressLabel, setSolarSurveyAddressLabel] = useState("Property address");
@@ -2733,6 +2735,7 @@ export default function Home() {
       pageSlug: "solar-survey-widget",
       query: "embed=1",
       buttonText: "Get Solar Estimate",
+      buttonPosition: "center",
       modalTitle: "What Will Your Solar System Cost?",
       modalSubtitle: "Enter your street address to get an accurate solar estimate instantly.",
       addressLabel: "Property address",
@@ -2766,6 +2769,11 @@ export default function Home() {
     setSolarSurveyPageSlug(kebabToken(s(next.pageSlug) || "solar-survey-widget") || "solar-survey-widget");
     setSolarSurveyQuery(s(next.query) || "embed=1");
     setSolarSurveyButtonText(s(next.buttonText) || "Get Solar Estimate");
+    setSolarSurveyButtonPosition(
+      s(next.buttonPosition) === "left" || s(next.buttonPosition) === "right"
+        ? (s(next.buttonPosition) as "left" | "right")
+        : "center",
+    );
     setSolarSurveyModalTitle(s(next.modalTitle) || "What Will Your Solar System Cost?");
     setSolarSurveyModalSubtitle(
       s(next.modalSubtitle) || "Enter your street address to get an accurate solar estimate instantly.",
@@ -2805,6 +2813,7 @@ export default function Home() {
       pageSlug: kebabToken(s(solarSurveyPageSlug) || fallback.pageSlug) || fallback.pageSlug,
       query: s(solarSurveyQuery) || fallback.query,
       buttonText: s(solarSurveyButtonText) || fallback.buttonText,
+      buttonPosition: solarSurveyButtonPosition,
       modalTitle: s(solarSurveyModalTitle) || fallback.modalTitle,
       modalSubtitle: s(solarSurveyModalSubtitle) || fallback.modalSubtitle,
       addressLabel: s(solarSurveyAddressLabel) || fallback.addressLabel,
@@ -2963,9 +2972,10 @@ export default function Home() {
     const fontSize = Math.max(11, Number(solarSurveyEmbedButtonFontSize) || 14);
     const fontWeight = Math.max(400, Number(solarSurveyEmbedButtonFontWeight) || 700);
     const shadow = Math.max(0, Number(solarSurveyEmbedButtonShadow) || 28);
+    const btnPos = solarSurveyButtonPosition === "left" ? "flex-start" : solarSurveyButtonPosition === "right" ? "flex-end" : "center";
     const buttonText = escapeHtmlAttr(s(solarSurveyButtonText) || "Get Solar Estimate");
     const titleText = escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey");
-    return `<button id="ct-solar-open-btn" type="button" style="border:0;border-radius:${radius}px;padding:${padY}px ${padX}px;font:${fontWeight} ${fontSize}px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:${textColor};background:linear-gradient(90deg,${gradientFrom},${gradientTo});cursor:pointer;box-shadow:0 12px ${shadow}px rgba(10,20,40,.3);">${buttonText}</button>
+    return `<div style="display:flex;justify-content:${btnPos};width:100%"><button id="ct-solar-open-btn" type="button" style="border:0;border-radius:${radius}px;padding:${padY}px ${padX}px;font:${fontWeight} ${fontSize}px/1.1 system-ui,-apple-system,Segoe UI,Roboto,Arial;color:${textColor};background:linear-gradient(90deg,${gradientFrom},${gradientTo});cursor:pointer;box-shadow:0 12px ${shadow}px rgba(10,20,40,.3);">${buttonText}</button></div>
 <script>
 (function(){
   var src = ${JSON.stringify(src)};
@@ -2988,12 +2998,10 @@ export default function Home() {
     overlay.style.position = "fixed";
     overlay.style.inset = "0";
     overlay.style.zIndex = "2147483647";
-    overlay.style.background = "transparent";
-    overlay.style.backdropFilter = "none";
-    overlay.innerHTML = '<div style="position:absolute;inset:0;max-width:none;margin:0;height:100vh;background:transparent;border-radius:0;overflow:hidden;box-shadow:none"><button aria-label="Close modal" style="position:absolute;right:10px;top:10px;z-index:2;width:38px;height:38px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:#f6f8fc;color:#22304a;font:700 20px/1 system-ui;cursor:pointer">×</button><iframe src="' + src + '" title="${titleText}" style="width:100%;height:100%;border:0;background:transparent" loading="lazy" allow="clipboard-write"></iframe></div>';
+    overlay.style.background = "rgba(232,238,248,.36)";
+    overlay.style.backdropFilter = "blur(2px)";
+    overlay.innerHTML = '<div style="position:absolute;inset:18px;max-width:1080px;margin:auto;height:calc(100vh - 36px);background:transparent;border-radius:20px;overflow:hidden;box-shadow:0 14px 42px rgba(10,20,40,.18)"><iframe src="' + src + '" title="${titleText}" style="width:100%;height:100%;border:0;background:transparent" loading="lazy" allow="clipboard-write"></iframe></div>';
     document.body.appendChild(overlay);
-    var closeBtn = overlay.querySelector("button");
-    if (closeBtn) closeBtn.addEventListener("click", closeModal);
     overlay.addEventListener("click", function(e){ if (e.target === overlay) closeModal(); });
     window.addEventListener("message", onMessage);
   }
@@ -11021,7 +11029,17 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
                   <div className={`sbStudioPreviewSurface ${solarSurveyPreviewTone === "light" ? "isLight" : "isDark"}`}>
                     {solarSurveyEditorPanel === "button" ? (
-                      <div className="sbStudioButtonLane sbStudioButtonOnly" style={{ justifyContent: "center" }}>
+                      <div
+                        className="sbStudioButtonLane sbStudioButtonOnly"
+                        style={{
+                          justifyContent:
+                            solarSurveyButtonPosition === "left"
+                              ? "flex-start"
+                              : solarSurveyButtonPosition === "right"
+                                ? "flex-end"
+                                : "center",
+                        }}
+                      >
                         <span
                           className="sbStudioBookBtn"
                           style={{
@@ -11051,7 +11069,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             >
                               {s(solarSurveyModalTitle) || "What Will Your Solar System Cost?"}
                             </div>
-                            <span className="sbStudioModalClose">x</span>
                           </div>
                           <div style={{ marginTop: 8, fontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || 15), color: "#475569" }}>{s(solarSurveyModalSubtitle) || "Enter your street address to get an accurate solar estimate instantly."}</div>
                           <div style={{ marginTop: 14, fontWeight: 700, color: "#475569", fontSize: Math.max(12, Number(solarSurveyModalBodyFontSize) || 15) }}>Step 1 of 3 · {s(solarSurveyStepAddressLabel) || "Address"}</div>
@@ -11134,10 +11151,18 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         <label>Button Text</label>
                         <input className="input" value={solarSurveyButtonText} onChange={(e) => setSolarSurveyButtonText(e.target.value)} />
                       </div>
+                      <div className="field">
+                        <label>Button Position</label>
+                        <select className="select" value={solarSurveyButtonPosition} onChange={(e) => setSolarSurveyButtonPosition(e.target.value as "left" | "center" | "right")}>
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </div>
                       <div className="field"><label>Gradient From</label><input className="input" value={solarSurveyEmbedButtonGradientFrom} onChange={(e) => setSolarSurveyEmbedButtonGradientFrom(e.target.value)} /></div>
                       <div className="field"><label>Gradient To</label><input className="input" value={solarSurveyEmbedButtonGradientTo} onChange={(e) => setSolarSurveyEmbedButtonGradientTo(e.target.value)} /></div>
                       <div className="field"><label>Text Color</label><input className="input" value={solarSurveyEmbedButtonTextColor} onChange={(e) => setSolarSurveyEmbedButtonTextColor(e.target.value)} /></div>
-                      <div className="field"><label>Border Radius</label><input className="input" type="number" min={0} max={999} value={solarSurveyEmbedButtonRadius} onChange={(e) => setSolarSurveyEmbedButtonRadius(Number(e.target.value) || 0)} /></div>
+                      <div className="field"><label>Corner Radius</label><input className="input" type="number" min={0} max={999} value={solarSurveyEmbedButtonRadius} onChange={(e) => setSolarSurveyEmbedButtonRadius(Number(e.target.value) || 0)} /></div>
                       <div className="field"><label>Padding Y</label><input className="input" type="number" min={6} max={40} value={solarSurveyEmbedButtonPaddingY} onChange={(e) => setSolarSurveyEmbedButtonPaddingY(Number(e.target.value) || 12)} /></div>
                       <div className="field"><label>Padding X</label><input className="input" type="number" min={8} max={80} value={solarSurveyEmbedButtonPaddingX} onChange={(e) => setSolarSurveyEmbedButtonPaddingX(Number(e.target.value) || 18)} /></div>
                       <div className="field"><label>Font Size</label><input className="input" type="number" min={11} max={32} value={solarSurveyEmbedButtonFontSize} onChange={(e) => setSolarSurveyEmbedButtonFontSize(Number(e.target.value) || 14)} /></div>

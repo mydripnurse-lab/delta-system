@@ -40,6 +40,12 @@ function normalizeNum(input: unknown, fallback: number, min: number, max: number
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
+function normalizeButtonPosition(input: unknown) {
+  const v = s(input).toLowerCase();
+  if (v === "left" || v === "right") return v;
+  return "center";
+}
+
 function normalizePayload(input: Record<string, unknown> | null | undefined) {
   return {
     id: "default",
@@ -48,6 +54,7 @@ function normalizePayload(input: Record<string, unknown> | null | undefined) {
     pageSlug: kebabToken(s(input?.pageSlug) || "solar-survey-widget") || "solar-survey-widget",
     query: s(input?.query) || "embed=1",
     buttonText: s(input?.buttonText) || "Get Solar Estimate",
+    buttonPosition: normalizeButtonPosition(input?.buttonPosition),
     modalTitle: s(input?.modalTitle) || "What Will Your Solar System Cost?",
     modalSubtitle:
       s(input?.modalSubtitle) || "Enter your street address to get an accurate solar estimate instantly.",

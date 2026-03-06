@@ -59,12 +59,19 @@ function normalizeNum(input: unknown, fallback: number, min: number, max: number
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
+function normalizeButtonPosition(input: unknown) {
+  const v = s(input).toLowerCase();
+  if (v === "left" || v === "right") return v;
+  return "center";
+}
+
 function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
   return {
     folder: kebabToken(s(input?.folder) || "solar-survey") || "solar-survey",
     pageSlug: kebabToken(s(input?.pageSlug) || "solar-survey-widget") || "solar-survey-widget",
     query: s(input?.query) || "embed=1",
     buttonText: s(input?.buttonText) || "Get Solar Estimate",
+    buttonPosition: normalizeButtonPosition(input?.buttonPosition),
     modalTitle: s(input?.modalTitle) || "What Will Your Solar System Cost?",
     modalSubtitle:
       s(input?.modalSubtitle) || "Enter your street address to get an accurate solar estimate instantly.",
@@ -130,6 +137,7 @@ function buildWidgetHtml(args: {
   pageSlug: string;
   query: string;
   buttonText: string;
+  buttonPosition: "left" | "center" | "right";
   modalTitle: string;
   modalSubtitle: string;
   addressLabel: string;
@@ -149,6 +157,7 @@ function buildWidgetHtml(args: {
     tenantId: s(args.tenantId),
     mapsApiKey: s(args.googleMapsApiKey),
     buttonText: s(args.buttonText),
+    buttonPosition: normalizeButtonPosition(args.buttonPosition) as "left" | "center" | "right",
     modalTitle: s(args.modalTitle),
     modalSubtitle: s(args.modalSubtitle),
     addressLabel: s(args.addressLabel),
@@ -176,13 +185,12 @@ function buildWidgetHtml(args: {
   <style>
     :root{--accent:${esc(cfg.themeAccent)};--accent2:${esc(cfg.themeAccentSecondary)};--surface:${esc(cfg.themeSurface)};--text:#171b27;--muted:#5f6a7d;--line:#d8deea;--title-size:${cfg.modalTitleFontSize}px;--body-size:${cfg.modalBodyFontSize}px;}
     *{box-sizing:border-box}body{margin:0;font-family:Manrope,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--text);background:linear-gradient(180deg,#eef2f9,#e8edf7)}
-    .shell{min-height:100vh;padding:18px;display:grid;place-items:center}
+    .shell{min-height:100vh;padding:18px;display:flex;align-items:center;justify-content:${cfg.buttonPosition === "left" ? "flex-start" : cfg.buttonPosition === "right" ? "flex-end" : "center"}}
     .launch{border:0;border-radius:999px;padding:14px 24px;font-weight:800;color:#fff;background:linear-gradient(90deg,var(--accent),#4275ff,var(--accent2));cursor:pointer;box-shadow:0 16px 36px rgba(0,0,0,.35)}
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:10px;z-index:20}
     .modal.open{display:flex}
-    .backdrop{position:absolute;inset:0;background:rgba(236,241,249,.82);backdrop-filter:blur(4px)}
-    .card{position:relative;z-index:2;width:min(1300px,96%);max-height:calc(100vh - 20px);overflow:auto;border:1px solid rgba(255,255,255,.7);border-radius:24px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.08),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.06),transparent 45%),#f4f6fb;padding:26px 26px 22px;box-shadow:0 32px 80px rgba(0,0,0,.36)}
-    .close{position:absolute;right:12px;top:10px;border:1px solid #cfd5e2;border-radius:999px;background:#f4f7fb;color:#3d4658;width:36px;height:36px;cursor:pointer}
+    .backdrop{position:absolute;inset:0;background:rgba(232,238,248,.52);backdrop-filter:blur(2px)}
+    .card{position:relative;z-index:2;width:min(1040px,92%);max-height:calc(100vh - 60px);overflow:auto;border:1px solid rgba(255,255,255,.82);border-radius:20px;background:radial-gradient(80rem 24rem at -5% -10%,rgba(47,109,246,.08),transparent 40%),radial-gradient(80rem 24rem at 120% 120%,rgba(30,207,152,.06),transparent 45%),#f4f6fb;padding:22px 22px 18px;box-shadow:0 14px 42px rgba(10,20,40,.18)}
     h1{margin:0;font-size:clamp(26px,3vw,var(--title-size));letter-spacing:-.03em;max-width:22ch}
     .sub{margin:8px 0 0;color:var(--muted);font-size:var(--body-size)}
     .progressLabel{margin:14px 0 6px;font-size:var(--body-size);color:#5b6882;font-weight:700}
@@ -211,9 +219,9 @@ function buildWidgetHtml(args: {
     .status{margin-top:10px;min-height:19px;font-size:var(--body-size);color:#355db7}.err{color:#d42253}
     .embedMode .shell{display:none}
     .embedMode{background:transparent}
-    .embedMode .modal{padding:0}
-    .embedMode .backdrop{background:transparent;backdrop-filter:none}
-    .embedMode .card{width:100%;max-width:none;max-height:100vh;border-radius:0;border:0;box-shadow:none}
+    .embedMode .modal{padding:12px}
+    .embedMode .backdrop{background:rgba(232,238,248,.36);backdrop-filter:blur(1px)}
+    .embedMode .card{width:min(1040px,92%);max-height:calc(100vh - 34px);border-radius:20px;border:1px solid rgba(255,255,255,.8);box-shadow:0 12px 36px rgba(10,20,40,.16)}
     @media (max-width:760px){.grid2,.pg{grid-template-columns:1fr}.actions{flex-wrap:wrap}.btn,.primary{width:100%;margin-left:0}}
   </style>
 </head>
@@ -222,7 +230,6 @@ function buildWidgetHtml(args: {
   <div class="modal" id="modal" aria-hidden="true">
     <div class="backdrop" id="backdrop"></div>
     <div class="card">
-      <button id="closeBtn" class="close" type="button" aria-label="Close">×</button>
       <h1 id="title">${esc(cfg.modalTitle)}</h1>
       <p class="sub" id="subtitle">${esc(cfg.modalSubtitle)}</p>
       <div class="progressLabel" id="pLabel">Step 1 of 3 · ${esc(cfg.stepAddressLabel)}</div>
@@ -283,7 +290,6 @@ function buildWidgetHtml(args: {
     const state = { step:1, selectedPlace:null, solarSummary:null, roofPolygon:null };
     const modal = document.getElementById("modal");
     const openBtn = document.getElementById("openBtn");
-    const closeBtn = document.getElementById("closeBtn");
     const backdrop = document.getElementById("backdrop");
     const pLabel = document.getElementById("pLabel");
     const fill = document.getElementById("fill");
@@ -631,7 +637,6 @@ function buildWidgetHtml(args: {
       }
     });
     openBtn.addEventListener("click", openModal);
-    closeBtn.addEventListener("click", closeModal);
     backdrop.addEventListener("click", closeModal);
     roofEditBtn.addEventListener("click", () => {
       if (!drawingManager || !window.google) return;
@@ -780,6 +785,7 @@ export async function POST(req: Request, ctx: Ctx) {
       pageSlug: builder.pageSlug,
       query: builder.query,
       buttonText: builder.buttonText,
+      buttonPosition: builder.buttonPosition,
       modalTitle: builder.modalTitle,
       modalSubtitle: builder.modalSubtitle,
       addressLabel: builder.addressLabel,
