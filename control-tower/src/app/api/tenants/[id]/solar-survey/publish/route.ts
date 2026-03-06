@@ -238,7 +238,7 @@ function buildWidgetHtml(args: {
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
     .mapWrap{margin-top:10px;position:relative}
     #map{height:min(45vh,500px);border-radius:18px;border:1px solid #d8deea;overflow:hidden;background:#eef2f8;box-shadow:0 10px 24px rgba(10,20,40,.12)}
-    .mapEditFab{position:relative;margin:10px 10px 0 0;border:1px solid rgba(39,47,66,.12);border-radius:999px;background:rgba(255,255,255,.98);color:#374154;width:44px;height:44px;cursor:pointer;display:grid;place-items:center;box-shadow:0 12px 26px rgba(8,12,22,.18)}
+    .mapEditFab{position:relative;margin:10px 10px 0 0;border:1px solid rgba(39,47,66,.12);border-radius:999px;background:rgba(255,255,255,.98);color:#374154;width:44px;height:44px;cursor:pointer;display:none;place-items:center;box-shadow:0 12px 26px rgba(8,12,22,.18)}
     .mapEditFab.on{background:rgba(46,108,246,.12);border-color:rgba(46,108,246,.36);color:#1942ad}
     .mapEditFab svg{width:18px;height:18px;fill:currentColor}
     .mapTip{display:none}
@@ -341,6 +341,19 @@ function buildWidgetHtml(args: {
     const billInput = document.getElementById("monthlyBill");
     const addressInput = document.getElementById("address");
     let map = null, marker = null, autocomplete = null, geocoder = null, drawingManager = null, roofOverlay = null;
+    let runtimeMapsApiKey = "";
+    async function resolveMapsApiKey(){
+      if (runtimeMapsApiKey) return runtimeMapsApiKey;
+      const baked = String(cfg.mapsApiKey || "").trim();
+      if (baked) runtimeMapsApiKey = baked;
+      try {
+        const res = await fetch("/api/public/solar/config?tenantId=" + encodeURIComponent(cfg.tenantId), { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        const live = String((data && data.mapsApiKey) || "").trim();
+        if (res.ok && data && data.ok && live) runtimeMapsApiKey = live;
+      } catch {}
+      return runtimeMapsApiKey;
+    }
     function setStatus(msg, err){ status.textContent = String(msg || ""); status.className = err ? "status err" : "status"; }
     function stepLabel(s){ return s===1?cfg.stepAddressLabel:s===2?cfg.stepInfoLabel:cfg.stepPricingLabel; }
     function renderStep(){
@@ -448,14 +461,16 @@ function buildWidgetHtml(args: {
       setRoofEditable(false);
     }
     async function loadMaps(){
-      if (!cfg.mapsApiKey) {
+      const mapsApiKey = await resolveMapsApiKey();
+      if (!mapsApiKey) {
         document.getElementById("map").innerHTML = "<p style='padding:12px;color:#ff9ab2;font-size:12px'>Missing GOOGLE_MAPS_API_KEY</p>";
+        if (roofEditBtn) roofEditBtn.style.display = "none";
         return;
       }
       if (!window.google || !window.google.maps) {
         await new Promise((resolve, reject) => {
           const sc = document.createElement("script");
-          sc.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(cfg.mapsApiKey) + "&libraries=places,drawing";
+          sc.src = "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(mapsApiKey) + "&libraries=places,drawing";
           sc.async = true; sc.defer = true;
           sc.onload = () => resolve();
           sc.onerror = () => reject(new Error("Unable to load Google Maps"));
@@ -515,6 +530,7 @@ function buildWidgetHtml(args: {
       });
       drawingManager.setMap(map);
       if (roofEditBtn) {
+        roofEditBtn.style.display = "grid";
         map.controls[google.maps.ControlPosition.RIGHT_TOP].push(roofEditBtn);
       }
       google.maps.event.addListener(drawingManager, "overlaycomplete", (evt) => {
@@ -716,7 +732,10 @@ function buildWidgetHtml(args: {
     if (embedMode) document.body.classList.add("embedMode");
     if (params.get("open") === "1" || embedMode) openModal();
     renderStep();
-    loadMaps().catch((e) => setStatus(e && e.message ? e.message : "Map bootstrap failed.", true));
+    loadMaps().catch((e) => {
+      if (roofEditBtn) roofEditBtn.style.display = "none";
+      setStatus(e && e.message ? e.message : "Map bootstrap failed.", true);
+    });
   })();
   </script>
 </body>
