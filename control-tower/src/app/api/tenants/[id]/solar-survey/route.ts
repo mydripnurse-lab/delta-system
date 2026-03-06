@@ -40,7 +40,7 @@ function normalizeNum(input: unknown, fallback: number, min: number, max: number
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-function normalizeButtonPosition(input: unknown) {
+function normalizeButtonPosition(input: unknown): "left" | "center" | "right" {
   const v = s(input).toLowerCase();
   if (v === "left" || v === "right") return v;
   return "center";
