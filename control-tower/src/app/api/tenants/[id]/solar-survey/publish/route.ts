@@ -109,10 +109,13 @@ function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
     addressLabel: s(input?.addressLabel) || "Property address",
     addressPlaceholder: s(input?.addressPlaceholder) || "Ex: 1157 Palo Alto St SE, Palm Bay, FL",
     stepAddressLabel: s(input?.stepAddressLabel) || "Address",
-    stepInfoLabel: s(input?.stepInfoLabel) || "Info",
-    stepPricingLabel: s(input?.stepPricingLabel) || "Pricing",
-    nextLabel: s(input?.nextLabel) || "Next Step",
-    submitLabel: s(input?.submitLabel) || "See My Prices",
+    stepInfoLabel: s(input?.stepInfoLabel) || "See My Prices",
+    stepPricingLabel: s(input?.stepPricingLabel) || "Summary",
+    nextLabel: s(input?.nextLabel) || "See My Prices",
+    submitLabel: s(input?.submitLabel) || "Prequalify Now",
+    prequalifyLabel: s(input?.prequalifyLabel) || "Prequalify Now",
+    scheduleConsultationLabel: s(input?.scheduleConsultationLabel) || "Schedule A Consultation",
+    scheduleConsultationUrl: s(input?.scheduleConsultationUrl),
     themeAccent: normalizeColor(input?.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(input?.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(input?.themeSurface, "#0f1219"),
@@ -129,6 +132,12 @@ function normalizeBuilder(input: Record<string, unknown> | null | undefined) {
     pricingBatteryKwPerUnit: normalizeFloat(input?.pricingBatteryKwPerUnit, 5, 1, 20),
     pricingMinSystemKw: normalizeFloat(input?.pricingMinSystemKw, 4, 1, 30),
     pricingSystemSizingDivisor: normalizeFloat(input?.pricingSystemSizingDivisor, 30, 5, 120),
+    modalPrimaryButtonBg: s(input?.modalPrimaryButtonBg) || "#2f6df6",
+    modalPrimaryButtonText: s(input?.modalPrimaryButtonText) || "#ffffff",
+    modalPrimaryButtonFontSize: normalizeNum(input?.modalPrimaryButtonFontSize, 17, 12, 30),
+    modalSecondaryButtonBg: s(input?.modalSecondaryButtonBg) || "#e9eef8",
+    modalSecondaryButtonText: s(input?.modalSecondaryButtonText) || "#22314f",
+    modalSecondaryButtonFontSize: normalizeNum(input?.modalSecondaryButtonFontSize, 17, 12, 30),
   };
 }
 
@@ -189,6 +198,9 @@ function buildWidgetHtml(args: {
   stepPricingLabel: string;
   nextLabel: string;
   submitLabel: string;
+  prequalifyLabel: string;
+  scheduleConsultationLabel: string;
+  scheduleConsultationUrl: string;
   themeAccent: string;
   themeAccentSecondary: string;
   themeSurface: string;
@@ -205,6 +217,12 @@ function buildWidgetHtml(args: {
   pricingBatteryKwPerUnit: number;
   pricingMinSystemKw: number;
   pricingSystemSizingDivisor: number;
+  modalPrimaryButtonBg: string;
+  modalPrimaryButtonText: string;
+  modalPrimaryButtonFontSize: number;
+  modalSecondaryButtonBg: string;
+  modalSecondaryButtonText: string;
+  modalSecondaryButtonFontSize: number;
 }) {
   const cfg = {
     tenantId: s(args.tenantId),
@@ -220,6 +238,9 @@ function buildWidgetHtml(args: {
     stepPricingLabel: s(args.stepPricingLabel),
     nextLabel: s(args.nextLabel),
     submitLabel: s(args.submitLabel),
+    prequalifyLabel: s(args.prequalifyLabel),
+    scheduleConsultationLabel: s(args.scheduleConsultationLabel),
+    scheduleConsultationUrl: s(args.scheduleConsultationUrl),
     themeAccent: normalizeColor(args.themeAccent, "#2f6df6"),
     themeAccentSecondary: normalizeColor(args.themeAccentSecondary, "#1ecf98"),
     themeSurface: normalizeColor(args.themeSurface, "#0f1219"),
@@ -236,6 +257,12 @@ function buildWidgetHtml(args: {
     pricingBatteryKwPerUnit: normalizeFloat(args.pricingBatteryKwPerUnit, 5, 1, 20),
     pricingMinSystemKw: normalizeFloat(args.pricingMinSystemKw, 4, 1, 30),
     pricingSystemSizingDivisor: normalizeFloat(args.pricingSystemSizingDivisor, 30, 5, 120),
+    modalPrimaryButtonBg: s(args.modalPrimaryButtonBg) || "#2f6df6",
+    modalPrimaryButtonText: s(args.modalPrimaryButtonText) || "#ffffff",
+    modalPrimaryButtonFontSize: normalizeNum(args.modalPrimaryButtonFontSize, 17, 12, 30),
+    modalSecondaryButtonBg: s(args.modalSecondaryButtonBg) || "#e9eef8",
+    modalSecondaryButtonText: s(args.modalSecondaryButtonText) || "#22314f",
+    modalSecondaryButtonFontSize: normalizeNum(args.modalSecondaryButtonFontSize, 17, 12, 30),
   };
   const modalFont = fontByKey(cfg.modalFontKey, "manrope");
   const buttonFont = fontByKey(cfg.buttonFontKey, "montserrat");
@@ -281,10 +308,17 @@ function buildWidgetHtml(args: {
     .pg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
     .pg article{border:1px solid #e1e6f1;border-radius:12px;padding:10px;background:#fff}
     .pg p{margin:0;font-size:11px;color:#6a768d}.pg strong{display:block;margin-top:4px;font-size:19px;letter-spacing:-.01em}
+    .pw{display:flex;align-items:center;gap:8px}
+    .pw img{width:18px;height:18px;object-fit:contain}
+    .summaryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
+    .summaryCard{border:1px solid #e1e6f1;border-radius:12px;padding:10px;background:#fff}
+    .summaryCard p{margin:0;font-size:12px;color:#6a768d}
+    .summaryCard strong{display:block;margin-top:4px;font-size:14px;color:#1e2430;word-break:break-word}
     .actions{margin-top:10px;display:flex;gap:8px}
     .btn{border:0;border-radius:14px;padding:11px 16px;font-weight:700;font-family:'${esc(buttonFont.family)}',system-ui,-apple-system,Segoe UI,Roboto,Arial;cursor:pointer}
-    .ghost{background:#e9eef8;color:#22314f}
-    .primary{margin-left:auto;color:#fff;background:linear-gradient(115deg,var(--accent),var(--accent2));box-shadow:0 12px 22px rgba(44,101,217,.26)}
+    .ghost{background:${esc(cfg.modalSecondaryButtonBg)};color:${esc(cfg.modalSecondaryButtonText)};font-size:${cfg.modalSecondaryButtonFontSize}px}
+    .primary{margin-left:auto;color:${esc(cfg.modalPrimaryButtonText)};font-size:${cfg.modalPrimaryButtonFontSize}px;background:${esc(cfg.modalPrimaryButtonBg)};box-shadow:0 12px 22px rgba(44,101,217,.26)}
+    .linkBtn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
     .status{margin-top:10px;min-height:19px;font-size:var(--body-size);color:#355db7}.err{color:#d42253}
     .embedMode .shell{display:none}
     .embedMode{background:transparent}
@@ -333,21 +367,29 @@ function buildWidgetHtml(args: {
         </section>
         <section class="step" data-step="3">
           <div class="price">
-            <p class="priceTitle">Estimated Solar Pricing</p>
+            <p class="priceTitle">Summary & Estimated Solar Pricing</p>
             <div class="pg">
               <article><p>Estimated System</p><strong id="estSystem">-</strong></article>
               <article><p>Panels</p><strong id="estPanels">-</strong></article>
-              <article><p>Batteries</p><strong id="estBatteries">-</strong></article>
+              <article><p>Batteries</p><strong id="estBatteries"><span class="pw"><img src="https://upload.wikimedia.org/wikipedia/commons/e/e8/Tesla_logo.png" alt="Tesla" /> <span id="estBatteryLine">Tesla Powerwall 3 x -</span></span></strong></article>
               <article><p>Monthly Payment</p><strong id="estPayment">-</strong></article>
-              <article><p>Year 1 Savings</p><strong id="estSavings">-</strong></article>
+              <article id="estSavingsCard"><p>Year 1 Savings</p><strong id="estSavings">-</strong></article>
               <article><p>Address</p><strong id="estAddress">-</strong></article>
+            </div>
+            <div class="summaryGrid">
+              <div class="summaryCard"><p>Full Name</p><strong id="sumName">-</strong></div>
+              <div class="summaryCard"><p>Phone</p><strong id="sumPhone">-</strong></div>
+              <div class="summaryCard"><p>Email</p><strong id="sumEmail">-</strong></div>
+              <div class="summaryCard"><p>Monthly Bill</p><strong id="sumBill">-</strong></div>
+              <div class="summaryCard" style="grid-column:1 / -1"><p>Notes</p><strong id="sumNotes">-</strong></div>
             </div>
           </div>
         </section>
         <div class="actions">
           <button id="backBtn" class="btn ghost" type="button">Back</button>
           <button id="nextBtn" class="btn primary" type="button">${esc(cfg.nextLabel)}</button>
-          <button id="submitBtn" class="btn primary" type="submit" style="display:none">${esc(cfg.submitLabel)}</button>
+          <a id="scheduleBtn" class="btn ghost linkBtn" href="${esc(cfg.scheduleConsultationUrl || "#")}" target="_self" rel="noopener" style="display:none">${esc(cfg.scheduleConsultationLabel)}</a>
+          <button id="submitBtn" class="btn primary" type="submit" style="display:none">${esc(cfg.prequalifyLabel || cfg.submitLabel)}</button>
         </div>
         <div id="status" class="status"></div>
       </form>
@@ -358,7 +400,7 @@ function buildWidgetHtml(args: {
     const cfg = ${JSON.stringify(cfg)};
     const params = new URLSearchParams(window.location.search);
     const embedMode = params.get("embed") === "1";
-    const state = { step:1, selectedPlace:null, solarSummary:null, roofPolygon:null };
+    const state = { step:1, selectedPlace:null, solarSummary:null, roofPolygon:null, estimate:null };
     const modal = document.getElementById("modal");
     const openBtn = document.getElementById("openBtn");
     const closeBtn = document.getElementById("closeBtn");
@@ -369,6 +411,7 @@ function buildWidgetHtml(args: {
     const backBtn = document.getElementById("backBtn");
     const nextBtn = document.getElementById("nextBtn");
     const submitBtn = document.getElementById("submitBtn");
+    const scheduleBtn = document.getElementById("scheduleBtn");
     const status = document.getElementById("status");
     const roofEditBtn = document.getElementById("roofEditBtn");
     const roofTip = document.getElementById("roofTip");
@@ -398,6 +441,10 @@ function buildWidgetHtml(args: {
       backBtn.style.visibility = state.step === 1 ? "hidden" : "visible";
       nextBtn.style.display = state.step === 3 ? "none" : "inline-flex";
       submitBtn.style.display = state.step === 3 ? "inline-flex" : "none";
+      if (scheduleBtn) {
+        var hasSchedule = !!String(cfg.scheduleConsultationUrl || "").trim();
+        scheduleBtn.style.display = state.step === 3 && hasSchedule ? "inline-flex" : "none";
+      }
       if (state.step === 1 && map && window.google) {
         setTimeout(() => {
           google.maps.event.trigger(map, "resize");
@@ -646,10 +693,16 @@ function buildWidgetHtml(args: {
       if (!bill || bill < 40) {
         document.getElementById("estSystem").textContent = "-";
         document.getElementById("estPanels").textContent = "-";
-        document.getElementById("estBatteries").textContent = "-";
         document.getElementById("estPayment").textContent = "-";
         document.getElementById("estSavings").textContent = "-";
+        document.getElementById("estBatteryLine").textContent = "Tesla Powerwall 3 x -";
+        document.getElementById("sumName").textContent = String(document.getElementById("fullName").value || "-");
+        document.getElementById("sumPhone").textContent = String(document.getElementById("phone").value || "-");
+        document.getElementById("sumEmail").textContent = String(document.getElementById("email").value || "-");
+        document.getElementById("sumBill").textContent = bill ? ("$" + bill.toFixed(0)) : "-";
+        document.getElementById("sumNotes").textContent = String(document.getElementById("notes").value || "-");
         document.getElementById("estAddress").textContent = state.selectedPlace ? state.selectedPlace.formattedAddress : "-";
+        state.estimate = null;
         return;
       }
       const utilityRate = Number(cfg.pricingUtilityRate || 0.27);
@@ -670,12 +723,22 @@ function buildWidgetHtml(args: {
       const projectCost = (systemKw * Number(cfg.pricingSystemCostPerKw || 3050)) + (batteries * Number(cfg.pricingBatteryCost || 14900));
       const monthlyPayment = projectCost * Number(cfg.pricingMonthlyFactor || 0.0068);
       const savings = Math.max(0, (bill - monthlyPayment) * 12);
+      const estimate = { systemKw, panels, batteries, monthlyPayment, savings, bill };
+      state.estimate = estimate;
       document.getElementById("estSystem").textContent = systemKw.toFixed(1) + " kW";
       document.getElementById("estPanels").textContent = String(panels);
-      document.getElementById("estBatteries").textContent = String(batteries);
+      document.getElementById("estBatteryLine").textContent = "Tesla Powerwall 3 x " + String(batteries);
       document.getElementById("estPayment").textContent = "$" + monthlyPayment.toFixed(0) + "/mo";
       document.getElementById("estSavings").textContent = "$" + savings.toFixed(0);
       document.getElementById("estAddress").textContent = state.selectedPlace ? state.selectedPlace.formattedAddress : "-";
+      document.getElementById("sumName").textContent = String(document.getElementById("fullName").value || "-");
+      document.getElementById("sumPhone").textContent = String(document.getElementById("phone").value || "-");
+      document.getElementById("sumEmail").textContent = String(document.getElementById("email").value || "-");
+      document.getElementById("sumBill").textContent = "$" + bill.toFixed(0);
+      document.getElementById("sumNotes").textContent = String(document.getElementById("notes").value || "-");
+      var savingsCard = document.getElementById("estSavingsCard");
+      if (savingsCard) savingsCard.style.display = savings > 0 ? "block" : "none";
+      return estimate;
     }
     function validateStep(step){
       if (step === 1 && !String(addressInput.value || "").trim()) return "Enter an address to continue.";
@@ -698,6 +761,7 @@ function buildWidgetHtml(args: {
       const err = validateStep(state.step);
       if (err) { setStatus(err, true); return; }
       setStatus("");
+      if (state.step === 2) renderEstimate();
       if (state.step < 3) state.step += 1;
       if (state.step === 3) renderEstimate();
       renderStep();
@@ -743,7 +807,7 @@ function buildWidgetHtml(args: {
         setStatus(error && error.message ? error.message : "Unexpected error.", true);
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = cfg.submitLabel || "See My Prices";
+        submitBtn.textContent = cfg.prequalifyLabel || cfg.submitLabel || "Prequalify Now";
       }
     });
     openBtn.addEventListener("click", openModal);
@@ -901,6 +965,9 @@ export async function POST(req: Request, ctx: Ctx) {
       stepPricingLabel: builder.stepPricingLabel,
       nextLabel: builder.nextLabel,
       submitLabel: builder.submitLabel,
+      prequalifyLabel: builder.prequalifyLabel,
+      scheduleConsultationLabel: builder.scheduleConsultationLabel,
+      scheduleConsultationUrl: builder.scheduleConsultationUrl,
       themeAccent: builder.themeAccent,
       themeAccentSecondary: builder.themeAccentSecondary,
       themeSurface: builder.themeSurface,
@@ -917,6 +984,12 @@ export async function POST(req: Request, ctx: Ctx) {
       pricingBatteryKwPerUnit: builder.pricingBatteryKwPerUnit,
       pricingMinSystemKw: builder.pricingMinSystemKw,
       pricingSystemSizingDivisor: builder.pricingSystemSizingDivisor,
+      modalPrimaryButtonBg: builder.modalPrimaryButtonBg,
+      modalPrimaryButtonText: builder.modalPrimaryButtonText,
+      modalPrimaryButtonFontSize: builder.modalPrimaryButtonFontSize,
+      modalSecondaryButtonBg: builder.modalSecondaryButtonBg,
+      modalSecondaryButtonText: builder.modalSecondaryButtonText,
+      modalSecondaryButtonFontSize: builder.modalSecondaryButtonFontSize,
     });
 
     await upsertPublishedFile(tenantId, keyName, html);

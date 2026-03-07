@@ -214,6 +214,9 @@ type SolarSurveyBuilder = {
   stepPricingLabel: string;
   nextLabel: string;
   submitLabel: string;
+  prequalifyLabel: string;
+  scheduleConsultationLabel: string;
+  scheduleConsultationUrl: string;
   themeAccent: string;
   themeAccentSecondary: string;
   themeSurface: string;
@@ -230,6 +233,12 @@ type SolarSurveyBuilder = {
   pricingBatteryKwPerUnit: number;
   pricingMinSystemKw: number;
   pricingSystemSizingDivisor: number;
+  modalPrimaryButtonBg: string;
+  modalPrimaryButtonText: string;
+  modalPrimaryButtonFontSize: number;
+  modalSecondaryButtonBg: string;
+  modalSecondaryButtonText: string;
+  modalSecondaryButtonFontSize: number;
   embedButtonGradientFrom: string;
   embedButtonGradientTo: string;
   embedButtonTextColor: string;
@@ -1163,10 +1172,13 @@ export default function Home() {
   const [solarSurveyAddressLabel, setSolarSurveyAddressLabel] = useState("Property address");
   const [solarSurveyAddressPlaceholder, setSolarSurveyAddressPlaceholder] = useState("Ex: 1157 Palo Alto St SE, Palm Bay, FL");
   const [solarSurveyStepAddressLabel, setSolarSurveyStepAddressLabel] = useState("Address");
-  const [solarSurveyStepInfoLabel, setSolarSurveyStepInfoLabel] = useState("Info");
-  const [solarSurveyStepPricingLabel, setSolarSurveyStepPricingLabel] = useState("Pricing");
-  const [solarSurveyNextLabel, setSolarSurveyNextLabel] = useState("Next Step");
-  const [solarSurveySubmitLabel, setSolarSurveySubmitLabel] = useState("See My Prices");
+  const [solarSurveyStepInfoLabel, setSolarSurveyStepInfoLabel] = useState("See My Prices");
+  const [solarSurveyStepPricingLabel, setSolarSurveyStepPricingLabel] = useState("Summary");
+  const [solarSurveyNextLabel, setSolarSurveyNextLabel] = useState("See My Prices");
+  const [solarSurveySubmitLabel, setSolarSurveySubmitLabel] = useState("Prequalify Now");
+  const [solarSurveyPrequalifyLabel, setSolarSurveyPrequalifyLabel] = useState("Prequalify Now");
+  const [solarSurveyScheduleConsultationLabel, setSolarSurveyScheduleConsultationLabel] = useState("Schedule A Consultation");
+  const [solarSurveyScheduleConsultationUrl, setSolarSurveyScheduleConsultationUrl] = useState("");
   const [solarSurveyThemeAccent, setSolarSurveyThemeAccent] = useState("#2f6df6");
   const [solarSurveyThemeAccentSecondary, setSolarSurveyThemeAccentSecondary] = useState("#1ecf98");
   const [solarSurveyThemeSurface, setSolarSurveyThemeSurface] = useState("#0f1219");
@@ -1183,6 +1195,12 @@ export default function Home() {
   const [solarSurveyPricingBatteryKwPerUnit, setSolarSurveyPricingBatteryKwPerUnit] = useState(5);
   const [solarSurveyPricingMinSystemKw, setSolarSurveyPricingMinSystemKw] = useState(4);
   const [solarSurveyPricingSystemSizingDivisor, setSolarSurveyPricingSystemSizingDivisor] = useState(30);
+  const [solarSurveyModalPrimaryButtonBg, setSolarSurveyModalPrimaryButtonBg] = useState("#2f6df6");
+  const [solarSurveyModalPrimaryButtonText, setSolarSurveyModalPrimaryButtonText] = useState("#ffffff");
+  const [solarSurveyModalPrimaryButtonFontSize, setSolarSurveyModalPrimaryButtonFontSize] = useState(17);
+  const [solarSurveyModalSecondaryButtonBg, setSolarSurveyModalSecondaryButtonBg] = useState("#e9eef8");
+  const [solarSurveyModalSecondaryButtonText, setSolarSurveyModalSecondaryButtonText] = useState("#22314f");
+  const [solarSurveyModalSecondaryButtonFontSize, setSolarSurveyModalSecondaryButtonFontSize] = useState(17);
   const [solarSurveyEmbedButtonGradientFrom, setSolarSurveyEmbedButtonGradientFrom] = useState("#2f6df6");
   const [solarSurveyEmbedButtonGradientTo, setSolarSurveyEmbedButtonGradientTo] = useState("#1ecf98");
   const [solarSurveyEmbedButtonTextColor, setSolarSurveyEmbedButtonTextColor] = useState("#ffffff");
@@ -2763,10 +2781,13 @@ export default function Home() {
       addressLabel: "Property address",
       addressPlaceholder: "Ex: 1157 Palo Alto St SE, Palm Bay, FL",
       stepAddressLabel: "Address",
-      stepInfoLabel: "Info",
-      stepPricingLabel: "Pricing",
-      nextLabel: "Next Step",
-      submitLabel: "See My Prices",
+      stepInfoLabel: "See My Prices",
+      stepPricingLabel: "Summary",
+      nextLabel: "See My Prices",
+      submitLabel: "Prequalify Now",
+      prequalifyLabel: "Prequalify Now",
+      scheduleConsultationLabel: "Schedule A Consultation",
+      scheduleConsultationUrl: "",
       themeAccent: "#2f6df6",
       themeAccentSecondary: "#1ecf98",
       themeSurface: "#0f1219",
@@ -2783,6 +2804,12 @@ export default function Home() {
       pricingBatteryKwPerUnit: 5,
       pricingMinSystemKw: 4,
       pricingSystemSizingDivisor: 30,
+      modalPrimaryButtonBg: "#2f6df6",
+      modalPrimaryButtonText: "#ffffff",
+      modalPrimaryButtonFontSize: 17,
+      modalSecondaryButtonBg: "#e9eef8",
+      modalSecondaryButtonText: "#22314f",
+      modalSecondaryButtonFontSize: 17,
       embedButtonGradientFrom: "#2f6df6",
       embedButtonGradientTo: "#1ecf98",
       embedButtonTextColor: "#ffffff",
@@ -2814,10 +2841,13 @@ export default function Home() {
     setSolarSurveyAddressLabel(s(next.addressLabel) || "Property address");
     setSolarSurveyAddressPlaceholder(s(next.addressPlaceholder) || "Ex: 1157 Palo Alto St SE, Palm Bay, FL");
     setSolarSurveyStepAddressLabel(s(next.stepAddressLabel) || "Address");
-    setSolarSurveyStepInfoLabel(s(next.stepInfoLabel) || "Info");
-    setSolarSurveyStepPricingLabel(s(next.stepPricingLabel) || "Pricing");
-    setSolarSurveyNextLabel(s(next.nextLabel) || "Next Step");
-    setSolarSurveySubmitLabel(s(next.submitLabel) || "See My Prices");
+    setSolarSurveyStepInfoLabel(s(next.stepInfoLabel) || "See My Prices");
+    setSolarSurveyStepPricingLabel(s(next.stepPricingLabel) || "Summary");
+    setSolarSurveyNextLabel(s(next.nextLabel) || "See My Prices");
+    setSolarSurveySubmitLabel(s(next.submitLabel) || "Prequalify Now");
+    setSolarSurveyPrequalifyLabel(s(next.prequalifyLabel) || "Prequalify Now");
+    setSolarSurveyScheduleConsultationLabel(s(next.scheduleConsultationLabel) || "Schedule A Consultation");
+    setSolarSurveyScheduleConsultationUrl(s(next.scheduleConsultationUrl));
     setSolarSurveyThemeAccent(s(next.themeAccent) || "#2f6df6");
     setSolarSurveyThemeAccentSecondary(s(next.themeAccentSecondary) || "#1ecf98");
     setSolarSurveyThemeSurface(s(next.themeSurface) || "#0f1219");
@@ -2842,6 +2872,12 @@ export default function Home() {
     setSolarSurveyPricingBatteryKwPerUnit(Math.max(1, Number(next.pricingBatteryKwPerUnit || 5)));
     setSolarSurveyPricingMinSystemKw(Math.max(1, Number(next.pricingMinSystemKw || 4)));
     setSolarSurveyPricingSystemSizingDivisor(Math.max(5, Number(next.pricingSystemSizingDivisor || 30)));
+    setSolarSurveyModalPrimaryButtonBg(s(next.modalPrimaryButtonBg) || "#2f6df6");
+    setSolarSurveyModalPrimaryButtonText(s(next.modalPrimaryButtonText) || "#ffffff");
+    setSolarSurveyModalPrimaryButtonFontSize(Math.max(12, Number(next.modalPrimaryButtonFontSize || 17)));
+    setSolarSurveyModalSecondaryButtonBg(s(next.modalSecondaryButtonBg) || "#e9eef8");
+    setSolarSurveyModalSecondaryButtonText(s(next.modalSecondaryButtonText) || "#22314f");
+    setSolarSurveyModalSecondaryButtonFontSize(Math.max(12, Number(next.modalSecondaryButtonFontSize || 17)));
     setSolarSurveyEmbedButtonGradientFrom(s(next.embedButtonGradientFrom) || "#2f6df6");
     setSolarSurveyEmbedButtonGradientTo(s(next.embedButtonGradientTo) || "#1ecf98");
     setSolarSurveyEmbedButtonTextColor(s(next.embedButtonTextColor) || "#ffffff");
@@ -2875,6 +2911,9 @@ export default function Home() {
       stepPricingLabel: s(solarSurveyStepPricingLabel) || fallback.stepPricingLabel,
       nextLabel: s(solarSurveyNextLabel) || fallback.nextLabel,
       submitLabel: s(solarSurveySubmitLabel) || fallback.submitLabel,
+      prequalifyLabel: s(solarSurveyPrequalifyLabel) || fallback.prequalifyLabel,
+      scheduleConsultationLabel: s(solarSurveyScheduleConsultationLabel) || fallback.scheduleConsultationLabel,
+      scheduleConsultationUrl: s(solarSurveyScheduleConsultationUrl),
       themeAccent: s(solarSurveyThemeAccent) || fallback.themeAccent,
       themeAccentSecondary: s(solarSurveyThemeAccentSecondary) || fallback.themeAccentSecondary,
       themeSurface: s(solarSurveyThemeSurface) || fallback.themeSurface,
@@ -2891,6 +2930,12 @@ export default function Home() {
       pricingBatteryKwPerUnit: Math.max(1, Number(solarSurveyPricingBatteryKwPerUnit) || fallback.pricingBatteryKwPerUnit),
       pricingMinSystemKw: Math.max(1, Number(solarSurveyPricingMinSystemKw) || fallback.pricingMinSystemKw),
       pricingSystemSizingDivisor: Math.max(5, Number(solarSurveyPricingSystemSizingDivisor) || fallback.pricingSystemSizingDivisor),
+      modalPrimaryButtonBg: s(solarSurveyModalPrimaryButtonBg) || fallback.modalPrimaryButtonBg,
+      modalPrimaryButtonText: s(solarSurveyModalPrimaryButtonText) || fallback.modalPrimaryButtonText,
+      modalPrimaryButtonFontSize: Math.max(12, Number(solarSurveyModalPrimaryButtonFontSize) || fallback.modalPrimaryButtonFontSize),
+      modalSecondaryButtonBg: s(solarSurveyModalSecondaryButtonBg) || fallback.modalSecondaryButtonBg,
+      modalSecondaryButtonText: s(solarSurveyModalSecondaryButtonText) || fallback.modalSecondaryButtonText,
+      modalSecondaryButtonFontSize: Math.max(12, Number(solarSurveyModalSecondaryButtonFontSize) || fallback.modalSecondaryButtonFontSize),
       embedButtonGradientFrom: s(solarSurveyEmbedButtonGradientFrom) || fallback.embedButtonGradientFrom,
       embedButtonGradientTo: s(solarSurveyEmbedButtonGradientTo) || fallback.embedButtonGradientTo,
       embedButtonTextColor: s(solarSurveyEmbedButtonTextColor) || fallback.embedButtonTextColor,
@@ -3041,12 +3086,20 @@ export default function Home() {
     const buttonText = escapeHtmlAttr(s(solarSurveyButtonText) || "Get Solar Estimate");
     const titleText = escapeHtmlAttr(s(solarSurveyModalTitle) || "Solar Survey");
     return `<link rel="stylesheet" href="${buttonFontImport}" />
-<div style="display:flex;justify-content:${btnPos};width:100%"><button id="ct-solar-open-btn" type="button" style="border:0;border-radius:${radius}px;padding:${padY}px ${padX}px;font:${fontWeight} ${fontSize}px/1.1 '${buttonFontFamily}',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:${textColor};background:linear-gradient(90deg,${gradientFrom},${gradientTo});cursor:pointer;box-shadow:0 12px ${shadow}px rgba(10,20,40,.3);">${buttonText}</button></div>
+<div style="display:flex;justify-content:${btnPos};width:100%"><button type="button" data-ct-solar-open="1" style="border:0;border-radius:${radius}px;padding:${padY}px ${padX}px;font:${fontWeight} ${fontSize}px/1.1 '${buttonFontFamily}',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:${textColor};background:linear-gradient(90deg,${gradientFrom},${gradientTo});cursor:pointer;box-shadow:0 12px ${shadow}px rgba(10,20,40,.3);">${buttonText}</button></div>
 <script>
 (function(){
   var src = ${JSON.stringify(src)};
-  var btn = document.getElementById("ct-solar-open-btn");
+  var current = document.currentScript;
+  var btn = current && current.previousElementSibling
+    ? current.previousElementSibling.querySelector('[data-ct-solar-open="1"]')
+    : null;
+  if (!btn) {
+    var candidates = document.querySelectorAll('[data-ct-solar-open="1"]:not([data-ct-solar-bound="1"])');
+    btn = candidates && candidates.length ? candidates[candidates.length - 1] : null;
+  }
   if (!btn || !src) return;
+  btn.setAttribute("data-ct-solar-bound", "1");
   var overlay = null;
   function closeModal(){
     if (!overlay) return;
@@ -11199,9 +11252,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                 border: "0",
                                 borderRadius: 14,
                                 padding: "11px 18px",
+                                fontSize: Math.max(12, Number(solarSurveyModalPrimaryButtonFontSize) || 17),
                                 fontFamily: `${selectedSolarButtonFont.family}, system-ui, -apple-system, Segoe UI, Roboto, Arial`,
-                                color: "#fff",
-                                background: `linear-gradient(90deg, ${s(solarSurveyThemeAccent) || "#2f6df6"}, ${s(solarSurveyThemeAccentSecondary) || "#1ecf98"})`,
+                                color: s(solarSurveyModalPrimaryButtonText) || "#ffffff",
+                                background: s(solarSurveyModalPrimaryButtonBg) || "#2f6df6",
                               }}
                             >
                               {s(solarSurveyNextLabel) || "Next Step"}
@@ -11276,8 +11330,16 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <div className="field"><label>Step 1 Label</label><input className="input" value={solarSurveyStepAddressLabel} onChange={(e) => setSolarSurveyStepAddressLabel(e.target.value)} /></div>
                       <div className="field"><label>Step 2 Label</label><input className="input" value={solarSurveyStepInfoLabel} onChange={(e) => setSolarSurveyStepInfoLabel(e.target.value)} /></div>
                       <div className="field"><label>Step 3 Label</label><input className="input" value={solarSurveyStepPricingLabel} onChange={(e) => setSolarSurveyStepPricingLabel(e.target.value)} /></div>
-                      <div className="field"><label>Next Button</label><input className="input" value={solarSurveyNextLabel} onChange={(e) => setSolarSurveyNextLabel(e.target.value)} /></div>
-                      <div className="field"><label>Submit Button</label><input className="input" value={solarSurveySubmitLabel} onChange={(e) => setSolarSurveySubmitLabel(e.target.value)} /></div>
+                      <div className="field"><label>Step 2 CTA (See Prices)</label><input className="input" value={solarSurveyNextLabel} onChange={(e) => setSolarSurveyNextLabel(e.target.value)} /></div>
+                      <div className="field"><label>Prequalify Button</label><input className="input" value={solarSurveyPrequalifyLabel} onChange={(e) => { setSolarSurveyPrequalifyLabel(e.target.value); setSolarSurveySubmitLabel(e.target.value); }} /></div>
+                      <div className="field"><label>Schedule Button</label><input className="input" value={solarSurveyScheduleConsultationLabel} onChange={(e) => setSolarSurveyScheduleConsultationLabel(e.target.value)} /></div>
+                      <div className="field"><label>Schedule URL (same tab)</label><input className="input" value={solarSurveyScheduleConsultationUrl} onChange={(e) => setSolarSurveyScheduleConsultationUrl(e.target.value)} placeholder="/book-now or https://..." /></div>
+                      <div className="field"><label>Primary Button BG</label><input className="input" value={solarSurveyModalPrimaryButtonBg} onChange={(e) => setSolarSurveyModalPrimaryButtonBg(e.target.value)} /></div>
+                      <div className="field"><label>Primary Button Text</label><input className="input" value={solarSurveyModalPrimaryButtonText} onChange={(e) => setSolarSurveyModalPrimaryButtonText(e.target.value)} /></div>
+                      <div className="field"><label>Primary Button Font Size</label><input className="input" type="number" min={12} max={30} value={solarSurveyModalPrimaryButtonFontSize} onChange={(e) => setSolarSurveyModalPrimaryButtonFontSize(Number(e.target.value) || 17)} /></div>
+                      <div className="field"><label>Secondary Button BG</label><input className="input" value={solarSurveyModalSecondaryButtonBg} onChange={(e) => setSolarSurveyModalSecondaryButtonBg(e.target.value)} /></div>
+                      <div className="field"><label>Secondary Button Text</label><input className="input" value={solarSurveyModalSecondaryButtonText} onChange={(e) => setSolarSurveyModalSecondaryButtonText(e.target.value)} /></div>
+                      <div className="field"><label>Secondary Button Font Size</label><input className="input" type="number" min={12} max={30} value={solarSurveyModalSecondaryButtonFontSize} onChange={(e) => setSolarSurveyModalSecondaryButtonFontSize(Number(e.target.value) || 17)} /></div>
                       <div className="field"><label>Title Font Size</label><input className="input" type="number" min={28} max={100} value={solarSurveyModalTitleFontSize} onChange={(e) => setSolarSurveyModalTitleFontSize(Number(e.target.value) || 64)} /></div>
                       <div className="field"><label>Body Font Size</label><input className="input" type="number" min={12} max={30} value={solarSurveyModalBodyFontSize} onChange={(e) => setSolarSurveyModalBodyFontSize(Number(e.target.value) || 15)} /></div>
                       <div className="field"><label>Utility Rate ($/kWh)</label><input className="input" type="number" step="0.01" min={0.05} max={2} value={solarSurveyPricingUtilityRate} onChange={(e) => setSolarSurveyPricingUtilityRate(Number(e.target.value) || 0.27)} /></div>
