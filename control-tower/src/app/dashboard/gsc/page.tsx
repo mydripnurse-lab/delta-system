@@ -549,7 +549,7 @@ function GscDashboardPageContent() {
   const geoTableCounties = useMemo(() => {
     const stateKey = String(geoTableState || "").trim().toLowerCase();
     return Array.from(
-      new Set(
+      new Set<string>(
         (geoRows.counties || [])
           .filter(
             (r: any) =>
@@ -565,7 +565,7 @@ function GscDashboardPageContent() {
     const stateKey = String(geoTableState || "").trim().toLowerCase();
     const countyKey = geoTableCounty.trim().toLowerCase();
     return Array.from(
-      new Set(
+      new Set<string>(
         (geoRows.cities || [])
           .filter((r: any) => {
             const matchesState =
