@@ -119,8 +119,21 @@ function mergeStateRows(aRows: AnyObj[], bRows: AnyObj[]) {
     .sort((x, y) => n(y.impressions) - n(x.impressions));
 }
 
+type MergedGeoPerformanceRow = {
+  state: string;
+  county: string | null;
+  city: string | null;
+  url: string | null;
+  impressions: number;
+  clicks: number;
+  posAcc: number;
+  posW: number;
+  pagesCounted: number;
+  keywordsCount: number;
+};
+
 function mergeGeoPerformanceRows(aRows: AnyObj[], bRows: AnyObj[], keyFields: string[]) {
-  const by = new Map<string, AnyObj>();
+  const by = new Map<string, MergedGeoPerformanceRow>();
   const ingest = (r: AnyObj) => {
     const key = keyFields.map((field) => s(r?.[field])).join("\u0000");
     if (!key.replace(/\u0000/g, "")) return;
