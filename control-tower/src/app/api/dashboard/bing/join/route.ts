@@ -342,13 +342,17 @@ export async function GET(req: Request) {
       position: number;
       date: string;
       __state: string;
+      __county: string;
+      __city: string;
     }> = pages.map((r) => {
       const page = s(r.page);
       const hostRaw = hostnameFromPage(page);
       const host = normalizeHost(hostRaw || siteHost);
+      const catalogEntry = host
+        ? (catalog.byHostname?.[host] || catalog.byHostname?.[`www.${host}`] || null)
+        : null;
       const mappedStateRaw = host
-        ? (catalog.byHostname?.[host]?.state ||
-            catalog.byHostname?.[`www.${host}`]?.state ||
+        ? (catalogEntry?.state ||
             stateCatalog.hostToState?.[host]?.name ||
             stateCatalog.hostToState?.[`www.${host}`]?.name ||
             "__unknown")
@@ -389,6 +393,8 @@ export async function GET(req: Request) {
         position,
         date: s(r.date),
         __state: mappedState,
+        __county: s(catalogEntry?.county),
+        __city: s(catalogEntry?.city),
       };
     });
 
@@ -403,6 +409,71 @@ export async function GET(req: Request) {
         keywordsCount: x.keywordsCount,
       }))
       .sort((a, b) => n(b.impressions) - n(a.impressions));
+
+    const aggregateGeoRows = (level: "county" | "city" | "url") => {
+      const grouped = new Map<string, {
+        state: string;
+        county: string;
+        city: string;
+        url: string;
+        impressions: number;
+        clicks: number;
+        posAcc: number;
+        posW: number;
+        pages: Set<string>;
+      }>();
+
+      for (const row of pageRowsWithState) {
+        if (level === "county" && !row.__county) continue;
+        if (level === "city" && !row.__city) continue;
+        const key =
+          level === "county"
+            ? `${row.__state}\u0000${row.__county}`
+            : level === "city"
+              ? `${row.__state}\u0000${row.__county}\u0000${row.__city}`
+              : row.page;
+        const prev = grouped.get(key) || {
+          state: row.__state,
+          county: row.__county,
+          city: level === "county" ? "" : row.__city,
+          url: level === "url" ? row.page : "",
+          impressions: 0,
+          clicks: 0,
+          posAcc: 0,
+          posW: 0,
+          pages: new Set<string>(),
+        };
+        prev.impressions += n(row.impressions);
+        prev.clicks += n(row.clicks);
+        if (n(row.position) > 0) {
+          prev.posAcc += n(row.position) * Math.max(n(row.impressions), 1);
+          prev.posW += Math.max(n(row.impressions), 1);
+        }
+        if (row.page) prev.pages.add(row.page);
+        grouped.set(key, prev);
+      }
+
+      return Array.from(grouped.values())
+        .map((row) => ({
+          state: row.state,
+          county: row.county || null,
+          city: row.city || null,
+          url: row.url || null,
+          impressions: row.impressions,
+          clicks: row.clicks,
+          ctr: row.impressions > 0 ? row.clicks / row.impressions : 0,
+          position: row.posW > 0 ? row.posAcc / row.posW : 0,
+          pagesCounted: row.pages.size,
+          keywordsCount: 0,
+        }))
+        .sort((a, b) => b.impressions - a.impressions);
+    };
+
+    const geoRows = {
+      counties: aggregateGeoRows("county"),
+      cities: aggregateGeoRows("city"),
+      urls: aggregateGeoRows("url"),
+    };
 
     const prMunicipioMap = new Map<
       string,
@@ -557,6 +628,7 @@ export async function GET(req: Request) {
       topKeywordsOverall,
       topKeywordsFiltered: topKeywordsOverall,
       stateRows,
+      geoRows,
       prMunicipioRows,
       funnels: [],
       top: {

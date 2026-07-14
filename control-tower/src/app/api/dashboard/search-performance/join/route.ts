@@ -119,6 +119,54 @@ function mergeStateRows(aRows: AnyObj[], bRows: AnyObj[]) {
     .sort((x, y) => n(y.impressions) - n(x.impressions));
 }
 
+function mergeGeoPerformanceRows(aRows: AnyObj[], bRows: AnyObj[], keyFields: string[]) {
+  const by = new Map<string, AnyObj>();
+  const ingest = (r: AnyObj) => {
+    const key = keyFields.map((field) => s(r?.[field])).join("\u0000");
+    if (!key.replace(/\u0000/g, "")) return;
+    const impressions = n(r.impressions);
+    const prev = by.get(key) || {
+      state: s(r.state),
+      county: s(r.county) || null,
+      city: s(r.city) || null,
+      url: s(r.url) || null,
+      impressions: 0,
+      clicks: 0,
+      posAcc: 0,
+      posW: 0,
+      pagesCounted: 0,
+      keywordsCount: 0,
+    };
+    prev.impressions += impressions;
+    prev.clicks += n(r.clicks);
+    if (n(r.position) > 0) {
+      prev.posAcc += n(r.position) * Math.max(impressions, 1);
+      prev.posW += Math.max(impressions, 1);
+    }
+    prev.pagesCounted = Math.max(n(prev.pagesCounted), n(r.pagesCounted));
+    prev.keywordsCount += n(r.keywordsCount);
+    by.set(key, prev);
+  };
+
+  for (const row of aRows || []) ingest(row || {});
+  for (const row of bRows || []) ingest(row || {});
+
+  return Array.from(by.values())
+    .map((row) => ({
+      state: row.state,
+      county: row.county,
+      city: row.city,
+      url: row.url,
+      impressions: n(row.impressions),
+      clicks: n(row.clicks),
+      ctr: n(row.impressions) > 0 ? n(row.clicks) / n(row.impressions) : 0,
+      position: n(row.posW) > 0 ? n(row.posAcc) / n(row.posW) : 0,
+      pagesCounted: n(row.pagesCounted),
+      keywordsCount: n(row.keywordsCount),
+    }))
+    .sort((x, y) => n(y.impressions) - n(x.impressions));
+}
+
 function mergePrMunicipioRows(aRows: AnyObj[], bRows: AnyObj[]) {
   const by = new Map<string, AnyObj>();
   const ingest = (r: AnyObj) => {
@@ -313,6 +361,23 @@ export async function GET(req: Request) {
     const summaryNationwide = mergeSummary(g.summaryNationwide || {}, b.summaryNationwide || {});
 
     const stateRows = mergeStateRows(g.stateRows || [], b.stateRows || []);
+    const geoRows = {
+      counties: mergeGeoPerformanceRows(
+        g?.geoRows?.counties || [],
+        b?.geoRows?.counties || [],
+        ["state", "county"],
+      ),
+      cities: mergeGeoPerformanceRows(
+        g?.geoRows?.cities || [],
+        b?.geoRows?.cities || [],
+        ["state", "county", "city"],
+      ),
+      urls: mergeGeoPerformanceRows(
+        g?.geoRows?.urls || [],
+        b?.geoRows?.urls || [],
+        ["url"],
+      ),
+    };
     const prMunicipioRows = mergePrMunicipioRows(g.prMunicipioRows || [], b.prMunicipioRows || []);
     const trend = mergeTrendRows(g.trend || [], b.trend || []);
     const trendFiltered = mergeTrendRows(g.trendFiltered || [], b.trendFiltered || []);
@@ -445,6 +510,7 @@ export async function GET(req: Request) {
       topKeywordsOverall,
       topKeywordsFiltered,
       stateRows,
+      geoRows,
       prMunicipioRows,
       funnels: g.funnels || [],
       top: {
