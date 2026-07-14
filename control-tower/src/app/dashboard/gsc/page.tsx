@@ -96,6 +96,12 @@ function GscDashboardPageContent() {
   const [mapSelected, setMapSelected] = useState<string>("");
   const [mapScope, setMapScope] = useState<"us" | "pr">("us");
   const [prMunicipioSelected, setPrMunicipioSelected] = useState<string>("");
+  const [geoTableLevel, setGeoTableLevel] = useState<
+    "state" | "county" | "city" | "url"
+  >("state");
+  const [geoTableCounty, setGeoTableCounty] = useState("");
+  const [geoTableCity, setGeoTableCity] = useState("");
+  const [geoTableSearch, setGeoTableSearch] = useState("");
 
   const [trendMode, setTrendMode] = useState<"day" | "week" | "month">("day");
   const [compareOn, setCompareOn] = useState(true);
@@ -507,6 +513,7 @@ function GscDashboardPageContent() {
 
   const compare = data?.compare || null;
   const stateRows = (data?.stateRows || []) as Array<any>;
+  const geoRows = data?.geoRows || { counties: [], cities: [], urls: [] };
   const prMunicipioRows = (data?.prMunicipioRows || []) as Array<any>;
 
   const mapRows = useMemo(() => {
@@ -536,6 +543,88 @@ function GscDashboardPageContent() {
     if (!selectedState) return null;
     return stateRows.find((r) => String(r.state) === selectedState) || null;
   }, [selectedState, stateRows]);
+
+  const geoTableState = mapScope === "pr" ? "Puerto Rico" : selectedState;
+
+  const geoTableCounties = useMemo(() => {
+    const stateKey = String(geoTableState || "").trim().toLowerCase();
+    return Array.from(
+      new Set<string>(
+        (geoRows.counties || [])
+          .filter(
+            (r: any) =>
+              !stateKey || String(r?.state || "").trim().toLowerCase() === stateKey,
+          )
+          .map((r: any) => String(r?.county || "").trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [geoRows.counties, geoTableState]);
+
+  const geoTableCities = useMemo(() => {
+    const stateKey = String(geoTableState || "").trim().toLowerCase();
+    const countyKey = geoTableCounty.trim().toLowerCase();
+    return Array.from(
+      new Set<string>(
+        (geoRows.cities || [])
+          .filter((r: any) => {
+            const matchesState =
+              !stateKey || String(r?.state || "").trim().toLowerCase() === stateKey;
+            const matchesCounty =
+              !countyKey || String(r?.county || "").trim().toLowerCase() === countyKey;
+            return matchesState && matchesCounty;
+          })
+          .map((r: any) => String(r?.city || "").trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [geoRows.cities, geoTableCounty, geoTableState]);
+
+  const filteredGeoTableRows = useMemo(() => {
+    const sourceRows =
+      geoTableLevel === "state"
+        ? stateRows
+        : geoTableLevel === "county"
+          ? geoRows.counties || []
+          : geoTableLevel === "city"
+            ? geoRows.cities || []
+            : geoRows.urls || [];
+    const stateKey = String(geoTableState || "").trim().toLowerCase();
+    const countyKey = geoTableCounty.trim().toLowerCase();
+    const cityKey = geoTableCity.trim().toLowerCase();
+    const searchKey = geoTableSearch.trim().toLowerCase();
+
+    return sourceRows.filter((r: any) => {
+      if (
+        stateKey &&
+        String(r?.state || "").trim().toLowerCase() !== stateKey
+      ) return false;
+      if (
+        geoTableLevel !== "state" &&
+        countyKey &&
+        String(r?.county || "").trim().toLowerCase() !== countyKey
+      ) return false;
+      if (
+        (geoTableLevel === "city" || geoTableLevel === "url") &&
+        cityKey &&
+        String(r?.city || "").trim().toLowerCase() !== cityKey
+      ) return false;
+      if (!searchKey) return true;
+      return [r?.state, r?.county, r?.city, r?.url]
+        .map((value) => String(value || "").toLowerCase())
+        .some((value) => value.includes(searchKey));
+    });
+  }, [
+    geoRows.cities,
+    geoRows.counties,
+    geoRows.urls,
+    geoTableCity,
+    geoTableCounty,
+    geoTableLevel,
+    geoTableSearch,
+    geoTableState,
+    stateRows,
+  ]);
 
   const selectedPrMunicipioRow = useMemo(() => {
     if (!prMunicipioSelected) return null;
@@ -2077,16 +2166,108 @@ function GscDashboardPageContent() {
             <div className="cardHeader">
               <div>
                 <h2 className="cardTitle">States table</h2>
+                <div className="cardSubtitle">
+                  Search performance by state, county, city, or exact URL.
+                </div>
               </div>
-              <div className="badge">{stateRows.length} rows</div>
+              <div className="badge">{filteredGeoTableRows.length} rows</div>
             </div>
 
             <div className="cardBody">
+              <div className="segmented" role="tablist" aria-label="Geography detail level">
+                {(["state", "county", "city", "url"] as const).map((level) => (
+                  <button
+                    className={`segBtn ${geoTableLevel === level ? "segBtnOn" : ""}`}
+                    key={level}
+                    onClick={() => setGeoTableLevel(level)}
+                    type="button"
+                  >
+                    {level === "city" ? "Town / City" : level.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                  gap: 10,
+                  marginTop: 12,
+                  marginBottom: 14,
+                }}
+              >
+                <select
+                  className="input"
+                  aria-label="Filter by state"
+                  value={geoTableState}
+                  onChange={(event) => {
+                    setMapScope("us");
+                    setMapSelected(event.target.value);
+                    setGeoTableCounty("");
+                    setGeoTableCity("");
+                  }}
+                >
+                  <option value="">All states</option>
+                  {stateRows
+                    .filter((row: any) => String(row?.state || "") !== "__unknown")
+                    .map((row: any) => (
+                      <option key={String(row.state)} value={String(row.state)}>
+                        {String(row.state)}
+                      </option>
+                    ))}
+                </select>
+
+                {geoTableLevel !== "state" ? (
+                  <select
+                    className="input"
+                    aria-label="Filter by county"
+                    value={geoTableCounty}
+                    onChange={(event) => {
+                      setGeoTableCounty(event.target.value);
+                      setGeoTableCity("");
+                    }}
+                  >
+                    <option value="">All counties</option>
+                    {geoTableCounties.map((county) => (
+                      <option key={county} value={county}>{county}</option>
+                    ))}
+                  </select>
+                ) : null}
+
+                {geoTableLevel === "city" || geoTableLevel === "url" ? (
+                  <select
+                    className="input"
+                    aria-label="Filter by town or city"
+                    value={geoTableCity}
+                    onChange={(event) => setGeoTableCity(event.target.value)}
+                  >
+                    <option value="">All towns / cities</option>
+                    {geoTableCities.map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                ) : null}
+
+                <input
+                  className="input"
+                  type="search"
+                  value={geoTableSearch}
+                  onChange={(event) => setGeoTableSearch(event.target.value)}
+                  placeholder="Search state, county, town, or URL"
+                  aria-label="Search geography performance"
+                />
+              </div>
+
               <div className="tableWrap tableScrollX">
                 <table className="table">
                   <thead>
                     <tr>
                       <th className="th">State</th>
+                      {geoTableLevel !== "state" ? <th className="th">County</th> : null}
+                      {geoTableLevel === "city" || geoTableLevel === "url" ? (
+                        <th className="th">Town / City</th>
+                      ) : null}
+                      {geoTableLevel === "url" ? <th className="th">URL</th> : null}
                       <th className="th">Impressions</th>
                       <th className="th">Clicks</th>
                       <th className="th">CTR</th>
@@ -2096,9 +2277,9 @@ function GscDashboardPageContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {stateRows.map((r: any, i: number) => (
+                    {filteredGeoTableRows.map((r: any, i: number) => (
                       <tr
-                        key={i}
+                        key={`${String(r.url || r.city || r.county || r.state)}-${i}`}
                         className="tr"
                         style={{
                           cursor:
@@ -2113,6 +2294,21 @@ function GscDashboardPageContent() {
                         <td className="td">
                           <b className="mono">{r.state}</b>
                         </td>
+                        {geoTableLevel !== "state" ? (
+                          <td className="td">{String(r.county || "—")}</td>
+                        ) : null}
+                        {geoTableLevel === "city" || geoTableLevel === "url" ? (
+                          <td className="td">{String(r.city || "—")}</td>
+                        ) : null}
+                        {geoTableLevel === "url" ? (
+                          <td className="td">
+                            {r.url ? (
+                              <a href={String(r.url)} target="_blank" rel="noreferrer" className="mono">
+                                {String(r.url)}
+                              </a>
+                            ) : "—"}
+                          </td>
+                        ) : null}
                         <td className="td">{fmtInt(r.impressions)}</td>
                         <td className="td">{fmtInt(r.clicks)}</td>
                         <td className="td">{fmtPct(r.ctr)}</td>
@@ -2121,6 +2317,22 @@ function GscDashboardPageContent() {
                         <td className="td">{fmtInt(r.keywordsCount ?? 0)}</td>
                       </tr>
                     ))}
+                    {!filteredGeoTableRows.length ? (
+                      <tr className="tr">
+                        <td
+                          className="td"
+                          colSpan={
+                            7 +
+                            (geoTableLevel !== "state" ? 1 : 0) +
+                            (geoTableLevel === "city" || geoTableLevel === "url" ? 1 : 0) +
+                            (geoTableLevel === "url" ? 1 : 0)
+                          }
+                          style={{ opacity: 0.75 }}
+                        >
+                          No geography data matches the active filters.
+                        </td>
+                      </tr>
+                    ) : null}
                   </tbody>
                 </table>
               </div>

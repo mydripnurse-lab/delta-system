@@ -6,7 +6,15 @@ import { getDbPool } from "@/lib/db";
 export type GscCatalogIndex = {
   baseDir: string;
   fingerprint: string;
-  byHostname: Record<string, { state: string }>;
+  byHostname: Record<
+    string,
+    {
+      state: string;
+      county?: string;
+      city?: string;
+      geoLevel?: "county" | "city" | "state";
+    }
+  >;
   statesPresent: Set<string>;
 };
 
@@ -88,6 +96,54 @@ function collectHostnamesDeep(node: unknown, out: Set<string>) {
   }
 }
 
+type CatalogHost = GscCatalogIndex["byHostname"][string];
+
+function addHostname(
+  byHostname: Record<string, CatalogHost>,
+  urlLike: unknown,
+  geo: CatalogHost,
+) {
+  const host = hostnameFromAnyString(s(urlLike));
+  if (host) byHostname[host] = geo;
+}
+
+function collectGeoHostnames(
+  payload: unknown,
+  state: string,
+  byHostname: Record<string, CatalogHost>,
+) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return;
+  const root = payload as Record<string, unknown>;
+  const counties = Array.isArray(root.counties) ? root.counties : [];
+
+  for (const countyRaw of counties) {
+    if (!countyRaw || typeof countyRaw !== "object" || Array.isArray(countyRaw)) continue;
+    const county = countyRaw as Record<string, unknown>;
+    const countyName = s(county.countyName);
+    if (!countyName) continue;
+
+    addHostname(byHostname, county.countyDomain, {
+      state,
+      county: countyName,
+      geoLevel: "county",
+    });
+
+    const cities = Array.isArray(county.cities) ? county.cities : [];
+    for (const cityRaw of cities) {
+      if (!cityRaw || typeof cityRaw !== "object" || Array.isArray(cityRaw)) continue;
+      const city = cityRaw as Record<string, unknown>;
+      const cityName = s(city.cityName);
+      if (!cityName) continue;
+      addHostname(byHostname, city.cityDomain, {
+        state,
+        county: countyName,
+        city: cityName,
+        geoLevel: "city",
+      });
+    }
+  }
+}
+
 function titleCaseStateFromSlug(slug: string) {
   const parts = s(slug)
     .replace(/[_]/g, "-")
@@ -118,7 +174,7 @@ async function computeOutFingerprint(outRoot: string) {
 async function buildOutIndex(outRoot: string): Promise<GscCatalogIndex> {
   const entries = await fs.readdir(outRoot, { withFileTypes: true }).catch(() => []);
   const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-  const byHostname: Record<string, { state: string }> = {};
+  const byHostname: Record<string, CatalogHost> = {};
   const statesPresent = new Set<string>();
 
   for (const slug of dirs) {
@@ -141,6 +197,7 @@ async function buildOutIndex(outRoot: string): Promise<GscCatalogIndex> {
       if (!h) continue;
       byHostname[h] = { state: stateName };
     }
+    collectGeoHostnames(json, stateName, byHostname);
   }
 
   const fingerprint = await computeOutFingerprint(outRoot);
@@ -180,7 +237,7 @@ async function buildTenantDbIndex(tenantId: string): Promise<GscCatalogIndex | n
   );
   if (!q.rows.length) return null;
 
-  const byHostname: Record<string, { state: string }> = {};
+  const byHostname: Record<string, CatalogHost> = {};
   const statesPresent = new Set<string>();
   for (const row of q.rows) {
     const stateName = s(row.state_name) || titleCaseStateFromSlug(s(row.state_slug));
@@ -192,6 +249,7 @@ async function buildTenantDbIndex(tenantId: string): Promise<GscCatalogIndex | n
       if (!h) continue;
       byHostname[h] = { state: stateName };
     }
+    collectGeoHostnames(row.payload, stateName, byHostname);
   }
 
   const fingerprint = await computeTenantDbFingerprint(tenantId);
@@ -245,4 +303,3 @@ export async function loadGscCatalogIndex(opts?: LoadOpts): Promise<GscCatalogIn
   cacheStore[cacheKey] = built;
   return built;
 }
-

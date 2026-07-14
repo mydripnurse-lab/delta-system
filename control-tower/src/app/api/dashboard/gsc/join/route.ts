@@ -461,6 +461,136 @@ function groupByStateFromPagesWithCatalog(pages: GscRow[], catalogByHostname: Re
     return out;
 }
 
+type GeoPerformanceBucket = {
+    state: string;
+    county: string;
+    city: string;
+    url: string;
+    impressions: number;
+    clicks: number;
+    posWeightedSum: number;
+    posWeight: number;
+    pages: Set<string>;
+    keywords: Set<string>;
+};
+
+function buildGeoPerformanceRows(
+    pages: GscRow[],
+    qpRows: GscRow[],
+    catalogByHostname: Record<string, any>,
+) {
+    const counties = new Map<string, GeoPerformanceBucket>();
+    const cities = new Map<string, GeoPerformanceBucket>();
+    const urls = new Map<string, GeoPerformanceBucket>();
+
+    const bucketFor = (
+        map: Map<string, GeoPerformanceBucket>,
+        key: string,
+        seed: Pick<GeoPerformanceBucket, "state" | "county" | "city" | "url">,
+    ) => {
+        const existing = map.get(key);
+        if (existing) return existing;
+        const created: GeoPerformanceBucket = {
+            ...seed,
+            impressions: 0,
+            clicks: 0,
+            posWeightedSum: 0,
+            posWeight: 0,
+            pages: new Set<string>(),
+            keywords: new Set<string>(),
+        };
+        map.set(key, created);
+        return created;
+    };
+
+    const geoForPage = (page: string) => {
+        const host = safeHostname(page);
+        const entry = host ? catalogByHostname[host] : null;
+        if (!entry?.state) return null;
+        return {
+            state: normalizeState(entry.state),
+            county: s(entry.county),
+            city: s(entry.city),
+        };
+    };
+
+    const targetsFor = (page: string) => {
+        const geo = geoForPage(page);
+        if (!geo) return [] as GeoPerformanceBucket[];
+        const targets: GeoPerformanceBucket[] = [];
+        if (geo.county) {
+            targets.push(
+                bucketFor(counties, `${geo.state}\u0000${geo.county}`, {
+                    ...geo,
+                    city: "",
+                    url: "",
+                }),
+            );
+        }
+        if (geo.city) {
+            targets.push(
+                bucketFor(cities, `${geo.state}\u0000${geo.county}\u0000${geo.city}`, {
+                    ...geo,
+                    url: "",
+                }),
+            );
+        }
+        targets.push(
+            bucketFor(urls, page, {
+                ...geo,
+                url: page,
+            }),
+        );
+        return targets;
+    };
+
+    for (const row of pages) {
+        const page = s(row.page);
+        if (!page) continue;
+        const impressions = num(row.impressions);
+        const clicks = num(row.clicks);
+        const position = num(row.position);
+        for (const bucket of targetsFor(page)) {
+            bucket.impressions += impressions;
+            bucket.clicks += clicks;
+            if (impressions > 0 && position > 0) {
+                bucket.posWeightedSum += position * impressions;
+                bucket.posWeight += impressions;
+            }
+            bucket.pages.add(page);
+        }
+    }
+
+    for (const row of qpRows) {
+        const page = s(row.page);
+        const query = s(row.query);
+        if (!page || !query) continue;
+        for (const bucket of targetsFor(page)) bucket.keywords.add(query);
+    }
+
+    const finish = (map: Map<string, GeoPerformanceBucket>) =>
+        Array.from(map.values())
+            .map((bucket) => ({
+                state: bucket.state,
+                county: bucket.county || null,
+                city: bucket.city || null,
+                url: bucket.url || null,
+                impressions: bucket.impressions,
+                clicks: bucket.clicks,
+                ctr: bucket.impressions > 0 ? bucket.clicks / bucket.impressions : 0,
+                position: bucket.posWeight > 0 ? bucket.posWeightedSum / bucket.posWeight : 0,
+                pagesCounted: bucket.pages.size,
+                keywordsCount: bucket.keywords.size,
+            }))
+            .sort((a, b) => b.impressions - a.impressions);
+
+    return {
+        counties: finish(counties),
+        cities: finish(cities),
+        urls: finish(urls),
+    };
+}
+
 function normalizeNameKey(v: string) {
     return s(v)
         .normalize("NFD")
@@ -991,6 +1121,7 @@ export async function GET(req: Request) {
 
         // states from delta pages
         const stateRows = groupByStateFromPagesWithCatalog(deltaPages, catalogByHostname);
+        const geoRows = buildGeoPerformanceRows(deltaPages, qpRows, catalogByHostname);
         const prMunicipioRows = groupByPrMunicipioFromPages(deltaPages, catalogByHostname);
 
         // filter delta pages by state
@@ -1113,6 +1244,7 @@ export async function GET(req: Request) {
             topKeywordsFiltered: kw.topKeywordsFiltered,
 
             stateRows,
+            geoRows,
             prMunicipioRows,
             funnels: funnelRows,
 
