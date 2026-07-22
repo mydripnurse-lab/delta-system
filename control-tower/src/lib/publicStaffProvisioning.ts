@@ -541,6 +541,7 @@ export async function provisionStaffApplication(opts: {
         totalCounties: opts.selected.length,
         applicationId,
         ghlUserId: user.userId,
+        password: opts.input.password,
         submittedAt: new Date().toISOString(),
       });
     } catch (error) {

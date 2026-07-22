@@ -66,7 +66,7 @@ Copy the entire file and paste it into a GHL Custom HTML/JS element.
 
 - Only rows from the tenant's Counties sheet with State, County and Location Id are returned.
 - Location IDs are not exposed to the browser; it receives deterministic opaque keys.
-- The submitted password is sent over HTTPS to GHL and is never stored in `staff_applications`.
+- The generated password is sent over HTTPS to GHL for user creation and to the configured GHL webhook as `password`; it is never stored in `staff_applications` or returned to the browser.
 - Existing users are updated instead of duplicated.
 - Existing calendar members are never removed.
 - Compatible team calendar types are Round Robin, Collective, Class and Service.
