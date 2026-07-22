@@ -802,14 +802,23 @@ async function runInTab(tabId, payload) {
           try {
             // If menu is already open and contains exact option, click it immediately.
             const alreadyOpenOption = (() => {
+              const stableEdit = document.querySelector("#hr-dropdown-option-edit");
+              if (wanted === "edit" && visible(stableEdit)) {
+                const label =
+                  stableEdit.querySelector(".hr-dropdown-option-body__label") || stableEdit;
+                return { opt: stableEdit, label };
+              }
               const menus = [...document.querySelectorAll(".v-binder-follower-content")]
                 .filter((el) => visible(el));
               for (const menu of menus) {
-                const labels = [...menu.querySelectorAll(".n-dropdown-option-body__label")];
+                const labels = [...menu.querySelectorAll(
+                  ".n-dropdown-option-body__label, .hr-dropdown-option-body__label",
+                )];
                 for (const label of labels) {
                   const t = norm(label?.textContent || "");
                   if (t === wanted) {
-                    const opt = label.closest(".n-dropdown-option") || label;
+                    const opt =
+                      label.closest(".n-dropdown-option, .hr-dropdown-option") || label;
                     return { opt, label };
                   }
                 }
@@ -837,16 +846,27 @@ async function runInTab(tabId, payload) {
             await sleep(380);
 
             const option = await waitFor(() => {
+              const stableEdit = document.querySelector("#hr-dropdown-option-edit");
+              if (wanted === "edit" && visible(stableEdit)) {
+                return {
+                  opt: stableEdit,
+                  label:
+                    stableEdit.querySelector(".hr-dropdown-option-body__label") || stableEdit,
+                };
+              }
               const menus = [...document.querySelectorAll(".v-binder-follower-content")]
                 .filter((el) => visible(el));
               if (!menus.length) return null;
 
               for (const menu of menus) {
-                const labels = [...menu.querySelectorAll(".n-dropdown-option-body__label")];
+                const labels = [...menu.querySelectorAll(
+                  ".n-dropdown-option-body__label, .hr-dropdown-option-body__label",
+                )];
                 for (const label of labels) {
                   const t = norm(label?.textContent || "");
                   if (t === wanted) {
-                    const opt = label.closest(".n-dropdown-option") || label;
+                    const opt =
+                      label.closest(".n-dropdown-option, .hr-dropdown-option") || label;
                     return { opt, label };
                   }
                 }
@@ -1068,46 +1088,35 @@ async function runInTab(tabId, payload) {
 
       async function clickCountyTableEntryStrict(timeoutMs = 45000) {
         const target = await waitFor(() => {
-          const bodies = [...document.querySelectorAll(
-            "div.n-data-table-base-table-body.n-scrollbar",
+          const rows = [...document.querySelectorAll(
+            "tr.hr-data-table__body-row, tr.n-data-table-tr",
           )].filter((el) => visible(el));
 
-          const matches = [];
-          for (const body of bodies) {
-            const content = body.querySelector("div.n-scrollbar-content");
-            if (!visible(content)) continue;
-
-            const table = content.querySelector("table.n-data-table-table");
-            if (!visible(table)) continue;
-
-            const tbody = table.querySelector("tbody.n-data-table-tbody");
-            if (!visible(tbody)) continue;
-
-            const rows = [...tbody.querySelectorAll("tr.n-data-table-tr")];
-            for (const tr of rows) {
-              const tds = [...tr.querySelectorAll("td.n-data-table-td.n-data-table-td--last-row")];
-              for (const td of tds) {
-                const card = td.querySelector(
-                  "div.text-gray-900.hover\\:text-primary-600.cursor-pointer.flex.hl-text-sm-medium",
-                );
-                if (!visible(card)) continue;
-
-                const span = [...card.querySelectorAll("span")]
-                  .find((s) => norm(s.textContent) === "county");
-                if (!span) continue;
-                matches.push(card);
-              }
-            }
+          for (const row of rows) {
+            const candidates = [...row.querySelectorAll(
+              "p.cursor-pointer, div.cursor-pointer, .hl-text-sm-medium.cursor-pointer",
+            )].filter((el) => visible(el));
+            const hit = candidates.find((el) =>
+              [...el.querySelectorAll("span")].some(
+                (span) => norm(span.textContent) === "county",
+              ),
+            );
+            if (hit) return hit;
           }
-
-          if (matches.length !== 1) return null;
-          return matches[0];
+          return null;
         }, timeoutMs, 220, "strict County table entry");
 
+        const hrefBefore = String(location.href || "");
         await sleep(260);
         fireSingleNativeClick(target);
         log("county table entry strict -> County");
-        await sleep(360);
+        await waitFor(
+          () => String(location.href || "") !== hrefBefore || !target.isConnected,
+          timeoutMs,
+          220,
+          "County folder navigation",
+        );
+        await sleep(520);
       }
 
       async function clickSettingsTabStrict(timeoutMs = 45000) {
@@ -1917,16 +1926,12 @@ async function runInTab(tabId, payload) {
         await clickSbSitesStrict(45000);
         await clickTbWebsitesStrict(45000);
 
-        await clickSel("[id*='table1-drop-action-dropdown-trigger']", "table1 dropdown");
         await clickCountyTableEntryStrict(45000);
-
-        await clickSel("[id*='table1-drop-action-dropdown-trigger']", "table1 dropdown 2");
-        const firstAction = document.querySelector(".n-dropdown-option-body__label");
-        if (firstAction) {
-          fireSingleNativeClick(firstAction);
-          log("table1 first dropdown action clicked");
-          await sleep(420);
-        }
+        await openActionMenuAndPickExact(
+          "Edit",
+          "button[aria-label='Actions'], [id*='table1-drop-action-dropdown-trigger']",
+          45000,
+        );
 
         let settingsPersisted = true;
         try {
