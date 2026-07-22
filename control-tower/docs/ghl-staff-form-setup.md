@@ -49,7 +49,7 @@ on conflict (organization_id) do update set
   calendar_ids = excluded.calendar_ids;
 ```
 
-Use `calendar_mode = 'specific'` and place GHL calendar IDs in `calendar_ids` if only selected calendars should be modified.
+Use `calendar_mode = 'specific'` with GHL IDs in `calendar_ids`, or `calendar_mode = 'specific_names'` with exact names in `calendar_names`, when only selected calendars should be modified.
 
 ## 4. Configure and paste the HTML
 

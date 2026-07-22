@@ -37,8 +37,9 @@ type StaffFormConfig = {
   tenantId: string;
   formKey: string;
   webhookUrl: string;
-  calendarMode: "all_compatible" | "specific";
+  calendarMode: "all_compatible" | "specific" | "specific_names";
   calendarIds: string[];
+  calendarNames: string[];
 };
 
 export type EligibleCounty = {
@@ -99,10 +100,11 @@ export async function getStaffFormConfig(formKeyRaw: string): Promise<StaffFormC
     organization_id: string;
     form_key: string;
     webhook_url: string | null;
-    calendar_mode: "all_compatible" | "specific";
+    calendar_mode: "all_compatible" | "specific" | "specific_names";
     calendar_ids: string[] | null;
+    calendar_names: string[] | null;
   }>(
-    `select organization_id, form_key, webhook_url, calendar_mode, calendar_ids
+    `select organization_id, form_key, webhook_url, calendar_mode, calendar_ids, calendar_names
        from app.staff_form_configs
       where form_key = $1 and enabled = true
       limit 1`,
@@ -116,6 +118,7 @@ export async function getStaffFormConfig(formKeyRaw: string): Promise<StaffFormC
     webhookUrl: s(row.webhook_url),
     calendarMode: row.calendar_mode,
     calendarIds: Array.isArray(row.calendar_ids) ? row.calendar_ids.map(s).filter(Boolean) : [],
+    calendarNames: Array.isArray(row.calendar_names) ? row.calendar_names.map(s).filter(Boolean) : [],
   };
 }
 
@@ -318,6 +321,14 @@ const TEAM_CALENDAR_TYPES = new Set([
   "service",
 ]);
 
+function normalizeCalendarName(value: unknown) {
+  return s(value)
+    .normalize("NFKC")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
 async function updateLocationCalendars(opts: {
   config: StaffFormConfig;
   location: EligibleCounty;
@@ -332,15 +343,21 @@ async function updateLocationCalendars(opts: {
   const calendarData = record(data);
   const calendars: JsonRecord[] = Array.isArray(calendarData.calendars) ? calendarData.calendars.map(record) : [];
   const configured = new Set(opts.config.calendarIds);
+  const configuredNames = new Set(opts.config.calendarNames.map(normalizeCalendarName));
   const results: JsonRecord[] = [];
+  const matchedNames = new Set<string>();
 
   for (const calendar of calendars) {
     const id = s(calendar?.id);
     const type = s(calendar?.calendarType).toLowerCase();
+    const name = s(calendar?.name);
+    const normalizedName = normalizeCalendarName(name);
     if (!id) continue;
     if (opts.config.calendarMode === "specific" && !configured.has(id)) continue;
+    if (opts.config.calendarMode === "specific_names" && !configuredNames.has(normalizedName)) continue;
+    if (opts.config.calendarMode === "specific_names") matchedNames.add(normalizedName);
     if (!TEAM_CALENDAR_TYPES.has(type)) {
-      results.push({ calendarId: id, name: s(calendar?.name), status: "skipped", reason: `unsupported calendar type: ${type || "unknown"}` });
+      results.push({ calendarId: id, name, status: "skipped", reason: `unsupported calendar type: ${type || "unknown"}` });
       continue;
     }
 
@@ -357,7 +374,7 @@ async function updateLocationCalendars(opts: {
           },
         ];
     if (alreadyMember && calendar?.isActive === true) {
-      results.push({ calendarId: id, name: s(calendar?.name), status: "unchanged", active: true, memberAdded: false });
+      results.push({ calendarId: id, name, status: "unchanged", active: true, memberAdded: false });
       continue;
     }
     await ghlRequest({
@@ -369,11 +386,18 @@ async function updateLocationCalendars(opts: {
     });
     results.push({
       calendarId: id,
-      name: s(calendar?.name),
+      name,
       status: "updated",
       active: true,
       memberAdded: !alreadyMember,
     });
+  }
+  if (opts.config.calendarMode === "specific_names") {
+    for (const requiredName of opts.config.calendarNames) {
+      if (!matchedNames.has(normalizeCalendarName(requiredName))) {
+        results.push({ name: requiredName, status: "missing", reason: "calendar not found in this subaccount" });
+      }
+    }
   }
   return results;
 }
@@ -420,8 +444,8 @@ export async function provisionStaffApplication(opts: {
     for (const location of opts.selected) {
       try {
         const calendars = await updateLocationCalendars({ config: opts.config, location, userId: user.userId });
-        const skipped = calendars.filter((item) => item.status === "skipped").length;
-        warningCount += skipped;
+        const warnings = calendars.filter((item) => item.status === "skipped" || item.status === "missing").length;
+        warningCount += warnings;
         locations.push({ state: location.state, county: location.county, locationId: location.locationId, status: "completed", calendars });
       } catch (error) {
         warningCount += 1;
