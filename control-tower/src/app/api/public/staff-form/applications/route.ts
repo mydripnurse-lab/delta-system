@@ -28,7 +28,7 @@ function buildStaffPassword(firstName: string, lastName: string) {
   const initial = firstName.charAt(0).toUpperCase();
   const compactSurname = lastName.replace(/\s+/g, "");
   const surname = compactSurname.charAt(0).toUpperCase() + compactSurname.slice(1).toLowerCase();
-  const suffix = "12@";
+  const suffix = "1234@";
   const padding = "0".repeat(Math.max(0, 12 - initial.length - surname.length - suffix.length));
   return `${initial}${surname}${padding}${suffix}`;
 }
