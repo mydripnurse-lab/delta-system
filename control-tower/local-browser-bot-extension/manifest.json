@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Delta Local Domain Bot",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "Runs Domain Activation bot in your logged-in browser session.",
   "icons": {
     "16": "icon16.png",

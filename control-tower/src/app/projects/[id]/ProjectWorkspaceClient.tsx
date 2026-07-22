@@ -894,6 +894,20 @@ type DomainBotRunItem = {
   error?: string;
 };
 
+type SitemapUpdateRunItem = {
+  key: string;
+  kind: "counties" | "cities";
+  locId: string;
+  rowName: string;
+  domainUrl: string;
+  status: "pending" | "running" | "done" | "failed" | "stopped";
+  stage: "pending" | "generate" | "submit" | "inspect" | "complete";
+  generated: boolean;
+  submitted: boolean;
+  inspected: boolean;
+  error?: string;
+};
+
 type DomainBotFailureItem = {
   id: number;
   kind: "counties" | "cities";
@@ -1402,6 +1416,12 @@ export default function Home() {
   const [tabSitemapRunStartedAt, setTabSitemapRunStartedAt] = useState("");
   const [sitemapUpdateBusy, setSitemapUpdateBusy] = useState(false);
   const [sitemapUpdateStatus, setSitemapUpdateStatus] = useState("");
+  const [sitemapUpdateRunOpen, setSitemapUpdateRunOpen] = useState(false);
+  const [sitemapUpdateRunDone, setSitemapUpdateRunDone] = useState(false);
+  const [sitemapUpdateRunStartedAt, setSitemapUpdateRunStartedAt] = useState("");
+  const [sitemapUpdateRunItems, setSitemapUpdateRunItems] = useState<SitemapUpdateRunItem[]>([]);
+  const [sitemapUpdateStopRequested, setSitemapUpdateStopRequested] = useState(false);
+  const sitemapUpdateStopRequestedRef = useRef(false);
   const [domainBotBusy, setDomainBotBusy] = useState(false);
   const [domainBotLogs, setDomainBotLogs] = useState<string[]>([]);
   const [domainBotScreenshotDataUrl, setDomainBotScreenshotDataUrl] = useState("");
@@ -5211,6 +5231,25 @@ export default function Home() {
     return { pending, running, done, failed, total, completed, pct };
   }, [tabSitemapRunItems]);
 
+  const sitemapUpdateRunCounts = useMemo(() => {
+    let pending = 0;
+    let running = 0;
+    let done = 0;
+    let failed = 0;
+    let stopped = 0;
+    for (const it of sitemapUpdateRunItems) {
+      if (it.status === "pending") pending += 1;
+      else if (it.status === "running") running += 1;
+      else if (it.status === "done") done += 1;
+      else if (it.status === "failed") failed += 1;
+      else if (it.status === "stopped") stopped += 1;
+    }
+    const total = sitemapUpdateRunItems.length;
+    const completed = done + failed + stopped;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { pending, running, done, failed, stopped, total, completed, pct };
+  }, [sitemapUpdateRunItems]);
+
   const domainBotRunCounts = useMemo(() => {
     let pending = 0;
     let running = 0;
@@ -6942,6 +6981,18 @@ export default function Home() {
           if (data.type !== "DELTA_LOCAL_BOT_BRIDGE_READY") return;
           window.clearTimeout(timeout);
           window.removeEventListener("message", onReady);
+          if (input.runMode === "update_sitemap") {
+            const parts = s(data.extensionVersion).split(".").map((x) => Number(x) || 0);
+            const versionNumber = (parts[0] || 0) * 1_000_000 + (parts[1] || 0) * 1_000 + (parts[2] || 0);
+            if (versionNumber < 1_000_022) {
+              reject(
+                new Error(
+                  `Update Sitemaps requires extension 1.0.22 or newer. Detected ${s(data.extensionVersion) || "an older version"}. Reload the extension and refresh this page.`,
+                ),
+              );
+              return;
+            }
+          }
           resolve();
         }
 
@@ -7035,18 +7086,47 @@ export default function Home() {
       return;
     }
 
+    sitemapUpdateStopRequestedRef.current = false;
+    setSitemapUpdateStopRequested(false);
     setSitemapUpdateBusy(true);
+    setSitemapUpdateRunOpen(true);
+    setSitemapUpdateRunDone(false);
+    setSitemapUpdateRunStartedAt(new Date().toISOString());
+    setSitemapUpdateRunItems(
+      queue.map((item) => ({
+        key: `${item.kind}:${item.locId}`,
+        kind: item.kind,
+        locId: item.locId,
+        rowName: item.rowName,
+        domainUrl: item.domainUrl,
+        status: "pending",
+        stage: "pending",
+        generated: false,
+        submitted: false,
+        inspected: false,
+      })),
+    );
     let generated = 0;
     let submitted = 0;
     let inspected = 0;
     let failed = 0;
 
+    const updateItem = (key: string, patch: Partial<SitemapUpdateRunItem>) => {
+      setSitemapUpdateRunItems((prev) =>
+        prev.map((it) => (it.key === key ? { ...it, ...patch } : it)),
+      );
+    };
+
     try {
       for (let index = 0; index < queue.length; index += 1) {
+        if (sitemapUpdateStopRequestedRef.current) break;
         const item = queue[index];
+        const key = `${item.kind}:${item.locId}`;
         setSitemapUpdateStatus(
-          `${index + 1}/${queue.length}: updating ${item.rowName} (${item.kind})...`,
+          `${index + 1}/${queue.length}: generating sitemap for ${item.rowName}...`,
         );
+        updateItem(key, { status: "running", stage: "generate", error: "" });
+        let itemHadFailure = false;
 
         try {
           const local = await runDomainBotViaExtensionBridge({
@@ -7061,14 +7141,23 @@ export default function Home() {
           });
           if (!local.ok) throw new Error(local.error || "Sitemap generation failed.");
           generated += 1;
+          updateItem(key, { generated: true, stage: "submit" });
         } catch (e: any) {
           failed += 1;
+          updateItem(key, {
+            status: "failed",
+            stage: "generate",
+            error: e?.message || "Sitemap generation failed.",
+          });
           setSitemapUpdateStatus(
             `${index + 1}/${queue.length}: ${item.rowName} generation failed; continuing...`,
           );
           continue;
         }
 
+        setSitemapUpdateStatus(
+          `${index + 1}/${queue.length}: submitting sitemap for ${item.rowName}...`,
+        );
         try {
           const discoveryRes = await fetch("/api/tools/index-submit", {
             method: "POST",
@@ -7086,13 +7175,30 @@ export default function Home() {
             !!(discoveryData as any)?.google?.discovery?.submitted
           ) {
             submitted += 1;
+            updateItem(key, { submitted: true, stage: "inspect" });
           } else {
             failed += 1;
+            itemHadFailure = true;
+            updateItem(key, {
+              stage: "inspect",
+              error:
+                s((discoveryData as any)?.google?.discovery?.submitError) ||
+                s((discoveryData as any)?.google?.error) ||
+                `Sitemap submit failed (HTTP ${discoveryRes.status}).`,
+            });
           }
-        } catch {
+        } catch (e: any) {
           failed += 1;
+          itemHadFailure = true;
+          updateItem(key, {
+            stage: "inspect",
+            error: e?.message || "Sitemap submit request failed.",
+          });
         }
 
+        setSitemapUpdateStatus(
+          `${index + 1}/${queue.length}: inspecting ${item.rowName} in Google...`,
+        );
         try {
           const inspectRes = await fetch("/api/tools/index-submit", {
             method: "POST",
@@ -7105,20 +7211,60 @@ export default function Home() {
             }),
           });
           const inspectData = await safeJson(inspectRes);
-          if (inspectRes.ok && !!(inspectData as any)?.ok) inspected += 1;
-          else failed += 1;
-        } catch {
+          if (inspectRes.ok && !!(inspectData as any)?.ok) {
+            inspected += 1;
+            updateItem(key, { inspected: true });
+          } else {
+            failed += 1;
+            itemHadFailure = true;
+            updateItem(key, {
+              error:
+                s((inspectData as any)?.google?.error) ||
+                s((inspectData as any)?.error) ||
+                `Google Inspect failed (HTTP ${inspectRes.status}).`,
+            });
+          }
+        } catch (e: any) {
           // Google inspection is best-effort and never stops the queue.
           failed += 1;
+          itemHadFailure = true;
+          updateItem(key, { error: e?.message || "Google Inspect request failed." });
         }
+
+        updateItem(key, {
+          status: itemHadFailure ? "failed" : "done",
+          stage: "complete",
+        });
       }
 
-      setSitemapUpdateStatus(
-        `Completed ${queue.length} active locations: generated ${generated}, submitted ${submitted}, inspected ${inspected}, recorded failures ${failed}.`,
-      );
+      if (sitemapUpdateStopRequestedRef.current) {
+        setSitemapUpdateRunItems((prev) =>
+          prev.map((it) =>
+            it.status === "pending"
+              ? { ...it, status: "stopped", error: "Stopped before processing." }
+              : it,
+          ),
+        );
+        setSitemapUpdateStatus("Stop completed. No additional locations will be started.");
+      } else {
+        setSitemapUpdateStatus(
+          `Completed ${queue.length} active locations: generated ${generated}, submitted ${submitted}, inspected ${inspected}, recorded failures ${failed}.`,
+        );
+      }
+
     } finally {
       setSitemapUpdateBusy(false);
+      setSitemapUpdateRunDone(true);
     }
+  }
+
+  function requestStopSitemapUpdates() {
+    if (!sitemapUpdateBusy) return;
+    sitemapUpdateStopRequestedRef.current = true;
+    setSitemapUpdateStopRequested(true);
+    setSitemapUpdateStatus(
+      "Stop requested. The current location will finish, then the remaining queue will stop.",
+    );
   }
 
   function buildDomainBotSteps() {
@@ -14076,6 +14222,132 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </tr>
                       ))
                     )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {sitemapUpdateRunOpen && (
+        <>
+          <div
+            className="modalBackdrop"
+            onClick={() => {
+              if (!sitemapUpdateBusy) setSitemapUpdateRunOpen(false);
+            }}
+          />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(1120px, calc(100vw - 24px))",
+              height: "min(720px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader">
+              <div>
+                <div className="badge">ACTIVE LOCATION SITEMAP UPDATE</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  {openState} • Counties + Cities
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  Started: {sitemapUpdateRunStartedAt
+                    ? new Date(sitemapUpdateRunStartedAt).toLocaleString()
+                    : "—"}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span className="badge">{sitemapUpdateRunCounts.pct}%</span>
+                <span className="badge">
+                  Completed {sitemapUpdateRunCounts.completed}/{sitemapUpdateRunCounts.total}
+                </span>
+                <button
+                  className="smallBtn"
+                  type="button"
+                  onClick={requestStopSitemapUpdates}
+                  disabled={!sitemapUpdateBusy || sitemapUpdateStopRequested}
+                >
+                  {sitemapUpdateStopRequested ? "Stopping..." : "Stop"}
+                </button>
+                <button
+                  className="smallBtn"
+                  type="button"
+                  onClick={() => setSitemapUpdateRunOpen(false)}
+                  disabled={sitemapUpdateBusy}
+                >
+                  {sitemapUpdateBusy ? "Running..." : "Close"}
+                </button>
+              </div>
+            </div>
+            <div className="modalBody" style={{ padding: 14 }}>
+              <div className="card" style={{ marginBottom: 10 }}>
+                <div className="cardBody" style={{ padding: 10 }}>
+                  <div className="mini" style={{ marginBottom: 8 }}>
+                    {sitemapUpdateStatus || (sitemapUpdateRunDone ? "Run completed." : "Processing...")}
+                  </div>
+                  <div className="progressWrap" style={{
+                    width: "100%",
+                    height: 10,
+                    borderRadius: 999,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.05)",
+                    overflow: "hidden",
+                  }}>
+                    <div className="progressBar" style={{
+                      width: `${sitemapUpdateRunCounts.pct}%`,
+                      height: "100%",
+                      background: "linear-gradient(90deg, rgba(96,165,250,0.95), rgba(74,222,128,0.92))",
+                      transition: "width 180ms ease",
+                    }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    <span className="badge">Pending {sitemapUpdateRunCounts.pending}</span>
+                    <span className="badge">Running {sitemapUpdateRunCounts.running}</span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>Done {sitemapUpdateRunCounts.done}</span>
+                    <span className="badge" style={{ color: "var(--danger)" }}>Failed {sitemapUpdateRunCounts.failed}</span>
+                    <span className="badge">Stopped {sitemapUpdateRunCounts.stopped}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="tableWrap tableScrollX" style={{ maxHeight: 490 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Status</th>
+                      <th className="th">Location</th>
+                      <th className="th">Type</th>
+                      <th className="th">Current Stage</th>
+                      <th className="th">Generated</th>
+                      <th className="th">Sitemap Submitted</th>
+                      <th className="th">Google Inspect</th>
+                      <th className="th">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sitemapUpdateRunItems.map((it) => (
+                      <tr key={it.key} className="tr">
+                        <td className="td">
+                          {it.status === "done" ? <span className="pillOk">Done</span> : null}
+                          {it.status === "failed" ? <span className="pillOff">Failed</span> : null}
+                          {it.status === "running" ? <span className="pillWarn">Running</span> : null}
+                          {it.status === "pending" ? <span className="badge">Pending</span> : null}
+                          {it.status === "stopped" ? <span className="badge">Stopped</span> : null}
+                        </td>
+                        <td className="td">
+                          <div>{it.rowName}</div>
+                          <div className="mini">{it.domainUrl}</div>
+                        </td>
+                        <td className="td">{it.kind === "counties" ? "County" : "City"}</td>
+                        <td className="td">{it.stage}</td>
+                        <td className="td">{it.generated ? "✅" : "—"}</td>
+                        <td className="td">{it.submitted ? "✅" : "—"}</td>
+                        <td className="td">{it.inspected ? "✅" : "—"}</td>
+                        <td className="td"><span className="mini">{it.error || "—"}</span></td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
