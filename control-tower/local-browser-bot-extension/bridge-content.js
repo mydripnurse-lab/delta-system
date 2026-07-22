@@ -12,6 +12,7 @@
       {
         type: "DELTA_LOCAL_BOT_BRIDGE_READY",
         source: "delta-local-bot-extension",
+        extensionVersion: chrome.runtime.getManifest().version,
       },
       "*",
     );
