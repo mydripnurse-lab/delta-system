@@ -276,6 +276,26 @@ async function findUserByEmail(opts: {
   locationId: string;
 }) {
   try {
+    const data = await ghlRequest({
+      path: "/users/search/filter-by-email",
+      token: opts.agencyToken,
+      version: USER_VERSION,
+      method: "POST",
+      body: {
+        companyId: opts.companyId,
+        emails: [opts.email],
+        deleted: false,
+        skip: "0",
+        limit: "25",
+        projection: "all",
+      },
+    });
+    const exact = extractUsers(data).find((user) => normalizeEmail(user.email) === opts.email);
+    if (exact) return exact;
+  } catch {
+    // Fall through for older GHL installations that do not expose this endpoint.
+  }
+  try {
     const params = new URLSearchParams({
       companyId: opts.companyId,
       locationId: opts.locationId,
@@ -297,6 +317,20 @@ async function findUserByEmail(opts: {
     version: USER_VERSION,
   });
   return extractUsers(data).find((user) => normalizeEmail(user.email) === opts.email) || null;
+}
+
+async function getUserDetails(userId: string, agencyToken: string) {
+  try {
+    const data = await ghlRequest({
+      path: `/users/${encodeURIComponent(userId)}`,
+      token: agencyToken,
+      version: USER_VERSION,
+    });
+    const obj = record(data);
+    return record(obj.user || obj);
+  } catch {
+    return null;
+  }
 }
 
 function staffPermissions() {
@@ -335,14 +369,18 @@ async function ensureStaffUser(opts: {
     locationId: locationIds[0],
   });
   const permissions = staffPermissions();
-  if (existing?.id) {
-    const existingRoles = record(existing.roles);
+  const updateExisting = async (foundUser: JsonRecord) => {
+    const userId = s(foundUser.id);
+    const detailedUser = (await getUserDetails(userId, agencyToken)) || foundUser;
+    const existingRoles = record(detailedUser.roles);
     const currentLocationIds = Array.isArray(existingRoles.locationIds)
       ? existingRoles.locationIds.map(s).filter(Boolean)
+      : Array.isArray(detailedUser.locationIds)
+        ? detailedUser.locationIds.map(s).filter(Boolean)
       : [];
     const mergedLocationIds = [...new Set([...currentLocationIds, ...locationIds])];
     await ghlRequest({
-      path: `/users/${encodeURIComponent(s(existing.id))}`,
+      path: `/users/${encodeURIComponent(userId)}`,
       token: agencyToken,
       version: USER_VERSION,
       method: "PUT",
@@ -353,33 +391,51 @@ async function ensureStaffUser(opts: {
         type: "account",
         role: "user",
         locationIds: mergedLocationIds,
-        permissions: { ...record(existing.permissions), ...permissions },
+        permissions: { ...record(detailedUser.permissions), ...permissions },
       },
     });
-    return { userId: s(existing.id), status: "updated" as const };
+    return { userId, status: "updated" as const };
+  };
+
+  if (existing?.id) {
+    return updateExisting(existing);
   }
 
-  const created = await ghlRequest({
-    path: "/users/",
-    token: agencyToken,
-    version: USER_VERSION,
-    method: "POST",
-    body: {
+  let created: unknown;
+  try {
+    created = await ghlRequest({
+      path: "/users/",
+      token: agencyToken,
+      version: USER_VERSION,
+      method: "POST",
+      body: {
+        companyId,
+        email,
+        password: opts.input.password,
+        phone: opts.input.phone,
+        firstName: opts.input.firstName,
+        lastName: opts.input.lastName,
+        type: "account",
+        role: "user",
+        locationIds,
+        permissions,
+        scopes: ["contacts.write", "calendars.readonly", "calendars/events.write"],
+        scopesAssignedToOnly: ["contacts.write", "calendars/events.write"],
+        platformLanguage: "en_US",
+      },
+    });
+  } catch (error) {
+    if (!/already exists/i.test(error instanceof Error ? error.message : String(error))) throw error;
+    const recovered = await findUserByEmail({
       companyId,
       email,
-      password: opts.input.password,
-      phone: opts.input.phone,
-      firstName: opts.input.firstName,
-      lastName: opts.input.lastName,
-      type: "account",
-      role: "user",
-      locationIds,
-      permissions,
-      scopes: ["contacts.write", "calendars.readonly", "calendars/events.write"],
-      scopesAssignedToOnly: ["contacts.write", "calendars/events.write"],
-      platformLanguage: "en_US",
-    },
-  });
+      agencyToken,
+      locationToken: firstLocationToken,
+      locationId: locationIds[0],
+    });
+    if (!recovered?.id) throw error;
+    return updateExisting(recovered);
+  }
   const createdObj = record(created);
   const userId = s(createdObj.id || record(createdObj.user).id);
   if (!userId) throw new Error(`GHL created the user but returned no user ID: ${JSON.stringify(created)}`);
