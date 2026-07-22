@@ -85,6 +85,9 @@ body{font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;backgro
 .btn-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);border-radius:inherit;pointer-events:none}
 .btn-primary:hover{background:#033a47;transform:translateY(-1px);box-shadow:0 7px 28px rgba(4,76,92,.38)}
 .btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{cursor:wait;opacity:.72;transform:none;box-shadow:none}
+.submit-spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:submitSpin .7s linear infinite}
+@keyframes submitSpin{to{transform:rotate(360deg)}}
 .btn-arr{width:16px;height:16px;transition:transform .2s;flex-shrink:0}
 .btn-primary:hover .btn-arr{transform:translateX(3px)}
 #success-view{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 48px;text-align:center}
@@ -585,6 +588,12 @@ body{font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;backgro
   function submitApplication() {
     if (submitting) return;
     submitting = true;
+    var submitButton = document.querySelector('#footer-content .btn-primary');
+    var originalButtonHtml = submitButton ? submitButton.innerHTML : '';
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="submit-spinner"></span> Creating account...';
+    }
     fetch(API_BASE + '/api/public/staff-form/applications', {
       method: 'POST',
       mode: 'cors',
@@ -608,6 +617,10 @@ body{font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;backgro
     .then(function(){ showSuccess(); })
     .catch(function(err){
       submitting = false;
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonHtml;
+      }
       console.warn('Staff provisioning API error:', err);
       var countyError = document.getElementById('err-cy');
       if (countyError) {

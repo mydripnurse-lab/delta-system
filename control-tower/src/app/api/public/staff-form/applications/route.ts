@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { randomBytes } from "node:crypto";
 import {
   getStaffFormConfig,
   loadEligibleCounties,
@@ -25,6 +24,15 @@ function passwordIsValid(password: string) {
   return password.length >= 12 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password);
 }
 
+function buildStaffPassword(firstName: string, lastName: string) {
+  const initial = firstName.charAt(0).toUpperCase();
+  const compactSurname = lastName.replace(/\s+/g, "");
+  const surname = compactSurname.charAt(0).toUpperCase() + compactSurname.slice(1).toLowerCase();
+  const suffix = "12@";
+  const padding = "0".repeat(Math.max(0, 12 - initial.length - surname.length - suffix.length));
+  return `${initial}${surname}${padding}${suffix}`;
+}
+
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: cors });
 }
@@ -39,12 +47,13 @@ export async function POST(req: Request) {
       email: s(body?.email).toLowerCase(),
       phone: s(body?.phone),
       company: s(body?.company),
-      password: s(body?.password) || `${randomBytes(18).toString("base64url")}Aa1!`,
+      password: "",
       countyKeys: Array.isArray(body?.countyKeys) ? body.countyKeys.map(s).filter(Boolean) : [],
     };
     if (!input.firstName || !input.lastName || !/^\S+@\S+\.\S+$/.test(input.email) || !input.phone) {
       return NextResponse.json({ error: "Name, email and phone are required" }, { status: 400, headers: cors });
     }
+    input.password = s(body?.password) || buildStaffPassword(input.firstName, input.lastName);
     if (body?.password && !passwordIsValid(input.password)) {
       return NextResponse.json({ error: "Password must have 12+ characters, uppercase, lowercase, number and symbol" }, { status: 400, headers: cors });
     }

@@ -354,13 +354,6 @@ async function ensureStaffUser(opts: {
         role: "user",
         locationIds: mergedLocationIds,
         permissions: { ...record(existing.permissions), ...permissions },
-        roles: {
-          ...existingRoles,
-          type: "account",
-          role: "user",
-          locationIds: mergedLocationIds,
-          restrictSubAccount: true,
-        },
       },
     });
     return { userId: s(existing.id), status: "updated" as const };
@@ -382,12 +375,6 @@ async function ensureStaffUser(opts: {
       role: "user",
       locationIds,
       permissions,
-      roles: {
-        type: "account",
-        role: "user",
-        locationIds,
-        restrictSubAccount: true,
-      },
       scopes: ["contacts.write", "calendars.readonly", "calendars/events.write"],
       scopesAssignedToOnly: ["contacts.write", "calendars/events.write"],
       platformLanguage: "en_US",
