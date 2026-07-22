@@ -10,6 +10,25 @@ const API_BASE = "https://services.leadconnectorhq.com";
 const USER_VERSION = "2023-02-21";
 const CALENDAR_VERSION = "v3";
 
+const DEFAULT_MDN_CALENDAR_NAMES = [
+  "NAD+ Mobile IV Therapy",
+  "NAD+ Boost Mobile IV Therapy",
+  "Hydration Mobile IV Therapy",
+  "Immunity Defense / Cold & Flu Mobile IV Therapy",
+  "Brain Storm Mobile IV Therapy",
+  "Myers' Cocktail Mobile IV Therapy",
+  "The Glow / Beauty IV Drip Mobile IV Therapy",
+  "Alleviate Mobile IV Therapy",
+  "Hangover / Jet Lag Mobile IV Therapy",
+  "Immunity Defense / Cold & Flu + Glutathione Push Mobile IV Therapy",
+  "Myers' Cocktail Mobile IV Therapy + Glutathione Push",
+  "Brevard Mobile IV Therapy",
+  "Get Lean / Weight Loss Mobile IV Therapy",
+  "Recovery & Performance Mobile IV Therapy",
+];
+
+let staffSchemaReady: Promise<void> | null = null;
+
 function s(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -59,6 +78,73 @@ export type StaffApplicationInput = {
   countyKeys: string[];
 };
 
+async function ensureStaffSchema() {
+  if (staffSchemaReady) return staffSchemaReady;
+  staffSchemaReady = (async () => {
+    const pool = getDbPool();
+    await pool.query(`
+      create table if not exists app.staff_form_configs (
+        id uuid primary key default gen_random_uuid(),
+        organization_id uuid not null references app.organizations(id) on delete cascade,
+        form_key text not null unique,
+        enabled boolean not null default true,
+        webhook_url text,
+        calendar_mode text not null default 'all_compatible',
+        calendar_ids text[] not null default array[]::text[],
+        calendar_names text[] not null default array[]::text[],
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        unique (organization_id)
+      );
+      alter table app.staff_form_configs
+        add column if not exists calendar_names text[] not null default array[]::text[];
+      alter table app.staff_form_configs
+        drop constraint if exists staff_form_configs_calendar_mode_ck;
+      alter table app.staff_form_configs
+        add constraint staff_form_configs_calendar_mode_ck
+        check (calendar_mode in ('all_compatible', 'specific', 'specific_names'));
+      create table if not exists app.staff_applications (
+        id uuid primary key default gen_random_uuid(),
+        organization_id uuid not null references app.organizations(id) on delete cascade,
+        email text not null,
+        status text not null default 'processing',
+        request_payload jsonb not null default '{}'::jsonb,
+        result jsonb not null default '{}'::jsonb,
+        last_error text,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      );
+      create index if not exists staff_applications_org_created_idx
+        on app.staff_applications (organization_id, created_at desc);
+    `);
+    await pool.query(
+      `insert into app.staff_form_configs (
+         organization_id, form_key, enabled, webhook_url, calendar_mode, calendar_ids, calendar_names
+       )
+       select id, $1, true, $2, 'specific_names', array[]::text[], $3::text[]
+         from app.organizations
+        where slug = 'my-drip-nurse'
+       on conflict (organization_id) do update set
+         form_key = excluded.form_key,
+         enabled = true,
+         webhook_url = excluded.webhook_url,
+         calendar_mode = excluded.calendar_mode,
+         calendar_ids = excluded.calendar_ids,
+         calendar_names = excluded.calendar_names,
+         updated_at = now()`,
+      [
+        "848e57527017c5dac9f142dec3bfb6f6c51a7c31ab42c477",
+        "https://services.leadconnectorhq.com/hooks/vMfl1L5xb2wJfNFNW5fb/webhook-trigger/2d67c827-a3c2-470b-8a44-10348ea48665",
+        DEFAULT_MDN_CALENDAR_NAMES,
+      ],
+    );
+  })().catch((error) => {
+    staffSchemaReady = null;
+    throw error;
+  });
+  return staffSchemaReady;
+}
+
 async function ghlRequest(opts: {
   path: string;
   token: string;
@@ -93,6 +179,7 @@ async function ghlRequest(opts: {
 }
 
 export async function getStaffFormConfig(formKeyRaw: string): Promise<StaffFormConfig> {
+  await ensureStaffSchema();
   const formKey = s(formKeyRaw);
   if (!formKey) throw new Error("Missing formKey");
   const pool = getDbPool();

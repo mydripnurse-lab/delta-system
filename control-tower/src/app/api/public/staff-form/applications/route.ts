@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 import {
   getStaffFormConfig,
   loadEligibleCounties,
@@ -38,13 +39,13 @@ export async function POST(req: Request) {
       email: s(body?.email).toLowerCase(),
       phone: s(body?.phone),
       company: s(body?.company),
-      password: s(body?.password),
+      password: s(body?.password) || `${randomBytes(18).toString("base64url")}Aa1!`,
       countyKeys: Array.isArray(body?.countyKeys) ? body.countyKeys.map(s).filter(Boolean) : [],
     };
     if (!input.firstName || !input.lastName || !/^\S+@\S+\.\S+$/.test(input.email) || !input.phone) {
       return NextResponse.json({ error: "Name, email and phone are required" }, { status: 400, headers: cors });
     }
-    if (!passwordIsValid(input.password)) {
+    if (body?.password && !passwordIsValid(input.password)) {
       return NextResponse.json({ error: "Password must have 12+ characters, uppercase, lowercase, number and symbol" }, { status: 400, headers: cors });
     }
     if (!input.countyKeys.length || input.countyKeys.length > 25) {
