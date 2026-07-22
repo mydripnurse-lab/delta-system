@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Delta Local Domain Bot",
+  "version": "1.0.21",
+  "description": "Runs Domain Activation bot in your logged-in browser session.",
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "permissions": ["activeTab", "scripting", "storage", "tabs", "alarms"],
+  "host_permissions": [
+    "https://app.devasks.com/*",
+    "https://devasks.com/*",
+    "https://*.devasks.com/*",
+    "https://telahagocrecer.com/*",
+    "https://www.telahagocrecer.com/*",
+    "https://*.telahagocrecer.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://localhost:3001/*",
+        "http://127.0.0.1/*",
+        "http://127.0.0.1:3001/*",
+        "https://*.devasks.com/*",
+        "https://*.mydripnurse.com/*",
+        "https://www.telahagocrecer.com/*",
+        "https://*.telahagocrecer.com/*",
+        "https://*.onrender.com/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": ["bridge-content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "Delta Local Bot",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+    "default_popup": "popup.html"
+  }
+}

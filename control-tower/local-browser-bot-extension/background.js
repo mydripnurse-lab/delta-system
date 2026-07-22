@@ -802,14 +802,23 @@ async function runInTab(tabId, payload) {
           try {
             // If menu is already open and contains exact option, click it immediately.
             const alreadyOpenOption = (() => {
+              const stableEdit = document.querySelector("#hr-dropdown-option-edit");
+              if (wanted === "edit" && visible(stableEdit)) {
+                const label =
+                  stableEdit.querySelector(".hr-dropdown-option-body__label") || stableEdit;
+                return { opt: stableEdit, label };
+              }
               const menus = [...document.querySelectorAll(".v-binder-follower-content")]
                 .filter((el) => visible(el));
               for (const menu of menus) {
-                const labels = [...menu.querySelectorAll(".n-dropdown-option-body__label")];
+                const labels = [...menu.querySelectorAll(
+                  ".n-dropdown-option-body__label, .hr-dropdown-option-body__label",
+                )];
                 for (const label of labels) {
                   const t = norm(label?.textContent || "");
                   if (t === wanted) {
-                    const opt = label.closest(".n-dropdown-option") || label;
+                    const opt =
+                      label.closest(".n-dropdown-option, .hr-dropdown-option") || label;
                     return { opt, label };
                   }
                 }
@@ -837,16 +846,27 @@ async function runInTab(tabId, payload) {
             await sleep(380);
 
             const option = await waitFor(() => {
+              const stableEdit = document.querySelector("#hr-dropdown-option-edit");
+              if (wanted === "edit" && visible(stableEdit)) {
+                return {
+                  opt: stableEdit,
+                  label:
+                    stableEdit.querySelector(".hr-dropdown-option-body__label") || stableEdit,
+                };
+              }
               const menus = [...document.querySelectorAll(".v-binder-follower-content")]
                 .filter((el) => visible(el));
               if (!menus.length) return null;
 
               for (const menu of menus) {
-                const labels = [...menu.querySelectorAll(".n-dropdown-option-body__label")];
+                const labels = [...menu.querySelectorAll(
+                  ".n-dropdown-option-body__label, .hr-dropdown-option-body__label",
+                )];
                 for (const label of labels) {
                   const t = norm(label?.textContent || "");
                   if (t === wanted) {
-                    const opt = label.closest(".n-dropdown-option") || label;
+                    const opt =
+                      label.closest(".n-dropdown-option, .hr-dropdown-option") || label;
                     return { opt, label };
                   }
                 }
@@ -880,45 +900,64 @@ async function runInTab(tabId, payload) {
       }
 
       async function selectAsteriskPageCheckboxes() {
+        const rowSelector = [
+          ".hr-collapse-item--active .hr-collapse-item__content-inner div.funnel-page",
+          ".n-collapse-item--active .n-collapse-item__content-inner div.funnel-page",
+          "div.flex.my-2.funnel-page",
+        ].join(", ");
+        const isChecked = (checkbox) =>
+          checkbox?.getAttribute("aria-checked") === "true" ||
+          checkbox?.getAttribute("data-state") === "checked" ||
+          checkbox?.classList?.contains("hr-checkbox--checked") ||
+          checkbox?.classList?.contains("n-checkbox--checked") ||
+          !!checkbox?.querySelector("input[type='checkbox']:checked") ||
+          (checkbox?.matches?.("input[type='checkbox']") && !!checkbox.checked);
+
         await waitFor(
-          () =>
-            document.querySelectorAll(
-              ".n-collapse-item--active .n-collapse-item__content-inner div.flex.my-2.funnel-page",
-            ).length > 0,
+          () => document.querySelectorAll(rowSelector).length > 0,
           45000,
           220,
           "funnel-page rows present",
         );
         await sleep(350);
 
-        const rows = [
-          ...document.querySelectorAll(
-            ".n-collapse-item--active .n-collapse-item__content-inner div.flex.my-2.funnel-page",
-          ),
-        ];
+        const rows = [...new Set(document.querySelectorAll(rowSelector))];
         let clicked = 0;
         let matched = 0;
         let alreadyChecked = 0;
         for (const row of rows) {
-          const labelEl = row.querySelector("div.ml-2");
+          const labelEl = row.querySelector("div.ml-2, .funnel-page__label, label") || row;
           const txt = (labelEl?.textContent || "").trim();
-          if (!txt.startsWith("**")) continue;
+          if (!txt.includes("**")) continue;
           matched += 1;
 
           const cb =
+            row.querySelector("div.hr-checkbox[role='checkbox']") ||
             row.querySelector("div.n-checkbox[role='checkbox']") ||
-            row.querySelector("[role='checkbox']");
+            row.querySelector("[role='checkbox'], input[type='checkbox']");
           if (!cb || !visible(cb)) continue;
-          const checked = cb.getAttribute("aria-checked") === "true";
-          if (checked) {
+          if (isChecked(cb)) {
             alreadyChecked += 1;
             continue;
           }
 
           fireSingleNativeClick(cb);
-          await sleep(180);
-          const nowChecked = cb.getAttribute("aria-checked") === "true";
-          if (nowChecked) clicked += 1;
+          await waitFor(() => (isChecked(cb) ? cb : null), 5000, 120, `checkbox enabled: ${txt}`);
+          clicked += 1;
+        }
+        const unchecked = rows.filter((row) => {
+          const labelEl = row.querySelector("div.ml-2, .funnel-page__label, label") || row;
+          if (!(labelEl.textContent || "").includes("**")) return false;
+          const cb = row.querySelector(
+            "div.hr-checkbox[role='checkbox'], div.n-checkbox[role='checkbox'], " +
+              "[role='checkbox'], input[type='checkbox']",
+          );
+          return !cb || !isChecked(cb);
+        });
+        if (matched === 0 || unchecked.length > 0) {
+          throw new Error(
+            `STEP_SITEMAP_CHECKBOXES_INCOMPLETE: matched=${matched} unchecked=${unchecked.length}`,
+          );
         }
         log(
           `checkboxes selected (**): matched=${matched} clicked=${clicked} alreadyChecked=${alreadyChecked} rows=${rows.length}`,
@@ -1068,61 +1107,45 @@ async function runInTab(tabId, payload) {
 
       async function clickCountyTableEntryStrict(timeoutMs = 45000) {
         const target = await waitFor(() => {
-          const bodies = [...document.querySelectorAll(
-            "div.n-data-table-base-table-body.n-scrollbar",
+          const rows = [...document.querySelectorAll(
+            "tr.hr-data-table__body-row, tr.n-data-table-tr",
           )].filter((el) => visible(el));
 
-          const matches = [];
-          for (const body of bodies) {
-            const content = body.querySelector("div.n-scrollbar-content");
-            if (!visible(content)) continue;
-
-            const table = content.querySelector("table.n-data-table-table");
-            if (!visible(table)) continue;
-
-            const tbody = table.querySelector("tbody.n-data-table-tbody");
-            if (!visible(tbody)) continue;
-
-            const rows = [...tbody.querySelectorAll("tr.n-data-table-tr")];
-            for (const tr of rows) {
-              const tds = [...tr.querySelectorAll("td.n-data-table-td.n-data-table-td--last-row")];
-              for (const td of tds) {
-                const card = td.querySelector(
-                  "div.text-gray-900.hover\\:text-primary-600.cursor-pointer.flex.hl-text-sm-medium",
-                );
-                if (!visible(card)) continue;
-
-                const span = [...card.querySelectorAll("span")]
-                  .find((s) => norm(s.textContent) === "county");
-                if (!span) continue;
-                matches.push(card);
-              }
-            }
+          for (const row of rows) {
+            const candidates = [...row.querySelectorAll(
+              "p.cursor-pointer, div.cursor-pointer, .hl-text-sm-medium.cursor-pointer",
+            )].filter((el) => visible(el));
+            const hit = candidates.find((el) =>
+              [...el.querySelectorAll("span")].some(
+                (span) => norm(span.textContent) === "county",
+              ),
+            );
+            if (hit) return hit;
           }
-
-          if (matches.length !== 1) return null;
-          return matches[0];
+          return null;
         }, timeoutMs, 220, "strict County table entry");
 
+        const hrefBefore = String(location.href || "");
         await sleep(260);
         fireSingleNativeClick(target);
         log("county table entry strict -> County");
-        await sleep(360);
+        await waitFor(
+          () => String(location.href || "") !== hrefBefore || !target.isConnected,
+          timeoutMs,
+          220,
+          "County folder navigation",
+        );
+        await sleep(520);
       }
 
       async function clickSettingsTabStrict(timeoutMs = 45000) {
         const target = await waitFor(() => {
-          const root = document.querySelector("div.n-tabs-nav-scroll-content");
-          if (!root || !visible(root)) return null;
-
-          const wrapper = root.querySelector("div.n-tabs-wrapper");
-          if (!wrapper || !visible(wrapper)) return null;
-
-          const exact = [...wrapper.querySelectorAll(
-            "div.n-tabs-tab-wrapper div.n-tabs-tab[data-name='settings']",
+          const exact = [...document.querySelectorAll(
+            "div.hr-tabs-tab-wrapper div.hr-tabs-tab[data-name='settings'], " +
+              "div.n-tabs-tab-wrapper div.n-tabs-tab[data-name='settings']",
           )].filter((el) => visible(el));
 
-          const matches = exact.filter((el) => norm(el.textContent).includes("settings"));
+          const matches = exact.filter((el) => norm(el.textContent) === "settings");
           if (matches.length !== 1) return null;
 
           const el = matches[0];
@@ -1133,11 +1156,25 @@ async function runInTab(tabId, payload) {
           if (disabled) return null;
 
           return el;
-        }, timeoutMs, 220, "strict settings tab in tabs root");
+        }, timeoutMs, 220, "Settings tab (hr/n tabs)");
 
         await sleep(260);
         fireSingleNativeClick(target);
         log("settings tab strict -> Settings");
+        await waitFor(
+          () => {
+            const form = document.querySelector("form#funnel-settings");
+            if (visible(form)) return form;
+            const favicon = document.querySelector(
+              "input.hr-input__input-el[placeholder='Add a favicon URL']",
+            );
+            const save = document.querySelector("button#save-funnel");
+            return visible(favicon) && visible(save) ? save : null;
+          },
+          timeoutMs,
+          220,
+          "Settings form after tab click",
+        );
         await sleep(360);
       }
 
@@ -1153,14 +1190,19 @@ async function runInTab(tabId, payload) {
       function readFunnelsSelectedDomainCandidates() {
         const roots = [
           ...document.querySelectorAll(
-            "#funnels, [id='funnels'], .funnel-setting-input, [id*='funnel' i]",
+            "#funnels, [id='funnels'], .funnel-setting-input, [id*='funnel' i], " +
+              ".hr-base-selection-input[title]",
           ),
         ].filter((el) => visible(el));
 
         const out = [];
         for (const root of roots) {
-          const inputWrap = root.querySelector(".n-base-selection-input");
-          const contentEl = root.querySelector(".n-base-selection-input__content");
+          const inputWrap = root.matches(".hr-base-selection-input, .n-base-selection-input")
+            ? root
+            : root.querySelector(".hr-base-selection-input, .n-base-selection-input");
+          const contentEl = root.querySelector(
+            ".hr-base-selection-input__content, .n-base-selection-input__content",
+          );
           const inputLike = root.querySelector("input, [role='combobox']");
           const titleVal = String(inputWrap?.getAttribute("title") || "").trim();
           const contentVal = String(contentEl?.textContent || "").trim();
@@ -1226,16 +1268,17 @@ async function runInTab(tabId, payload) {
 
       async function waitForSettingsFormReady(timeoutMs = 90000) {
         await waitFor(() => {
-          const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
-          if (!card || !visible(card)) return null;
-          const content = card.querySelector("div.hl-card-content");
-          if (!content || !visible(content)) return null;
-          const form = content.querySelector("form#funnel-settings");
-          if (!form || !visible(form)) return null;
-
-          const faviconInput = form.querySelector("div#faviconUrl input, #faviconUrl .n-input__input-el");
+          const form = document.querySelector("form#funnel-settings");
+          const root = visible(form) ? form : document;
+          const faviconInput = root.querySelector(
+            "input.hr-input__input-el[placeholder='Add a favicon URL'], " +
+              "input[placeholder='Add a favicon URL'], div#faviconUrl input, " +
+              "#faviconUrl .n-input__input-el",
+          );
           if (!faviconInput || !visible(faviconInput)) return null;
-          return form;
+          const save = document.querySelector("button#save-funnel");
+          if (!visible(save)) return null;
+          return form || save;
         }, timeoutMs, 220, "settings funnel form ready");
         await sleepScaled(650);
       }
@@ -1258,22 +1301,14 @@ async function runInTab(tabId, payload) {
 
       async function fillFaviconStrict(value, timeoutMs = 45000) {
         const inputEl = await waitFor(() => {
-          const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
-          if (!card || !visible(card)) return null;
-
-          const content = card.querySelector("div.hl-card-content");
-          if (!content || !visible(content)) return null;
-
-          const form = content.querySelector("form#funnel-settings");
-          if (!form || !visible(form)) return null;
-
-          const block = form.querySelector("div#faviconUrl");
-          if (!block || !visible(block)) return null;
-
+          const form = document.querySelector("form#funnel-settings");
+          const root = visible(form) ? form : document;
           const input =
-            block.querySelector("input.n-input__input-el") ||
-            block.querySelector(".n-input__input input") ||
-            block.querySelector("input");
+            root.querySelector("input.hr-input__input-el[placeholder='Add a favicon URL']") ||
+            root.querySelector("input[placeholder='Add a favicon URL']") ||
+            root.querySelector("div#faviconUrl input.n-input__input-el") ||
+            root.querySelector("div#faviconUrl .n-input__input input") ||
+            root.querySelector("div#faviconUrl input");
           if (!input || !visible(input)) return null;
 
           const disabled =
@@ -1308,28 +1343,14 @@ async function runInTab(tabId, payload) {
 
       async function fillHeadTrackingStrict(value, timeoutMs = 45000) {
         const textarea = await waitFor(() => {
-          const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
-          if (!card || !visible(card)) return null;
-
-          const content = card.querySelector("div.hl-card-content");
-          if (!content || !visible(content)) return null;
-
-          const form = content.querySelector("form#funnel-settings");
-          if (!form || !visible(form)) return null;
-
-          const section = form.querySelector("div#c-head-tracking-code");
-          if (!section || !visible(section)) return null;
-
-          const blank = section.querySelector("div.n-form-item-blank");
-          if (!blank || !visible(blank)) return null;
-
-          const holder = blank.querySelector("div#head-tracking-code");
-          if (!holder || !visible(holder)) return null;
-
+          const form = document.querySelector("form#funnel-settings");
+          const root = visible(form) ? form : document;
           const ta =
-            holder.querySelector("textarea.n-input__textarea-el") ||
-            holder.querySelector(".n-input__textarea-el") ||
-            holder.querySelector("textarea");
+            root.querySelector("textarea.hr-input__textarea-el[aria-label*='<head>']") ||
+            root.querySelector("textarea[placeholder*='<head>']") ||
+            root.querySelector("#head-tracking-code textarea.n-input__textarea-el") ||
+            root.querySelector("#c-head-tracking-code textarea.n-input__textarea-el") ||
+            root.querySelector("#head-tracking-code textarea");
           if (!ta || !visible(ta)) return null;
 
           const disabled =
@@ -1364,38 +1385,14 @@ async function runInTab(tabId, payload) {
 
       async function fillBodyTrackingStrict(value, timeoutMs = 45000) {
         const textarea = await waitFor(() => {
-          const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
-          if (!card || !visible(card)) return null;
-
-          const content = card.querySelector("div.hl-card-content");
-          if (!content || !visible(content)) return null;
-
-          const form = content.querySelector("form#funnel-settings");
-          if (!form || !visible(form)) return null;
-
-          const section =
-            form.querySelector("div#c-body-tracking-code") ||
-            form.querySelector("div[id*='body-tracking-code']");
-          if (!section || !visible(section)) return null;
-
-          const blank = section.querySelector("div.n-form-item-blank");
-          if (!blank || !visible(blank)) return null;
-
-          const holder =
-            blank.querySelector("div#body-tracking-code") ||
-            blank.querySelector("div[id*='body-tracking-code']");
-          if (!holder || !visible(holder)) return null;
-
-          const wrapper = holder.querySelector("div.n-input-wrapper");
-          if (!wrapper || !visible(wrapper)) return null;
-
-          const scroller = wrapper.querySelector("div.n-input__textarea.n-scrollbar");
-          if (!scroller || !visible(scroller)) return null;
-
+          const form = document.querySelector("form#funnel-settings");
+          const root = visible(form) ? form : document;
           const ta =
-            scroller.querySelector("textarea.n-input__textarea-el") ||
-            holder.querySelector("textarea.n-input__textarea-el") ||
-            holder.querySelector("textarea");
+            root.querySelector("textarea.hr-input__textarea-el[aria-label*='<body>']") ||
+            root.querySelector("textarea[placeholder*='<body>']") ||
+            root.querySelector("#body-tracking-code textarea.n-input__textarea-el") ||
+            root.querySelector("#c-body-tracking-code textarea.n-input__textarea-el") ||
+            root.querySelector("#body-tracking-code textarea");
           if (!ta || !visible(ta)) return null;
 
           const disabled =
@@ -1429,23 +1426,29 @@ async function runInTab(tabId, payload) {
       }
 
       function readSettingsValuesStrict() {
-        const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
-        if (!card || !visible(card)) return null;
-        const form = card.querySelector("form#funnel-settings");
-        if (!form || !visible(form)) return null;
+        const form = document.querySelector("form#funnel-settings");
+        const root = visible(form) ? form : document;
 
         const favicon =
-          form.querySelector("div#faviconUrl input") ||
-          form.querySelector("#faviconUrl .n-input__input-el") ||
+          root.querySelector("input.hr-input__input-el[placeholder='Add a favicon URL']") ||
+          root.querySelector("input[placeholder='Add a favicon URL']") ||
+          root.querySelector("div#faviconUrl input") ||
+          root.querySelector("#faviconUrl .n-input__input-el") ||
           null;
         const head =
-          form.querySelector("#head-tracking-code textarea.n-input__textarea-el") ||
-          form.querySelector("#c-head-tracking-code textarea.n-input__textarea-el") ||
+          root.querySelector("textarea.hr-input__textarea-el[aria-label*='<head>']") ||
+          root.querySelector("textarea[placeholder*='<head>']") ||
+          root.querySelector("#head-tracking-code textarea.n-input__textarea-el") ||
+          root.querySelector("#c-head-tracking-code textarea.n-input__textarea-el") ||
           null;
         const body =
-          form.querySelector("#body-tracking-code textarea.n-input__textarea-el") ||
-          form.querySelector("#c-body-tracking-code textarea.n-input__textarea-el") ||
+          root.querySelector("textarea.hr-input__textarea-el[aria-label*='<body>']") ||
+          root.querySelector("textarea[placeholder*='<body>']") ||
+          root.querySelector("#body-tracking-code textarea.n-input__textarea-el") ||
+          root.querySelector("#c-body-tracking-code textarea.n-input__textarea-el") ||
           null;
+
+        if (!visible(favicon) || !visible(head) || !visible(body)) return null;
 
         return {
           favicon: String(favicon?.value || ""),
@@ -1529,14 +1532,12 @@ async function runInTab(tabId, payload) {
 
       async function clickFinalSaveStrict(timeoutMs = 45000) {
         const target = await waitFor(() => {
-          const card = document.querySelector("div.my-3.py-5.px-3.bg-white.rounded.hl-card");
-          if (!card || !visible(card)) return null;
-
-          const exact = [...card.querySelectorAll("button#delete-funnel")]
+          const exact = [...document.querySelectorAll("button#save-funnel, button#delete-funnel")]
             .filter((el) => visible(el));
           const matches = exact.filter((el) => {
             const txt = norm(
-              el.querySelector("span.n-button__content")?.textContent || el.textContent,
+              el.querySelector("span.hr-button__content, span.n-button__content")?.textContent ||
+                el.textContent,
             );
             const disabled =
               el.hasAttribute("disabled") ||
@@ -1546,7 +1547,7 @@ async function runInTab(tabId, payload) {
           });
           if (matches.length !== 1) return null;
           return matches[0];
-        }, timeoutMs, 220, "strict final save button #delete-funnel label Save");
+        }, timeoutMs, 220, "strict final save button #save-funnel label Save");
 
         await sleep(280);
         fireSingleNativeClick(target);
@@ -1761,6 +1762,40 @@ async function runInTab(tabId, payload) {
         );
         await sleepScaled(3000);
 
+        if (String(input?.runMode || "").trim() === "update_sitemap") {
+          log("sitemap update mode -> start");
+          await waitForUiSettle("before manage-domain", 90000);
+          await clickSel(
+            ["[id*='manage-domain']", "[data-testid='manage-domain']", "button[id*='manage-domain']"],
+            "manage-domain",
+            240000,
+          );
+          await waitForUiSettle("after manage-domain click", 120000);
+          await waitForDomainHubActionTriggerReady(120000);
+          await openActionMenuAndPickExact(
+            "XML Sitemap",
+            "[id*='domain-hub-connected-product-table-drop-action-dropdown-trigger']",
+            120000,
+          );
+
+          const collapse = document.querySelector(
+            ".hr-collapse-item__header-main, .n-collapse-item__header-main",
+          );
+          if (visible(collapse)) {
+            fireSingleNativeClick(collapse);
+            log("sitemap page list opened");
+            await sleepScaled(450);
+          }
+
+          await selectAsteriskPageCheckboxes();
+          await clickPositiveModalActionStrict("Proceed", 45000);
+          await clickPositiveModalActionStrict("Generate & Save", 60000);
+          await clickPositiveModalActionStrict("Okay", 60000);
+          await waitForUiSettle("sitemap update complete", 90000);
+          log("sitemap update mode -> done");
+          return { ok: true, href: location.href, logs: allLogs };
+        }
+
         const connect = document.querySelector("[id*='connect-domain-button'], [id*='connect-domain-button-text'], [data-testid='connect-domain-button'], [id*='connect-domain'], button[id*='connect-domain']");
         const manage = document.querySelector("[id*='manage-domain'], [data-testid='manage-domain'], [id*='manage-domain'], button[id*='manage-domain']");
         const doConnect = visible(connect) || !visible(manage);
@@ -1917,16 +1952,12 @@ async function runInTab(tabId, payload) {
         await clickSbSitesStrict(45000);
         await clickTbWebsitesStrict(45000);
 
-        await clickSel("[id*='table1-drop-action-dropdown-trigger']", "table1 dropdown");
         await clickCountyTableEntryStrict(45000);
-
-        await clickSel("[id*='table1-drop-action-dropdown-trigger']", "table1 dropdown 2");
-        const firstAction = document.querySelector(".n-dropdown-option-body__label");
-        if (firstAction) {
-          fireSingleNativeClick(firstAction);
-          log("table1 first dropdown action clicked");
-          await sleep(420);
-        }
+        await openActionMenuAndPickExact(
+          "Edit",
+          "button[aria-label='Actions'], [id*='table1-drop-action-dropdown-trigger']",
+          45000,
+        );
 
         let settingsPersisted = true;
         try {

@@ -1400,6 +1400,8 @@ export default function Home() {
   >([]);
   const [tabSitemapRunDone, setTabSitemapRunDone] = useState(false);
   const [tabSitemapRunStartedAt, setTabSitemapRunStartedAt] = useState("");
+  const [sitemapUpdateBusy, setSitemapUpdateBusy] = useState(false);
+  const [sitemapUpdateStatus, setSitemapUpdateStatus] = useState("");
   const [domainBotBusy, setDomainBotBusy] = useState(false);
   const [domainBotLogs, setDomainBotLogs] = useState<string[]>([]);
   const [domainBotScreenshotDataUrl, setDomainBotScreenshotDataUrl] = useState("");
@@ -6918,6 +6920,7 @@ export default function Home() {
     faviconUrl: string;
     pageTypeNeedle?: string;
     timeoutMs?: number;
+    runMode?: "update_sitemap";
   }) {
     if (typeof window === "undefined") {
       throw new Error("Browser extension bridge is only available in browser context.");
@@ -7006,11 +7009,116 @@ export default function Home() {
             bodyCode: s(input.bodyCode),
             faviconUrl: s(input.faviconUrl),
             pageTypeNeedle: s(input.pageTypeNeedle) || "Home Page",
+            runMode: input.runMode || undefined,
           },
         },
         "*",
       );
     });
+  }
+
+  async function runActiveLocationSitemapUpdates() {
+    if (sitemapUpdateBusy || !detail) return;
+
+    const queue = (["counties", "cities"] as const).flatMap((kind) =>
+      getActiveRowsForTab(kind).map((row) => ({
+        kind,
+        row,
+        locId: s(row["Location Id"]),
+        rowName: getTabRowName(kind, row) || "Location",
+        domainUrl: getTabRowDomainUrl(kind, row),
+      })),
+    );
+
+    if (!queue.length) {
+      setSitemapUpdateStatus("No active locations with a valid domain were found.");
+      return;
+    }
+
+    setSitemapUpdateBusy(true);
+    let generated = 0;
+    let submitted = 0;
+    let inspected = 0;
+    let failed = 0;
+
+    try {
+      for (let index = 0; index < queue.length; index += 1) {
+        const item = queue[index];
+        setSitemapUpdateStatus(
+          `${index + 1}/${queue.length}: updating ${item.rowName} (${item.kind})...`,
+        );
+
+        try {
+          const local = await runDomainBotViaExtensionBridge({
+            activationUrl: domainBotUrlFromLocId(item.locId),
+            domainToPaste: item.domainUrl,
+            robotsTxt: "",
+            headCode: "",
+            bodyCode: "",
+            faviconUrl: "",
+            runMode: "update_sitemap",
+            timeoutMs: domainBotAccountTimeoutMs,
+          });
+          if (!local.ok) throw new Error(local.error || "Sitemap generation failed.");
+          generated += 1;
+        } catch (e: any) {
+          failed += 1;
+          setSitemapUpdateStatus(
+            `${index + 1}/${queue.length}: ${item.rowName} generation failed; continuing...`,
+          );
+          continue;
+        }
+
+        try {
+          const discoveryRes = await fetch("/api/tools/index-submit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              tenantId: routeTenantId || "",
+              target: "google",
+              domainUrl: item.domainUrl,
+              mode: "discovery",
+            }),
+          });
+          const discoveryData = await safeJson(discoveryRes);
+          if (
+            discoveryRes.ok &&
+            !!(discoveryData as any)?.google?.discovery?.submitted
+          ) {
+            submitted += 1;
+          } else {
+            failed += 1;
+          }
+        } catch {
+          failed += 1;
+        }
+
+        try {
+          const inspectRes = await fetch("/api/tools/index-submit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              tenantId: routeTenantId || "",
+              target: "google",
+              domainUrl: item.domainUrl,
+              mode: "inspect",
+            }),
+          });
+          const inspectData = await safeJson(inspectRes);
+          if (inspectRes.ok && !!(inspectData as any)?.ok) inspected += 1;
+          else failed += 1;
+        } catch {
+          // Google inspection is best-effort and never stops the queue.
+          failed += 1;
+        }
+      }
+
+      setSitemapUpdateStatus(
+        `Completed ${queue.length} active locations: generated ${generated}, submitted ${submitted}, inspected ${inspected}, recorded failures ${failed}.`,
+      );
+    } finally {
+      setSitemapUpdateBusy(false);
+    }
   }
 
   function buildDomainBotSteps() {
@@ -12675,6 +12783,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     Run Pending Counties
                   </button>
                   <button
+                    className="smallBtn quickActionBtn quickActionBtnGoogle"
+                    onClick={() => void runActiveLocationSitemapUpdates()}
+                    title="Generate, submit and inspect sitemaps for every active location"
+                    disabled={sitemapUpdateBusy || domainBotBusy}
+                    style={{ ["--qa-delay" as any]: "100ms" }}
+                  >
+                    {sitemapUpdateBusy ? "Updating Sitemaps..." : "Update Sitemaps"}
+                  </button>
+                  <button
                     className="smallBtn quickActionBtn quickActionBtnSettings"
                     onClick={() => setQuickBotModal("settings")}
                     title="Bot settings"
@@ -12686,6 +12803,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     </svg>
                   </button>
                 </div>
+                {sitemapUpdateStatus ? (
+                  <div className="mini" style={{ marginTop: 8 }}>
+                    {sitemapUpdateStatus}
+                  </div>
+                ) : null}
               </div>
 
               <div className="drawerHeaderActions">
