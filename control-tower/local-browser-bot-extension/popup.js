@@ -1331,18 +1331,40 @@ async function runInTab(tabId, payload) {
           log('collapse opened');
         }
 
-        const rows = [...document.querySelectorAll('div.flex.my-2.funnel-page')];
+        const rows = [...new Set(document.querySelectorAll(
+          '.hr-collapse-item--active div.funnel-page, .n-collapse-item--active div.funnel-page, div.flex.my-2.funnel-page',
+        ))];
+        const isChecked = (cb) =>
+          cb?.getAttribute('aria-checked') === 'true' ||
+          cb?.getAttribute('data-state') === 'checked' ||
+          cb?.classList?.contains('hr-checkbox--checked') ||
+          cb?.classList?.contains('n-checkbox--checked') ||
+          !!cb?.querySelector("input[type='checkbox']:checked") ||
+          (cb?.matches?.("input[type='checkbox']") && !!cb.checked);
         let checked = 0;
-        rows
-          .filter((row) => ((row.querySelector('div.ml-2')?.textContent || '').trim().includes('**')))
-          .forEach((row) => {
-            const cb = row.querySelector('div.n-checkbox[role="checkbox"]');
-            const on = cb?.getAttribute('aria-checked') === 'true';
-            if (cb && !on) {
-              cb.click();
-              checked += 1;
-            }
-          });
+        const matchedRows = rows.filter((row) => {
+          const label = row.querySelector('div.ml-2, .funnel-page__label, label') || row;
+          return (label.textContent || '').includes('**');
+        });
+        for (const row of matchedRows) {
+          const cb = row.querySelector(
+            "div.hr-checkbox[role='checkbox'], div.n-checkbox[role='checkbox'], " +
+              "[role='checkbox'], input[type='checkbox']",
+          );
+          if (!cb || isChecked(cb)) continue;
+          cb.click();
+          await waitFor(() => (isChecked(cb) ? cb : null), 5000, 120, 'asterisk checkbox enabled');
+          checked += 1;
+        }
+        if (!matchedRows.length || matchedRows.some((row) => {
+          const cb = row.querySelector(
+            "div.hr-checkbox[role='checkbox'], div.n-checkbox[role='checkbox'], " +
+              "[role='checkbox'], input[type='checkbox']",
+          );
+          return !cb || !isChecked(cb);
+        })) {
+          throw new Error('STEP_SITEMAP_CHECKBOXES_INCOMPLETE');
+        }
         log(`checkboxes selected: ${checked}`);
 
         for (let i = 0; i < 3; i += 1) {
@@ -1424,26 +1446,56 @@ async function runInTab(tabId, payload) {
         editAction.click();
         log('Edit selected');
 
-        const settingsBtn = [...document.querySelectorAll('.hl-text-sm-medium')].find((el) => (el.textContent || '').trim() === 'Settings');
-        if (settingsBtn) {
-          settingsBtn.click();
-          log('Settings clicked');
-        }
+        const settingsBtn = await waitFor(() => {
+          const exact = [...document.querySelectorAll(
+            "div.hr-tabs-tab[data-name='settings'], div.n-tabs-tab[data-name='settings']",
+          )].filter((el) => visible(el) && (el.textContent || '').trim() === 'Settings');
+          if (exact.length === 1) return exact[0];
+          return null;
+        }, 45000, 220, 'Settings tab');
+        settingsBtn.click();
+        log('Settings clicked');
+        await waitFor(
+          () => {
+            const form = document.querySelector('form#funnel-settings');
+            return visible(form) ? form : null;
+          },
+          45000,
+          220,
+          'Settings form after tab click',
+        );
 
         if (input.faviconUrl) {
-          await fillSel(['#faviconUrl input', '.faviconUrl input', '.faviconUrl .n-input__input-el'], input.faviconUrl, 'favicon');
+          await fillSel([
+            "input.hr-input__input-el[placeholder='Add a favicon URL']",
+            "input[placeholder='Add a favicon URL']",
+            '#faviconUrl input',
+            '.faviconUrl input',
+            '.faviconUrl .n-input__input-el',
+          ], input.faviconUrl, 'favicon');
         }
 
         if (input.headCode) {
-          await fillSel('textarea.n-input__textarea-el', input.headCode, 'generic textarea head');
-          await fillSel('#head-tracking-code textarea.n-input__textarea-el, #head-tracking-code .n-input__textarea-el', input.headCode, 'head tracking');
+          await fillSel([
+            "textarea.hr-input__textarea-el[aria-label*='<head>']",
+            "textarea[placeholder*='<head>']",
+            '#head-tracking-code textarea.n-input__textarea-el',
+            '#head-tracking-code .n-input__textarea-el',
+          ], input.headCode, 'head tracking');
         }
 
         if (input.bodyCode) {
-          await fillSel('#body-tracking-code textarea.n-input__textarea-el, #body-tracking-code .n-input__textarea-el', input.bodyCode, 'body tracking');
+          await fillSel([
+            "textarea.hr-input__textarea-el[aria-label*='<body>']",
+            "textarea[placeholder*='<body>']",
+            '#body-tracking-code textarea.n-input__textarea-el',
+            '#body-tracking-code .n-input__textarea-el',
+          ], input.bodyCode, 'body tracking');
         }
 
-        const finalSave = document.querySelector('.n-button.n-button--primary-type.n-button--medium-type.mt-3');
+        const finalSave =
+          document.querySelector('button#save-funnel') ||
+          document.querySelector('.n-button.n-button--primary-type.n-button--medium-type.mt-3');
         if (visible(finalSave)) {
           finalSave.click();
           log('final save clicked');
