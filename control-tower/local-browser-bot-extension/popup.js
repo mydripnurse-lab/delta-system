@@ -1382,23 +1382,47 @@ async function runInTab(tabId, payload) {
         if (visible(sbSites)) {
           sbSites.click();
           await sleep(240);
-          sbSites.click();
-          log('sb_sites x2');
+          log('sb_sites clicked');
         }
 
-        await clickSel('#table1-drop-action-dropdown-trigger', 'table1 dropdown');
-        const county = [...document.querySelectorAll('span')].find((el) => (el.textContent || '').trim() === 'County');
-        if (county) {
-          county.click();
-          log('County selected');
-        }
+        await clickSel('#tb_websites', 'Websites tab');
+        const countyLink = await waitFor(() => {
+          const rows = [...document.querySelectorAll(
+            'tr.hr-data-table__body-row, tr.n-data-table-tr',
+          )].filter((row) => visible(row));
+          for (const row of rows) {
+            const candidates = [...row.querySelectorAll(
+              'p.cursor-pointer, div.cursor-pointer, .hl-text-sm-medium.cursor-pointer',
+            )].filter((el) => visible(el));
+            const hit = candidates.find((el) =>
+              [...el.querySelectorAll('span')].some(
+                (span) => (span.textContent || '').trim() === 'County',
+              ),
+            );
+            if (hit) return hit;
+          }
+          return null;
+        }, 45000, 220, 'County website folder');
+        const countyHrefBefore = String(location.href || '');
+        countyLink.click();
+        log('County selected');
+        await waitFor(
+          () => String(location.href || '') !== countyHrefBefore || !countyLink.isConnected,
+          45000,
+          220,
+          'County folder navigation',
+        );
 
-        await clickSel('#table1-drop-action-dropdown-trigger', 'table1 dropdown 2');
-        const firstAction = document.querySelector('.n-dropdown-option-body__label');
-        if (firstAction) {
-          firstAction.click();
-          log('first dropdown action clicked');
-        }
+        await clickSel("button[aria-label='Actions'], #table1-drop-action-dropdown-trigger", 'County actions');
+        const editAction = await waitFor(() => {
+          const stable = document.querySelector('#hr-dropdown-option-edit');
+          if (visible(stable)) return stable;
+          return [...document.querySelectorAll(
+            '.hr-dropdown-option, .n-dropdown-option',
+          )].find((el) => visible(el) && (el.textContent || '').trim() === 'Edit') || null;
+        }, 15000, 220, 'Edit action');
+        editAction.click();
+        log('Edit selected');
 
         const settingsBtn = [...document.querySelectorAll('.hl-text-sm-medium')].find((el) => (el.textContent || '').trim() === 'Settings');
         if (settingsBtn) {
