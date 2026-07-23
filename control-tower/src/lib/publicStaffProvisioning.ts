@@ -588,6 +588,21 @@ export async function provisionStaffApplication(opts: {
         });
       }
     }
+    const failureReasons = locations.flatMap((location) => {
+      const locationRecord = record(location);
+      if (locationRecord.status === "failed") {
+        return [`${s(locationRecord.county) || s(locationRecord.locationId)}: ${s(locationRecord.error) || "Calendar provisioning failed"}`];
+      }
+      const calendars = Array.isArray(locationRecord.calendars) ? locationRecord.calendars.map(record) : [];
+      return calendars
+        .filter((calendar) => calendar.status === "skipped" || calendar.status === "missing")
+        .map(
+          (calendar) =>
+            `${s(locationRecord.county) || s(locationRecord.locationId)} / ${s(calendar.name) || s(calendar.calendarId)}: ${s(calendar.reason) || s(calendar.status)}`,
+        );
+    });
+    const provisioningStatus = warningCount ? "completed_with_warnings" : "completed";
+    const provisioningSucceeded = warningCount === 0;
     let webhook: JsonRecord = { status: "disabled" };
     try {
       webhook = await sendWebhook(opts.config.webhookUrl, {
@@ -597,7 +612,13 @@ export async function provisionStaffApplication(opts: {
         totalCounties: opts.selected.length,
         applicationId,
         ghlUserId: user.userId,
+        ghlUserStatus: user.status,
         password: opts.input.password,
+        success: provisioningSucceeded,
+        provisioningStatus,
+        failureReasons,
+        failureReasonText: failureReasons.join(" | "),
+        locations,
         submittedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -605,7 +626,7 @@ export async function provisionStaffApplication(opts: {
       webhook = { status: "failed", error: error instanceof Error ? error.message : String(error) };
     }
     const result = { user, locations, webhook };
-    const status = warningCount ? "completed_with_warnings" : "completed";
+    const status = provisioningStatus;
     await pool.query(
       `update app.staff_applications set status = $2, result = $3::jsonb, last_error = null where id = $1`,
       [applicationId, status, JSON.stringify(result)],
@@ -613,9 +634,31 @@ export async function provisionStaffApplication(opts: {
     return { applicationId, status, ...result };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    let webhook: JsonRecord = { status: "disabled" };
+    try {
+      webhook = await sendWebhook(opts.config.webhookUrl, {
+        ...safePayload,
+        fullName: `${opts.input.firstName} ${opts.input.lastName}`.trim(),
+        countyNames: opts.selected.map((item) => item.county).join(", "),
+        totalCounties: opts.selected.length,
+        applicationId,
+        password: opts.input.password,
+        success: false,
+        provisioningStatus: "failed",
+        failureReasons: [message],
+        failureReasonText: message,
+        locations: [],
+        submittedAt: new Date().toISOString(),
+      });
+    } catch (webhookError) {
+      webhook = {
+        status: "failed",
+        error: webhookError instanceof Error ? webhookError.message : String(webhookError),
+      };
+    }
     await pool.query(
-      `update app.staff_applications set status = 'failed', last_error = $2 where id = $1`,
-      [applicationId, message],
+      `update app.staff_applications set status = 'failed', result = $3::jsonb, last_error = $2 where id = $1`,
+      [applicationId, message, JSON.stringify({ webhook })],
     );
     throw error;
   }
