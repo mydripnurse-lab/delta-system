@@ -5,6 +5,7 @@ import {
   getEffectiveCompanyIdOrThrow,
 } from "@/lib/ghlHttp";
 import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
+import { issuePartnerOnboardingLink } from "@/lib/partnerOnboarding";
 
 const API_BASE = "https://services.leadconnectorhq.com";
 const USER_VERSION = "2023-02-21";
@@ -601,6 +602,24 @@ export async function provisionStaffApplication(opts: {
             `${s(locationRecord.county) || s(locationRecord.locationId)} / ${s(calendar.name) || s(calendar.calendarId)}: ${s(calendar.reason) || s(calendar.status)}`,
         );
     });
+    let welcomeLandingPageUrl = "";
+    try {
+      welcomeLandingPageUrl = await issuePartnerOnboardingLink({
+        applicationId,
+        ghlUserId: user.userId,
+        firstName: opts.input.firstName,
+        lastName: opts.input.lastName,
+        email: safePayload.email,
+        password: opts.input.password,
+        countyStateNames: opts.selected.map((item) => `${item.county}, ${item.state}`).join("; "),
+        loginUrl: "https://app.devasks.com",
+      });
+    } catch (error) {
+      warningCount += 1;
+      failureReasons.push(
+        `Partner onboarding link: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     const provisioningStatus = warningCount ? "completed_with_warnings" : "completed";
     const provisioningSucceeded = warningCount === 0;
     let webhook: JsonRecord = { status: "disabled" };
@@ -616,6 +635,8 @@ export async function provisionStaffApplication(opts: {
         ghlUserStatus: user.status,
         password: opts.input.password,
         loginUrl: "https://app.devasks.com",
+        welcomeLandingPageUrl,
+        onboardingLinkReady: Boolean(welcomeLandingPageUrl),
         accountReady: true,
         calendarSetupSucceeded: provisioningSucceeded,
         calendarSetupStatus: provisioningStatus,
@@ -650,6 +671,8 @@ export async function provisionStaffApplication(opts: {
         applicationId,
         password: opts.input.password,
         loginUrl: "https://app.devasks.com",
+        welcomeLandingPageUrl: "",
+        onboardingLinkReady: false,
         accountReady: false,
         calendarSetupSucceeded: false,
         calendarSetupStatus: "not_started",

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="x-apple-disable-message-reformatting" />
     <title>Welcome to My Drip Nurse</title>
-  </head>
+  <!-- outlook-fixes-applied --></head>
   <body style="margin:0;padding:0;background:#f4f1eb;color:#17353a;font-family:Arial,Helvetica,sans-serif;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-      Welcome to My Drip Nurse. Your first step is to download the LeadConnector mobile app.
+      Welcome to My Drip Nurse. Watch your Partner welcome video and access your next steps.
     </div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f1eb;">
       <tr>
@@ -34,85 +34,29 @@
                   Welcome to the<br /><em style="color:#078596;font-weight:normal;">My Drip Nurse</em> network.
                 </h1>
                 <p style="margin:0;font-size:17px;line-height:1.65;color:#49656a;">
-                  Hi {{firstName}}, your My Drip Nurse partner access is ready. We are excited to have you join us and begin serving patients in <strong>{{countyStateNames}}</strong>.
+                  Hi {{contact.first_name}}, your My Drip Nurse partner access is ready. We are excited to have you join us and begin serving patients in <strong>{{inboundWebhookRequest.countyStateNames}}</strong>.
                 </p>
               </td>
             </tr>
 
             <tr>
-              <td style="padding:44px 42px 12px;background:#ffffff;">
+              <td align="center" style="padding:48px 42px;background:#ffffff;">
                 <div style="font-size:11px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;color:#168b91;">Your next step</div>
-                <img
-                  src="https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/6a625ae3f9c6f6a920a4d68f.png"
-                  width="70"
-                  alt="LeadConnector"
-                  style="display:block;width:70px;max-width:100%;height:auto;margin:18px 0 14px;border:0;outline:none;text-decoration:none;border-radius:14px;"
-                />
-                <h2 style="margin:8px 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.15;color:#17353a;">
-                  Download LeadConnector on your phone.
+                <h2 style="margin:10px 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:32px;line-height:1.15;color:#17353a;">
+                  Everything you need starts here.
                 </h2>
-                <p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#5a6d70;">
-                  LeadConnector is the mobile workspace you will use to view assigned contacts, manage conversations, and stay connected to your appointments and calendars while on the go.
+                <p style="max-width:480px;margin:0 auto 26px;font-size:16px;line-height:1.65;color:#5a6d70;">
+                  Watch your welcome video and access your personalized Partner onboarding information in one place.
                 </p>
-
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
                   <tr>
-                    <td width="49%" valign="top" style="padding:0 6px 12px 0;">
-                      <a href="https://apps.apple.com/us/app/lead-connector/id1564302502" style="display:block;padding:15px 14px;border-radius:10px;background:#075c68;color:#ffffff;text-decoration:none;text-align:center;font-size:14px;font-weight:bold;">
-                        Download for iPhone
-                      </a>
-                    </td>
-                    <td width="2%"></td>
-                    <td width="49%" valign="top" style="padding:0 0 12px 6px;">
-                      <a href="https://play.google.com/store/apps/details?id=com.LeadConnector" style="display:block;padding:15px 14px;border-radius:10px;background:#075c68;color:#ffffff;text-decoration:none;text-align:center;font-size:14px;font-weight:bold;">
-                        Download for Android
-                      </a>
+                    <td style="border-radius:10px;background:#075c68;box-shadow:0 8px 20px rgba(7,92,104,.18);">
+                      <a href="{{inboundWebhookRequest.welcomeLandingPageUrl}}" style="display:inline-block;padding:16px 30px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:bold;; mso-style-textfill-fill-color: #ffffff;"><!--[if mso]><font color="#ffffff"><![endif]-->
+                        Watch Welcome Video
+                      <!--[if mso]></font><![endif]--></a>
                     </td>
                   </tr>
                 </table>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:28px 42px 44px;background:#ffffff;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0 12px;">
-                  <tr>
-                    <td width="46" valign="top">
-                      <div style="width:34px;height:34px;line-height:34px;border-radius:50%;background:#dff4f1;color:#087368;text-align:center;font-weight:bold;">1</div>
-                    </td>
-                    <td style="padding:4px 0 14px;border-bottom:1px solid #e8eeee;">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:bold;color:#17353a;">Install the mobile app</div>
-                      <div style="margin-top:5px;font-size:14px;line-height:1.55;color:#64777a;">Choose the button above for your device and complete the installation.</div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="46" valign="top">
-                      <div style="width:34px;height:34px;line-height:34px;border-radius:50%;background:#dff4f1;color:#087368;text-align:center;font-weight:bold;">2</div>
-                    </td>
-                    <td style="padding:4px 0 14px;border-bottom:1px solid #e8eeee;">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:bold;color:#17353a;">Sign in to your account</div>
-                      <div style="margin-top:5px;font-size:14px;line-height:1.55;color:#64777a;">Use the same email address and password associated with your activated account.</div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="46" valign="top">
-                      <div style="width:34px;height:34px;line-height:34px;border-radius:50%;background:#dff4f1;color:#087368;text-align:center;font-weight:bold;">3</div>
-                    </td>
-                    <td style="padding:4px 0;">
-                      <div style="font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:bold;color:#17353a;">Allow notifications</div>
-                      <div style="margin-top:5px;font-size:14px;line-height:1.55;color:#64777a;">Enable notifications so you do not miss new conversations, appointments, or updates.</div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:38px 42px;background:#f6f2eb;text-align:center;">
-                <h2 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:27px;line-height:1.2;color:#17353a;">Your account must be activated first.</h2>
-                <p style="margin:0;font-size:15px;line-height:1.65;color:#637275;">
-                  If you have not completed account activation yet, please use the activation message you received before signing in to LeadConnector.
-                </p>
               </td>
             </tr>
 
