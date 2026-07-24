@@ -191,7 +191,10 @@ function PartnerWelcomeContent() {
       <footer className={styles.footer}>
         <div className={styles.shell}>
           <h2>Welcome aboard.</h2>
-          <p>We are glad to have you in the My Drip Nurse Partner network.</p>
+          <p>
+            We are glad to have you in the My Drip Nurse Partner network.<br />
+            Need assistance? <a href="mailto:info@mydripnurse.com">Email info@mydripnurse.com</a>.
+          </p>
         </div>
       </footer>
     </main>
