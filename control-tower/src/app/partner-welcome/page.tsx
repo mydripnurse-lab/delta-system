@@ -93,8 +93,11 @@ function PartnerWelcomeContent() {
           <p>
             {status === "loading"
               ? "We are securely loading your Partner information."
-              : "The link may be invalid or expired. Please contact the My Drip Nurse support team for a new invitation."}
+              : "The link may be invalid or expired. Please request a new invitation from the My Drip Nurse support team."}
           </p>
+          {status !== "loading" ? (
+            <a href="mailto:info@mydripnurse.com">info@mydripnurse.com</a>
+          ) : null}
         </section>
       </main>
     );

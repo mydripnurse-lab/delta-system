@@ -344,6 +344,12 @@
       text-align: center;
     }
 
+    #mdn-partner-onboarding .mdn-status a {
+      color: #075c68;
+      font-weight: 800;
+      text-decoration: underline;
+    }
+
     #mdn-partner-onboarding[data-state="loading"] .mdn-content,
     #mdn-partner-onboarding[data-state="error"] .mdn-content {
       display: none;
@@ -525,11 +531,17 @@
       const showError = (message) => {
         root.dataset.state = "error";
         const status = root.querySelector(".mdn-status");
-        if (status) status.textContent = message;
+        if (status) {
+          status.textContent = `${message} `;
+          const supportLink = document.createElement("a");
+          supportLink.href = "mailto:info@mydripnurse.com";
+          supportLink.textContent = "info@mydripnurse.com";
+          status.appendChild(supportLink);
+        }
       };
 
       if (!token || !apiUrl) {
-        showError("This welcome link is invalid. Please contact the My Drip Nurse support team.");
+        showError("This welcome link is invalid. Please contact the My Drip Nurse support team at");
         return;
       }
 
@@ -569,7 +581,7 @@
           root.dataset.state = "ready";
         })
         .catch(() => {
-          showError("This welcome link is invalid or expired. Please contact the My Drip Nurse support team for a new invitation.");
+          showError("This welcome link is invalid or expired. Request a new invitation from");
         });
     })();
   </script>
