@@ -1055,6 +1055,36 @@ async function runInTab(tabId, payload) {
         log(`robots txt set (strict modal) len=${String(value || "").length}`);
       }
 
+      async function fillLlmsTxtInModalStrict(value, timeoutMs = 45000) {
+        const ta = await waitFor(() => {
+          const modal = [...document.querySelectorAll("div.n-card.n-modal.hl-modal[role='dialog']")]
+            .find((el) => visible(el));
+          if (!modal) return null;
+          const textarea = modal.querySelector(
+            "textarea.n-input__textarea-el[placeholder='Add llms.txt content for this domain']",
+          );
+          return visible(textarea) ? textarea : null;
+        }, timeoutMs, 220, "llms.txt textarea in modal");
+
+        const setter = Object.getOwnPropertyDescriptor(
+          window.HTMLTextAreaElement.prototype,
+          "value",
+        )?.set;
+        ta.focus();
+        if (setter) setter.call(ta, String(value || ""));
+        else ta.value = String(value || "");
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+        ta.dispatchEvent(new Event("change", { bubbles: true }));
+        ta.blur();
+        await waitFor(
+          () => String(ta.value || "") === String(value || ""),
+          8000,
+          180,
+          "llms.txt textarea value persisted",
+        );
+        log(`llms txt set (strict modal) len=${String(value || "").length}`);
+      }
+
       async function clickBackButtonStrict(timeoutMs = 45000) {
         const btn = await waitFor(() => {
           const exact = [...document.querySelectorAll("div#backButtonv2")]
@@ -1970,6 +2000,9 @@ async function runInTab(tabId, payload) {
 
         if (input.robotsTxt) {
           await fillRobotsTxtInModalStrict(input.robotsTxt, 45000);
+        }
+        if (input.llmsTxt) {
+          await fillLlmsTxtInModalStrict(input.llmsTxt, 45000);
         }
         await clickPositiveModalActionStrict("Save", 45000);
 

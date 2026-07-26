@@ -521,6 +521,22 @@ function isTrue(v: any) {
   const t = s(v).toLowerCase();
   return t === "true" || t === "1" || t === "yes" || t === "y";
 }
+function isDomainActiveRow(row: any) {
+  const domainCreated = s(row?.["Domain Created"]).toLowerCase();
+  if (
+    isTrue(domainCreated) ||
+    domainCreated === "active" ||
+    domainCreated === "activated" ||
+    domainCreated === "complete" ||
+    domainCreated === "completed" ||
+    domainCreated === "done"
+  ) {
+    return true;
+  }
+
+  const activeStatus = s(row?.Active ?? row?.active).toLowerCase();
+  return isTrue(activeStatus) || activeStatus === "active" || activeStatus === "activated";
+}
 function toUrlMaybe(domainOrUrl: string) {
   const d = s(domainOrUrl);
   if (!d) return "";
@@ -536,6 +552,12 @@ function slugToken(input: string) {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 64);
+}
+
+function countyMatchKey(value: unknown) {
+  return slugToken(
+    s(value).replace(/\s+(county|parish|borough|census area|municipality)$/i, ""),
+  );
 }
 
 function kebabToken(input: string) {
@@ -774,7 +796,7 @@ function buildRobotsTxt(sitemapUrl: string) {
     .join("\n");
 }
 
-type ChecklistTabKey = "domain" | "sitemap" | "robots" | "headers";
+type ChecklistTabKey = "domain" | "sitemap" | "robots" | "llms" | "headers";
 type HeadersSubTabKey = "head" | "footer" | "favicon";
 
 type HeadersPayload = {
@@ -1433,6 +1455,7 @@ export default function Home() {
   const [domainBotStopRequested, setDomainBotStopRequested] = useState(false);
   const domainBotStopRequestedRef = useRef(false);
   const [domainBotRunItems, setDomainBotRunItems] = useState<DomainBotRunItem[]>([]);
+  const [domainBotRunKind, setDomainBotRunKind] = useState<"counties" | "cities">("counties");
   const [domainBotRunStartedAt, setDomainBotRunStartedAt] = useState("");
   const [domainBotRunDone, setDomainBotRunDone] = useState(false);
   const [domainBotFailuresOpen, setDomainBotFailuresOpen] = useState(false);
@@ -1467,6 +1490,11 @@ export default function Home() {
   const [actChecklistTab, setActChecklistTab] =
     useState<ChecklistTabKey>("domain");
   const [robotsCopied, setRobotsCopied] = useState(false);
+  const [actLlmsTxt, setActLlmsTxt] = useState("");
+  const [actLlmsLoading, setActLlmsLoading] = useState(false);
+  const [actLlmsErr, setActLlmsErr] = useState("");
+  const [actLlmsMissingPrices, setActLlmsMissingPrices] = useState<string[]>([]);
+  const [actLlmsCopied, setActLlmsCopied] = useState(false);
 
   // ✅ Headers tab states
   const [actHeaders, setActHeaders] = useState<HeadersPayload | null>(null);
@@ -5166,6 +5194,12 @@ export default function Home() {
     };
     const compute = (kind: "counties" | "cities") => {
       if (!detail) return [] as any[];
+      const activeCountyKeys = new Set(
+        (detail.counties.rows || [])
+          .filter((row) => isDomainActiveRow(row))
+          .map((row) => countyMatchKey(row["County"]))
+          .filter(Boolean),
+      );
       const rows = kind === "counties" ? detail.counties.rows || [] : detail.cities.rows || [];
       const q0 = detailSearch.trim().toLowerCase();
       const filtered = rows
@@ -5183,14 +5217,23 @@ export default function Home() {
         });
       return filtered.filter((r) => {
         const eligible = !!r.__eligible;
-        const domainCreated = isTrue(r["Domain Created"]);
+        const domainCreated = isDomainActiveRow(r);
         const locId = s(r["Location Id"]);
         const domainToPaste =
           kind === "cities"
             ? s(r["City Domain"]) || s(r["city domain"])
             : s(r["Domain"]) || s(r["County Domain"]);
         const isFailed = failedByKind[kind].has(locId);
-        return eligible && !domainCreated && !!locId && !!domainToPaste && !isFailed;
+        const parentCountyIsActive =
+          kind === "counties" || activeCountyKeys.has(countyMatchKey(r["County"]));
+        return (
+          eligible &&
+          !domainCreated &&
+          !!locId &&
+          !!domainToPaste &&
+          !isFailed &&
+          parentCountyIsActive
+        );
       });
     };
     return {
@@ -5198,10 +5241,6 @@ export default function Home() {
       cities: compute("cities"),
     };
   }, [detail, countyFilter, detailSearch, domainBotFailures]);
-
-  const pendingDomainBotRowsInTab = useMemo(() => {
-    return pendingDomainBotRowsByKind[detailTab];
-  }, [pendingDomainBotRowsByKind, detailTab]);
 
   const failedLocIdsByKind = useMemo(() => {
     return {
@@ -5378,6 +5417,40 @@ export default function Home() {
       setActHeadersErr(e?.message || "Failed to load Headers tab");
     } finally {
       setActHeadersLoading(false);
+    }
+  }
+
+  async function loadLlmsForLocation(locId: string, kind?: "counties" | "cities") {
+    const id = s(locId);
+    if (!id || !routeTenantId) return "";
+    setActLlmsLoading(true);
+    setActLlmsErr("");
+    setActLlmsTxt("");
+    setActLlmsMissingPrices([]);
+    try {
+      const qp = new URLSearchParams({ locId: id });
+      if (kind) qp.set("kind", kind);
+      const res = await fetch(
+        `/api/tenants/${encodeURIComponent(routeTenantId)}/llms-txt?${qp.toString()}`,
+        { cache: "no-store" },
+      );
+      const data = await safeJson(res);
+      if (!res.ok || !(data as any)?.ok) {
+        throw new Error(s((data as any)?.error) || `LLMS.txt HTTP ${res.status}`);
+      }
+      const content = s((data as any)?.content);
+      setActLlmsTxt(content);
+      setActLlmsMissingPrices(
+        Array.isArray((data as any)?.missingPrices)
+          ? (data as any).missingPrices.map((value: unknown) => s(value)).filter(Boolean)
+          : [],
+      );
+      return content;
+    } catch (e: any) {
+      setActLlmsErr(e?.message || "Failed to generate LLMS.txt.");
+      return "";
+    } finally {
+      setActLlmsLoading(false);
     }
   }
 
@@ -6406,6 +6479,11 @@ export default function Home() {
 
     setActCopied(false);
     setRobotsCopied(false);
+    setActLlmsCopied(false);
+    setActLlmsTxt("");
+    setActLlmsErr("");
+    setActLlmsMissingPrices([]);
+    setActLlmsCopied(false);
 
     setActHeaders(null);
     setActHeadersErr("");
@@ -6424,7 +6502,10 @@ export default function Home() {
     setActCvErr("");
     setActCvApplying(false);
 
-    if (lid) loadHeadersForLocation(lid);
+    if (lid) {
+      loadHeadersForLocation(lid);
+      void loadLlmsForLocation(lid, opts.kind);
+    }
     void refreshActivationDnsStatus(opts.domainToPaste);
 
     setActOpen(true);
@@ -6524,7 +6605,7 @@ export default function Home() {
 
     return rows.filter((r) => {
       const eligible = !!r.__eligible;
-      const isActive = isTrue(r["Domain Created"]);
+      const isActive = isDomainActiveRow(r);
       const domainToPaste =
         kind === "cities"
           ? s(r["City Domain"]) || s(r["city domain"])
@@ -6572,7 +6653,7 @@ export default function Home() {
       const rows = kind === "cities" ? data?.cities?.rows || [] : data?.counties?.rows || [];
       const row = rows.find((r: any) => s(r["Location Id"]) === id);
       if (!row) return null;
-      return isTrue(row["Domain Created"]);
+      return isDomainActiveRow(row);
     } catch {
       return null;
     }
@@ -6970,10 +7051,31 @@ export default function Home() {
     };
   }
 
+  async function loadDomainBotLlmsTxt(
+    locId: string,
+    kind: "counties" | "cities",
+    fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  ) {
+    const id = s(locId);
+    if (!id || !routeTenantId) return "";
+    const qp = new URLSearchParams({ locId: id, kind });
+    const execFetch = fetcher || fetch;
+    const res = await execFetch(
+      `/api/tenants/${encodeURIComponent(routeTenantId)}/llms-txt?${qp.toString()}`,
+      { cache: "no-store" },
+    );
+    const data = await safeJson(res);
+    if (!res.ok || !(data as any)?.ok) {
+      throw new Error(s((data as any)?.error) || `LLMS.txt HTTP ${res.status}`);
+    }
+    return s((data as any)?.content);
+  }
+
   async function runDomainBotViaExtensionBridge(input: {
     activationUrl: string;
     domainToPaste: string;
     robotsTxt: string;
+    llmsTxt?: string;
     headCode: string;
     bodyCode: string;
     faviconUrl: string;
@@ -7008,6 +7110,18 @@ export default function Home() {
               reject(
                 new Error(
                   `Update Sitemaps requires extension 1.0.22 or newer. Detected ${s(data.extensionVersion) || "an older version"}. Reload the extension and refresh this page.`,
+                ),
+              );
+              return;
+            }
+          }
+          if (s(input.llmsTxt)) {
+            const parts = s(data.extensionVersion).split(".").map((x) => Number(x) || 0);
+            const versionNumber = (parts[0] || 0) * 1_000_000 + (parts[1] || 0) * 1_000 + (parts[2] || 0);
+            if (versionNumber < 1_000_024) {
+              reject(
+                new Error(
+                  `LLMS.txt automation requires extension 1.0.24 or newer. Detected ${s(data.extensionVersion) || "an older version"}. Reload the extension and refresh this page.`,
                 ),
               );
               return;
@@ -7076,6 +7190,7 @@ export default function Home() {
             activationUrl: s(input.activationUrl),
             domainToPaste: s(input.domainToPaste),
             robotsTxt: s(input.robotsTxt),
+            llmsTxt: s(input.llmsTxt),
             headCode: s(input.headCode),
             bodyCode: s(input.bodyCode),
             faviconUrl: s(input.faviconUrl),
@@ -7675,6 +7790,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const headers = await loadDomainBotHeaders(id, (u, i) =>
         fetchWithAccountTimeout(u, i, "headers load", 90000),
       );
+      ensureAccountTime("llms.txt load start");
+      const llmsTxtValue = await loadDomainBotLlmsTxt(id, rowKind, (u, i) =>
+        fetchWithAccountTimeout(u, i, "llms.txt load", 90000),
+      );
       const robotsTxtValue = buildRobotsTxt(sitemapUrl);
       const steps = buildDomainBotSteps();
       pushDomainBotLog(`Local extension run start with ${steps.length} mapped steps.`);
@@ -7683,6 +7802,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         activationUrl: activationUrlEffective,
         domainToPaste,
         robotsTxt: robotsTxtValue,
+        llmsTxt: llmsTxtValue,
         faviconUrl: headers.favicon,
         headCode: headers.head,
         bodyCode: headers.footer,
@@ -7817,6 +7937,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   ) {
     domainBotStopRequestedRef.current = false;
     setDomainBotStopRequested(false);
+    setDomainBotRunKind(detailTab);
     setDomainBotRunOpen(true);
     setDomainBotRunStartedAt(new Date().toISOString());
     setDomainBotRunDone(false);
@@ -7857,7 +7978,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
   }
 
   async function runDomainBotPendingForKind(kind: "counties" | "cities") {
-    const queue = (pendingDomainBotRowsByKind[kind] || [])
+    let queue = (pendingDomainBotRowsByKind[kind] || [])
       .map((row) => ({
         row,
         locId: s(row["Location Id"]),
@@ -7869,13 +7990,87 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       setTabSitemapStatus({
         kind,
         ok: false,
-        message: `No eligible pending ${kind} rows in the current filter.`,
+        message:
+          kind === "cities"
+            ? "No runnable pending cities. A city can run only after its county is active."
+            : "No eligible pending counties in the current filter.",
       });
+      return;
+    }
+
+    // Re-read the state sheet immediately before preparing the run. This prevents
+    // an already-active location from being queued when the drawer has stale data.
+    if (openState) {
+      try {
+        const endpoint = routeTenantId
+          ? `/api/sheet/state?name=${encodeURIComponent(openState)}&tenantId=${encodeURIComponent(routeTenantId)}`
+          : `/api/sheet/state?name=${encodeURIComponent(openState)}`;
+        const freshRes = await fetch(endpoint, { cache: "no-store" });
+        const freshData = (await safeJson(freshRes)) as StateDetailResponse | any;
+        if (freshRes.ok && !freshData?.error) {
+          const freshRows = kind === "cities" ? freshData?.cities?.rows || [] : freshData?.counties?.rows || [];
+          const freshByLocId = new Map<string, any>();
+          freshRows.forEach((row: any) => {
+            const locId = s(row["Location Id"]);
+            if (locId) freshByLocId.set(locId, row);
+          });
+          const activeCountyKeys = new Set(
+            (freshData?.counties?.rows || [])
+              .filter((row: any) => isDomainActiveRow(row))
+              .map((row: any) => countyMatchKey(row["County"]))
+              .filter(Boolean),
+          );
+          let skippedActive = 0;
+          let skippedInactiveCounty = 0;
+          queue = queue.filter((item) => {
+            const freshRow = freshByLocId.get(item.locId);
+            if (freshRow && isDomainActiveRow(freshRow)) {
+              skippedActive += 1;
+              return false;
+            }
+            if (kind === "cities") {
+              const countyKey = countyMatchKey(freshRow?.["County"] || item.row?.["County"]);
+              if (!countyKey || !activeCountyKeys.has(countyKey)) {
+                skippedInactiveCounty += 1;
+                return false;
+              }
+            }
+            return true;
+          });
+          if (skippedActive > 0) {
+            pushDomainBotLog(
+              `Queue safety check: skipped ${skippedActive} already-active ${kind}.`,
+            );
+          }
+          if (skippedInactiveCounty > 0) {
+            pushDomainBotLog(
+              `Queue safety check: blocked ${skippedInactiveCounty} cities because their county is not active.`,
+            );
+          }
+        } else {
+          pushDomainBotLog("Queue safety check could not refresh the state sheet; using current rows.");
+        }
+      } catch (e: any) {
+        pushDomainBotLog(
+          `Queue safety check failed; using current rows: ${e?.message || "request failed"}.`,
+        );
+      }
+    }
+
+    if (!queue.length) {
+      setTabSitemapStatus({
+        kind,
+        ok: true,
+        message: `No pending ${kind}. All matching locations are already active.`,
+      });
+      await loadOverview();
+      if (openState) await openDetail(openState);
       return;
     }
 
     domainBotStopRequestedRef.current = false;
     setDomainBotStopRequested(false);
+    setDomainBotRunKind(kind);
     setDomainBotRunOpen(true);
     setDomainBotRunStartedAt(new Date().toISOString());
     setDomainBotRunDone(false);
@@ -8037,10 +8232,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
     setDomainBotRunDone(true);
   }
 
-  async function runDomainBotPendingInCurrentTab() {
-    return await runDomainBotPendingForKind(detailTab);
-  }
-
   async function retryFailedTabSitemaps(
     kind: "counties" | "cities",
     action: TabAction,
@@ -8108,6 +8299,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       await navigator.clipboard.writeText(txt);
       setRobotsCopied(true);
       setTimeout(() => setRobotsCopied(false), 1300);
+    } catch {}
+  }
+
+  async function copyLlmsTxt() {
+    try {
+      await navigator.clipboard.writeText(actLlmsTxt);
+      setActLlmsCopied(true);
+      setTimeout(() => setActLlmsCopied(false), 1300);
     } catch {}
   }
 
@@ -13103,7 +13302,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         {(() => {
                           const eligible = detail.counties.stats.eligible || 0;
                           const active = (detail.counties.rows || []).filter(
-                            (r) => !!r.__eligible && isTrue(r["Domain Created"]),
+                            (r) => !!r.__eligible && isDomainActiveRow(r),
                           ).length;
                           if (!eligible) return "0%";
                           return `${Math.round((active / eligible) * 100)}%`;
@@ -13116,7 +13315,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         {(() => {
                           const eligible = detail.cities.stats.eligible || 0;
                           const active = (detail.cities.rows || []).filter(
-                            (r) => !!r.__eligible && isTrue(r["Domain Created"]),
+                            (r) => !!r.__eligible && isDomainActiveRow(r),
                           ).length;
                           if (!eligible) return "0%";
                           return `${Math.round((active / eligible) * 100)}%`;
@@ -13292,7 +13491,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             const county = s(r["County"]);
                             const city = s(r["City"]);
 
-                            const domainCreated = isTrue(r["Domain Created"]);
+                            const domainCreated = isDomainActiveRow(r);
                             const rowFailed = failedLocIdsByKind[detailTab].has(locId);
                             const activationUrl = s(r["Domain URL Activation"]);
 
@@ -13725,16 +13924,6 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         {domainBotBusy
                           ? "Running..."
                           : `Run Pending Cities (${pendingDomainBotRowsByKind.cities.length})`}
-                      </button>
-                      <button
-                        className="smallBtn"
-                        onClick={() => {
-                          void runDomainBotPendingInCurrentTab();
-                          setQuickBotModal("");
-                        }}
-                        disabled={domainBotBusy || pendingDomainBotRowsInTab.length === 0}
-                      >
-                        Run Current Tab ({pendingDomainBotRowsInTab.length})
                       </button>
                       <button
                         className="smallBtn"
@@ -14645,7 +14834,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               <div>
                 <div className="badge">DOMAIN BOT RUN</div>
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
-                  {openState || "State"} • {detailTab === "counties" ? "Counties" : "Cities"}
+                  {openState || "State"} • {domainBotRunKind === "counties" ? "Counties" : "Cities"}
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
                   Started:{" "}
@@ -14679,7 +14868,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   className="smallBtn"
                   onClick={() => {
                     setDomainBotFailuresOpen(true);
-                    void loadDomainBotFailures(detailTab);
+                    void loadDomainBotFailures(domainBotRunKind);
                   }}
                   disabled={domainBotBusy}
                   title="Open failed runs"
@@ -14772,7 +14961,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <tr>
                       <th className="th">Status</th>
                       <th className="th">Stage</th>
-                      <th className="th">{detailTab === "counties" ? "County" : "City"}</th>
+                      <th className="th">{domainBotRunKind === "counties" ? "County" : "City"}</th>
                       <th className="th">Domain</th>
                       <th className="th">Sitemap</th>
                       <th className="th">Pages</th>
@@ -15226,6 +15415,14 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </button>
 
                         <button
+                          className={`stepTab ${actChecklistTab === "llms" ? "stepTabOn" : ""}`}
+                          onClick={() => setActChecklistTab("llms")}
+                          type="button"
+                        >
+                          LLMS.txt
+                        </button>
+
+                        <button
                           className={`stepTab ${actChecklistTab === "headers" ? "stepTabOn" : ""}`}
                           onClick={() => setActChecklistTab("headers")}
                           type="button"
@@ -15459,6 +15656,76 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             Validate in the browser that{" "}
                             <span className="kbd">/robots.txt</span> returns
                             200 OK.
+                          </li>
+                        </ol>
+                      </div>
+                    )}
+
+                    {/* LLMS */}
+                    {actChecklistTab === "llms" && (
+                      <div style={{ padding: 12 }}>
+                        <div className="robotsHeaderRow" style={{ padding: 0 }}>
+                          <div>
+                            <div className="sectionTitle">LLMS.txt</div>
+                            <div className="sectionHint" style={{ marginTop: 6 }}>
+                              Generated from the real location, county relationship, tenant prices,
+                              service URLs, and county booking domain. No custom-value placeholders.
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <button
+                              className="smallBtn"
+                              type="button"
+                              onClick={() => void loadLlmsForLocation(actLocId, actKind || undefined)}
+                              disabled={!actLocId || actLlmsLoading}
+                            >
+                              {actLlmsLoading ? "Generating..." : "Refresh"}
+                            </button>
+                            <button
+                              className="smallBtn"
+                              type="button"
+                              onClick={copyLlmsTxt}
+                              disabled={!actLlmsTxt || actLlmsLoading}
+                            >
+                              {actLlmsCopied ? "Copied" : "Copy LLMS.txt"}
+                            </button>
+                          </div>
+                        </div>
+
+                        {actLlmsErr ? (
+                          <div className="mini" style={{ marginTop: 10, color: "var(--danger)" }}>
+                            {actLlmsErr}
+                          </div>
+                        ) : null}
+                        {actLlmsMissingPrices.length ? (
+                          <div className="mini" style={{ marginTop: 10, color: "var(--warning)" }}>
+                            Missing tenant prices (omitted from the published content):{" "}
+                            {actLlmsMissingPrices.join(", ")}
+                          </div>
+                        ) : null}
+
+                        <div className="robotsBox" style={{ marginTop: 12, maxHeight: 390, overflow: "auto" }}>
+                          <pre className="robotsPre">
+                            {actLlmsLoading ? "Generating enriched LLMS.txt..." : actLlmsTxt || "No LLMS.txt content available."}
+                          </pre>
+                        </div>
+
+                        <ol className="stepsList" style={{ marginTop: 10 }}>
+                          <li>
+                            Click <span className="kbd">⋮</span>.
+                          </li>
+                          <li>
+                            Click <span className="kbd">Edit</span>.
+                          </li>
+                          <li>
+                            In <span className="kbd">LLMS.txt code</span>, paste the code.
+                          </li>
+                          <li>
+                            Click <span className="kbd">Save</span>.
+                          </li>
+                          <li>
+                            Validate in the browser that{" "}
+                            <span className="kbd">/llms.txt</span> returns 200 OK.
                           </li>
                         </ol>
                       </div>
