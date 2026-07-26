@@ -131,6 +131,7 @@ async function requestDiscoveryForUnknown(
   domainOrigin: string,
 ) {
   const sitemapUrl = `${domainOrigin.replace(/\/+$/, "")}/sitemap.xml`;
+  const sitemap = await readSitemapSummary(sitemapUrl);
   const chosen: AuthCandidate[] = [];
   const preferred = candidates.find((c) => c.name === preferredAuthName);
   if (preferred) chosen.push(preferred);
@@ -163,7 +164,88 @@ async function requestDiscoveryForUnknown(
     submitted,
     submittedBy: submittedBy || undefined,
     submitError: submitError || undefined,
+    pageCount: sitemap.pageCount,
+    sitemapReachable: sitemap.reachable,
+    sitemapError: sitemap.error || undefined,
   };
+}
+
+function decodeXmlText(value: string) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'");
+}
+
+async function fetchSitemapXml(url: string) {
+  let lastError = "";
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        cache: "no-store",
+        headers: {
+          "user-agent": "DeltaControlTower/1.0 (+sitemap-check)",
+          accept: "application/xml,text/xml,*/*;q=0.8",
+        },
+      });
+      if (res.ok) return await res.text();
+      lastError = `HTTP ${res.status}`;
+    } catch (e: any) {
+      lastError = s(e?.message) || "Fetch failed";
+    }
+    if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, attempt * 750));
+  }
+  throw new Error(lastError || "Sitemap fetch failed");
+}
+
+async function readSitemapSummary(sitemapUrl: string) {
+  try {
+    const rootUrl = new URL(sitemapUrl);
+    const xml = await fetchSitemapXml(rootUrl.toString());
+    const directUrls = (xml.match(/<url(?:\s|>)/gi) || []).length;
+    if (directUrls > 0 || /<urlset(?:\s|>)/i.test(xml)) {
+      return { reachable: true, pageCount: directUrls, error: "" };
+    }
+
+    const childUrls = Array.from(xml.matchAll(/<loc\b[^>]*>([\s\S]*?)<\/loc>/gi))
+      .map((match) => decodeXmlText(s(match[1])).trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    if (!childUrls.length || !/<sitemapindex(?:\s|>)/i.test(xml)) {
+      return { reachable: true, pageCount: 0, error: "No <url> entries found." };
+    }
+
+    let pageCount = 0;
+    const childErrors: string[] = [];
+    for (const child of childUrls) {
+      try {
+        const childUrl = new URL(child, rootUrl);
+        if (childUrl.protocol !== "https:" || childUrl.hostname !== rootUrl.hostname) {
+          childErrors.push(`Skipped external child sitemap: ${childUrl.hostname}`);
+          continue;
+        }
+        const childXml = await fetchSitemapXml(childUrl.toString());
+        pageCount += (childXml.match(/<url(?:\s|>)/gi) || []).length;
+      } catch (e: any) {
+        childErrors.push(s(e?.message) || "Child sitemap failed");
+      }
+    }
+    return {
+      reachable: true,
+      pageCount,
+      error: childErrors.length ? childErrors.slice(0, 3).join(" | ") : "",
+    };
+  } catch (e: any) {
+    return {
+      reachable: false,
+      pageCount: 0,
+      error: s(e?.message) || "Sitemap could not be read.",
+    };
+  }
 }
 
 type GoogleSubmitMode = "inspect" | "discovery" | "auto";
@@ -432,6 +514,9 @@ export async function POST(req: Request) {
           submitted: boolean;
           submittedBy?: string;
           submitError?: string;
+          pageCount?: number;
+          sitemapReachable?: boolean;
+          sitemapError?: string;
         };
         bodyPreview?: string;
         error?: string;

@@ -891,6 +891,10 @@ type DomainBotRunItem = {
   rowName: string;
   domainUrl: string;
   status: "pending" | "running" | "done" | "failed" | "stopped";
+  stage: "pending" | "create" | "submit" | "complete";
+  sitemapSubmitted: boolean;
+  sitemapUrl?: string;
+  sitemapPages?: number;
   error?: string;
 };
 
@@ -5266,7 +5270,23 @@ export default function Home() {
     const total = domainBotRunItems.length;
     const completed = done + failed + stopped;
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { pending, running, done, failed, stopped, total, completed, pct };
+    const sitemapsSubmitted = domainBotRunItems.filter((it) => it.sitemapSubmitted).length;
+    const sitemapPages = domainBotRunItems.reduce(
+      (sum, it) => sum + (it.sitemapSubmitted ? Math.max(0, Number(it.sitemapPages) || 0) : 0),
+      0,
+    );
+    return {
+      pending,
+      running,
+      done,
+      failed,
+      stopped,
+      total,
+      completed,
+      pct,
+      sitemapsSubmitted,
+      sitemapPages,
+    };
   }, [domainBotRunItems]);
 
   const domainBotRunEtaSec = useMemo(() => {
@@ -7810,6 +7830,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         rowName,
         domainUrl,
         status: "running",
+        stage: "create",
+        sitemapSubmitted: false,
       },
     ]);
     const out = await runDomainBotForLocId(
@@ -7825,6 +7847,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           ? {
               ...it,
               status: out.status,
+              stage: out.status === "done" ? "complete" : "create",
               error: out.status === "failed" ? out.error || "Run failed." : "",
             }
           : it,
@@ -7866,6 +7889,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         rowName,
         domainUrl,
         status: "pending",
+        stage: "pending",
+        sitemapSubmitted: false,
       };
     });
     setDomainBotRunItems(preparedItems);
@@ -7878,7 +7903,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       );
       setDomainBotRunItems((prev) =>
         prev.map((it) =>
-          it.locId === item.locId ? { ...it, status: "running", error: "" } : it,
+          it.locId === item.locId
+            ? { ...it, status: "running", stage: "create", error: "" }
+            : it,
         ),
       );
       setTabSitemapStatus({
@@ -7894,17 +7921,95 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         kind,
         runAccountTimeoutMs,
       );
-      setDomainBotRunItems((prev) =>
-        prev.map((it) =>
-          it.locId === item.locId
-            ? {
-                ...it,
-                status: out.status,
-                error: out.status === "failed" ? out.error || "Run failed." : "",
-              }
-            : it,
-        ),
-      );
+      if (out.status === "done") {
+        const domainUrl = getTabRowDomainUrl(kind, item.row);
+        setDomainBotRunItems((prev) =>
+          prev.map((it) =>
+            it.locId === item.locId
+              ? { ...it, status: "running", stage: "submit", error: "" }
+              : it,
+          ),
+        );
+        setTabSitemapStatus({
+          kind,
+          ok: true,
+          message: `Submitting sitemap ${i + 1}/${queue.length} (${item.locId}) to Google Search Console...`,
+        });
+        setDomainBotBusy(true);
+        try {
+          const discoveryRes = await fetch("/api/tools/index-submit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              tenantId: routeTenantId || "",
+              target: "google",
+              domainUrl,
+              mode: "discovery",
+            }),
+          });
+          const discoveryData = await safeJson(discoveryRes);
+          const discovery = (discoveryData as any)?.google?.discovery;
+          if (!discoveryRes.ok || !discovery?.submitted) {
+            throw new Error(
+              s(discovery?.submitError) ||
+                s((discoveryData as any)?.google?.error) ||
+                `Sitemap submit failed (HTTP ${discoveryRes.status}).`,
+            );
+          }
+          const pageCount = Math.max(0, Number(discovery?.pageCount) || 0);
+          setDomainBotRunItems((prev) =>
+            prev.map((it) =>
+              it.locId === item.locId
+                ? {
+                    ...it,
+                    status: "done",
+                    stage: "complete",
+                    sitemapSubmitted: true,
+                    sitemapUrl: s(discovery?.sitemapUrl),
+                    sitemapPages: pageCount,
+                    error:
+                      discovery?.sitemapReachable === false || discovery?.sitemapError
+                        ? `Submitted; page count unavailable: ${s(discovery?.sitemapError)}`
+                        : "",
+                  }
+                : it,
+            ),
+          );
+          pushDomainBotLog(
+            `Google Search Console sitemap submitted: ${s(discovery?.sitemapUrl)} (${pageCount} pages).`,
+          );
+        } catch (e: any) {
+          const message = e?.message || "Sitemap submit request failed.";
+          setDomainBotRunItems((prev) =>
+            prev.map((it) =>
+              it.locId === item.locId
+                ? {
+                    ...it,
+                    status: "failed",
+                    stage: "submit",
+                    error: `Domain created; ${message}`,
+                  }
+                : it,
+            ),
+          );
+          pushDomainBotLog(`Google Search Console submit failed: ${message}`);
+        } finally {
+          setDomainBotBusy(false);
+        }
+      } else {
+        setDomainBotRunItems((prev) =>
+          prev.map((it) =>
+            it.locId === item.locId
+              ? {
+                  ...it,
+                  status: out.status,
+                  stage: "create",
+                  error: out.status === "failed" ? out.error || "Run failed." : "",
+                }
+              : it,
+          ),
+        );
+      }
       if (domainBotStopRequestedRef.current) {
         if (out.status === "done") {
           pushDomainBotLog(
@@ -7924,7 +8029,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         message: `Domain Bot ${kind} stopped after finishing current account.`,
       });
       setDomainBotRunItems((prev) =>
-        prev.map((it) => (it.status === "pending" ? { ...it, status: "stopped" } : it)),
+        prev.map((it) =>
+          it.status === "pending" ? { ...it, status: "stopped", stage: "pending" } : it,
+        ),
       );
     }
     setDomainBotRunDone(true);
@@ -14556,6 +14663,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <span className="badge">
                   Done {domainBotRunCounts.done}/{domainBotRunCounts.total}
                 </span>
+                <span className="badge" style={{ color: "var(--ok)" }}>
+                  GSC Sitemaps {domainBotRunCounts.sitemapsSubmitted}
+                </span>
+                <span className="badge" style={{ color: "var(--ok)" }}>
+                  Pages submitted {domainBotRunCounts.sitemapPages.toLocaleString()}
+                </span>
                 <span className="badge" style={{ color: "var(--danger)" }}>
                   Failed {domainBotRunCounts.failed}
                 </span>
@@ -14635,6 +14748,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <span className="badge" style={{ color: "var(--ok)" }}>
                       Done {domainBotRunCounts.done}
                     </span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>
+                      GSC {domainBotRunCounts.sitemapsSubmitted}
+                    </span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>
+                      Sitemap pages {domainBotRunCounts.sitemapPages.toLocaleString()}
+                    </span>
                     <span className="badge" style={{ color: "var(--danger)" }}>
                       Failed {domainBotRunCounts.failed}
                     </span>
@@ -14652,8 +14771,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <thead>
                     <tr>
                       <th className="th">Status</th>
+                      <th className="th">Stage</th>
                       <th className="th">{detailTab === "counties" ? "County" : "City"}</th>
                       <th className="th">Domain</th>
+                      <th className="th">Sitemap</th>
+                      <th className="th">Pages</th>
+                      <th className="th">Google Search Console</th>
                       <th className="th">Error</th>
                     </tr>
                   </thead>
@@ -14669,9 +14792,41 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             <span className="badge" style={{ color: "var(--warning)" }}>Stopped</span>
                           )}
                         </td>
+                        <td className="td">
+                          <span className="mini">
+                            {it.stage === "create"
+                              ? "Creating domain + sitemap"
+                              : it.stage === "submit"
+                                ? "Submitting sitemap"
+                                : it.stage === "complete"
+                                  ? "Complete"
+                                  : "Pending"}
+                          </span>
+                        </td>
                         <td className="td">{it.rowName || "—"}</td>
                         <td className="td">
                           <span className="mini">{it.domainUrl || "—"}</span>
+                        </td>
+                        <td className="td">
+                          <span className="mini">{it.sitemapUrl || (it.stage === "submit" ? "Reading…" : "—")}</span>
+                        </td>
+                        <td className="td">
+                          <span className="mini">
+                            {typeof it.sitemapPages === "number"
+                              ? it.sitemapPages.toLocaleString()
+                              : "—"}
+                          </span>
+                        </td>
+                        <td className="td">
+                          {it.sitemapSubmitted ? (
+                            <span className="pillOk">Submitted</span>
+                          ) : it.stage === "submit" && it.status === "running" ? (
+                            <span className="pillWarn">Submitting</span>
+                          ) : it.stage === "submit" && it.status === "failed" ? (
+                            <span className="pillOff">Failed</span>
+                          ) : (
+                            <span className="badge">Pending</span>
+                          )}
                         </td>
                         <td className="td">
                           <span className="mini">{it.error || "—"}</span>

@@ -964,6 +964,110 @@ async function runInTab(tabId, payload) {
         );
       }
 
+      async function openSitemapFunnelAccordionStrict(expectedLabel = "County", timeoutMs = 60000) {
+        const wanted = norm(expectedLabel);
+        const started = Date.now();
+        let attempt = 0;
+        let lastError = null;
+
+        const findTarget = () => {
+          const modals = [
+            ...document.querySelectorAll(
+              "div.n-card.n-modal.hl-modal[role='dialog'], [role='dialog']",
+            ),
+          ].filter((el) => visible(el));
+
+          for (const modal of modals) {
+            const headers = [
+              ...modal.querySelectorAll(
+                ".n-collapse-item__header-main, .hr-collapse-item__header-main",
+              ),
+            ].filter((el) => visible(el));
+
+            for (const header of headers) {
+              const label =
+                header.querySelector(".ml-2") ||
+                header.querySelector("[class*='label']") ||
+                header;
+              if (norm(label?.textContent || "") !== wanted) continue;
+
+              const item = header.closest(".n-collapse-item, .hr-collapse-item");
+              const arrow = header.querySelector("[data-arrow='true'], .n-collapse-item-arrow");
+              const content = item?.querySelector(
+                ".n-collapse-item__content-inner, .hr-collapse-item__content-inner",
+              );
+              const expanded =
+                header.getAttribute("aria-expanded") === "true" ||
+                arrow?.getAttribute("aria-expanded") === "true" ||
+                item?.classList.contains("n-collapse-item--active") ||
+                item?.classList.contains("hr-collapse-item--active") ||
+                (content && visible(content) && content.getBoundingClientRect().height > 2);
+
+              return { modal, header, item, arrow, content, expanded };
+            }
+          }
+          return null;
+        };
+
+        while (Date.now() - started < timeoutMs) {
+          attempt += 1;
+          try {
+            const target = await waitFor(
+              findTarget,
+              Math.min(15000, timeoutMs - (Date.now() - started)),
+              180,
+              `sitemap accordion ${expectedLabel}`,
+            );
+            log(
+              `sitemap accordion found -> ${expectedLabel} ` +
+                `(attempt ${attempt}, expanded=${target.expanded ? "yes" : "no"})`,
+            );
+
+            if (!target.expanded) {
+              // Click only the disclosure arrow so the checked funnel checkbox is never toggled.
+              const disclosure = visible(target.arrow) ? target.arrow : target.header;
+              disclosure.scrollIntoView({ block: "center", inline: "nearest" });
+              await sleep(220);
+              fireSingleNativeClick(disclosure);
+              log(`sitemap accordion opening -> ${expectedLabel} (attempt ${attempt})`);
+            } else {
+              log(`sitemap accordion already open -> ${expectedLabel}`);
+            }
+
+            await waitFor(
+              () => {
+                const refreshed = findTarget();
+                if (!refreshed) return null;
+                const hasRows = !!refreshed.item?.querySelector("div.funnel-page");
+                const nowExpanded =
+                  refreshed.expanded ||
+                  (refreshed.content &&
+                    visible(refreshed.content) &&
+                    refreshed.content.getBoundingClientRect().height > 2);
+                return nowExpanded && hasRows ? refreshed : null;
+              },
+              12000,
+              180,
+              `sitemap accordion rows ${expectedLabel}`,
+            );
+            log(`sitemap page list opened -> ${expectedLabel}`);
+            return;
+          } catch (error) {
+            lastError = error;
+            log(
+              `sitemap accordion retry -> ${expectedLabel} ` +
+                `(attempt ${attempt}: ${String(error?.message || error)})`,
+            );
+            await sleep(500);
+          }
+        }
+
+        throw new Error(
+          `STEP_SITEMAP_ACCORDION_NOT_OPEN: ${expectedLabel}; ` +
+            String(lastError?.message || lastError || "timeout"),
+        );
+      }
+
       async function clickPositiveModalActionStrict(expectedText = "Proceed", timeoutMs = 45000) {
         const wanted = norm(expectedText);
         const btn = await waitFor(() => {
@@ -1778,15 +1882,7 @@ async function runInTab(tabId, payload) {
             120000,
           );
 
-          const collapse = document.querySelector(
-            ".hr-collapse-item__header-main, .n-collapse-item__header-main",
-          );
-          if (visible(collapse)) {
-            fireSingleNativeClick(collapse);
-            log("sitemap page list opened");
-            await sleepScaled(450);
-          }
-
+          await openSitemapFunnelAccordionStrict("County", 60000);
           await selectAsteriskPageCheckboxes();
           await clickPositiveModalActionStrict("Proceed", 45000);
           await clickPositiveModalActionStrict("Generate & Save", 60000);
@@ -1922,12 +2018,7 @@ async function runInTab(tabId, payload) {
           120000,
         );
 
-        const collapse = document.querySelector(".n-collapse-item__header-main");
-        if (visible(collapse)) {
-          collapse.click();
-          log("collapse opened");
-        }
-
+        await openSitemapFunnelAccordionStrict("County", 60000);
         await selectAsteriskPageCheckboxes();
 
         await clickPositiveModalActionStrict("Proceed", 45000);
