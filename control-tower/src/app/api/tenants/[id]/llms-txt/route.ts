@@ -210,7 +210,7 @@ export async function GET(req: Request, ctx: Ctx) {
           and nullif(trim(key_value), '') is not null`,
       [tenantId],
     );
-    const customValues = new Map(
+    const customValues = new Map<string, string>(
       customQuery.rows.map((entry) => [canonicalCustomValueKey(entry.key_name), s(entry.key_value)]),
     );
     const phone = pickValue(customValues, [
