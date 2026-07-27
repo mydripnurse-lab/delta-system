@@ -7893,7 +7893,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       const msg = e?.message || "request failed";
       const errorLogs = Array.isArray(e?.botLogs) ? e.botLogs.map((x: unknown) => s(x)).filter(Boolean) : localRunLogs;
       const failedStep = inferFailedStep(msg, errorLogs);
-      if (/stopped by user|activation tab was closed by user|manual close|tab was closed/i.test(msg)) {
+      const deltaSessionExpired = /DELTA_SESSION_EXPIRED|Delta System session expired|Sign in to Delta System/i.test(msg);
+      if (deltaSessionExpired) {
+        pushDomainBotLog("PAUSED: Delta System session expired. Sign in again, then run pending to resume from this location.");
+        setTabSitemapStatus({
+          kind: rowKind,
+          ok: false,
+          message: "Delta System session expired. Queue paused without marking pending locations as failed.",
+        });
+      } else if (/stopped by user|activation tab was closed by user|manual close|tab was closed/i.test(msg)) {
         pushDomainBotLog("STOPPED by user.");
         setTabSitemapStatus({
           kind: rowKind,
@@ -7920,7 +7928,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         void loadDomainBotFailures(detailTab);
       }
       return {
-        status: /stopped by user|activation tab was closed by user|manual close|tab was closed/i.test(msg)
+        status: deltaSessionExpired || /stopped by user|activation tab was closed by user|manual close|tab was closed/i.test(msg)
           ? "stopped"
           : "failed",
         error: msg,

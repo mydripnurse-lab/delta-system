@@ -11,6 +11,7 @@ const botRuntime = {
 const EXT_BADGE_STORAGE_KEY = "delta_action_badge_count";
 const EXT_BADGE_SEVERITY_STORAGE_KEY = "delta_action_badge_severity";
 const EXT_BADGE_ALARM = "delta_badge_refresh_alarm";
+const EXT_SESSION_REFRESH_ALARM = "delta_session_refresh_alarm";
 const EXT_EXECUTION_PROFILE_KEY = "delta_execution_profile";
 const DEFAULT_WORKSPACE_BASE = "https://www.telahagocrecer.com";
 
@@ -125,6 +126,52 @@ async function refreshBadgeFromApi() {
     await applyExtensionBadge(totalOpen, maxSeverity);
   } catch {
     // keep existing badge on transient failures
+  }
+}
+
+async function refreshDeltaSession(required = false) {
+  const st = await chrome.storage.local.get([
+    "delta_auth_bearer_token",
+    "delta_workspace_base_url",
+  ]);
+  const token = String(st?.delta_auth_bearer_token || "").trim();
+  const base = String(st?.delta_workspace_base_url || DEFAULT_WORKSPACE_BASE).trim() || DEFAULT_WORKSPACE_BASE;
+  if (!token || !/^https?:\/\//i.test(base)) {
+    if (required) throw new Error("[DELTA_SESSION_EXPIRED] Sign in to Delta System before running the bot.");
+    return { ok: false, status: 0 };
+  }
+
+  try {
+    const target = new URL("/api/auth/refresh", base).toString();
+    const res = await fetch(target, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => null);
+    const nextToken = String(data?.token || "").trim();
+    if (res.ok && data?.ok && nextToken) {
+      await chrome.storage.local.set({
+        delta_auth_bearer_token: nextToken,
+        delta_auth_session_status: "active",
+        delta_auth_last_refreshed_at: new Date().toISOString(),
+      });
+      return { ok: true, status: res.status };
+    }
+    if (res.status === 401 || res.status === 403) {
+      await chrome.storage.local.set({ delta_auth_session_status: "expired" });
+      throw new Error("[DELTA_SESSION_EXPIRED] Delta System session expired. Sign in again, then resume the pending run.");
+    }
+    if (required) {
+      throw new Error(data?.error || `Delta session refresh failed (HTTP ${res.status}).`);
+    }
+    return { ok: false, status: res.status };
+  } catch (error) {
+    if (required || /DELTA_SESSION_EXPIRED/.test(String(error?.message || error || ""))) throw error;
+    return { ok: false, status: 0 };
   }
 }
 
@@ -2363,7 +2410,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   botRuntime.running = true;
   botRuntime.activeKey = runKey;
-  botRuntime.activePromise = runLocalDomainBot(payload);
+  botRuntime.activePromise = (async () => {
+    await refreshDeltaSession(true);
+    return await runLocalDomainBot(payload);
+  })();
 
   botRuntime.activePromise
     .then((result) => {
@@ -2388,21 +2438,25 @@ chrome.runtime.onInstalled.addListener(() => {
   void reinjectBridgeInAllOpenTabs();
   void hydrateBadgeFromStorage();
   chrome.alarms.create(EXT_BADGE_ALARM, { periodInMinutes: 1 });
+  chrome.alarms.create(EXT_SESSION_REFRESH_ALARM, { periodInMinutes: 20 });
   void refreshBadgeFromApi();
+  void refreshDeltaSession(false);
 });
 
 chrome.runtime.onStartup.addListener(() => {
   void reinjectBridgeInAllOpenTabs();
   void hydrateBadgeFromStorage();
   chrome.alarms.create(EXT_BADGE_ALARM, { periodInMinutes: 1 });
+  chrome.alarms.create(EXT_SESSION_REFRESH_ALARM, { periodInMinutes: 20 });
   void refreshBadgeFromApi();
+  void refreshDeltaSession(false);
 });
 
 void hydrateBadgeFromStorage();
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm?.name !== EXT_BADGE_ALARM) return;
-  void refreshBadgeFromApi();
+  if (alarm?.name === EXT_BADGE_ALARM) void refreshBadgeFromApi();
+  if (alarm?.name === EXT_SESSION_REFRESH_ALARM) void refreshDeltaSession(false);
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
