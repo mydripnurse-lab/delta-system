@@ -1446,6 +1446,7 @@ export default function Home() {
   const [sitemapUpdateRunDone, setSitemapUpdateRunDone] = useState(false);
   const [sitemapUpdateRunStartedAt, setSitemapUpdateRunStartedAt] = useState("");
   const [sitemapUpdateRunItems, setSitemapUpdateRunItems] = useState<SitemapUpdateRunItem[]>([]);
+  const [sitemapUpdateRunKind, setSitemapUpdateRunKind] = useState<"counties" | "cities">("counties");
   const [sitemapUpdateStopRequested, setSitemapUpdateStopRequested] = useState(false);
   const sitemapUpdateStopRequestedRef = useRef(false);
   const [domainBotBusy, setDomainBotBusy] = useState(false);
@@ -1465,7 +1466,7 @@ export default function Home() {
   const [domainBotAccountTimeoutMin, setDomainBotAccountTimeoutMin] = useState(
     DOMAIN_BOT_TIMEOUT_MIN_DEFAULT,
   );
-  const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "pending" | "settings">("");
+  const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "pending" | "sitemaps" | "settings">("");
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -7203,27 +7204,28 @@ export default function Home() {
     });
   }
 
-  async function runActiveLocationSitemapUpdates() {
+  async function runActiveLocationSitemapUpdates(kind: "counties" | "cities") {
     if (sitemapUpdateBusy || !detail) return;
 
-    const queue = (["counties", "cities"] as const).flatMap((kind) =>
-      getActiveRowsForTab(kind).map((row) => ({
-        kind,
-        row,
-        locId: s(row["Location Id"]),
-        rowName: getTabRowName(kind, row) || "Location",
-        domainUrl: getTabRowDomainUrl(kind, row),
-      })),
-    );
+    const queue = getActiveRowsForTab(kind).map((row) => ({
+      kind,
+      row,
+      locId: s(row["Location Id"]),
+      rowName: getTabRowName(kind, row) || "Location",
+      domainUrl: getTabRowDomainUrl(kind, row),
+    }));
 
     if (!queue.length) {
-      setSitemapUpdateStatus("No active locations with a valid domain were found.");
+      setSitemapUpdateStatus(
+        `No active ${kind === "counties" ? "counties" : "cities"} with a valid domain were found.`,
+      );
       return;
     }
 
     sitemapUpdateStopRequestedRef.current = false;
     setSitemapUpdateStopRequested(false);
     setSitemapUpdateBusy(true);
+    setSitemapUpdateRunKind(kind);
     setSitemapUpdateRunOpen(true);
     setSitemapUpdateRunDone(false);
     setSitemapUpdateRunStartedAt(new Date().toISOString());
@@ -13241,15 +13243,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <button
                     className="smallBtn quickActionBtn quickActionBtnPending"
                     onClick={() => setQuickBotModal("pending")}
-                    title="Run pending Domain Bot"
+                    title="Activate pending county or city domains"
                     style={{ ["--qa-delay" as any]: "80ms" }}
                   >
-                    Run Pending Counties
+                    Activate Domains
                   </button>
                   <button
                     className="smallBtn quickActionBtn quickActionBtnGoogle"
-                    onClick={() => void runActiveLocationSitemapUpdates()}
-                    title="Generate, submit and inspect sitemaps for every active location"
+                    onClick={() => setQuickBotModal("sitemaps")}
+                    title="Choose counties or cities to update their sitemaps"
                     disabled={sitemapUpdateBusy || domainBotBusy}
                     style={{ ["--qa-delay" as any]: "100ms" }}
                   >
@@ -13759,7 +13761,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
                   {quickBotModal === "google" && "Google Index"}
                   {quickBotModal === "bing" && "Bing Index"}
-                  {quickBotModal === "pending" && "Run Pending"}
+                  {quickBotModal === "pending" && "Activate Domains"}
+                  {quickBotModal === "sitemaps" && "Update Sitemaps"}
                   {quickBotModal === "settings" && "Bot Settings"}
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
@@ -13923,7 +13926,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       >
                         {domainBotBusy
                           ? "Running..."
-                          : `Run Pending Counties (${pendingDomainBotRowsByKind.counties.length})`}
+                          : `Activate Counties (${pendingDomainBotRowsByKind.counties.length})`}
                       </button>
                       <button
                         className="smallBtn"
@@ -13935,7 +13938,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       >
                         {domainBotBusy
                           ? "Running..."
-                          : `Run Pending Cities (${pendingDomainBotRowsByKind.cities.length})`}
+                          : `Activate Cities (${pendingDomainBotRowsByKind.cities.length})`}
                       </button>
                       <button
                         className="smallBtn"
@@ -13959,6 +13962,65 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         {domainBotFailuresLoading
                           ? "Loading Failed..."
                           : `Failed Runs (${domainBotFailures.length})`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {quickBotModal === "sitemaps" && (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 12 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        marginBottom: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span className="badge">Active Counties {getActiveRowsForTab("counties").length}</span>
+                      <span className="badge">Active Cities {getActiveRowsForTab("cities").length}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runActiveLocationSitemapUpdates("counties");
+                          setQuickBotModal("");
+                        }}
+                        disabled={
+                          sitemapUpdateBusy ||
+                          domainBotBusy ||
+                          getActiveRowsForTab("counties").length === 0
+                        }
+                      >
+                        Update County Sitemaps ({getActiveRowsForTab("counties").length})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runActiveLocationSitemapUpdates("cities");
+                          setQuickBotModal("");
+                        }}
+                        disabled={
+                          sitemapUpdateBusy ||
+                          domainBotBusy ||
+                          getActiveRowsForTab("cities").length === 0
+                        }
+                      >
+                        Update City Sitemaps ({getActiveRowsForTab("cities").length})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setSitemapUpdateRunOpen(true);
+                          setQuickBotModal("");
+                        }}
+                        disabled={!sitemapUpdateRunItems.length && !sitemapUpdateBusy}
+                        style={{ gridColumn: "1 / -1" }}
+                      >
+                        View Sitemap Run
                       </button>
                     </div>
                   </div>
@@ -14559,7 +14621,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
               <div>
                 <div className="badge">ACTIVE LOCATION SITEMAP UPDATE</div>
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
-                  {openState} • Counties + Cities
+                  {openState} • {sitemapUpdateRunKind === "counties" ? "Counties" : "Cities"}
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
                   Started: {sitemapUpdateRunStartedAt
