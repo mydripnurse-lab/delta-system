@@ -7264,10 +7264,14 @@ export default function Home() {
         let itemHadFailure = false;
 
         try {
+          const sitemapUrl = `${item.domainUrl.replace(/\/$/, "")}/sitemap.xml`;
+          const robotsTxtValue = buildRobotsTxt(sitemapUrl);
+          const llmsTxtValue = await loadDomainBotLlmsTxt(item.locId, item.kind);
           const local = await runDomainBotViaExtensionBridge({
             activationUrl: domainBotUrlFromLocId(item.locId),
             domainToPaste: item.domainUrl,
-            robotsTxt: "",
+            robotsTxt: robotsTxtValue,
+            llmsTxt: llmsTxtValue,
             headCode: "",
             bodyCode: "",
             faviconUrl: "",

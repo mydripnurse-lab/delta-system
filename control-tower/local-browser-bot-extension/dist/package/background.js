@@ -1144,6 +1144,46 @@ async function runInTab(tabId, payload) {
         await sleep(500);
       }
 
+      async function replaceTextareaValueStrict(ta, value, label) {
+        const nextValue = String(value || "");
+        const setter = Object.getOwnPropertyDescriptor(
+          window.HTMLTextAreaElement.prototype,
+          "value",
+        )?.set;
+
+        const writeValue = (text) => {
+          ta.focus();
+          ta.setSelectionRange?.(0, String(ta.value || "").length);
+          if (setter) setter.call(ta, text);
+          else ta.value = text;
+          ta.dispatchEvent(new InputEvent("input", {
+            bubbles: true,
+            inputType: text ? "insertText" : "deleteContentBackward",
+            data: text || null,
+          }));
+          ta.dispatchEvent(new Event("change", { bubbles: true }));
+        };
+
+        // Clear first so Vue/GHL cannot merge the new content with a stale model value.
+        writeValue("");
+        await waitFor(
+          () => String(ta.value || "") === "",
+          8000,
+          120,
+          `${label} cleared`,
+        );
+
+        writeValue(nextValue);
+        ta.blur();
+        await waitFor(
+          () => String(ta.value || "") === nextValue,
+          8000,
+          120,
+          `${label} replacement persisted`,
+        );
+        log(`${label} replaced old content; len=${nextValue.length}`);
+      }
+
       async function fillRobotsTxtInModalStrict(value, timeoutMs = 45000) {
         const ta = await waitFor(() => {
           const modal = [...document.querySelectorAll("div.n-card.n-modal.hl-modal[role='dialog']")]
@@ -1158,25 +1198,7 @@ async function runInTab(tabId, payload) {
           return visible(textarea) ? textarea : null;
         }, timeoutMs, 220, "robots textarea in modal");
 
-        const setter = Object.getOwnPropertyDescriptor(
-          window.HTMLTextAreaElement.prototype,
-          "value",
-        )?.set;
-
-        ta.focus();
-        if (setter) setter.call(ta, String(value || ""));
-        else ta.value = String(value || "");
-        ta.dispatchEvent(new Event("input", { bubbles: true }));
-        ta.dispatchEvent(new Event("change", { bubbles: true }));
-        ta.blur();
-
-        await waitFor(
-          () => String(ta.value || "") === String(value || ""),
-          8000,
-          180,
-          "robots textarea value persisted",
-        );
-        log(`robots txt set (strict modal) len=${String(value || "").length}`);
+        await replaceTextareaValueStrict(ta, value, "robots.txt");
       }
 
       async function fillLlmsTxtInModalStrict(value, timeoutMs = 45000) {
@@ -1190,23 +1212,7 @@ async function runInTab(tabId, payload) {
           return visible(textarea) ? textarea : null;
         }, timeoutMs, 220, "llms.txt textarea in modal");
 
-        const setter = Object.getOwnPropertyDescriptor(
-          window.HTMLTextAreaElement.prototype,
-          "value",
-        )?.set;
-        ta.focus();
-        if (setter) setter.call(ta, String(value || ""));
-        else ta.value = String(value || "");
-        ta.dispatchEvent(new Event("input", { bubbles: true }));
-        ta.dispatchEvent(new Event("change", { bubbles: true }));
-        ta.blur();
-        await waitFor(
-          () => String(ta.value || "") === String(value || ""),
-          8000,
-          180,
-          "llms.txt textarea value persisted",
-        );
-        log(`llms txt set (strict modal) len=${String(value || "").length}`);
+        await replaceTextareaValueStrict(ta, value, "llms.txt");
       }
 
       async function clickBackButtonStrict(timeoutMs = 45000) {
@@ -1965,6 +1971,23 @@ async function runInTab(tabId, payload) {
           await clickPositiveModalActionStrict("Generate & Save", 60000);
           await clickPositiveModalActionStrict("Okay", 60000);
           await waitForUiSettle("sitemap update complete", 90000);
+
+          if (input.robotsTxt || input.llmsTxt) {
+            await waitForDomainHubActionTriggerReady(120000);
+            await openActionMenuAndPickExact(
+              "Edit",
+              "[id*='domain-hub-connected-product-table-drop-action-dropdown-trigger']",
+              120000,
+            );
+            if (input.robotsTxt) {
+              await fillRobotsTxtInModalStrict(input.robotsTxt, 45000);
+            }
+            if (input.llmsTxt) {
+              await fillLlmsTxtInModalStrict(input.llmsTxt, 45000);
+            }
+            await clickPositiveModalActionStrict("Save", 45000);
+            await waitForUiSettle("robots and llms update complete", 90000);
+          }
           log("sitemap update mode -> done");
           return { ok: true, href: location.href, logs: allLogs };
         }
