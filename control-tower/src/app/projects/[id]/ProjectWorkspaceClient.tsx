@@ -934,6 +934,20 @@ type SitemapUpdateRunItem = {
   error?: string;
 };
 
+type CustomValuesUpdateRunItem = {
+  key: string;
+  kind: "counties" | "cities";
+  locId: string;
+  rowName: string;
+  status: "pending" | "running" | "done" | "failed" | "stopped";
+  updated: number;
+  noMatch: number;
+  apiFailed: number;
+  error?: string;
+};
+
+type CustomValuesUpdateScope = "counties" | "cities" | "all";
+
 type DomainBotFailureItem = {
   id: number;
   kind: "counties" | "cities";
@@ -1449,6 +1463,15 @@ export default function Home() {
   const [sitemapUpdateRunKind, setSitemapUpdateRunKind] = useState<"counties" | "cities">("counties");
   const [sitemapUpdateStopRequested, setSitemapUpdateStopRequested] = useState(false);
   const sitemapUpdateStopRequestedRef = useRef(false);
+  const [customValuesUpdateBusy, setCustomValuesUpdateBusy] = useState(false);
+  const [customValuesUpdateStatus, setCustomValuesUpdateStatus] = useState("");
+  const [customValuesUpdateRunOpen, setCustomValuesUpdateRunOpen] = useState(false);
+  const [customValuesUpdateRunDone, setCustomValuesUpdateRunDone] = useState(false);
+  const [customValuesUpdateRunStartedAt, setCustomValuesUpdateRunStartedAt] = useState("");
+  const [customValuesUpdateRunItems, setCustomValuesUpdateRunItems] = useState<CustomValuesUpdateRunItem[]>([]);
+  const [customValuesUpdateRunScope, setCustomValuesUpdateRunScope] = useState<CustomValuesUpdateScope>("all");
+  const [customValuesUpdateStopRequested, setCustomValuesUpdateStopRequested] = useState(false);
+  const customValuesUpdateStopRequestedRef = useRef(false);
   const [domainBotBusy, setDomainBotBusy] = useState(false);
   const [domainBotLogs, setDomainBotLogs] = useState<string[]>([]);
   const [domainBotScreenshotDataUrl, setDomainBotScreenshotDataUrl] = useState("");
@@ -1466,7 +1489,7 @@ export default function Home() {
   const [domainBotAccountTimeoutMin, setDomainBotAccountTimeoutMin] = useState(
     DOMAIN_BOT_TIMEOUT_MIN_DEFAULT,
   );
-  const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "pending" | "sitemaps" | "settings">("");
+  const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "pending" | "sitemaps" | "custom_values" | "settings">("");
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -5294,6 +5317,48 @@ export default function Home() {
     return { pending, running, done, failed, stopped, total, completed, pct };
   }, [sitemapUpdateRunItems]);
 
+  const customValuesRowsByKind = useMemo(() => {
+    const rowsFor = (kind: "counties" | "cities") => {
+      const rows = kind === "counties" ? detail?.counties?.rows || [] : detail?.cities?.rows || [];
+      const seen = new Set<string>();
+      return rows.filter((row) => {
+        const locId = s(row["Location Id"]);
+        if (!locId || seen.has(locId)) return false;
+        seen.add(locId);
+        return true;
+      });
+    };
+    return {
+      counties: rowsFor("counties"),
+      cities: rowsFor("cities"),
+    };
+  }, [detail]);
+
+  const customValuesUpdateRunCounts = useMemo(() => {
+    let pending = 0;
+    let running = 0;
+    let done = 0;
+    let failed = 0;
+    let stopped = 0;
+    let updated = 0;
+    let noMatch = 0;
+    let apiFailed = 0;
+    for (const it of customValuesUpdateRunItems) {
+      if (it.status === "pending") pending += 1;
+      else if (it.status === "running") running += 1;
+      else if (it.status === "done") done += 1;
+      else if (it.status === "failed") failed += 1;
+      else if (it.status === "stopped") stopped += 1;
+      updated += it.updated;
+      noMatch += it.noMatch;
+      apiFailed += it.apiFailed;
+    }
+    const total = customValuesUpdateRunItems.length;
+    const completed = done + failed + stopped;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { pending, running, done, failed, stopped, updated, noMatch, apiFailed, total, completed, pct };
+  }, [customValuesUpdateRunItems]);
+
   const domainBotRunCounts = useMemo(() => {
     let pending = 0;
     let running = 0;
@@ -7405,6 +7470,136 @@ export default function Home() {
     setSitemapUpdateStopRequested(true);
     setSitemapUpdateStatus(
       "Stop requested. The current location will finish, then the remaining queue will stop.",
+    );
+  }
+
+  async function runStateCustomValuesUpdates(scope: CustomValuesUpdateScope) {
+    if (customValuesUpdateBusy || !detail || !routeTenantId) return;
+
+    const kinds: Array<"counties" | "cities"> =
+      scope === "all" ? ["counties", "cities"] : [scope];
+    const queue = kinds.flatMap((kind) =>
+      customValuesRowsByKind[kind].map((row) => ({
+        kind,
+        locId: s(row["Location Id"]),
+        rowName: getTabRowName(kind, row) || "Location",
+      })),
+    );
+
+    if (!queue.length) {
+      setCustomValuesUpdateStatus("No accounts with a Location ID were found for this selection.");
+      return;
+    }
+
+    customValuesUpdateStopRequestedRef.current = false;
+    setCustomValuesUpdateStopRequested(false);
+    setCustomValuesUpdateBusy(true);
+    setCustomValuesUpdateRunScope(scope);
+    setCustomValuesUpdateRunOpen(true);
+    setCustomValuesUpdateRunDone(false);
+    setCustomValuesUpdateRunStartedAt(new Date().toISOString());
+    setCustomValuesUpdateRunItems(
+      queue.map((item) => ({
+        key: `${item.kind}:${item.locId}`,
+        kind: item.kind,
+        locId: item.locId,
+        rowName: item.rowName,
+        status: "pending",
+        updated: 0,
+        noMatch: 0,
+        apiFailed: 0,
+      })),
+    );
+
+    const updateItem = (key: string, patch: Partial<CustomValuesUpdateRunItem>) => {
+      setCustomValuesUpdateRunItems((prev) =>
+        prev.map((it) => (it.key === key ? { ...it, ...patch } : it)),
+      );
+    };
+
+    let succeeded = 0;
+    let failedAccounts = 0;
+    let updatedValues = 0;
+    try {
+      for (let index = 0; index < queue.length; index += 1) {
+        if (customValuesUpdateStopRequestedRef.current) break;
+        const item = queue[index];
+        const key = `${item.kind}:${item.locId}`;
+        setCustomValuesUpdateStatus(
+          `${index + 1}/${queue.length}: updating custom values for ${item.rowName}...`,
+        );
+        updateItem(key, { status: "running", error: "" });
+
+        try {
+          const res = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/custom-values/apply`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ locId: item.locId, kind: item.kind }),
+          });
+          const data = (await safeJson(res)) as Record<string, unknown> | null;
+          const updated = Number(data?.updated || 0);
+          const noMatch = Number(data?.noMatch || 0);
+          const apiFailed = Number(data?.failed || 0);
+          updatedValues += updated;
+
+          if (!res.ok || data?.ok !== true) {
+            failedAccounts += 1;
+            updateItem(key, {
+              status: "failed",
+              updated,
+              noMatch,
+              apiFailed,
+              error:
+                s(data?.error) ||
+                s(data?.message) ||
+                `Custom values update failed (HTTP ${res.status}).`,
+            });
+          } else {
+            succeeded += 1;
+            updateItem(key, {
+              status: "done",
+              updated,
+              noMatch,
+              apiFailed,
+            });
+          }
+        } catch (error: unknown) {
+          failedAccounts += 1;
+          updateItem(key, {
+            status: "failed",
+            error: error instanceof Error ? error.message : "Custom values request failed.",
+          });
+        }
+      }
+
+      if (customValuesUpdateStopRequestedRef.current) {
+        setCustomValuesUpdateRunItems((prev) =>
+          prev.map((it) =>
+            it.status === "pending"
+              ? { ...it, status: "stopped", error: "Stopped before processing." }
+              : it,
+          ),
+        );
+        setCustomValuesUpdateStatus(
+          "Stop completed. The current account finished and no additional accounts will start.",
+        );
+      } else {
+        setCustomValuesUpdateStatus(
+          `Completed ${queue.length} accounts: ${succeeded} succeeded, ${failedAccounts} failed, ${updatedValues} values updated.`,
+        );
+      }
+    } finally {
+      setCustomValuesUpdateBusy(false);
+      setCustomValuesUpdateRunDone(true);
+    }
+  }
+
+  function requestStopCustomValuesUpdates() {
+    if (!customValuesUpdateBusy) return;
+    customValuesUpdateStopRequestedRef.current = true;
+    setCustomValuesUpdateStopRequested(true);
+    setCustomValuesUpdateStatus(
+      "Stop requested. The current account will finish, then the remaining queue will stop.",
     );
   }
 
@@ -13252,10 +13447,19 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     className="smallBtn quickActionBtn quickActionBtnGoogle"
                     onClick={() => setQuickBotModal("sitemaps")}
                     title="Choose counties or cities to update their sitemaps"
-                    disabled={sitemapUpdateBusy || domainBotBusy}
+                    disabled={sitemapUpdateBusy || domainBotBusy || customValuesUpdateBusy}
                     style={{ ["--qa-delay" as any]: "100ms" }}
                   >
                     {sitemapUpdateBusy ? "Updating Sitemaps..." : "Update Sitemaps"}
+                  </button>
+                  <button
+                    className="smallBtn quickActionBtn quickActionBtnGoogle"
+                    onClick={() => setQuickBotModal("custom_values")}
+                    title="Update custom values for accounts in this state that have a Location ID"
+                    disabled={customValuesUpdateBusy || sitemapUpdateBusy || domainBotBusy}
+                    style={{ ["--qa-delay" as any]: "110ms" }}
+                  >
+                    {customValuesUpdateBusy ? "Updating Values..." : "Update Custom Values"}
                   </button>
                   <button
                     className="smallBtn quickActionBtn quickActionBtnSettings"
@@ -13272,6 +13476,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 {sitemapUpdateStatus ? (
                   <div className="mini" style={{ marginTop: 8 }}>
                     {sitemapUpdateStatus}
+                  </div>
+                ) : null}
+                {customValuesUpdateStatus ? (
+                  <div className="mini" style={{ marginTop: 8 }}>
+                    {customValuesUpdateStatus}
                   </div>
                 ) : null}
               </div>
@@ -13763,6 +13972,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   {quickBotModal === "bing" && "Bing Index"}
                   {quickBotModal === "pending" && "Activate Domains"}
                   {quickBotModal === "sitemaps" && "Update Sitemaps"}
+                  {quickBotModal === "custom_values" && "Update Custom Values"}
                   {quickBotModal === "settings" && "Bot Settings"}
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
@@ -14021,6 +14231,78 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         style={{ gridColumn: "1 / -1" }}
                       >
                         View Sitemap Run
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {quickBotModal === "custom_values" && (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 12 }}>
+                    <div className="mini" style={{ marginBottom: 10 }}>
+                      Updates every matching account in {openState || "this state"} that has a Location ID.
+                      Domain status does not exclude Active, Pending, or Failed accounts.
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        marginBottom: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span className="badge">County Accounts {customValuesRowsByKind.counties.length}</span>
+                      <span className="badge">City Accounts {customValuesRowsByKind.cities.length}</span>
+                      <span className="badge">
+                        All Accounts {customValuesRowsByKind.counties.length + customValuesRowsByKind.cities.length}
+                      </span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runStateCustomValuesUpdates("counties");
+                          setQuickBotModal("");
+                        }}
+                        disabled={customValuesUpdateBusy || customValuesRowsByKind.counties.length === 0}
+                      >
+                        Update Counties ({customValuesRowsByKind.counties.length})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runStateCustomValuesUpdates("cities");
+                          setQuickBotModal("");
+                        }}
+                        disabled={customValuesUpdateBusy || customValuesRowsByKind.cities.length === 0}
+                      >
+                        Update Cities ({customValuesRowsByKind.cities.length})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          void runStateCustomValuesUpdates("all");
+                          setQuickBotModal("");
+                        }}
+                        disabled={
+                          customValuesUpdateBusy ||
+                          customValuesRowsByKind.counties.length + customValuesRowsByKind.cities.length === 0
+                        }
+                        style={{ gridColumn: "1 / -1" }}
+                      >
+                        Update All State Accounts ({customValuesRowsByKind.counties.length + customValuesRowsByKind.cities.length})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setCustomValuesUpdateRunOpen(true);
+                          setQuickBotModal("");
+                        }}
+                        disabled={!customValuesUpdateRunItems.length && !customValuesUpdateBusy}
+                        style={{ gridColumn: "1 / -1" }}
+                      >
+                        View Custom Values Run
                       </button>
                     </div>
                   </div>
@@ -14592,6 +14874,142 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </tr>
                       ))
                     )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {customValuesUpdateRunOpen && (
+        <>
+          <div
+            className="modalBackdrop"
+            onClick={() => {
+              if (!customValuesUpdateBusy) setCustomValuesUpdateRunOpen(false);
+            }}
+          />
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            style={{
+              width: "min(1120px, calc(100vw - 24px))",
+              height: "min(720px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader">
+              <div>
+                <div className="badge">STATE CUSTOM VALUES UPDATE</div>
+                <h3 className="modalTitle" style={{ marginTop: 8 }}>
+                  {openState} • {customValuesUpdateRunScope === "all"
+                    ? "Counties & Cities"
+                    : customValuesUpdateRunScope === "counties"
+                      ? "Counties"
+                      : "Cities"}
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  Started: {customValuesUpdateRunStartedAt
+                    ? new Date(customValuesUpdateRunStartedAt).toLocaleString()
+                    : "—"}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span className="badge">{customValuesUpdateRunCounts.pct}%</span>
+                <span className="badge">
+                  Completed {customValuesUpdateRunCounts.completed}/{customValuesUpdateRunCounts.total}
+                </span>
+                <button
+                  className="smallBtn"
+                  type="button"
+                  onClick={requestStopCustomValuesUpdates}
+                  disabled={!customValuesUpdateBusy || customValuesUpdateStopRequested}
+                >
+                  {customValuesUpdateStopRequested ? "Stopping..." : "Stop"}
+                </button>
+                <button
+                  className="smallBtn"
+                  type="button"
+                  onClick={() => setCustomValuesUpdateRunOpen(false)}
+                  disabled={customValuesUpdateBusy}
+                >
+                  {customValuesUpdateBusy ? "Running..." : "Close"}
+                </button>
+              </div>
+            </div>
+            <div className="modalBody" style={{ padding: 14 }}>
+              <div className="card" style={{ marginBottom: 10 }}>
+                <div className="cardBody" style={{ padding: 10 }}>
+                  <div className="mini" style={{ marginBottom: 8 }}>
+                    {customValuesUpdateStatus || (customValuesUpdateRunDone ? "Run completed." : "Processing...")}
+                  </div>
+                  <div
+                    className="progressWrap"
+                    style={{
+                      width: "100%",
+                      height: 10,
+                      borderRadius: 999,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.05)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      className="progressBar"
+                      style={{
+                        width: `${customValuesUpdateRunCounts.pct}%`,
+                        height: "100%",
+                        background: "linear-gradient(90deg, rgba(96,165,250,0.95), rgba(74,222,128,0.92))",
+                        transition: "width 180ms ease",
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    <span className="badge">Pending {customValuesUpdateRunCounts.pending}</span>
+                    <span className="badge">Running {customValuesUpdateRunCounts.running}</span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>Done {customValuesUpdateRunCounts.done}</span>
+                    <span className="badge" style={{ color: "var(--danger)" }}>Failed {customValuesUpdateRunCounts.failed}</span>
+                    <span className="badge">Stopped {customValuesUpdateRunCounts.stopped}</span>
+                    <span className="badge">Values Updated {customValuesUpdateRunCounts.updated}</span>
+                    <span className="badge">No Match {customValuesUpdateRunCounts.noMatch}</span>
+                    <span className="badge">API Failed {customValuesUpdateRunCounts.apiFailed}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="tableWrap tableScrollX" style={{ maxHeight: 490 }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="th">Status</th>
+                      <th className="th">Location</th>
+                      <th className="th">Type</th>
+                      <th className="th">Location ID</th>
+                      <th className="th">Updated</th>
+                      <th className="th">No Match</th>
+                      <th className="th">API Failed</th>
+                      <th className="th">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customValuesUpdateRunItems.map((it) => (
+                      <tr key={it.key} className="tr">
+                        <td className="td">
+                          {it.status === "done" ? <span className="pillOk">Done</span> : null}
+                          {it.status === "failed" ? <span className="pillOff">Failed</span> : null}
+                          {it.status === "running" ? <span className="pillWarn">Running</span> : null}
+                          {it.status === "pending" ? <span className="badge">Pending</span> : null}
+                          {it.status === "stopped" ? <span className="badge">Stopped</span> : null}
+                        </td>
+                        <td className="td">{it.rowName}</td>
+                        <td className="td">{it.kind === "counties" ? "County" : "City"}</td>
+                        <td className="td"><span className="mini">{it.locId}</span></td>
+                        <td className="td">{it.updated}</td>
+                        <td className="td">{it.noMatch}</td>
+                        <td className="td">{it.apiFailed}</td>
+                        <td className="td"><span className="mini">{it.error || "—"}</span></td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
