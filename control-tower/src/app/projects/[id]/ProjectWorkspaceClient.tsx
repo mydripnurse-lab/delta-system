@@ -927,8 +927,9 @@ type SitemapUpdateRunItem = {
   rowName: string;
   domainUrl: string;
   status: "pending" | "running" | "done" | "failed" | "stopped";
-  stage: "pending" | "generate" | "submit" | "inspect" | "complete";
+  stage: "pending" | "generate" | "settings" | "submit" | "inspect" | "complete";
   generated: boolean;
+  settingsUpdated: boolean;
   submitted: boolean;
   inspected: boolean;
   error?: string;
@@ -7172,10 +7173,10 @@ export default function Home() {
           if (input.runMode === "update_sitemap") {
             const parts = s(data.extensionVersion).split(".").map((x) => Number(x) || 0);
             const versionNumber = (parts[0] || 0) * 1_000_000 + (parts[1] || 0) * 1_000 + (parts[2] || 0);
-            if (versionNumber < 1_000_022) {
+            if (versionNumber < 1_000_027) {
               reject(
                 new Error(
-                  `Update Sitemaps requires extension 1.0.22 or newer. Detected ${s(data.extensionVersion) || "an older version"}. Reload the extension and refresh this page.`,
+                  `Update Sitemaps requires extension 1.0.27 or newer. Detected ${s(data.extensionVersion) || "an older version"}. Reload the extension and refresh this page.`,
                 ),
               );
               return;
@@ -7304,6 +7305,7 @@ export default function Home() {
         status: "pending",
         stage: "pending",
         generated: false,
+        settingsUpdated: false,
         submitted: false,
         inspected: false,
       })),
@@ -7333,21 +7335,35 @@ export default function Home() {
         try {
           const sitemapUrl = `${item.domainUrl.replace(/\/$/, "")}/sitemap.xml`;
           const robotsTxtValue = buildRobotsTxt(sitemapUrl);
-          const llmsTxtValue = await loadDomainBotLlmsTxt(item.locId, item.kind);
+          const [llmsTxtValue, headers] = await Promise.all([
+            loadDomainBotLlmsTxt(item.locId, item.kind),
+            loadDomainBotHeaders(item.locId),
+          ]);
+          const missingSettings = [
+            !headers.favicon ? "Favicon URL" : "",
+            !headers.head ? "Head Tracking Code" : "",
+            !headers.footer ? "Body Tracking Code" : "",
+          ].filter(Boolean);
+          if (missingSettings.length) {
+            throw new Error(
+              `Missing source values for ${missingSettings.join(", ")}; website settings were not changed.`,
+            );
+          }
+          updateItem(key, { stage: "settings" });
           const local = await runDomainBotViaExtensionBridge({
             activationUrl: domainBotUrlFromLocId(item.locId),
             domainToPaste: item.domainUrl,
             robotsTxt: robotsTxtValue,
             llmsTxt: llmsTxtValue,
-            headCode: "",
-            bodyCode: "",
-            faviconUrl: "",
+            headCode: headers.head,
+            bodyCode: headers.footer,
+            faviconUrl: headers.favicon,
             runMode: "update_sitemap",
             timeoutMs: domainBotAccountTimeoutMs,
           });
           if (!local.ok) throw new Error(local.error || "Sitemap generation failed.");
           generated += 1;
-          updateItem(key, { generated: true, stage: "submit" });
+          updateItem(key, { generated: true, settingsUpdated: true, stage: "submit" });
         } catch (e: any) {
           failed += 1;
           updateItem(key, {
@@ -15109,6 +15125,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <th className="th">Type</th>
                       <th className="th">Current Stage</th>
                       <th className="th">Generated</th>
+                      <th className="th">Website Settings</th>
                       <th className="th">Sitemap Submitted</th>
                       <th className="th">Google Inspect</th>
                       <th className="th">Error</th>
@@ -15131,6 +15148,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         <td className="td">{it.kind === "counties" ? "County" : "City"}</td>
                         <td className="td">{it.stage}</td>
                         <td className="td">{it.generated ? "✅" : "—"}</td>
+                        <td className="td">{it.settingsUpdated ? "✅" : "—"}</td>
                         <td className="td">{it.submitted ? "✅" : "—"}</td>
                         <td className="td">{it.inspected ? "✅" : "—"}</td>
                         <td className="td"><span className="mini">{it.error || "—"}</span></td>

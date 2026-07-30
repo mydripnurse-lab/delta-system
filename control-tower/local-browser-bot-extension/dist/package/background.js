@@ -1937,6 +1937,85 @@ async function runInTab(tabId, payload) {
         await sleep(550);
       }
 
+      async function updateWebsiteTrackingSettings(runWarnings) {
+        log("website settings update -> start");
+        await clickBackButtonStrict(45000);
+        await clickSbSitesStrict(45000);
+        await clickTbWebsitesStrict(45000);
+        await clickCountyTableEntryStrict(45000);
+        await openActionMenuAndPickExact(
+          "Edit",
+          "button[aria-label='Actions'], [id*='table1-drop-action-dropdown-trigger']",
+          45000,
+        );
+
+        let settingsPersisted = true;
+        try {
+          await clickSettingsTabStrict(45000);
+          await waitForFunnelsSelectedMatch(input.domainToPaste, 20000);
+          await waitForSettingsFormReady(30000);
+          await waitForUiSettle("settings form render", 15000);
+
+          // Native value setters replace the complete existing value before
+          // dispatching input/change, so these fields never append stale data.
+          if (input.faviconUrl) {
+            await retryFieldFill("favicon", () => fillFaviconStrict(input.faviconUrl, 60000), 3);
+            await sleepScaled(450);
+          }
+          if (input.headCode) {
+            await retryFieldFill("head tracking", () => fillHeadTrackingStrict(input.headCode, 60000), 3);
+            await sleepScaled(450);
+          }
+          if (input.bodyCode) {
+            await retryFieldFill("body tracking", () => fillBodyTrackingStrict(input.bodyCode, 60000), 3);
+            await sleepScaled(450);
+          }
+
+          await clickFinalSaveStrict(45000);
+          await waitForUiSettle("after final save", 45000);
+          const hasSettingsPayload =
+            !!String(input.faviconUrl || "").trim() ||
+            !!String(input.headCode || "").trim() ||
+            !!String(input.bodyCode || "").trim();
+          if (!hasSettingsPayload) setSettingsPersistStatus("na");
+
+          const verifyOutcome = await Promise.race([
+            verifySavedSettingsAndRepair(
+              {
+                favicon: String(input.faviconUrl || ""),
+                head: String(input.headCode || ""),
+                body: String(input.bodyCode || ""),
+              },
+              2,
+            ),
+            sleepScaled(25000).then(() => "__verify_timeout__"),
+          ]);
+          if (verifyOutcome === "__verify_timeout__") {
+            settingsPersisted = false;
+            runWarnings.push("settings_verify_timeout");
+            setSettingsPersistStatus("na");
+            log("WARNING: settings verify timeout -> continuing finalization");
+          } else {
+            settingsPersisted = Boolean(verifyOutcome);
+          }
+          if (!settingsPersisted) {
+            runWarnings.push("settings_mismatch");
+            log("continuing with warning: final settings verification returned mismatches");
+          }
+        } catch (settingsErr) {
+          const msg = settingsErr instanceof Error ? settingsErr.message : String(settingsErr);
+          if (/^STEP_SETTINGS_FUNNELS_(EMPTY|MISMATCH):/i.test(msg)) {
+            runWarnings.push(`settings_funnels_guard:${msg}`);
+            setSettingsPersistStatus("na");
+            log(`WARNING: settings funnels guard -> ${msg} (continuing)`);
+          } else {
+            throw settingsErr;
+          }
+        }
+        log("website settings update -> done");
+        return settingsPersisted;
+      }
+
       try {
         log("Run started");
         const runWarnings = [];
@@ -1988,8 +2067,9 @@ async function runInTab(tabId, payload) {
             await clickPositiveModalActionStrict("Save", 45000);
             await waitForUiSettle("robots and llms update complete", 90000);
           }
+          await updateWebsiteTrackingSettings(runWarnings);
           log("sitemap update mode -> done");
-          return { ok: true, href: location.href, logs: allLogs };
+          return { ok: true, href: location.href, logs: allLogs, warnings: runWarnings };
         }
 
         const connect = document.querySelector("[id*='connect-domain-button'], [id*='connect-domain-button-text'], [data-testid='connect-domain-button'], [id*='connect-domain'], button[id*='connect-domain']");
