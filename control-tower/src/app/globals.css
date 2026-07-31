@@ -1580,6 +1580,125 @@ button, input, select { font-family: inherit; }
     0 0 0 1px rgba(147, 197, 253, .24) inset;
 }
 
+.quickActionBtnDanger {
+  border-color: rgba(248, 113, 113, .42);
+  color: #fecaca;
+  background: linear-gradient(180deg, rgba(69, 25, 34, .92), rgba(28, 14, 24, .96));
+}
+
+.cleanupModal {
+  border-color: rgba(248, 113, 113, .24);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .62), 0 0 0 1px rgba(248, 113, 113, .06);
+}
+
+.cleanupModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cleanupToolbar,
+.cleanupFooterActions,
+.cleanupProgressSummary,
+.cleanupPresetActions,
+.cleanupScopeTabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cleanupToolbar {
+  justify-content: space-between;
+}
+
+.cleanupSafetyCard,
+.cleanupFooterPanel {
+  display: grid;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid rgba(248, 113, 113, .2);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(62, 23, 32, .32), rgba(17, 24, 39, .72));
+}
+
+.cleanupCheckLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.cleanupCheckLabel input,
+.cleanupTable input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #ef4444;
+}
+
+.cleanupCheckLabel small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.cleanupTableWrap {
+  min-height: 260px;
+  max-height: 430px;
+}
+
+.cleanupTable {
+  min-width: 980px;
+}
+
+.cleanupTable thead .th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: rgba(36, 43, 56, .98);
+}
+
+.cleanupLocationId {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+}
+
+.cleanupResult {
+  margin-top: 5px;
+  max-width: 340px;
+  white-space: normal;
+}
+
+.cleanupConfirmation {
+  display: grid;
+  grid-template-columns: minmax(260px, auto) minmax(220px, 420px);
+  align-items: center;
+  gap: 10px;
+}
+
+.cleanupDeleteBtn {
+  border-color: rgba(248, 113, 113, .62) !important;
+  color: #fee2e2 !important;
+  background: rgba(127, 29, 29, .42) !important;
+}
+
+@media (max-width: 760px) {
+  .cleanupToolbar,
+  .cleanupFooterActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cleanupToolbar .smallBtn,
+  .cleanupFooterActions .smallBtn {
+    width: 100%;
+  }
+
+  .cleanupConfirmation {
+    grid-template-columns: 1fr;
+  }
+}
+
 .quickActionBtn:active:not(:disabled) {
   transform: translateY(0) scale(0.99);
 }

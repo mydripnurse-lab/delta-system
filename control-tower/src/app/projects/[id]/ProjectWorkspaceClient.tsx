@@ -564,6 +564,29 @@ type StateDetailResponse = {
   error?: string;
 };
 
+type CleanupKind = "counties" | "cities";
+type CleanupCandidate = {
+  key: string;
+  kind: CleanupKind;
+  locationId: string;
+  label: string;
+  county: string;
+  city: string;
+  accountName: string;
+  active: boolean;
+  failed: boolean;
+};
+type CleanupPreviewItem = CleanupCandidate & {
+  verified: boolean;
+  exists: boolean;
+  ghlName: string;
+  error: string;
+};
+type CleanupRunItem = CleanupPreviewItem & {
+  status: "pending" | "deleting" | "deleted" | "failed" | "stopped";
+  result: string;
+};
+
 function s(v: any) {
   return String(v ?? "").trim();
 }
@@ -1551,6 +1574,18 @@ export default function Home() {
     DOMAIN_BOT_TIMEOUT_MIN_DEFAULT,
   );
   const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "pending" | "sitemaps" | "custom_values" | "settings">("");
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const [cleanupKind, setCleanupKind] = useState<CleanupKind | "all">("counties");
+  const [cleanupSelection, setCleanupSelection] = useState<Record<string, boolean>>({});
+  const [cleanupPreview, setCleanupPreview] = useState<CleanupPreviewItem[]>([]);
+  const [cleanupPreviewBusy, setCleanupPreviewBusy] = useState(false);
+  const [cleanupRunItems, setCleanupRunItems] = useState<CleanupRunItem[]>([]);
+  const [cleanupRunning, setCleanupRunning] = useState(false);
+  const [cleanupStopRequested, setCleanupStopRequested] = useState(false);
+  const cleanupStopRequestedRef = useRef(false);
+  const [cleanupIncludeActive, setCleanupIncludeActive] = useState(false);
+  const [cleanupConfirmation, setCleanupConfirmation] = useState("");
+  const [cleanupError, setCleanupError] = useState("");
 
   const [actOpen, setActOpen] = useState(false);
   const [actTitle, setActTitle] = useState("");
@@ -5414,6 +5449,44 @@ export default function Home() {
     };
   }, [domainBotFailures]);
 
+  const cleanupCandidates = useMemo(() => {
+    if (!detail) return [] as CleanupCandidate[];
+    const make = (kind: CleanupKind, rows: any[]) => rows.flatMap((row) => {
+      const locationId = s(row["Location Id"]);
+      if (!locationId) return [];
+      const county = s(row["County"]);
+      const city = s(row["City"]);
+      const active = isDomainActiveRow(row);
+      return [{
+        key: `${kind}:${locationId}`,
+        kind,
+        locationId,
+        label: kind === "cities" ? `${city || "City"}, ${county || "County"}` : county || "County",
+        county,
+        city,
+        accountName: s(row["Account Name"]),
+        active,
+        failed: failedLocIdsByKind[kind].has(locationId),
+      }];
+    });
+    // Destructive full-state runs must remove child city subaccounts before counties.
+    return [
+      ...make("cities", detail.cities.rows || []),
+      ...make("counties", detail.counties.rows || []),
+    ];
+  }, [detail, failedLocIdsByKind]);
+
+  const visibleCleanupCandidates = useMemo(
+    () => cleanupCandidates.filter((row) => cleanupKind === "all" || row.kind === cleanupKind),
+    [cleanupCandidates, cleanupKind],
+  );
+
+  const cleanupRunCounts = useMemo(() => {
+    const counts = { pending: 0, deleting: 0, deleted: 0, failed: 0, stopped: 0 };
+    for (const row of cleanupRunItems) counts[row.status] += 1;
+    return counts;
+  }, [cleanupRunItems]);
+
   const tabSitemapRunCounts = useMemo(() => {
     let pending = 0;
     let running = 0;
@@ -6646,6 +6719,165 @@ export default function Home() {
     setTabSitemapRunAction("inspect");
     setTabSitemapRunItems([]);
     setTabSitemapRunDone(false);
+  }
+
+  function openCleanup() {
+    const initialKind = detailTab;
+    const initialRows = cleanupCandidates.filter((row) => row.kind === initialKind && row.failed && !row.active);
+    setCleanupKind(initialKind);
+    setCleanupSelection(Object.fromEntries(initialRows.map((row) => [row.key, true])));
+    setCleanupPreview([]);
+    setCleanupRunItems([]);
+    setCleanupPreviewBusy(false);
+    setCleanupRunning(false);
+    setCleanupStopRequested(false);
+    cleanupStopRequestedRef.current = false;
+    setCleanupIncludeActive(false);
+    setCleanupConfirmation("");
+    setCleanupError("");
+    setCleanupOpen(true);
+    void loadDomainBotFailures();
+  }
+
+  function selectCleanupPreset(preset: "failed" | "non_active" | "all" | "none") {
+    const selection: Record<string, boolean> = {};
+    for (const row of visibleCleanupCandidates) {
+      const selected =
+        preset === "failed" ? row.failed && !row.active :
+          preset === "non_active" ? !row.active :
+            preset === "all" ? cleanupIncludeActive || !row.active : false;
+      if (selected) selection[row.key] = true;
+    }
+    setCleanupSelection(selection);
+    setCleanupPreview([]);
+    setCleanupRunItems([]);
+    setCleanupError("");
+  }
+
+  async function previewCleanup() {
+    const selected = cleanupCandidates.filter((row) => cleanupSelection[row.key]);
+    if (!selected.length || !openState || !routeTenantId) {
+      setCleanupError("Select at least one account with a Location ID.");
+      return;
+    }
+    setCleanupPreviewBusy(true);
+    setCleanupError("");
+    setCleanupPreview([]);
+    setCleanupRunItems([]);
+    try {
+      // Preserve dependency order: cities first, then their parent counties.
+      const groups = (["cities", "counties"] as CleanupKind[])
+        .map((kind) => ({ kind, rows: selected.filter((row) => row.kind === kind) }))
+        .filter((group) => group.rows.length > 0);
+      const responses = await Promise.all(groups.map(async (group) => {
+        const response = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/subaccount-cleanup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            state: openState,
+            kind: group.kind,
+            locationIds: group.rows.map((row) => row.locationId),
+            cascadeLocationIds: selected.map((row) => row.locationId),
+          }),
+        });
+        const data = await safeJson(response) as any;
+        if (!response.ok) throw new Error(s(data?.error) || `Preview failed (${response.status})`);
+        return { kind: group.kind, results: Array.isArray(data?.results) ? data.results : [] };
+      }));
+      const preview = responses.flatMap(({ kind, results }) => results.map((result: any) => {
+        const source = selected.find((row) => row.kind === kind && row.locationId === s(result.locationId));
+        return {
+          ...(source || {
+            key: `${kind}:${s(result.locationId)}`,
+            kind,
+            locationId: s(result.locationId),
+            label: s(result.label),
+            county: "",
+            city: "",
+            accountName: s(result.accountName),
+            active: !!result.active,
+            failed: false,
+          }),
+          verified: !!result.verified,
+          exists: !!result.exists,
+          ghlName: s(result.ghlName),
+          error: s(result.error),
+        } as CleanupPreviewItem;
+      }));
+      setCleanupPreview(preview);
+      setCleanupRunItems(preview.map((row) => ({ ...row, status: "pending", result: "" })));
+      const invalid = preview.filter((row) => !row.verified).length;
+      if (invalid) setCleanupError(`${invalid} account(s) could not be verified and will not be deleted.`);
+    } catch (error) {
+      setCleanupError(error instanceof Error ? error.message : "Unable to preview accounts.");
+    } finally {
+      setCleanupPreviewBusy(false);
+    }
+  }
+
+  async function runCleanup() {
+    if (!routeTenantId || !openState || cleanupRunning) return;
+    if (cleanupConfirmation.trim().toLowerCase() !== openState.trim().toLowerCase()) {
+      setCleanupError(`Type ${openState} exactly to confirm.`);
+      return;
+    }
+    const runnable = cleanupRunItems.filter((row) => row.verified && (cleanupIncludeActive || !row.active));
+    if (!runnable.length) {
+      setCleanupError("There are no verified accounts available for deletion.");
+      return;
+    }
+    setCleanupRunning(true);
+    setCleanupStopRequested(false);
+    cleanupStopRequestedRef.current = false;
+    setCleanupError("");
+    let latest = cleanupRunItems.map((row) => ({ ...row }));
+    for (const item of runnable) {
+      if (cleanupStopRequestedRef.current) break;
+      latest = latest.map((row) => row.key === item.key ? { ...row, status: "deleting", result: "" } : row);
+      setCleanupRunItems(latest);
+      try {
+        const response = await fetch(`/api/tenants/${encodeURIComponent(routeTenantId)}/subaccount-cleanup`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            state: openState,
+            kind: item.kind,
+            locationId: item.locationId,
+            confirmation: cleanupConfirmation.trim(),
+            includeActive: cleanupIncludeActive,
+          }),
+        });
+        const data = await safeJson(response) as any;
+        if (!response.ok) throw new Error(s(data?.error) || `Delete failed (${response.status})`);
+        latest = latest.map((row) => row.key === item.key ? {
+          ...row,
+          status: "deleted",
+          result: data?.alreadyAbsent ? "Already absent in GHL; Sheet reset." : "Deleted in GHL; Sheet reset.",
+        } : row);
+      } catch (error) {
+        latest = latest.map((row) => row.key === item.key ? {
+          ...row,
+          status: "failed",
+          result: error instanceof Error ? error.message : "Delete failed",
+        } : row);
+      }
+      setCleanupRunItems(latest);
+    }
+    if (cleanupStopRequestedRef.current) {
+      latest = latest.map((row) => row.status === "pending" ? { ...row, status: "stopped" } : row);
+      setCleanupRunItems(latest);
+    }
+    setCleanupRunning(false);
+    try {
+      const refreshed = await fetchStateDetail(openState);
+      setDetail(refreshed);
+      await loadOverview();
+    } catch {}
+  }
+
+  function stopCleanup() {
+    cleanupStopRequestedRef.current = true;
+    setCleanupStopRequested(true);
   }
 
   function openActivationHelper(opts: {
@@ -13857,6 +14089,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     {customValuesUpdateBusy ? "Updating Values..." : "Update Custom Values"}
                   </button>
                   <button
+                    className="smallBtn quickActionBtn quickActionBtnDanger"
+                    onClick={openCleanup}
+                    title="Safely verify, delete, and reset selected GHL subaccounts"
+                    disabled={cleanupRunning || domainBotBusy || sitemapUpdateBusy || customValuesUpdateBusy}
+                    style={{ ["--qa-delay" as any]: "115ms" }}
+                  >
+                    Cleanup &amp; Rebuild
+                  </button>
+                  <button
                     className="smallBtn quickActionBtn quickActionBtnSettings"
                     onClick={() => setQuickBotModal("settings")}
                     title="Bot settings"
@@ -14266,6 +14507,207 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {cleanupOpen && (
+        <>
+          <div className="modalBackdrop" onClick={() => { if (!cleanupRunning) setCleanupOpen(false); }} />
+          <div
+            className="modal cleanupModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cleanup-title"
+            style={{
+              width: "min(1180px, calc(100vw - 24px))",
+              height: "min(880px, calc(100vh - 24px))",
+            }}
+          >
+            <div className="modalHeader">
+              <div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <div className="badge">CLEANUP &amp; REBUILD</div>
+                  <div className="badge" style={{ borderColor: "rgba(248,113,113,.55)" }}>Destructive action</div>
+                </div>
+                <h3 className="modalTitle" id="cleanup-title" style={{ marginTop: 8 }}>
+                  {openState} Subaccounts
+                </h3>
+                <div className="mini" style={{ marginTop: 6 }}>
+                  Verify in GHL → delete sequentially → reset the confirmed Sheet row.
+                </div>
+              </div>
+              <button className="smallBtn" type="button" disabled={cleanupRunning} onClick={() => setCleanupOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="modalBody cleanupModalBody" style={{ padding: 14, overflow: "auto" }}>
+              <div className="cleanupToolbar">
+                <div className="cleanupScopeTabs" role="group" aria-label="Cleanup scope">
+                  {(["counties", "cities", "all"] as const).map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      className={`tabBtn ${cleanupKind === kind ? "tabBtnActive" : ""}`}
+                      disabled={cleanupRunning || cleanupPreviewBusy}
+                      onClick={() => {
+                        setCleanupKind(kind);
+                        setCleanupPreview([]);
+                        setCleanupRunItems([]);
+                        setCleanupError("");
+                      }}
+                    >
+                      {kind === "counties" ? "Counties" : kind === "cities" ? "Cities" : "Entire state"}
+                    </button>
+                  ))}
+                </div>
+                <div className="cleanupPresetActions">
+                  <button className="smallBtn" type="button" disabled={cleanupRunning} onClick={() => selectCleanupPreset("failed")}>Failed only</button>
+                  <button className="smallBtn" type="button" disabled={cleanupRunning} onClick={() => selectCleanupPreset("non_active")}>All non-active</button>
+                  <button className="smallBtn" type="button" disabled={cleanupRunning} onClick={() => selectCleanupPreset("all")}>Select visible</button>
+                  <button className="smallBtn" type="button" disabled={cleanupRunning} onClick={() => selectCleanupPreset("none")}>Clear</button>
+                </div>
+              </div>
+
+              <div className="cleanupSafetyCard">
+                <label className="cleanupCheckLabel">
+                  <input
+                    type="checkbox"
+                    checked={cleanupIncludeActive}
+                    disabled={cleanupRunning}
+                    onChange={(event) => {
+                      const enabled = event.target.checked;
+                      setCleanupIncludeActive(enabled);
+                      if (!enabled) {
+                        const activeKeys = new Set(cleanupCandidates.filter((row) => row.active).map((row) => row.key));
+                        setCleanupSelection((current) => Object.fromEntries(Object.entries(current).filter(([key]) => !activeKeys.has(key))));
+                      }
+                      setCleanupPreview([]);
+                      setCleanupRunItems([]);
+                    }}
+                  />
+                  <span>
+                    <b>Include active accounts</b>
+                    <small> Off by default. Active domains are protected from accidental deletion.</small>
+                  </span>
+                </label>
+                <div className="mini">
+                  Full-state cleanup is ordered in the UI for review. When rebuilding, run Counties first and Cities only after their parent counties are Active.
+                </div>
+              </div>
+
+              <div className="tableWrap tableScrollX cleanupTableWrap">
+                <table className="table cleanupTable">
+                  <thead>
+                    <tr>
+                      <th className="th" style={{ width: 52 }}>Select</th>
+                      <th className="th">Type</th>
+                      <th className="th">Account</th>
+                      <th className="th">Location ID</th>
+                      <th className="th">Current state</th>
+                      <th className="th">GHL verification</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleCleanupCandidates.map((row) => {
+                      const preview = cleanupPreview.find((item) => item.key === row.key);
+                      const run = cleanupRunItems.find((item) => item.key === row.key);
+                      const protectedActive = row.active && !cleanupIncludeActive;
+                      return (
+                        <tr key={row.key} className={`tr ${row.active ? "rowDomainActive" : row.failed ? "rowDomainPending" : "rowDomainIdle"}`}>
+                          <td className="td">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${row.label}`}
+                              checked={!!cleanupSelection[row.key]}
+                              disabled={cleanupRunning || protectedActive}
+                              onChange={(event) => {
+                                setCleanupSelection((current) => ({ ...current, [row.key]: event.target.checked }));
+                                setCleanupPreview([]);
+                                setCleanupRunItems([]);
+                                setCleanupError("");
+                              }}
+                            />
+                          </td>
+                          <td className="td"><span className="badge">{row.kind === "counties" ? "County" : "City"}</span></td>
+                          <td className="td">
+                            <b>{row.label}</b>
+                            <div className="mini">{row.accountName || "No Sheet account name"}</div>
+                          </td>
+                          <td className="td"><span className="mini cleanupLocationId">{row.locationId}</span></td>
+                          <td className="td">
+                            {row.active ? <span className="pillOk">Active — protected</span> : row.failed ? <span className="pillOff">Failed</span> : <span className="pillWarn">Pending</span>}
+                          </td>
+                          <td className="td">
+                            {run?.status === "deleting" ? <span className="pillWarn">Deleting...</span> : null}
+                            {run?.status === "deleted" ? <span className="pillOk">Deleted &amp; reset</span> : null}
+                            {run?.status === "failed" ? <span className="pillOff">Failed</span> : null}
+                            {run?.status === "stopped" ? <span className="badge">Stopped</span> : null}
+                            {!run || run.status === "pending" ? (
+                              preview ? (
+                                preview.verified
+                                  ? <span className={preview.exists ? "pillOk" : "pillWarn"}>{preview.exists ? `Verified: ${preview.ghlName || "GHL account"}` : "Already absent in GHL"}</span>
+                                  : <span className="pillOff">Not verified</span>
+                              ) : <span className="mini">Preview required</span>
+                            ) : null}
+                            {run?.result ? <div className="mini cleanupResult">{run.result}</div> : preview?.error ? <div className="mini cleanupResult">{preview.error}</div> : null}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {visibleCleanupCandidates.length === 0 ? (
+                      <tr className="tr"><td className="td" colSpan={6}><span className="mini">No accounts with a Location ID in this scope.</span></td></tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="cleanupFooterPanel">
+                <div className="cleanupProgressSummary">
+                  <span className="badge">Selected {cleanupCandidates.filter((row) => cleanupSelection[row.key]).length}</span>
+                  <span className="badge">Verified {cleanupPreview.filter((row) => row.verified).length}</span>
+                  <span className="badge" style={{ borderColor: "rgba(34,197,94,.5)" }}>Deleted {cleanupRunCounts.deleted}</span>
+                  <span className="badge" style={{ borderColor: "rgba(248,113,113,.55)" }}>Failed {cleanupRunCounts.failed}</span>
+                  {cleanupStopRequested ? <span className="badge">Stop requested</span> : null}
+                </div>
+
+                {cleanupPreview.length > 0 ? (
+                  <div className="cleanupConfirmation">
+                    <label htmlFor="cleanup-confirmation">
+                      Type <b>{openState}</b> to authorize deletion and Sheet reset:
+                    </label>
+                    <input
+                      id="cleanup-confirmation"
+                      className="input"
+                      value={cleanupConfirmation}
+                      disabled={cleanupRunning}
+                      onChange={(event) => setCleanupConfirmation(event.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                ) : null}
+
+                {cleanupError ? <div className="mini" style={{ color: "var(--danger)" }}>{cleanupError}</div> : null}
+
+                <div className="cleanupFooterActions">
+                  <button className="smallBtn" type="button" disabled={cleanupPreviewBusy || cleanupRunning} onClick={() => void previewCleanup()}>
+                    {cleanupPreviewBusy ? "Verifying in GHL..." : "1. Preview & Verify"}
+                  </button>
+                  <button
+                    className="smallBtn cleanupDeleteBtn"
+                    type="button"
+                    disabled={cleanupRunning || cleanupPreview.length === 0 || cleanupConfirmation.trim().toLowerCase() !== openState.trim().toLowerCase()}
+                    onClick={() => void runCleanup()}
+                  >
+                    {cleanupRunning ? "Deleting sequentially..." : "2. Delete & Reset"}
+                  </button>
+                  <button className="smallBtn" type="button" disabled={!cleanupRunning || cleanupStopRequested} onClick={stopCleanup}>
+                    Stop after current account
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </>
