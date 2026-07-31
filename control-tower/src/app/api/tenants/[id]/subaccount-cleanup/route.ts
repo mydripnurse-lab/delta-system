@@ -305,7 +305,27 @@ export async function DELETE(request: Request, ctx: Ctx) {
       requestBody: { valueInputOption: "USER_ENTERED", data },
     });
 
-    await writeAuditLog(getDbPool(), {
+    // A deleted/reset account is eligible to be created again. Close any stale
+    // bot failure so the Sheet row returns to Pending instead of remaining red.
+    const pool = getDbPool();
+    const resolvedFailures = await pool.query(
+      `
+        update app.domain_bot_failed_runs
+        set
+          status = 'resolved',
+          resolved_at = now(),
+          resolved_by = $1,
+          updated_at = now()
+        where tenant_id = $2
+          and kind = $3
+          and loc_id = $4
+          and status = 'open'
+        returning id
+      `,
+      [auth.user.id, tenantId, kind, locationId],
+    );
+
+    await writeAuditLog(pool, {
       organizationId: tenantId,
       actorUserId: auth.user.id,
       actorLabel: auth.user.email,
@@ -313,7 +333,15 @@ export async function DELETE(request: Request, ctx: Ctx) {
       entityType: "ghl_location",
       entityId: locationId,
       severity: "critical",
-      payload: { state, kind, before, alreadyAbsent, sheetName, resetHeaders },
+      payload: {
+        state,
+        kind,
+        before,
+        alreadyAbsent,
+        sheetName,
+        resetHeaders,
+        resolvedFailureRecords: resolvedFailures.rowCount ?? 0,
+      },
     });
 
     return NextResponse.json({
@@ -322,6 +350,7 @@ export async function DELETE(request: Request, ctx: Ctx) {
       label: before.label,
       alreadyAbsent,
       sheetReset: true,
+      resolvedFailureRecords: resolvedFailures.rowCount ?? 0,
     });
   } catch (error) {
     return NextResponse.json(

@@ -14549,7 +14549,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                             const rowTone = domainCreated
                               ? "rowDomainActive"
                               : rowFailed
-                                ? "rowDomainPending"
+                                ? "rowDomainFailed"
                                 : eligible
                                   ? "rowDomainPending"
                                   : "rowDomainIdle";
@@ -14567,7 +14567,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                   ) : rowFailed ? (
                                     <span className="pillOff">Failed</span>
                                   ) : (
-                                    <span className="pillOff">Pending</span>
+                                    <span className="pillWarn">Pending</span>
                                   )}
                                 </td>
 
@@ -14737,7 +14737,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       const run = cleanupRunItems.find((item) => item.key === row.key);
                       const protectedActive = row.active && !cleanupIncludeActive;
                       return (
-                        <tr key={row.key} className={`tr ${row.active ? "rowDomainActive" : row.failed ? "rowDomainPending" : "rowDomainIdle"}`}>
+                        <tr key={row.key} className={`tr ${row.active ? "rowDomainActive" : row.failed ? "rowDomainFailed" : "rowDomainPending"}`}>
                           <td className="td">
                             <input
                               type="checkbox"
@@ -16819,7 +16819,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     {actIsActive ? (
                       <span className="pillOk">Active</span>
                     ) : (
-                      <span className="pillOff">Pending</span>
+                      <span className="pillWarn">Pending</span>
                     )}
                   </div>
                 </div>
