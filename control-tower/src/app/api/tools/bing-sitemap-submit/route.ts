@@ -25,8 +25,12 @@ function parseConfig(raw: Record<string, unknown>) {
     : {};
   return {
     apiKey:
+      s(raw.webmasterApiKey) ||
+      s(raw.webmaster_api_key) ||
       s(raw.apiKey) ||
       s(raw.api_key) ||
+      s(auth.webmasterApiKey) ||
+      s(auth.webmaster_api_key) ||
       s(auth.apiKey) ||
       s(auth.api_key),
     endpoint:

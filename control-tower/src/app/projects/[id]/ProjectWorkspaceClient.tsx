@@ -4819,6 +4819,9 @@ export default function Home() {
     setIntegrationEditExternalAccountId(s(item?.external_account_id || item?.externalAccountId));
     setIntegrationEditExternalPropertyId(
       s(item?.external_property_id || item?.externalPropertyId) ||
+        (provider === "bing_webmaster"
+          ? s(cfg.siteUrl || cfg.site_url) || "https://mydripnurse.com/"
+          : "") ||
         (provider === "cloudflare" ? s(tenantCloudflareCnameTarget) : ""),
     );
     const rowScopes = Array.isArray((item as any)?.scopes)
@@ -15533,6 +15536,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         : "External Account ID";
                   const showExternalProperty =
                     providerKey === "google_search_console" ||
+                    providerKey === "bing_webmaster" ||
                     providerKey === "cloudflare" ||
                     providerKey === "google_places" ||
                     providerKey === "google_cloud" ||
@@ -15540,6 +15544,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   const externalPropertyLabel =
                     providerKey === "google_search_console"
                       ? "Google Search Console Property"
+                      : providerKey === "bing_webmaster"
+                        ? "Verified Bing Site URL"
                       : providerKey === "cloudflare"
                         ? "Cloudflare CNAME Target"
                         : "External Property ID";
