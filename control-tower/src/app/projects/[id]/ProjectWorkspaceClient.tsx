@@ -988,6 +988,7 @@ type DomainBotRunItem = {
   status: "pending" | "running" | "done" | "failed" | "stopped";
   stage: "pending" | "create" | "submit" | "complete";
   sitemapSubmitted: boolean;
+  bingSitemapSubmitted?: boolean;
   sitemapUrl?: string;
   sitemapPages?: number;
   error?: string;
@@ -1000,10 +1001,11 @@ type SitemapUpdateRunItem = {
   rowName: string;
   domainUrl: string;
   status: "pending" | "running" | "done" | "failed" | "stopped";
-  stage: "pending" | "generate" | "settings" | "submit" | "inspect" | "complete";
+  stage: "pending" | "generate" | "settings" | "submit" | "bing" | "inspect" | "complete";
   generated: boolean;
   settingsUpdated: boolean;
   submitted: boolean;
+  bingSubmitted: boolean;
   inspected: boolean;
   error?: string;
 };
@@ -5520,7 +5522,20 @@ export default function Home() {
     const total = sitemapUpdateRunItems.length;
     const completed = done + failed + stopped;
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { pending, running, done, failed, stopped, total, completed, pct };
+    const googleSubmitted = sitemapUpdateRunItems.filter((it) => it.submitted).length;
+    const bingSubmitted = sitemapUpdateRunItems.filter((it) => it.bingSubmitted).length;
+    return {
+      pending,
+      running,
+      done,
+      failed,
+      stopped,
+      total,
+      completed,
+      pct,
+      googleSubmitted,
+      bingSubmitted,
+    };
   }, [sitemapUpdateRunItems]);
 
   const customValuesRowsByKind = useMemo(() => {
@@ -5582,6 +5597,9 @@ export default function Home() {
     const completed = done + failed + stopped;
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
     const sitemapsSubmitted = domainBotRunItems.filter((it) => it.sitemapSubmitted).length;
+    const bingSitemapsSubmitted = domainBotRunItems.filter(
+      (it) => it.bingSitemapSubmitted,
+    ).length;
     const sitemapPages = domainBotRunItems.reduce(
       (sum, it) => sum + (it.sitemapSubmitted ? Math.max(0, Number(it.sitemapPages) || 0) : 0),
       0,
@@ -5596,6 +5614,7 @@ export default function Home() {
       completed,
       pct,
       sitemapsSubmitted,
+      bingSitemapsSubmitted,
       sitemapPages,
     };
   }, [domainBotRunItems]);
@@ -7671,11 +7690,13 @@ export default function Home() {
         generated: false,
         settingsUpdated: false,
         submitted: false,
+        bingSubmitted: false,
         inspected: false,
       })),
     );
     let generated = 0;
     let submitted = 0;
+    let bingSubmitted = 0;
     let inspected = 0;
     let failed = 0;
 
@@ -7783,6 +7804,44 @@ export default function Home() {
         }
 
         setSitemapUpdateStatus(
+          `${index + 1}/${queue.length}: submitting sitemap to Bing for ${item.rowName}...`,
+        );
+        updateItem(key, { stage: "bing" });
+        try {
+          const bingRes = await fetch("/api/tools/bing-sitemap-submit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              tenantId: routeTenantId || "",
+              integrationKey: "default",
+              domainUrl: item.domainUrl,
+              sitemapUrl: `${item.domainUrl.replace(/\/$/, "")}/sitemap.xml`,
+            }),
+          });
+          const bingData = await safeJson(bingRes);
+          if (bingRes.ok && !!(bingData as any)?.ok) {
+            bingSubmitted += 1;
+            updateItem(key, { bingSubmitted: true, stage: "inspect" });
+          } else {
+            failed += 1;
+            itemHadFailure = true;
+            updateItem(key, {
+              stage: "inspect",
+              error:
+                s((bingData as any)?.error) ||
+                `Bing sitemap submit failed (HTTP ${bingRes.status}).`,
+            });
+          }
+        } catch (e: any) {
+          failed += 1;
+          itemHadFailure = true;
+          updateItem(key, {
+            stage: "inspect",
+            error: e?.message || "Bing sitemap submit request failed.",
+          });
+        }
+
+        setSitemapUpdateStatus(
           `${index + 1}/${queue.length}: inspecting ${item.rowName} in Google...`,
         );
         try {
@@ -7834,7 +7893,7 @@ export default function Home() {
         setSitemapUpdateStatus("Stop completed. No additional locations will be started.");
       } else {
         setSitemapUpdateStatus(
-          `Completed ${queue.length} active locations: generated ${generated}, submitted ${submitted}, inspected ${inspected}, recorded failures ${failed}.`,
+          `Completed ${queue.length} active locations: generated ${generated}, Google ${submitted}, Bing ${bingSubmitted}, inspected ${inspected}, recorded failures ${failed}.`,
         );
       }
 
@@ -8675,6 +8734,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
         status: "pending",
         stage: "pending",
         sitemapSubmitted: false,
+        bingSitemapSubmitted: false,
       };
     });
     setDomainBotRunItems(preparedItems);
@@ -8720,6 +8780,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           message: `Submitting sitemap ${i + 1}/${queue.length} (${item.locId}) to Google Search Console...`,
         });
         setDomainBotBusy(true);
+        let googleError = "";
+        let bingError = "";
+        let sitemapUrl = `${domainUrl.replace(/\/$/, "")}/sitemap.xml`;
+        let pageCount = 0;
         try {
           const discoveryRes = await fetch("/api/tools/index-submit", {
             method: "POST",
@@ -8740,16 +8804,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 `Sitemap submit failed (HTTP ${discoveryRes.status}).`,
             );
           }
-          const pageCount = Math.max(0, Number(discovery?.pageCount) || 0);
+          pageCount = Math.max(0, Number(discovery?.pageCount) || 0);
+          sitemapUrl = s(discovery?.sitemapUrl) || sitemapUrl;
           setDomainBotRunItems((prev) =>
             prev.map((it) =>
               it.locId === item.locId
                 ? {
                     ...it,
-                    status: "done",
-                    stage: "complete",
                     sitemapSubmitted: true,
-                    sitemapUrl: s(discovery?.sitemapUrl),
+                    sitemapUrl,
                     sitemapPages: pageCount,
                     error:
                       discovery?.sitemapReachable === false || discovery?.sitemapError
@@ -8760,26 +8823,68 @@ return {totalRows:rows.length,matched:targets.length,clicked};
             ),
           );
           pushDomainBotLog(
-            `Google Search Console sitemap submitted: ${s(discovery?.sitemapUrl)} (${pageCount} pages).`,
+            `Google Search Console sitemap submitted: ${sitemapUrl} (${pageCount} pages).`,
           );
         } catch (e: any) {
-          const message = e?.message || "Sitemap submit request failed.";
+          googleError = e?.message || "Sitemap submit request failed.";
+          pushDomainBotLog(`Google Search Console submit failed: ${googleError}`);
+        }
+
+        setTabSitemapStatus({
+          kind,
+          ok: true,
+          message: `Submitting sitemap ${i + 1}/${queue.length} (${item.locId}) to Bing Webmaster...`,
+        });
+        try {
+          const bingRes = await fetch("/api/tools/bing-sitemap-submit", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              tenantId: routeTenantId || "",
+              integrationKey: "default",
+              domainUrl,
+              sitemapUrl,
+            }),
+          });
+          const bingData = await safeJson(bingRes);
+          if (!bingRes.ok || !(bingData as any)?.ok) {
+            throw new Error(
+              s((bingData as any)?.error) ||
+                `Bing sitemap submit failed (HTTP ${bingRes.status}).`,
+            );
+          }
           setDomainBotRunItems((prev) =>
             prev.map((it) =>
-              it.locId === item.locId
-                ? {
-                    ...it,
-                    status: "failed",
-                    stage: "submit",
-                    error: `Domain created; ${message}`,
-                  }
-                : it,
+              it.locId === item.locId ? { ...it, bingSitemapSubmitted: true } : it,
             ),
           );
-          pushDomainBotLog(`Google Search Console submit failed: ${message}`);
-        } finally {
-          setDomainBotBusy(false);
+          pushDomainBotLog(`Bing Webmaster sitemap submitted: ${sitemapUrl}.`);
+        } catch (e: any) {
+          bingError = e?.message || "Bing sitemap submit request failed.";
+          pushDomainBotLog(`Bing Webmaster submit failed: ${bingError}`);
         }
+
+        const submitErrors = [
+          googleError ? `Google: ${googleError}` : "",
+          bingError ? `Bing: ${bingError}` : "",
+        ].filter(Boolean);
+        setDomainBotRunItems((prev) =>
+          prev.map((it) =>
+            it.locId === item.locId
+              ? {
+                  ...it,
+                  status: submitErrors.length ? "failed" : "done",
+                  stage: "complete",
+                  sitemapUrl,
+                  sitemapPages: pageCount,
+                  error: submitErrors.length
+                    ? `Domain created; ${submitErrors.join(" | ")}`
+                    : it.error,
+                }
+              : it,
+          ),
+        );
+        setDomainBotBusy(false);
       } else {
         setDomainBotRunItems((prev) =>
           prev.map((it) =>
@@ -15988,6 +16093,12 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <span className="badge">Pending {sitemapUpdateRunCounts.pending}</span>
                     <span className="badge">Running {sitemapUpdateRunCounts.running}</span>
                     <span className="badge" style={{ color: "var(--ok)" }}>Done {sitemapUpdateRunCounts.done}</span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>
+                      Google {sitemapUpdateRunCounts.googleSubmitted}
+                    </span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>
+                      Bing {sitemapUpdateRunCounts.bingSubmitted}
+                    </span>
                     <span className="badge" style={{ color: "var(--danger)" }}>Failed {sitemapUpdateRunCounts.failed}</span>
                     <span className="badge">Stopped {sitemapUpdateRunCounts.stopped}</span>
                   </div>
@@ -16004,6 +16115,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <th className="th">Generated</th>
                       <th className="th">Website Settings</th>
                       <th className="th">Sitemap Submitted</th>
+                      <th className="th">Bing Webmaster</th>
                       <th className="th">Google Inspect</th>
                       <th className="th">Error</th>
                     </tr>
@@ -16027,6 +16139,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         <td className="td">{it.generated ? "✅" : "—"}</td>
                         <td className="td">{it.settingsUpdated ? "✅" : "—"}</td>
                         <td className="td">{it.submitted ? "✅" : "—"}</td>
+                        <td className="td">{it.bingSubmitted ? "✅" : "—"}</td>
                         <td className="td">{it.inspected ? "✅" : "—"}</td>
                         <td className="td"><span className="mini">{it.error || "—"}</span></td>
                       </tr>
@@ -16243,6 +16356,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   GSC Sitemaps {domainBotRunCounts.sitemapsSubmitted}
                 </span>
                 <span className="badge" style={{ color: "var(--ok)" }}>
+                  Bing Sitemaps {domainBotRunCounts.bingSitemapsSubmitted}
+                </span>
+                <span className="badge" style={{ color: "var(--ok)" }}>
                   Pages submitted {domainBotRunCounts.sitemapPages.toLocaleString()}
                 </span>
                 <span className="badge" style={{ color: "var(--danger)" }}>
@@ -16328,6 +16444,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       GSC {domainBotRunCounts.sitemapsSubmitted}
                     </span>
                     <span className="badge" style={{ color: "var(--ok)" }}>
+                      Bing {domainBotRunCounts.bingSitemapsSubmitted}
+                    </span>
+                    <span className="badge" style={{ color: "var(--ok)" }}>
                       Sitemap pages {domainBotRunCounts.sitemapPages.toLocaleString()}
                     </span>
                     <span className="badge" style={{ color: "var(--danger)" }}>
@@ -16353,6 +16472,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       <th className="th">Sitemap</th>
                       <th className="th">Pages</th>
                       <th className="th">Google Search Console</th>
+                      <th className="th">Bing Webmaster</th>
                       <th className="th">Error</th>
                     </tr>
                   </thead>
@@ -16399,6 +16519,17 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           ) : it.stage === "submit" && it.status === "running" ? (
                             <span className="pillWarn">Submitting</span>
                           ) : it.stage === "submit" && it.status === "failed" ? (
+                            <span className="pillOff">Failed</span>
+                          ) : (
+                            <span className="badge">Pending</span>
+                          )}
+                        </td>
+                        <td className="td">
+                          {it.bingSitemapSubmitted ? (
+                            <span className="pillOk">Submitted</span>
+                          ) : it.stage === "submit" && it.status === "running" ? (
+                            <span className="pillWarn">Submitting</span>
+                          ) : it.stage === "complete" && it.status === "failed" ? (
                             <span className="pillOff">Failed</span>
                           ) : (
                             <span className="badge">Pending</span>
