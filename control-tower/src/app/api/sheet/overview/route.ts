@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
+import { getDbPool } from "@/lib/db";
+import { listTenantStateFiles } from "@/lib/tenantStateCatalogDb";
 
 export const runtime = "nodejs";
 
@@ -14,6 +16,33 @@ function nonEmpty(v: any) {
     return norm(v) !== "";
 }
 
+function normalizedCounty(v: unknown) {
+    return norm(v)
+        .toLowerCase()
+        .replace(/\b(county|parish|borough|census area|municipality)\b/g, "")
+        .replace(/[^a-z0-9]+/g, "");
+}
+
+function countiesFromPayload(payload: unknown) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return [];
+    const rows = (payload as Record<string, unknown>).counties;
+    if (!Array.isArray(rows)) return [];
+    const names: string[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+        if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+        const obj = row as Record<string, unknown>;
+        const name = norm(
+            obj.countyName || obj.parishName || obj.boroughName || obj.municipalityName || obj.name,
+        );
+        const key = normalizedCounty(name);
+        if (!name || !key || seen.has(key)) continue;
+        seen.add(key);
+        names.push(name);
+    }
+    return names;
+}
+
 function getCell(row: any[], headerMap: Map<string, number>, header: string) {
     const idx = headerMap.get(header);
     if (idx === undefined) return "";
@@ -26,6 +55,7 @@ function ensureStateAgg(agg: any, state: string) {
             state,
             counties: { total: 0, statusTrue: 0, hasLocId: 0, ready: 0, domainsActive: 0 },
             cities: { total: 0, statusTrue: 0, hasLocId: 0, ready: 0, domainsActive: 0 },
+            jsonCounties: { total: 0, created: 0, missing: 0, missingNames: [] as string[] },
         };
     }
     return agg[state];
@@ -48,21 +78,24 @@ export async function GET(req: Request) {
             cwd: process.cwd(),
         };
 
-        const counties = await loadTenantSheetTabIndex({
-            tenantId,
-            spreadsheetId: cfg.spreadsheetId,
-            sheetName: cfg.countyTab,
-            range: "A:Z",
-        });
-
-        const cities = await loadTenantSheetTabIndex({
-            tenantId,
-            spreadsheetId: cfg.spreadsheetId,
-            sheetName: cfg.cityTab,
-            range: "A:Z",
-        });
+        const [counties, cities, stateFiles] = await Promise.all([
+            loadTenantSheetTabIndex({
+                tenantId,
+                spreadsheetId: cfg.spreadsheetId,
+                sheetName: cfg.countyTab,
+                range: "A:Z",
+            }),
+            loadTenantSheetTabIndex({
+                tenantId,
+                spreadsheetId: cfg.spreadsheetId,
+                sheetName: cfg.cityTab,
+                range: "A:Z",
+            }),
+            listTenantStateFiles(getDbPool(), tenantId),
+        ]);
 
         const agg: Record<string, any> = {};
+        const sheetCountyKeys = new Map<string, Set<string>>();
 
         for (const row of counties.rows || []) {
             const state = norm(getCell(row, counties.headerMap, "State"));
@@ -73,6 +106,11 @@ export async function GET(req: Request) {
             const domainCreated = getCell(row, counties.headerMap, "Domain Created");
 
             const s = ensureStateAgg(agg, state);
+            const stateKey = state.toLowerCase();
+            const countyName = norm(getCell(row, counties.headerMap, "County"));
+            if (!sheetCountyKeys.has(stateKey)) sheetCountyKeys.set(stateKey, new Set());
+            const countyKey = normalizedCounty(countyName);
+            if (countyKey) sheetCountyKeys.get(stateKey)?.add(countyKey);
             s.counties.total += 1;
             if (isTrue(status)) s.counties.statusTrue += 1;
             if (nonEmpty(locId)) s.counties.hasLocId += 1;
@@ -94,6 +132,21 @@ export async function GET(req: Request) {
             if (nonEmpty(locId)) s.cities.hasLocId += 1;
             if (isTrue(status) && nonEmpty(locId)) s.cities.ready += 1;
             if (isTrue(domainCreated)) s.cities.domainsActive += 1;
+        }
+
+        for (const stateFile of stateFiles) {
+            const stateName = norm(stateFile.state_name) || norm(stateFile.state_slug);
+            if (!stateName) continue;
+            const available = countiesFromPayload(stateFile.payload);
+            const existing = sheetCountyKeys.get(stateName.toLowerCase()) || new Set<string>();
+            const missingNames = available.filter((name) => !existing.has(normalizedCounty(name)));
+            const stateAgg = ensureStateAgg(agg, stateName);
+            stateAgg.jsonCounties = {
+                total: available.length,
+                created: available.length - missingNames.length,
+                missing: missingNames.length,
+                missingNames,
+            };
         }
 
         const states = Object.values(agg).sort((a: any, b: any) =>

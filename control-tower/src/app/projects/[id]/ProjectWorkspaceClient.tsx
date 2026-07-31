@@ -62,6 +62,12 @@ type SheetStateRow = {
     ready: number;
     domainsActive?: number;
   };
+  jsonCounties?: {
+    total: number;
+    created: number;
+    missing: number;
+    missingNames: string[];
+  };
 };
 
 type OverviewResponse = {
@@ -12611,6 +12617,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <tr>
                     <th className="th">State</th>
                     <th className="th">Counties</th>
+                    <th className="th">JSON coverage</th>
+                    <th className="th">Missing counties</th>
                     <th className="th">County Domains Activated</th>
                     <th className="th">Cities</th>
                     <th className="th">City Domains Activated</th>
@@ -12664,6 +12672,18 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         <td className="td">
                           <span className={pillClass}>
                             {r.counties.ready}/{r.counties.total} ready
+                          </span>
+                        </td>
+
+                        <td className="td">
+                          <span className={(r.jsonCounties?.missing || 0) === 0 ? "pillOk" : "pillWarn"}>
+                            {r.jsonCounties?.created || 0}/{r.jsonCounties?.total || 0} created
+                          </span>
+                        </td>
+
+                        <td className="td">
+                          <span className={(r.jsonCounties?.missing || 0) === 0 ? "pillOk" : "pillOff"}>
+                            {r.jsonCounties?.missing || 0} missing
                           </span>
                         </td>
 
@@ -13527,6 +13547,62 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <div className="mini">No detail loaded.</div>
               ) : (
                 <>
+                  {(() => {
+                    const comparison = sheet?.states?.find(
+                      (row) => s(row.state).toLowerCase() === s(openState).toLowerCase(),
+                    )?.jsonCounties;
+                    if (!comparison) return null;
+                    const coverage = comparison.total
+                      ? Math.round((comparison.created / comparison.total) * 100)
+                      : 0;
+                    return (
+                      <div className="card" style={{ marginBottom: 14 }}>
+                        <div className="cardHeader">
+                          <div>
+                            <h3 className="cardTitle">JSON county coverage</h3>
+                            <div className="cardSubtitle">
+                              Counties created in Google Sheets compared with the tenant JSON.
+                            </div>
+                          </div>
+                          <div className={comparison.missing === 0 ? "pillOk" : "pillWarn"}>
+                            {coverage}% covered
+                          </div>
+                        </div>
+                        <div className="cardBody">
+                          <div className="kpiRow">
+                            <div className="kpi">
+                              <p className="n">{comparison.total}</p>
+                              <p className="l">Available in JSON</p>
+                            </div>
+                            <div className="kpi">
+                              <p className="n">{comparison.created}</p>
+                              <p className="l">Created in Sheet</p>
+                            </div>
+                            <div className="kpi">
+                              <p className="n">{comparison.missing}</p>
+                              <p className="l">Missing from Sheet</p>
+                            </div>
+                          </div>
+                          {comparison.missingNames.length ? (
+                            <details style={{ marginTop: 12 }}>
+                              <summary className="smallBtn" style={{ cursor: "pointer", display: "inline-flex" }}>
+                                View {comparison.missingNames.length} missing counties
+                              </summary>
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                                {comparison.missingNames.map((county) => (
+                                  <span className="badge" key={county}>{county}</span>
+                                ))}
+                              </div>
+                            </details>
+                          ) : (
+                            <div className="mini" style={{ marginTop: 12, color: "var(--ok)" }}>
+                              All counties available in the JSON are already in the Sheet.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="kpiRow">
                     <div className="kpi">
                       <p className="n">{detail.counties.stats.eligible}</p>
