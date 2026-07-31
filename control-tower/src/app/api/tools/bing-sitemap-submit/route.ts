@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getTenantIntegration } from "@/lib/tenantIntegrations";
 
 export const runtime = "nodejs";
+const DEFAULT_BING_SITE_URL = "https://mydripnurse.com/";
 
 function s(value: unknown) {
   return String(value ?? "").trim();
@@ -104,7 +105,7 @@ export async function POST(req: Request) {
     const siteUrl =
       toOrigin(row?.externalPropertyId) ||
       toOrigin(configuredSiteUrl) ||
-      domainOrigin;
+      DEFAULT_BING_SITE_URL;
 
     const base = endpoint.replace(/\/+$/, "").replace(/\/SubmitFeed$/i, "");
     const submitEndpoint = `${base}/SubmitFeed?apikey=${encodeURIComponent(apiKey)}`;

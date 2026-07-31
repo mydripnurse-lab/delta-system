@@ -7177,14 +7177,14 @@ export default function Home() {
       const key = `${kind}:${s(r["Location Id"])}:${rowName}:${domainUrl}`;
       const isBingAction = action === "bing_indexnow";
       const endpoint = isBingAction
-        ? "/api/tools/bing-indexnow-submit"
+        ? "/api/tools/bing-sitemap-submit"
         : "/api/tools/index-submit";
       const payload = isBingAction
         ? {
             tenantId: routeTenantId || "",
             integrationKey: "default",
             domainUrl,
-            urlList: [domainUrl],
+            sitemapUrl: `${domainUrl.replace(/\/+$/, "")}/sitemap.xml`,
           }
         : {
             tenantId: routeTenantId || "",
@@ -7223,15 +7223,12 @@ export default function Home() {
           ? [
               `req=${endpoint}`,
               `reqDomain=${domainUrl}`,
-              `reqUrls=${Array.isArray((payload as any).urlList) ? (payload as any).urlList.length : 0}`,
+              `reqSitemap=${s((payload as any).sitemapUrl) || "-"}`,
               `resStatus=${res.status}`,
               `apiOk=${!!(data as any)?.ok}`,
-              `indexEndpoint=${s((data as any)?.endpoint) || "-"}`,
-              `host=${s((data as any)?.host) || "-"}`,
-              `submittedUrls=${String((data as any)?.submittedUrls ?? "-")}`,
-              `responseBytes=${String((data as any)?.responseBytes ?? "-")}`,
-              `responseType=${s((data as any)?.responseContentType) || "-"}`,
-              `responseId=${s((data as any)?.responseRequestId) || "-"}`,
+              `siteUrl=${s((data as any)?.siteUrl) || "-"}`,
+              `sitemapUrl=${s((data as any)?.sitemapUrl) || "-"}`,
+              `credential=${s((data as any)?.credentialSource) || "-"}`,
               `response=${s((data as any)?.responsePreview || "").slice(0, 140) || "-"}`,
             ].join(" | ")
           : undefined;
@@ -7297,7 +7294,7 @@ export default function Home() {
         ? "URL inspection"
         : action === "discovery"
           ? "Sitemap discovery"
-          : "Bing IndexNow";
+          : "Bing Sitemap";
     setTabSitemapStatus({
       kind,
       ok: failCount === 0,
@@ -14154,10 +14151,10 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                   <button
                     className="smallBtn quickActionBtn quickActionBtnBing"
                     onClick={() => setQuickBotModal("bing")}
-                    title="Bing Index options"
+                    title="Bing sitemap options"
                     style={{ ["--qa-delay" as any]: "0ms" }}
                   >
-                    Bing Index
+                    Bing Sitemaps
                   </button>
                   <button
                     className="smallBtn quickActionBtn quickActionBtnGoogle"
@@ -14967,7 +14964,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <div className="badge">QUICK ACTIONS</div>
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
                   {quickBotModal === "google" && "Google Index"}
-                  {quickBotModal === "bing" && "Bing Index"}
+                  {quickBotModal === "bing" && "Bing Sitemaps"}
                   {quickBotModal === "pending" && "Activate Domains"}
                   {quickBotModal === "sitemaps" && "Update Sitemaps"}
                   {quickBotModal === "custom_values" && "Update Custom Values"}
@@ -15047,7 +15044,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <div className="card">
                   <div className="cardBody" style={{ padding: 12 }}>
                     <div className="mini" style={{ marginBottom: 10 }}>
-                      Bing IndexNow actions and failed retry.
+                      Submit county or city sitemaps to the verified My Drip Nurse property in Bing Webmaster Tools.
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                       <button
@@ -16176,7 +16173,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ? "GOOGLE URL INSPECTION RUN"
                     : tabSitemapRunAction === "discovery"
                       ? "GOOGLE SITEMAP DISCOVERY RUN"
-                      : "BING INDEXNOW RUN"}
+                      : "BING SITEMAP SUBMISSION RUN"}
                 </div>
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
                   {openState} •{" "}
@@ -16185,7 +16182,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ? "URL Inspect"
                     : tabSitemapRunAction === "discovery"
                       ? "Sitemap Discovery"
-                      : "Bing IndexNow"}{" "}
+                      : "Bing Sitemap"}{" "}
                   •{" "}
                   {tabSitemapRunMode === "retry" ? "Retry Failed" : "Full Run"}
                 </h3>
