@@ -581,6 +581,13 @@ type CleanupPreviewItem = CleanupCandidate & {
   exists: boolean;
   ghlName: string;
   error: string;
+  childAccounts?: Array<{
+    locationId: string;
+    label: string;
+    accountName: string;
+    active: boolean;
+    selected: boolean;
+  }>;
 };
 type CleanupRunItem = CleanupPreviewItem & {
   status: "pending" | "deleting" | "deleted" | "failed" | "stopped";
@@ -6824,6 +6831,15 @@ export default function Home() {
           exists: !!result.exists,
           ghlName: s(result.ghlName),
           error: s(result.error),
+          childAccounts: Array.isArray(result.childAccounts)
+            ? result.childAccounts.map((child: any) => ({
+                locationId: s(child.locationId),
+                label: s(child.label),
+                accountName: s(child.accountName),
+                active: !!child.active,
+                selected: !!child.selected,
+              }))
+            : undefined,
         } as CleanupPreviewItem;
       }));
       setCleanupPreview(preview);
@@ -14758,6 +14774,63 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               ) : <span className="mini">Preview required</span>
                             ) : null}
                             {run?.result ? <div className="mini cleanupResult">{run.result}</div> : preview?.error ? <div className="mini cleanupResult">{preview.error}</div> : null}
+                            {preview?.childAccounts?.length ? (
+                              <div className="cleanupResult" style={{ marginTop: 8, minWidth: 360 }}>
+                                <div className="mini" style={{ marginBottom: 6 }}>
+                                  Child city accounts that must be handled first:
+                                </div>
+                                <div style={{ display: "grid", gap: 6 }}>
+                                  {preview.childAccounts.map((child) => (
+                                    <div
+                                      key={child.locationId}
+                                      style={{
+                                        display: "grid",
+                                        gridTemplateColumns: "minmax(130px, 1fr) minmax(145px, 1fr) auto",
+                                        gap: 8,
+                                        alignItems: "center",
+                                        padding: "7px 9px",
+                                        border: "1px solid rgba(255,255,255,.1)",
+                                        borderRadius: 10,
+                                      }}
+                                    >
+                                      <div>
+                                        <b>{child.label}</b>
+                                        <div className="mini">{child.accountName || "No Sheet account name"}</div>
+                                      </div>
+                                      <span className="mini cleanupLocationId">{child.locationId}</span>
+                                      <span className={child.selected ? "pillOk" : child.active ? "pillWarn" : "pillOff"}>
+                                        {child.selected ? "Selected" : child.active ? "Active" : "Not selected"}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                                {preview.childAccounts.some((child) => !child.selected) ? (
+                                  <button
+                                    className="smallBtn"
+                                    type="button"
+                                    style={{ marginTop: 8 }}
+                                    onClick={() => {
+                                      const childIds = new Set(preview.childAccounts?.map((child) => child.locationId));
+                                      setCleanupKind("all");
+                                      setCleanupSelection((current) => {
+                                        const next = { ...current };
+                                        for (const candidate of cleanupCandidates) {
+                                          if (candidate.kind === "cities" && childIds.has(candidate.locationId)) {
+                                            if (!candidate.active || cleanupIncludeActive) next[candidate.key] = true;
+                                          }
+                                        }
+                                        return next;
+                                      });
+                                      setCleanupPreview([]);
+                                      setCleanupRunItems([]);
+                                      setCleanupError("Child cities selected. Run Preview & Verify again.");
+                                    }}
+                                  >
+                                    Select child city accounts
+                                  </button>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </td>
                         </tr>
                       );

@@ -140,14 +140,25 @@ export async function POST(request: Request, ctx: Ctx) {
       const label = rowLabel(kind, target.row, tab.headerMap);
       if (kind === "counties" && cityTab) {
         const county = cell(target.row, tab.headerMap, "County").toLowerCase();
-        const childLocationIds = cityTab.rows
+        const childAccounts = cityTab.rows
           .filter((row) =>
             cell(row, cityTab.headerMap, "State").toLowerCase() === state.toLowerCase() &&
             cell(row, cityTab.headerMap, "County").toLowerCase() === county,
           )
-          .map((row) => cell(row, cityTab.headerMap, "Location Id"))
-          .filter(Boolean);
-        const unselectedChildren = childLocationIds.filter((id) => !cascadeLocationIds.has(id));
+          .map((row) => ({
+            locationId: cell(row, cityTab.headerMap, "Location Id"),
+            label: rowLabel("cities", row, cityTab.headerMap),
+            accountName: cell(row, cityTab.headerMap, "Account Name"),
+            active:
+              isTrue(cell(row, cityTab.headerMap, "Domain Created")) ||
+              isTrue(cell(row, cityTab.headerMap, "Active")),
+          }))
+          .filter((child) => !!child.locationId)
+          .map((child) => ({
+            ...child,
+            selected: cascadeLocationIds.has(child.locationId),
+          }));
+        const unselectedChildren = childAccounts.filter((child) => !child.selected);
         if (unselectedChildren.length > 0) {
           results.push({
             locationId,
@@ -157,6 +168,7 @@ export async function POST(request: Request, ctx: Ctx) {
             exists: true,
             verified: false,
             error: `${unselectedChildren.length} child city account(s) must be selected and deleted first.`,
+            childAccounts,
             rowNumber: target.rowNumber,
           });
           continue;
