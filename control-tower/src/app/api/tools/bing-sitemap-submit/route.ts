@@ -31,8 +31,7 @@ function parseConfig(raw: Record<string, unknown>) {
     endpoint:
       s(raw.webmasterEndpoint) ||
       s(raw.webmaster_endpoint) ||
-      s(raw.endpoint) ||
-      "https://ssl.bing.com/webmaster/api.svc/json",
+      s(raw.endpoint),
     siteUrl: s(raw.siteUrl) || s(raw.site_url),
   };
 }
@@ -56,16 +55,44 @@ export async function POST(req: Request) {
       );
     }
 
-    const row = await getTenantIntegration(tenantId, "bing_webmaster", integrationKey);
+    const candidateKeys = Array.from(
+      new Set(
+        integrationKey === "owner"
+          ? ["owner", "default"]
+          : integrationKey === "default"
+            ? ["default", "owner"]
+            : [integrationKey, "default", "owner"],
+      ),
+    );
+    let row = null as Awaited<ReturnType<typeof getTenantIntegration>>;
+    let matchedIntegrationKey = "";
+    for (const key of candidateKeys) {
+      const candidate = await getTenantIntegration(tenantId, "bing_webmaster", key);
+      if (candidate) {
+        row = candidate;
+        matchedIntegrationKey = key;
+        break;
+      }
+    }
     const config = row?.config && typeof row.config === "object"
       ? (row.config as Record<string, unknown>)
       : {};
-    const { apiKey, endpoint, siteUrl: configuredSiteUrl } = parseConfig(config);
+    const parsed = parseConfig(config);
+    const apiKey = parsed.apiKey || s(process.env.BING_WEBMASTER_API_KEY);
+    const endpoint =
+      parsed.endpoint ||
+      s(process.env.BING_WEBMASTER_API_ENDPOINT) ||
+      "https://ssl.bing.com/webmaster/api.svc/json";
+    const configuredSiteUrl =
+      parsed.siteUrl || s(process.env.BING_WEBMASTER_SITE_URL);
     if (!apiKey) {
       return NextResponse.json(
         {
           ok: false,
-          error: `Missing Bing Webmaster API key in tenant integration (bing_webmaster:${integrationKey}).`,
+          error:
+            `Missing Bing Webmaster API key. Checked tenant integrations ` +
+            `${candidateKeys.map((key) => `bing_webmaster:${key}`).join(", ")} ` +
+            "and BING_WEBMASTER_API_KEY.",
         },
         { status: 400 },
       );
@@ -94,6 +121,9 @@ export async function POST(req: Request) {
       target: "bing",
       mode: "sitemap",
       status: bingRes.status,
+      credentialSource: parsed.apiKey
+        ? `tenant:bing_webmaster:${matchedIntegrationKey || integrationKey}`
+        : "environment",
       siteUrl,
       sitemapUrl,
       responsePreview: responseText.slice(0, 500) || undefined,
