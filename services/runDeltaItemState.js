@@ -124,6 +124,38 @@ export async function claimRunDeltaItem({
         [TENANT_ID, key, s(stateSlug), s(kind), s(countyName), s(cityName)]
     );
 
+    // Self-heal resume records created before cleanup also reset this table.
+    // A deleted GHL Location ID must never be reconciled back into the Sheet.
+    await p.query(
+        `
+          update app.run_delta_item_state state
+          set
+            status = 'pending',
+            run_id = null,
+            locked_at = null,
+            ghl_location_id = null,
+            ghl_account_name = null,
+            last_error = null,
+            last_note = 'stale deleted GHL location removed before claim',
+            updated_at = now()
+          where state.tenant_id = $1
+            and state.item_key = $2
+            and state.ghl_location_id is not null
+            and exists (
+              select 1
+              from app.organization_audit_logs audit
+              where audit.organization_id = state.tenant_id
+                and audit.entity_type = 'ghl_location'
+                and audit.entity_id = state.ghl_location_id
+                and audit.action in (
+                  'ghl.subaccount_deleted_and_reset',
+                  'ghl.subaccount_already_absent_reset'
+                )
+            )
+        `,
+        [TENANT_ID, key]
+    );
+
     const claimed = await p.query(
         `
           update app.run_delta_item_state

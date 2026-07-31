@@ -325,6 +325,27 @@ export async function DELETE(request: Request, ctx: Ctx) {
       [auth.user.id, tenantId, kind, locationId],
     );
 
+    // The creation worker keeps a durable resume record. If it is not reset,
+    // a later run can restore the deleted GHL Location ID back into the Sheet.
+    const resetCreationState = await pool.query(
+      `
+        update app.run_delta_item_state
+        set
+          status = 'pending',
+          run_id = null,
+          locked_at = null,
+          ghl_location_id = null,
+          ghl_account_name = null,
+          last_error = null,
+          last_note = 'reset after GHL subaccount deletion',
+          updated_at = now()
+        where tenant_id = $1
+          and ghl_location_id = $2
+        returning item_key
+      `,
+      [tenantId, locationId],
+    );
+
     await writeAuditLog(pool, {
       organizationId: tenantId,
       actorUserId: auth.user.id,
@@ -341,6 +362,7 @@ export async function DELETE(request: Request, ctx: Ctx) {
         sheetName,
         resetHeaders,
         resolvedFailureRecords: resolvedFailures.rowCount ?? 0,
+        resetCreationRecords: resetCreationState.rowCount ?? 0,
       },
     });
 
@@ -351,6 +373,7 @@ export async function DELETE(request: Request, ctx: Ctx) {
       alreadyAbsent,
       sheetReset: true,
       resolvedFailureRecords: resolvedFailures.rowCount ?? 0,
+      resetCreationRecords: resetCreationState.rowCount ?? 0,
     });
   } catch (error) {
     return NextResponse.json(
