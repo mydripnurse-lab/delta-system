@@ -43,6 +43,31 @@ function countiesFromPayload(payload: unknown) {
     return names;
 }
 
+function citiesFromPayload(payload: unknown) {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return [];
+    const rows = (payload as Record<string, unknown>).counties;
+    if (!Array.isArray(rows)) return [];
+    const cities: Array<{ county: string; city: string }> = [];
+    const seen = new Set<string>();
+    for (const countyRow of rows) {
+        if (!countyRow || typeof countyRow !== "object" || Array.isArray(countyRow)) continue;
+        const countyObj = countyRow as Record<string, unknown>;
+        const county = norm(
+            countyObj.countyName || countyObj.parishName || countyObj.boroughName || countyObj.municipalityName || countyObj.name,
+        );
+        if (!county || !Array.isArray(countyObj.cities)) continue;
+        for (const cityRow of countyObj.cities) {
+            if (!cityRow || typeof cityRow !== "object" || Array.isArray(cityRow)) continue;
+            const city = norm((cityRow as Record<string, unknown>).cityName || (cityRow as Record<string, unknown>).name);
+            const key = `${normalizedCounty(county)}::${normalizedCounty(city)}`;
+            if (!city || seen.has(key)) continue;
+            seen.add(key);
+            cities.push({ county, city });
+        }
+    }
+    return cities;
+}
+
 function getCell(row: any[], headerMap: Map<string, number>, header: string) {
     const idx = headerMap.get(header);
     if (idx === undefined) return "";
@@ -56,6 +81,7 @@ function ensureStateAgg(agg: any, state: string) {
             counties: { total: 0, statusTrue: 0, hasLocId: 0, ready: 0, domainsActive: 0 },
             cities: { total: 0, statusTrue: 0, hasLocId: 0, ready: 0, domainsActive: 0 },
             jsonCounties: { total: 0, created: 0, missing: 0, missingNames: [] as string[] },
+            jsonCities: { total: 0, created: 0, missing: 0, duplicates: 0, missingNames: [] as string[] },
         };
     }
     return agg[state];
@@ -96,6 +122,7 @@ export async function GET(req: Request) {
 
         const agg: Record<string, any> = {};
         const sheetCountyKeys = new Map<string, Set<string>>();
+        const sheetCityKeyCounts = new Map<string, Map<string, number>>();
 
         for (const row of counties.rows || []) {
             const state = norm(getCell(row, counties.headerMap, "State"));
@@ -127,6 +154,15 @@ export async function GET(req: Request) {
             const domainCreated = getCell(row, cities.headerMap, "Domain Created");
 
             const s = ensureStateAgg(agg, state);
+            const stateKey = state.toLowerCase();
+            const countyName = norm(getCell(row, cities.headerMap, "County"));
+            const cityName = norm(getCell(row, cities.headerMap, "City"));
+            const cityKey = `${normalizedCounty(countyName)}::${normalizedCounty(cityName)}`;
+            if (!sheetCityKeyCounts.has(stateKey)) sheetCityKeyCounts.set(stateKey, new Map());
+            if (countyName && cityName) {
+                const counts = sheetCityKeyCounts.get(stateKey)!;
+                counts.set(cityKey, (counts.get(cityKey) || 0) + 1);
+            }
             s.cities.total += 1;
             if (isTrue(status)) s.cities.statusTrue += 1;
             if (nonEmpty(locId)) s.cities.hasLocId += 1;
@@ -138,7 +174,9 @@ export async function GET(req: Request) {
             const stateName = norm(stateFile.state_name) || norm(stateFile.state_slug);
             if (!stateName) continue;
             const available = countiesFromPayload(stateFile.payload);
+            const availableCities = citiesFromPayload(stateFile.payload);
             const existing = sheetCountyKeys.get(stateName.toLowerCase()) || new Set<string>();
+            const existingCities = sheetCityKeyCounts.get(stateName.toLowerCase()) || new Map<string, number>();
             const missingNames = available.filter((name) => !existing.has(normalizedCounty(name)));
             const stateAgg = ensureStateAgg(agg, stateName);
             stateAgg.jsonCounties = {
@@ -146,6 +184,16 @@ export async function GET(req: Request) {
                 created: available.length - missingNames.length,
                 missing: missingNames.length,
                 missingNames,
+            };
+            const missingCities = availableCities.filter(({ county, city }) =>
+                !existingCities.has(`${normalizedCounty(county)}::${normalizedCounty(city)}`),
+            );
+            stateAgg.jsonCities = {
+                total: availableCities.length,
+                created: availableCities.length - missingCities.length,
+                missing: missingCities.length,
+                duplicates: Array.from(existingCities.values()).reduce((sum, count) => sum + Math.max(0, count - 1), 0),
+                missingNames: missingCities.map(({ county, city }) => `${city} — ${county}`),
             };
         }
 

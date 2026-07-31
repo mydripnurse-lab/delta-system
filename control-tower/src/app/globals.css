@@ -1354,6 +1354,80 @@ button, input, select { font-family: inherit; }
   min-width: 0;
 }
 
+.reconcileModal {
+  position: fixed;
+  z-index: 10020;
+  inset: 4vh 3vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(24px) saturate(140%);
+}
+
+.reconcileHeader,
+.reconcileToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.reconcileToolbar {
+  justify-content: flex-start;
+  padding-block: 12px;
+}
+
+.reconcileSearch { flex: 1; min-width: 180px; }
+
+.reconcileStats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.reconcileStat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel2) 88%, transparent);
+  cursor: pointer;
+}
+
+.reconcileStat strong { font-size: 20px; }
+.reconcileStat span { color: var(--muted); font-size: 12px; }
+.reconcileStatOn { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent); }
+.reconcileAlert { margin: 12px 22px 0; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); border-radius: 12px; color: var(--danger); }
+.reconcileBody { flex: 1; overflow: auto; padding: 18px 22px 28px; }
+.reconcileList { display: grid; gap: 12px; }
+.reconcileCard { padding: 16px; border: 1px solid var(--border); border-radius: 18px; background: color-mix(in srgb, var(--panel2) 88%, transparent); }
+.reconcileCardUnmatched { border-color: color-mix(in srgb, var(--danger) 28%, var(--border)); }
+.reconcileCardTop, .reconcileActions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.reconcileEntity { font-weight: 750; font-size: 16px; }
+.reconcileRows { display: grid; gap: 10px; margin-top: 12px; }
+.reconcileEditRow { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) auto auto; align-items: center; gap: 8px; margin-top: 12px; }
+.reconcileRowMeta { grid-column: 1 / -1; color: var(--muted); font-size: 11px; }
+.reconcileDelete { color: var(--danger) !important; }
+
+@media (max-width: 900px) {
+  .reconcileModal { inset: 1.5vh 2vw; border-radius: 20px; }
+  .reconcileHeader, .reconcileToolbar { align-items: stretch; flex-direction: column; }
+  .reconcileStats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reconcileEditRow { grid-template-columns: 1fr; }
+}
+
 .tabs {
   display: flex;
   gap: 8px;

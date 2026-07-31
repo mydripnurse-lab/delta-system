@@ -68,6 +68,50 @@ type SheetStateRow = {
     missing: number;
     missingNames: string[];
   };
+  jsonCities?: {
+    total: number;
+    created: number;
+    missing: number;
+    duplicates: number;
+    missingNames: string[];
+  };
+};
+
+type ReconcileSheetRow = {
+  rowNumber: number;
+  key: string;
+  state: string;
+  county: string;
+  city: string;
+  locationId: string;
+  status: string;
+  domainCreated: string;
+};
+
+type ReconcileRecord = {
+  key: string;
+  county: string;
+  city: string;
+  status: "missing" | "matched" | "duplicate";
+  sheetRows: ReconcileSheetRow[];
+};
+
+type ReconcileResponse = {
+  ok: boolean;
+  state: string;
+  kind: "counties" | "cities";
+  sheetName: string;
+  summary: {
+    jsonTotal: number;
+    matched: number;
+    missing: number;
+    duplicateGroups: number;
+    duplicateRows: number;
+    unmatchedSheetRows: number;
+  };
+  jsonRecords: ReconcileRecord[];
+  unmatchedSheetRows: ReconcileSheetRow[];
+  error?: string;
 };
 
 type OverviewResponse = {
@@ -1435,6 +1479,16 @@ export default function Home() {
   const [detailTab, setDetailTab] = useState<"counties" | "cities">("counties");
   const [countyFilter, setCountyFilter] = useState<string>("all");
   const [detailSearch, setDetailSearch] = useState("");
+  const [reconcileOpen, setReconcileOpen] = useState(false);
+  const [reconcileState, setReconcileState] = useState("");
+  const [reconcileKind, setReconcileKind] = useState<"counties" | "cities">("counties");
+  const [reconcileData, setReconcileData] = useState<ReconcileResponse | null>(null);
+  const [reconcileLoading, setReconcileLoading] = useState(false);
+  const [reconcileSaving, setReconcileSaving] = useState("");
+  const [reconcileError, setReconcileError] = useState("");
+  const [reconcileSearch, setReconcileSearch] = useState("");
+  const [reconcileFilter, setReconcileFilter] = useState<"all" | "matched" | "missing" | "duplicate" | "unmatched">("all");
+  const [reconcileDrafts, setReconcileDrafts] = useState<Record<number, { county: string; city: string }>>({});
   const [tabSitemapSubmitting, setTabSitemapSubmitting] = useState("");
   const [tabSitemapStatus, setTabSitemapStatus] = useState<{
     kind: "counties" | "cities";
@@ -1871,6 +1925,78 @@ export default function Home() {
     } finally {
       setSheetLoading(false);
     }
+  }
+
+  async function loadReconciliation(stateName: string, kind: "counties" | "cities") {
+    if (!routeTenantId) return;
+    setReconcileLoading(true);
+    setReconcileError("");
+    try {
+      const params = new URLSearchParams({ tenantId: routeTenantId, state: stateName, kind });
+      const response = await fetch(`/api/sheet/reconcile?${params.toString()}`, { cache: "no-store" });
+      const data = (await safeJson(response)) as ReconcileResponse | null;
+      if (!response.ok || !data?.ok) throw new Error(data?.error || `HTTP ${response.status}`);
+      setReconcileData(data);
+      const drafts: Record<number, { county: string; city: string }> = {};
+      for (const record of data.jsonRecords || []) {
+        for (const row of record.sheetRows || []) drafts[row.rowNumber] = { county: row.county, city: row.city };
+      }
+      for (const row of data.unmatchedSheetRows || []) drafts[row.rowNumber] = { county: row.county, city: row.city };
+      setReconcileDrafts(drafts);
+    } catch (error: any) {
+      setReconcileData(null);
+      setReconcileError(error?.message || "Unable to compare Sheet and JSON");
+    } finally {
+      setReconcileLoading(false);
+    }
+  }
+
+  function openReconciliation(stateName: string, kind: "counties" | "cities") {
+    setReconcileState(stateName);
+    setReconcileKind(kind);
+    setReconcileSearch("");
+    setReconcileFilter("all");
+    setReconcileOpen(true);
+    void loadReconciliation(stateName, kind);
+  }
+
+  async function mutateReconciliation(method: "POST" | "PATCH" | "DELETE", payload: Record<string, unknown>, busyKey: string) {
+    if (!routeTenantId) return;
+    setReconcileSaving(busyKey);
+    setReconcileError("");
+    try {
+      const response = await fetch("/api/sheet/reconcile", {
+        method,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tenantId: routeTenantId, state: reconcileState, kind: reconcileKind, ...payload }),
+      });
+      const data = await safeJson(response);
+      if (!response.ok || data?.error) throw new Error(data?.error || `HTTP ${response.status}`);
+      await Promise.all([loadReconciliation(reconcileState, reconcileKind), loadOverview()]);
+      if (openState === reconcileState) {
+        const detailData = await fetchStateDetail(reconcileState);
+        setDetail(detailData);
+      }
+    } catch (error: any) {
+      setReconcileError(error?.message || "Unable to save Sheet changes");
+    } finally {
+      setReconcileSaving("");
+    }
+  }
+
+  function createMissingReconcileRow(record: ReconcileRecord) {
+    void mutateReconciliation("POST", { county: record.county, city: record.city }, `create:${record.key}`);
+  }
+
+  function saveReconcileRow(row: ReconcileSheetRow) {
+    const draft = reconcileDrafts[row.rowNumber] || { county: row.county, city: row.city };
+    void mutateReconciliation("PATCH", { rowNumber: row.rowNumber, ...draft }, `save:${row.rowNumber}`);
+  }
+
+  function deleteReconcileRow(row: ReconcileSheetRow) {
+    const label = reconcileKind === "cities" ? `${row.city}, ${row.county}` : row.county;
+    if (!window.confirm(`Delete row ${row.rowNumber} (${label}) from Google Sheets? This cannot be undone.`)) return;
+    void mutateReconciliation("DELETE", { rowNumber: row.rowNumber }, `delete:${row.rowNumber}`);
   }
 
   function accountDisplayName() {
@@ -12621,6 +12747,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     <th className="th">Missing counties</th>
                     <th className="th">County Domains Activated</th>
                     <th className="th">Cities</th>
+                    <th className="th">City JSON coverage</th>
+                    <th className="th">Missing cities</th>
                     <th className="th">City Domains Activated</th>
                     <th className="th">Ready %</th>
                     <th className="th" style={{ width: 120 }} />
@@ -12676,15 +12804,27 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         </td>
 
                         <td className="td">
-                          <span className={(r.jsonCounties?.missing || 0) === 0 ? "pillOk" : "pillWarn"}>
+                          <button
+                            type="button"
+                            className={(r.jsonCounties?.missing || 0) === 0 ? "pillOk" : "pillWarn"}
+                            onClick={() => openReconciliation(r.state, "counties")}
+                            title="Compare and edit counties"
+                            style={{ cursor: "pointer" }}
+                          >
                             {r.jsonCounties?.created || 0}/{r.jsonCounties?.total || 0} created
-                          </span>
+                          </button>
                         </td>
 
                         <td className="td">
-                          <span className={(r.jsonCounties?.missing || 0) === 0 ? "pillOk" : "pillOff"}>
+                          <button
+                            type="button"
+                            className={(r.jsonCounties?.missing || 0) === 0 ? "pillOk" : "pillOff"}
+                            onClick={() => openReconciliation(r.state, "counties")}
+                            title="Review missing and duplicated counties"
+                            style={{ cursor: "pointer" }}
+                          >
                             {r.jsonCounties?.missing || 0} missing
-                          </span>
+                          </button>
                         </td>
 
                         <td className="td">
@@ -12698,6 +12838,31 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           <span className={pillClass}>
                             {r.cities.ready}/{r.cities.total} ready
                           </span>
+                        </td>
+
+                        <td className="td">
+                          <button
+                            type="button"
+                            className={(r.jsonCities?.missing || 0) === 0 ? "pillOk" : "pillWarn"}
+                            onClick={() => openReconciliation(r.state, "cities")}
+                            title="Compare and edit cities"
+                            style={{ cursor: "pointer" }}
+                          >
+                            {r.jsonCities?.created || 0}/{r.jsonCities?.total || 0} created
+                          </button>
+                        </td>
+
+                        <td className="td">
+                          <button
+                            type="button"
+                            className={(r.jsonCities?.missing || 0) === 0 && (r.jsonCities?.duplicates || 0) === 0 ? "pillOk" : "pillOff"}
+                            onClick={() => openReconciliation(r.state, "cities")}
+                            title="Review missing and duplicated cities"
+                            style={{ cursor: "pointer" }}
+                          >
+                            {r.jsonCities?.missing || 0} missing
+                            {(r.jsonCities?.duplicates || 0) > 0 ? ` • ${r.jsonCities?.duplicates} dup.` : ""}
+                          </button>
                         </td>
 
                         <td className="td">
@@ -13415,6 +13580,187 @@ return {totalRows:rows.length,matched:targets.length,clicked};
       */}
         </section>
       </div>
+
+      {/* Sheet ↔ JSON reconciliation CRUD */}
+      {reconcileOpen && (
+        <>
+          <div className="drawerBackdrop" onClick={() => setReconcileOpen(false)} />
+          <div className="reconcileModal" role="dialog" aria-modal="true" aria-labelledby="reconcile-title">
+            <div className="reconcileHeader">
+              <div>
+                <div className="badge">SHEET DATA QUALITY</div>
+                <h2 id="reconcile-title" style={{ margin: "8px 0 4px" }}>
+                  {reconcileState} · {reconcileKind === "counties" ? "Counties" : "Cities"}
+                </h2>
+                <div className="mini">Compare tenant JSON with Google Sheets, correct names, and resolve duplicates.</div>
+              </div>
+              <button className="smallBtn" type="button" onClick={() => setReconcileOpen(false)}>Close</button>
+            </div>
+
+            <div className="reconcileToolbar">
+              <div className="segmented">
+                <button
+                  type="button"
+                  className={`segBtn ${reconcileKind === "counties" ? "segBtnOn" : ""}`}
+                  onClick={() => { setReconcileKind("counties"); setReconcileFilter("all"); void loadReconciliation(reconcileState, "counties"); }}
+                >
+                  Counties
+                </button>
+                <button
+                  type="button"
+                  className={`segBtn ${reconcileKind === "cities" ? "segBtnOn" : ""}`}
+                  onClick={() => { setReconcileKind("cities"); setReconcileFilter("all"); void loadReconciliation(reconcileState, "cities"); }}
+                >
+                  Cities
+                </button>
+              </div>
+              <input
+                className="input reconcileSearch"
+                value={reconcileSearch}
+                onChange={(event) => setReconcileSearch(event.target.value)}
+                placeholder={`Search ${reconcileKind}...`}
+              />
+              <button className="smallBtn" type="button" disabled={reconcileLoading} onClick={() => void loadReconciliation(reconcileState, reconcileKind)}>
+                {reconcileLoading ? "Refreshing..." : "Refresh"}
+              </button>
+            </div>
+
+            {reconcileData ? (
+              <div className="reconcileStats">
+                {[
+                  ["all", "JSON records", reconcileData.summary.jsonTotal],
+                  ["matched", "Matched", reconcileData.summary.matched],
+                  ["missing", "Missing", reconcileData.summary.missing],
+                  ["duplicate", "Duplicate rows", reconcileData.summary.duplicateRows],
+                  ["unmatched", "Sheet only", reconcileData.summary.unmatchedSheetRows],
+                ].map(([filter, label, value]) => (
+                  <button
+                    key={`${label}`}
+                    type="button"
+                    className={`reconcileStat ${reconcileFilter === filter ? "reconcileStatOn" : ""}`}
+                    onClick={() => setReconcileFilter(filter as typeof reconcileFilter)}
+                  >
+                    <strong>{value}</strong><span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {reconcileError ? <div className="reconcileAlert">{reconcileError}</div> : null}
+
+            <div className="reconcileBody">
+              {reconcileLoading && !reconcileData ? <div className="mini">Loading comparison…</div> : null}
+              {reconcileData ? (() => {
+                const query = reconcileSearch.trim().toLowerCase();
+                const records = reconcileData.jsonRecords.filter((record) => {
+                  if (reconcileFilter === "missing" && record.status !== "missing") return false;
+                  if (reconcileFilter === "matched" && record.status !== "matched") return false;
+                  if (reconcileFilter === "duplicate" && record.status !== "duplicate") return false;
+                  if (reconcileFilter === "unmatched") return false;
+                  return !query || `${record.city} ${record.county}`.toLowerCase().includes(query);
+                });
+                const unmatched = reconcileData.unmatchedSheetRows.filter((row) =>
+                  (!query || `${row.city} ${row.county}`.toLowerCase().includes(query)) &&
+                  (reconcileFilter === "all" || reconcileFilter === "unmatched"),
+                );
+                return (
+                  <div className="reconcileList">
+                    {records.map((record) => (
+                      <article className="reconcileCard" key={record.key}>
+                        <div className="reconcileCardTop">
+                          <div>
+                            <div className="reconcileEntity">
+                              {reconcileKind === "cities" ? record.city : record.county}
+                            </div>
+                            {reconcileKind === "cities" ? <div className="mini">{record.county}</div> : null}
+                          </div>
+                          <span className={record.status === "matched" ? "pillOk" : record.status === "missing" ? "pillWarn" : "pillOff"}>
+                            {record.status}
+                          </span>
+                        </div>
+                        {record.status === "missing" ? (
+                          <div className="reconcileActions">
+                            <div className="mini">Available in JSON but missing from Google Sheets.</div>
+                            <button
+                              type="button"
+                              className="smallBtn"
+                              disabled={!!reconcileSaving}
+                              onClick={() => createMissingReconcileRow(record)}
+                            >
+                              {reconcileSaving === `create:${record.key}` ? "Creating..." : "Create in Sheet"}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="reconcileRows">
+                            {record.sheetRows.map((row, index) => {
+                              const draft = reconcileDrafts[row.rowNumber] || { county: row.county, city: row.city };
+                              return (
+                                <div className="reconcileEditRow" key={row.rowNumber}>
+                                  <div className="reconcileRowMeta">
+                                    Row {row.rowNumber}{record.sheetRows.length > 1 ? ` · duplicate ${index + 1}` : ""}
+                                    {row.locationId ? ` · Location ${row.locationId}` : ""}
+                                  </div>
+                                  <input
+                                    className="input"
+                                    aria-label={`County for row ${row.rowNumber}`}
+                                    value={draft.county}
+                                    onChange={(event) => setReconcileDrafts((current) => ({
+                                      ...current,
+                                      [row.rowNumber]: { ...draft, county: event.target.value },
+                                    }))}
+                                    placeholder="County"
+                                  />
+                                  {reconcileKind === "cities" ? (
+                                    <input
+                                      className="input"
+                                      aria-label={`City for row ${row.rowNumber}`}
+                                      value={draft.city}
+                                      onChange={(event) => setReconcileDrafts((current) => ({
+                                        ...current,
+                                        [row.rowNumber]: { ...draft, city: event.target.value },
+                                      }))}
+                                      placeholder="City"
+                                    />
+                                  ) : null}
+                                  <button type="button" className="smallBtn" disabled={!!reconcileSaving} onClick={() => saveReconcileRow(row)}>
+                                    {reconcileSaving === `save:${row.rowNumber}` ? "Saving..." : "Save"}
+                                  </button>
+                                  <button type="button" className="smallBtn reconcileDelete" disabled={!!reconcileSaving} onClick={() => deleteReconcileRow(row)}>
+                                    {reconcileSaving === `delete:${row.rowNumber}` ? "Deleting..." : "Delete"}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </article>
+                    ))}
+
+                    {unmatched.map((row) => {
+                      const draft = reconcileDrafts[row.rowNumber] || { county: row.county, city: row.city };
+                      return (
+                        <article className="reconcileCard reconcileCardUnmatched" key={`unmatched:${row.rowNumber}`}>
+                          <div className="reconcileCardTop">
+                            <div><div className="reconcileEntity">{reconcileKind === "cities" ? row.city : row.county}</div><div className="mini">Sheet row {row.rowNumber} · no JSON match</div></div>
+                            <span className="pillOff">sheet only</span>
+                          </div>
+                          <div className="reconcileEditRow">
+                            <input className="input" value={draft.county} onChange={(event) => setReconcileDrafts((current) => ({ ...current, [row.rowNumber]: { ...draft, county: event.target.value } }))} placeholder="County" />
+                            {reconcileKind === "cities" ? <input className="input" value={draft.city} onChange={(event) => setReconcileDrafts((current) => ({ ...current, [row.rowNumber]: { ...draft, city: event.target.value } }))} placeholder="City" /> : null}
+                            <button type="button" className="smallBtn" disabled={!!reconcileSaving} onClick={() => saveReconcileRow(row)}>Save correction</button>
+                            <button type="button" className="smallBtn reconcileDelete" disabled={!!reconcileSaving} onClick={() => deleteReconcileRow(row)}>Delete</button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                    {!records.length && !unmatched.length ? <div className="mini">No records match this filter.</div> : null}
+                  </div>
+                );
+              })() : null}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Drawer: State Detail */}
       {openState && (
