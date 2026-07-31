@@ -1199,6 +1199,114 @@ button, input, select { font-family: inherit; }
   border-bottom: 1px solid rgba(255,255,255,0.10);
 }
 
+.sheetExplorerTableWrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+  overscroll-behavior: contain;
+}
+
+.sheetExplorerTableWrap::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+.sheetExplorerTableWrap::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.035);
+  border-radius: 999px;
+}
+
+.sheetExplorerTableWrap::-webkit-scrollbar-thumb {
+  background: rgba(148,163,184,0.38);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.sheetExplorerTableWrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(148,163,184,0.58);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.sheetExplorerTable {
+  width: 1720px;
+  min-width: 1720px;
+  table-layout: fixed;
+}
+
+.sheetExplorerTable .th,
+.sheetExplorerTable .td {
+  padding: 13px 14px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.sheetExplorerTable .th {
+  height: 58px;
+  font-size: 11px;
+  line-height: 1.25;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.sheetExplorerTable .td {
+  height: 72px;
+}
+
+.sheetExplorerTable .pillOk,
+.sheetExplorerTable .pillWarn,
+.sheetExplorerTable .pillOff {
+  min-height: 34px;
+  padding: 7px 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sheetExplorerTable .th:first-child,
+.sheetExplorerTable .td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: color-mix(in srgb, var(--surface) 96%, #182235);
+  box-shadow: 1px 0 0 rgba(255,255,255,.1), 12px 0 24px rgba(2,6,23,.12);
+}
+
+.sheetExplorerTable thead .th:first-child {
+  z-index: 7;
+  background: rgba(45, 53, 68, .99);
+}
+
+.sheetExplorerTable .th:last-child,
+.sheetExplorerTable .td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 5;
+  background: color-mix(in srgb, var(--surface) 96%, #182235);
+  box-shadow: -1px 0 0 rgba(255,255,255,.1), -12px 0 24px rgba(2,6,23,.12);
+}
+
+.sheetExplorerTable thead .th:last-child {
+  z-index: 7;
+  background: rgba(45, 53, 68, .99);
+}
+
+.sheetExplorerTable .td:last-child .smallBtn {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .sheetExplorerHeadTools {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .sheetExplorerSearch { width: 100%; }
+  .sheetExplorerTable { width: 1640px; min-width: 1640px; }
+}
+
 .stateRowActive .td,
 .stateRowProgress .td,
 .stateRowPending .td {

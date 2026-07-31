@@ -12739,6 +12739,19 @@ return {totalRows:rows.length,matched:targets.length,clicked};
           ) : (
             <div className="tableWrap tableWrapTall sheetExplorerTableWrap">
               <table className="table sheetExplorerTable">
+                <colgroup>
+                  <col style={{ width: 170 }} />
+                  <col style={{ width: 145 }} />
+                  <col style={{ width: 155 }} />
+                  <col style={{ width: 145 }} />
+                  <col style={{ width: 185 }} />
+                  <col style={{ width: 145 }} />
+                  <col style={{ width: 165 }} />
+                  <col style={{ width: 155 }} />
+                  <col style={{ width: 185 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 110 }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th className="th">State</th>
