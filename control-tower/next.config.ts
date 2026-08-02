@@ -133,6 +133,17 @@ const nextConfig = {
     config.resolve.alias["@"] = path.resolve(__dirname, "src");
     return config;
   },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/",
+          has: [{ type: "host", value: "policy.mydripnurse.com" }],
+          destination: "/appointment-deposit-policy",
+        },
+      ],
+    };
+  },
 };
 
 module.exports = nextConfig;
