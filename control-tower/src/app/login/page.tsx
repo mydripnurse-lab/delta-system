@@ -11,6 +11,18 @@ function s(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function safeInternalPath(value: unknown) {
+  const candidate = s(value) || "/";
+  if (!candidate.startsWith("/") || candidate.startsWith("//") || candidate.includes("\\")) return "/";
+  try {
+    const decoded = decodeURIComponent(candidate);
+    if (decoded.startsWith("//") || decoded.includes("\\")) return "/";
+  } catch {
+    return "/";
+  }
+  return candidate;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [nextPath, setNextPath] = useState("/");
@@ -22,8 +34,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const next = s(params.get("next")) || "/";
-    setNextPath(next.startsWith("/") ? next : "/");
+    setNextPath(safeInternalPath(params.get("next")));
   }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -48,7 +59,7 @@ export default function LoginPage() {
         setError(s(json?.error) || "Unable to sign in.");
         return;
       }
-      router.push(nextPath.startsWith("/") ? nextPath : "/");
+      router.push(safeInternalPath(nextPath));
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Network error.");

@@ -12,7 +12,19 @@
 *.log
 
 # Node
-node_modules
+node_modules/
+**/node_modules/
+
+# Framework and compiler caches
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+*.tsbuildinfo
+.turbo/
+**/.turbo/
 
 # Tokens
 tokens.json
@@ -21,6 +33,17 @@ storage/tokens.json
 # Build output
 scripts/out/
 scripts/out/**
+
+# Local runtime data and temporary artifacts
+tmp/
+**/tmp/
+control-tower/storage/
+scripts/_checkpoints/
+*.zip
+
+# Local repository copies/workspaces
+/delta-system/
+/mydripnurse-sitemaps-staging/
 
 # Google
 secrets/
@@ -42,3 +65,5 @@ resources/config/google-cloud.json
 
 /data/secrets/
 /data/gsc/
+.vercel
+.env*
