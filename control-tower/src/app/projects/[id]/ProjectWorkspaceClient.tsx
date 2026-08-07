@@ -967,11 +967,11 @@ type TabSitemapResultItem = {
 
 type TabSitemapReport = {
   kind: "counties" | "cities";
-  action: "inspect" | "discovery" | "bing_indexnow";
+  action: "inspect" | "discovery" | "bing_indexnow" | "indexnow";
   total: number;
   success: number;
   failed: number;
-  mode: "all" | "retry";
+  mode: "all" | "retry" | "sample";
   items: TabSitemapResultItem[];
   updatedAt: string;
 };
@@ -985,7 +985,7 @@ type TabSitemapRunItem = {
   debug?: string;
 };
 
-type TabAction = "inspect" | "discovery" | "bing_indexnow";
+type TabAction = "inspect" | "discovery" | "bing_indexnow" | "indexnow";
 
 type DomainBotRunItem = {
   key: string;
@@ -1539,7 +1539,7 @@ export default function Home() {
   >("counties");
   const [tabSitemapRunAction, setTabSitemapRunAction] =
     useState<TabAction>("inspect");
-  const [tabSitemapRunMode, setTabSitemapRunMode] = useState<"all" | "retry">(
+  const [tabSitemapRunMode, setTabSitemapRunMode] = useState<"all" | "retry" | "sample">(
     "all",
   );
   const [tabSitemapRunItems, setTabSitemapRunItems] = useState<
@@ -1582,7 +1582,7 @@ export default function Home() {
   const [domainBotAccountTimeoutMin, setDomainBotAccountTimeoutMin] = useState(
     DOMAIN_BOT_TIMEOUT_MIN_DEFAULT,
   );
-  const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "pending" | "sitemaps" | "custom_values" | "settings">("");
+  const [quickBotModal, setQuickBotModal] = useState<"" | "google" | "bing" | "indexnow" | "pending" | "sitemaps" | "custom_values" | "settings">("");
   const [cleanupOpen, setCleanupOpen] = useState(false);
   const [cleanupKind, setCleanupKind] = useState<CleanupKind | "all">("counties");
   const [cleanupSelection, setCleanupSelection] = useState<Record<string, boolean>>({});
@@ -7132,7 +7132,7 @@ export default function Home() {
     kind: "counties" | "cities",
     action: TabAction,
     rowsToRun: any[],
-    mode: "all" | "retry",
+    mode: "all" | "retry" | "sample",
   ) {
     const runKey = tabRunKey(kind, action);
     setTabSitemapSubmitting(runKey);
@@ -7195,9 +7195,13 @@ export default function Home() {
       const rowName = getTabRowName(kind, r);
       const key = `${kind}:${s(r["Location Id"])}:${rowName}:${domainUrl}`;
       const isBingAction = action === "bing_indexnow";
+      const isIndexNowAction = action === "indexnow";
+      const isSubmissionAction = isBingAction || isIndexNowAction;
       const endpoint = isBingAction
         ? "/api/tools/bing-sitemap-submit"
-        : "/api/tools/index-submit";
+        : isIndexNowAction
+          ? "/api/tools/indexnow-submit"
+          : "/api/tools/index-submit";
       const payload = isBingAction
         ? {
             tenantId: routeTenantId || "",
@@ -7205,12 +7209,17 @@ export default function Home() {
             domainUrl,
             sitemapUrl: `${domainUrl.replace(/\/+$/, "")}/sitemap.xml`,
           }
-        : {
-            tenantId: routeTenantId || "",
-            target: "google",
-            domainUrl,
-            mode: action,
-          };
+        : isIndexNowAction
+          ? {
+              domainUrl,
+              sitemapUrl: `${domainUrl.replace(/\/+$/, "")}/sitemap.xml`,
+            }
+          : {
+              tenantId: routeTenantId || "",
+              target: "google",
+              domainUrl,
+              mode: action,
+            };
       updateRunItem(key, "running");
 
       if (!domainUrl) {
@@ -7220,13 +7229,13 @@ export default function Home() {
           domainUrl: "",
           ok: false,
           error: "missing domain URL",
-          debug: isBingAction ? "request not sent: missing domain URL" : undefined,
+          debug: isSubmissionAction ? "request not sent: missing domain URL" : undefined,
         });
         updateRunItem(
           key,
           "failed",
           "missing domain URL",
-          isBingAction ? "request not sent: missing domain URL" : undefined,
+          isSubmissionAction ? "request not sent: missing domain URL" : undefined,
         );
         continue;
       }
@@ -7238,16 +7247,18 @@ export default function Home() {
           body: JSON.stringify(payload),
         });
         const data = await safeJson(res);
-        const debugMsg = isBingAction
+        const debugMsg = isSubmissionAction
           ? [
               `req=${endpoint}`,
               `reqDomain=${domainUrl}`,
               `reqSitemap=${s((payload as any).sitemapUrl) || "-"}`,
               `resStatus=${res.status}`,
               `apiOk=${!!(data as any)?.ok}`,
-              `siteUrl=${s((data as any)?.siteUrl) || "-"}`,
+              `host=${s((data as any)?.host || (data as any)?.siteUrl) || "-"}`,
               `sitemapUrl=${s((data as any)?.sitemapUrl) || "-"}`,
-              `credential=${s((data as any)?.credentialSource) || "-"}`,
+              `urls=${s((data as any)?.submittedUrls) || "-"}`,
+              `batches=${s((data as any)?.batches) || "-"}`,
+              `credential=${s((data as any)?.credentialSource) || (isIndexNowAction ? "server-only worker token" : "-")}`,
               `response=${s((data as any)?.responsePreview || "").slice(0, 140) || "-"}`,
             ].join(" | ")
           : undefined;
@@ -7255,7 +7266,7 @@ export default function Home() {
         const actionOk =
           action === "discovery"
             ? submitted
-            : action === "bing_indexnow"
+            : action === "bing_indexnow" || action === "indexnow"
               ? !!(data as any)?.ok
               : !!(data as any)?.ok;
         if (res.ok && data && actionOk) {
@@ -7285,7 +7296,7 @@ export default function Home() {
         }
       } catch (e: any) {
         const errMsg = e?.message || "request failed";
-        const debugMsg = isBingAction
+        const debugMsg = isSubmissionAction
           ? [
               `req=${endpoint}`,
               `reqDomain=${domainUrl}`,
@@ -7313,7 +7324,9 @@ export default function Home() {
         ? "URL inspection"
         : action === "discovery"
           ? "Sitemap discovery"
-          : "Bing Sitemap";
+          : action === "indexnow"
+            ? "IndexNow"
+            : "Bing Sitemap";
     setTabSitemapStatus({
       kind,
       ok: failCount === 0,
@@ -7344,8 +7357,16 @@ export default function Home() {
   async function submitTabAction(
     kind: "counties" | "cities",
     action: TabAction,
+    limit?: number,
   ) {
-    await runTabSitemaps(kind, action, getActiveRowsForTab(kind), "all");
+    const rows = getActiveRowsForTab(kind);
+    const safeLimit = Number.isFinite(limit) && Number(limit) > 0 ? Number(limit) : 0;
+    await runTabSitemaps(
+      kind,
+      action,
+      safeLimit ? rows.slice(0, safeLimit) : rows,
+      safeLimit ? "sample" : "all",
+    );
   }
 
   function domainBotUrlFromLocId(locId: string) {
@@ -14169,11 +14190,25 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 >
                   <button
                     className="smallBtn quickActionBtn quickActionBtnBing"
-                    onClick={() => setQuickBotModal("bing")}
+                    onClick={() => {
+                      setTabSitemapRunAction("bing_indexnow");
+                      setQuickBotModal("bing");
+                    }}
                     title="Bing sitemap options"
                     style={{ ["--qa-delay" as any]: "0ms" }}
                   >
                     Bing Sitemaps
+                  </button>
+                  <button
+                    className="smallBtn quickActionBtn quickActionBtnBing"
+                    onClick={() => {
+                      setTabSitemapRunAction("indexnow");
+                      setQuickBotModal("indexnow");
+                    }}
+                    title="Submit live sitemap URLs through IndexNow"
+                    style={{ ["--qa-delay" as any]: "30ms" }}
+                  >
+                    IndexNow
                   </button>
                   <button
                     className="smallBtn quickActionBtn quickActionBtnGoogle"
@@ -14441,7 +14476,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                               ? "inspect"
                               : currentTabSitemapReport.action === "discovery"
                                 ? "sitemap"
-                                : "bing"}{" "}
+                                : currentTabSitemapReport.action === "indexnow"
+                                  ? "indexnow"
+                                  : "bing"}{" "}
                             run ({currentTabSitemapReport.mode}) •{" "}
                             {currentTabSitemapReport.success}/{currentTabSitemapReport.total} ok •{" "}
                             {currentTabSitemapReport.failed} failed
@@ -14464,7 +14501,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                 </th>
                                 <th className="th">Domain</th>
                                 <th className="th">Error</th>
-                                {currentTabSitemapReport.action === "bing_indexnow" && (
+                                {(currentTabSitemapReport.action === "bing_indexnow" ||
+                                  currentTabSitemapReport.action === "indexnow") && (
                                   <th className="th">Debug</th>
                                 )}
                               </tr>
@@ -14485,7 +14523,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                                   <td className="td">
                                     <span className="mini">{it.error || "—"}</span>
                                   </td>
-                                  {currentTabSitemapReport.action === "bing_indexnow" && (
+                                  {(currentTabSitemapReport.action === "bing_indexnow" ||
+                                    currentTabSitemapReport.action === "indexnow") && (
                                     <td className="td" style={{ maxWidth: 360 }}>
                                       <span className="mini">{it.debug || "—"}</span>
                                     </td>
@@ -15041,6 +15080,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
                   {quickBotModal === "google" && "Google Index"}
                   {quickBotModal === "bing" && "Bing Sitemaps"}
+                  {quickBotModal === "indexnow" && "IndexNow"}
                   {quickBotModal === "pending" && "Activate Domains"}
                   {quickBotModal === "sitemaps" && "Update Sitemaps"}
                   {quickBotModal === "custom_values" && "Update Custom Values"}
@@ -15170,6 +15210,93 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                           setTabSitemapShowDetails((p) => ({
                             ...p,
                             [currentTabRunKey]: !p[currentTabRunKey],
+                          }))
+                        }
+                        disabled={!currentTabSitemapReport}
+                      >
+                        {tabSitemapShowDetails[currentTabRunKey] ? "Hide Details" : "View Details"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {quickBotModal === "indexnow" && (
+                <div className="card">
+                  <div className="cardBody" style={{ padding: 12 }}>
+                    <div className="mini" style={{ marginBottom: 10 }}>
+                      Read every live URL from each sitemap and notify IndexNow through the secure My Drip Nurse Cloudflare Worker.
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("indexnow");
+                          void submitTabAction("counties", "indexnow", 5);
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("counties", "indexnow")
+                          ? "Testing 5 Counties..."
+                          : "Test 5 Counties"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("indexnow");
+                          void submitTabAction("cities", "indexnow", 5);
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("cities", "indexnow")
+                          ? "Testing 5 Cities..."
+                          : "Test 5 Cities"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("indexnow");
+                          void submitTabAction("counties", "indexnow");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        IndexNow All Counties
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("indexnow");
+                          void submitTabAction("cities", "indexnow");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        IndexNow All Cities
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("indexnow");
+                          void retryFailedTabSitemaps(detailTab, "indexnow");
+                          setQuickBotModal("");
+                        }}
+                        disabled={
+                          tabSitemapSubmitting !== "" ||
+                          !tabSitemapReports[tabRunKey(detailTab, "indexnow")] ||
+                          (tabSitemapReports[tabRunKey(detailTab, "indexnow")]?.failed || 0) === 0
+                        }
+                      >
+                        Retry Failed ({tabSitemapReports[tabRunKey(detailTab, "indexnow")]?.failed || 0})
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() =>
+                          setTabSitemapShowDetails((previous) => ({
+                            ...previous,
+                            [currentTabRunKey]: !previous[currentTabRunKey],
                           }))
                         }
                         disabled={!currentTabSitemapReport}
@@ -16252,7 +16379,9 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ? "GOOGLE URL INSPECTION RUN"
                     : tabSitemapRunAction === "discovery"
                       ? "GOOGLE SITEMAP DISCOVERY RUN"
-                      : "BING SITEMAP SUBMISSION RUN"}
+                      : tabSitemapRunAction === "indexnow"
+                        ? "INDEXNOW SUBMISSION RUN"
+                        : "BING SITEMAP SUBMISSION RUN"}
                 </div>
                 <h3 className="modalTitle" style={{ marginTop: 8 }}>
                   {openState} •{" "}
@@ -16261,9 +16390,15 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                     ? "URL Inspect"
                     : tabSitemapRunAction === "discovery"
                       ? "Sitemap Discovery"
-                      : "Bing Sitemap"}{" "}
+                      : tabSitemapRunAction === "indexnow"
+                        ? "IndexNow"
+                        : "Bing Sitemap"}{" "}
                   •{" "}
-                  {tabSitemapRunMode === "retry" ? "Retry Failed" : "Full Run"}
+                  {tabSitemapRunMode === "retry"
+                    ? "Retry Failed"
+                    : tabSitemapRunMode === "sample"
+                      ? "Test 5"
+                      : "Full Run"}
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
                   Started:{" "}
@@ -16345,7 +16480,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                       </th>
                       <th className="th">Domain</th>
                       <th className="th">Error</th>
-                      {tabSitemapRunAction === "bing_indexnow" && (
+                      {(tabSitemapRunAction === "bing_indexnow" ||
+                        tabSitemapRunAction === "indexnow") && (
                         <th className="th">Debug</th>
                       )}
                     </tr>
@@ -16374,7 +16510,8 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         <td className="td">
                           <span className="mini">{it.error || "—"}</span>
                         </td>
-                        {tabSitemapRunAction === "bing_indexnow" && (
+                        {(tabSitemapRunAction === "bing_indexnow" ||
+                          tabSitemapRunAction === "indexnow") && (
                           <td className="td" style={{ maxWidth: 360 }}>
                             <span className="mini">{it.debug || "—"}</span>
                           </td>
