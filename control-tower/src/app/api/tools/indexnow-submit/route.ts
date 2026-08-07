@@ -3,8 +3,7 @@ import { requireAgencyPermission } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
-const DEFAULT_WORKER_SUBMIT_URL =
-  "https://mydripnurse-indexnow.ac-e6b.workers.dev/submit";
+const DEFAULT_INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
 const MAX_URLS_PER_REQUEST = 10_000;
 const MAX_SITEMAP_DOCUMENTS = 40;
 const FETCH_TIMEOUT_MS = 20_000;
@@ -144,23 +143,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const workerSubmitUrl =
-      s(process.env.INDEXNOW_WORKER_SUBMIT_URL) || DEFAULT_WORKER_SUBMIT_URL;
-    const workerSubmitToken =
-      s(process.env.INDEXNOW_WORKER_SUBMIT_TOKEN) ||
-      s(process.env.INDEXNOW_SUBMIT_TOKEN) ||
-      s(process.env.SUBMIT_TOKEN);
-    if (!workerSubmitToken) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Missing INDEXNOW_WORKER_SUBMIT_TOKEN in the Vercel Production environment.",
-        },
-        { status: 503 },
-      );
-    }
-
     const hostname = origin.hostname.toLowerCase();
     const providedUrls = Array.isArray(body.urlList)
       ? Array.from(
@@ -197,6 +179,24 @@ export async function POST(request: Request) {
       );
     }
 
+    const keyLocation = `https://${hostname}/indexnow-key.txt`;
+    const indexNowKey = s(await fetchText(keyLocation));
+    if (!/^[A-Za-z0-9-]{8,128}$/.test(indexNowKey)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          target: "indexnow",
+          host: hostname,
+          keyLocation,
+          error: "The public IndexNow verification key is missing or invalid.",
+        },
+        { status: 422 },
+      );
+    }
+
+    const endpoint =
+      s(process.env.INDEXNOW_ENDPOINT) || DEFAULT_INDEXNOW_ENDPOINT;
+
     const batches = chunk(urlList, MAX_URLS_PER_REQUEST);
     const responses: Array<{
       batch: number;
@@ -206,37 +206,52 @@ export async function POST(request: Request) {
     }> = [];
 
     for (let index = 0; index < batches.length; index += 1) {
-      const workerResponse = await fetch(workerSubmitUrl, {
+      const indexNowResponse = await fetch(endpoint, {
         method: "POST",
         cache: "no-store",
         headers: {
-          authorization: `Bearer ${workerSubmitToken}`,
           "content-type": "application/json; charset=utf-8",
         },
-        body: JSON.stringify({ host: hostname, urlList: batches[index] }),
+        body: JSON.stringify({
+          host: hostname,
+          key: indexNowKey,
+          keyLocation,
+          urlList: batches[index],
+        }),
       });
-      const responseText = await workerResponse.text().catch(() => "");
+      const responseText = await indexNowResponse.text().catch(() => "");
       responses.push({
         batch: index + 1,
-        status: workerResponse.status,
-        ok: workerResponse.ok,
+        status: indexNowResponse.status,
+        ok: indexNowResponse.ok,
         responsePreview: responseText.slice(0, 300) || undefined,
       });
 
-      if (!workerResponse.ok) {
+      console.info("[indexnow-submit] batch", {
+        host: hostname,
+        batch: index + 1,
+        batches: batches.length,
+        urls: batches[index].length,
+        status: indexNowResponse.status,
+        ok: indexNowResponse.ok,
+      });
+
+      if (!indexNowResponse.ok) {
         return NextResponse.json(
           {
             ok: false,
             target: "indexnow",
-            mode: "worker",
+            mode: "direct",
             host: hostname,
             sitemapUrl: sitemapUrl || undefined,
+            keyLocation,
             sitemapDocuments,
             submittedUrls: index * MAX_URLS_PER_REQUEST,
             totalUrls: urlList.length,
             batches: batches.length,
             responses,
-            error: `IndexNow Worker rejected batch ${index + 1} (HTTP ${workerResponse.status}).`,
+            responsePreview: responseText.slice(0, 300) || undefined,
+            error: `IndexNow rejected batch ${index + 1} (HTTP ${indexNowResponse.status}).`,
           },
           { status: 502 },
         );
@@ -246,14 +261,15 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       target: "indexnow",
-      mode: "worker",
+      mode: "direct",
       host: hostname,
       sitemapUrl: sitemapUrl || undefined,
-      keyLocation: `https://${hostname}/indexnow-key.txt`,
+      keyLocation,
       sitemapDocuments,
       submittedUrls: urlList.length,
       totalUrls: urlList.length,
       batches: batches.length,
+      responsePreview: responses.at(-1)?.responsePreview,
       responses,
     });
   } catch (error: unknown) {
