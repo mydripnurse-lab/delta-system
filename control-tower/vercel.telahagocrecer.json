@@ -1,0 +1,43 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/stream/[runId]/route.ts": {
+      "maxDuration": 300
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/heartbeat",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/dashboard/hard-refresh/cron?force=1",
+      "schedule": "10 6 * * *"
+    },
+    {
+      "path": "/api/dashboard/overview/auto-proposals/cron?maxPerTenant=4&dedupeHours=8",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/agents/execute/cron?maxPerTenant=4&maxTotal=40",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/dashboard/ads/notifications/cron",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/dashboard/ads/opportunities/cron?source=all&range=last_28_days&dryRun=1&maxPerTenant=4&cooldownHours=24",
+      "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/cron/prospecting-auto-run",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/prospecting-push-ghl?maxLeads=100&maxTenants=100",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

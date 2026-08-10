@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { deploymentSurface } from "@/lib/deployment-surface";
 
 const SESSION_COOKIE_NAME = "ct_session";
 const PARTNER_ADMIN_SESSION_COOKIE_NAME = "mdn_partner_admin_session";
@@ -6,6 +7,17 @@ const PUBLIC_POLICY_HOSTNAME = "policy.mydripnurse.com";
 const PARTNER_ADMIN_HOSTNAME = "admin.mydripnurse.com";
 const PARTNER_ONBOARDING_HOSTNAME = "onboarding.mydripnurse.com";
 const PARTNER_WEBSITE_HOSTNAME = "partners.mydripnurse.com";
+const PARTNER_PLATFORM_HOSTNAMES = new Set([
+  PUBLIC_POLICY_HOSTNAME,
+  PARTNER_ADMIN_HOSTNAME,
+  PARTNER_ONBOARDING_HOSTNAME,
+  PARTNER_WEBSITE_HOSTNAME,
+]);
+const TELAHAGOCRECER_HOSTNAMES = new Set([
+  "telahagocrecer.com",
+  "www.telahagocrecer.com",
+  "search-embedded.telahagocrecer.com",
+]);
 
 function requestHostname(req: NextRequest) {
   return (req.headers.get("host") || "").split(":")[0].toLowerCase();
@@ -38,6 +50,19 @@ function isProtectedPath(pathname: string) {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const hostname = requestHostname(req);
+  const surface = deploymentSurface();
+
+  // During the staged Vercel split, the current project remains `combined`.
+  // Once domains are attached to their independent projects, these guards
+  // prevent an accidental cross-project domain assignment from serving the
+  // wrong product surface.
+  if (surface === "partner-platform" && TELAHAGOCRECER_HOSTNAMES.has(hostname)) {
+    return new NextResponse("Not found", { status: 404 });
+  }
+  if (surface === "telahagocrecer" && PARTNER_PLATFORM_HOSTNAMES.has(hostname)) {
+    return new NextResponse("Not found", { status: 404 });
+  }
 
   // Keep hostname routing in one place. Chained beforeFiles rewrites can apply
   // a second time to an internal destination such as /partner-login.
