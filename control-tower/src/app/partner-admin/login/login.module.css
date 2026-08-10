@@ -1,129 +1,181 @@
 .shell {
   min-height: 100vh;
   display: grid;
-  place-items: center;
-  padding: 28px;
-  color: #f8fafc;
-  background:
-    radial-gradient(circle at 16% 12%, rgba(20, 184, 166, .16), transparent 30rem),
-    radial-gradient(circle at 86% 6%, rgba(59, 130, 246, .15), transparent 34rem),
-    linear-gradient(145deg, #05080e, #07101a 52%, #050910);
+  grid-template-columns: minmax(360px, 44%) minmax(0, 1fr);
+  color: #181816;
+  background: #f4f2ee;
+  font-family: "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.shell::before {
+.brandPanel {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  padding: clamp(42px, 6vw, 82px);
+  background: #ebf2f9;
+}
+
+.brandPanel::before,
+.brandPanel::after {
   content: "";
-  position: fixed;
-  inset: 0;
+  position: absolute;
   pointer-events: none;
-  opacity: .18;
-  background-image: radial-gradient(rgba(255, 255, 255, .5) .65px, transparent .65px);
-  background-size: 18px 18px;
-  mask-image: linear-gradient(to bottom, black, transparent 84%);
+  border-radius: 50%;
 }
 
-.card {
+.brandPanel::before {
+  width: 440px;
+  height: 440px;
+  top: -180px;
+  right: -140px;
+  background: radial-gradient(circle, rgba(4, 76, 92, .09), transparent 68%);
+}
+
+.brandPanel::after {
+  width: 360px;
+  height: 360px;
+  bottom: -150px;
+  left: -130px;
+  background: radial-gradient(circle, rgba(29, 158, 117, .11), transparent 68%);
+}
+
+.brandRow,
+.brandMessage,
+.benefits,
+.brandFooter {
   position: relative;
   z-index: 1;
-  width: min(500px, 100%);
-  padding: 30px;
-  border: 1px solid rgba(148, 163, 184, .2);
-  border-radius: 30px;
-  background: rgba(9, 15, 25, .86);
-  box-shadow: 0 36px 100px rgba(0, 0, 0, .48);
-  backdrop-filter: blur(24px);
 }
 
 .brandRow {
   display: flex;
   align-items: center;
   gap: 14px;
+  margin-bottom: clamp(50px, 8vh, 90px);
 }
 
-.brandRow > div:last-child {
-  display: grid;
-  gap: 2px;
-}
-
-.brandRow strong {
-  font-size: 15px;
-}
-
-.brandRow span {
-  color: #7e8da3;
-  font-size: 12px;
-}
+.brandRow > div:last-child { display: grid; gap: 1px; }
+.brandRow strong { color: #17353a; font-size: 16px; font-weight: 700; }
+.brandRow span { color: #668087; font-size: 12px; }
 
 .logoImage {
-  width: 54px;
-  height: 54px;
-  flex: 0 0 54px;
-  border: 1px solid rgba(103, 232, 249, .22);
-  border-radius: 17px;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border: 1px solid rgba(4, 76, 92, .12);
+  border-radius: 16px;
   background-color: #fff;
   background-image: url("https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/675a44c0da8c3978ab418ac1.png");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 88%;
-  box-shadow: 0 12px 32px rgba(34, 211, 238, .12);
-}
-
-.intro {
-  margin: 40px 0 30px;
+  box-shadow: 0 14px 34px rgba(4, 76, 92, .12);
 }
 
 .eyebrow {
-  color: #67e8f9;
+  color: #044c5c;
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .18em;
+  font-weight: 700;
+  letter-spacing: .16em;
   text-transform: uppercase;
 }
 
-.intro h1 {
-  margin: 9px 0 9px;
-  font-size: clamp(38px, 8vw, 56px);
-  line-height: 1;
-  letter-spacing: -.055em;
+.brandMessage { max-width: 540px; }
+
+.brandMessage h1 {
+  margin: 15px 0 20px;
+  color: #181816;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(38px, 4.1vw, 62px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -.045em;
 }
 
-.intro p {
-  margin: 0;
-  color: #8f9db1;
-  line-height: 1.6;
-}
+.brandMessage h1 em { color: #044c5c; font-weight: 400; }
+.brandMessage > p { max-width: 500px; margin: 0; color: #5a5a54; font-size: 15px; line-height: 1.75; }
 
-.form {
+.benefits {
   display: grid;
-  gap: 17px;
+  gap: 15px;
+  max-width: 510px;
+  margin-top: 42px;
 }
+
+.benefits > div { display: flex; align-items: center; gap: 14px; }
+
+.benefits > div > span {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #044c5c;
+  background: rgba(4, 76, 92, .08);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.benefits p { margin: 0; color: #758489; font-size: 12px; line-height: 1.45; }
+.benefits strong { display: block; margin-bottom: 2px; color: #304b50; font-size: 13px; font-weight: 650; }
+.brandFooter { margin-top: auto; padding-top: 52px; color: #91a0a4; font-size: 11px; }
+
+.loginPanel {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 6vw, 80px);
+}
+
+.card { width: min(470px, 100%); }
+.intro { margin-bottom: 34px; }
+
+.intro h2 {
+  margin: 11px 0 10px;
+  color: #181816;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(38px, 5vw, 52px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.intro p { margin: 0; color: #8a8982; font-size: 14px; line-height: 1.65; }
+.form { display: grid; gap: 17px; }
 
 .form label:not(.remember) {
   display: grid;
-  gap: 8px;
-  color: #aab5c5;
+  gap: 7px;
+  color: #5a5a54;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .form input[type="email"],
 .form input[type="password"] {
   width: 100%;
-  height: 52px;
+  min-height: 52px;
   padding: 0 15px;
-  border: 1px solid rgba(148, 163, 184, .2);
-  border-radius: 15px;
+  border: 1.5px solid #e0ddd6;
+  border-radius: 11px;
   outline: none;
-  color: #f8fafc;
-  background: rgba(3, 8, 16, .65);
+  color: #181816;
+  background: #fff;
   font: inherit;
-  transition: border-color .2s, box-shadow .2s, background .2s;
+  transition: border-color .2s, box-shadow .2s;
 }
+
+.form input::placeholder { color: #bbb7ae; }
 
 .form input[type="email"]:focus,
 .form input[type="password"]:focus {
-  border-color: rgba(103, 232, 249, .62);
-  background: rgba(5, 13, 23, .92);
-  box-shadow: 0 0 0 4px rgba(103, 232, 249, .08);
+  border-color: #044c5c;
+  box-shadow: 0 0 0 4px rgba(4, 76, 92, .1);
 }
 
 .remember {
@@ -131,68 +183,70 @@
   align-items: center;
   gap: 10px;
   width: fit-content;
-  color: #8f9db1;
+  color: #85847d;
   font-size: 12px;
   cursor: pointer;
 }
 
-.remember input {
-  width: 17px;
-  height: 17px;
-  accent-color: #22d3ee;
-}
+.remember input { width: 17px; height: 17px; accent-color: #044c5c; }
 
 .form button {
   min-height: 52px;
-  margin-top: 3px;
+  margin-top: 4px;
   border: 0;
-  border-radius: 15px;
-  color: #04212a;
-  background: linear-gradient(135deg, #d5fbf8, #67e8f9 58%, #93c5fd);
-  box-shadow: 0 16px 36px rgba(34, 211, 238, .15);
+  border-radius: 100px;
+  color: #fff;
+  background: #044c5c;
+  box-shadow: 0 10px 28px rgba(4, 76, 92, .24);
   font: inherit;
-  font-weight: 850;
+  font-weight: 650;
   cursor: pointer;
-  transition: transform .18s, opacity .18s;
+  transition: transform .18s, background .18s, box-shadow .18s;
 }
 
-.form button:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.form button:disabled {
-  opacity: .55;
-  cursor: wait;
-}
+.form button:hover:not(:disabled) { transform: translateY(-1px); background: #033a47; box-shadow: 0 14px 34px rgba(4, 76, 92, .3); }
+.form button:disabled { opacity: .55; cursor: wait; }
 
 .error {
-  padding: 12px 13px;
-  border: 1px solid rgba(248, 113, 113, .28);
-  border-radius: 13px;
-  color: #fecaca;
-  background: rgba(127, 29, 29, .12);
+  padding: 13px 14px;
+  border: 1px solid rgba(185, 64, 64, .24);
+  border-radius: 11px;
+  color: #a63636;
+  background: #fff1f0;
   font-size: 12px;
   line-height: 1.5;
 }
 
-.card footer {
+.securityNote {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 28px;
-  color: #617086;
-  font-size: 10px;
-  text-align: center;
+  margin-top: 26px;
+  color: #a0a098;
+  font-size: 11px;
 }
 
-@media (max-width: 560px) {
-  .shell { padding: 16px; }
-  .card { padding: 24px 20px; border-radius: 24px; }
-  .intro { margin: 34px 0 26px; }
-  .card footer { flex-wrap: wrap; }
+.securityDot { width: 6px; height: 6px; border-radius: 50%; background: #1d9e75; box-shadow: 0 0 0 4px rgba(29, 158, 117, .1); }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .brandPanel { min-height: auto; padding: 38px 28px 44px; }
+  .brandRow { margin-bottom: 38px; }
+  .brandMessage h1 { max-width: 620px; font-size: clamp(34px, 8vw, 52px); }
+  .benefits, .brandFooter { display: none; }
+  .loginPanel { min-height: auto; padding: 48px 24px 64px; }
+}
+
+@media (max-width: 520px) {
+  .brandPanel { padding: 30px 20px 36px; }
+  .brandRow { margin-bottom: 30px; }
+  .logoImage { width: 50px; height: 50px; flex-basis: 50px; }
+  .brandMessage > p { font-size: 13px; }
+  .loginPanel { padding: 40px 20px 56px; }
+  .intro { margin-bottom: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .form button,
-  .form input { transition: none; }
+  .form button, .form input { transition: none; }
 }

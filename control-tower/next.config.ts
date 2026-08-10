@@ -108,6 +108,18 @@ const RUN_JOB_RUNTIME_PACKAGES = [
 ];
 
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "assets.cdn.filesafe.space",
+      },
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com",
+      },
+    ],
+  },
   experimental: {
     externalDir: true, // permite importar ../services/*
   },

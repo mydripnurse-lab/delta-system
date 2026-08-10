@@ -10,6 +10,12 @@ type PartnerOnboardingPayload = {
   password: string;
   countyStateNames: string;
   loginUrl: string;
+  publicTitle: string;
+  professionalCredentials: string;
+  biography: string;
+  profilePhotoUrl: string;
+  partnerSlug: string;
+  partnerWebsiteUrl: string;
 };
 
 type EncryptedPayload = {
@@ -106,6 +112,9 @@ async function ensureOnboardingSchema() {
 function getAppBaseUrl() {
   const configuredLanding = s(process.env.PARTNER_WELCOME_BASE_URL);
   if (configuredLanding) return configuredLanding.replace(/\/+$/, "");
+  if (process.env.NODE_ENV === "production") {
+    return "https://onboarding.mydripnurse.com/welcome";
+  }
   const configuredApp = s(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL);
   if (configuredApp) return `${configuredApp.replace(/\/+$/, "")}/partner-welcome`;
   const vercelHost = s(process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL);
@@ -144,6 +153,30 @@ export async function readPartnerOnboardingToken(rawToken: string) {
         and expires_at > now()
       returning encrypted_payload, expires_at`,
     [tokenHash(normalized)],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    ...decryptPayload(row.encrypted_payload),
+    expiresAt: new Date(row.expires_at).toISOString(),
+  };
+}
+
+export async function readLatestPartnerOnboardingForApplication(applicationIdRaw: string) {
+  await ensureOnboardingSchema();
+  const applicationId = s(applicationIdRaw);
+  if (!applicationId) return null;
+  const result = await getDbPool().query<{
+    encrypted_payload: EncryptedPayload;
+    expires_at: Date;
+  }>(
+    `select encrypted_payload, expires_at
+       from app.partner_onboarding_tokens
+      where application_id = $1
+        and revoked_at is null
+      order by created_at desc
+      limit 1`,
+    [applicationId],
   );
   const row = result.rows[0];
   if (!row) return null;

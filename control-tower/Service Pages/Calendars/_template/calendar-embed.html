@@ -1,0 +1,24 @@
+<div id="mdn-booking-calendar" style="width:100%;min-height:760px"></div>
+<script>
+  (function () {
+    var mount = document.getElementById("mdn-booking-calendar");
+    if (!mount) return;
+    var incoming = new URLSearchParams(window.location.search);
+    var forwarded = new URLSearchParams();
+    ["fullName", "name", "email", "phone"].forEach(function (key) {
+      var value = incoming.get(key);
+      if (value) forwarded.set(key, value);
+    });
+    var iframe = document.createElement("iframe");
+    iframe.src = "{{BOOKING_APP_ORIGIN}}/booking/{{SERVICE_CALENDAR_PUBLIC_KEY}}" + (forwarded.toString() ? "?" + forwarded.toString() : "");
+    iframe.title = "My Drip Nurse secure appointment calendar";
+    iframe.loading = "eager";
+    iframe.style.width = "100%";
+    iframe.style.minHeight = "900px";
+    iframe.style.border = "0";
+    iframe.style.borderRadius = "24px";
+    iframe.setAttribute("allow", "payment");
+    mount.replaceChildren(iframe);
+    if (forwarded.toString()) window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  })();
+</script>

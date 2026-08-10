@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
+import { setPartnerWebsiteVisibility } from "@/lib/publicStaffProvisioning";
 import {
   completeStaffApplication,
+  deleteStaffApplicationRecord,
   getStaffApplication,
   rejectStaffApplication,
   reviewStaffApplication,
-  updateDepositCheckpoint,
   updateStaffApplicationNotes,
-  updateStripeCheckpoint,
 } from "@/lib/staffAdmin";
 
 export const dynamic = "force-dynamic";
@@ -45,29 +45,25 @@ export async function PATCH(req: NextRequest, context: Context) {
     const { applicationId } = await context.params;
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const action = text(body.action);
+    const existing = await getStaffApplication(applicationId);
+    if (!existing) {
+      return NextResponse.json({ ok: false, error: "Application not found." }, { status: 404 });
+    }
     let application;
 
     if (action === "review") {
       application = await reviewStaffApplication(applicationId, auth.user.id);
     } else if (action === "notes") {
       application = await updateStaffApplicationNotes(applicationId, text(body.notes));
-    } else if (action === "stripe") {
-      application = await updateStripeCheckpoint({
+    } else if (action === "publish_website" || action === "republish_website") {
+      await setPartnerWebsiteVisibility({
         applicationId,
-        locationId: text(body.locationId),
-        status: text(body.status) as "pending" | "complete" | "not_required",
-        userId: auth.user.id,
+        action: action === "publish_website" ? "publish" : "republish",
       });
-    } else if (action === "deposit") {
-      application = await updateDepositCheckpoint({
-        applicationId,
-        locationId: text(body.locationId),
-        status: text(body.status) as "pending" | "complete" | "not_required",
-        percentage: Number(body.percentage ?? 30),
-        policyUrl: text(body.policyUrl),
-        message: text(body.message),
-        userId: auth.user.id,
-      });
+      application = await getStaffApplication(applicationId);
+    } else if (action === "hide_website") {
+      await setPartnerWebsiteVisibility({ applicationId, action: "hide" });
+      application = await getStaffApplication(applicationId);
     } else if (action === "reject") {
       application = await rejectStaffApplication(applicationId, text(body.notes));
     } else if (action === "complete") {
@@ -84,6 +80,27 @@ export async function PATCH(req: NextRequest, context: Context) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Could not update the application." },
       { status: 400 },
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest, context: Context) {
+  const auth = await requirePartnerAdmin(req);
+  if ("response" in auth) return auth.response;
+
+  try {
+    const { applicationId } = await context.params;
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    const deleted = await deleteStaffApplicationRecord({
+      applicationId,
+      confirmationEmail: text(body.confirmationEmail),
+    });
+    return NextResponse.json({ ok: true, deleted });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not delete the application.";
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: /not found/i.test(message) ? 404 : 400 },
     );
   }
 }

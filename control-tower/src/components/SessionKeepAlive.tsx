@@ -11,7 +11,10 @@ export default function SessionKeepAlive() {
     const refresh = async () => {
       if (stopped) return;
       try {
-        await fetch("/api/auth/refresh", {
+        const endpoint = window.location.hostname.toLowerCase() === "admin.mydripnurse.com"
+          ? "/api/partner-admin/auth/refresh"
+          : "/api/auth/refresh";
+        await fetch(endpoint, {
           method: "POST",
           credentials: "include",
           cache: "no-store",

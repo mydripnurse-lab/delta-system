@@ -1,26 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
-import {
-  testPartnerAdminNotificationWebhook,
-  type PartnerAdminWebhookTarget,
-} from "@/lib/partnerAdminSettings";
+import { testPartnerAdminNotificationWebhook, type PartnerAdminWebhookTarget } from "@/lib/partnerAdminSettings";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+export async function POST(request: Request) {
+  const auth = await requirePartnerAdmin(request);
   if ("response" in auth) return auth.response;
-
   try {
-    const body = await req.json();
-    const result = await testPartnerAdminNotificationWebhook({
-      tenantId: String(body?.tenantId || ""),
-      target: String(body?.target || "") as PartnerAdminWebhookTarget,
-    });
-    return NextResponse.json({ ok: true, result });
+    const body = await request.json();
+    const target = body?.target as PartnerAdminWebhookTarget;
+    const result = await testPartnerAdminNotificationWebhook({ tenantId: body?.tenantId, target });
+    return NextResponse.json({ ok: true, result }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "The webhook test failed.";
-    const status = /required|invalid|not configured|not found/i.test(message) ? 400 : 502;
-    return NextResponse.json({ ok: false, error: message }, { status });
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "The webhook test failed." }, { status: 400 });
   }
 }

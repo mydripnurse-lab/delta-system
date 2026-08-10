@@ -1,0 +1,240 @@
+.mapPanel {
+  position: sticky;
+  top: 18px;
+  min-height: 720px;
+  overflow: hidden;
+  border: 1px solid #d1e4e1;
+  border-radius: 28px;
+  background: #e9f5f4;
+  box-shadow: 0 24px 60px rgba(14, 58, 67, 0.1);
+  isolation: isolate;
+}
+
+.mapCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.mapCanvas :global(.mapboxgl-ctrl-group) {
+  overflow: hidden;
+  border: 1px solid rgba(7, 92, 104, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 12px 35px rgba(15, 68, 75, 0.12);
+}
+
+.mapCanvas :global(.mapboxgl-ctrl-group button) {
+  width: 34px;
+  height: 34px;
+}
+
+.mapCanvas :global(.mapboxgl-ctrl-attrib) {
+  font-size: 9px;
+}
+
+.avatarMarker {
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.avatarMarkerBody {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: #0b7780;
+  box-shadow: 0 8px 22px rgba(8, 67, 75, 0.28), 0 0 0 4px rgba(255, 255, 255, 0.55);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.avatarMarker:hover .avatarMarkerBody,
+.avatarMarkerSelected {
+  box-shadow: 0 10px 25px rgba(8, 67, 75, 0.32), 0 0 0 5px rgba(241, 189, 103, 0.65);
+  transform: scale(1.1);
+}
+
+.avatarMarkerBody img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarMarkerInitials {
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.03em;
+}
+
+.mapBadge,
+.mapSummary,
+.mapLegend {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(7, 92, 104, 0.13);
+  color: #075c68;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 35px rgba(15, 68, 75, 0.1);
+  backdrop-filter: blur(14px);
+}
+
+.mapBadge {
+  top: 20px;
+  left: 20px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mapBadge span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2bbd88;
+  box-shadow: 0 0 0 5px rgba(43, 189, 136, 0.13);
+}
+
+.mapSummary {
+  right: 20px;
+  bottom: 20px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 10px 13px;
+  border-radius: 12px;
+}
+
+.mapSummary strong {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.mapSummary span {
+  color: #6a8081;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.mapLegend {
+  left: 20px;
+  bottom: 20px;
+  gap: 14px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  color: #557174;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.mapLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendPoint,
+.legendCluster {
+  display: inline-block;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #0b7780;
+  box-shadow: 0 0 0 1px #0b7780;
+}
+
+.legendPoint {
+  width: 10px;
+  height: 10px;
+}
+
+.legendCluster {
+  width: 14px;
+  height: 14px;
+  background: #188e8d;
+  box-shadow: 0 0 0 1px #188e8d;
+}
+
+.mapState {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: min(360px, calc(100% - 44px));
+  padding: 28px 24px;
+  border: 1px solid rgba(7, 92, 104, 0.12);
+  border-radius: 22px;
+  color: #173f45;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 22px 50px rgba(15, 68, 75, 0.15);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.mapStateIcon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 13px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #0b7780;
+  font-size: 22px;
+}
+
+.mapState strong {
+  display: block;
+  font-family: var(--partner-serif);
+  font-size: 23px;
+  font-weight: 400;
+}
+
+.mapState p {
+  margin: 8px 0 0;
+  color: #6a8081;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 880px) {
+  .mapPanel {
+    position: relative;
+    min-height: 480px;
+  }
+
+  .mapLegend {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .mapPanel {
+    min-height: 410px;
+    border-radius: 21px;
+  }
+
+  .mapBadge {
+    top: 12px;
+    left: 12px;
+    padding: 9px 10px;
+    font-size: 8px;
+  }
+
+  .mapSummary {
+    right: 12px;
+    bottom: 12px;
+  }
+}

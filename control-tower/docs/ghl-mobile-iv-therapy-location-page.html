@@ -1,0 +1,521 @@
+<!--
+  MY DRIP NURSE — DYNAMIC LOCATION LANDING PAGE
+  Paste this complete block into a GHL Custom HTML element.
+  GHL supplies the global header and footer; this block intentionally creates neither.
+
+  Recommended GHL page SEO settings:
+  Title: Mobile IV Therapy in {{custom_values.county_name_and_state}} | My Drip Nurse
+  Description (under 150 characters after normal location replacement):
+  Mobile IV therapy in {{custom_values.county_name_and_state}}, delivered to you. Book personalized hydration and wellness care.
+  Keywords: mobile IV therapy, IV hydration, wellness services, {{custom_values.county_name_and_state}}
+-->
+
+<title>Mobile IV Therapy in {{custom_values.county_name_and_state}} | My Drip Nurse</title>
+<meta name="description" content="Mobile IV therapy in {{custom_values.county_name_and_state}}, delivered to you. Book personalized hydration and wellness care.">
+<meta name="keywords" content="mobile IV therapy, IV hydration, wellness services, {{custom_values.county_name_and_state}}">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<meta name="theme-color" content="#f6fbfc">
+
+<style>
+  #mdn-location-page,
+  #mdn-location-page * { box-sizing: border-box; }
+
+  #mdn-location-page {
+    --ink: #102f35;
+    --muted: #567077;
+    --teal: #006c78;
+    --teal-dark: #004f59;
+    --aqua: #82d8df;
+    --sky: #eaf7fa;
+    --cream: #fbfaf6;
+    --line: rgba(16, 47, 53, .11);
+    --glass: rgba(255, 255, 255, .76);
+    --shadow: 0 24px 70px rgba(14, 62, 69, .10);
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 92% 4%, rgba(130,216,223,.22), transparent 27rem),
+      linear-gradient(180deg, #f7fcfd 0%, #fff 26%, #fbfaf6 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow: clip;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #mdn-location-page img { display: block; max-width: 100%; }
+  #mdn-location-page a { color: inherit; }
+  #mdn-location-page button,
+  #mdn-location-page a { -webkit-tap-highlight-color: transparent; }
+  #mdn-location-page :focus-visible { outline: 3px solid #56c7d1; outline-offset: 4px; }
+
+  .mdn-shell { width: min(1160px, calc(100% - 32px)); margin-inline: auto; }
+  .mdn-section { padding: 76px 0; content-visibility: auto; contain-intrinsic-size: 700px; }
+  .mdn-section--tight { padding: 48px 0; }
+  .mdn-section--sky { background: linear-gradient(135deg, rgba(234,247,250,.94), rgba(255,255,255,.94)); }
+  .mdn-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px; margin: 0 0 16px;
+    color: var(--teal); font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  }
+  .mdn-eyebrow::before { content: ""; width: 26px; height: 1px; background: currentColor; }
+  .mdn-title { margin: 0; font-size: clamp(2rem, 7vw, 4.7rem); line-height: .98; letter-spacing: -.055em; text-wrap: balance; }
+  .mdn-h2 { margin: 0; font-size: clamp(1.8rem, 5vw, 3.35rem); line-height: 1.05; letter-spacing: -.045em; text-wrap: balance; }
+  .mdn-lead { max-width: 720px; margin: 22px 0 0; color: var(--muted); font-size: clamp(1rem, 2.5vw, 1.22rem); }
+  .mdn-center { text-align: center; }
+  .mdn-center .mdn-lead { margin-inline: auto; }
+
+  .mdn-hero { position: relative; padding: 84px 0 68px; min-height: 650px; display: grid; align-items: center; }
+  .mdn-hero__grid { display: grid; grid-template-columns: 1.08fr .92fr; gap: 52px; align-items: center; }
+  .mdn-hero__copy { position: relative; z-index: 2; }
+  .mdn-hero__media {
+    position: relative; min-height: 525px; border: 1px solid rgba(255,255,255,.76); border-radius: 38px;
+    overflow: hidden; box-shadow: var(--shadow); background: #dcecef;
+  }
+  .mdn-hero__media img { width: 100%; height: 100%; min-height: 525px; object-fit: cover; }
+  .mdn-hero__media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 62%, rgba(2,44,50,.35)); pointer-events: none; }
+  .mdn-hero__badge {
+    position: absolute; z-index: 2; left: 20px; right: 20px; bottom: 20px; padding: 15px 17px;
+    border: 1px solid rgba(255,255,255,.52); border-radius: 18px; color: #fff;
+    background: rgba(4,48,54,.54); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    font-size: .92rem; font-weight: 700;
+  }
+  .mdn-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+  .mdn-button {
+    min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 22px; border: 1px solid transparent; border-radius: 999px; text-decoration: none;
+    font-weight: 800; line-height: 1.2; transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .mdn-button--primary { color: #fff !important; background: var(--teal); box-shadow: 0 14px 30px rgba(0,108,120,.20); }
+  .mdn-button--primary:hover { background: var(--teal-dark); transform: translateY(-2px); }
+  .mdn-button--secondary { background: rgba(255,255,255,.66); border-color: var(--line); color: var(--ink) !important; }
+  .mdn-button--secondary:hover { background: #fff; transform: translateY(-2px); }
+  .mdn-proof { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 26px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: .89rem; }
+  .mdn-proof li { display: flex; align-items: center; gap: 7px; }
+  .mdn-proof li::before { content: "✓"; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: var(--teal); background: var(--sky); font-size: .72rem; font-weight: 900; }
+
+  .mdn-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .mdn-stat { padding: 23px; border: 1px solid var(--line); border-radius: 24px; background: var(--glass); box-shadow: 0 12px 34px rgba(16,47,53,.05); }
+  .mdn-stat strong { display: block; font-size: clamp(1.35rem, 4vw, 2rem); letter-spacing: -.04em; }
+  .mdn-stat span { color: var(--muted); font-size: .9rem; }
+
+  .mdn-split { display: grid; grid-template-columns: .92fr 1.08fr; gap: 52px; align-items: center; }
+  .mdn-image-card { overflow: hidden; border-radius: 32px; background: var(--sky); box-shadow: var(--shadow); }
+  .mdn-image-card img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
+  .mdn-checks { display: grid; gap: 13px; margin: 28px 0 0; padding: 0; list-style: none; }
+  .mdn-checks li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; color: var(--muted); }
+  .mdn-checks li::before { content: "✓"; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: var(--teal); background: var(--sky); font-weight: 900; }
+
+  .mdn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 34px; }
+  .mdn-card { padding: 26px; border: 1px solid var(--line); border-radius: 26px; background: rgba(255,255,255,.72); box-shadow: 0 16px 42px rgba(16,47,53,.055); }
+  .mdn-card__number { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 22px; border-radius: 14px; background: var(--sky); color: var(--teal); font-weight: 900; }
+  .mdn-card h3 { margin: 0 0 9px; font-size: 1.15rem; letter-spacing: -.02em; }
+  .mdn-card p { margin: 0; color: var(--muted); font-size: .94rem; }
+
+  .mdn-treatments { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 34px; }
+  .mdn-treatment { display: flex; align-items: center; gap: 13px; min-height: 64px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.72); font-weight: 700; }
+  .mdn-treatment::before { content: ""; flex: 0 0 auto; width: 12px; height: 12px; border: 3px solid #fff; border-radius: 50%; background: var(--aqua); box-shadow: 0 0 0 1px rgba(0,108,120,.2); }
+
+  .mdn-nav-panel { margin-top: 34px; padding: 24px; border: 1px solid rgba(255,255,255,.72); border-radius: 30px; background: rgba(255,255,255,.64); box-shadow: var(--shadow); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+  #ct-location-nav-root .ct-nav-status { margin: 0; color: var(--muted); text-align: center; }
+  #ct-location-nav-root .ct-nav-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+  #ct-location-nav-root .ct-nav-link {
+    min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.76);
+    color: var(--ink); text-decoration: none; font-size: .9rem; font-weight: 700; transition: transform .18s ease, border-color .18s ease, background .18s ease;
+  }
+  #ct-location-nav-root .ct-nav-link::after { content: "›"; color: var(--teal); font-size: 1.25rem; line-height: 1; }
+  #ct-location-nav-root .ct-nav-link:hover { transform: translateY(-2px); border-color: rgba(0,108,120,.35); background: #fff; }
+
+  .mdn-testimonial-frame { position: relative; min-height: 440px; margin-top: 32px; overflow: hidden; border: 1px solid var(--line); border-radius: 28px; background: #fff; box-shadow: var(--shadow); }
+  .mdn-testimonial-frame::before { content: "Loading verified client stories…"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: .9rem; }
+  .mdn-testimonial-frame iframe { position: relative; z-index: 1; display: block; width: 100%; min-height: 440px; border: 0; background: #fff; }
+  .mdn-testimonial-fallback { margin: 14px 0 0; color: var(--muted); text-align: center; font-size: .86rem; }
+
+  .mdn-faq { max-width: 850px; margin: 34px auto 0; }
+  .mdn-faq details { border-bottom: 1px solid var(--line); }
+  .mdn-faq summary { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px 4px; cursor: pointer; list-style: none; font-weight: 800; }
+  .mdn-faq summary::-webkit-details-marker { display: none; }
+  .mdn-faq summary::after { content: "+"; color: var(--teal); font-size: 1.4rem; font-weight: 500; }
+  .mdn-faq details[open] summary::after { content: "−"; }
+  .mdn-faq details p { margin: 0; padding: 0 42px 22px 4px; color: var(--muted); }
+
+  .mdn-cta { padding: 42px; border-radius: 34px; color: #fff; background: linear-gradient(135deg, #006c78, #014a55); box-shadow: 0 30px 80px rgba(0,79,89,.22); }
+  .mdn-cta .mdn-h2 { color: #fff; }
+  .mdn-cta p { max-width: 700px; margin: 18px 0 0; color: rgba(255,255,255,.78); }
+  .mdn-cta .mdn-button--primary { color: var(--teal-dark) !important; background: #fff; box-shadow: none; }
+
+  .mdn-reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+  .mdn-reveal.is-visible { opacity: 1; transform: none; }
+
+  @media (max-width: 900px) {
+    .mdn-hero { padding-top: 54px; }
+    .mdn-hero__grid, .mdn-split { grid-template-columns: 1fr; }
+    .mdn-hero__media { min-height: 420px; }
+    .mdn-hero__media img { min-height: 420px; }
+    .mdn-grid { grid-template-columns: repeat(2, 1fr); }
+    #ct-location-nav-root .ct-nav-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+
+  @media (max-width: 620px) {
+    .mdn-shell { width: min(100% - 24px, 1160px); }
+    .mdn-section { padding: 58px 0; }
+    .mdn-hero { min-height: auto; padding: 48px 0 42px; }
+    .mdn-hero__grid { gap: 34px; }
+    .mdn-title { font-size: clamp(2.75rem, 13vw, 4rem); }
+    .mdn-h2 { font-size: clamp(2rem, 9vw, 2.8rem); }
+    .mdn-actions { display: grid; }
+    .mdn-button { width: 100%; min-height: 54px; }
+    .mdn-hero__media, .mdn-hero__media img { min-height: 390px; }
+    .mdn-hero__media { border-radius: 28px; }
+    .mdn-stats, .mdn-grid, .mdn-treatments { grid-template-columns: 1fr; }
+    .mdn-stat { padding: 20px; }
+    .mdn-card { padding: 22px; }
+    .mdn-nav-panel { padding: 12px; border-radius: 22px; }
+    #ct-location-nav-root .ct-nav-grid { grid-template-columns: 1fr; }
+    #ct-location-nav-root .ct-nav-link { min-height: 54px; padding: 14px 16px; border-radius: 16px; }
+    .mdn-testimonial-frame, .mdn-testimonial-frame iframe { min-height: 520px; }
+    .mdn-cta { padding: 30px 22px; border-radius: 28px; text-align: center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #mdn-location-page *, #mdn-location-page *::before, #mdn-location-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    .mdn-reveal { opacity: 1; transform: none; }
+  }
+</style>
+
+<main id="mdn-location-page">
+  <section class="mdn-hero" aria-labelledby="mdn-page-title">
+    <div class="mdn-shell mdn-hero__grid">
+      <div class="mdn-hero__copy mdn-reveal">
+        <p class="mdn-eyebrow">Mobile wellness, delivered</p>
+        <h1 class="mdn-title" id="mdn-page-title">Mobile IV Therapy in {{custom_values.county_name_and_state}}</h1>
+        <p class="mdn-lead">Personalized IV hydration and wellness services brought to your home, hotel, office, or event by qualified medical professionals.</p>
+        <div class="mdn-actions">
+          <a class="mdn-button mdn-button--primary" href="/select-your-mobile-iv-therapy" aria-label="Book mobile IV therapy in {{custom_values.county_name_and_state}}">Book Mobile IV Therapy</a>
+          <a class="mdn-button mdn-button--secondary" href="#mdn-treatments">Explore Treatments</a>
+        </div>
+        <ul class="mdn-proof" aria-label="Service highlights">
+          <li>Convenient mobile care</li>
+          <li>Personalized treatments</li>
+          <li>Easy online booking</li>
+        </ul>
+      </div>
+      <figure class="mdn-hero__media mdn-reveal">
+        <img
+          src="https://images.leadconnectorhq.com/image/f_webp/q_82/r_900/u_https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69b0853696853744fa783d91.png"
+          srcset="https://images.leadconnectorhq.com/image/f_webp/q_78/r_640/u_https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69b0853696853744fa783d91.png 640w, https://images.leadconnectorhq.com/image/f_webp/q_82/r_900/u_https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69b0853696853744fa783d91.png 900w"
+          sizes="(max-width: 900px) 100vw, 46vw"
+          width="900" height="1125"
+          alt="Mobile IV therapy service available in {{custom_values.county_name_and_state}}"
+          title="Mobile IV Therapy in {{custom_values.county_name_and_state}}"
+          fetchpriority="high" decoding="async">
+        <figcaption class="mdn-hero__badge">Wellness care designed around your schedule in {{custom_values.county_name_and_state}}</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="mdn-section--tight" aria-label="Why clients choose My Drip Nurse">
+    <div class="mdn-shell mdn-stats">
+      <div class="mdn-stat mdn-reveal"><strong>Mobile</strong><span>We come to your preferred location.</span></div>
+      <div class="mdn-stat mdn-reveal"><strong>Personalized</strong><span>Options selected around your wellness goals.</span></div>
+      <div class="mdn-stat mdn-reveal"><strong>Convenient</strong><span>Book online and avoid unnecessary travel.</span></div>
+    </div>
+  </section>
+
+  <section class="mdn-section" aria-labelledby="mdn-about-title">
+    <div class="mdn-shell mdn-split">
+      <figure class="mdn-image-card mdn-reveal">
+        <img
+          src="https://images.leadconnectorhq.com/image/f_webp/q_78/r_768/u_https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69b08b8e03488697dafafae9.png"
+          width="768" height="960" loading="lazy" decoding="async"
+          alt="A client receiving personalized mobile wellness care in {{custom_values.county_name_and_state}}"
+          title="Personalized Mobile Wellness Care in {{custom_values.county_name_and_state}}">
+      </figure>
+      <div class="mdn-reveal">
+        <p class="mdn-eyebrow">Care that meets you there</p>
+        <h2 class="mdn-h2" id="mdn-about-title">Wellness without the waiting room.</h2>
+        <p class="mdn-lead">My Drip Nurse makes it easier to prioritize hydration and wellness without rearranging your day. Choose your service, request an appointment, and receive care where it is most convenient for you.</p>
+        <ul class="mdn-checks">
+          <li><span><strong>At-home convenience.</strong><br>Skip the drive and receive care in a familiar setting.</span></li>
+          <li><span><strong>Individual attention.</strong><br>Your visit is focused on your needs and selected service.</span></li>
+          <li><span><strong>Local availability.</strong><br>Appointments are offered throughout {{custom_values.county_name_and_state}}.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="mdn-section mdn-section--sky" aria-labelledby="mdn-process-title">
+    <div class="mdn-shell">
+      <div class="mdn-center mdn-reveal">
+        <p class="mdn-eyebrow">A simpler experience</p>
+        <h2 class="mdn-h2" id="mdn-process-title">How mobile IV therapy works</h2>
+        <p class="mdn-lead">From booking to your visit, every step is designed to be clear and convenient.</p>
+      </div>
+      <div class="mdn-grid">
+        <article class="mdn-card mdn-reveal"><div class="mdn-card__number">01</div><h3>Select a treatment</h3><p>Review available wellness and hydration options for your goals.</p></article>
+        <article class="mdn-card mdn-reveal"><div class="mdn-card__number">02</div><h3>Request your appointment</h3><p>Choose a convenient time and provide the details needed for your visit.</p></article>
+        <article class="mdn-card mdn-reveal"><div class="mdn-card__number">03</div><h3>We come to you</h3><p>A qualified professional provides the selected service at your location.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="mdn-section" id="mdn-treatments" aria-labelledby="mdn-treatments-title">
+    <div class="mdn-shell mdn-split">
+      <div class="mdn-reveal">
+        <p class="mdn-eyebrow">Personalized options</p>
+        <h2 class="mdn-h2" id="mdn-treatments-title">Mobile IV therapy and wellness services</h2>
+        <p class="mdn-lead">Explore services commonly selected for hydration, travel, recovery, energy, beauty, and everyday wellness.</p>
+        <div class="mdn-treatments" aria-label="Available treatment categories">
+          <div class="mdn-treatment">Hydration</div>
+          <div class="mdn-treatment">NAD+ Therapy</div>
+          <div class="mdn-treatment">Immunity Support</div>
+          <div class="mdn-treatment">Recovery &amp; Performance</div>
+          <div class="mdn-treatment">Beauty &amp; Glow</div>
+          <div class="mdn-treatment">Travel &amp; Hangover Support</div>
+        </div>
+        <div class="mdn-actions"><a class="mdn-button mdn-button--primary" href="/select-your-mobile-iv-therapy">View Services &amp; Book</a></div>
+      </div>
+      <figure class="mdn-image-card mdn-reveal">
+        <img
+          src="https://images.leadconnectorhq.com/image/f_webp/q_78/r_768/u_https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69b08def8d3eae91aeead1b1.png"
+          width="768" height="960" loading="lazy" decoding="async"
+          alt="Mobile IV hydration treatment offered in {{custom_values.county_name_and_state}}"
+          title="IV Hydration Services in {{custom_values.county_name_and_state}}">
+      </figure>
+    </div>
+  </section>
+
+  <section class="mdn-section mdn-section--sky" aria-labelledby="mdn-coverage-title">
+    <div class="mdn-shell">
+      <div class="mdn-center mdn-reveal">
+        <p class="mdn-eyebrow">Local service coverage</p>
+        <h2 class="mdn-h2" id="mdn-coverage-title">Areas we serve near {{custom_values.county_name_and_state}}</h2>
+        <p class="mdn-lead">Choose a nearby service area to view local availability. The list updates automatically based on the current city, county, or state page.</p>
+      </div>
+      <div class="mdn-nav-panel mdn-reveal">
+        <nav id="ct-location-nav-root" aria-label="Mobile IV therapy service areas near {{custom_values.county_name_and_state}}">
+          <p class="ct-nav-status" role="status">Loading nearby service areas…</p>
+        </nav>
+      </div>
+    </div>
+  </section>
+
+  <section class="mdn-section" aria-labelledby="mdn-reviews-title">
+    <div class="mdn-shell">
+      <div class="mdn-center mdn-reveal">
+        <p class="mdn-eyebrow">Client experiences</p>
+        <h2 class="mdn-h2" id="mdn-reviews-title">What clients say about My Drip Nurse</h2>
+        <p class="mdn-lead">Read verified client stories about convenience, service, and the mobile wellness experience.</p>
+      </div>
+      <div class="mdn-testimonial-frame mdn-reveal" id="mdn-bonjoro-frame">
+        <iframe
+          id="p-38b7a548-411d-46d8-a89c-6f207a22a7b8"
+          title="Client testimonials for mobile IV therapy in {{custom_values.county_name_and_state}}"
+          loading="lazy" scrolling="no" width="100%"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="fullscreen"></iframe>
+      </div>
+      <p class="mdn-testimonial-fallback">Having trouble viewing the stories? <a href="https://www.bonjoro.com/pe/38b7a548-411d-46d8-a89c-6f207a22a7b8" rel="noopener" target="_blank">Open testimonials in a new window</a>.</p>
+    </div>
+  </section>
+
+  <section class="mdn-section mdn-section--sky" aria-labelledby="mdn-faq-title">
+    <div class="mdn-shell">
+      <div class="mdn-center mdn-reveal">
+        <p class="mdn-eyebrow">Helpful answers</p>
+        <h2 class="mdn-h2" id="mdn-faq-title">Mobile IV therapy FAQs</h2>
+      </div>
+      <div class="mdn-faq mdn-reveal">
+        <details><summary>What is mobile IV therapy?</summary><p>Mobile IV therapy brings a selected hydration or wellness service to a convenient location such as your home, hotel, office, or event.</p></details>
+        <details><summary>Where can I receive service?</summary><p>Service may be available at homes, hotels, offices, and other suitable locations throughout {{custom_values.county_name_and_state}}. Availability is confirmed during booking.</p></details>
+        <details><summary>How do I book an appointment?</summary><p>Select your preferred service, submit your appointment request, and provide the location and scheduling details requested in the booking form.</p></details>
+        <details><summary>Which treatment should I choose?</summary><p>Available options serve different wellness goals. Review each service description and share relevant information so the appropriate selection can be discussed.</p></details>
+        <details><summary>How should I prepare for my visit?</summary><p>Follow the instructions provided with your appointment confirmation, remain hydrated when appropriate, and have your identification and health information available.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="mdn-section" id="book-mobile-iv" aria-labelledby="mdn-book-title">
+    <div class="mdn-shell">
+      <div class="mdn-cta mdn-reveal">
+        <p class="mdn-eyebrow" style="color:#b8f1f4">Ready when you are</p>
+        <h2 class="mdn-h2" id="mdn-book-title">Book mobile IV therapy in {{custom_values.county_name_and_state}}</h2>
+        <p>Choose your service and request a time that works for you. My Drip Nurse brings personalized mobile wellness care to your preferred location.</p>
+        <div class="mdn-actions"><a class="mdn-button mdn-button--primary" href="/select-your-mobile-iv-therapy" aria-label="Start booking mobile IV therapy in {{custom_values.county_name_and_state}}">Start Your Booking</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "name": "Mobile IV Therapy in {{custom_values.county_name_and_state}}",
+      "description": "Mobile IV therapy in {{custom_values.county_name_and_state}}, delivered to you. Book personalized hydration and wellness care.",
+      "inLanguage": "en-US",
+      "isPartOf": { "@id": "https://www.mydripnurse.com/#website" },
+      "about": { "@type": "Service", "name": "Mobile IV Therapy in {{custom_values.county_name_and_state}}" }
+    },
+    {
+      "@type": "Service",
+      "name": "Mobile IV Therapy in {{custom_values.county_name_and_state}}",
+      "serviceType": "Mobile IV therapy and wellness services",
+      "provider": {
+        "@type": "Organization",
+        "@id": "https://www.mydripnurse.com/#organization",
+        "name": "My Drip Nurse",
+        "url": "https://www.mydripnurse.com/"
+      },
+      "areaServed": { "@type": "Place", "name": "{{custom_values.county_name_and_state}}" }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is mobile IV therapy?", "acceptedAnswer": { "@type": "Answer", "text": "Mobile IV therapy brings a selected hydration or wellness service to a convenient location such as your home, hotel, office, or event." } },
+        { "@type": "Question", "name": "Where can I receive service?", "acceptedAnswer": { "@type": "Answer", "text": "Service may be available at homes, hotels, offices, and other suitable locations throughout {{custom_values.county_name_and_state}}. Availability is confirmed during booking." } },
+        { "@type": "Question", "name": "How do I book an appointment?", "acceptedAnswer": { "@type": "Answer", "text": "Select your preferred service, submit your appointment request, and provide the location and scheduling details requested in the booking form." } }
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var page = document.getElementById("mdn-location-page");
+  if (!page) return;
+
+  /* Lightweight reveal animation: transform/opacity only, no animation library. */
+  var revealItems = page.querySelectorAll(".mdn-reveal");
+  if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    revealItems.forEach(function (el) { el.classList.add("is-visible"); });
+  } else {
+    var revealObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: "0px 0px -8%", threshold: 0.08 });
+    revealItems.forEach(function (el) { revealObserver.observe(el); });
+  }
+
+  /* Bonjoro: defer both iframe and resizer until close to the viewport. */
+  var bonjoroWrap = document.getElementById("mdn-bonjoro-frame");
+  var bonjoroFrame = document.getElementById("p-38b7a548-411d-46d8-a89c-6f207a22a7b8");
+  var bonjoroLoaded = false;
+  function loadBonjoro() {
+    if (bonjoroLoaded || !bonjoroFrame) return;
+    bonjoroLoaded = true;
+    bonjoroFrame.src = "https://www.bonjoro.com/pe/38b7a548-411d-46d8-a89c-6f207a22a7b8";
+    var script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.7/iframeResizer.min.js";
+    script.async = true;
+    script.onload = function () {
+      if (window.iFrameResize) window.iFrameResize({ warningTimeout: 30000, log: false, checkOrigin: false, heightCalculationMethod: "lowestElement" }, bonjoroFrame);
+    };
+    document.head.appendChild(script);
+  }
+  if (bonjoroWrap && "IntersectionObserver" in window) {
+    var bonjoroObserver = new IntersectionObserver(function (entries, observer) {
+      if (entries[0] && entries[0].isIntersecting) { loadBonjoro(); observer.disconnect(); }
+    }, { rootMargin: "700px 0px" });
+    bonjoroObserver.observe(bonjoroWrap);
+  } else { loadBonjoro(); }
+
+  /* Dynamic city/county/state navigation. Preserves the original index and routing logic. */
+  var INDEX_URL = "https://search-embedded.telahagocrecer.com/embedded/index/fce0eb1a-5108-4777-923d-3a8152930f00/location-nav.json";
+  var navRoot = document.getElementById("ct-location-nav-root");
+  if (!navRoot) return;
+
+  function str(value) { return String(value == null ? "" : value).trim(); }
+  function norm(value) { return str(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+  function slug(value) { return norm(value).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+  function hostFromUrl(value) { return str(value).replace(/^https?:\/\//i, "").split("/")[0].replace(/^www\./i, "").toLowerCase(); }
+  function subdomainFromHost(host) { var parts = str(host).toLowerCase().replace(/^www\./, "").split(".").filter(Boolean); return parts.length > 2 ? parts[0] : ""; }
+  function dropSuffix(value) { return slug(value).replace(/-(city|county|parish)$/, "").replace(/-(city|county|parish)-[a-z]{2}$/, "").replace(/-[a-z]{2}$/, ""); }
+  function aliases(value, type) { var base = dropSuffix(value), full = slug(value); return Array.from(new Set([full, base, base + "-" + type].filter(Boolean))); }
+  function currentPath(url) { try { var target = new URL(url); target.pathname = location.pathname || "/"; target.search = location.search || ""; target.hash = location.hash || ""; return target.toString(); } catch (error) { return url; } }
+  function unique(rows) { var seen = new Set(); return rows.filter(function (row) { var key = norm(row.label); if (!key || seen.has(key)) return false; seen.add(key); return true; }); }
+
+  function detect(items) {
+    var host = location.hostname.toLowerCase().replace(/^www\./, "");
+    var sub = subdomainFromHost(host);
+    var exactCity = items.find(function (item) { return hostFromUrl(item.cityUrl || item.cityDomain) === host; });
+    var exactCounty = items.find(function (item) { return hostFromUrl(item.countyUrl || item.countyDomain) === host; });
+    var exactState = items.find(function (item) { return hostFromUrl(item.stateUrl) === host; });
+    if (exactCounty) return { type: "county", state: exactCounty.state, county: exactCounty.county };
+    if (exactCity) return { type: "city", state: exactCity.state, county: exactCity.county, city: exactCity.city };
+    if (exactState) return { type: "state", state: exactState.state };
+    var county = items.find(function (item) { return aliases(item.county, norm(item.state) === "louisiana" ? "parish" : "county").indexOf(sub) > -1; });
+    var city = items.find(function (item) { return aliases(item.city, "city").indexOf(sub) > -1; });
+    var state = items.find(function (item) { return slug(item.state) === sub; });
+    if (/-city(-[a-z]{2})?$/.test(sub) && city) return { type: "city", state: city.state, county: city.county, city: city.city };
+    if (/-(county|parish)(-[a-z]{2})?$/.test(sub) && county) return { type: "county", state: county.state, county: county.county };
+    if (state) return { type: "state", state: state.state };
+    if (county) return { type: "county", state: county.state, county: county.county };
+    if (city) return { type: "city", state: city.state, county: city.county, city: city.city };
+    return { type: "unknown" };
+  }
+
+  function targets(items, context) {
+    var rows;
+    if (context.type === "county") {
+      rows = items.filter(function (item) { return norm(item.state) === norm(context.state) && norm(item.county) === norm(context.county); })
+        .map(function (item) { return { label: item.city, href: currentPath(str(item.cityUrl || item.cityDomain)) }; });
+    } else if (context.type === "state") {
+      rows = items.filter(function (item) { return norm(item.state) === norm(context.state); })
+        .map(function (item) {
+          var label = str(item.county);
+          if (!/( county| parish)$/i.test(label)) label += norm(item.state) === "louisiana" ? " Parish" : " County";
+          return { label: label, href: currentPath(str(item.countyUrl || item.countyDomain)) };
+        });
+    } else {
+      rows = items.map(function (item) { return { label: item.state, href: currentPath(str(item.stateUrl || item.countyUrl || item.countyDomain)) }; });
+    }
+    return unique(rows.filter(function (row) { return str(row.label) && str(row.href); })).sort(function (a, b) { return a.label.localeCompare(b.label); });
+  }
+
+  function renderLinks(rows) {
+    navRoot.innerHTML = "";
+    if (!rows.length) {
+      navRoot.innerHTML = '<p class="ct-nav-status">Nearby service areas are temporarily unavailable.</p>';
+      return;
+    }
+    var grid = document.createElement("div");
+    grid.className = "ct-nav-grid";
+    rows.forEach(function (row) {
+      var link = document.createElement("a");
+      link.className = "ct-nav-link";
+      link.href = row.href;
+      link.textContent = row.label;
+      link.title = "Mobile IV therapy in " + row.label;
+      link.setAttribute("aria-label", "View mobile IV therapy services in " + row.label);
+      grid.appendChild(link);
+    });
+    navRoot.appendChild(grid);
+  }
+
+  fetch(INDEX_URL, { cache: "force-cache" })
+    .then(function (response) { if (!response.ok) throw new Error("Location index unavailable"); return response.json(); })
+    .then(function (data) {
+      var states = Array.isArray(data.states) ? data.states : [];
+      var items = (Array.isArray(data.items) ? data.items : []).map(function (item) {
+        var stateMatch = states.find(function (state) { return norm(state.stateName) === norm(item.state); });
+        return {
+          state: str(item.state), county: str(item.county), city: str(item.city),
+          countyDomain: str(item.countyDomain), cityDomain: str(item.cityDomain),
+          countyUrl: str(item.countyUrl || item.countyDomain), cityUrl: str(item.cityUrl || item.cityDomain),
+          stateUrl: str(item.stateUrl || (stateMatch && (stateMatch.stateUrl || stateMatch.stateFileUrl)))
+        };
+      });
+      renderLinks(targets(items, detect(items)));
+    })
+    .catch(function () { renderLinks([]); });
+}());
+</script>

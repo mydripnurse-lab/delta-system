@@ -7,7 +7,7 @@ import type {
   PartnerAdminNotificationSettings,
   PartnerAdminWebhookTarget,
 } from "@/lib/partnerAdminSettings";
-import { PartnerAdminLogout } from "@/components/partner-admin/PartnerAdminLogout";
+import { PartnerAdminShell } from "@/components/partner-admin/PartnerAdminShell";
 import styles from "@/app/partner-admin/partnerAdmin.module.css";
 
 const STATUS_OPTIONS = [
@@ -21,11 +21,12 @@ const STATUS_OPTIONS = [
   ["completed", "Completed"],
   ["failed", "Needs attention"],
   ["rejected", "Rejected"],
+  ["deactivated", "Deactivated"],
 ];
 
 function tone(status: string) {
   if (["completed", "staff_ready", "ready_to_complete", "complete"].includes(status)) return styles.good;
-  if (["failed", "rejected"].includes(status)) return styles.bad;
+  if (["failed", "rejected", "deactivated"].includes(status)) return styles.bad;
   if (["submitted", "under_review", "stripe_pending", "calendar_deposit_pending"].includes(status)) return styles.warn;
   return styles.info;
 }
@@ -46,7 +47,7 @@ function redirectOnUnauthorized(response: Response) {
   return true;
 }
 
-export function PartnerAdminClient() {
+export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSettingsOpen?: boolean }) {
   const [applications, setApplications] = useState<StaffAdminApplication[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -57,9 +58,32 @@ export function PartnerAdminClient() {
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [applicantWebhookUrl, setApplicantWebhookUrl] = useState("");
   const [adminWebhookUrl, setAdminWebhookUrl] = useState("");
+  const [partnerWebhookUrl, setPartnerWebhookUrl] = useState("");
+  const [leadCaptureWebhookUrl, setLeadCaptureWebhookUrl] = useState("");
+  const [appointmentCreatedWebhookUrl, setAppointmentCreatedWebhookUrl] = useState("");
+  const [newBookingWebhookUrl, setNewBookingWebhookUrl] = useState("");
+  const [partnerConfirmationRequiredWebhookUrl, setPartnerConfirmationRequiredWebhookUrl] = useState("");
+  const [partnerRescheduledWebhookUrl, setPartnerRescheduledWebhookUrl] = useState("");
+  const [appointmentAcceptedWebhookUrl, setAppointmentAcceptedWebhookUrl] = useState("");
+  const [appointmentDeclinedWebhookUrl, setAppointmentDeclinedWebhookUrl] = useState("");
+  const [appointmentReassignedWebhookUrl, setAppointmentReassignedWebhookUrl] = useState("");
+  const [appointmentCompletedWebhookUrl, setAppointmentCompletedWebhookUrl] = useState("");
+  const [appointmentRefundedWebhookUrl, setAppointmentRefundedWebhookUrl] = useState("");
   const [adminBaseUrl, setAdminBaseUrl] = useState("https://admin.mydripnurse.com");
+  const [affiliateCommissionRate, setAffiliateCommissionRate] = useState("2");
   const [clearApplicantWebhook, setClearApplicantWebhook] = useState(false);
   const [clearAdminWebhook, setClearAdminWebhook] = useState(false);
+  const [clearPartnerWebhook, setClearPartnerWebhook] = useState(false);
+  const [clearLeadCaptureWebhook, setClearLeadCaptureWebhook] = useState(false);
+  const [clearAppointmentCreatedWebhook, setClearAppointmentCreatedWebhook] = useState(false);
+  const [clearNewBookingWebhook, setClearNewBookingWebhook] = useState(false);
+  const [clearPartnerConfirmationRequiredWebhook, setClearPartnerConfirmationRequiredWebhook] = useState(false);
+  const [clearPartnerRescheduledWebhook, setClearPartnerRescheduledWebhook] = useState(false);
+  const [clearAppointmentAcceptedWebhook, setClearAppointmentAcceptedWebhook] = useState(false);
+  const [clearAppointmentDeclinedWebhook, setClearAppointmentDeclinedWebhook] = useState(false);
+  const [clearAppointmentReassignedWebhook, setClearAppointmentReassignedWebhook] = useState(false);
+  const [clearAppointmentCompletedWebhook, setClearAppointmentCompletedWebhook] = useState(false);
+  const [clearAppointmentRefundedWebhook, setClearAppointmentRefundedWebhook] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsError, setSettingsError] = useState("");
@@ -116,9 +140,18 @@ export function PartnerAdminClient() {
     void loadSettings();
   }, [loadSettings]);
 
+  useEffect(() => {
+    if (initialSettingsOpen) openSettings();
+  }, [initialSettingsOpen, openSettings]);
+
   const closeSettings = useCallback(() => {
     if (settingsSaving || testingTarget) return;
     setSettingsOpen(false);
+    if (window.location.pathname === "/partner-admin/automations") {
+      window.location.assign("/partner-admin");
+      return;
+    }
+    if (window.location.pathname === "/automations") window.location.assign("/");
   }, [settingsSaving, testingTarget]);
 
   useEffect(() => {
@@ -143,10 +176,33 @@ export function PartnerAdminClient() {
   useEffect(() => {
     if (!selectedSettings) return;
     setAdminBaseUrl(selectedSettings.adminBaseUrl || "https://admin.mydripnurse.com");
-    setApplicantWebhookUrl("");
-    setAdminWebhookUrl("");
+    setAffiliateCommissionRate(String(selectedSettings.affiliateCommissionRate ?? 2));
+    setApplicantWebhookUrl(selectedSettings.applicantReceivedWebhookUrl || "");
+    setAdminWebhookUrl(selectedSettings.adminNotificationWebhookUrl || "");
+    setPartnerWebhookUrl(selectedSettings.partnerNotificationWebhookUrl || "");
+    setLeadCaptureWebhookUrl(selectedSettings.leadCaptureWebhookUrl || "");
+    setAppointmentCreatedWebhookUrl(selectedSettings.appointmentCreatedWebhookUrl || "");
+    setNewBookingWebhookUrl(selectedSettings.newBookingWebhookUrl || "");
+    setPartnerConfirmationRequiredWebhookUrl(selectedSettings.partnerConfirmationRequiredWebhookUrl || "");
+    setPartnerRescheduledWebhookUrl(selectedSettings.partnerRescheduledWebhookUrl || "");
+    setAppointmentAcceptedWebhookUrl(selectedSettings.appointmentAcceptedWebhookUrl || "");
+    setAppointmentDeclinedWebhookUrl(selectedSettings.appointmentDeclinedWebhookUrl || "");
+    setAppointmentReassignedWebhookUrl(selectedSettings.appointmentReassignedWebhookUrl || "");
+    setAppointmentCompletedWebhookUrl(selectedSettings.appointmentCompletedWebhookUrl || "");
+    setAppointmentRefundedWebhookUrl(selectedSettings.appointmentRefundedWebhookUrl || "");
     setClearApplicantWebhook(false);
     setClearAdminWebhook(false);
+    setClearPartnerWebhook(false);
+    setClearLeadCaptureWebhook(false);
+    setClearAppointmentCreatedWebhook(false);
+    setClearNewBookingWebhook(false);
+    setClearPartnerConfirmationRequiredWebhook(false);
+    setClearPartnerRescheduledWebhook(false);
+    setClearAppointmentAcceptedWebhook(false);
+    setClearAppointmentDeclinedWebhook(false);
+    setClearAppointmentReassignedWebhook(false);
+    setClearAppointmentCompletedWebhook(false);
+    setClearAppointmentRefundedWebhook(false);
     setSettingsNotice("");
     setSettingsError("");
   }, [selectedSettings]);
@@ -164,9 +220,32 @@ export function PartnerAdminClient() {
           tenantId: selectedTenantId,
           applicantReceivedWebhookUrl: applicantWebhookUrl,
           adminNotificationWebhookUrl: adminWebhookUrl,
+          partnerNotificationWebhookUrl: partnerWebhookUrl,
+          leadCaptureWebhookUrl,
+          appointmentCreatedWebhookUrl,
+          newBookingWebhookUrl,
+          partnerConfirmationRequiredWebhookUrl,
+          partnerRescheduledWebhookUrl,
+          appointmentAcceptedWebhookUrl,
+          appointmentDeclinedWebhookUrl,
+          appointmentReassignedWebhookUrl,
+          appointmentCompletedWebhookUrl,
+          appointmentRefundedWebhookUrl,
           adminBaseUrl,
+          affiliateCommissionRate: Number(affiliateCommissionRate),
           clearApplicantWebhook,
           clearAdminWebhook,
+          clearPartnerWebhook,
+          clearLeadCaptureWebhook,
+          clearAppointmentCreatedWebhook,
+          clearNewBookingWebhook,
+          clearPartnerConfirmationRequiredWebhook,
+          clearPartnerRescheduledWebhook,
+          clearAppointmentAcceptedWebhook,
+          clearAppointmentDeclinedWebhook,
+          clearAppointmentReassignedWebhook,
+          clearAppointmentCompletedWebhook,
+          clearAppointmentRefundedWebhook,
         }),
       });
       if (redirectOnUnauthorized(response)) return;
@@ -176,8 +255,30 @@ export function PartnerAdminClient() {
       setSettings((current) => current.map((item) => item.tenantId === saved.tenantId ? saved : item));
       setApplicantWebhookUrl("");
       setAdminWebhookUrl("");
+      setPartnerWebhookUrl("");
+      setLeadCaptureWebhookUrl("");
+      setAppointmentCreatedWebhookUrl("");
+      setNewBookingWebhookUrl("");
+      setPartnerConfirmationRequiredWebhookUrl("");
+      setPartnerRescheduledWebhookUrl("");
+      setAppointmentAcceptedWebhookUrl("");
+      setAppointmentDeclinedWebhookUrl("");
+      setAppointmentReassignedWebhookUrl("");
+      setAppointmentCompletedWebhookUrl("");
+      setAppointmentRefundedWebhookUrl("");
       setClearApplicantWebhook(false);
       setClearAdminWebhook(false);
+      setClearPartnerWebhook(false);
+      setClearLeadCaptureWebhook(false);
+      setClearAppointmentCreatedWebhook(false);
+      setClearNewBookingWebhook(false);
+      setClearPartnerConfirmationRequiredWebhook(false);
+      setClearPartnerRescheduledWebhook(false);
+      setClearAppointmentAcceptedWebhook(false);
+      setClearAppointmentDeclinedWebhook(false);
+      setClearAppointmentReassignedWebhook(false);
+      setClearAppointmentCompletedWebhook(false);
+      setClearAppointmentRefundedWebhook(false);
       setSettingsNotice("Notification settings saved securely.");
     } catch (err) {
       setSettingsError(err instanceof Error ? err.message : "Could not save notification settings.");
@@ -187,10 +288,33 @@ export function PartnerAdminClient() {
   }, [
     adminBaseUrl,
     adminWebhookUrl,
+    partnerWebhookUrl,
+    leadCaptureWebhookUrl,
     applicantWebhookUrl,
     clearAdminWebhook,
+    clearPartnerWebhook,
     clearApplicantWebhook,
+    clearLeadCaptureWebhook,
+    clearAppointmentCreatedWebhook,
+    clearNewBookingWebhook,
+    clearPartnerConfirmationRequiredWebhook,
+    clearPartnerRescheduledWebhook,
+    clearAppointmentAcceptedWebhook,
+    clearAppointmentDeclinedWebhook,
+    clearAppointmentReassignedWebhook,
+    clearAppointmentCompletedWebhook,
+    clearAppointmentRefundedWebhook,
     selectedTenantId,
+    affiliateCommissionRate,
+    appointmentCreatedWebhookUrl,
+    newBookingWebhookUrl,
+    partnerConfirmationRequiredWebhookUrl,
+    partnerRescheduledWebhookUrl,
+    appointmentAcceptedWebhookUrl,
+    appointmentDeclinedWebhookUrl,
+    appointmentReassignedWebhookUrl,
+    appointmentCompletedWebhookUrl,
+    appointmentRefundedWebhookUrl,
   ]);
 
   const testWebhook = useCallback(async (target: PartnerAdminWebhookTarget) => {
@@ -207,7 +331,22 @@ export function PartnerAdminClient() {
       if (redirectOnUnauthorized(response)) return;
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "The webhook test failed.");
-      setSettingsNotice(`${target === "applicant_received" ? "Applicant" : "Administrator"} webhook test delivered successfully (HTTP ${payload.result.status}).`);
+      const targetLabel = {
+        applicant_received: "Applicant",
+        admin_notification: "Administrator",
+        partner_notification: "Partner appointment",
+        appointment_created: "Appointment-created",
+        lead_capture: "Lead capture",
+        new_booking: "New booking",
+        partner_confirmation_required: "Partner confirmation required",
+        partner_rescheduled: "Partner rescheduled",
+        appointment_accepted: "Appointment accepted",
+        appointment_declined: "Appointment declined",
+        appointment_reassigned: "Appointment reassigned",
+        appointment_completed: "Appointment completed",
+        appointment_refunded: "Appointment refunded",
+      }[target];
+      setSettingsNotice(`${targetLabel} webhook test delivered successfully (HTTP ${payload.result.status}).`);
     } catch (err) {
       setSettingsError(err instanceof Error ? err.message : "The webhook test failed.");
     } finally {
@@ -218,55 +357,66 @@ export function PartnerAdminClient() {
   const stats = useMemo(() => ({
     total: applications.length,
     newCount: applications.filter((item) => item.status === "submitted").length,
-    inProgress: applications.filter((item) => !["submitted", "completed", "rejected"].includes(item.status)).length,
+    inProgress: applications.filter((item) => !["submitted", "completed", "rejected", "deactivated"].includes(item.status)).length,
     complete: applications.filter((item) => item.status === "completed").length,
   }), [applications]);
 
-  return (
-    <main className={styles.shell}>
-      <div className={styles.frame}>
-        <header className={styles.topbar}>
-          <div className={styles.brand}>
-            <div className={styles.logo}>MDN</div>
-            <div className={styles.brandCopy}>
-              <strong>My Drip Nurse</strong>
-              <span>Partner operations</span>
-            </div>
-          </div>
-          <div className={styles.topbarActions}>
-            <button type="button" className={styles.secondaryButton} onClick={openSettings}>Notification settings</button>
-            <button type="button" className={styles.secondaryButton} onClick={load} disabled={loading}>Refresh</button>
-            <PartnerAdminLogout className={styles.secondaryButton} />
-          </div>
-        </header>
+  const lifecycleWebhookFields: Array<{
+    target: PartnerAdminWebhookTarget;
+    label: string;
+    value: string;
+    setValue: (value: string) => void;
+    clear: boolean;
+    setClear: (value: boolean) => void;
+    configured: boolean;
+  }> = [
+    { target: "new_booking", label: "New booking", value: newBookingWebhookUrl, setValue: setNewBookingWebhookUrl, clear: clearNewBookingWebhook, setClear: setClearNewBookingWebhook, configured: Boolean(selectedSettings?.newBookingWebhookConfigured) },
+    { target: "partner_confirmation_required", label: "Partner confirmation required", value: partnerConfirmationRequiredWebhookUrl, setValue: setPartnerConfirmationRequiredWebhookUrl, clear: clearPartnerConfirmationRequiredWebhook, setClear: setClearPartnerConfirmationRequiredWebhook, configured: Boolean(selectedSettings?.partnerConfirmationRequiredWebhookConfigured) },
+    { target: "partner_rescheduled", label: "Partner rescheduled", value: partnerRescheduledWebhookUrl, setValue: setPartnerRescheduledWebhookUrl, clear: clearPartnerRescheduledWebhook, setClear: setClearPartnerRescheduledWebhook, configured: Boolean(selectedSettings?.partnerRescheduledWebhookConfigured) },
+    { target: "appointment_accepted", label: "Appointment accepted", value: appointmentAcceptedWebhookUrl, setValue: setAppointmentAcceptedWebhookUrl, clear: clearAppointmentAcceptedWebhook, setClear: setClearAppointmentAcceptedWebhook, configured: Boolean(selectedSettings?.appointmentAcceptedWebhookConfigured) },
+    { target: "appointment_declined", label: "Appointment declined", value: appointmentDeclinedWebhookUrl, setValue: setAppointmentDeclinedWebhookUrl, clear: clearAppointmentDeclinedWebhook, setClear: setClearAppointmentDeclinedWebhook, configured: Boolean(selectedSettings?.appointmentDeclinedWebhookConfigured) },
+    { target: "appointment_reassigned", label: "Appointment reassigned", value: appointmentReassignedWebhookUrl, setValue: setAppointmentReassignedWebhookUrl, clear: clearAppointmentReassignedWebhook, setClear: setClearAppointmentReassignedWebhook, configured: Boolean(selectedSettings?.appointmentReassignedWebhookConfigured) },
+    { target: "appointment_completed", label: "Appointment completed", value: appointmentCompletedWebhookUrl, setValue: setAppointmentCompletedWebhookUrl, clear: clearAppointmentCompletedWebhook, setClear: setClearAppointmentCompletedWebhook, configured: Boolean(selectedSettings?.appointmentCompletedWebhookConfigured) },
+    { target: "appointment_refunded", label: "Appointment refunded", value: appointmentRefundedWebhookUrl, setValue: setAppointmentRefundedWebhookUrl, clear: clearAppointmentRefundedWebhook, setClear: setClearAppointmentRefundedWebhook, configured: Boolean(selectedSettings?.appointmentRefundedWebhookConfigured) },
+  ];
 
+  return (
+    <PartnerAdminShell
+      title="Applications overview"
+      actions={
+        <button type="button" className={styles.secondaryButton} onClick={load} disabled={loading}>Refresh queue</button>
+      }
+    >
+      <div className={styles.frame}>
         <section className={styles.hero}>
           <div>
-            <span className={styles.eyebrow}>Partner administration</span>
-            <h1>Registrations, reviewed with control.</h1>
-            <p>Review every applicant, connect Stripe manually, create staff access, assign calendars, and confirm the appointment deposit in the required order.</p>
+            <span className={styles.eyebrow}>My Drip Nurse · Partner Network</span>
+            <h1>Partner onboarding,<br /><em>beautifully organized.</em></h1>
+            <p>Review new partners, activate their locations and finish every operational step from one clean workspace.</p>
           </div>
+          <div className={styles.heroPill}><span />Private internal workspace</div>
         </section>
 
         <section className={styles.stats} aria-label="Application summary">
-          <article className={styles.stat}><span>Visible applications</span><strong>{stats.total}</strong></article>
-          <article className={styles.stat}><span>New</span><strong>{stats.newCount}</strong></article>
-          <article className={styles.stat}><span>In progress</span><strong>{stats.inProgress}</strong></article>
-          <article className={styles.stat}><span>Completed</span><strong>{stats.complete}</strong></article>
+          <article className={styles.stat}><span>All applications</span><strong>{stats.total}</strong><small>Current queue</small></article>
+          <article className={styles.stat}><span>Needs review</span><strong>{stats.newCount}</strong><small>New submissions</small></article>
+          <article className={styles.stat}><span>In progress</span><strong>{stats.inProgress}</strong><small>Activation underway</small></article>
+          <article className={styles.stat}><span>Completed</span><strong>{stats.complete}</strong><small>Partners activated</small></article>
         </section>
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <h2>Partner applications</h2>
-            <span className={styles.subtle}>Every application and county remains auditable from submission to final deposit setup.</span>
+            <span className={styles.subtle}>Select an applicant to continue their activation workflow.</span>
             <div className={styles.filters}>
               <input
                 className={`${styles.input} ${styles.search}`}
-                placeholder="Search name, email, company, county, or location ID"
+                aria-label="Search partner applications"
+                placeholder="Search name, email, business or county"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <select className={styles.select} value={status} onChange={(event) => setStatus(event.target.value)}>
+              <select aria-label="Filter applications by status" className={styles.select} value={status} onChange={(event) => setStatus(event.target.value)}>
                 {STATUS_OPTIONS.map(([value, text]) => <option value={value} key={value}>{text}</option>)}
               </select>
             </div>
@@ -294,7 +444,7 @@ export function PartnerAdminClient() {
                       <td>{date(application.submittedAt)}</td>
                       <td>
                         <div className={styles.rowActions}>
-                          <Link className={styles.textButton} href={`/applications/${application.id}`}>Open profile →</Link>
+                          <Link className={styles.textButton} href={`/applications/${application.id}`}>Review application →</Link>
                         </div>
                       </td>
                     </tr>
@@ -317,9 +467,9 @@ export function PartnerAdminClient() {
           <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="notification-settings-title">
             <header className={styles.modalHeader}>
               <div>
-                <span className={styles.eyebrow}>Secure workflow configuration</span>
-                <h2 id="notification-settings-title">Partner notification settings</h2>
-                <p>Saved webhook URLs remain server-side and are never returned to this browser after saving.</p>
+                <span className={styles.eyebrow}>My Drip Nurse automations</span>
+                <h2 id="notification-settings-title">Partner communication</h2>
+                <p>Connect the GHL workflows used to acknowledge new applicants and alert the internal team.</p>
               </div>
               <button type="button" className={styles.closeButton} onClick={closeSettings} aria-label="Close notification settings">×</button>
             </header>
@@ -332,23 +482,45 @@ export function PartnerAdminClient() {
 
               {!settingsLoading && settings.length ? (
                 <div className={styles.settingsForm}>
-                  <label className={styles.formField}>
-                    <span>Tenant</span>
-                    <select
-                      className={styles.select}
-                      value={selectedTenantId}
-                      onChange={(event) => setSelectedTenantId(event.target.value)}
-                    >
-                      {settings.map((item) => (
-                        <option key={item.tenantId} value={item.tenantId}>{item.tenantName} · {item.formKey}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className={styles.workspaceCard}>
+                    <div className={styles.logo} aria-hidden="true">MDN</div>
+                    <div>
+                      <span>Workspace</span>
+                      <strong>{selectedSettings?.tenantName || "My Drip Nurse"}</strong>
+                      <small>Dedicated Partner Admin environment</small>
+                    </div>
+                  </div>
 
                   <div className={styles.settingsSummary}>
                     <div><span>Applicant receipt workflow</span><strong className={selectedSettings?.applicantReceivedWebhookConfigured ? styles.configured : styles.notConfigured}>{selectedSettings?.applicantReceivedWebhookConfigured ? "Configured" : "Not configured"}</strong></div>
                     <div><span>Administrator alert workflow</span><strong className={selectedSettings?.adminNotificationWebhookConfigured ? styles.configured : styles.notConfigured}>{selectedSettings?.adminNotificationWebhookConfigured ? "Configured" : "Not configured"}</strong></div>
+                    <div><span>Partner appointment workflow</span><strong className={selectedSettings?.partnerNotificationWebhookConfigured ? styles.configured : styles.notConfigured}>{selectedSettings?.partnerNotificationWebhookConfigured ? "Configured" : "Not configured"}</strong></div>
+                    <div><span>Single lead capture webhook</span><strong className={selectedSettings?.leadCaptureWebhookConfigured ? styles.configured : styles.notConfigured}>{selectedSettings?.leadCaptureWebhookConfigured ? "Configured" : "Not configured"}</strong></div>
+                    <div><span>Appointment-created webhook</span><strong className={selectedSettings?.appointmentCreatedWebhookConfigured ? styles.configured : styles.notConfigured}>{selectedSettings?.appointmentCreatedWebhookConfigured ? "Configured" : "Not configured"}</strong></div>
                   </div>
+
+                  <article className={styles.settingCard}>
+                    <div className={styles.settingCardHeader}>
+                      <div><span className={styles.eyebrow}>Automation directory</span><h3>Saved webhooks</h3></div>
+                      <span className={`${styles.badge} ${styles.good}`}>
+                        {selectedSettings?.webhooks.filter((webhook) => webhook.configured).length || 0} stored
+                      </span>
+                    </div>
+                    <p>Every outbound workflow is listed here. Secret URL tokens stay hidden; use the cards below only when you need to replace or remove an endpoint.</p>
+                    <div className={styles.webhookDirectory}>
+                      {selectedSettings?.webhooks.map((webhook) => (
+                        <div className={styles.webhookRow} key={webhook.target}>
+                          <div>
+                            <strong>{webhook.label}</strong>
+                            <small>{webhook.configured ? webhook.endpoint : "No endpoint saved"}</small>
+                          </div>
+                          <span className={webhook.configured ? styles.configured : styles.notConfigured}>
+                            {webhook.configured ? "Stored" : "Not configured"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
 
                   <label className={styles.formField}>
                     <span>Admin dashboard base URL</span>
@@ -362,7 +534,57 @@ export function PartnerAdminClient() {
                     <small>Used to create the direct application profile link in administrator alerts.</small>
                   </label>
 
+                  <article className={styles.settingCard}>
+                    <div className={styles.settingCardHeader}>
+                      <div><span className={styles.eyebrow}>Affiliate program</span><h3>Default commission rate</h3></div>
+                      <span className={`${styles.badge} ${styles.good}`}>{selectedSettings?.affiliateCommissionRate ?? 2}% default</span>
+                    </div>
+                    <p>This percentage is earned by the referring Partner for every confirmed appointment generated by a referred Partner. A profile-level override can be set from each application.</p>
+                    <label className={styles.formField}>
+                      <span>Global commission percentage</span>
+                      <input className={styles.input} type="number" min="0" max="100" step="0.01" value={affiliateCommissionRate} onChange={(event) => setAffiliateCommissionRate(event.target.value)} />
+                      <small>Use 2% to keep the initial affiliate program rate requested for launch.</small>
+                    </label>
+                  </article>
+
                   <div className={styles.modalGrid}>
+                    <article className={styles.settingCard}>
+                      <div className={styles.settingCardHeader}>
+                        <div><span className={styles.eyebrow}>Booking lead</span><h3>Single lead capture</h3></div>
+                        <span className={`${styles.badge} ${selectedSettings?.leadCaptureWebhookConfigured ? styles.good : styles.warn}`}>
+                          {selectedSettings?.leadCaptureWebhookConfigured ? "Stored" : "Required"}
+                        </span>
+                      </div>
+                      <p>Receives one complete lead for every booking flow after screening, patient details and location are verified—even when no Partner or time is available. Duplicate requests are blocked by an idempotency key.</p>
+                      <label className={styles.formField}>
+                        <span>Lead capture webhook URL</span>
+                        <input
+                          className={`${styles.input} ${styles.sensitiveInput}`}
+                          type="password"
+                          autoComplete="new-password"
+                          value={leadCaptureWebhookUrl}
+                          onChange={(event) => setLeadCaptureWebhookUrl(event.target.value)}
+                          placeholder={selectedSettings?.leadCaptureWebhookConfigured ? "Paste only to replace the saved URL" : "https://services.leadconnectorhq.com/hooks/..."}
+                        />
+                      </label>
+                      <label className={styles.checkboxRow}>
+                        <input
+                          type="checkbox"
+                          checked={clearLeadCaptureWebhook}
+                          disabled={!selectedSettings?.leadCaptureWebhookConfigured}
+                          onChange={(event) => setClearLeadCaptureWebhook(event.target.checked)}
+                        />
+                        Remove the stored webhook
+                      </label>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        disabled={!selectedSettings?.leadCaptureWebhookConfigured || Boolean(testingTarget) || settingsSaving}
+                        onClick={() => void testWebhook("lead_capture")}
+                      >
+                        {testingTarget === "lead_capture" ? "Sending test…" : "Send safe test"}
+                      </button>
+                    </article>
                     <article className={styles.settingCard}>
                       <div className={styles.settingCardHeader}>
                         <div><span className={styles.eyebrow}>Workflow 1</span><h3>Application received</h3></div>
@@ -438,6 +660,122 @@ export function PartnerAdminClient() {
                         {testingTarget === "admin_notification" ? "Sending test…" : "Send safe test"}
                       </button>
                     </article>
+
+                    <article className={styles.settingCard}>
+                      <div className={styles.settingCardHeader}>
+                        <div><span className={styles.eyebrow}>Workflow 3</span><h3>Appointment lifecycle + refunds</h3></div>
+                        <span className={`${styles.badge} ${selectedSettings?.partnerNotificationWebhookConfigured ? styles.good : styles.warn}`}>
+                          {selectedSettings?.partnerNotificationWebhookConfigured ? "Stored" : "Optional"}
+                        </span>
+                      </div>
+                      <p>One webhook for new bookings, acceptance, reassignment, decline, completion, and customer deposit refunds. Your GHL workflow can route email and SMS notifications.</p>
+                      <label className={styles.formField}>
+                        <span>Replace webhook URL</span>
+                        <input
+                          className={`${styles.input} ${styles.sensitiveInput}`}
+                          type="password"
+                          autoComplete="new-password"
+                          value={partnerWebhookUrl}
+                          onChange={(event) => setPartnerWebhookUrl(event.target.value)}
+                          placeholder={selectedSettings?.partnerNotificationWebhookConfigured ? "Paste only to replace the saved URL" : "https://services.leadconnectorhq.com/hooks/..."}
+                        />
+                      </label>
+                      <label className={styles.checkboxRow}>
+                        <input
+                          type="checkbox"
+                          checked={clearPartnerWebhook}
+                          disabled={!selectedSettings?.partnerNotificationWebhookConfigured}
+                          onChange={(event) => setClearPartnerWebhook(event.target.checked)}
+                        />
+                        Remove the stored webhook
+                      </label>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        disabled={!selectedSettings?.partnerNotificationWebhookConfigured || Boolean(testingTarget) || settingsSaving}
+                        onClick={() => void testWebhook("partner_notification")}
+                      >
+                        {testingTarget === "partner_notification" ? "Sending test…" : "Send safe test"}
+                      </button>
+                    </article>
+
+                    <article className={styles.settingCard}>
+                      <div className={styles.settingCardHeader}>
+                        <div><span className={styles.eyebrow}>Booking event</span><h3>Appointment created for GHL</h3></div>
+                        <span className={`${styles.badge} ${selectedSettings?.appointmentCreatedWebhookConfigured ? styles.good : styles.warn}`}>
+                          {selectedSettings?.appointmentCreatedWebhookConfigured ? "Stored" : "Optional"}
+                        </span>
+                      </div>
+                      <p>Receives one complete appointment payload immediately after a booking is reserved. It includes the appointment reference and status, local time and timezone, service price and amount due at visit, address, source, patient and additional-patient details, screening answers, selected coverage and assigned provider. Stripe secrets are never sent.</p>
+                      <label className={styles.formField}>
+                        <span>Appointment-created webhook URL</span>
+                        <input
+                          className={`${styles.input} ${styles.sensitiveInput}`}
+                          type="password"
+                          autoComplete="new-password"
+                          value={appointmentCreatedWebhookUrl}
+                          onChange={(event) => setAppointmentCreatedWebhookUrl(event.target.value)}
+                          placeholder={selectedSettings?.appointmentCreatedWebhookConfigured ? "Paste only to replace the saved URL" : "https://services.leadconnectorhq.com/hooks/..."}
+                        />
+                      </label>
+                      <label className={styles.checkboxRow}>
+                        <input
+                          type="checkbox"
+                          checked={clearAppointmentCreatedWebhook}
+                          disabled={!selectedSettings?.appointmentCreatedWebhookConfigured}
+                          onChange={(event) => setClearAppointmentCreatedWebhook(event.target.checked)}
+                        />
+                        Remove the stored webhook
+                      </label>
+                      <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        disabled={!selectedSettings?.appointmentCreatedWebhookConfigured || Boolean(testingTarget) || settingsSaving}
+                        onClick={() => void testWebhook("appointment_created")}
+                      >
+                        {testingTarget === "appointment_created" ? "Sending test…" : "Send safe test"}
+                      </button>
+                    </article>
+
+                    {lifecycleWebhookFields.map((field) => (
+                      <article key={field.target} className={styles.settingCard}>
+                        <div className={styles.settingCardHeader}>
+                          <div><span className={styles.eyebrow}>Appointment lifecycle</span><h3>{field.label}</h3></div>
+                          <span className={`${styles.badge} ${field.configured ? styles.good : styles.warn}`}>
+                            {field.configured ? "Stored" : "Optional"}
+                          </span>
+                        </div>
+                        <p>Sent once for this lifecycle event with the appointment, patient and additional-patient details, BMI, screening, payment, address, timezone, partner assignment, source and an idempotency key for GHL routing.</p>
+                        <label className={styles.formField}>
+                          <span>Webhook URL</span>
+                          <input
+                            className={`${styles.input} ${styles.sensitiveInput}`}
+                            type="password"
+                            autoComplete="new-password"
+                            value={field.value}
+                            onChange={(event) => field.setValue(event.target.value)}
+                            placeholder={field.configured ? "Paste only to replace the saved URL" : "https://services.leadconnectorhq.com/hooks/..."}
+                          />
+                        </label>
+                        <label className={styles.checkboxRow}>
+                          <input
+                            type="checkbox"
+                            checked={field.clear}
+                            disabled={!field.configured}
+                            onChange={(event) => field.setClear(event.target.checked)}
+                          />
+                          Remove the stored webhook
+                        </label>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          disabled={!field.configured || Boolean(testingTarget) || settingsSaving}
+                          onClick={() => void testWebhook(field.target)}
+                        >
+                          {testingTarget === field.target ? "Sending test…" : "Send safe test"}
+                        </button>
+                      </article>
+                    ))}
                   </div>
 
                   <div className={styles.helpText}>
@@ -464,6 +802,6 @@ export function PartnerAdminClient() {
           </section>
         </div>
       ) : null}
-    </main>
+    </PartnerAdminShell>
   );
 }

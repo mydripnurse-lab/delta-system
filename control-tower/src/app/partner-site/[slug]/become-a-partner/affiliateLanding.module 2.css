@@ -1,0 +1,25 @@
+.shell { width: min(1160px, calc(100% - 44px)); margin: 0 auto; }
+.hero { padding: 104px 0; background: radial-gradient(circle at 84% 20%, #d7f1e9 0, transparent 33%), linear-gradient(145deg, #f7f5ef, #edf7f6); }
+.hero .shell { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); align-items: center; gap: 70px; }
+.eyebrow { color: #078596; font-size: 11px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.hero h1 { max-width: 760px; margin: 20px 0; font-family: var(--partner-serif); font-size: clamp(50px, 7vw, 82px); font-weight: 400; line-height: .98; letter-spacing: -.045em; }
+.hero h1 em { color: #075c68; font-weight: 400; }
+.hero p { max-width: 670px; color: #58706e; font-size: 18px; line-height: 1.7; }
+.primary { display: inline-flex; min-height: 54px; margin-top: 24px; padding: 0 24px; border-radius: 999px; align-items: center; gap: 12px; color: #fff; background: #075c68; font-size: 14px; font-weight: 900; text-decoration: none; box-shadow: 0 15px 32px rgba(7,92,104,.2); }
+.referralCard { padding: 34px; border: 1px solid rgba(7,92,104,.12); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: 0 28px 64px rgba(23,53,58,.11); }
+.referralCard span, .referralCard strong, .referralCard small { display: block; }
+.referralCard span { color: #879592; font-size: 10px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+.referralCard strong { margin: 20px 0 5px; font-family: var(--partner-serif); font-size: 34px; font-weight: 400; }
+.referralCard small { color: #078596; font-weight: 800; }
+.referralCard p { margin: 24px 0 0; padding-top: 20px; border-top: 1px solid #dfe8e6; font-size: 13px; }
+.benefits { padding: 84px 0; background: #fff; }
+.benefits .shell { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.benefits div { padding: 31px; border: 1px solid #dce7e5; border-radius: 22px; }
+.benefits span { color: #078596; font-family: var(--partner-serif); font-size: 20px; }
+.benefits h2 { margin: 20px 0 10px; font-size: 24px; }
+.benefits p { margin: 0; color: #607572; line-height: 1.65; }
+.cta { padding: 94px 20px; background: #e8f5f2; text-align: center; }
+.cta h2 { margin: 15px 0 10px; font-family: var(--partner-serif); font-size: 52px; font-weight: 400; }
+.cta p { margin: 0 auto; color: #5d7370; }
+.cta > a:last-child { display: block; margin-top: 22px; color: #075c68; font-size: 12px; font-weight: 800; }
+@media (max-width: 780px) { .shell { width: min(100% - 26px, 1160px); } .hero { padding: 70px 0; } .hero .shell, .benefits .shell { grid-template-columns: 1fr; gap: 28px; } }

@@ -4,8 +4,9 @@ import { getStaffApplication } from "@/lib/staffAdmin";
 import {
   buildStaffPassword,
   getStaffFormConfigForTenant,
-  provisionStaffApplication,
+  provisionInternalPartnerApplication,
 } from "@/lib/publicStaffProvisioning";
+import { isInternalStripeConfigured } from "@/lib/stripeCheckout";
 
 export const dynamic = "force-dynamic";
 
@@ -21,16 +22,7 @@ export async function POST(req: NextRequest, context: Context) {
     if (!application) {
       return NextResponse.json({ ok: false, error: "Application not found." }, { status: 404 });
     }
-    if (
-      [
-        "completed",
-        "rejected",
-        "staff_processing",
-        "staff_created",
-        "calendar_deposit_pending",
-        "ready_to_complete",
-      ].includes(application.status)
-    ) {
+    if (["completed", "rejected", "staff_processing", "staff_created", "website_review_pending", "calendar_deposit_pending", "ready_to_complete", "deactivated"].includes(application.status)) {
       return NextResponse.json(
         { ok: false, error: `This application cannot be provisioned while it is ${application.status}.` },
         { status: 409 },
@@ -42,18 +34,15 @@ export async function POST(req: NextRequest, context: Context) {
     if (!application.locations.length) {
       return NextResponse.json({ ok: false, error: "This application has no requested locations." }, { status: 409 });
     }
-    const missingStripe = application.locations.filter(
-      (location) => !["complete", "not_required"].includes(location.stripeStatus),
-    );
-    if (missingStripe.length) {
+    if (!isInternalStripeConfigured()) {
       return NextResponse.json(
-        { ok: false, error: "Mark Stripe complete for every requested location before creating the staff account." },
-        { status: 409 },
+        { ok: false, error: "Platform Stripe is not configured. Add STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET to the production environment before activating Partners." },
+        { status: 503 },
       );
     }
 
     const config = await getStaffFormConfigForTenant(application.organizationId);
-    const result = await provisionStaffApplication({
+    const result = await provisionInternalPartnerApplication({
       config,
       applicationId,
       input: {
@@ -62,8 +51,16 @@ export async function POST(req: NextRequest, context: Context) {
         email: application.email,
         phone: application.phone,
         company: application.company,
+        publicTitle: String(application.requestPayload.publicTitle ?? "").trim(),
+        professionalCredentials: String(application.requestPayload.professionalCredentials ?? "").trim(),
+        biography: String(application.requestPayload.biography ?? "").trim(),
+        profilePhotoUrl: String(application.requestPayload.profilePhotoUrl ?? "").trim(),
+        profilePhotoFileId: String(application.requestPayload.profilePhotoFileId ?? "").trim(),
+        profilePhotoLocationId: String(application.requestPayload.profilePhotoLocationId ?? "").trim(),
+        profileConsentAt: String(application.requestPayload.profileConsentAt ?? "").trim(),
         password: buildStaffPassword(application.firstName, application.lastName),
         countyKeys: [],
+        primaryLocationId: String(application.requestPayload.primaryLocationId ?? application.locations[0]?.locationId ?? "").trim(),
       },
       selected: application.locations.map((location) => ({
         key: location.locationId,

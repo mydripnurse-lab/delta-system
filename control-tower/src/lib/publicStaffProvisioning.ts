@@ -5,7 +5,9 @@ import {
   getEffectiveCompanyIdOrThrow,
 } from "@/lib/ghlHttp";
 import { getTenantSheetConfig, loadTenantSheetTabIndex } from "@/lib/tenantSheets";
-import { issuePartnerOnboardingLink } from "@/lib/partnerOnboarding";
+import { issuePartnerOnboardingLink, readLatestPartnerOnboardingForApplication } from "@/lib/partnerOnboarding";
+import { notifyPartnerSitePublished } from "@/lib/partnerSeoNotifications";
+import { hashPassword } from "@/lib/password";
 
 const API_BASE = "https://services.leadconnectorhq.com";
 const USER_VERSION = "2023-02-21";
@@ -78,9 +80,18 @@ export type StaffApplicationInput = {
   email: string;
   phone: string;
   company: string;
+  publicTitle: string;
+  professionalCredentials: string;
+  biography: string;
+  profilePhotoUrl: string;
+  profilePhotoFileId: string;
+  profilePhotoLocationId: string;
+  profileConsentAt: string;
   password: string;
   countyKeys: string[];
+  primaryLocationId: string;
   submissionKey?: string;
+  referralCode?: string;
 };
 
 export async function ensureStaffSchema() {
@@ -106,7 +117,19 @@ export async function ensureStaffSchema() {
       alter table app.staff_form_configs
         add column if not exists applicant_received_webhook_url text,
         add column if not exists admin_notification_webhook_url text,
-        add column if not exists admin_base_url text not null default 'https://admin.mydripnurse.com';
+        add column if not exists partner_notification_webhook_url text,
+        add column if not exists lead_capture_webhook_url text,
+        add column if not exists appointment_created_webhook_url text,
+        add column if not exists new_booking_webhook_url text,
+        add column if not exists partner_confirmation_required_webhook_url text,
+        add column if not exists partner_rescheduled_webhook_url text,
+        add column if not exists appointment_accepted_webhook_url text,
+        add column if not exists appointment_declined_webhook_url text,
+        add column if not exists appointment_reassigned_webhook_url text,
+        add column if not exists appointment_completed_webhook_url text,
+        add column if not exists appointment_refunded_webhook_url text,
+        add column if not exists admin_base_url text not null default 'https://admin.mydripnurse.com',
+        add column if not exists affiliate_commission_rate numeric(5,2) not null default 2.00;
       alter table app.staff_form_configs
         drop constraint if exists staff_form_configs_calendar_mode_ck;
       alter table app.staff_form_configs
@@ -130,12 +153,29 @@ export async function ensureStaffSchema() {
         add column if not exists last_name text,
         add column if not exists phone text,
         add column if not exists company text,
+        add column if not exists public_title text,
+        add column if not exists professional_credentials text,
+        add column if not exists biography text,
+        add column if not exists profile_photo_url text,
+        add column if not exists profile_photo_data text,
+        add column if not exists profile_photo_content_type text,
+        add column if not exists profile_photo_file_id text,
+        add column if not exists profile_photo_location_id text,
+        add column if not exists profile_consent_at timestamptz,
         add column if not exists admin_notes text,
         add column if not exists submitted_at timestamptz,
         add column if not exists reviewed_at timestamptz,
         add column if not exists reviewed_by uuid references app.users(id) on delete set null,
         add column if not exists provisioned_at timestamptz,
-        add column if not exists submission_key text;
+        add column if not exists deactivated_at timestamptz,
+        add column if not exists deactivated_by uuid references app.users(id) on delete set null,
+        add column if not exists submission_key text,
+        add column if not exists ghl_user_id text,
+        add column if not exists ghl_company_id text,
+        add column if not exists ghl_location_ids text[] not null default array[]::text[],
+        add column if not exists ghl_integration_key text not null default 'owner',
+        add column if not exists ghl_identity_synced_at timestamptz,
+        add column if not exists primary_location_id text;
       create unique index if not exists staff_applications_org_submission_key_uq
         on app.staff_applications (organization_id, submission_key)
         where submission_key is not null;
@@ -144,7 +184,17 @@ export async function ensureStaffSchema() {
              first_name = coalesce(first_name, request_payload->>'firstName'),
              last_name = coalesce(last_name, request_payload->>'lastName'),
              phone = coalesce(phone, request_payload->>'phone'),
-             company = coalesce(company, request_payload->>'company');
+             company = coalesce(company, request_payload->>'company'),
+             public_title = coalesce(public_title, request_payload->>'publicTitle'),
+             professional_credentials = coalesce(professional_credentials, request_payload->>'professionalCredentials'),
+             biography = coalesce(biography, request_payload->>'biography'),
+             profile_photo_url = coalesce(profile_photo_url, request_payload->>'profilePhotoUrl'),
+             profile_photo_file_id = coalesce(profile_photo_file_id, request_payload->>'profilePhotoFileId'),
+             profile_photo_location_id = coalesce(profile_photo_location_id, request_payload->>'profilePhotoLocationId'),
+             profile_consent_at = coalesce(
+               profile_consent_at,
+               nullif(request_payload->>'profileConsentAt', '')::timestamptz
+             );
       alter table app.staff_applications
         drop constraint if exists staff_applications_status_ck;
       alter table app.staff_applications
@@ -153,7 +203,8 @@ export async function ensureStaffSchema() {
         add constraint staff_applications_status_ck check (status in (
           'submitted', 'under_review', 'stripe_pending', 'staff_ready',
           'staff_processing', 'staff_created', 'calendar_deposit_pending', 'ready_to_complete',
-          'processing', 'completed', 'completed_with_warnings', 'rejected', 'failed'
+          'website_review_pending',
+          'processing', 'completed', 'completed_with_warnings', 'rejected', 'failed', 'deactivated'
         ));
       create table if not exists app.staff_application_location_steps (
         id uuid primary key default gen_random_uuid(),
@@ -181,6 +232,107 @@ export async function ensureStaffSchema() {
       );
       create index if not exists staff_application_location_steps_application_idx
         on app.staff_application_location_steps (application_id, created_at);
+      create table if not exists app.partner_profiles (
+        id uuid primary key default gen_random_uuid(),
+        organization_id uuid not null references app.organizations(id) on delete cascade,
+        application_id uuid not null unique references app.staff_applications(id) on delete cascade,
+        ghl_user_id text not null,
+        email text not null,
+        slug text not null,
+        display_name text not null,
+        business_name text,
+        public_title text,
+        professional_credentials text,
+        biography text,
+        profile_photo_url text,
+        profile_photo_data text,
+        profile_photo_content_type text,
+        profile_photo_file_id text,
+        profile_photo_location_id text,
+        primary_location_id text,
+        service_areas jsonb not null default '[]'::jsonb,
+        website_status text not null default 'draft',
+        ghl_photo_sync_status text not null default 'pending',
+        ghl_photo_synced_at timestamptz,
+        ghl_photo_sync_error text,
+        profile_consent_at timestamptz,
+        published_at timestamptz,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        unique (organization_id, slug),
+        check (website_status in ('draft', 'ready', 'published', 'hidden')),
+        check (ghl_photo_sync_status in ('pending', 'syncing', 'synced', 'failed'))
+      );
+      create index if not exists partner_profiles_organization_status_idx
+        on app.partner_profiles (organization_id, website_status, updated_at desc);
+      create index if not exists partner_profiles_ghl_user_idx
+        on app.partner_profiles (ghl_user_id);
+      create table if not exists app.partner_personal_calendars (
+        id uuid primary key default gen_random_uuid(),
+        application_id uuid not null references app.staff_applications(id) on delete cascade,
+        location_id text not null,
+        normalized_name text not null,
+        source_calendar_id text not null,
+        calendar_id text not null,
+        group_id text not null,
+        calendar_slug text not null,
+        status text not null default 'active',
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        unique (application_id, normalized_name),
+        unique (location_id, calendar_id),
+        check (status in ('active', 'inactive', 'failed'))
+      );
+      alter table app.partner_profiles
+        add column if not exists group_calendar_id text,
+        add column if not exists group_calendar_slug text,
+        add column if not exists group_calendar_url text,
+        add column if not exists services jsonb not null default '[]'::jsonb,
+        add column if not exists profile_photo_data text,
+        add column if not exists profile_photo_content_type text,
+        add column if not exists affiliate_code text,
+        add column if not exists affiliate_commission_rate numeric(5,2),
+        add column if not exists portal_password_hash text;
+      update app.partner_profiles set affiliate_code = slug where affiliate_code is null;
+      create unique index if not exists partner_profiles_affiliate_code_uq
+        on app.partner_profiles (organization_id, affiliate_code)
+        where affiliate_code is not null;
+      alter table app.staff_applications
+        add column if not exists referral_code text,
+        add column if not exists referred_by_profile_id uuid references app.partner_profiles(id) on delete set null;
+      create table if not exists app.partner_affiliate_ledger (
+        id uuid primary key default gen_random_uuid(),
+        referrer_profile_id uuid not null references app.partner_profiles(id) on delete cascade,
+        referred_application_id uuid not null references app.staff_applications(id) on delete cascade,
+        event_type text not null default 'application',
+        amount numeric(12,2),
+        currency text not null default 'USD',
+        status text not null default 'pending_review',
+        approved_at timestamptz,
+        paid_at timestamptz,
+        payout_reference text,
+        metadata jsonb not null default '{}'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        unique (referrer_profile_id, referred_application_id, event_type),
+        check (status in ('pending_review', 'approved', 'payable', 'paid', 'void'))
+      );
+      create index if not exists partner_affiliate_ledger_profile_idx
+        on app.partner_affiliate_ledger (referrer_profile_id, status, created_at desc);
+      create table if not exists app.partner_affiliate_payouts (
+        id uuid primary key default gen_random_uuid(),
+        referrer_profile_id uuid not null references app.partner_profiles(id) on delete cascade,
+        amount numeric(12,2) not null,
+        currency text not null default 'USD',
+        status text not null default 'draft',
+        provider text,
+        provider_reference text,
+        scheduled_at timestamptz,
+        paid_at timestamptz,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        check (status in ('draft', 'scheduled', 'processing', 'paid', 'failed', 'cancelled'))
+      );
       alter table app.staff_application_location_steps
         add column if not exists deposit_completed_at timestamptz,
         add column if not exists deposit_completed_by uuid references app.users(id) on delete set null;
@@ -204,6 +356,22 @@ export async function ensureStaffSchema() {
         and nullif(trim(county->>'state'), '') is not null
         and nullif(trim(county->>'county'), '') is not null
       on conflict (application_id, location_id) do nothing;
+      update app.staff_applications a
+         set ghl_user_id = coalesce(a.ghl_user_id, nullif(a.result->'user'->>'userId', '')),
+             ghl_company_id = coalesce(a.ghl_company_id, nullif(a.result->'user'->>'companyId', '')),
+             ghl_location_ids = case
+               when cardinality(a.ghl_location_ids) > 0 then a.ghl_location_ids
+               else coalesce((
+                 select array_agg(distinct l.location_id order by l.location_id)
+                   from app.staff_application_location_steps l
+                  where l.application_id = a.id
+               ), array[]::text[])
+             end,
+             ghl_identity_synced_at = case
+               when coalesce(a.ghl_user_id, nullif(a.result->'user'->>'userId', '')) is not null
+                 then coalesce(a.ghl_identity_synced_at, a.provisioned_at, a.updated_at)
+               else a.ghl_identity_synced_at
+             end;
     `);
     await pool.query(
       `insert into app.staff_form_configs (
@@ -378,6 +546,84 @@ async function getLocationToken(tenantId: string, locationId: string) {
   return token;
 }
 
+export async function uploadStaffProfilePhoto(opts: {
+  config: StaffFormConfig;
+  location: EligibleCounty;
+  file: File;
+  firstName: string;
+  lastName: string;
+}) {
+  const allowedTypes = new Set(["image/jpeg", "image/png"]);
+  if (!allowedTypes.has(opts.file.type)) {
+    throw new Error("Profile photo must be a JPG or PNG image");
+  }
+  if (opts.file.size <= 0 || opts.file.size > 5 * 1024 * 1024) {
+    throw new Error("Profile photo must be smaller than 5 MB");
+  }
+
+  const extension = opts.file.type === "image/png" ? "png" : "jpg";
+  const safeName = `${opts.firstName}-${opts.lastName}`
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase() || "partner";
+  const fileName = `${safeName}-profile.${extension}`;
+  const locationToken = await getLocationToken(opts.config.tenantId, opts.location.locationId);
+  const upload = new FormData();
+  upload.append("file", opts.file, fileName);
+  upload.append("hosted", "false");
+  upload.append("name", fileName);
+
+  const response = await fetch(`${API_BASE}/medias/upload-file`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${locationToken}`,
+      Version: "v3",
+      Accept: "application/json",
+    },
+    body: upload,
+    cache: "no-store",
+  });
+  const payload = record(await response.json().catch(() => ({})));
+  if (!response.ok) {
+    throw new Error(`Unable to store profile photo in GHL (${response.status})`);
+  }
+  const url = s(payload.url);
+  const fileId = s(payload.fileId || payload.id);
+  if (!url) throw new Error("GHL uploaded the profile photo but returned no public URL");
+  return {
+    url,
+    fileId,
+    locationId: opts.location.locationId,
+  };
+}
+
+/** Stores an application photo in the internal application payload. No CRM or subaccount API is used. */
+export async function uploadInternalStaffProfilePhoto(opts: {
+  file: File;
+  firstName: string;
+  lastName: string;
+}) {
+  const allowedTypes = new Set(["image/jpeg", "image/png"]);
+  if (!allowedTypes.has(opts.file.type)) {
+    throw new Error("Profile photo must be a JPG or PNG image");
+  }
+  if (opts.file.size <= 0 || opts.file.size > 5 * 1024 * 1024) {
+    throw new Error("Profile photo must be smaller than 5 MB");
+  }
+  const bytes = Buffer.from(await opts.file.arrayBuffer());
+  const safeName = `${opts.firstName}-${opts.lastName}`
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase() || "partner";
+  return {
+    url: `data:${opts.file.type};base64,${bytes.toString("base64")}`,
+    fileId: `internal-${safeName}-profile`,
+    locationId: "internal",
+  };
+}
+
 function extractUsers(data: unknown): JsonRecord[] {
   const obj = record(data);
   if (Array.isArray(obj.users)) return obj.users.map(record);
@@ -451,6 +697,41 @@ async function getUserDetails(userId: string, agencyToken: string) {
   }
 }
 
+export async function syncPartnerProfilePhoto(opts: {
+  tenantId: string;
+  ghlUserId: string;
+  profilePhotoUrl: string;
+}) {
+  const agencyToken = await getAgencyAccessTokenOrThrow({
+    tenantId: opts.tenantId,
+    integrationKey: "owner",
+  });
+  const detailedUser = await getUserDetails(opts.ghlUserId, agencyToken);
+  if (!detailedUser) throw new Error("GHL user could not be loaded for photo synchronization");
+  const roles = record(detailedUser.roles);
+  const locationIds = Array.isArray(roles.locationIds)
+    ? roles.locationIds.map(s).filter(Boolean)
+    : Array.isArray(detailedUser.locationIds)
+      ? detailedUser.locationIds.map(s).filter(Boolean)
+      : [];
+  await ghlRequest({
+    path: `/users/${encodeURIComponent(opts.ghlUserId)}`,
+    token: agencyToken,
+    version: USER_VERSION,
+    method: "PUT",
+    body: {
+      firstName: s(detailedUser.firstName),
+      lastName: s(detailedUser.lastName),
+      phone: s(detailedUser.phone),
+      profilePhoto: opts.profilePhotoUrl,
+      type: s(detailedUser.type) || "account",
+      role: s(detailedUser.role) || s(roles.role) || "user",
+      locationIds,
+      permissions: record(detailedUser.permissions),
+    },
+  });
+}
+
 function staffPermissions() {
   return {
     contactsEnabled: true,
@@ -506,6 +787,7 @@ async function ensureStaffUser(opts: {
         firstName: opts.input.firstName,
         lastName: opts.input.lastName,
         phone: opts.input.phone,
+        ...(opts.input.profilePhotoUrl ? { profilePhoto: opts.input.profilePhotoUrl } : {}),
         type: "account",
         role: "user",
         locationIds: mergedLocationIds,
@@ -533,6 +815,7 @@ async function ensureStaffUser(opts: {
         phone: opts.input.phone,
         firstName: opts.input.firstName,
         lastName: opts.input.lastName,
+        ...(opts.input.profilePhotoUrl ? { profilePhoto: opts.input.profilePhotoUrl } : {}),
         type: "account",
         role: "user",
         locationIds,
@@ -560,6 +843,44 @@ async function ensureStaffUser(opts: {
   return { userId, status: "created" as const };
 }
 
+export async function resolvePartnerGhlIdentity(opts: {
+  config: StaffFormConfig;
+  email: string;
+  locations: Array<{ locationId: string }>;
+}) {
+  const locationIds = [...new Set(opts.locations.map((item) => s(item.locationId)).filter(Boolean))];
+  if (!locationIds.length) throw new Error("This partner has no GHL locations to inspect.");
+  const [agencyToken, companyId, firstLocationToken] = await Promise.all([
+    getAgencyAccessTokenOrThrow({ tenantId: opts.config.tenantId, integrationKey: "owner" }),
+    getEffectiveCompanyIdOrThrow({ tenantId: opts.config.tenantId, integrationKey: "owner" }),
+    getLocationToken(opts.config.tenantId, locationIds[0]),
+  ]);
+  const email = normalizeEmail(opts.email);
+  const found = await findUserByEmail({
+    companyId,
+    email,
+    agencyToken,
+    locationToken: firstLocationToken,
+    locationId: locationIds[0],
+  });
+  const userId = s(found?.id);
+  if (!userId) throw new Error(`No active GHL user was found for ${email}.`);
+  const detailedUser = (await getUserDetails(userId, agencyToken)) || found || {};
+  const roles = record(detailedUser.roles);
+  const returnedLocationIds = Array.isArray(roles.locationIds)
+    ? roles.locationIds.map(s).filter(Boolean)
+    : Array.isArray(detailedUser.locationIds)
+      ? detailedUser.locationIds.map(s).filter(Boolean)
+      : [];
+  return {
+    userId,
+    companyId,
+    locationIds: [...new Set(returnedLocationIds.length ? returnedLocationIds : locationIds)],
+    integrationKey: "owner" as const,
+    syncedAt: new Date().toISOString(),
+  };
+}
+
 const TEAM_CALENDAR_TYPES = new Set([
   "round_robin",
   "collective",
@@ -577,10 +898,173 @@ function normalizeCalendarName(value: unknown) {
     .toLowerCase();
 }
 
+function calendarCommerceFields(value: JsonRecord) {
+  const commerceKey = /(price|amount|payment|deposit|currency|stripe|live.*mode)/i;
+  const output: JsonRecord = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (!commerceKey.test(key)) continue;
+    if (Array.isArray(item)) {
+      output[key] = item.length > 10 ? item.slice(0, 10) : item;
+    } else if (item && typeof item === "object") {
+      output[key] = record(item);
+    } else {
+      output[key] = item;
+    }
+  }
+  return output;
+}
+
+export type PartnerCalendarInspectionItem = {
+  locationId: string;
+  state: string;
+  county: string;
+  status: "matched" | "missing" | "error";
+  calendarId?: string;
+  calendarType?: string;
+  isActive?: boolean;
+  commerceFields?: JsonRecord;
+  error?: string;
+};
+
+export type PartnerLocationCalendar = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  calendarType: string;
+  isActive: boolean;
+  teamMembers: JsonRecord[];
+  commerceFields: JsonRecord;
+};
+
+export async function listPartnerLocationCalendars(opts: {
+  config: StaffFormConfig;
+  location: EligibleCounty;
+}): Promise<PartnerLocationCalendar[]> {
+  const token = await getLocationToken(opts.config.tenantId, opts.location.locationId);
+  const data = await ghlRequest({
+    path: `/calendars/?locationId=${encodeURIComponent(opts.location.locationId)}&showDrafted=true`,
+    token,
+    version: CALENDAR_VERSION,
+  });
+  const calendars = Array.isArray(record(data).calendars) ? (record(data).calendars as unknown[]).map(record) : [];
+  return calendars.flatMap((calendar) => {
+    const id = s(calendar.id);
+    const name = s(calendar.name);
+    const calendarType = s(calendar.calendarType).toLowerCase();
+    if (!id || !name || !TEAM_CALENDAR_TYPES.has(calendarType)) return [];
+    return [{
+      id,
+      name,
+      normalizedName: normalizeCalendarName(name),
+      calendarType,
+      isActive: calendar.isActive !== false,
+      teamMembers: Array.isArray(calendar.teamMembers) ? calendar.teamMembers.map(record) : [],
+      commerceFields: calendarCommerceFields(calendar),
+    }];
+  });
+}
+
+export async function updatePartnerLocationCalendarMembership(opts: {
+  config: StaffFormConfig;
+  location: EligibleCounty;
+  calendar: PartnerLocationCalendar;
+  userId: string;
+  active: boolean;
+}) {
+  const token = await getLocationToken(opts.config.tenantId, opts.location.locationId);
+  const currentlyMember = opts.calendar.teamMembers.some((member) => s(member.userId) === opts.userId);
+  let nextMembers = opts.active
+    ? (currentlyMember ? opts.calendar.teamMembers : [...opts.calendar.teamMembers, {
+        userId: opts.userId,
+        priority: 0.5,
+        ...(opts.calendar.calendarType === "collective" ? { isPrimary: false } : {}),
+      }])
+    : opts.calendar.teamMembers.filter((member) => s(member.userId) !== opts.userId);
+
+  if (opts.calendar.calendarType === "collective" && nextMembers.length > 0 && !nextMembers.some((member) => member.isPrimary === true)) {
+    nextMembers = nextMembers.map((member, index) => index === 0 ? { ...member, isPrimary: true } : member);
+  }
+  const hasRemainingStaff = nextMembers.length > 0;
+  const nextIsActive = opts.active ? true : hasRemainingStaff ? opts.calendar.isActive : false;
+  const membershipChanged = opts.active ? !currentlyMember : currentlyMember;
+  const activeChanged = nextIsActive !== opts.calendar.isActive;
+  if (membershipChanged || activeChanged) {
+    await ghlRequest({
+      path: `/calendars/${encodeURIComponent(opts.calendar.id)}`,
+      token,
+      version: CALENDAR_VERSION,
+      method: "PUT",
+      body: { isActive: nextIsActive, teamMembers: nextMembers },
+    });
+  }
+  return {
+    calendarId: opts.calendar.id,
+    locationId: opts.location.locationId,
+    active: opts.active,
+    calendarActive: nextIsActive,
+    membershipChanged,
+    remainingStaff: nextMembers.length,
+  };
+}
+
+export async function inspectConfiguredCalendarSample(opts: {
+  config: StaffFormConfig;
+  calendarName: string;
+  sampleSize?: number;
+}): Promise<PartnerCalendarInspectionItem[]> {
+  const wantedName = normalizeCalendarName(opts.calendarName);
+  if (!wantedName || !opts.config.calendarNames.some((name) => normalizeCalendarName(name) === wantedName)) {
+    throw new Error("Select a calendar from the configured My Drip Nurse catalog.");
+  }
+
+  const counties = await loadEligibleCounties(opts.config);
+  const count = Math.max(1, Math.min(8, Math.floor(opts.sampleSize || 5)));
+  const sample = Array.from({ length: Math.min(count, counties.length) }, (_, index) => {
+    if (counties.length <= count) return counties[index];
+    const offset = Math.round(index * (counties.length - 1) / Math.max(1, count - 1));
+    return counties[offset];
+  }).filter(Boolean);
+
+  return Promise.all(sample.map(async (location): Promise<PartnerCalendarInspectionItem> => {
+    try {
+      const token = await getLocationToken(opts.config.tenantId, location.locationId);
+      const data = await ghlRequest({
+        path: `/calendars/?locationId=${encodeURIComponent(location.locationId)}&showDrafted=true`,
+        token,
+        version: CALENDAR_VERSION,
+      });
+      const calendars = Array.isArray(record(data).calendars) ? (record(data).calendars as unknown[]).map(record) : [];
+      const calendar = calendars.find((item) => normalizeCalendarName(item.name) === wantedName);
+      if (!calendar) {
+        return { locationId: location.locationId, state: location.state, county: location.county, status: "missing" };
+      }
+      return {
+        locationId: location.locationId,
+        state: location.state,
+        county: location.county,
+        status: "matched",
+        calendarId: s(calendar.id),
+        calendarType: s(calendar.calendarType),
+        isActive: calendar.isActive !== false,
+        commerceFields: calendarCommerceFields(calendar),
+      };
+    } catch (error) {
+      return {
+        locationId: location.locationId,
+        state: location.state,
+        county: location.county,
+        status: "error",
+        error: error instanceof Error ? error.message : "Calendar inspection failed.",
+      };
+    }
+  }));
+}
+
 async function updateLocationCalendars(opts: {
   config: StaffFormConfig;
   location: EligibleCounty;
   userId: string;
+  groupId?: string;
 }) {
   const token = await getLocationToken(opts.config.tenantId, opts.location.locationId);
   const data = await ghlRequest({
@@ -611,6 +1095,7 @@ async function updateLocationCalendars(opts: {
 
     const members = Array.isArray(calendar?.teamMembers) ? calendar.teamMembers : [];
     const alreadyMember = members.some((member) => s(record(member).userId) === opts.userId);
+    const alreadyInGroup = !opts.groupId || s(calendar?.groupId) === opts.groupId;
     const nextMembers = alreadyMember
       ? members
       : [
@@ -621,8 +1106,8 @@ async function updateLocationCalendars(opts: {
             ...(type === "collective" ? { isPrimary: false } : {}),
           },
         ];
-    if (alreadyMember && calendar?.isActive === true) {
-      results.push({ calendarId: id, name, status: "unchanged", active: true, memberAdded: false });
+    if (alreadyMember && calendar?.isActive === true && alreadyInGroup) {
+      results.push({ calendarId: id, name, status: "unchanged", active: true, memberAdded: false, groupId: s(calendar?.groupId) });
       continue;
     }
     await ghlRequest({
@@ -630,7 +1115,11 @@ async function updateLocationCalendars(opts: {
       token,
       version: CALENDAR_VERSION,
       method: "PUT",
-      body: { isActive: true, teamMembers: nextMembers },
+      body: {
+        isActive: true,
+        teamMembers: nextMembers,
+        ...(opts.groupId ? { groupId: opts.groupId } : {}),
+      },
     });
     results.push({
       calendarId: id,
@@ -638,6 +1127,7 @@ async function updateLocationCalendars(opts: {
       status: "updated",
       active: true,
       memberAdded: !alreadyMember,
+      groupId: opts.groupId || s(calendar?.groupId),
     });
   }
   if (opts.config.calendarMode === "specific_names") {
@@ -648,6 +1138,428 @@ async function updateLocationCalendars(opts: {
     }
   }
   return results;
+}
+
+function configuredCalendarMatches(config: StaffFormConfig, calendar: JsonRecord) {
+  const calendarId = s(calendar.id);
+  if (!calendarId) return false;
+  if (config.calendarMode === "specific") return config.calendarIds.includes(calendarId);
+  if (config.calendarMode === "specific_names") {
+    const configuredNames = new Set(config.calendarNames.map(normalizeCalendarName));
+    return configuredNames.has(normalizeCalendarName(calendar.name));
+  }
+  return TEAM_CALENDAR_TYPES.has(s(calendar.calendarType).toLowerCase());
+}
+
+function provisionedCalendarIds(result: JsonRecord, locationId: string) {
+  const locations = Array.isArray(result.locations) ? result.locations.map(record) : [];
+  const location = locations.find((item) => s(item.locationId) === locationId);
+  const calendars = location && Array.isArray(location.calendars) ? location.calendars.map(record) : [];
+  return new Set(calendars.map((calendar) => s(calendar.calendarId)).filter(Boolean));
+}
+
+async function deactivateLocationCalendars(opts: {
+  config: StaffFormConfig;
+  location: EligibleCounty;
+  userId: string;
+  previousResult: JsonRecord;
+}) {
+  const token = await getLocationToken(opts.config.tenantId, opts.location.locationId);
+  const data = await ghlRequest({
+    path: `/calendars/?locationId=${encodeURIComponent(opts.location.locationId)}&showDrafted=true`,
+    token,
+    version: CALENDAR_VERSION,
+  });
+  const calendarData = record(data);
+  const calendars = Array.isArray(calendarData.calendars) ? calendarData.calendars.map(record) : [];
+  const storedIds = provisionedCalendarIds(opts.previousResult, opts.location.locationId);
+  const results: JsonRecord[] = [];
+
+  for (const calendar of calendars) {
+    const calendarId = s(calendar.id);
+    const calendarType = s(calendar.calendarType).toLowerCase();
+    const calendarName = s(calendar.name);
+    if (!calendarId || !TEAM_CALENDAR_TYPES.has(calendarType)) continue;
+    const isTarget = storedIds.size > 0
+      ? storedIds.has(calendarId)
+      : configuredCalendarMatches(opts.config, calendar);
+    if (!isTarget) continue;
+
+    const members = Array.isArray(calendar.teamMembers) ? calendar.teamMembers.map(record) : [];
+    const memberWasPresent = Boolean(opts.userId) && members.some((member) => s(member.userId) === opts.userId);
+    let nextMembers = opts.userId
+      ? members.filter((member) => s(member.userId) !== opts.userId)
+      : members;
+    if (calendarType === "collective" && nextMembers.length > 0 && !nextMembers.some((member) => member.isPrimary === true)) {
+      nextMembers = nextMembers.map((member, index) => index === 0 ? { ...member, isPrimary: true } : member);
+    }
+
+    const hasRemainingStaff = nextMembers.length > 0;
+    const nextIsActive = hasRemainingStaff ? calendar.isActive !== false : false;
+    const shouldUpdate = memberWasPresent || (!hasRemainingStaff && calendar.isActive !== false);
+
+    if (!shouldUpdate) {
+      results.push({
+        calendarId,
+        name: calendarName,
+        status: "unchanged",
+        active: calendar.isActive !== false,
+        memberRemoved: false,
+        remainingStaff: nextMembers.length,
+      });
+      continue;
+    }
+
+    await ghlRequest({
+      path: `/calendars/${encodeURIComponent(calendarId)}`,
+      token,
+      version: CALENDAR_VERSION,
+      method: "PUT",
+      body: { isActive: nextIsActive, teamMembers: nextMembers },
+    });
+    results.push({
+      calendarId,
+      name: calendarName,
+      status: hasRemainingStaff ? "member_removed" : "deactivated",
+      active: nextIsActive,
+      memberRemoved: memberWasPresent,
+      remainingStaff: nextMembers.length,
+    });
+  }
+
+  return results;
+}
+
+export async function deactivateStaffApplication(opts: {
+  config: StaffFormConfig;
+  applicationId: string;
+  email: string;
+  locations: EligibleCounty[];
+  previousResult: Record<string, unknown>;
+  deactivatedBy: string;
+}) {
+  await ensureStaffSchema();
+  const pool = getDbPool();
+  const previousResult = record(opts.previousResult);
+  const storedUserId = s(record(previousResult.user).userId);
+  const locationIds = [...new Set(opts.locations.map((location) => location.locationId).filter(Boolean))];
+  if (!locationIds.length) throw new Error("This staff application has no GHL locations to deactivate");
+
+  const [agencyToken, companyId, firstLocationToken] = await Promise.all([
+    getAgencyAccessTokenOrThrow({ tenantId: opts.config.tenantId, integrationKey: "owner" }),
+    getEffectiveCompanyIdOrThrow({ tenantId: opts.config.tenantId, integrationKey: "owner" }),
+    getLocationToken(opts.config.tenantId, locationIds[0]),
+  ]);
+  let userId = storedUserId;
+  if (!userId) {
+    const existing = await findUserByEmail({
+      companyId,
+      email: normalizeEmail(opts.email),
+      agencyToken,
+      locationToken: firstLocationToken,
+      locationId: locationIds[0],
+    });
+    userId = s(existing?.id);
+  }
+
+  const locationResults: JsonRecord[] = [];
+  try {
+    for (const location of opts.locations) {
+      const calendars = await deactivateLocationCalendars({
+        config: opts.config,
+        location,
+        userId,
+        previousResult,
+      });
+      locationResults.push({
+        state: location.state,
+        county: location.county,
+        locationId: location.locationId,
+        calendars,
+      });
+    }
+
+    const personalRows = await pool.query<{ calendar_id: string; location_id: string }>(
+      `select calendar_id, location_id
+         from app.partner_personal_calendars
+        where application_id = $1 and status = 'active'`,
+      [opts.applicationId],
+    );
+    const personalCalendars: JsonRecord[] = [];
+    for (const personal of personalRows.rows) {
+      const location = opts.locations.find((item) => item.locationId === personal.location_id);
+      if (!location) continue;
+      await setPartnerPersonalCalendarStatus({
+        config: opts.config,
+        location,
+        calendarId: personal.calendar_id,
+        active: false,
+      });
+      personalCalendars.push({ calendarId: personal.calendar_id, locationId: personal.location_id, status: "inactive" });
+    }
+    await pool.query(
+      `update app.partner_personal_calendars set status = 'inactive', updated_at = now() where application_id = $1;
+       update app.partner_profiles set website_status = 'hidden', updated_at = now() where application_id = $1`,
+      [opts.applicationId],
+    );
+
+    let userDeletion: JsonRecord = { status: "not_found", userId: userId || null };
+    if (userId) {
+      try {
+        const deletion = record(await ghlRequest({
+          path: `/users/${encodeURIComponent(userId)}`,
+          token: agencyToken,
+          version: "v3",
+          method: "DELETE",
+        }));
+        if (deletion.succeeded === false) {
+          throw new Error(s(deletion.message) || "GHL did not queue the staff deletion");
+        }
+        userDeletion = {
+          status: "queued",
+          userId,
+          succeeded: deletion.succeeded !== false,
+          message: s(deletion.message),
+        };
+      } catch (error) {
+        const status = Number((error as Error & { status?: number })?.status || 0);
+        if (status !== 404 && status !== 422) throw error;
+        userDeletion = {
+          status: "already_deleted",
+          userId,
+          message: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+
+    const deactivation = {
+      status: "completed",
+      completedAt: new Date().toISOString(),
+      userDeletion,
+      locations: locationResults,
+      personalCalendars,
+    };
+    await pool.query(
+      `update app.staff_applications
+          set status = 'deactivated',
+              deactivated_at = coalesce(deactivated_at, now()),
+              deactivated_by = $2::uuid,
+              result = coalesce(result, '{}'::jsonb) || $3::jsonb,
+              last_error = null,
+              updated_at = now()
+        where id = $1`,
+      [opts.applicationId, opts.deactivatedBy, JSON.stringify({ deactivation })],
+    );
+    return deactivation;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await pool.query(
+      `update app.staff_applications
+          set result = coalesce(result, '{}'::jsonb) || $2::jsonb,
+              last_error = $3,
+              updated_at = now()
+        where id = $1`,
+      [
+        opts.applicationId,
+        JSON.stringify({
+          deactivation: {
+            status: "failed",
+            attemptedAt: new Date().toISOString(),
+            locations: locationResults,
+            error: message,
+          },
+        }),
+        message,
+      ],
+    );
+    throw error;
+  }
+}
+
+async function ensurePartnerCalendarGroup(opts: {
+  config: StaffFormConfig;
+  location: EligibleCounty;
+  slug: string;
+  displayName: string;
+}) {
+  const token = await getLocationToken(opts.config.tenantId, opts.location.locationId);
+  const groupSlug = `mdn-${opts.slug}`.slice(0, 80);
+  const groupData = await ghlRequest({
+    path: `/calendars/groups?locationId=${encodeURIComponent(opts.location.locationId)}`,
+    token,
+    version: CALENDAR_VERSION,
+  });
+  const groupObject = record(groupData);
+  const groups = Array.isArray(groupObject.groups) ? groupObject.groups.map(record) : [];
+  let group = groups.find((item) => s(item.slug) === groupSlug);
+
+  if (!group) {
+    const created = await ghlRequest({
+      path: "/calendars/groups",
+      token,
+      version: CALENDAR_VERSION,
+      method: "POST",
+      body: {
+        locationId: opts.location.locationId,
+        name: `My Drip Nurse — ${opts.displayName}`,
+        description: `Mobile IV therapy services with ${opts.displayName}.`,
+        slug: groupSlug,
+        isActive: true,
+      },
+    });
+    const createdObject = record(created);
+    group = record(createdObject.group || createdObject);
+  }
+
+  const id = s(group?.id);
+  if (!id) throw new Error("GHL created or found the Partner calendar group but returned no group ID");
+  if (group?.isActive === false) {
+    await ghlRequest({
+      path: `/calendars/groups/${encodeURIComponent(id)}/status`,
+      token,
+      version: CALENDAR_VERSION,
+      method: "PUT",
+      body: { isActive: true },
+    });
+  }
+  return {
+    id,
+    slug: groupSlug,
+    url: `https://api.leadconnectorhq.com/widget/group/${id}`,
+    locationId: opts.location.locationId,
+  };
+}
+
+function personalCalendarSlug(partnerSlug: string, serviceName: string) {
+  const serviceSlug = serviceName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 38);
+  return `mdn-${partnerSlug}-${serviceSlug}`.slice(0, 80).replace(/-+$/, "");
+}
+
+export async function ensurePartnerPersonalCalendars(opts: {
+  config: StaffFormConfig;
+  applicationId: string;
+  location: EligibleCounty;
+  userId: string;
+  groupId: string;
+  partnerSlug: string;
+  displayName: string;
+}) {
+  const token = await getLocationToken(opts.config.tenantId, opts.location.locationId);
+  const data = await ghlRequest({
+    path: `/calendars/?locationId=${encodeURIComponent(opts.location.locationId)}&showDrafted=true`,
+    token,
+    version: CALENDAR_VERSION,
+  });
+  const calendars = Array.isArray(record(data).calendars) ? (record(data).calendars as unknown[]).map(record) : [];
+  const sourceCalendars = calendars.filter((calendar) =>
+    configuredCalendarMatches(opts.config, calendar) &&
+    s(calendar.calendarType).toLowerCase() !== "personal" &&
+    !s(calendar.slug).startsWith("mdn-"),
+  );
+  const results: JsonRecord[] = [];
+  const pool = getDbPool();
+  for (const source of sourceCalendars) {
+    const sourceId = s(source.id);
+    const serviceName = s(source.name);
+    if (!sourceId || !serviceName) continue;
+    const slug = personalCalendarSlug(opts.partnerSlug, serviceName);
+    let personal = calendars.find((calendar) => s(calendar.slug) === slug);
+    const teamMembers = [{ userId: opts.userId, priority: 0.5 }];
+    if (!personal) {
+      const optionalKeys = [
+        "eventTitle", "eventColor", "slotDuration", "slotDurationUnit", "slotInterval",
+        "slotIntervalUnit", "preBuffer", "preBufferUnit", "postBuffer", "postBufferUnit",
+        "appointmentsPerSlot", "appointmentsPerDay", "minSchedulingNotice", "minSchedulingNoticeUnit",
+        "maxSchedulingNotice", "maxSchedulingNoticeUnit", "openHours", "formId", "stickyContact",
+        "autoConfirm", "allowReschedule", "allowCancellation", "calendarCoverImage", "widgetType",
+        "isLivePaymentMode", "thankYouMessage", "lookBusyConfig",
+      ];
+      const cloned: JsonRecord = {};
+      for (const key of optionalKeys) {
+        if (source[key] !== undefined && source[key] !== null) cloned[key] = source[key];
+      }
+      const created = record(await ghlRequest({
+        path: "/calendars/",
+        token,
+        version: CALENDAR_VERSION,
+        method: "POST",
+        body: {
+          ...cloned,
+          locationId: opts.location.locationId,
+          groupId: opts.groupId,
+          teamMembers,
+          name: `${serviceName} — ${opts.displayName}`.slice(0, 120),
+          description: s(source.description) || `${serviceName} appointments with ${opts.displayName}.`,
+          slug,
+          calendarType: "personal",
+          isActive: true,
+        },
+      }));
+      personal = record(created.calendar || created);
+    } else {
+      const members = Array.isArray(personal.teamMembers) ? personal.teamMembers.map(record) : [];
+      const correctMember = members.length === 1 && s(members[0].userId) === opts.userId;
+      if (!correctMember || s(personal.groupId) !== opts.groupId || personal.isActive === false) {
+        await ghlRequest({
+          path: `/calendars/${encodeURIComponent(s(personal.id))}`,
+          token,
+          version: CALENDAR_VERSION,
+          method: "PUT",
+          body: { groupId: opts.groupId, teamMembers, isActive: true },
+        });
+      }
+    }
+    const calendarId = s(personal?.id);
+    if (!calendarId) throw new Error(`GHL did not return the personal calendar ID for ${serviceName}`);
+    const normalizedName = normalizeCalendarName(serviceName);
+    await pool.query(
+      `insert into app.partner_personal_calendars (
+         application_id, location_id, normalized_name, source_calendar_id,
+         calendar_id, group_id, calendar_slug, status
+       ) values ($1, $2, $3, $4, $5, $6, $7, 'active')
+       on conflict (application_id, normalized_name) do update set
+         location_id = excluded.location_id,
+         source_calendar_id = excluded.source_calendar_id,
+         calendar_id = excluded.calendar_id,
+         group_id = excluded.group_id,
+         calendar_slug = excluded.calendar_slug,
+         status = 'active',
+         updated_at = now()`,
+      [opts.applicationId, opts.location.locationId, normalizedName, sourceId, calendarId, opts.groupId, slug],
+    );
+    results.push({
+      calendarId,
+      sourceCalendarId: sourceId,
+      name: serviceName,
+      normalizedName,
+      slug,
+      status: "active",
+    });
+  }
+  if (!results.length) throw new Error("No configured services were available for personal Partner calendars");
+  return results;
+}
+
+export async function setPartnerPersonalCalendarStatus(opts: {
+  config: StaffFormConfig;
+  location: EligibleCounty;
+  calendarId: string;
+  active: boolean;
+}) {
+  const token = await getLocationToken(opts.config.tenantId, opts.location.locationId);
+  await ghlRequest({
+    path: `/calendars/${encodeURIComponent(opts.calendarId)}`,
+    token,
+    version: CALENDAR_VERSION,
+    method: "PUT",
+    body: { isActive: opts.active },
+  });
 }
 
 async function sendWebhook(url: string, payload: unknown) {
@@ -711,7 +1623,124 @@ function applicationPayload(input: StaffApplicationInput, selected: EligibleCoun
     email: normalizeEmail(input.email),
     phone: input.phone,
     company: input.company,
+    publicTitle: input.publicTitle,
+    professionalCredentials: input.professionalCredentials,
+    biography: input.biography,
+    profilePhotoUrl: input.profilePhotoUrl,
+    profilePhotoFileId: input.profilePhotoFileId,
+    profilePhotoLocationId: input.profilePhotoLocationId,
+    profileConsentAt: input.profileConsentAt,
+    referralCode: s(input.referralCode),
+    primaryLocationId: s(input.primaryLocationId),
     counties: selected.map(({ state, county, locationId }) => ({ state, county, locationId })),
+  };
+}
+
+function partnerSlug(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64) || "partner";
+}
+
+async function upsertPartnerProfile(opts: {
+  config: StaffFormConfig;
+  applicationId: string;
+  input: StaffApplicationInput;
+  selected: EligibleCounty[];
+  ghlUserId: string;
+}) {
+  const pool = getDbPool();
+  const existing = await pool.query<{ slug: string }>(
+    `select slug from app.partner_profiles where application_id = $1 limit 1`,
+    [opts.applicationId],
+  );
+  const displayName = `${opts.input.firstName} ${opts.input.lastName}`.trim();
+  const areas = opts.selected.map(({ state, county, locationId }) => ({ state, county, locationId }));
+  const syncStatus = opts.input.profilePhotoUrl ? "synced" : "pending";
+  const portalPasswordHash = await hashPassword(opts.input.password);
+  const values = [
+    opts.config.tenantId,
+    opts.applicationId,
+    opts.ghlUserId,
+    normalizeEmail(opts.input.email),
+    displayName,
+    opts.input.company,
+    opts.input.publicTitle,
+    opts.input.professionalCredentials,
+    opts.input.biography,
+    opts.input.profilePhotoUrl,
+    opts.input.profilePhotoFileId,
+    opts.input.profilePhotoLocationId,
+    opts.input.primaryLocationId || opts.selected[0]?.locationId || "",
+    JSON.stringify(areas),
+    syncStatus,
+    opts.input.profileConsentAt || null,
+    portalPasswordHash,
+  ];
+
+  let slug = existing.rows[0]?.slug || "";
+  if (slug) {
+    await pool.query(
+      `update app.partner_profiles
+          set ghl_user_id = $3,
+              email = $4,
+              display_name = $5,
+              business_name = $6,
+              public_title = $7,
+              professional_credentials = $8,
+              biography = $9,
+              profile_photo_url = $10,
+              profile_photo_file_id = $11,
+              profile_photo_location_id = $12,
+              primary_location_id = $13,
+              service_areas = $14::jsonb,
+              ghl_photo_sync_status = $15,
+              ghl_photo_synced_at = case when $15 = 'synced' then now() else ghl_photo_synced_at end,
+              ghl_photo_sync_error = null,
+              profile_consent_at = $16::timestamptz,
+              portal_password_hash = $17,
+              affiliate_code = coalesce(affiliate_code, slug),
+              updated_at = now()
+        where application_id = $2 and organization_id = $1`,
+      values,
+    );
+  } else {
+    const baseSlug = partnerSlug(opts.input.company || displayName);
+    for (let attempt = 1; attempt <= 50; attempt += 1) {
+      const candidate = attempt === 1 ? baseSlug : `${baseSlug}-${attempt}`;
+      try {
+        await pool.query(
+          `insert into app.partner_profiles (
+             organization_id, application_id, ghl_user_id, email, slug, display_name,
+             business_name, public_title, professional_credentials, biography,
+             profile_photo_url, profile_photo_file_id, profile_photo_location_id,
+             primary_location_id, service_areas, ghl_photo_sync_status,
+             ghl_photo_synced_at, profile_consent_at, affiliate_code, portal_password_hash
+           ) values (
+             $1, $2, $3, $4, $18, $5, $6, $7, $8, $9, $10, $11, $12,
+             $13, $14::jsonb, $15,
+             case when $15 = 'synced' then now() else null end,
+             $16::timestamptz, $18, $17
+           )`,
+          [...values, candidate],
+        );
+        slug = candidate;
+        break;
+      } catch (error) {
+        const code = s((error as { code?: string })?.code);
+        if (code !== "23505") throw error;
+      }
+    }
+  }
+  if (!slug) throw new Error("Unable to reserve a unique Partner website URL");
+  const baseUrl = s(process.env.PARTNER_WEBSITE_BASE_URL) || "https://partners.mydripnurse.com";
+  return {
+    slug,
+    websiteUrl: `${baseUrl.replace(/\/+$/, "")}/${slug}`,
   };
 }
 
@@ -756,11 +1785,33 @@ export async function submitStaffApplication(opts: {
   const safePayload = applicationPayload(opts.input, opts.selected);
   const submittedAt = new Date().toISOString();
   const submissionKey = s(opts.input.submissionKey) || null;
+  const referralCode = s(opts.input.referralCode).toLowerCase();
+  let referredByProfileId: string | null = null;
+  if (referralCode) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(referralCode)) {
+      throw new Error("Invalid Partner referral code");
+    }
+    const referrer = await pool.query<{ id: string }>(
+      `select id from app.partner_profiles
+        where organization_id = $1
+          and affiliate_code = $2
+          and website_status in ('ready', 'published')
+        limit 1`,
+      [opts.config.tenantId, referralCode],
+    );
+    referredByProfileId = referrer.rows[0]?.id || null;
+  }
   const inserted = await pool.query<{ id: string }>(
     `insert into app.staff_applications (
        organization_id, email, status, request_payload, first_name, last_name,
-       phone, company, submitted_at, submission_key
-     ) values ($1, $2, 'submitted', $3::jsonb, $4, $5, $6, $7, $8::timestamptz, $9)
+       phone, company, public_title, professional_credentials, biography,
+       profile_photo_url, profile_photo_file_id, profile_photo_location_id,
+       profile_consent_at, submitted_at, submission_key, referral_code, referred_by_profile_id,
+       primary_location_id
+     ) values (
+       $1, $2, 'submitted', $3::jsonb, $4, $5, $6, $7, $8, $9, $10,
+       $11, $12, $13, nullif($14, '')::timestamptz, $15::timestamptz, $16, nullif($17, ''), $18, $19
+     )
      on conflict (organization_id, submission_key) where submission_key is not null do nothing
      returning id`,
     [
@@ -771,8 +1822,18 @@ export async function submitStaffApplication(opts: {
       opts.input.lastName,
       opts.input.phone,
       opts.input.company,
+      opts.input.publicTitle,
+      opts.input.professionalCredentials,
+      opts.input.biography,
+      opts.input.profilePhotoUrl,
+      opts.input.profilePhotoFileId,
+      opts.input.profilePhotoLocationId,
+      opts.input.profileConsentAt,
       submittedAt,
       submissionKey,
+      referralCode,
+      referredByProfileId,
+      opts.input.primaryLocationId,
     ],
   );
   if (!inserted.rows[0]) {
@@ -794,6 +1855,15 @@ export async function submitStaffApplication(opts: {
     };
   }
   const applicationId = inserted.rows[0].id;
+  if (referredByProfileId) {
+    await pool.query(
+      `insert into app.partner_affiliate_ledger (
+         referrer_profile_id, referred_application_id, metadata
+       ) values ($1, $2, $3::jsonb)
+       on conflict (referrer_profile_id, referred_application_id, event_type) do nothing`,
+      [referredByProfileId, applicationId, JSON.stringify({ referralCode, submittedAt })],
+    );
+  }
   for (const location of opts.selected) {
     await pool.query(
       `insert into app.staff_application_location_steps (
@@ -902,8 +1972,14 @@ export async function provisionStaffApplication(opts: {
   } else {
     const inserted = await pool.query<{ id: string }>(
       `insert into app.staff_applications (
-         organization_id, email, status, request_payload, first_name, last_name, phone, company, submitted_at
-       ) values ($1, $2, 'staff_processing', $3::jsonb, $4, $5, $6, $7, now()) returning id`,
+         organization_id, email, status, request_payload, first_name, last_name, phone, company,
+         public_title, professional_credentials, biography, profile_photo_url,
+         profile_photo_file_id, profile_photo_location_id, profile_consent_at, submitted_at,
+         primary_location_id
+       ) values (
+         $1, $2, 'staff_processing', $3::jsonb, $4, $5, $6, $7, $8, $9, $10,
+         $11, $12, $13, nullif($14, '')::timestamptz, now(), $15
+       ) returning id`,
       [
         opts.config.tenantId,
         safePayload.email,
@@ -912,6 +1988,14 @@ export async function provisionStaffApplication(opts: {
         opts.input.lastName,
         opts.input.phone,
         opts.input.company,
+        opts.input.publicTitle,
+        opts.input.professionalCredentials,
+        opts.input.biography,
+        opts.input.profilePhotoUrl,
+        opts.input.profilePhotoFileId,
+        opts.input.profilePhotoLocationId,
+        opts.input.profileConsentAt,
+        opts.input.primaryLocationId,
       ],
     );
     applicationId = inserted.rows[0].id;
@@ -936,12 +2020,32 @@ export async function provisionStaffApplication(opts: {
       input: opts.input,
       locations: opts.selected,
     });
+    const partnerProfile = await upsertPartnerProfile({
+      config: opts.config,
+      applicationId,
+      input: opts.input,
+      selected: opts.selected,
+      ghlUserId: user.userId,
+    });
+    const primaryLocation = opts.selected.find((location) => location.locationId === opts.input.primaryLocationId) || opts.selected[0];
+    const calendarGroup = await ensurePartnerCalendarGroup({
+      config: opts.config,
+      location: primaryLocation,
+      slug: partnerProfile.slug,
+      displayName: `${opts.input.firstName} ${opts.input.lastName}`.trim(),
+    });
     const locations: JsonRecord[] = [];
+    let primaryCalendars: JsonRecord[] = [];
     const failureReasons: string[] = [];
     for (const location of opts.selected) {
       try {
-        const calendars = await updateLocationCalendars({ config: opts.config, location, userId: user.userId });
+        const calendars = await updateLocationCalendars({
+          config: opts.config,
+          location,
+          userId: user.userId,
+        });
         const calendarError = calendarProvisioningError(opts.config, calendars);
+        if (location.locationId === primaryLocation.locationId) primaryCalendars = calendars;
         const calendarStatus = calendarError ? "failed" : "complete";
         await pool.query(
           `update app.staff_application_location_steps
@@ -984,6 +2088,40 @@ export async function provisionStaffApplication(opts: {
     if (failureReasons.length > 0) {
       throw new Error(`Calendar provisioning is incomplete: ${failureReasons.join(" | ")}`);
     }
+    primaryCalendars = await ensurePartnerPersonalCalendars({
+      config: opts.config,
+      applicationId,
+      location: primaryLocation,
+      userId: user.userId,
+      groupId: calendarGroup.id,
+      partnerSlug: partnerProfile.slug,
+      displayName: `${opts.input.firstName} ${opts.input.lastName}`.trim(),
+    });
+    await pool.query(
+      `update app.partner_profiles
+          set group_calendar_id = $2,
+              group_calendar_slug = $3,
+              group_calendar_url = $4,
+              services = $5::jsonb,
+              website_status = 'ready',
+              updated_at = now()
+        where application_id = $1`,
+      [
+        applicationId,
+        calendarGroup.id,
+        calendarGroup.slug,
+        calendarGroup.url,
+        JSON.stringify(
+          primaryCalendars
+            .filter((calendar) => ["updated", "unchanged", "active"].includes(s(calendar.status)))
+            .map((calendar) => ({
+              calendarId: s(calendar.calendarId),
+              name: s(calendar.name),
+              status: s(calendar.status),
+            })),
+        ),
+      ],
+    );
 
     const welcomeLandingPageUrl = await issuePartnerOnboardingLink({
       applicationId,
@@ -994,57 +2132,26 @@ export async function provisionStaffApplication(opts: {
       password: opts.input.password,
       countyStateNames: opts.selected.map((item) => `${item.county}, ${item.state}`).join("; "),
       loginUrl: "https://app.devasks.com",
+      publicTitle: opts.input.publicTitle,
+      professionalCredentials: opts.input.professionalCredentials,
+      biography: opts.input.biography,
+      profilePhotoUrl: opts.input.profilePhotoUrl,
+      partnerSlug: partnerProfile.slug,
+      partnerWebsiteUrl: partnerProfile.websiteUrl,
     });
     if (!welcomeLandingPageUrl) throw new Error("Partner onboarding link was not created");
 
-    let finalWebhook = record(previousResult.finalWebhook || previousResult.webhook);
-    if (!webhookWasSent(previousResult)) {
-      finalWebhook = await sendWebhook(opts.config.webhookUrl, {
-        ...safePayload,
-        event: "partner_account_ready",
-        eventId: applicationId,
-        fullName: `${opts.input.firstName} ${opts.input.lastName}`.trim(),
-        countyNames: opts.selected.map((item) => item.county).join(", "),
-        countyStateNames: opts.selected.map((item) => `${item.county}, ${item.state}`).join("; "),
-        totalCounties: opts.selected.length,
-        applicationId,
-        ghlUserId: user.userId,
-        ghlUserStatus: user.status,
-        password: opts.input.password,
-        loginUrl: "https://app.devasks.com",
-        welcomeLandingPageUrl,
-        onboardingLinkReady: true,
-        accountReady: true,
-        calendarSetupSucceeded: true,
-        calendarSetupStatus: "completed",
-        success: true,
-        provisioningStatus: "completed",
-        failureReasons: [],
-        failureReasonText: "",
-        locations,
-        submittedAt: new Date().toISOString(),
-      });
-      if (!webhookWasSent({ finalWebhook })) {
-        throw new Error("The final partner account-ready webhook was not delivered");
-      }
-      await pool.query(
-        `update app.staff_applications
-            set result = coalesce(result, '{}'::jsonb) || $2::jsonb,
-                updated_at = now()
-          where id = $1`,
-        [applicationId, JSON.stringify({ finalWebhook, finalWebhookSent: true })],
-      );
-      finalWebhookDelivered = true;
-    }
     const result = {
       user,
       locations,
-      finalWebhook,
-      finalWebhookSent: true,
-      provisioningStatus: "completed",
+      finalWebhook: record(previousResult.finalWebhook || previousResult.webhook),
+      finalWebhookSent: webhookWasSent(previousResult),
+      provisioningStatus: "website_review_pending",
       welcomeLandingPageUrl,
+      partnerProfile,
+      calendarGroup,
     };
-    const status = "calendar_deposit_pending" as const;
+    const status = "website_review_pending" as const;
     await pool.query(
       `update app.staff_applications
           set status = $2,
@@ -1086,4 +2193,455 @@ export async function provisionStaffApplication(opts: {
     );
     throw error;
   }
+}
+
+export async function setPartnerWebsiteVisibility(opts: {
+  applicationId: string;
+  action: "publish" | "hide" | "republish";
+}) {
+  await ensureStaffSchema();
+  const pool = getDbPool();
+  const loaded = await pool.query<{
+    organization_id: string;
+    status: string;
+    request_payload: JsonRecord;
+    result: JsonRecord;
+    profile_id: string | null;
+    slug: string | null;
+    website_status: string | null;
+    group_calendar_id: string | null;
+    group_calendar_url: string | null;
+    services: unknown;
+  }>(
+    `select a.organization_id, a.status, a.request_payload, a.result,
+            p.id as profile_id, p.slug, p.website_status,
+            p.group_calendar_id, p.group_calendar_url, p.services
+       from app.staff_applications a
+       left join app.partner_profiles p on p.application_id = a.id
+      where a.id = $1
+      limit 1`,
+    [opts.applicationId],
+  );
+  const row = loaded.rows[0];
+  if (!row || !row.profile_id || !row.slug) throw new Error("Partner website is not ready yet");
+
+  if (opts.action === "hide") {
+    await pool.query(
+      `update app.partner_profiles
+          set website_status = 'hidden', updated_at = now()
+        where application_id = $1`,
+      [opts.applicationId],
+    );
+    return { websiteStatus: "hidden" as const, slug: row.slug };
+  }
+
+  if (!Array.isArray(row.services) || row.services.length === 0) {
+    throw new Error("Activate at least one Partner service before publishing the website");
+  }
+
+  const websiteBase = (s(process.env.PARTNER_WEBSITE_BASE_URL) || "https://partners.mydripnurse.com").replace(/\/+$/, "");
+  const partnerWebsiteUrl = `${websiteBase}/${row.slug}`;
+  await pool.query(
+    `update app.partner_profiles
+        set website_status = 'published', published_at = coalesce(published_at, now()), updated_at = now()
+      where application_id = $1`,
+    [opts.applicationId],
+  );
+
+  const previousResult = record(row.result);
+  let finalWebhook = record(previousResult.finalWebhook || previousResult.webhook);
+  let finalWebhookSent = webhookWasSent(previousResult);
+  let finalWebhookPendingReason = "";
+  if (!finalWebhookSent) {
+    const onboarding = await readLatestPartnerOnboardingForApplication(opts.applicationId);
+    if (onboarding) {
+      const config = await getStaffFormConfigForTenant(row.organization_id);
+      const requestPayload = record(row.request_payload);
+      const counties = Array.isArray(requestPayload.counties)
+        ? requestPayload.counties.map(record)
+        : [];
+      const locations = Array.isArray(previousResult.locations) ? previousResult.locations : [];
+      if (s(config.webhookUrl)) {
+        finalWebhook = await sendWebhook(config.webhookUrl, {
+          ...requestPayload,
+          event: "partner_account_ready",
+          eventId: opts.applicationId,
+          applicationId: opts.applicationId,
+          fullName: `${onboarding.firstName} ${onboarding.lastName}`.trim(),
+          countyNames: counties.map((item) => s(item.county)).filter(Boolean).join(", "),
+          countyStateNames: onboarding.countyStateNames,
+          totalCounties: counties.length,
+          primaryLocationId: s(requestPayload.primaryLocationId),
+          partnerUserId: onboarding.ghlUserId,
+          password: onboarding.password,
+          loginUrl: onboarding.loginUrl,
+          partnerPortalUrl: `${websiteBase}/login`,
+          welcomeLandingPageUrl: s(previousResult.welcomeLandingPageUrl),
+          partnerSlug: row.slug,
+          partnerWebsiteUrl,
+          partnerWebsiteStatus: "published",
+          groupCalendarId: row.group_calendar_id,
+          groupCalendarUrl: row.group_calendar_url,
+          onboardingLinkReady: true,
+          accountReady: true,
+          calendarSetupSucceeded: true,
+          calendarSetupStatus: "completed",
+          success: true,
+          provisioningStatus: "completed",
+          locations,
+          submittedAt: new Date().toISOString(),
+        });
+        finalWebhookSent = webhookWasSent({ finalWebhook });
+        if (!finalWebhookSent) finalWebhookPendingReason = "The configured welcome webhook did not confirm delivery.";
+      } else {
+        finalWebhookPendingReason = "No Partner welcome webhook is configured yet.";
+      }
+    } else {
+      finalWebhookPendingReason = "The secure Partner onboarding package has not been issued yet.";
+    }
+  }
+
+  const nextResult = {
+    finalWebhook,
+    finalWebhookSent,
+    ...(finalWebhookPendingReason ? { finalWebhookPendingReason } : {}),
+    partnerWebsiteUrl,
+    partnerWebsiteStatus: "published",
+    provisioningStatus: "completed",
+  };
+  await pool.query(
+    `update app.staff_applications
+        set status = case when status = 'completed' then status else 'calendar_deposit_pending' end,
+            result = coalesce(result, '{}'::jsonb) || $2::jsonb,
+            last_error = null,
+            updated_at = now()
+      where id = $1`,
+    [opts.applicationId, JSON.stringify(nextResult)],
+  );
+  await notifyPartnerSitePublished(row.organization_id);
+  return { websiteStatus: "published" as const, slug: row.slug, partnerWebsiteUrl, finalWebhookSent };
+}
+
+/**
+ * Provisions a Partner entirely inside the My Drip Nurse platform.
+ *
+ * This is deliberately separate from the legacy HighLevel provisioner above:
+ * no GHL user, location token, calendar, or subaccount is created here. The
+ * internal booking engine owns services, availability, deposits, and portal
+ * access; webhooks remain the only outbound notification boundary.
+ */
+export async function provisionInternalPartnerApplication(opts: {
+  config: StaffFormConfig;
+  input: StaffApplicationInput;
+  selected: EligibleCounty[];
+  applicationId: string;
+}) {
+  await ensureStaffSchema();
+  const { ensureBookingEngineSchema } = await import("@/lib/bookingEngineSchema");
+  await ensureBookingEngineSchema();
+  const pool = getDbPool();
+  const applicationId = s(opts.applicationId);
+  if (!applicationId) throw new Error("Partner application ID is required.");
+
+  const claim = await pool.query<{ id: string; result: JsonRecord | null }>(
+    `update app.staff_applications
+        set status = 'staff_processing', last_error = null, updated_at = now()
+      where id = $1
+        and organization_id = $2
+        and reviewed_at is not null
+        and status in ('staff_ready', 'failed', 'under_review', 'stripe_pending')
+      returning id, result`,
+    [applicationId, opts.config.tenantId],
+  );
+  if (!claim.rows[0]) {
+    const current = await pool.query<{ status: string; reviewed_at: string | null }>(
+      `select status, reviewed_at from app.staff_applications where id = $1 and organization_id = $2 limit 1`,
+      [applicationId, opts.config.tenantId],
+    );
+    const row = current.rows[0];
+    if (!row) throw new Error("Partner application not found for this organization.");
+    if (!row.reviewed_at) throw new Error("Review the application before activating the Partner.");
+    if (["staff_processing", "website_review_pending", "calendar_deposit_pending", "ready_to_complete", "completed"].includes(row.status)) {
+      throw new Error("This Partner is already activated or is currently being activated.");
+    }
+    throw new Error(`Application cannot be activated from status ${row.status}.`);
+  }
+
+  const internalUserId = `internal-partner-${applicationId}`;
+  const previousResult = record(claim.rows[0].result);
+  try {
+    for (const location of opts.selected) {
+      await pool.query(
+        `insert into app.staff_application_location_steps (application_id, location_id, state, county)
+         values ($1, $2, $3, $4)
+         on conflict (application_id, location_id) do nothing`,
+        [applicationId, location.locationId, location.state, location.county],
+      );
+    }
+    await pool.query(
+      `update app.staff_application_location_steps
+          set stripe_status = 'complete', stripe_completed_at = coalesce(stripe_completed_at, now()),
+              staff_status = 'processing', calendars_status = 'processing', last_error = null,
+              updated_at = now()
+        where application_id = $1`,
+      [applicationId],
+    );
+
+    const partnerProfile = await upsertPartnerProfile({
+      config: opts.config,
+      applicationId,
+      input: opts.input,
+      selected: opts.selected,
+      ghlUserId: internalUserId,
+    });
+    const profileRow = await pool.query<{ id: string }>(
+      `select id from app.partner_profiles where application_id = $1 limit 1`,
+      [applicationId],
+    );
+    const profileId = profileRow.rows[0]?.id;
+    if (!profileId) throw new Error("The internal Partner profile could not be created.");
+
+    const catalogOrg = await pool.query<{ id: string }>(
+      `select id from app.organizations
+        where lower(slug) = 'my-drip-nurse' or lower(name) = 'my drip nurse'
+        order by case when lower(slug) = 'my-drip-nurse' then 0 else 1 end
+        limit 1`,
+    );
+    const serviceOrgId = catalogOrg.rows[0]?.id || opts.config.tenantId;
+    const services = await pool.query<{
+      id: string; slug: string; name: string; short_description: string | null;
+      ingredients: string[] | null; image_url: string | null; image_alt: string | null;
+      price: string | null; currency: string; deposit_type: string; deposit_value: string;
+    }>(
+      `select id, slug, name, short_description, ingredients, image_url, image_alt,
+              price::text, currency, deposit_type, deposit_value::text
+         from app.services
+        where organization_id = $1 and is_active = true
+        order by name`,
+      [serviceOrgId],
+    );
+    if (!services.rows.length) throw new Error("Create at least one active service before activating a Partner.");
+
+    const serviceSnapshot = services.rows.map((service) => ({
+      normalizedName: service.slug,
+      name: service.name,
+      description: service.short_description || "",
+      ingredients: service.ingredients || [],
+      price: service.price === null ? null : Number(service.price),
+      effectivePrice: service.price === null ? null : Number(service.price),
+      currency: service.currency,
+      depositType: service.deposit_type,
+      depositValue: Number(service.deposit_value),
+      imageUrl: service.image_url || "",
+      imageAlt: service.image_alt || service.name,
+      status: "active",
+    }));
+    const internalGroupId = `internal-group-${applicationId}`;
+    const websiteBase = (s(process.env.PARTNER_WEBSITE_BASE_URL) || "https://partners.mydripnurse.com").replace(/\/+$/, "");
+    await pool.query(
+      `update app.partner_profiles
+          set group_calendar_id = $2,
+              group_calendar_slug = $3,
+              group_calendar_url = $4,
+              services = $5::jsonb,
+              website_status = 'ready',
+              updated_at = now()
+        where id = $1`,
+      [profileId, internalGroupId, `${partnerProfile.slug}-services`, `${websiteBase}/${partnerProfile.slug}/services`, JSON.stringify(serviceSnapshot)],
+    );
+
+    for (const service of services.rows) {
+      const assignment = await pool.query<{ id: string }>(
+        `insert into app.partner_service_assignments
+           (organization_id, partner_profile_id, service_id, status, activated_at, metadata)
+         values ($1, $2, $3, 'active', now(), '{"source":"internal_application_activation"}'::jsonb)
+         on conflict (partner_profile_id, service_id) do update set
+           status = 'active', activated_at = coalesce(app.partner_service_assignments.activated_at, now()),
+           deactivated_at = null, updated_at = now()
+         returning id`,
+        [opts.config.tenantId, profileId, service.id],
+      );
+      const assignmentId = assignment.rows[0]?.id;
+      if (!assignmentId) continue;
+      for (const location of opts.selected) {
+        await pool.query(
+          `insert into app.partner_coverage_areas (assignment_id, state, county, metadata)
+           values ($1, $2, $3, $4::jsonb)
+           on conflict do nothing`,
+          [assignmentId, location.state, location.county, JSON.stringify({ locationId: location.locationId, source: "internal_application_activation" })],
+        );
+      }
+    }
+
+    const availability = await pool.query<{ id: string }>(
+      `select id from app.partner_availability_rules where partner_profile_id = $1 and service_id is null limit 1`,
+      [profileId],
+    );
+    if (!availability.rows[0]) {
+      for (let day = 0; day < 7; day += 1) {
+        await pool.query(
+          `insert into app.partner_availability_rules
+             (partner_profile_id, service_id, timezone, day_of_week, start_time, end_time, is_active)
+           values ($1, null, 'America/New_York', $2, '09:00', '17:00', true)`,
+          [profileId, day],
+        );
+      }
+    }
+
+    await pool.query(
+      `update app.staff_application_location_steps
+          set stripe_status = 'complete', staff_status = 'complete', calendars_status = 'complete',
+              deposit_status = 'complete',
+              deposit_config = jsonb_build_object('percentage', 35, 'source', 'service_catalog', 'platform', 'stripe'),
+              stripe_completed_at = coalesce(stripe_completed_at, now()), deposit_completed_at = now(),
+              last_error = null, updated_at = now()
+        where application_id = $1`,
+      [applicationId],
+    );
+
+    const onboardingUrl = await issuePartnerOnboardingLink({
+      applicationId,
+      ghlUserId: internalUserId,
+      firstName: opts.input.firstName,
+      lastName: opts.input.lastName,
+      email: normalizeEmail(opts.input.email),
+      password: opts.input.password,
+      countyStateNames: opts.selected.map((item) => `${item.county}, ${item.state}`).join("; "),
+      loginUrl: `${websiteBase}/login`,
+      publicTitle: opts.input.publicTitle,
+      professionalCredentials: opts.input.professionalCredentials,
+      biography: opts.input.biography,
+      profilePhotoUrl: opts.input.profilePhotoUrl,
+      partnerSlug: partnerProfile.slug,
+      partnerWebsiteUrl: partnerProfile.websiteUrl,
+    });
+    const result = {
+      ...previousResult,
+      user: { userId: internalUserId, provider: "my_drip_nurse" },
+      provisioningProvider: "internal",
+      provisioningStatus: "website_review_pending",
+      welcomeLandingPageUrl: onboardingUrl,
+      partnerProfile,
+      calendarGroup: { id: internalGroupId, url: `${websiteBase}/${partnerProfile.slug}/services` },
+      finalWebhookSent: webhookWasSent(previousResult),
+    };
+    await pool.query(
+      `update app.staff_applications
+          set status = 'website_review_pending', result = $2::jsonb,
+              provisioned_at = coalesce(provisioned_at, now()), last_error = null, updated_at = now()
+        where id = $1`,
+      [applicationId, JSON.stringify(result)],
+    );
+    return { applicationId, status: "website_review_pending" as const, ...result };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await pool.query(
+      `update app.staff_applications set status = 'failed', last_error = $2, updated_at = now() where id = $1`,
+      [applicationId, message],
+    );
+    await pool.query(
+      `update app.staff_application_location_steps
+          set staff_status = case when staff_status = 'processing' then 'failed' else staff_status end,
+              calendars_status = case when calendars_status = 'processing' then 'failed' else calendars_status end,
+              last_error = coalesce(last_error, $2), updated_at = now()
+        where application_id = $1`,
+      [applicationId, message],
+    );
+    throw error;
+  }
+}
+
+/** Deactivates a Partner only in the My Drip Nurse booking platform. */
+export async function deactivateInternalPartnerApplication(opts: {
+  applicationId: string;
+  deactivatedBy: string;
+}) {
+  await ensureStaffSchema();
+  const { ensureBookingEngineSchema } = await import("@/lib/bookingEngineSchema");
+  await ensureBookingEngineSchema();
+  const pool = getDbPool();
+  const applicationId = s(opts.applicationId);
+  if (!applicationId) throw new Error("Partner application ID is required.");
+
+  const profile = await pool.query<{ id: string }>(
+    `select id from app.partner_profiles where application_id = $1 limit 1`,
+    [applicationId],
+  );
+  if (!profile.rows[0]) throw new Error("This application does not have an internal Partner profile.");
+  const profileId = profile.rows[0].id;
+  await pool.query(
+    `update app.partner_service_assignments
+        set status = 'revoked', deactivated_at = coalesce(deactivated_at, now()), updated_at = now()
+      where partner_profile_id = $1;
+     update app.partner_coverage_areas
+        set status = 'paused', updated_at = now()
+      where assignment_id in (select id from app.partner_service_assignments where partner_profile_id = $1);
+     update app.partner_availability_rules
+        set is_active = false, updated_at = now()
+      where partner_profile_id = $1;
+     update app.partner_profiles
+        set website_status = 'hidden', updated_at = now()
+      where id = $1;`,
+    [profileId],
+  );
+  const deactivation = {
+    status: "completed",
+    provider: "internal",
+    completedAt: new Date().toISOString(),
+    profileId,
+  };
+  await pool.query(
+    `update app.staff_applications
+        set status = 'deactivated', deactivated_at = coalesce(deactivated_at, now()),
+            deactivated_by = $2::uuid, result = coalesce(result, '{}'::jsonb) || $3::jsonb,
+            last_error = null, updated_at = now()
+      where id = $1`,
+    [applicationId, opts.deactivatedBy, JSON.stringify({ deactivation })],
+  );
+  return deactivation;
+}
+
+export async function sendPartnerApplicationLifecycleEvent(
+  applicationIdRaw: string,
+  event: "partner_application_under_review",
+) {
+  await ensureStaffSchema();
+  const applicationId = s(applicationIdRaw);
+  const pool = getDbPool();
+  const loaded = await pool.query<{
+    organization_id: string;
+    request_payload: JsonRecord;
+    submitted_at: string | null;
+  }>(
+    `select organization_id, request_payload, submitted_at::text
+       from app.staff_applications
+      where id = $1
+      limit 1`,
+    [applicationId],
+  );
+  const row = loaded.rows[0];
+  if (!row) throw new Error("Partner application not found");
+  const config = await getStaffFormConfigForTenant(row.organization_id);
+  const requestPayload = record(row.request_payload);
+  const adminProfileUrl = `${config.adminBaseUrl.replace(/\/$/, "")}/applications/${applicationId}`;
+  const delivery = await sendOptionalWebhook(config.applicantReceivedWebhookUrl, {
+    ...requestPayload,
+    event,
+    eventId: `${applicationId}:${event}`,
+    applicationId,
+    status: "under_review",
+    adminProfileUrl,
+    submittedAt: row.submitted_at,
+    updatedAt: new Date().toISOString(),
+  });
+  await pool.query(
+    `update app.staff_applications
+        set result = coalesce(result, '{}'::jsonb) || jsonb_build_object(
+          'lifecycleWebhooks',
+          coalesce(result->'lifecycleWebhooks', '{}'::jsonb) || jsonb_build_object($2, $3::jsonb)
+        ), updated_at = now()
+      where id = $1`,
+    [applicationId, event, JSON.stringify(delivery)],
+  );
+  return delivery;
 }
