@@ -6,6 +6,7 @@
     "dev": "\"$npm_node_execpath\" ./node_modules/next/dist/bin/next dev --webpack -p 3001",
     "build": "npm run verify:partner-webhooks && \"$npm_node_execpath\" ./node_modules/next/dist/bin/next build",
     "clean": "node ./tools/clean-generated.mjs",
+    "clean:deep": "node ./tools/clean-generated.mjs --deep",
     "start": "\"$npm_node_execpath\" ./node_modules/next/dist/bin/next start -p 3001",
     "worker:runner": "node ./tools/railway-runner-worker.mjs",
     "lint": "eslint",
