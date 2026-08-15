@@ -1400,6 +1400,7 @@
 .communicationEventChip code { overflow: hidden; color: #159096; font: 600 8px ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow: ellipsis; white-space: nowrap; }
 .communicationActions { display: flex; align-items: flex-end; justify-content: flex-end; gap: 8px; }
 .communicationTest { margin-left: auto; display: grid; grid-template-columns: minmax(220px,290px) auto; align-items: end; gap: 8px; }
+.communicationTestSingle { grid-template-columns: auto; }
 .communicationTest label { display: grid; gap: 5px; }
 .communicationTest label > span { color: #8f9995; font-size: 8px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .communicationTest .select { min-height: 40px; }

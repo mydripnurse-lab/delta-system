@@ -108,6 +108,7 @@ export function PartnerAdminCommunicationsModal({
                   const isEditing = editingRouter === communication.id;
                   const selectedTarget = selectedTestTargets[communication.id];
                   const selectedEvent = communication.events.find((event) => event.target === selectedTarget) || communication.events[0];
+                  const hasMultipleTestEvents = communication.events.length > 1;
 
                   return (
                     <article className={`${styles.communicationCard} ${communication.configured ? styles.communicationCardActive : ""}`} key={communication.id}>
@@ -172,18 +173,20 @@ export function PartnerAdminCommunicationsModal({
                           <button type="button" className={styles.secondaryButton} onClick={() => onEdit(communication.id, communication.webhookUrl)} disabled={locked}>
                             Edit
                           </button>
-                          <div className={styles.communicationTest}>
-                            <label>
-                              <span>Safe Test event</span>
-                              <select
-                                className={styles.select}
-                                value={selectedEvent?.target || ""}
-                                onChange={(event) => onTestTargetChange(communication.id, event.target.value as PartnerAdminWebhookTarget)}
-                                disabled={!communication.configured || locked}
-                              >
-                                {communication.events.map((event) => <option value={event.target} key={event.target}>{event.label}</option>)}
-                              </select>
-                            </label>
+                          <div className={`${styles.communicationTest} ${hasMultipleTestEvents ? "" : styles.communicationTestSingle}`}>
+                            {hasMultipleTestEvents ? (
+                              <label>
+                                <span>Safe Test event</span>
+                                <select
+                                  className={styles.select}
+                                  value={selectedEvent?.target || ""}
+                                  onChange={(event) => onTestTargetChange(communication.id, event.target.value as PartnerAdminWebhookTarget)}
+                                  disabled={!communication.configured || locked}
+                                >
+                                  {communication.events.map((event) => <option value={event.target} key={event.target}>{event.label}</option>)}
+                                </select>
+                              </label>
+                            ) : null}
                             <button
                               type="button"
                               className={styles.button}
