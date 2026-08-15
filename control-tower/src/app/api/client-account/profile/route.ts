@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getAuthenticatedClient, isTrustedClientRequest } from "@/lib/clientPortalAuth";
 import { getDbPool } from "@/lib/db";
+import { isGenderIdentity } from "@/lib/genderIdentity";
 import { verifyMapboxAddress } from "@/lib/mapboxAddressVerification";
 
 export const runtime = "nodejs";
@@ -72,7 +73,6 @@ export async function PATCH(request: Request) {
   const heightFeet = heightFeetRaw ? Number(heightFeetRaw) : null;
   const heightInchesPart = heightInchesRaw ? Number(heightInchesRaw) : heightFeet !== null ? 0 : null;
   const totalHeightInches = heightFeet !== null && heightInchesPart !== null ? heightFeet * 12 + heightInchesPart : null;
-  const allowedGenderIdentities = new Set(["female", "male", "non_binary", "intersex", "another_identity", "prefer_not_to_say"]);
   const wantsAddress = Boolean(addressLine1 || city || county || state || postalCode || addressFeatureId);
   const birthDateIsValid = !dateOfBirth || (/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth) && new Date(`${dateOfBirth}T12:00:00Z`).getTime() <= Date.now());
   if (
@@ -83,7 +83,7 @@ export async function PATCH(request: Request) {
     (weightPounds !== null && (!Number.isFinite(weightPounds) || weightPounds < 1 || weightPounds > 1000)) ||
     (heightFeet !== null && (!Number.isInteger(heightFeet) || heightFeet < 1 || heightFeet > 8)) ||
     (heightInchesPart !== null && (!Number.isInteger(heightInchesPart) || heightInchesPart < 0 || heightInchesPart > 11)) ||
-    Boolean(genderIdentity && !allowedGenderIdentities.has(genderIdentity)) ||
+    Boolean(genderIdentity && !isGenderIdentity(genderIdentity)) ||
     (wantsAddress && !(addressLine1 && city && county && state && postalCode && addressFeatureId))
   ) {
     return NextResponse.json({ ok: false, error: "Enter valid profile information." }, { status: 400 });

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "@/components/booking/bookingCalendar.module.css";
+import { GENDER_IDENTITY_OPTIONS, normalizeGenderIdentity } from "@/lib/genderIdentity";
 import type { BookingAvailability, BookingAvailabilitySlot } from "@/lib/serviceBookingAvailability";
 
 const PHONE_COUNTRY_DIAL_CODES = {
@@ -90,15 +91,6 @@ export type BookingInitialProfile = {
     isDefault: boolean;
   }>;
 };
-
-const GENDER_IDENTITY_OPTIONS = [
-  { value: "female", label: "Female" },
-  { value: "male", label: "Male" },
-  { value: "non_binary", label: "Non-binary" },
-  { value: "intersex", label: "Intersex" },
-  { value: "another_identity", label: "Another identity" },
-  { value: "prefer_not_to_say", label: "Prefer not to say" },
-] as const;
 
 const MEDICAL_SCREENING_OPTIONS = [
   { id: "chf", label: "I have been diagnosed with or told I have congestive heart failure (CHF)" },
@@ -245,7 +237,7 @@ function normalizedPerson(person: Contact) {
     dateOfBirth: person.dateOfBirth,
     weight: person.weight,
     height: String(totalHeightInches(person) || ""),
-    genderIdentity: person.genderIdentity,
+    genderIdentity: normalizeGenderIdentity(person.genderIdentity),
   };
 }
 
@@ -303,7 +295,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     weight: initialProfile?.weightPounds ? String(initialProfile.weightPounds) : "",
     heightFeet: initialProfile?.heightInchesTotal ? String(Math.floor(initialProfile.heightInchesTotal / 12)) : "",
     heightInches: initialProfile?.heightInchesTotal ? String(initialProfile.heightInchesTotal % 12) : "",
-    genderIdentity: initialProfile?.genderIdentity || "",
+    genderIdentity: normalizeGenderIdentity(initialProfile?.genderIdentity),
   }));
   const [additionalPatients, setAdditionalPatients] = useState<AdditionalPatient[]>([]);
   const [contactSubmitted, setContactSubmitted] = useState(false);
@@ -385,7 +377,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       weight: params.get("weight") || (initialProfile?.weightPounds ? String(initialProfile.weightPounds) : ""),
       heightFeet: params.get("heightFeet") || (params.get("height") ? String(Math.floor(Number(params.get("height")) / 12)) : initialProfile?.heightInchesTotal ? String(Math.floor(initialProfile.heightInchesTotal / 12)) : ""),
       heightInches: params.get("heightInches") || (params.get("height") ? String(Number(params.get("height")) % 12) : initialProfile?.heightInchesTotal ? String(initialProfile.heightInchesTotal % 12) : ""),
-      genderIdentity: params.get("genderIdentity") || initialProfile?.genderIdentity || "",
+      genderIdentity: normalizeGenderIdentity(params.get("genderIdentity") || initialProfile?.genderIdentity),
     });
     setAddress((current) => ({
       ...current,
@@ -822,7 +814,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                 autoComplete="tel"
               />
               <label>Date of birth<input type="date" max={todayDate()} value={contact.dateOfBirth} onChange={(event) => { setContact((current) => ({ ...current, dateOfBirth: event.target.value })); setContactSubmitted(false); }} autoComplete="bday" /></label>
-              <label>Sex / gender<select required value={contact.genderIdentity} onChange={(event) => { setContact((current) => ({ ...current, genderIdentity: event.target.value })); setContactSubmitted(false); }}><option value="">Choose an option</option>{GENDER_IDENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><small>Choose the option that best represents you. Prefer not to say is available.</small></label>
+              <label>Sex / gender<select required value={contact.genderIdentity} onChange={(event) => { setContact((current) => ({ ...current, genderIdentity: normalizeGenderIdentity(event.target.value) })); setContactSubmitted(false); }}><option value="">Choose an option</option>{GENDER_IDENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><small>Select Male, Female, or Prefer not to say.</small></label>
               <label>Weight (lb)<input type="number" min="1" max="1000" step="0.1" required value={contact.weight} onChange={(event) => { setContact((current) => ({ ...current, weight: event.target.value })); setContactSubmitted(false); }} inputMode="decimal" placeholder="e.g. 165" /></label>
               <label>Height — feet<input type="number" min="1" max="8" step="1" required value={contact.heightFeet} onChange={(event) => { setContact((current) => ({ ...current, heightFeet: event.target.value })); setContactSubmitted(false); }} inputMode="numeric" placeholder="e.g. 5" /></label>
               <label>Height — inches<input type="number" min="0" max="11" step="1" required value={contact.heightInches} onChange={(event) => { setContact((current) => ({ ...current, heightInches: event.target.value })); setContactSubmitted(false); }} inputMode="numeric" placeholder="0–11" /></label>
@@ -856,7 +848,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                       onChange={(phone) => setAdditionalPatients((current) => current.map((item) => item.id === patient.id ? { ...item, phone } : item))}
                     />
                     <label>Date of birth<input type="date" max={todayDate()} value={patient.dateOfBirth} onChange={(event) => setAdditionalPatients((current) => current.map((item) => item.id === patient.id ? { ...item, dateOfBirth: event.target.value } : item))} /></label>
-                    <label>Sex / gender<select required value={patient.genderIdentity} onChange={(event) => setAdditionalPatients((current) => current.map((item) => item.id === patient.id ? { ...item, genderIdentity: event.target.value } : item))}><option value="">Choose an option</option>{GENDER_IDENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+                    <label>Sex / gender<select required value={patient.genderIdentity} onChange={(event) => setAdditionalPatients((current) => current.map((item) => item.id === patient.id ? { ...item, genderIdentity: normalizeGenderIdentity(event.target.value) } : item))}><option value="">Choose an option</option>{GENDER_IDENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
                     <label>Weight (lb)<input type="number" min="1" max="1000" step="0.1" required value={patient.weight} onChange={(event) => setAdditionalPatients((current) => current.map((item) => item.id === patient.id ? { ...item, weight: event.target.value } : item))} inputMode="decimal" placeholder="e.g. 165" /></label>
                     <label>Height — feet<input type="number" min="1" max="8" step="1" required value={patient.heightFeet} onChange={(event) => setAdditionalPatients((current) => current.map((item) => item.id === patient.id ? { ...item, heightFeet: event.target.value } : item))} inputMode="numeric" placeholder="e.g. 5" /></label>
                     <label>Height — inches<input type="number" min="0" max="11" step="1" required value={patient.heightInches} onChange={(event) => setAdditionalPatients((current) => current.map((item) => item.id === patient.id ? { ...item, heightInches: event.target.value } : item))} inputMode="numeric" placeholder="0–11" /></label>

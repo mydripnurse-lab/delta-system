@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import PhoneInputField from "@/components/shared/PhoneInputField";
 import type { ClientAccount } from "@/lib/clientPortalAuth";
+import { GENDER_IDENTITY_OPTIONS, normalizeGenderIdentity } from "@/lib/genderIdentity";
 
 import styles from "@/app/client-portal/clientPortal.module.css";
 
@@ -18,7 +19,7 @@ export default function ClientProfileForm({ account, nextPath = "" }: { account:
   const [weightPounds, setWeightPounds] = useState(account.weightPounds ? String(account.weightPounds) : "");
   const [heightFeet, setHeightFeet] = useState(account.heightInches ? String(Math.floor(account.heightInches / 12)) : "");
   const [heightInches, setHeightInches] = useState(account.heightInches ? String(account.heightInches % 12) : "");
-  const [genderIdentity, setGenderIdentity] = useState(account.genderIdentity);
+  const [genderIdentity, setGenderIdentity] = useState(() => normalizeGenderIdentity(account.genderIdentity));
   const [message, setMessage] = useState("");
   const [working, setWorking] = useState(false);
 
@@ -54,7 +55,7 @@ export default function ClientProfileForm({ account, nextPath = "" }: { account:
     <div className={styles.profileFormSection}><span>02</span><div><b>Wellness details</b><small>Used to prefill future bookings and calculate your general body wellness reference.</small></div></div>
     <label><small>Weight (lb)</small><input type="number" min="1" max="1000" step="0.1" value={weightPounds} onChange={(event) => setWeightPounds(event.target.value)} inputMode="decimal" placeholder="e.g. 165" /></label>
     <label><small>Height</small><span className={styles.heightInputGroup}><input type="number" min="1" max="8" step="1" value={heightFeet} onChange={(event) => setHeightFeet(event.target.value)} inputMode="numeric" placeholder="5" aria-label="Height in feet" /><b>ft</b><input type="number" min="0" max="11" step="1" value={heightInches} onChange={(event) => setHeightInches(event.target.value)} inputMode="numeric" placeholder="6" aria-label="Additional height in inches" /><b>in</b></span></label>
-    <label className={styles.wideProfileField}><small>Sex / gender</small><select value={genderIdentity} onChange={(event) => setGenderIdentity(event.target.value)}><option value="">Choose an option</option><option value="female">Female</option><option value="male">Male</option><option value="non_binary">Non-binary</option><option value="intersex">Intersex</option><option value="another_identity">Another identity</option><option value="prefer_not_to_say">Prefer not to say</option></select><span>Choose the option that best represents you. “Prefer not to say” is always available.</span></label>
+    <label className={styles.wideProfileField}><small>Sex / gender</small><select value={genderIdentity} onChange={(event) => setGenderIdentity(normalizeGenderIdentity(event.target.value))}><option value="">Choose an option</option>{GENDER_IDENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><span>Select Male, Female, or Prefer not to say.</span></label>
 
     <div className={styles.profileFormSection}><span>03</span><div><b>Emergency contact</b><small>Optional. Kept with your care profile for future visits.</small></div></div>
     <label><small>Contact name</small><input value={emergencyContactName} onChange={(event) => setEmergencyContactName(event.target.value)} maxLength={120} placeholder="Full name" /></label>

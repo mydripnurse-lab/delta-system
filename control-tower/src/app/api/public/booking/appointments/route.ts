@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { createAppointmentCheckout } from "@/lib/appointmentBooking";
 import { getAuthenticatedClientFromRequest } from "@/lib/clientPortalAuth";
+import { GENDER_IDENTITY_VALUES } from "@/lib/genderIdentity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ const personSchema = z.object({
   dateOfBirth: dateOfBirthSchema,
   weight: weightSchema,
   height: heightSchema,
-  genderIdentity: z.enum(["female", "male", "non_binary", "intersex", "another_identity", "prefer_not_to_say"]),
+  genderIdentity: z.enum(GENDER_IDENTITY_VALUES),
 });
 
 const bookingSchema = z.object({

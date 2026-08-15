@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { captureBookingLead } from "@/lib/bookingLeadCapture";
+import { GENDER_IDENTITY_VALUES } from "@/lib/genderIdentity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ const personSchema = z.object({
   dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   weight: z.string().trim().max(20).optional().default(""),
   height: z.string().trim().max(20).optional().default(""),
-  genderIdentity: z.enum(["female", "male", "non_binary", "intersex", "another_identity", "prefer_not_to_say"]).optional().default("prefer_not_to_say"),
+  genderIdentity: z.enum(GENDER_IDENTITY_VALUES).optional().default("prefer_not_to_say"),
 });
 
 const schema = z.object({
