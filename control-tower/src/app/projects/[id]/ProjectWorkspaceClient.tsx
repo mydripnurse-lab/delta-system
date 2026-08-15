@@ -971,7 +971,7 @@ type TabSitemapReport = {
   total: number;
   success: number;
   failed: number;
-  mode: "all" | "retry";
+  mode: "all" | "retry" | "sample";
   items: TabSitemapResultItem[];
   updatedAt: string;
 };
@@ -1539,7 +1539,7 @@ export default function Home() {
   >("counties");
   const [tabSitemapRunAction, setTabSitemapRunAction] =
     useState<TabAction>("inspect");
-  const [tabSitemapRunMode, setTabSitemapRunMode] = useState<"all" | "retry">(
+  const [tabSitemapRunMode, setTabSitemapRunMode] = useState<"all" | "retry" | "sample">(
     "all",
   );
   const [tabSitemapRunItems, setTabSitemapRunItems] = useState<
@@ -7132,7 +7132,7 @@ export default function Home() {
     kind: "counties" | "cities",
     action: TabAction,
     rowsToRun: any[],
-    mode: "all" | "retry",
+    mode: "all" | "retry" | "sample",
   ) {
     const runKey = tabRunKey(kind, action);
     setTabSitemapSubmitting(runKey);
@@ -7258,7 +7258,7 @@ export default function Home() {
               `sitemapUrl=${s((data as any)?.sitemapUrl) || "-"}`,
               `urls=${s((data as any)?.submittedUrls) || "-"}`,
               `batches=${s((data as any)?.batches) || "-"}`,
-              `credential=${s((data as any)?.credentialSource) || (isIndexNowAction ? "verified per-host key" : "-")}`,
+              `credential=${s((data as any)?.credentialSource) || (isIndexNowAction ? "server-only worker token" : "-")}`,
               `response=${s((data as any)?.responsePreview || "").slice(0, 140) || "-"}`,
             ].join(" | ")
           : undefined;
@@ -7357,8 +7357,16 @@ export default function Home() {
   async function submitTabAction(
     kind: "counties" | "cities",
     action: TabAction,
+    limit?: number,
   ) {
-    await runTabSitemaps(kind, action, getActiveRowsForTab(kind), "all");
+    const rows = getActiveRowsForTab(kind);
+    const safeLimit = Number.isFinite(limit) && Number(limit) > 0 ? Number(limit) : 0;
+    await runTabSitemaps(
+      kind,
+      action,
+      safeLimit ? rows.slice(0, safeLimit) : rows,
+      safeLimit ? "sample" : "all",
+    );
   }
 
   function domainBotUrlFromLocId(locId: string) {
@@ -15224,14 +15232,38 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         className="smallBtn"
                         onClick={() => {
                           setTabSitemapRunAction("indexnow");
-                          void submitTabAction("counties", "indexnow");
+                          void submitTabAction("counties", "indexnow", 5);
                           setQuickBotModal("");
                         }}
                         disabled={tabSitemapSubmitting !== ""}
                       >
                         {tabSitemapSubmitting === tabRunKey("counties", "indexnow")
-                          ? "Indexing Counties..."
-                          : "IndexNow Counties"}
+                          ? "Testing 5 Counties..."
+                          : "Test 5 Counties"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("indexnow");
+                          void submitTabAction("cities", "indexnow", 5);
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        {tabSitemapSubmitting === tabRunKey("cities", "indexnow")
+                          ? "Testing 5 Cities..."
+                          : "Test 5 Cities"}
+                      </button>
+                      <button
+                        className="smallBtn"
+                        onClick={() => {
+                          setTabSitemapRunAction("indexnow");
+                          void submitTabAction("counties", "indexnow");
+                          setQuickBotModal("");
+                        }}
+                        disabled={tabSitemapSubmitting !== ""}
+                      >
+                        IndexNow All Counties
                       </button>
                       <button
                         className="smallBtn"
@@ -15242,9 +15274,7 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         }}
                         disabled={tabSitemapSubmitting !== ""}
                       >
-                        {tabSitemapSubmitting === tabRunKey("cities", "indexnow")
-                          ? "Indexing Cities..."
-                          : "IndexNow Cities"}
+                        IndexNow All Cities
                       </button>
                       <button
                         className="smallBtn"
@@ -16364,7 +16394,11 @@ return {totalRows:rows.length,matched:targets.length,clicked};
                         ? "IndexNow"
                         : "Bing Sitemap"}{" "}
                   •{" "}
-                  {tabSitemapRunMode === "retry" ? "Retry Failed" : "Full Run"}
+                  {tabSitemapRunMode === "retry"
+                    ? "Retry Failed"
+                    : tabSitemapRunMode === "sample"
+                      ? "Test 5"
+                      : "Full Run"}
                 </h3>
                 <div className="mini" style={{ marginTop: 6 }}>
                   Started:{" "}

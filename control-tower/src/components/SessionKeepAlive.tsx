@@ -11,7 +11,18 @@ export default function SessionKeepAlive() {
     const refresh = async () => {
       if (stopped) return;
       try {
-        await fetch("/api/auth/refresh", {
+        const hostname = window.location.hostname.toLowerCase();
+        // Patient sessions have their own 30-day signed cookie and do not use
+        // the Control Tower or Partner Admin refresh endpoints.
+        if (
+          hostname === "care.mydripnurse.com" ||
+          window.location.pathname.startsWith("/client-") ||
+          window.location.pathname.startsWith("/client-portal")
+        ) return;
+        const endpoint = hostname === "admin.mydripnurse.com"
+          ? "/api/partner-admin/auth/refresh"
+          : "/api/auth/refresh";
+        await fetch(endpoint, {
           method: "POST",
           credentials: "include",
           cache: "no-store",

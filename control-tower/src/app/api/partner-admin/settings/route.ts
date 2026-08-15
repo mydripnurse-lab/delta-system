@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
 import {
   listPartnerAdminNotificationSettings,
+  savePartnerAdminCommunicationRouter,
   savePartnerAdminNotificationSettings,
+  type PartnerAdminCommunicationRouter,
 } from "@/lib/partnerAdminSettings";
 
 export const dynamic = "force-dynamic";
@@ -29,13 +31,49 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
+    if (body?.router) {
+      const settings = await savePartnerAdminCommunicationRouter({
+        tenantId: body?.tenantId,
+        router: body.router as PartnerAdminCommunicationRouter,
+        webhookUrl: body?.webhookUrl,
+        clear: body?.clear,
+      });
+      return NextResponse.json({ ok: true, settings });
+    }
     const settings = await savePartnerAdminNotificationSettings({
       tenantId: body?.tenantId,
+      accountReadyWebhookUrl: body?.accountReadyWebhookUrl,
       applicantReceivedWebhookUrl: body?.applicantReceivedWebhookUrl,
       adminNotificationWebhookUrl: body?.adminNotificationWebhookUrl,
+      partnerNotificationWebhookUrl: body?.partnerNotificationWebhookUrl,
+      leadCaptureWebhookUrl: body?.leadCaptureWebhookUrl,
+      appointmentCreatedWebhookUrl: body?.appointmentCreatedWebhookUrl,
+      newBookingWebhookUrl: body?.newBookingWebhookUrl,
+      partnerConfirmationRequiredWebhookUrl: body?.partnerConfirmationRequiredWebhookUrl,
+      partnerRescheduledWebhookUrl: body?.partnerRescheduledWebhookUrl,
+      appointmentAcceptedWebhookUrl: body?.appointmentAcceptedWebhookUrl,
+      appointmentDeclinedWebhookUrl: body?.appointmentDeclinedWebhookUrl,
+      appointmentReassignedWebhookUrl: body?.appointmentReassignedWebhookUrl,
+      appointmentCompletedWebhookUrl: body?.appointmentCompletedWebhookUrl,
+      appointmentRefundedWebhookUrl: body?.appointmentRefundedWebhookUrl,
+      clientReferralWebhookUrl: body?.clientReferralWebhookUrl,
       adminBaseUrl: body?.adminBaseUrl,
+      clearAccountReadyWebhook: body?.clearAccountReadyWebhook,
       clearApplicantWebhook: body?.clearApplicantWebhook,
       clearAdminWebhook: body?.clearAdminWebhook,
+      clearPartnerWebhook: body?.clearPartnerWebhook,
+      clearLeadCaptureWebhook: body?.clearLeadCaptureWebhook,
+      clearAppointmentCreatedWebhook: body?.clearAppointmentCreatedWebhook,
+      clearNewBookingWebhook: body?.clearNewBookingWebhook,
+      clearPartnerConfirmationRequiredWebhook: body?.clearPartnerConfirmationRequiredWebhook,
+      clearPartnerRescheduledWebhook: body?.clearPartnerRescheduledWebhook,
+      clearAppointmentAcceptedWebhook: body?.clearAppointmentAcceptedWebhook,
+      clearAppointmentDeclinedWebhook: body?.clearAppointmentDeclinedWebhook,
+      clearAppointmentReassignedWebhook: body?.clearAppointmentReassignedWebhook,
+      clearAppointmentCompletedWebhook: body?.clearAppointmentCompletedWebhook,
+      clearAppointmentRefundedWebhook: body?.clearAppointmentRefundedWebhook,
+      clearClientReferralWebhook: body?.clearClientReferralWebhook,
+      affiliateCommissionRate: body?.affiliateCommissionRate,
     });
     return NextResponse.json({ ok: true, settings });
   } catch (error) {

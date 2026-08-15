@@ -9,6 +9,16 @@ const ROOT = path.resolve(__dirname, "..");
 const MIGRATIONS_DIR = path.join(ROOT, "db", "migrations");
 const ENV_FILES = [path.join(ROOT, ".env.local"), path.join(ROOT, ".env")];
 
+function requestedMigration() {
+  const index = process.argv.indexOf("--only");
+  if (index === -1) return "";
+  const fileName = String(process.argv[index + 1] || "").trim();
+  if (!/^\d{3}_[a-z0-9_]+\.sql$/i.test(fileName)) {
+    fail("Pass one exact migration file after --only.");
+  }
+  return fileName;
+}
+
 function fail(message) {
   console.error(`[db:migrate] ${message}`);
   process.exit(1);
@@ -60,9 +70,11 @@ async function main() {
     fail("Missing DATABASE_URL env var.");
   }
 
-  const files = await listMigrationFiles();
+  const only = requestedMigration();
+  const allFiles = await listMigrationFiles();
+  const files = only ? allFiles.filter((fileName) => fileName === only) : allFiles;
   if (!files.length) {
-    fail(`No .sql files found in ${MIGRATIONS_DIR}`);
+    fail(only ? `Migration not found: ${only}` : `No .sql files found in ${MIGRATIONS_DIR}`);
   }
 
   const pool = new Pool({ connectionString: databaseUrl });

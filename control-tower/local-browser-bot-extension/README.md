@@ -43,5 +43,7 @@ Option B (triggered from Control Tower `Run Domain Bot` button):
   - `popup.js`
   - `icon16.png`, `icon32.png`, `icon48.png`, `icon128.png`
 - Do not include old `*.zip` files inside the uploaded package.
-- In this repo, a clean package was generated at:
-  - `control-tower/local-browser-bot-extension/dist/delta-local-domain-bot-clean-v1.0.18.zip`
+- The current clean package is:
+  - `control-tower/local-browser-bot-extension/dist/delta-local-domain-bot-clean-v1.0.27.zip`
+- Older archives are intentionally removed. The unpacked files in this folder
+  remain the canonical development source.

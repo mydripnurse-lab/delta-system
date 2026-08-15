@@ -242,7 +242,7 @@ export async function upsertTenantAiPrompt(input: {
 
   const integrationKey = normalizeIntegrationKey(input.integrationKey);
   const name = s(input.name) || promptKey;
-  const module = normalizeModule(input.module);
+  const moduleName = normalizeModule(input.module);
   const routePath = s(input.routePath);
   const description = s(input.description);
   const isActive = input.isActive !== false;
@@ -282,7 +282,7 @@ export async function upsertTenantAiPrompt(input: {
       integrationKey,
       promptKey,
       name,
-      module,
+      moduleName,
       routePath,
       description,
       promptText,

@@ -116,33 +116,32 @@ function forbidden(error: string) {
 
 async function resolveOrCreateUser(req: Request): Promise<AuthResult> {
   const pool = getDbPool();
-  let rawUserId = s(req.headers.get("x-user-id"));
-  let rawEmail = s(req.headers.get("x-user-email")).toLowerCase();
-  let rawName = s(req.headers.get("x-user-name"));
-  if (!rawUserId && !rawEmail) {
-    const authHeader = s(req.headers.get("authorization"));
-    const bearer =
-      authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
-    const secret = getSessionSecret();
-    const cookieToken = readCookieFromHeader(req.headers.get("cookie"), SESSION_COOKIE_NAME);
-    const token = bearer || cookieToken;
-    if (secret && token) {
-      const parsed = verifySessionToken(token, secret);
-      if (parsed) {
-        rawUserId = s(parsed.sub);
-        rawEmail = s(parsed.email).toLowerCase();
-        rawName = s(parsed.name);
-      }
-    }
+  const authHeader = s(req.headers.get("authorization"));
+  const bearer = authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
+  const secret = getSessionSecret();
+  const cookieToken = readCookieFromHeader(req.headers.get("cookie"), SESSION_COOKIE_NAME);
+  const token = bearer || cookieToken;
+  const parsed = secret && token ? verifySessionToken(token, secret) : null;
+
+  let rawUserId = s(parsed?.sub);
+  let rawEmail = s(parsed?.email).toLowerCase();
+  let rawName = s(parsed?.name);
+
+  const allowDevAuth = process.env.NODE_ENV !== "production" && s(process.env.ALLOW_DEV_AUTH_HEADERS) === "1";
+  if (!rawUserId && !rawEmail && allowDevAuth) {
+    rawUserId = s(req.headers.get("x-user-id"));
+    rawEmail = s(req.headers.get("x-user-email")).toLowerCase();
+    rawName = s(req.headers.get("x-user-name"));
   }
-  const devEmail = s(process.env.DEV_AUTH_EMAIL).toLowerCase();
-  const autoCreate = s(process.env.DEV_AUTH_AUTO_CREATE) === "1";
+
+  const devEmail = allowDevAuth ? s(process.env.DEV_AUTH_EMAIL).toLowerCase() : "";
+  const autoCreate = allowDevAuth && s(process.env.DEV_AUTH_AUTO_CREATE) === "1";
 
   const userId = rawUserId;
   const email = rawEmail || devEmail;
 
   if (!userId && !email) {
-    return { ok: false, response: unauthorized("Missing auth headers. Send x-user-email or x-user-id.") };
+    return { ok: false, response: unauthorized("A valid authenticated session is required.") };
   }
 
   const byId = !!userId;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function PartnerAdminLogout({ className }: { className?: string }) {
+export function PartnerAdminLogout({ className, label = "Sign out", busyLabel = "Signing out…" }: { className?: string; label?: string; busyLabel?: string }) {
   const [busy, setBusy] = useState(false);
 
   async function signOut() {
@@ -16,7 +16,7 @@ export function PartnerAdminLogout({ className }: { className?: string }) {
 
   return (
     <button type="button" className={className} onClick={signOut} disabled={busy}>
-      {busy ? "Signing out…" : "Sign out"}
+      {busy ? busyLabel : label}
     </button>
   );
 }

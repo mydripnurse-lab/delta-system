@@ -43,7 +43,7 @@ const MAX_MESSAGES_PER_AGENT = 200;
 const THREAD_SEPARATOR = "::";
 const DEFAULT_SCOPE = "global";
 
-function useDbStorage() {
+function hasDbStorage() {
     return Boolean(String(process.env.DATABASE_URL || "").trim());
 }
 
@@ -136,7 +136,7 @@ async function dbEnsureThread(
 }
 
 export async function appendAiEvent(event: Omit<AiEvent, "id" | "ts"> & { tenantId?: string | null }) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const ts = nowTs();
         const tenantScope = scopeFromTenantId(event.tenantId);
@@ -192,7 +192,7 @@ export async function appendAiEvent(event: Omit<AiEvent, "id" | "ts"> & { tenant
 }
 
 export async function appendConversationMessage(agent: string, msg: Omit<AiMessage, "ts">, tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         return appendConversationMessageForThread(agent, "default", msg, tenantId);
     }
     const store = await readAiMemory();
@@ -212,7 +212,7 @@ export async function appendConversationMessage(agent: string, msg: Omit<AiMessa
 }
 
 export async function getConversation(agent: string, limit = 60, tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         return getConversationForThread(agent, "default", limit, tenantId);
     }
     const store = await readAiMemory();
@@ -275,7 +275,7 @@ export async function appendConversationMessageForThread(
     msg: Omit<AiMessage, "ts">,
     tenantId?: string | null,
 ) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const safeThread = threadSafe(threadId);
@@ -335,7 +335,7 @@ export async function getConversationForThread(
     limit = 60,
     tenantId?: string | null,
 ) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const safeThread = threadSafe(threadId);
@@ -370,7 +370,7 @@ export async function getConversationForThread(
 }
 
 export async function listConversationThreads(agent: string, limit = 30, tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const result = await pool.query<{
@@ -455,7 +455,7 @@ export async function listConversationThreads(agent: string, limit = 30, tenantI
 }
 
 export async function createConversationThread(agent: string, threadId: string, title?: string, tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const safeThread = threadSafe(threadId);
@@ -491,7 +491,7 @@ export async function createConversationThread(agent: string, threadId: string, 
 }
 
 export async function renameConversationThread(agent: string, threadId: string, title: string, tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const safeThread = threadSafe(threadId);
@@ -530,7 +530,7 @@ export async function setConversationThreadPinned(
     pinned: boolean,
     tenantId?: string | null,
 ) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const safeThread = threadSafe(threadId);
@@ -600,7 +600,7 @@ export async function setConversationThreadPinned(
 }
 
 export async function reorderPinnedThreads(agent: string, orderedThreadIds: string[], tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const clean = Array.from(new Set((orderedThreadIds || []).map((x) => threadSafe(x)).filter(Boolean)));
@@ -641,7 +641,7 @@ export async function reorderPinnedThreads(agent: string, orderedThreadIds: stri
 }
 
 export async function archiveConversationThread(agent: string, threadId: string, tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const safeThread = threadSafe(threadId);
@@ -665,7 +665,7 @@ export async function archiveConversationThread(agent: string, threadId: string,
 }
 
 export async function getRecentEvents(limit = 120, tenantId?: string | null) {
-    if (useDbStorage()) {
+    if (hasDbStorage()) {
         const pool = getDbPool();
         const tenantScope = scopeFromTenantId(tenantId);
         const result = await pool.query<{

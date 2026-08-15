@@ -10,6 +10,12 @@ type PartnerOnboardingPayload = {
   password: string;
   countyStateNames: string;
   loginUrl: string;
+  publicTitle: string;
+  professionalCredentials: string;
+  biography: string;
+  profilePhotoUrl: string;
+  partnerSlug: string;
+  partnerWebsiteUrl: string;
 };
 
 type EncryptedPayload = {
@@ -95,6 +101,8 @@ async function ensureOnboardingSchema() {
       create index if not exists partner_onboarding_tokens_expiry_idx
         on app.partner_onboarding_tokens (expires_at)
         where revoked_at is null;
+      alter table app.partner_onboarding_tokens
+        add column if not exists consumed_at timestamptz;
     `);
   })().catch((error) => {
     onboardingSchemaReady = null;
@@ -104,15 +112,18 @@ async function ensureOnboardingSchema() {
 }
 
 function getAppBaseUrl() {
-  const configuredLanding = s(process.env.PARTNER_WELCOME_BASE_URL);
+  const configuredLanding = s(process.env.PARTNER_ACTIVATION_BASE_URL);
   if (configuredLanding) return configuredLanding.replace(/\/+$/, "");
+  if (process.env.NODE_ENV === "production") {
+    return "https://partners.mydripnurse.com/activate";
+  }
   const configuredApp = s(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL);
-  if (configuredApp) return `${configuredApp.replace(/\/+$/, "")}/partner-welcome`;
+  if (configuredApp) return `${configuredApp.replace(/\/+$/, "")}/partner-activate`;
   const vercelHost = s(process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL);
   if (vercelHost) {
-    return `https://${vercelHost.replace(/^https?:\/\//, "").replace(/\/+$/, "")}/partner-welcome`;
+    return `https://${vercelHost.replace(/^https?:\/\//, "").replace(/\/+$/, "")}/partner-activate`;
   }
-  return "http://localhost:3001/partner-welcome";
+  return "http://localhost:3001/partner-activate";
 }
 
 export async function issuePartnerOnboardingLink(input: PartnerOnboardingPayload) {
@@ -144,6 +155,97 @@ export async function readPartnerOnboardingToken(rawToken: string) {
         and expires_at > now()
       returning encrypted_payload, expires_at`,
     [tokenHash(normalized)],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    ...decryptPayload(row.encrypted_payload),
+    expiresAt: new Date(row.expires_at).toISOString(),
+  };
+}
+
+export async function activatePartnerOnboardingToken(rawToken: string, passwordHash: string) {
+  await ensureOnboardingSchema();
+  const normalized = s(rawToken);
+  if (!normalized || normalized.length < 32 || !passwordHash) return null;
+
+  const client = await getDbPool().connect();
+  try {
+    await client.query("begin");
+    const tokenResult = await client.query<{
+      id: string;
+      encrypted_payload: EncryptedPayload;
+    }>(
+      `select id, encrypted_payload
+         from app.partner_onboarding_tokens
+        where token_hash = $1
+          and revoked_at is null
+          and consumed_at is null
+          and expires_at > now()
+        for update`,
+      [tokenHash(normalized)],
+    );
+    const tokenRow = tokenResult.rows[0];
+    if (!tokenRow) {
+      await client.query("rollback");
+      return null;
+    }
+
+    const onboarding = decryptPayload(tokenRow.encrypted_payload);
+    const profileResult = await client.query<{
+      id: string;
+      application_id: string;
+      organization_id: string;
+      ghl_user_id: string;
+      email: string;
+      slug: string;
+      display_name: string;
+    }>(
+      `update app.partner_profiles
+          set portal_password_hash = $3,
+              updated_at = now()
+        where application_id = $1
+          and ghl_user_id = $2
+      returning id, application_id, organization_id, ghl_user_id, email, slug, display_name`,
+      [onboarding.applicationId, onboarding.ghlUserId, passwordHash],
+    );
+    const profile = profileResult.rows[0];
+    if (!profile) {
+      await client.query("rollback");
+      return null;
+    }
+
+    await client.query(
+      `update app.partner_onboarding_tokens
+          set consumed_at = now(), revoked_at = now()
+        where id = $1`,
+      [tokenRow.id],
+    );
+    await client.query("commit");
+    return profile;
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function readLatestPartnerOnboardingForApplication(applicationIdRaw: string) {
+  await ensureOnboardingSchema();
+  const applicationId = s(applicationIdRaw);
+  if (!applicationId) return null;
+  const result = await getDbPool().query<{
+    encrypted_payload: EncryptedPayload;
+    expires_at: Date;
+  }>(
+    `select encrypted_payload, expires_at
+       from app.partner_onboarding_tokens
+      where application_id = $1
+        and revoked_at is null
+      order by created_at desc
+      limit 1`,
+    [applicationId],
   );
   const row = result.rows[0];
   if (!row) return null;

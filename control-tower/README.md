@@ -338,6 +338,7 @@ SHEETS_LOG_SCOPE=overview,state
 ```bash
 npm run dev     # desarrollo (puerto 3001)
 npm run build   # build produccion
+npm run clean   # borrar solo caches generados de Next.js y TypeScript
 npm run start   # correr build
 npm run lint    # linter
 ```

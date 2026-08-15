@@ -1,11 +1,12 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+
 import ProjectWorkspaceClient from "../ProjectWorkspaceClient";
 
-type TabPageProps = {
+type PageProps = {
   params: Promise<{ id: string; tab: string }>;
 };
 
-const ALLOWED_TABS = new Set([
+const PROJECT_TABS = new Set([
   "home",
   "run-center",
   "search-builder",
@@ -15,19 +16,16 @@ const ALLOWED_TABS = new Set([
   "project-details",
   "integrations",
   "webhooks",
-  "prompts",
   "logs",
+  "prompts",
 ]);
 
-export default async function ProjectTabPage({ params }: TabPageProps) {
+export default async function ProjectTabPage({ params }: PageProps) {
   const { id, tab } = await params;
   const tenantId = String(id || "").trim();
-  const tabSlug = String(tab || "").trim().toLowerCase();
+  const projectTab = String(tab || "").trim().toLowerCase();
 
-  if (!tenantId) redirect("/");
-  if (!ALLOWED_TABS.has(tabSlug)) {
-    redirect(`/projects/${encodeURIComponent(tenantId)}/home`);
-  }
+  if (!tenantId || !PROJECT_TABS.has(projectTab)) notFound();
 
   return <ProjectWorkspaceClient />;
 }

@@ -17,6 +17,7 @@ export default function PartnerAdminLoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -41,69 +42,85 @@ export default function PartnerAdminLoginPage() {
 
   return (
     <main className={styles.shell}>
-      <section className={styles.card} aria-labelledby="partner-admin-login-title">
+      <section className={styles.brandPanel} aria-label="My Drip Nurse Partner Admin">
         <div className={styles.brandRow}>
           <div className={styles.logoImage} role="img" aria-label="My Drip Nurse" />
           <div>
-            <strong>My Drip Nurse</strong>
-            <span>Partner Operations</span>
+            <strong>Partner Admin</strong>
+            <span>Secure workspace</span>
           </div>
         </div>
 
-        <div className={styles.intro}>
-          <span className={styles.eyebrow}>Secure administrator access</span>
-          <h1 id="partner-admin-login-title">Welcome back.</h1>
-          <p>Review partner applications and complete each controlled activation step.</p>
+        <div className={styles.brandMessage}>
+          <span className={styles.eyebrow}>Partner operations</span>
+          <h1>Everything your partner network needs, <em>in one place.</em></h1>
+          <p>A private workspace to review applicants, activate locations and keep every onboarding step moving.</p>
         </div>
 
-        <form className={styles.form} onSubmit={submit}>
-          <label>
-            <span>Email address</span>
-            <input
-              type="email"
-              autoComplete="username"
-              inputMode="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@company.com"
-              required
-              autoFocus
-            />
-          </label>
+        <div className={styles.benefits}>
+          <div><span>01</span><p><strong>Review applications</strong>Keep every submission organized.</p></div>
+          <div><span>02</span><p><strong>Activate partner access</strong>Connect Stripe, staff and calendars.</p></div>
+          <div><span>03</span><p><strong>Complete onboarding</strong>Track every location through launch.</p></div>
+        </div>
 
-          <label>
-            <span>Password</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Your password"
-              required
-            />
-          </label>
+        <footer className={styles.brandFooter}>My Drip Nurse · Internal use only</footer>
+      </section>
 
-          <label className={styles.remember}>
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(event) => setRememberMe(event.target.checked)}
-            />
-            <span>Keep me signed in on this device</span>
-          </label>
+      <section className={styles.loginPanel}>
+        <div className={styles.card} aria-labelledby="partner-admin-login-title">
+          <div className={styles.intro}>
+            <span className={styles.eyebrow}>Secure administrator access</span>
+            <h2 id="partner-admin-login-title">Welcome back.</h2>
+            <p>Sign in to continue managing the My Drip Nurse partner network.</p>
+          </div>
 
-          {error ? <div className={styles.error} role="alert">{error}</div> : null}
+          <form className={styles.form} onSubmit={submit}>
+            <label>
+              <span>Email address</span>
+              <input
+                type="email"
+                autoComplete="username"
+                inputMode="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@mydripnurse.com"
+                required
+                autoFocus
+              />
+            </label>
 
-          <button type="submit" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Your password"
+                required
+              />
+            </label>
 
-        <footer>
-          <span>Independent My Drip Nurse administration</span>
-          <span aria-hidden="true">•</span>
-          <span>Encrypted session</span>
-        </footer>
+            <label className={styles.remember}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+              />
+              <span>Keep me signed in on this device</span>
+            </label>
+
+            {error ? <div className={styles.error} role="alert">{error}</div> : null}
+
+            <button type="submit" disabled={busy}>
+              {busy ? "Signing in…" : "Sign in to Partner Admin"}
+            </button>
+          </form>
+
+          <footer className={styles.securityNote}>
+            <span className={styles.securityDot} />Encrypted, private administrator session
+          </footer>
+        </div>
       </section>
     </main>
   );

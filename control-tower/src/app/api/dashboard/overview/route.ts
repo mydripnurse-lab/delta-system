@@ -415,14 +415,16 @@ export async function GET(req: Request) {
             ]);
         }
 
+        // Some results are refreshed later while others remain initial snapshots;
+        // a single destructuring declaration cannot mix const and let bindings.
         let [
             callsCur,
             callsPrev,
             contactsCur,
             contactsPrev,
-            searchJoinInitial,
-            gaJoin,
-            adsJoin,
+            searchJoinInitial, // eslint-disable-line prefer-const
+            gaJoin, // eslint-disable-line prefer-const
+            adsJoin, // eslint-disable-line prefer-const
             conversationsCur,
             conversationsPrev,
             transactionsCur,

@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
+import "mapbox-gl/dist/mapbox-gl.css";
 import "./globals.css";
 import SessionKeepAlive from "@/components/SessionKeepAlive";
 
-const BRAND_ICON_URL =
-  "https://storage.googleapis.com/msgsndr/K8GcSVZWinRaQTMF6Sb8/media/698c5030a41b87368f94ef80.png";
+const BRAND_ICON_URL = "https://sitemaps.mydripnurse.com/favicon.ico";
 
 export const metadata: Metadata = {
   title: "Delta System -  AI growth infrastructure for every U.S. market",
   description: "Delta System generates websites for every city, county, and state in the U.S., including Puerto Rico, then runs business operations with AI from one control tower.",
   icons: {
-    icon: [{ url: BRAND_ICON_URL, type: "image/png" }],
-    shortcut: [{ url: BRAND_ICON_URL, type: "image/png" }],
-    apple: [{ url: BRAND_ICON_URL, type: "image/png" }],
+    icon: [{ url: BRAND_ICON_URL, type: "image/x-icon" }],
+    shortcut: [{ url: BRAND_ICON_URL, type: "image/x-icon" }],
+    apple: [{ url: BRAND_ICON_URL, type: "image/x-icon" }],
   },
 };
 

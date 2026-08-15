@@ -61,12 +61,13 @@ export async function requirePartnerAdmin(req: Request) {
     id: string;
     email: string;
     full_name: string | null;
+    avatar_url: string | null;
     is_active: boolean;
   }>(
-    `select id, email, full_name, is_active
-       from app.users
-      where id = $1
-        and lower(email) = lower($2)
+    `select u.id, u.email, u.full_name, (to_jsonb(u)->>'avatar_url') as avatar_url, u.is_active
+       from app.users u
+      where u.id = $1
+        and lower(u.email) = lower($2)
       limit 1`,
     [session.sub, session.email],
   );
@@ -84,6 +85,7 @@ export async function requirePartnerAdmin(req: Request) {
       id: user.id,
       email: user.email,
       fullName: user.full_name || null,
+      avatarUrl: user.avatar_url || null,
     },
   };
 }

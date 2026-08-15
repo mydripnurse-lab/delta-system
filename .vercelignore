@@ -1,23 +1,49 @@
+# Repository metadata and superseded snapshots.
 .git
+.git.paused
+.vercel
 .DS_Store
-.env
-.env.*
+
+# Root folders unrelated to the Control Tower deployment.
 node_modules
 states
-public
-scripts
-services
+/public
 routes
 storage
 tmp
 delta-system
 mydripnurse-sitemaps-staging
-*.zip
+utils
 
+# Only these resource families are traced by control-tower/next.config.ts.
+resources/*
+!resources/config
+!resources/config/**
+!resources/customValues
+!resources/customValues/**
+
+# Local and generated Control Tower files.
 control-tower/.next
 control-tower/node_modules
 control-tower/.env
 control-tower/.env.*
 control-tower/.vercel
 control-tower/storage
+control-tower/data/cache
+control-tower/domain-bot-worker
+control-tower/local-browser-bot-extension
 control-tower/*.zip
+control-tower/docs
+
+# Generated provisioning output is rebuilt on demand and must not be uploaded.
+scripts/out
+
+# Generated/local files within included runtime folders.
+**/.DS_Store
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/.env
+**/.env.*
+**/*.log
+*.zip

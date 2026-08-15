@@ -2,74 +2,101 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="x-apple-disable-message-reformatting" />
     <title>Welcome to My Drip Nurse</title>
-  <!-- outlook-fixes-applied --></head>
+    <style>
+      @media only screen and (max-width:620px) {
+        .mdn-shell { width:100% !important; border-radius:0 !important; }
+        .mdn-pad { padding-left:24px !important; padding-right:24px !important; }
+        .mdn-title { font-size:36px !important; }
+        .mdn-button { display:block !important; padding:16px 20px !important; }
+      }
+    </style>
+  </head>
   <body style="margin:0;padding:0;background:#f4f1eb;color:#17353a;font-family:Arial,Helvetica,sans-serif;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-      Welcome to My Drip Nurse. Watch your Partner welcome video and access your next steps.
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      Your My Drip Nurse Partner Portal and website are ready. Activate your secure access today.
     </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f1eb;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f1eb;">
       <tr>
-        <td align="center" style="padding:28px 14px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 12px 38px rgba(18,62,70,.10);">
+        <td align="center" style="padding:28px 12px;">
+          <table class="mdn-shell" role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;overflow:hidden;border-radius:20px;background:#ffffff;box-shadow:0 14px 42px rgba(18,62,70,.10);">
             <tr>
-              <td align="center" style="padding:24px 28px;background:#ffffff;border-bottom:1px solid #e7efef;">
-                <img
-                  src="https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/675a44c0da8c3978ab418ac1.png"
-                  width="150"
-                  alt="My Drip Nurse"
-                  style="display:block;width:150px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;"
-                />
+              <td class="mdn-pad" style="padding:25px 42px;border-bottom:1px solid #e2ecea;background:#ffffff;">
+                <img src="https://admin.mydripnurse.com/mdn-logo.png" width="190" alt="My Drip Nurse" style="display:block;width:190px;max-width:70%;height:auto;border:0;outline:none;" />
               </td>
             </tr>
-
             <tr>
-              <td style="padding:54px 42px 46px;background:#eaf5fa;">
-                <div style="display:inline-block;margin-bottom:18px;padding:7px 12px;border-radius:999px;background:#d5f2ec;color:#087368;font-size:11px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;">
-                  Welcome, Partner
+              <td class="mdn-pad" style="padding:50px 42px 42px;background:#eaf5fa;">
+                <div style="display:inline-block;margin-bottom:18px;padding:7px 12px;border-radius:999px;background:#d7f3ed;color:#087368;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">
+                  Your Partner access is ready
                 </div>
-                <h1 style="margin:0 0 18px;font-family:Georgia,'Times New Roman',serif;font-size:42px;line-height:1.05;letter-spacing:-1.2px;color:#163b42;">
-                  Welcome to the<br /><em style="color:#078596;font-weight:normal;">My Drip Nurse</em> network.
+                <h1 class="mdn-title" style="margin:0 0 18px;color:#163b42;font-family:Georgia,'Times New Roman',serif;font-size:44px;font-weight:400;line-height:1.04;letter-spacing:-1.2px;">
+                  Welcome to<br /><span style="color:#078596;">My Drip Nurse.</span>
                 </h1>
-                <p style="margin:0;font-size:17px;line-height:1.65;color:#49656a;">
-                  Hi {{inboundWebhookRequest.firstName}}, your My Drip Nurse partner access is ready. We are excited to have you join us and begin serving patients in <strong>{{inboundWebhookRequest.countyStateNames}}</strong>.
+                <p style="margin:0;color:#49656a;font-size:17px;line-height:1.65;">
+                  Hi <strong>{{inboundWebhookRequest.body.firstName}}</strong>, welcome to the My Drip Nurse Partner network. Your approved access for <strong>{{inboundWebhookRequest.body.countyStateNames}}</strong> is ready.
                 </p>
               </td>
             </tr>
-
             <tr>
-              <td align="center" style="padding:48px 42px;background:#ffffff;">
-                <div style="font-size:11px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;color:#168b91;">Your next step</div>
-                <h2 style="margin:10px 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:32px;line-height:1.15;color:#17353a;">
-                  Everything you need starts here.
+              <td class="mdn-pad" style="padding:42px;background:#ffffff;">
+                <h2 style="margin:0 0 12px;color:#17353a;font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:400;line-height:1.2;">
+                  Create your secure password and start the guided tour.
                 </h2>
-                <p style="max-width:480px;margin:0 auto 26px;font-size:16px;line-height:1.65;color:#5a6d70;">
-                  Watch your welcome video and access your personalized Partner onboarding information in one place.
+                <p style="margin:0 0 26px;color:#5a6d70;font-size:15px;line-height:1.65;">
+                  Use the private activation button below. After you create your password, we will sign you in and walk you through appointments, availability, your profile, website, services, affiliates, support, and mobile notifications.
                 </p>
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                   <tr>
-                    <td style="border-radius:10px;background:#075c68;box-shadow:0 8px 20px rgba(7,92,104,.18);">
-                      <a href="{{inboundWebhookRequest.welcomeLandingPageUrl}}" style="display:inline-block;padding:16px 30px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:bold;; mso-style-textfill-fill-color: #ffffff;"><!--[if mso]><font color="#ffffff"><![endif]-->
-                        Watch Welcome Video
-                      <!--[if mso]></font><![endif]--></a>
+                    <td align="center" style="border-radius:11px;background:#075c68;">
+                      <a class="mdn-button" href="{{inboundWebhookRequest.body.welcomeLandingPageUrl}}" style="display:inline-block;padding:17px 30px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;line-height:1.2;">
+                        Activate my Partner Portal &nbsp;→
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:18px 0 0;color:#82918f;font-size:11px;line-height:1.55;text-align:center;">
+                  This secure activation link expires in 7 days and should not be forwarded.
+                </p>
+                <p style="margin:18px 0 0;color:#5a6d70;font-size:13px;line-height:1.55;text-align:center;">
+                  Your Partner website is also live:<br />
+                  <a href="{{inboundWebhookRequest.body.partnerWebsiteUrl}}" style="color:#078596;font-weight:700;text-decoration:none;">Open my Partner website</a>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td class="mdn-pad" style="padding:0 42px 42px;background:#ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #d8e9e5;border-radius:15px;background:#f1f8f6;">
+                  <tr>
+                    <td style="padding:22px;">
+                      <div style="margin-bottom:11px;color:#078596;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Your Partner experience includes</div>
+                      <div style="color:#49656a;font-size:14px;line-height:1.85;">
+                        ✓ A secure Partner Portal and guided onboarding<br />
+                        ✓ Appointment, availability, and service controls<br />
+                        ✓ Your branded Partner website and public profile<br />
+                        ✓ Affiliate tracking and Partner support
+                      </div>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
-
             <tr>
-              <td align="center" style="padding:32px 28px;background:#075c68;color:#d9efef;">
-                <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;color:#ffffff;">Welcome to My Drip Nurse.</div>
-                <div style="margin-top:9px;font-size:12px;line-height:1.55;color:#b9d7da;">
-                  We are glad to have you as part of our partner network.<br />
-                  Need help? Contact the My Drip Nurse support team.
+              <td class="mdn-pad" style="padding:30px 42px;background:#075c68;text-align:center;">
+                <div style="color:#ffffff;font-family:Georgia,'Times New Roman',serif;font-size:20px;">One network. Every market.</div>
+                <div style="margin-top:8px;color:#b9d7da;font-size:12px;line-height:1.55;">
+                  My Drip Nurse Partner Team<br />
+                  <a href="mailto:info@mydripnurse.com" style="color:#dff7f3;text-decoration:none;">info@mydripnurse.com</a>
                 </div>
               </td>
             </tr>
           </table>
+          <p style="max-width:600px;margin:16px auto 0;color:#8a9694;font-size:10px;line-height:1.5;text-align:center;">
+            If the button does not open, copy this secure URL into your browser:<br />
+            <span style="overflow-wrap:anywhere;color:#5d7773;">{{inboundWebhookRequest.body.welcomeLandingPageUrl}}</span>
+          </p>
         </td>
       </tr>
     </table>

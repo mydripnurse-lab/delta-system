@@ -1,4 +1,4 @@
-const path = require("node:path");
+import * as path from "node:path";
 
 /** @type {import('next').NextConfig} */
 const RUN_JOB_RUNTIME_PACKAGES = [
@@ -108,6 +108,22 @@ const RUN_JOB_RUNTIME_PACKAGES = [
 ];
 
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "assets.cdn.filesafe.space",
+      },
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+    ],
+  },
   experimental: {
     externalDir: true, // permite importar ../services/*
   },
@@ -143,6 +159,18 @@ const nextConfig = {
         },
       ],
     };
+  },
+  async headers() {
+    return [
+      {
+        source: "/partner-sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
   },
 };
 

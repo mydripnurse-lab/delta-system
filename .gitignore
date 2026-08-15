@@ -34,6 +34,9 @@ storage/tokens.json
 scripts/out/
 scripts/out/**
 
+# Local media-generation and avatar-training artifacts
+/control-tower/docs/kate-*
+
 # Local runtime data and temporary artifacts
 tmp/
 **/tmp/

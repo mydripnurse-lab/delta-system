@@ -32,7 +32,7 @@ function buildStatePayload(tab: any, stateName: string) {
     const wanted = stateName.toLowerCase();
 
     const rows: any[] = [];
-    let stats = {
+    const stats = {
         total: 0,
         statusTrue: 0,
         hasLocId: 0,

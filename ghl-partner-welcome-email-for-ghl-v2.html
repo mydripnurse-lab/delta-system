@@ -1,0 +1,111 @@
+<!--
+  MY DRIP NURSE PARTNER WELCOME EMAIL — GHL V2
+
+  Recommended subject:
+  Welcome to My Drip Nurse — activate your Partner Portal
+
+  Use this template in the workflow triggered by:
+  inboundWebhookRequest.body.event = partner_account_ready
+
+  The CTA must use welcomeLandingPageUrl. It is a private, one-time activation
+  URL where the Partner creates a password. Never place a password in this email.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>Activate your My Drip Nurse Partner Portal</title>
+    <style>
+      @media only screen and (max-width:620px) {
+        .mdn-shell { width:100% !important; border-radius:0 !important; }
+        .mdn-pad { padding-left:22px !important; padding-right:22px !important; }
+        .mdn-title { font-size:36px !important; }
+        .mdn-button { display:block !important; padding:16px 18px !important; }
+      }
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background:#f4f2ee;color:#17353a;font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      Your Partner account is ready. Create your password and activate your secure access.
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f2ee;">
+      <tr>
+        <td align="center" style="padding:28px 12px;">
+          <table class="mdn-shell" role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;overflow:hidden;border:1px solid #e1e8e6;border-radius:22px;background:#ffffff;box-shadow:0 16px 48px rgba(18,62,70,.10);">
+            <tr>
+              <td class="mdn-pad" style="padding:25px 42px;border-bottom:1px solid #e2ecea;background:#ffffff;">
+                <img src="https://admin.mydripnurse.com/mdn-logo.png" width="190" alt="My Drip Nurse" style="display:block;width:190px;max-width:72%;height:auto;border:0;outline:none;" />
+              </td>
+            </tr>
+            <tr>
+              <td class="mdn-pad" style="padding:48px 42px 40px;background:#ebf2f9;">
+                <div style="display:inline-block;margin-bottom:18px;padding:7px 12px;border-radius:999px;background:#d8f2ec;color:#087368;font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;">
+                  Application approved
+                </div>
+                <h1 class="mdn-title" style="margin:0 0 17px;color:#17353a;font-family:Georgia,'Times New Roman',serif;font-size:44px;font-weight:400;line-height:1.04;letter-spacing:-1.2px;">
+                  Welcome to the<br /><span style="color:#078596;">Partner network.</span>
+                </h1>
+                <p style="margin:0;color:#49656a;font-size:17px;line-height:1.65;">
+                  Hi <strong>{{inboundWebhookRequest.body.firstName}}</strong>, your My Drip Nurse Partner account for <strong>{{inboundWebhookRequest.body.countyStateNames}}</strong> is ready to activate.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td class="mdn-pad" style="padding:40px 42px;background:#ffffff;">
+                <h2 style="margin:0 0 12px;color:#17353a;font-family:Georgia,'Times New Roman',serif;font-size:29px;font-weight:400;line-height:1.2;">
+                  Create your password to get started.
+                </h2>
+                <p style="margin:0 0 25px;color:#5a6d70;font-size:15px;line-height:1.65;">
+                  The secure button below opens the My Drip Nurse activation page. You will create your own password, activate your account and be signed in automatically. Your required first-time Portal tour will begin immediately afterward.
+                </p>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                  <tr>
+                    <td align="center" style="border-radius:12px;background:#075c68;">
+                      <a class="mdn-button" href="{{inboundWebhookRequest.body.welcomeLandingPageUrl}}" style="display:inline-block;padding:17px 30px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;line-height:1.2;">
+                        Create password &amp; activate account&nbsp;&nbsp;→
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:17px 0 0;color:#82918f;font-size:11px;line-height:1.55;text-align:center;">
+                  This private link can be used once, expires in 7 days and should not be forwarded.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td class="mdn-pad" style="padding:0 42px 40px;background:#ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #d8e9e5;border-radius:16px;background:#f2f8f6;">
+                  <tr>
+                    <td style="padding:22px;">
+                      <div style="margin-bottom:12px;color:#078596;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">What happens next</div>
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr><td width="30" valign="top" style="padding:0 0 13px;color:#087368;font-weight:700;">1</td><td valign="top" style="padding:0 0 13px;color:#49656a;font-size:14px;line-height:1.55;"><strong style="color:#17353a;">Create your secure password</strong><br />Choose a password only you know.</td></tr>
+                        <tr><td width="30" valign="top" style="padding:0 0 13px;color:#087368;font-weight:700;">2</td><td valign="top" style="padding:0 0 13px;color:#49656a;font-size:14px;line-height:1.55;"><strong style="color:#17353a;">Enter your Partner Portal</strong><br />Your account signs in automatically after activation.</td></tr>
+                        <tr><td width="30" valign="top" style="color:#087368;font-weight:700;">3</td><td valign="top" style="color:#49656a;font-size:14px;line-height:1.55;"><strong style="color:#17353a;">Complete the guided setup</strong><br />The required tour explains appointments, availability, your public profile, services, website, affiliates and support.</td></tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td class="mdn-pad" style="padding:28px 42px;background:#075c68;text-align:center;">
+                <div style="color:#ffffff;font-family:Georgia,'Times New Roman',serif;font-size:20px;">One network. Every market.</div>
+                <div style="margin-top:8px;color:#b9d7da;font-size:12px;line-height:1.55;">
+                  My Drip Nurse Partner Team<br />
+                  <a href="mailto:info@mydripnurse.com" style="color:#dff7f3;text-decoration:none;">info@mydripnurse.com</a>
+                </div>
+              </td>
+            </tr>
+          </table>
+          <p style="max-width:600px;margin:16px auto 0;color:#8a9694;font-size:10px;line-height:1.5;text-align:center;">
+            If the button does not open, copy this secure URL into your browser:<br />
+            <span style="overflow-wrap:anywhere;color:#5d7773;">{{inboundWebhookRequest.body.welcomeLandingPageUrl}}</span>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

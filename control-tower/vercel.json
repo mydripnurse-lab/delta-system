@@ -36,6 +36,14 @@
     {
       "path": "/api/cron/prospecting-push-ghl?maxLeads=100&maxTenants=100",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/partner-appointment-reminders",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/partner-automation-webhooks",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

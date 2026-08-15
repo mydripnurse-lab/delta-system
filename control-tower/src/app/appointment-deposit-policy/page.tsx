@@ -8,8 +8,7 @@ import {
 } from "@/lib/appointmentDepositPolicy";
 import styles from "./policy.module.css";
 
-const BRAND_LOGO_URL =
-  "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/675a44c0da8c3978ab418ac1.png";
+const BRAND_LOGO_URL = "/mdn-logo.png";
 
 export const metadata: Metadata = {
   title: "Appointment & Deposit Policy | My Drip Nurse",

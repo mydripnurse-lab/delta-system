@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { StaffAdminApplication } from "@/lib/staffAdmin";
 import type {
+  PartnerAdminCommunicationRouter,
   PartnerAdminNotificationSettings,
   PartnerAdminWebhookTarget,
 } from "@/lib/partnerAdminSettings";
-import { PartnerAdminLogout } from "@/components/partner-admin/PartnerAdminLogout";
+import { PartnerAdminShell } from "@/components/partner-admin/PartnerAdminShell";
+import { PartnerAdminCommunicationsModal } from "@/components/partner-admin/PartnerAdminCommunicationsModal";
 import styles from "@/app/partner-admin/partnerAdmin.module.css";
 
 const STATUS_OPTIONS = [
@@ -19,13 +21,16 @@ const STATUS_OPTIONS = [
   ["calendar_deposit_pending", "Deposit pending"],
   ["ready_to_complete", "Ready to finish"],
   ["completed", "Completed"],
+  ["completed_with_warnings", "Completed — webhook warning"],
   ["failed", "Needs attention"],
   ["rejected", "Rejected"],
+  ["deactivated", "Deactivated"],
 ];
 
 function tone(status: string) {
   if (["completed", "staff_ready", "ready_to_complete", "complete"].includes(status)) return styles.good;
-  if (["failed", "rejected"].includes(status)) return styles.bad;
+  if (status === "completed_with_warnings") return styles.warn;
+  if (["failed", "rejected", "deactivated"].includes(status)) return styles.bad;
   if (["submitted", "under_review", "stripe_pending", "calendar_deposit_pending"].includes(status)) return styles.warn;
   return styles.info;
 }
@@ -46,7 +51,7 @@ function redirectOnUnauthorized(response: Response) {
   return true;
 }
 
-export function PartnerAdminClient() {
+export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSettingsOpen?: boolean }) {
   const [applications, setApplications] = useState<StaffAdminApplication[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -55,11 +60,13 @@ export function PartnerAdminClient() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState<PartnerAdminNotificationSettings[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState("");
-  const [applicantWebhookUrl, setApplicantWebhookUrl] = useState("");
-  const [adminWebhookUrl, setAdminWebhookUrl] = useState("");
-  const [adminBaseUrl, setAdminBaseUrl] = useState("https://admin.mydripnurse.com");
-  const [clearApplicantWebhook, setClearApplicantWebhook] = useState(false);
-  const [clearAdminWebhook, setClearAdminWebhook] = useState(false);
+  const [editingRouter, setEditingRouter] = useState<PartnerAdminCommunicationRouter | "">("");
+  const [routerDraft, setRouterDraft] = useState("");
+  const [selectedTestTargets, setSelectedTestTargets] = useState<Record<PartnerAdminCommunicationRouter, PartnerAdminWebhookTarget>>({
+    partner_applications: "applicant_received",
+    booking_appointments: "lead_capture",
+    care_rewards: "client_referral",
+  });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsError, setSettingsError] = useState("");
@@ -116,9 +123,18 @@ export function PartnerAdminClient() {
     void loadSettings();
   }, [loadSettings]);
 
+  useEffect(() => {
+    if (initialSettingsOpen) openSettings();
+  }, [initialSettingsOpen, openSettings]);
+
   const closeSettings = useCallback(() => {
     if (settingsSaving || testingTarget) return;
     setSettingsOpen(false);
+    if (window.location.pathname === "/partner-admin/automations") {
+      window.location.assign("/partner-admin");
+      return;
+    }
+    if (window.location.pathname === "/automations") window.location.assign("/");
   }, [settingsSaving, testingTarget]);
 
   useEffect(() => {
@@ -142,16 +158,13 @@ export function PartnerAdminClient() {
 
   useEffect(() => {
     if (!selectedSettings) return;
-    setAdminBaseUrl(selectedSettings.adminBaseUrl || "https://admin.mydripnurse.com");
-    setApplicantWebhookUrl("");
-    setAdminWebhookUrl("");
-    setClearApplicantWebhook(false);
-    setClearAdminWebhook(false);
+    setEditingRouter("");
+    setRouterDraft("");
     setSettingsNotice("");
     setSettingsError("");
   }, [selectedSettings]);
 
-  const saveSettings = useCallback(async () => {
+  const saveCommunication = useCallback(async (router: PartnerAdminCommunicationRouter, clear = false) => {
     if (!selectedTenantId) return;
     setSettingsSaving(true);
     setSettingsError("");
@@ -162,11 +175,9 @@ export function PartnerAdminClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tenantId: selectedTenantId,
-          applicantReceivedWebhookUrl: applicantWebhookUrl,
-          adminNotificationWebhookUrl: adminWebhookUrl,
-          adminBaseUrl,
-          clearApplicantWebhook,
-          clearAdminWebhook,
+          router,
+          webhookUrl: routerDraft,
+          clear,
         }),
       });
       if (redirectOnUnauthorized(response)) return;
@@ -174,24 +185,24 @@ export function PartnerAdminClient() {
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Could not save notification settings.");
       const saved = payload.settings as PartnerAdminNotificationSettings;
       setSettings((current) => current.map((item) => item.tenantId === saved.tenantId ? saved : item));
-      setApplicantWebhookUrl("");
-      setAdminWebhookUrl("");
-      setClearApplicantWebhook(false);
-      setClearAdminWebhook(false);
-      setSettingsNotice("Notification settings saved securely.");
+      setEditingRouter("");
+      setRouterDraft("");
+      setSettingsNotice(clear
+        ? "Communication disabled. No future events will be sent through this router."
+        : "Communication active. Safe tests and live events now use this GHL endpoint.");
     } catch (err) {
       setSettingsError(err instanceof Error ? err.message : "Could not save notification settings.");
     } finally {
       setSettingsSaving(false);
     }
-  }, [
-    adminBaseUrl,
-    adminWebhookUrl,
-    applicantWebhookUrl,
-    clearAdminWebhook,
-    clearApplicantWebhook,
-    selectedTenantId,
-  ]);
+  }, [routerDraft, selectedTenantId]);
+
+  const editCommunication = useCallback((router: PartnerAdminCommunicationRouter, webhookUrl: string) => {
+    setEditingRouter(router);
+    setRouterDraft(webhookUrl);
+    setSettingsError("");
+    setSettingsNotice("");
+  }, []);
 
   const testWebhook = useCallback(async (target: PartnerAdminWebhookTarget) => {
     if (!selectedTenantId) return;
@@ -207,7 +218,31 @@ export function PartnerAdminClient() {
       if (redirectOnUnauthorized(response)) return;
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "The webhook test failed.");
-      setSettingsNotice(`${target === "applicant_received" ? "Applicant" : "Administrator"} webhook test delivered successfully (HTTP ${payload.result.status}).`);
+      const targetLabel = {
+        account_ready: "Account-ready welcome",
+        applicant_received: "Applicant",
+        admin_notification: "Administrator",
+        partner_notification: "Partner appointment",
+        additional_patient_invitation: "Additional patient invitation",
+        appointment_created: "Appointment-created",
+        lead_capture: "Lead capture",
+        new_booking: "New booking",
+        partner_confirmation_required: "Partner confirmation required",
+        partner_rescheduled: "Partner rescheduled",
+        appointment_accepted: "Appointment accepted",
+        appointment_declined: "Appointment declined",
+        appointment_reassigned: "Appointment reassigned",
+        appointment_completed: "Appointment completed",
+        appointment_refunded: "Appointment refunded",
+        client_referral: "Client referral invitations",
+      }[target];
+      if (target === "account_ready" && payload.result.testReceiver === true) {
+        setSettingsError(
+          "GHL received the sample in test/mapping mode, but this URL will not run the welcome workflow. Publish or activate the GHL workflow, copy its live webhook URL, replace Account-ready welcome, save, and test again.",
+        );
+      } else {
+        setSettingsNotice(`${targetLabel} webhook test delivered successfully (HTTP ${payload.result.status}).`);
+      }
     } catch (err) {
       setSettingsError(err instanceof Error ? err.message : "The webhook test failed.");
     } finally {
@@ -218,55 +253,47 @@ export function PartnerAdminClient() {
   const stats = useMemo(() => ({
     total: applications.length,
     newCount: applications.filter((item) => item.status === "submitted").length,
-    inProgress: applications.filter((item) => !["submitted", "completed", "rejected"].includes(item.status)).length,
-    complete: applications.filter((item) => item.status === "completed").length,
+    inProgress: applications.filter((item) => !["submitted", "completed", "completed_with_warnings", "rejected", "deactivated"].includes(item.status)).length,
+    complete: applications.filter((item) => ["completed", "completed_with_warnings"].includes(item.status)).length,
   }), [applications]);
 
   return (
-    <main className={styles.shell}>
+    <PartnerAdminShell
+      title="Applications overview"
+      actions={
+        <button type="button" className={styles.secondaryButton} onClick={load} disabled={loading}>Refresh queue</button>
+      }
+    >
       <div className={styles.frame}>
-        <header className={styles.topbar}>
-          <div className={styles.brand}>
-            <div className={styles.logo}>MDN</div>
-            <div className={styles.brandCopy}>
-              <strong>My Drip Nurse</strong>
-              <span>Partner operations</span>
-            </div>
-          </div>
-          <div className={styles.topbarActions}>
-            <button type="button" className={styles.secondaryButton} onClick={openSettings}>Notification settings</button>
-            <button type="button" className={styles.secondaryButton} onClick={load} disabled={loading}>Refresh</button>
-            <PartnerAdminLogout className={styles.secondaryButton} />
-          </div>
-        </header>
-
         <section className={styles.hero}>
           <div>
-            <span className={styles.eyebrow}>Partner administration</span>
-            <h1>Registrations, reviewed with control.</h1>
-            <p>Review every applicant, connect Stripe manually, create staff access, assign calendars, and confirm the appointment deposit in the required order.</p>
+            <span className={styles.eyebrow}>My Drip Nurse · Partner Network</span>
+            <h1>Partner onboarding,<br /><em>beautifully organized.</em></h1>
+            <p>Review new partners, activate their locations and finish every operational step from one clean workspace.</p>
           </div>
+          <div className={styles.heroPill}><span />Private internal workspace</div>
         </section>
 
         <section className={styles.stats} aria-label="Application summary">
-          <article className={styles.stat}><span>Visible applications</span><strong>{stats.total}</strong></article>
-          <article className={styles.stat}><span>New</span><strong>{stats.newCount}</strong></article>
-          <article className={styles.stat}><span>In progress</span><strong>{stats.inProgress}</strong></article>
-          <article className={styles.stat}><span>Completed</span><strong>{stats.complete}</strong></article>
+          <article className={styles.stat}><span>All applications</span><strong>{stats.total}</strong><small>Current queue</small></article>
+          <article className={styles.stat}><span>Needs review</span><strong>{stats.newCount}</strong><small>New submissions</small></article>
+          <article className={styles.stat}><span>In progress</span><strong>{stats.inProgress}</strong><small>Activation underway</small></article>
+          <article className={styles.stat}><span>Completed</span><strong>{stats.complete}</strong><small>Partners activated</small></article>
         </section>
 
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <h2>Partner applications</h2>
-            <span className={styles.subtle}>Every application and county remains auditable from submission to final deposit setup.</span>
+            <span className={styles.subtle}>Select an applicant to continue their activation workflow.</span>
             <div className={styles.filters}>
               <input
                 className={`${styles.input} ${styles.search}`}
-                placeholder="Search name, email, company, county, or location ID"
+                aria-label="Search partner applications"
+                placeholder="Search name, email, business or county"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <select className={styles.select} value={status} onChange={(event) => setStatus(event.target.value)}>
+              <select aria-label="Filter applications by status" className={styles.select} value={status} onChange={(event) => setStatus(event.target.value)}>
                 {STATUS_OPTIONS.map(([value, text]) => <option value={value} key={value}>{text}</option>)}
               </select>
             </div>
@@ -278,7 +305,7 @@ export function PartnerAdminClient() {
           {!loading && applications.length ? (
             <div className={styles.tableWrap}>
               <table className={styles.table}>
-                <thead><tr><th>Applicant</th><th>Status</th><th>Requested coverage</th><th>Company</th><th>Submitted</th><th /></tr></thead>
+                <thead><tr><th>Applicant</th><th>Status</th><th>Requested coverage</th><th>Company</th><th>Website</th><th>Submitted</th><th /></tr></thead>
                 <tbody>
                   {applications.map((application) => (
                     <tr key={application.id}>
@@ -291,10 +318,16 @@ export function PartnerAdminClient() {
                       <td><span className={`${styles.badge} ${tone(application.status)}`}>{label(application.status)}</span></td>
                       <td>{application.locations.length} {application.locations.length === 1 ? "county" : "counties"}</td>
                       <td>{application.company || "—"}</td>
+                      <td>{application.partnerWebsite ? (
+                        <div className={`${styles.applicationWebsiteState} ${application.partnerWebsite.status === "published" ? styles.applicationWebsiteActive : styles.applicationWebsiteInactive}`}>
+                          <i aria-hidden="true" />
+                          <span><strong>{application.partnerWebsite.status === "published" ? "Website active" : "Website not active"}</strong><small>{application.partnerWebsite.status === "published" ? "Public and available to patients" : "Manage publishing inside the profile"}</small></span>
+                        </div>
+                      ) : <div className={`${styles.applicationWebsiteState} ${styles.applicationWebsitePending}`}><i aria-hidden="true" /><span><strong>Not created yet</strong><small>Created after approval</small></span></div>}</td>
                       <td>{date(application.submittedAt)}</td>
                       <td>
                         <div className={styles.rowActions}>
-                          <Link className={styles.textButton} href={`/applications/${application.id}`}>Open profile →</Link>
+                          <Link className={styles.textButton} href={`/applications/${application.id}`}>Review application →</Link>
                         </div>
                       </td>
                     </tr>
@@ -307,163 +340,32 @@ export function PartnerAdminClient() {
       </div>
 
       {settingsOpen ? (
-        <div
-          className={styles.modalBackdrop}
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeSettings();
+        <PartnerAdminCommunicationsModal
+          settings={settings}
+          selectedSettings={selectedSettings}
+          selectedTenantId={selectedTenantId}
+          settingsLoading={settingsLoading}
+          settingsSaving={settingsSaving}
+          settingsError={settingsError}
+          settingsNotice={settingsNotice}
+          testingTarget={testingTarget}
+          editingRouter={editingRouter}
+          routerDraft={routerDraft}
+          selectedTestTargets={selectedTestTargets}
+          onTenantChange={setSelectedTenantId}
+          onRouterDraftChange={setRouterDraft}
+          onEdit={editCommunication}
+          onCancelEdit={() => {
+            setEditingRouter("");
+            setRouterDraft("");
           }}
-        >
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="notification-settings-title">
-            <header className={styles.modalHeader}>
-              <div>
-                <span className={styles.eyebrow}>Secure workflow configuration</span>
-                <h2 id="notification-settings-title">Partner notification settings</h2>
-                <p>Saved webhook URLs remain server-side and are never returned to this browser after saving.</p>
-              </div>
-              <button type="button" className={styles.closeButton} onClick={closeSettings} aria-label="Close notification settings">×</button>
-            </header>
-
-            <div className={styles.modalBody}>
-              {settingsLoading ? <div className={styles.loading}>Loading secure configuration…</div> : null}
-              {!settingsLoading && !settings.length && !settingsError ? (
-                <div className={styles.empty}>No partner form configuration is available yet.</div>
-              ) : null}
-
-              {!settingsLoading && settings.length ? (
-                <div className={styles.settingsForm}>
-                  <label className={styles.formField}>
-                    <span>Tenant</span>
-                    <select
-                      className={styles.select}
-                      value={selectedTenantId}
-                      onChange={(event) => setSelectedTenantId(event.target.value)}
-                    >
-                      {settings.map((item) => (
-                        <option key={item.tenantId} value={item.tenantId}>{item.tenantName} · {item.formKey}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className={styles.settingsSummary}>
-                    <div><span>Applicant receipt workflow</span><strong className={selectedSettings?.applicantReceivedWebhookConfigured ? styles.configured : styles.notConfigured}>{selectedSettings?.applicantReceivedWebhookConfigured ? "Configured" : "Not configured"}</strong></div>
-                    <div><span>Administrator alert workflow</span><strong className={selectedSettings?.adminNotificationWebhookConfigured ? styles.configured : styles.notConfigured}>{selectedSettings?.adminNotificationWebhookConfigured ? "Configured" : "Not configured"}</strong></div>
-                  </div>
-
-                  <label className={styles.formField}>
-                    <span>Admin dashboard base URL</span>
-                    <input
-                      className={styles.input}
-                      type="url"
-                      value={adminBaseUrl}
-                      onChange={(event) => setAdminBaseUrl(event.target.value)}
-                      placeholder="https://admin.mydripnurse.com"
-                    />
-                    <small>Used to create the direct application profile link in administrator alerts.</small>
-                  </label>
-
-                  <div className={styles.modalGrid}>
-                    <article className={styles.settingCard}>
-                      <div className={styles.settingCardHeader}>
-                        <div><span className={styles.eyebrow}>Workflow 1</span><h3>Application received</h3></div>
-                        <span className={`${styles.badge} ${selectedSettings?.applicantReceivedWebhookConfigured ? styles.good : styles.warn}`}>
-                          {selectedSettings?.applicantReceivedWebhookConfigured ? "Stored" : "Required"}
-                        </span>
-                      </div>
-                      <p>Runs immediately after the application is accepted so GHL can tell the applicant that onboarding is being prepared.</p>
-                      <label className={styles.formField}>
-                        <span>Replace webhook URL</span>
-                        <input
-                          className={`${styles.input} ${styles.sensitiveInput}`}
-                          type="password"
-                          autoComplete="new-password"
-                          value={applicantWebhookUrl}
-                          onChange={(event) => setApplicantWebhookUrl(event.target.value)}
-                          placeholder={selectedSettings?.applicantReceivedWebhookConfigured ? "Paste only to replace the saved URL" : "https://services.leadconnectorhq.com/hooks/..."}
-                        />
-                      </label>
-                      <label className={styles.checkboxRow}>
-                        <input
-                          type="checkbox"
-                          checked={clearApplicantWebhook}
-                          disabled={!selectedSettings?.applicantReceivedWebhookConfigured}
-                          onChange={(event) => setClearApplicantWebhook(event.target.checked)}
-                        />
-                        Remove the stored webhook
-                      </label>
-                      <button
-                        type="button"
-                        className={styles.secondaryButton}
-                        disabled={!selectedSettings?.applicantReceivedWebhookConfigured || Boolean(testingTarget) || settingsSaving}
-                        onClick={() => void testWebhook("applicant_received")}
-                      >
-                        {testingTarget === "applicant_received" ? "Sending test…" : "Send safe test"}
-                      </button>
-                    </article>
-
-                    <article className={styles.settingCard}>
-                      <div className={styles.settingCardHeader}>
-                        <div><span className={styles.eyebrow}>Workflow 2</span><h3>Administrator alert</h3></div>
-                        <span className={`${styles.badge} ${selectedSettings?.adminNotificationWebhookConfigured ? styles.good : styles.warn}`}>
-                          {selectedSettings?.adminNotificationWebhookConfigured ? "Stored" : "Required"}
-                        </span>
-                      </div>
-                      <p>Sends the complete applicant summary, requested counties, and a direct link to the administrative profile.</p>
-                      <label className={styles.formField}>
-                        <span>Replace webhook URL</span>
-                        <input
-                          className={`${styles.input} ${styles.sensitiveInput}`}
-                          type="password"
-                          autoComplete="new-password"
-                          value={adminWebhookUrl}
-                          onChange={(event) => setAdminWebhookUrl(event.target.value)}
-                          placeholder={selectedSettings?.adminNotificationWebhookConfigured ? "Paste only to replace the saved URL" : "https://services.leadconnectorhq.com/hooks/..."}
-                        />
-                      </label>
-                      <label className={styles.checkboxRow}>
-                        <input
-                          type="checkbox"
-                          checked={clearAdminWebhook}
-                          disabled={!selectedSettings?.adminNotificationWebhookConfigured}
-                          onChange={(event) => setClearAdminWebhook(event.target.checked)}
-                        />
-                        Remove the stored webhook
-                      </label>
-                      <button
-                        type="button"
-                        className={styles.secondaryButton}
-                        disabled={!selectedSettings?.adminNotificationWebhookConfigured || Boolean(testingTarget) || settingsSaving}
-                        onClick={() => void testWebhook("admin_notification")}
-                      >
-                        {testingTarget === "admin_notification" ? "Sending test…" : "Send safe test"}
-                      </button>
-                    </article>
-                  </div>
-
-                  <div className={styles.helpText}>
-                    The existing account-ready webhook remains unchanged and is still sent only after the staff account is created successfully. Unsaved URLs cannot be tested; save first, then use the safe test action.
-                  </div>
-                </div>
-              ) : null}
-
-              {settingsError ? <div className={`${styles.inlineStatus} ${styles.error}`}>{settingsError}</div> : null}
-              {settingsNotice ? <div className={`${styles.inlineStatus} ${styles.successNotice}`}>{settingsNotice}</div> : null}
-            </div>
-
-            <footer className={styles.modalFooter}>
-              <button type="button" className={styles.secondaryButton} onClick={closeSettings} disabled={settingsSaving || Boolean(testingTarget)}>Cancel</button>
-              <button
-                type="button"
-                className={styles.button}
-                onClick={() => void saveSettings()}
-                disabled={!selectedSettings || settingsSaving || Boolean(testingTarget)}
-              >
-                {settingsSaving ? "Saving securely…" : "Save settings"}
-              </button>
-            </footer>
-          </section>
-        </div>
+          onSave={(router, clear) => void saveCommunication(router, clear)}
+          onTestTargetChange={(router, target) => setSelectedTestTargets((current) => ({ ...current, [router]: target }))}
+          onTest={(target) => void testWebhook(target)}
+          onClose={closeSettings}
+        />
       ) : null}
-    </main>
+
+    </PartnerAdminShell>
   );
 }

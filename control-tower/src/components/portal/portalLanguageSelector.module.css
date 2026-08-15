@@ -1,0 +1,6 @@
+.selector { padding: 9px 10px; border-top: 1px solid #e4ece9; border-bottom: 1px solid #e4ece9; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.selector > span { color: #71827f; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.selector > div { padding: 2px; border-radius: 999px; background: #edf4f2; display: flex; }
+.selector button { min-width: 34px; min-height: 27px; padding: 0 8px; border: 0; border-radius: 999px; color: #748581; background: transparent; font: inherit; font-size: 9px; font-weight: 900; cursor: pointer; }
+.selector button[data-active="true"] { color: #fff; background: #075c68; box-shadow: 0 3px 8px rgba(7,92,104,.2); }
+.selector button:focus-visible { outline: 2px solid #20a69c; outline-offset: 2px; }

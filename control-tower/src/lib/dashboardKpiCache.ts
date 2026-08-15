@@ -20,13 +20,13 @@ export async function readDashboardKpiCache(
   scope: KpiCacheScope,
 ): Promise<{ payload: JsonObject; capturedAt: string; expired: boolean } | null> {
   const tenantId = s(scope.tenantId);
-  const module = s(scope.module);
+  const moduleName = s(scope.module);
   const integrationKey = s(scope.integrationKey) || "owner";
   const start = s(scope.start);
   const end = s(scope.end);
   const preset = s(scope.preset);
   const compare = scope.compare !== false;
-  if (!tenantId || !module || !start || !end) return null;
+  if (!tenantId || !moduleName || !start || !end) return null;
 
   const pool = getDbPool();
   const q = await pool.query<{
@@ -46,7 +46,7 @@ export async function readDashboardKpiCache(
         and compare_enabled = $7
       limit 1
     `,
-    [tenantId, module, integrationKey, start, end, preset, compare],
+    [tenantId, moduleName, integrationKey, start, end, preset, compare],
   );
 
   const row = q.rows[0];
@@ -68,14 +68,14 @@ export async function writeDashboardKpiCache(
   },
 ) {
   const tenantId = s(scope.tenantId);
-  const module = s(scope.module);
+  const moduleName = s(scope.module);
   const integrationKey = s(scope.integrationKey) || "owner";
   const start = s(scope.start);
   const end = s(scope.end);
   const preset = s(scope.preset);
   const compare = scope.compare !== false;
   const source = s(scope.source) || "dashboard_api";
-  if (!tenantId || !module || !start || !end) return;
+  if (!tenantId || !moduleName || !start || !end) return;
 
   const ttlSec = Number(scope.ttlSec || 0);
   const expiresAtIso =
@@ -110,7 +110,7 @@ export async function writeDashboardKpiCache(
     `,
     [
       tenantId,
-      module,
+      moduleName,
       integrationKey,
       start,
       end,

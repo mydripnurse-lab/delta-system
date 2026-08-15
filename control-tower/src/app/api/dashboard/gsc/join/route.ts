@@ -212,7 +212,7 @@ function prettifySubdomainName(leftLabel: string) {
     const raw = s(leftLabel);
     if (!raw) return "Funnel";
 
-    let parts = raw
+    const parts = raw
         .replace(/[._]/g, " ")
         .replace(/-/g, " ")
         .trim()
