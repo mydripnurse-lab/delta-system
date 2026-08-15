@@ -63,7 +63,8 @@ export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSet
   const [editingRouter, setEditingRouter] = useState<PartnerAdminCommunicationRouter | "">("");
   const [routerDraft, setRouterDraft] = useState("");
   const [selectedTestTargets, setSelectedTestTargets] = useState<Record<PartnerAdminCommunicationRouter, PartnerAdminWebhookTarget>>({
-    partner_applications: "applicant_received",
+    application_received: "applicant_received",
+    account_ready: "account_ready",
     booking_appointments: "lead_capture",
     care_rewards: "client_referral",
   });

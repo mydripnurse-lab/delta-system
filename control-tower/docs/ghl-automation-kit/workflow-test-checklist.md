@@ -6,7 +6,8 @@ No pegues URLs completas en documentación compartida. Guarda sólo los últimos
 
 | Router | Nombre exacto en GHL | URL guardada | Safe test | Mapping | Gate `test=false` | Idempotencia | Contacto normalizado | Admin interno | Operator/fallback | Responsable | Fecha |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| R01 | `MDN \| Router 01 \| Partner Applications` | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |  |  |
+| A01 | `MDN \| Partner \| Application Received` | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | n/a |  |  |
+| A02 | `MDN \| Partner \| Account-ready Welcome` | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |  |  |
 | R02 | `MDN \| Router 02 \| Booking & Appointments` | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |  |  |
 | R03 | `MDN \| Router 03 \| Care Rewards` | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ |  |  |
 
@@ -14,8 +15,8 @@ No pegues URLs completas en documentación compartida. Guarda sólo los últimos
 
 | Evento | Router | `primaryRecipientRole` correcto | 1 matrícula | SMS | Email | Internal Notification | Evidencia |
 |---|---|---|---|---|---|---|---|
-| `partner_application_received` | R01 | applicant | ☐ | ☐ | ☐ | Admin ☐ |  |
-| `partner_account_ready` | R01 | partner | ☐ | ☐ | ☐ | Operator/fallback ☐ |  |
+| `partner_application_received` | A01 | applicant | ☐ | ☐ | ☐ | Admin ☐ |  |
+| `partner_account_ready` | A02 | partner | ☐ | ☐ | ☐ | Operator/fallback ☐ |  |
 | `booking.lead.created` | R02 | customer | ☐ | n/a | n/a | Admin/Operator ☐ |  |
 | `new_booking` | R02 | partner | ☐ | ☐ | ☐ | — |  |
 | `customer.appointment.confirmed` | R02 | customer | ☐ | ☐ | ☐ | — |  |

@@ -1,5 +1,6 @@
 export type GhlWorkflowRouter =
-  | "partner_applications"
+  | "application_received"
+  | "account_ready"
   | "booking_appointments"
   | "care_rewards";
 
@@ -60,7 +61,7 @@ function eventRouting(event: string, context: RoutingContext): RoutingDecision {
   switch (event) {
     case "partner_application_received":
       return {
-        workflowRouter: "partner_applications" as const,
+        workflowRouter: "application_received" as const,
         primaryAudience: "applicant" as const,
         notifyApplicant: true,
         notifyAdmin: true,
@@ -68,14 +69,14 @@ function eventRouting(event: string, context: RoutingContext): RoutingDecision {
       };
     case "partner_application_admin_notification":
       return {
-        workflowRouter: "partner_applications" as const,
+        workflowRouter: "application_received" as const,
         primaryAudience: "admin" as const,
         notifyAdmin: true,
         stateOperatorNotificationReason: "",
       };
     case "partner_account_ready":
       return {
-        workflowRouter: "partner_applications" as const,
+        workflowRouter: "account_ready" as const,
         primaryAudience: "partner" as const,
         notifyPartner: true,
         stateOperatorNotificationReason: "new_partner_approved_in_state",

@@ -64,7 +64,8 @@ export type PartnerAdminWebhookSummary = {
 };
 
 export type PartnerAdminCommunicationRouter =
-  | "partner_applications"
+  | "application_received"
+  | "account_ready"
   | "booking_appointments"
   | "care_rewards";
 
@@ -146,9 +147,9 @@ function routerIsConfigured(endpoint: string, destinations: unknown[]) {
 }
 
 function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
-  const partnerApplicationsUrl = s(row.applicant_received_webhook_url)
-    || s(row.webhook_url)
+  const applicationReceivedUrl = s(row.applicant_received_webhook_url)
     || s(row.admin_notification_webhook_url);
+  const accountReadyUrl = s(row.webhook_url);
   const bookingAppointmentsUrl = s(row.new_booking_webhook_url)
     || s(row.lead_capture_webhook_url)
     || s(row.partner_notification_webhook_url)
@@ -161,8 +162,7 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     || s(row.appointment_completed_webhook_url)
     || s(row.appointment_refunded_webhook_url);
   const careRewardsUrl = s(row.client_referral_webhook_url);
-  const partnerApplicationsConfigured = routerIsConfigured(partnerApplicationsUrl, [
-    row.webhook_url,
+  const applicationReceivedConfigured = routerIsConfigured(applicationReceivedUrl, [
     row.applicant_received_webhook_url,
     row.admin_notification_webhook_url,
   ]);
@@ -217,15 +217,26 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     clientReferralWebhookConfigured: Boolean(s(row.client_referral_webhook_url)),
     communications: [
       {
-        id: "partner_applications",
-        name: "Partner applications",
-        workflowName: "MDN | Router 01 | Partner Applications",
-        description: "One GHL workflow routes the application receipt to the applicant and Admin, then sends the account-ready welcome after approval.",
-        configured: partnerApplicationsConfigured,
-        endpoint: safeWebhookEndpoint(partnerApplicationsUrl),
-        webhookUrl: partnerApplicationsUrl,
+        id: "application_received",
+        name: "Application Received",
+        workflowName: "MDN | Partner | Application Received",
+        description: "Receives a new Partner application. One GHL enrollment acknowledges the applicant and sends the internal Admin alert.",
+        configured: applicationReceivedConfigured,
+        endpoint: safeWebhookEndpoint(applicationReceivedUrl),
+        webhookUrl: applicationReceivedUrl,
         events: [
           { target: "applicant_received", label: "Application submitted · applicant + Admin", event: "partner_application_received" },
+        ],
+      },
+      {
+        id: "account_ready",
+        name: "Account-ready Welcome",
+        workflowName: "MDN | Partner | Account-ready Welcome",
+        description: "Runs only after approval and account provisioning, using the activation link and approved Partner profile data.",
+        configured: Boolean(accountReadyUrl),
+        endpoint: safeWebhookEndpoint(accountReadyUrl),
+        webhookUrl: accountReadyUrl,
+        events: [
           { target: "account_ready", label: "Account-ready welcome", event: "partner_account_ready" },
         ],
       },
@@ -559,7 +570,7 @@ export async function savePartnerAdminCommunicationRouter(input: {
   await ensureStaffSchema();
   const tenantId = s(input.tenantId);
   if (!tenantId) throw new Error("Tenant ID is required.");
-  if (!(["partner_applications", "booking_appointments", "care_rewards"] as string[]).includes(input.router)) {
+  if (!(["application_received", "account_ready", "booking_appointments", "care_rewards"] as string[]).includes(input.router)) {
     throw new Error("Invalid communication router.");
   }
 
@@ -568,12 +579,19 @@ export async function savePartnerAdminCommunicationRouter(input: {
     ? null
     : validatedUrl(input.webhookUrl, "GHL inbound webhook", { required: true });
 
-  if (input.router === "partner_applications") {
+  if (input.router === "application_received") {
+    await getDbPool().query(
+      `update app.staff_form_configs
+          set applicant_received_webhook_url = $2,
+              admin_notification_webhook_url = $2,
+              updated_at = now()
+        where organization_id = $1::uuid`,
+      [tenantId, webhookUrl],
+    );
+  } else if (input.router === "account_ready") {
     await getDbPool().query(
       `update app.staff_form_configs
           set webhook_url = $2,
-              applicant_received_webhook_url = $2,
-              admin_notification_webhook_url = $2,
               updated_at = now()
         where organization_id = $1::uuid`,
       [tenantId, webhookUrl],

@@ -2,7 +2,7 @@
 
 Todos los ejemplos asumen que GHL expone el JSON bajo `inboundWebhookRequest.body`.
 
-## Routing envelope — usar en los tres workflows
+## Routing envelope — usar en los cuatro workflows
 
 Estas propiedades deciden el workflow, contacto y notificaciones. No construyas la decisión en GHL a partir del nombre del evento o de un estado escrito manualmente.
 

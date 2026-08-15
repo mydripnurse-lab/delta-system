@@ -65,7 +65,7 @@ export function PartnerAdminCommunicationsModal({
           <div>
             <span className={styles.eyebrow}>My Drip Nurse · GHL</span>
             <h2 id="communications-title">Communications</h2>
-            <p>Three secure routers power every email and SMS workflow without duplicating webhook calls.</p>
+            <p>Independent Partner onboarding endpoints and optimized lifecycle routers power every GHL email and SMS workflow.</p>
           </div>
           <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close communications" disabled={locked}>×</button>
         </header>
@@ -95,8 +95,8 @@ export function PartnerAdminCommunicationsModal({
               <div className={styles.communicationIntro}>
                 <span className={styles.communicationPulse} aria-hidden="true" />
                 <div>
-                  <strong>One endpoint per workflow router</strong>
-                  <p>Use <code>event</code>, <code>workflowRouter</code> and <code>primaryAudience</code> inside GHL to route each message. New bookings expose <code>additionalPatientLoopRequired</code>, <code>additionalPatientLoopPath</code> and <code>additionalPatientRecipientCount</code> for one controlled GHL loop. Safe Tests use the live contract without creating production records.</p>
+                  <strong>One endpoint per GHL workflow</strong>
+                  <p>Application Received and Account-ready Welcome are configured and tested independently. Booking and rewards keep optimized routers; use <code>event</code>, <code>workflowRouter</code> and <code>primaryAudience</code> inside GHL. Safe Tests use the live contract without creating production records.</p>
                 </div>
               </div>
 
@@ -131,7 +131,7 @@ export function PartnerAdminCommunicationsModal({
                       </div>
 
                       <details className={styles.communicationEvents}>
-                        <summary>{communication.events.length} routed events <span>View payload events</span></summary>
+                        <summary>{communication.events.length} routed {communication.events.length === 1 ? "event" : "events"} <span>View payload events</span></summary>
                         <div className={styles.communicationEventList}>
                           {communication.events.map((event) => (
                             <span className={styles.communicationEventChip} key={`${communication.id}-${event.target}`}>
@@ -155,7 +155,7 @@ export function PartnerAdminCommunicationsModal({
                               placeholder="https://services.leadconnectorhq.com/hooks/..."
                               autoFocus
                             />
-                            <small>Saving activates this router and updates every event shown above.</small>
+                            <small>Saving activates only this GHL workflow and the event{communication.events.length === 1 ? "" : "s"} shown above.</small>
                           </label>
                           <div className={styles.communicationActions}>
                             <button type="button" className={styles.button} onClick={() => onSave(communication.id)} disabled={locked || !routerDraft.trim()}>

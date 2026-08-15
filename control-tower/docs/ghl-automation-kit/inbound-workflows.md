@@ -1,4 +1,4 @@
-# GHL — Guía para construir los tres inbound routers
+# GHL — Guía para construir los cuatro inbound workflows
 
 ## Bloques comunes
 
@@ -15,11 +15,11 @@ Cada workflow sigue este orden:
 9. Si `body.stateOperatorDeliveryRoute = ghl_internal_user`, Internal Notification al usuario `body.stateOperatorGhlUserId`.
 10. Si `body.stateOperatorDeliveryRoute = admin_fallback`, Internal Notification a Admin: operador no configurado para `body.stateOperatorResolutionKey`.
 
-## R01 — Partner Applications
+## A01 — Application Received
 
-Nombre exacto: `MDN | Router 01 | Partner Applications`
+Nombre exacto: `MDN | Partner | Application Received`
 
-Verificación inicial: `body.workflowRouter = partner_applications`.
+Verificación inicial: `body.workflowRouter = application_received`.
 
 ### `partner_application_received`
 
@@ -28,6 +28,12 @@ Verificación inicial: `body.workflowRouter = partner_applications`.
 - [SMS](./sms-library.md#sms-partner-application-received)
 - [Email HTML](./emails/01-partner-application-received.html)
 - Si `notifyAdmin = true`: [SMS interno](./sms-library.md#sms-admin-new-application) o [email interno](./emails/02-admin-new-partner-application.html).
+
+## A02 — Account-ready Welcome
+
+Nombre exacto: `MDN | Partner | Account-ready Welcome`
+
+Verificación inicial: `body.workflowRouter = account_ready`.
 
 ### `partner_account_ready`
 

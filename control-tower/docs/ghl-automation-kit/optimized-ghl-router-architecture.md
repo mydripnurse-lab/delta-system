@@ -4,7 +4,7 @@ Este es el contrato operativo de My Drip Nurse con GoHighLevel. La decisión de 
 
 ## Regla económica y limitación real de GHL
 
-- Usamos sólo **tres URLs inbound** y tres workflows router.
+- Usamos **cuatro URLs inbound**: dos workflows independientes para onboarding del Partner y dos routers optimizados para booking y Rewards.
 - Cada evento canónico genera un solo `POST` a su router.
 - Un workflow inbound tiene un solo contacto externo activo. Desde esa ejecución sí puede enviar SMS/email a ese contacto y notificaciones internas a varios usuarios de GHL.
 - Si un mismo hecho requiere comunicar a dos contactos externos distintos —por ejemplo Partner y cliente— el sistema emite dos eventos de contacto al mismo router. Esto cuesta dos requests, pero evita enviar información al contacto equivocado.
@@ -12,11 +12,12 @@ Este es el contrato operativo de My Drip Nurse con GoHighLevel. La decisión de 
 
 No se debe intentar usar `Send SMS` dos veces con teléfonos arbitrarios en una misma matrícula. Para destinatarios externos, GHL opera sobre el contacto actual del workflow.
 
-## Los tres workflows
+## Los cuatro workflows
 
 | Código | Nombre exacto en GHL | `workflowRouter` | Responsabilidad |
 |---|---|---|---|
-| R01 | `MDN \| Router 01 \| Partner Applications` | `partner_applications` | Solicitud, revisión y activación de Partners |
+| A01 | `MDN \| Partner \| Application Received` | `application_received` | Solicitud recibida, Applicant y alerta interna Admin |
+| A02 | `MDN \| Partner \| Account-ready Welcome` | `account_ready` | Activación del Partner después de aprobación y provisioning |
 | R02 | `MDN \| Router 02 \| Booking & Appointments` | `booking_appointments` | Leads, citas, pagos, lifecycle y operaciones |
 | R03 | `MDN \| Router 03 \| Care Rewards` | `care_rewards` | Invitaciones, progreso y Rewards de Care |
 
@@ -110,20 +111,24 @@ El operador recibe alertas cuando `stateOperatorNotificationReason` sea uno de e
 
 La primera versión usa al operador como usuario interno de GHL. Esto permite avisarle en la misma matrícula y evita otro request de webhook. Si más adelante el operador debe ser un contacto externo, se creará un evento de contacto separado.
 
-## R01 — Partner Applications
+## A01 — Application Received
 
-Nombre exacto: `MDN | Router 01 | Partner Applications`
+Nombre exacto: `MDN | Partner | Application Received`
 
-La misma URL se guarda en:
-
-- **Application received**
-- **Account-ready welcome**
-
-Deja **Administrator alert** vacío. `partner_application_received` ya lleva `notifyAdmin = true`, por lo que Admin recibe una notificación interna desde la misma matrícula.
+La URL se guarda únicamente en **Application Received**. `partner_application_received` lleva `notifyAdmin = true`, por lo que Admin recibe la notificación interna desde la misma matrícula y no requiere otro webhook.
 
 | `communicationEvent` | Contacto actual | Comunicación externa | Interna |
 |---|---|---|---|
 | `partner_application_received` | Applicant | SMS + email de recepción | Admin |
+
+## A02 — Account-ready Welcome
+
+Nombre exacto: `MDN | Partner | Account-ready Welcome`
+
+La URL se guarda únicamente en **Account-ready Welcome**. Este workflow se ejecuta después de aprobar y provisionar la cuenta; su URL no se comparte con Application Received.
+
+| `communicationEvent` | Contacto actual | Comunicación externa | Interna |
+|---|---|---|---|
 | `partner_account_ready` | Partner aprobado | SMS + email de activación | State Operator si está configurado; si no, Admin fallback |
 
 ## R02 — Booking & Appointments
@@ -186,8 +191,8 @@ La URL se guarda en **Client referral invitations**.
 
 ## Optimización lograda
 
-- Solicitud: un request R01 comunica al Applicant y notifica internamente a Admin.
-- Aprobación: un request R01 comunica al Partner y puede notificar internamente al operador.
+- Solicitud: un request A01 comunica al Applicant y notifica internamente a Admin.
+- Aprobación: un request A02 comunica al Partner y puede notificar internamente al operador.
 - Eventos exclusivamente internos: un request R02 puede avisar a Admin y operador.
 - Partner y cliente externos: dos eventos/contactos separados en R02. Es el mínimo seguro en GHL.
 - Pacientes adicionales: una matrícula R02 por contacto; no se envían arrays gigantes ni se crean workflows inbound adicionales.

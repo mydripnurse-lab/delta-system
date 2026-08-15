@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 const sourceUrl = new URL("../src/lib/publicStaffProvisioning.ts", import.meta.url);
 const sourcePath = fileURLToPath(sourceUrl);
 const source = await readFile(sourceUrl, "utf8");
+const settingsUrl = new URL("../src/lib/partnerAdminSettings.ts", import.meta.url);
+const settingsSource = await readFile(settingsUrl, "utf8");
 
 const checks = [
   {
@@ -33,6 +35,23 @@ const checks = [
   {
     ok: /unique \(organization_id, target, event_id\)/.test(source),
     message: "Partner Automation delivery must remain idempotent by event ID.",
+  },
+  {
+    ok: /id:\s*"application_received"/.test(settingsSource)
+      && /id:\s*"account_ready"/.test(settingsSource),
+    message: "Application Received and Account-ready Welcome must remain separate Communication cards.",
+  },
+  {
+    ok: /input\.router === "application_received"[\s\S]*?set applicant_received_webhook_url = \$2,[\s\S]*?admin_notification_webhook_url = \$2/.test(settingsSource),
+    message: "Application Received must save only its applicant/Admin destination.",
+  },
+  {
+    ok: /input\.router === "account_ready"[\s\S]*?set webhook_url = \$2/.test(settingsSource),
+    message: "Account-ready Welcome must save its own destination.",
+  },
+  {
+    ok: !/set webhook_url = \$2,\s*applicant_received_webhook_url = \$2/.test(settingsSource),
+    message: "Saving an onboarding workflow must never overwrite the other onboarding webhook URL.",
   },
 ];
 

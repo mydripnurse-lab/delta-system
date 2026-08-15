@@ -4,11 +4,12 @@ Kit operativo para configurar, probar y mantener las comunicaciones de Admin, Pa
 
 ## Diseño aprobado
 
-Sólo se crean tres inbound workflows en GHL:
+Se crean cuatro inbound workflows en GHL. Los dos momentos de onboarding del Partner usan endpoints independientes; booking y Rewards conservan sus routers optimizados:
 
 | Código | Nombre exacto | Eventos |
 |---|---|---|
-| R01 | `MDN \| Router 01 \| Partner Applications` | Solicitudes y activación de Partners |
+| A01 | `MDN \| Partner \| Application Received` | Solicitud recibida; Applicant + alerta interna Admin |
+| A02 | `MDN \| Partner \| Account-ready Welcome` | Activación y bienvenida después de aprobar la cuenta |
 | R02 | `MDN \| Router 02 \| Booking & Appointments` | Leads, pagos y lifecycle de citas |
 | R03 | `MDN \| Router 03 \| Care Rewards` | Invitaciones, registros y Rewards |
 
@@ -23,14 +24,13 @@ Cada payload incluye `workflowRouter`, `communicationEvent`, `primaryRecipient*`
 
 ## Configuración de URLs en Admin
 
-### URL R01
+### URL A01 — Application Received
 
-Guardar la misma URL en:
+Guardar únicamente en **Application Received**. La misma matrícula comunica al Applicant y, cuando `notifyAdmin = true`, dispara la Internal Notification del Admin sin hacer otro webhook.
 
-- Application received
-- Account-ready welcome
+### URL A02 — Account-ready Welcome
 
-Dejar Administrator alert vacío; la alerta sale como Internal Notification desde `partner_application_received`.
+Guardar únicamente en **Account-ready Welcome**. Este endpoint se llama después de aprobar y provisionar la cuenta; no comparte URL ni configuración con Application Received.
 
 ### URL R02
 

@@ -8,7 +8,8 @@ Regla de trabajo: probar un solo ID a la vez. No avanzar hasta registrar evidenc
 
 | Código | Nombre exacto del workflow en GHL | `workflowRouter` | Uso |
 |---|---|---|---|
-| R01 | `MDN \| Router 01 \| Partner Applications` | `partner_applications` | Solicitudes y activación de Partners |
+| A01 | `MDN \| Partner \| Application Received` | `application_received` | Solicitud recibida y alerta Admin |
+| A02 | `MDN \| Partner \| Account-ready Welcome` | `account_ready` | Activación y bienvenida después de aprobar |
 | R02 | `MDN \| Router 02 \| Booking & Appointments` | `booking_appointments` | Leads, pagos y ciclo de citas |
 | R03 | `MDN \| Router 03 \| Care Rewards` | `care_rewards` | Invitaciones, progreso y Rewards |
 
@@ -21,7 +22,7 @@ Cada payload lleva el contrato de ruteo en propiedades planas. Los tres routers 
 | Propiedad | Decisión |
 |---|---|
 | `communicationEvent` | Rama exacta del router. |
-| `workflowRouter` | Confirma que el evento llegó a R01, R02 o R03. |
+| `workflowRouter` | Confirma que el evento llegó a A01, A02, R02 o R03. |
 | `primaryRecipientRole` | `applicant`, `partner`, `customer`, `invitee`, `inviter` o `admin`. |
 | `primaryRecipientFirstName`, `primaryRecipientLastName`, `primaryRecipientEmail`, `primaryRecipientPhone` | Contacto actual que GHL debe buscar/crear y comunicar. |
 | `primaryRecipientReady` | Permite comunicación externa sólo cuando es `true`. |
@@ -72,12 +73,12 @@ El State Operator debe ser usuario interno de GHL para compartir la matrícula a
 
 | ID | Prueba | Evento | Webhook/workflow | Comunicación GHL | Estado |
 |---|---|---|---|---|---|
-| P01 | Enviar solicitud directa de Partner | `partner_application_received` | R01 | Applicant: [SMS](./sms-library.md#sms-partner-application-received) + [Email](./emails/01-partner-application-received.html); Admin Internal: [SMS](./sms-library.md#sms-admin-new-application) + [Email](./emails/02-admin-new-partner-application.html) | PENDING |
-| P02 | Confirmar alerta administrativa | Mismo evento P01 | R01; misma matrícula | `notifyAdmin=true`; no emitir otro webhook | PENDING |
-| P03 | Solicitud mediante referido de Partner | `partner_application_received` | R01 | Igual que P01; atribución guardada; una sola matrícula | PENDING |
+| P01 | Enviar solicitud directa de Partner | `partner_application_received` | A01 | Applicant: [SMS](./sms-library.md#sms-partner-application-received) + [Email](./emails/01-partner-application-received.html); Admin Internal: [SMS](./sms-library.md#sms-admin-new-application) + [Email](./emails/02-admin-new-partner-application.html) | PENDING |
+| P02 | Confirmar alerta administrativa | Mismo evento P01 | A01; misma matrícula | `notifyAdmin=true`; no emitir otro webhook | PENDING |
+| P03 | Solicitud mediante referido de Partner | `partner_application_received` | A01 | Igual que P01; atribución guardada; una sola matrícula | PENDING |
 | P04 | Abrir/evaluar Application profile | — | — | — | PENDING |
-| P05 | Aceptar la solicitud | `partner_account_ready` | R01 | Partner: [SMS](./sms-library.md#sms-partner-account-ready) + [Email](./emails/03-partner-account-ready.html); Operator/Internal cuando corresponda: [SMS](./sms-library.md#sms-state-operator-action-required) + [Email](./emails/16-state-operator-action-required.html) | PENDING |
-| P06 | Repetir/recargar aceptación completada | No debe emitir evento nuevo | R01 | Sin duplicar cuenta, matrícula ni mensajes | PENDING |
+| P05 | Aceptar la solicitud | `partner_account_ready` | A02 | Partner: [SMS](./sms-library.md#sms-partner-account-ready) + [Email](./emails/03-partner-account-ready.html); Operator/Internal cuando corresponda: [SMS](./sms-library.md#sms-state-operator-action-required) + [Email](./emails/16-state-operator-action-required.html) | PENDING |
+| P06 | Repetir/recargar aceptación completada | No debe emitir evento nuevo | A02 | Sin duplicar cuenta, matrícula ni mensajes | PENDING |
 
 ## Fase 2 — Activación y configuración del Partner
 
@@ -183,8 +184,8 @@ El State Operator debe ser usuario interno de GHL para compartir la matrícula a
 
 | ID | Prueba | Evento | Webhook/workflow | Comunicación GHL | Estado |
 |---|---|---|---|---|---|
-| X01 | Editar URL de Automation y recargar | — | R01/R02/R03 | La URL persiste y los eventos reales usan la guardada | PENDING |
-| X02 | Safe send test | Evento seguro del router | R01/R02/R03 | `test=true`; mapear sin SMS/email/Internal Notification | PENDING |
+| X01 | Editar URL de Automation y recargar | — | A01/A02/R02/R03 | Cada URL persiste de forma independiente y los eventos reales usan la guardada | PENDING |
+| X02 | Safe send test | Evento seguro del workflow | A01/A02/R02/R03 | `test=true`; mapear sin SMS/email/Internal Notification | PENDING |
 | X03 | Repetir evento/idempotency key | Mismo evento | Router correspondiente | Una matrícula y una comunicación como máximo | PENDING |
 | X04 | Instalar PWA desktop/móvil | — | — | — | PENDING |
 | X05 | Push y badge | — | — | Push/deeplink fuera de GHL | PENDING |
@@ -207,4 +208,4 @@ Mantenerlos como `NOT IMPLEMENTED`, no como `FAIL`:
 
 `P01 — Enviar solicitud directa de Partner`
 
-Antes de probar: construir los tres workflows con [la arquitectura de routers](./optimized-ghl-router-architecture.md), copiar los valores desde [Custom Values](./custom-values.md) y completar [el checklist](./workflow-test-checklist.md).
+Antes de probar: construir los cuatro workflows con [la arquitectura de routers](./optimized-ghl-router-architecture.md), copiar los valores desde [Custom Values](./custom-values.md) y completar [el checklist](./workflow-test-checklist.md).
