@@ -537,6 +537,7 @@ export async function ensureClientPortalSchema() {
       create table if not exists app.client_visit_rewards (
         id uuid primary key default gen_random_uuid(),
         client_account_id uuid not null references app.client_accounts(id) on delete cascade,
+        reward_program text not null default 'wellness',
         milestone_number integer not null,
         goal_count integer not null default 10,
         status text not null default 'available',
@@ -546,7 +547,6 @@ export async function ensureClientPortalSchema() {
         metadata jsonb not null default '{}'::jsonb,
         created_at timestamptz not null default now(),
         updated_at timestamptz not null default now(),
-        unique (client_account_id, milestone_number),
         check (milestone_number > 0),
         check (goal_count > 0),
         check (status in ('available', 'redeemed', 'cancelled'))
@@ -555,8 +555,19 @@ export async function ensureClientPortalSchema() {
       alter table app.client_visit_rewards
         alter column goal_count set default 10;
 
-      create index if not exists client_visit_rewards_account_idx
-        on app.client_visit_rewards (client_account_id, status, earned_at asc);
+      alter table app.client_visit_rewards
+        add column if not exists reward_program text not null default 'wellness';
+
+      alter table app.client_visit_rewards
+        drop constraint if exists client_visit_rewards_client_account_id_milestone_number_key;
+
+      create unique index if not exists client_visit_rewards_program_milestone_uq
+        on app.client_visit_rewards (client_account_id, reward_program, milestone_number);
+
+      drop index if exists app.client_visit_rewards_account_idx;
+
+      create index if not exists client_visit_rewards_program_status_idx
+        on app.client_visit_rewards (client_account_id, reward_program, status, earned_at asc);
 
       create table if not exists app.client_referral_webhook_deliveries (
         id uuid primary key default gen_random_uuid(),

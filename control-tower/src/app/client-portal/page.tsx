@@ -44,10 +44,11 @@ function appointmentPaymentSummary(appointment: {
 export default async function ClientHomePage() {
   const account = await getAuthenticatedClient();
   if (!account) redirect("/login");
-  const [appointments, referrals, visitRewards] = await Promise.all([
+  const [appointments, referrals, visitRewards, nadVisitRewards] = await Promise.all([
     getClientAppointments(account.id),
     getClientReferralSummary(account.id),
-    getClientVisitRewardSummary(account.id),
+    getClientVisitRewardSummary(account.id, "wellness"),
+    getClientVisitRewardSummary(account.id, "nad_family"),
   ]);
   const activeStatuses = new Set(["payment_pending", "confirmed", "partner_acknowledged", "in_progress"]);
   const upcomingVisits = appointments
@@ -143,10 +144,10 @@ export default async function ClientHomePage() {
           <Link href="/services"><span>Services</span><h3>Explore the complete wellness catalog.</h3><b>Browse →</b></Link>
           <Link href="/appointments"><span>Appointments</span><h3>Your full care timeline.</h3><b>Open →</b></Link>
           <Link href="/rewards" className={styles.referralHomeLink}>
-            <span>Rewards · {Number(referrals.rewardStatus === "available") + visitRewards.availableRewards} ready</span>
-            <h3>{referrals.rewardStatus === "available" || visitRewards.availableRewards ? "You have a Care reward ready." : "Every visit moves you forward."}</h3>
-            <div className={styles.referralHomeProgress}><i style={{ width: `${Math.max(referrals.percent, visitRewards.percent)}%` }} /></div>
-            <b>{referrals.rewardStatus === "available" || visitRewards.availableRewards ? "View rewards" : "See your progress"} →</b>
+            <span>Rewards · {Number(referrals.rewardStatus === "available") + visitRewards.availableRewards + nadVisitRewards.availableRewards} ready</span>
+            <h3>{referrals.rewardStatus === "available" || visitRewards.availableRewards || nadVisitRewards.availableRewards ? "You have a Care reward ready." : "Every visit moves you forward."}</h3>
+            <div className={styles.referralHomeProgress}><i style={{ width: `${Math.max(referrals.percent, visitRewards.percent, nadVisitRewards.percent)}%` }} /></div>
+            <b>{referrals.rewardStatus === "available" || visitRewards.availableRewards || nadVisitRewards.availableRewards ? "View rewards" : "See your progress"} →</b>
           </Link>
         </div>
       </section>

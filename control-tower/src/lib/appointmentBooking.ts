@@ -243,6 +243,7 @@ export async function createAppointmentCheckout(opts: {
       calendar_id: string;
       organization_id: string;
       service_name: string;
+      service_slug: string;
       duration_minutes: number;
       buffer_before_minutes: number;
       buffer_after_minutes: number;
@@ -256,7 +257,7 @@ export async function createAppointmentCheckout(opts: {
     for (const candidatePartnerId of orderedPartnerIds) {
       const bookingFacts = await client.query<NonNullable<typeof facts>>(
         `select s.id as service_id, c.id as calendar_id, s.organization_id,
-                s.name as service_name, c.duration_minutes,
+                s.name as service_name, s.slug as service_slug, c.duration_minutes,
                 c.buffer_before_minutes, c.buffer_after_minutes,
                 coalesce(a.price_override, s.price)::text as price,
                 s.deposit_type, s.deposit_value::text, s.currency
@@ -302,7 +303,7 @@ export async function createAppointmentCheckout(opts: {
     standardDepositCents = depositCents(price, facts.deposit_type, depositValue);
     partnerEarningsCents = Math.max(Math.round(price * 100) - standardDepositCents, 0);
     bookingReward = opts.clientAccountId && standardDepositCents > 0
-      ? await availableClientBookingReward(client, opts.clientAccountId)
+      ? await availableClientBookingReward(client, opts.clientAccountId, { serviceSlug: facts.service_slug })
       : null;
     freeVisitRewardApplied = bookingReward?.type === "completed_visits";
     amountCents = bookingReward ? 0 : standardDepositCents;
@@ -383,6 +384,7 @@ export async function createAppointmentCheckout(opts: {
           applied: true,
           rewardId: bookingReward.id,
           rewardType: bookingReward.type,
+          rewardProgram: bookingReward.program,
           benefit: freeVisitRewardApplied ? "free_appointment" : "deposit_waiver",
           standardDepositAmount: standardDepositCents / 100,
           depositWaivedAmount: standardDepositCents / 100,
@@ -444,6 +446,7 @@ export async function createAppointmentCheckout(opts: {
         clientReward: bookingReward ? {
           rewardId: bookingReward.id,
           rewardType: bookingReward.type,
+          rewardProgram: bookingReward.program,
           benefit: freeVisitRewardApplied ? "free_appointment" : "deposit_waiver",
           platformFunded: freeVisitRewardApplied,
           platformFundedPartnerAmount: freeVisitRewardApplied ? partnerEarningsCents / 100 : 0,

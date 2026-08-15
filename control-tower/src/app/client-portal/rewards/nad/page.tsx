@@ -6,9 +6,9 @@ import { getClientVisitRewardSummary } from "@/lib/clientRewards";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientVisitRewardsPage() {
+export default async function ClientNadRewardsPage() {
   const account = await getAuthenticatedClient();
-  if (!account) redirect("/login?next=/rewards/visits");
-  const summary = await getClientVisitRewardSummary(account.id, "wellness");
-  return <VisitRewardExperience summary={summary} variant="wellness" />;
+  if (!account) redirect("/login?next=/rewards/nad");
+  const summary = await getClientVisitRewardSummary(account.id, "nad_family");
+  return <VisitRewardExperience summary={summary} variant="nad" />;
 }
