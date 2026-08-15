@@ -375,6 +375,39 @@
 .profileNotice { margin: 32px clamp(28px, 5vw, 50px) 42px; padding: 20px; border-radius: 16px; color: var(--care-teal); background: var(--care-mint); }
 .profileNotice span { font-size: 12px; font-weight: 900; }
 .profileNotice p { margin: 7px 0 0; color: var(--care-copy); font-size: 12px; line-height: 1.55; }
+.profileAccordionShell { display: grid; gap: 10px; padding: 24px clamp(20px,4vw,38px) 10px; background: #f7faf9; }
+.profileAccordionGroup { display: grid; gap: 10px; }
+.profileAccordionItem { overflow: visible; border: 1px solid var(--care-line); border-radius: 18px; background: #fff; transition: border-color .18s ease, box-shadow .18s ease; }
+.profileAccordionItemOpen { border-color: #a9d7cf; box-shadow: 0 15px 36px rgba(20,55,59,.075); }
+.profileAccordionTrigger { width: 100%; min-height: 84px; display: grid; grid-template-columns: 42px minmax(0,1fr) auto 28px; align-items: center; gap: 14px; padding: 16px 18px; border: 0; color: var(--care-ink); background: transparent; cursor: pointer; font: inherit; text-align: left; }
+.profileAccordionNumber { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; color: var(--care-teal); background: var(--care-mint); font-size: 10px; font-weight: 900; }
+.profileAccordionTitle { min-width: 0; display: grid; gap: 4px; }
+.profileAccordionTitle b { font-size: 14px; }
+.profileAccordionTitle small { color: var(--care-copy); font-size: 10px; line-height: 1.4; }
+.profileAccordionStatus { padding: 7px 10px; border-radius: 999px; color: var(--care-teal); background: #edf8f5; font-size: 8px; font-weight: 900; white-space: nowrap; }
+.profileAccordionChevron { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #6c8581; background: #f3f7f6; font-size: 19px; line-height: 1; transition: color .18s ease, background .18s ease, transform .18s ease; }
+.profileAccordionChevronOpen { color: #fff; background: var(--care-teal); transform: rotate(180deg); }
+.profileAccordionPanel { padding: 0 18px 20px; border-top: 1px solid #e5efed; animation: careProfilePanelIn .2s ease both; }
+.profileAccordionFields { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+.profileAccordionFields label { min-height: 108px; display: grid; align-content: center; gap: 8px; border-bottom: 1px solid var(--care-line); }
+.profileAccordionFields label small { color: var(--care-muted); font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.profileAccordionFields input,.profileAccordionFields select { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid var(--care-line); border-radius: 13px; outline: none; color: var(--care-ink); background: #fff; font: inherit; font-size: 14px; font-weight: 700; }
+.profileAccordionFields input:focus,.profileAccordionFields select:focus { border-color: var(--care-teal-bright); box-shadow: 0 0 0 4px rgba(7,150,160,.1); }
+.profileAccordionFields input:disabled { color: #718383; background: #f1f5f4; }
+.profileAccordionFields input[readonly] { color: #526b6d; background: #f4f7f6; cursor: default; }
+.profileAccordionFields label > span { color: var(--care-muted); font-size: 10px; }
+.profileAccordionSave { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-top: 18px; }
+.profileAccordionSave p { margin: 0; color: var(--care-teal); font-size: 11px; font-weight: 800; }
+.profileAccordionSave button,.profileAccordionIntro button { min-height: 46px; padding: 0 18px; border: 0; border-radius: 13px; color: #fff; background: linear-gradient(110deg,var(--care-teal),var(--care-teal-bright)); cursor: pointer; font: inherit; font-size: 10px; font-weight: 900; }
+.profileAccordionSave button:disabled,.profileAccordionIntro button:disabled { opacity: .62; cursor: wait; }
+.profileAccordionIntro { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 0; }
+.profileAccordionIntro b { font-size: 13px; }
+.profileAccordionIntro p { margin: 4px 0 0; color: var(--care-copy); font-size: 11px; line-height: 1.5; }
+.profileAccordionAppointmentNote { display: flex; align-items: flex-start; gap: 12px; margin: 20px 0; padding: 16px; border-radius: 15px; background: var(--care-mint); }
+.profileAccordionAppointmentNote > span { width: 34px; height: 34px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 11px; color: #fff; background: var(--care-teal); font-size: 15px; font-weight: 900; }
+.profileAccordionAppointmentNote b { font-size: 12px; }
+.profileAccordionAppointmentNote p { margin: 4px 0 0; color: var(--care-copy); font-size: 10px; line-height: 1.5; }
+@keyframes careProfilePanelIn { from { opacity: .35; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 .profileEditForm { display: grid; grid-template-columns: 1fr 1fr; gap: 0 30px; padding: 28px clamp(28px, 5vw, 50px) 34px; }
 .profileEditForm label { min-height: 116px; display: grid; align-content: center; gap: 8px; border-bottom: 1px solid var(--care-line); }
 .profileEditForm label small { color: var(--care-muted); font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
@@ -564,8 +597,27 @@
   .bookingStageHeader { align-items: stretch; flex-direction: column; }
   .bookingStageHeader button { width: 100%; }
   .membershipNote { align-items: start; }
-  .profileCardHeader { align-items: start; flex-wrap: wrap; }
-  .profileIdentityActions { width: calc(100% - 96px); align-items: start; justify-items: start; margin-left: 96px; }
+  .profileCardHeader { min-height: 150px; align-items: center; flex-wrap: nowrap; padding: 24px 20px; }
+  .largeAvatar { width: 62px; height: 62px; }
+  .profileCardHeader h2 { font-size: 30px; }
+  .profileIdentityActions { width: auto; align-items: center; justify-items: end; margin-left: auto; }
+  .profileAccordionShell { gap: 8px; padding: 14px 12px 6px; }
+  .profileAccordionGroup { gap: 8px; }
+  .profileAccordionItem { border-radius: 16px; }
+  .profileAccordionTrigger { min-height: 76px; grid-template-columns: 36px minmax(0,1fr) 24px; gap: 11px; padding: 13px 14px; }
+  .profileAccordionNumber { width: 36px; height: 36px; border-radius: 12px; }
+  .profileAccordionTitle b { font-size: 13px; }
+  .profileAccordionTitle small { font-size: 8px; }
+  .profileAccordionStatus { grid-column: 2; width: fit-content; padding: 5px 8px; font-size: 7px; }
+  .profileAccordionChevron { grid-column: 3; grid-row: 1 / span 2; width: 24px; height: 24px; }
+  .profileAccordionPanel { padding: 0 14px 16px; }
+  .profileAccordionFields { grid-template-columns: 1fr; }
+  .profileAccordionFields label { min-height: 102px; }
+  .profileAccordionSave { align-items: stretch; flex-direction: column; padding-top: 16px; }
+  .profileAccordionSave button { width: 100%; }
+  .profileAccordionIntro { align-items: stretch; flex-direction: column; padding: 16px 0; }
+  .profileAccordionIntro button { width: 100%; }
+  .profileAccordionAppointmentNote { margin: 16px 0; }
   .profileFields { grid-template-columns: 1fr; }
   .profileFields > div:nth-child(odd),.profileFields > div:nth-child(even) { padding: 0; border-left: 0; }
   .profileEditForm { grid-template-columns: 1fr; }

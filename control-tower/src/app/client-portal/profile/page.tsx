@@ -2,9 +2,8 @@ import { redirect } from "next/navigation";
 
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 import { safeClientNext } from "@/lib/clientPortalAuth";
-import ClientProfileForm from "@/components/client/ClientProfileForm";
 import ClientProfileAvatar from "@/components/client/ClientProfileAvatar";
-import ClientCarePreferences from "@/components/client/ClientCarePreferences";
+import ClientProfileSections from "@/components/client/ClientProfileSections";
 
 import styles from "../clientPortal.module.css";
 
@@ -25,8 +24,7 @@ export default async function ClientProfilePage({ searchParams }: { searchParams
             <b>Verified ✓</b>
           </div>
         </div>
-        <ClientProfileForm account={account} nextPath={nextPath} />
-        <ClientCarePreferences account={account} />
+        <ClientProfileSections account={account} nextPath={nextPath} initialSection={setup ? "address" : "personal"} />
         <div className={styles.profileNotice}><span>Your verified email connects existing and future bookings automatically.</span><p>Your saved address is a booking preference—not a permanent service location. You can always choose a different address for any appointment.</p></div>
       </section>
     </div>

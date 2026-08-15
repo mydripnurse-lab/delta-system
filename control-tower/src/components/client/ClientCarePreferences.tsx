@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { ClientAccount } from "@/lib/clientPortalAuth";
+import type { ClientProfileSectionId } from "@/lib/clientProfileSections";
 
+import portalStyles from "@/app/client-portal/clientPortal.module.css";
 import styles from "./clientCarePreferences.module.css";
 
 const SCREENING_OPTIONS = [
@@ -16,7 +18,49 @@ const SCREENING_OPTIONS = [
 
 type Suggestion = { id: string; label: string; addressLine1: string; city: string; county: string; state: string; postalCode: string; countryCode: string };
 
-export default function ClientCarePreferences({ account }: { account: ClientAccount }) {
+function SectionHeader({
+  id,
+  number,
+  title,
+  description,
+  status,
+  activeSection,
+  onToggle,
+}: {
+  id: ClientProfileSectionId;
+  number: string;
+  title: string;
+  description: string;
+  status: string;
+  activeSection: ClientProfileSectionId | null;
+  onToggle: (section: ClientProfileSectionId) => void;
+}) {
+  const open = activeSection === id;
+  return <button
+    type="button"
+    className={portalStyles.profileAccordionTrigger}
+    aria-expanded={open}
+    aria-controls={`profile-section-${id}`}
+    onClick={() => onToggle(id)}
+  >
+    <span className={portalStyles.profileAccordionNumber}>{number}</span>
+    <span className={portalStyles.profileAccordionTitle}><b>{title}</b><small>{description}</small></span>
+    <span className={portalStyles.profileAccordionStatus}>{status}</span>
+    <span className={`${portalStyles.profileAccordionChevron} ${open ? portalStyles.profileAccordionChevronOpen : ""}`} aria-hidden="true">⌄</span>
+  </button>;
+}
+
+export default function ClientCarePreferences({
+  account,
+  nextPath = "",
+  activeSection,
+  onToggle,
+}: {
+  account: ClientAccount;
+  nextPath?: string;
+  activeSection: ClientProfileSectionId | null;
+  onToggle: (section: ClientProfileSectionId) => void;
+}) {
   const router = useRouter();
   const [screening, setScreening] = useState<string[]>(account.screeningSelections);
   const [screeningMessage, setScreeningMessage] = useState("");
@@ -83,7 +127,9 @@ export default function ClientCarePreferences({ account }: { account: ClientAcco
       const response = await fetch("/api/client-account/addresses", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ label, addressLine1: selected.addressLine1, addressLine2, city: selected.city, state: selected.state, postalCode: selected.postalCode, countryCode: selected.countryCode, addressFeatureId: selected.id, isDefault: account.addresses.length === 0 }) });
       const result = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(result.error || "The address could not be saved.");
-      setAdding(false); setAddressLine1(""); setAddressLine2(""); setSelected(null); setSuggestions([]); setAddressMessage("Address saved securely."); router.refresh();
+      setAdding(false); setAddressLine1(""); setAddressLine2(""); setSelected(null); setSuggestions([]); setAddressMessage("Address saved securely.");
+      if (nextPath) router.push(nextPath);
+      else router.refresh();
     } catch (error) { setAddressMessage(error instanceof Error ? error.message : "The address could not be saved."); }
     finally { setAddressBusy(false); }
   }
@@ -99,71 +145,84 @@ export default function ClientCarePreferences({ account }: { account: ClientAcco
     finally { setAddressBusy(false); }
   }
 
-  return <div className={styles.wrap}>
-    <section className={styles.section}>
-      <header><span>Saved locations</span><div><h3>Where care can come to you.</h3><p>Keep more than one verified address and choose the right one for every appointment.</p></div><button type="button" onClick={() => setAdding((value) => !value)}>{adding ? "Cancel" : "+ Add address"}</button></header>
-      <div className={styles.addressGrid}>{account.addresses.map((address) => <article key={address.id} className={address.isDefault ? styles.defaultAddress : ""}><div><small>{address.label}{address.isDefault ? " · Preferred" : ""}</small><strong>{address.addressLine1}{address.addressLine2 ? `, ${address.addressLine2}` : ""}</strong><p>{address.city}, {address.state} {address.postalCode}<br />{address.county}</p></div><div>{!address.isDefault ? <button type="button" disabled={addressBusy} onClick={() => void updateAddress(address.id, "default")}>Make preferred</button> : null}<button type="button" disabled={addressBusy} onClick={() => void updateAddress(address.id, "delete")}>Remove</button></div></article>)}</div>
-      {!account.addresses.length && !adding ? <div className={styles.empty}>No saved addresses yet. You can still enter one during booking.</div> : null}
-      {adding ? <div className={styles.addForm}>
-        <label>Label<select value={label} onChange={(event) => setLabel(event.target.value)}><option>Home</option><option>Work</option><option>Family</option><option>Other</option></select></label>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="client-address-search">Street address</label>
-          <div className={styles.search}>
-            <input
-              id="client-address-search"
-              value={addressLine1}
-              onChange={(event) => { setAddressLine1(event.target.value); setSelected(null); setAddressMessage(""); }}
-              placeholder="Start typing a complete address"
-              autoComplete="street-address"
-              aria-autocomplete="list"
-              aria-expanded={suggestions.length > 0}
-              aria-controls="client-address-suggestions"
-            />
-            {searching ? <i>Searching…</i> : null}
-            {suggestions.length ? <div id="client-address-suggestions" className={styles.suggestionList} role="listbox" aria-label="Verified address suggestions">
-              {suggestions.map((item) => <button
-                type="button"
-                key={item.id}
-                role="option"
-                aria-selected={selected?.id === item.id}
-                onPointerDown={(event) => { event.preventDefault(); chooseAddress(item); }}
-                onClick={() => chooseAddress(item)}
-              >
-                <strong>{item.addressLine1}</strong>
-                <small>{item.label.replace(`${item.addressLine1}, `, "")}</small>
-              </button>)}
-            </div> : null}
-            {selected ? <div className={styles.verifiedSelection} role="status">
-              <span aria-hidden="true">✓</span>
-              <div><strong>Verified address</strong><small>{selected.label}</small></div>
-            </div> : null}
-          </div>
+  return <div className={portalStyles.profileAccordionGroup}>
+    <article className={`${portalStyles.profileAccordionItem} ${activeSection === "address" ? portalStyles.profileAccordionItemOpen : ""}`}>
+      <SectionHeader id="address" number="04" title="Address" description="Verified locations where care can come to you" status={account.addresses.length ? `${account.addresses.length} saved` : "Add address"} activeSection={activeSection} onToggle={onToggle} />
+      {activeSection === "address" ? <div id="profile-section-address" className={portalStyles.profileAccordionPanel}>
+        <div className={portalStyles.profileAccordionIntro}>
+          <div><b>Saved care locations</b><p>Keep more than one verified address and choose the right one whenever you book.</p></div>
+          <button type="button" onClick={() => setAdding((value) => !value)}>{adding ? "Cancel" : "+ Add address"}</button>
         </div>
-        <label>Apartment or suite <small>Optional</small><input value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} /></label>
-        <button className={styles.saveAddressButton} type="button" disabled={addressBusy || !selected} onClick={() => void addAddress()}>{addressBusy ? "Saving…" : "Save verified address"}</button>
+        <div className={styles.addressGrid}>{account.addresses.map((address) => <article key={address.id} className={address.isDefault ? styles.defaultAddress : ""}><div><small>{address.label}{address.isDefault ? " · Preferred" : ""}</small><strong>{address.addressLine1}{address.addressLine2 ? `, ${address.addressLine2}` : ""}</strong><p>{address.city}, {address.state} {address.postalCode}<br />{address.county}</p></div><div>{!address.isDefault ? <button type="button" disabled={addressBusy} onClick={() => void updateAddress(address.id, "default")}>Make preferred</button> : null}<button type="button" disabled={addressBusy} onClick={() => void updateAddress(address.id, "delete")}>Remove</button></div></article>)}</div>
+        {!account.addresses.length && !adding ? <div className={styles.empty}>No saved addresses yet. You can still enter one during booking.</div> : null}
+        {adding ? <div className={styles.addForm}>
+          <label>Label<select value={label} onChange={(event) => setLabel(event.target.value)}><option>Home</option><option>Work</option><option>Family</option><option>Other</option></select></label>
+          <div className={styles.fieldGroup}>
+            <label htmlFor="client-address-search">Street address</label>
+            <div className={styles.search}>
+              <input
+                id="client-address-search"
+                value={addressLine1}
+                onChange={(event) => { setAddressLine1(event.target.value); setSelected(null); setAddressMessage(""); }}
+                placeholder="Start typing a complete address"
+                autoComplete="street-address"
+                aria-autocomplete="list"
+                aria-expanded={suggestions.length > 0}
+                aria-controls="client-address-suggestions"
+              />
+              {searching ? <i>Searching…</i> : null}
+              {suggestions.length ? <div id="client-address-suggestions" className={styles.suggestionList} role="listbox" aria-label="Verified address suggestions">
+                {suggestions.map((item) => <button
+                  type="button"
+                  key={item.id}
+                  role="option"
+                  aria-selected={selected?.id === item.id}
+                  onPointerDown={(event) => { event.preventDefault(); chooseAddress(item); }}
+                  onClick={() => chooseAddress(item)}
+                >
+                  <strong>{item.addressLine1}</strong>
+                  <small>{item.label.replace(`${item.addressLine1}, `, "")}</small>
+                </button>)}
+              </div> : null}
+              {selected ? <div className={styles.verifiedSelection} role="status">
+                <span aria-hidden="true">✓</span>
+                <div><strong>Verified address</strong><small>{selected.label}</small></div>
+              </div> : null}
+            </div>
+          </div>
+          <label>Apartment or suite <small>Optional</small><input value={addressLine2} onChange={(event) => setAddressLine2(event.target.value)} /></label>
+          <button className={styles.saveAddressButton} type="button" disabled={addressBusy || !selected} onClick={() => void addAddress()}>{addressBusy ? "Saving…" : "Save verified address"}</button>
+        </div> : null}
+        {addressMessage ? <p className={styles.message} role="status">{addressMessage}</p> : null}
       </div> : null}
-      {addressMessage ? <p className={styles.message} role="status">{addressMessage}</p> : null}
-    </section>
-    <section className={styles.section}>
-      <header><span>Safety profile</span><div><h3>Keep your screening answers current.</h3><p>Save your usual answers here. For safety, every appointment asks for a fresh confirmation.</p></div></header>
-      <div className={styles.screening}>
-        {SCREENING_OPTIONS.map(([id, text]) => {
-          const checked = screening.includes(id);
-          return <label key={id}>
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={() => setScreening((current) => id === "none"
-                ? (checked ? [] : ["none"])
-                : checked
-                  ? current.filter((value) => value !== id)
-                  : [...current.filter((value) => value !== "none"), id])}
-            />
-            <span>{text}</span>
-          </label>;
-        })}
-      </div>
-      <div className={styles.saveRow}><p role="status">{screeningMessage}</p><button type="button" disabled={screeningBusy || !screening.length} onClick={() => void saveScreening()}>{screeningBusy ? "Saving…" : "Save safety answers"}</button></div>
-    </section>
+    </article>
+
+    <article className={`${portalStyles.profileAccordionItem} ${activeSection === "screening" ? portalStyles.profileAccordionItemOpen : ""}`}>
+      <SectionHeader id="screening" number="05" title="Medical Screening" description="Safety questions reviewed for every appointment" status={screening.length ? "Saved" : "For appointments"} activeSection={activeSection} onToggle={onToggle} />
+      {activeSection === "screening" ? <div id="profile-section-screening" className={portalStyles.profileAccordionPanel}>
+        <div className={portalStyles.profileAccordionAppointmentNote}>
+          <span aria-hidden="true">✦</span>
+          <div><b>Used for appointment safety</b><p>Save your usual answers here. You will review and confirm them again before every appointment.</p></div>
+        </div>
+        <div className={styles.screening}>
+          {SCREENING_OPTIONS.map(([id, text]) => {
+            const checked = screening.includes(id);
+            return <label key={id}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => setScreening((current) => id === "none"
+                  ? (checked ? [] : ["none"])
+                  : checked
+                    ? current.filter((value) => value !== id)
+                    : [...current.filter((value) => value !== "none"), id])}
+              />
+              <span>{text}</span>
+            </label>;
+          })}
+        </div>
+        <div className={styles.saveRow}><p role="status">{screeningMessage}</p><button type="button" disabled={screeningBusy || !screening.length} onClick={() => void saveScreening()}>{screeningBusy ? "Saving…" : "Save screening answers"}</button></div>
+      </div> : null}
+    </article>
   </div>;
 }
