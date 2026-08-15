@@ -1,10 +1,21 @@
 import { getDbPool } from "@/lib/db";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
+import { resolveCanonicalCountyByName } from "@/lib/canonicalGeography";
 import { definitionForCalendar } from "@/lib/myDripNurseServices";
 import { listAdminServices } from "@/lib/myDripNurseServiceCatalog";
 import type { Pool, PoolClient } from "pg";
 
-type ServiceArea = { state?: string; county?: string; locationId?: string };
+type ServiceArea = {
+  state?: string;
+  county?: string;
+  city?: string;
+  locationId?: string;
+  stateCode?: string;
+  stateFips?: string;
+  countyFips?: string;
+  countyGeoid?: string;
+  placeGeoid?: string;
+};
 type ProfileService = Record<string, unknown>;
 export type PartnerServiceAssignmentStatus = "active" | "paused" | "out_of_stock";
 
@@ -52,6 +63,92 @@ function normalize(value: unknown) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+async function canonicalServiceArea(area: ServiceArea) {
+  const state = text(area.state);
+  const county = text(area.county);
+  if (!state || !county) return null;
+  if (/^\d{5}$/.test(text(area.countyGeoid))) {
+    return {
+      state,
+      county,
+      stateFips: text(area.stateFips) || text(area.countyGeoid).slice(0, 2),
+      countyFips: text(area.countyFips) || text(area.countyGeoid).slice(2),
+      countyGeoid: text(area.countyGeoid),
+      placeGeoid: text(area.placeGeoid),
+      source: "partner_profile",
+    };
+  }
+  try {
+    const official = await resolveCanonicalCountyByName({ state, county });
+    if (!official) return { state, county, stateFips: "", countyFips: "", countyGeoid: "", placeGeoid: "", source: "legacy_name" };
+    return {
+      state: official.stateName,
+      county: official.countyName,
+      stateFips: official.stateFips,
+      countyFips: official.countyFips,
+      countyGeoid: official.countyGeoid,
+      placeGeoid: text(area.placeGeoid),
+      source: official.source,
+    };
+  } catch {
+    return { state, county, stateFips: "", countyFips: "", countyGeoid: "", placeGeoid: "", source: "legacy_name" };
+  }
+}
+
+async function insertCoverageArea(
+  client: Pool | PoolClient,
+  assignmentId: string,
+  area: ServiceArea,
+  source: string,
+) {
+  const canonical = await canonicalServiceArea(area);
+  if (!canonical) return;
+  await client.query(
+    `insert into app.partner_coverage_areas (
+       assignment_id, state, county, city,
+       state_fips, county_fips, county_geoid, place_geoid,
+       geography_source, geography_verified_at, metadata
+     ) values ($1, $2, $3, $4, nullif($5, ''), nullif($6, ''), nullif($7, ''), nullif($8, ''), $9, case when $7::text <> '' then now() end, $10::jsonb)
+     on conflict do nothing`,
+    [
+      assignmentId,
+      canonical.state,
+      canonical.county,
+      text(area.city) || null,
+      canonical.stateFips,
+      canonical.countyFips,
+      canonical.countyGeoid,
+      canonical.placeGeoid,
+      canonical.source,
+      JSON.stringify({ locationId: text(area.locationId), source }),
+    ],
+  );
+}
+
+async function canonicalizeExistingCoverage(client: Pool | PoolClient, assignmentId: string) {
+  const existing = await client.query<{ id: string; state: string; county: string; county_geoid: string | null }>(
+    `select id, state, county, county_geoid
+       from app.partner_coverage_areas
+      where assignment_id = $1 and county_geoid is null`,
+    [assignmentId],
+  );
+  for (const row of existing.rows) {
+    const canonical = await canonicalServiceArea({ state: row.state, county: row.county });
+    if (!canonical?.countyGeoid) continue;
+    await client.query(
+      `update app.partner_coverage_areas
+          set state_fips = $2,
+              county_fips = $3,
+              county_geoid = $4,
+              geography_source = $5,
+              geography_verified_at = now(),
+              updated_at = now()
+        where id = $1`,
+      [row.id, canonical.stateFips, canonical.countyFips, canonical.countyGeoid, canonical.source],
+    );
+  }
 }
 
 async function profileForApplication(applicationId: string, client: Pool | PoolClient = getDbPool()) {
@@ -117,22 +214,13 @@ async function syncProfileServiceAssignments(profile: ProfileRow, client: Pool |
     );
     const assignmentId = assignment.rows[0]?.id;
     if (!assignmentId) continue;
+    await canonicalizeExistingCoverage(client, assignmentId);
     const coverage = await client.query<{ count: string }>(
       `select count(*)::text as count from app.partner_coverage_areas where assignment_id = $1`,
       [assignmentId],
     );
     if (Number(coverage.rows[0]?.count || 0) > 0) continue;
-    for (const area of profile.service_areas || []) {
-      const state = text(area.state);
-      const county = text(area.county);
-      if (!state || !county) continue;
-      await client.query(
-        `insert into app.partner_coverage_areas (assignment_id, state, county, metadata)
-         values ($1, $2, $3, $4::jsonb)
-         on conflict do nothing`,
-        [assignmentId, state, county, JSON.stringify({ locationId: text(area.locationId), source: "profile_sync" })],
-      );
-    }
+    for (const area of profile.service_areas || []) await insertCoverageArea(client, assignmentId, area, "profile_sync");
   }
 }
 
@@ -410,22 +498,13 @@ export async function backfillPartnerServiceAssignments() {
       );
       const assignmentId = assignment.rows[0]?.id;
       if (!assignmentId) continue;
+      await canonicalizeExistingCoverage(pool, assignmentId);
       const coverage = await pool.query<{ count: string }>(
         `select count(*)::text as count from app.partner_coverage_areas where assignment_id = $1`,
         [assignmentId],
       );
       if (Number(coverage.rows[0]?.count || 0) > 0) continue;
-      for (const area of profile.service_areas || []) {
-        const state = text(area.state);
-        const county = text(area.county);
-        if (!state || !county) continue;
-        await pool.query(
-          `insert into app.partner_coverage_areas (assignment_id, state, county, metadata)
-           values ($1, $2, $3, $4::jsonb)
-           on conflict do nothing`,
-          [assignmentId, state, county, JSON.stringify({ locationId: text(area.locationId), source: "profile_backfill" })],
-        );
-      }
+      for (const area of profile.service_areas || []) await insertCoverageArea(pool, assignmentId, area, "profile_backfill");
     }
   }
 }
@@ -511,16 +590,7 @@ export async function setPartnerServiceAssignment(opts: {
 
     if (nextStatus === "active") {
       await client.query(`delete from app.partner_coverage_areas where assignment_id = $1`, [assignmentId]);
-      for (const area of profile.service_areas || []) {
-        const state = text(area.state);
-        const county = text(area.county);
-        if (!state || !county) continue;
-        await client.query(
-          `insert into app.partner_coverage_areas (assignment_id, state, county, metadata)
-           values ($1, $2, $3, $4::jsonb)`,
-          [assignmentId, state, county, JSON.stringify({ locationId: text(area.locationId) })],
-        );
-      }
+      for (const area of profile.service_areas || []) await insertCoverageArea(client, assignmentId, area, "admin_assignment");
     }
 
     const current = Array.isArray(profile.services) ? profile.services : [];

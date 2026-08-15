@@ -21,8 +21,18 @@ const querySchema = z.object({
   county: z.string().trim().min(2).max(120),
   city: z.string().trim().min(1).max(120),
   postalCode: z.string().trim().max(20).optional().default(""),
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional(),
   partnerId: z.string().uuid().optional(),
   medicalScreening: z.literal("clear"),
+}).superRefine((value, context) => {
+  if ((value.latitude === undefined) !== (value.longitude === undefined)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [value.latitude === undefined ? "latitude" : "longitude"],
+      message: "Latitude and longitude must be provided together.",
+    });
+  }
 });
 
 const publicKeySchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(120);
@@ -45,6 +55,8 @@ export async function GET(
       county: url.searchParams.get("county"),
       city: url.searchParams.get("city"),
       postalCode: url.searchParams.get("postalCode") || "",
+      latitude: url.searchParams.get("latitude") || undefined,
+      longitude: url.searchParams.get("longitude") || undefined,
       partnerId: url.searchParams.get("partnerId") || undefined,
       medicalScreening: url.searchParams.get("medicalScreening"),
     });
@@ -66,7 +78,7 @@ export async function GET(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Complete the medical screening and enter a valid date, state, county and city." },
+        { error: "Complete the medical screening and enter a verified date and service address." },
         { status: 400, headers: cors },
       );
     }

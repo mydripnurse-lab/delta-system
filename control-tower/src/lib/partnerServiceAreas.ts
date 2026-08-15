@@ -1,96 +1,135 @@
 import { cache } from "react";
 
-import { getDbPool } from "@/lib/db";
+import {
+  loadOfficialCountyCommunities,
+  normalizeGeographyName,
+  resolveCanonicalCountyByName,
+  type CanonicalGeography,
+} from "@/lib/canonicalGeography";
 import type { PartnerServiceArea } from "@/lib/partnerProfiles";
-
-type StateFileRow = {
-  state_slug: string;
-  state_name: string;
-  payload: {
-    counties?: Array<{
-      countyName?: string;
-      cities?: Array<{ cityName?: string }>;
-    }>;
-  } | null;
-};
 
 export type PartnerCity = {
   name: string;
   state: string;
-  county?: string;
+  county: string;
+  geoid?: string;
+  kind?: "incorporated_place" | "census_designated_place";
 };
 
-const TEMPLATE_PREVIEW_CITIES = [
-  "Apopka",
-  "Bay Lake",
-  "Belle Isle",
-  "Eatonville",
-  "Edgewood",
-  "Lake Buena Vista",
-  "Maitland",
-  "Oakland",
-  "Ocoee",
-  "Orlando",
-  "Windermere",
-  "Winter Garden",
-  "Winter Park",
-  "Kissimmee",
-  "St. Cloud",
-].map((name) => ({ name, state: "Florida" }));
+export type PartnerCoverageCounty = {
+  state: string;
+  stateCode: string;
+  county: string;
+  countyGeoid: string;
+  communities: PartnerCity[];
+};
+
+function fallbackCoverageCounty(area: PartnerServiceArea): PartnerCoverageCounty | null {
+  const state = text(area.state);
+  const county = text(area.county);
+  if (!state || !county) return null;
+  const countyGeoid = text(area.countyGeoid)
+    || `legacy:${normalizeGeographyName(state)}:${normalizeGeographyName(county)}`;
+  const city = text(area.city || area.placeName);
+  return {
+    state,
+    stateCode: "",
+    county,
+    countyGeoid,
+    communities: city
+      ? [{
+          name: city,
+          state,
+          county,
+          geoid: text(area.placeGeoid),
+          kind: "census_designated_place",
+        }]
+      : [],
+  };
+}
 
 function text(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function normalized(value: unknown) {
-  return text(value)
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\b(county|parish|borough|municipality|census area)\b/g, " ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+async function canonicalCounty(area: PartnerServiceArea): Promise<CanonicalGeography | null> {
+  const countyGeoid = text(area.countyGeoid);
+  if (/^\d{5}$/.test(countyGeoid)) {
+    const canonical = await resolveCanonicalCountyByName({ state: area.state, county: area.county });
+    if (canonical?.countyGeoid === countyGeoid) return canonical;
+  }
+  return resolveCanonicalCountyByName({ state: area.state, county: area.county });
 }
 
-function stateMatches(areaState: string, row: StateFileRow) {
-  const candidate = normalized(areaState);
-  return candidate === normalized(row.state_name) || candidate === normalized(row.state_slug);
-}
-
-export const loadPartnerCities = cache(async function loadPartnerCities(
-  organizationIdRaw: string,
+/**
+ * Public coverage is derived from official Census county and place identifiers.
+ * The sitemap JSON remains a generated content asset, not a booking authority.
+ */
+export const loadPartnerCoverageCounties = cache(async function loadPartnerCoverageCounties(
   serviceAreas: PartnerServiceArea[],
-): Promise<PartnerCity[]> {
-  const organizationId = text(organizationIdRaw);
-  if (!organizationId) return TEMPLATE_PREVIEW_CITIES;
+): Promise<PartnerCoverageCounty[]> {
   if (!serviceAreas.length) return [];
 
-  const result = await getDbPool().query<StateFileRow>(
-    `select state_slug, state_name, payload
-       from app.organization_state_files
-      where organization_id = $1`,
-    [organizationId],
-  );
-
-  const cities: PartnerCity[] = [];
-  const seen = new Set<string>();
-  for (const area of serviceAreas) {
-    const stateRow = result.rows.find((row) => stateMatches(area.state, row));
-    if (!stateRow) continue;
-    const counties = Array.isArray(stateRow.payload?.counties) ? stateRow.payload.counties : [];
-    const county = counties.find((item) => normalized(item.countyName) === normalized(area.county));
-    for (const city of county?.cities || []) {
-      const name = text(city.cityName);
-      if (!name) continue;
-      const state = text(stateRow.state_name) || text(area.state);
-      const countyName = text(county?.countyName) || text(area.county);
-      const key = `${normalized(name)}:${normalized(state)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      cities.push({ name, state, county: countyName });
+  const counties = new Map<string, PartnerCoverageCounty>();
+  await Promise.all(serviceAreas.map(async (area) => {
+    let canonical: CanonicalGeography | null = null;
+    try {
+      canonical = await canonicalCounty(area);
+    } catch {
+      // Keep the stored county visible if the Census service is temporarily unavailable.
     }
-  }
+    if (!canonical) {
+      const fallback = fallbackCoverageCounty(area);
+      if (!fallback) return;
+      if (!counties.has(fallback.countyGeoid)) counties.set(fallback.countyGeoid, fallback);
+      return;
+    }
+    let communities: Awaited<ReturnType<typeof loadOfficialCountyCommunities>> = [];
+    try {
+      communities = await loadOfficialCountyCommunities(canonical.countyGeoid);
+    } catch {
+      // County coverage remains visible; community enrichment can recover on the next render.
+    }
+    const fallbackCity = text(area.city || area.placeName);
+    const officialCommunities = communities.length
+      ? communities
+      : fallbackCity
+        ? [{ name: fallbackCity, geoid: text(area.placeGeoid), kind: "census_designated_place" as const }]
+        : [];
+    const countyKey = canonical.countyGeoid;
+    const existing = counties.get(countyKey) || {
+      state: canonical.stateName,
+      stateCode: canonical.stateCode,
+      county: canonical.countyName,
+      countyGeoid: countyKey,
+      communities: [],
+    };
+    const seen = new Set(existing.communities.map((community) => normalizeGeographyName(community.name)));
+    for (const community of officialCommunities) {
+      const key = normalizeGeographyName(community.name);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      existing.communities.push({
+        name: community.name,
+        state: canonical.stateName,
+        county: canonical.countyName,
+        geoid: community.geoid,
+        kind: community.kind,
+      });
+    }
+    existing.communities.sort((a, b) => a.name.localeCompare(b.name));
+    counties.set(countyKey, existing);
+  }));
 
-  return cities.sort((a, b) => a.name.localeCompare(b.name));
+  return [...counties.values()].sort((a, b) =>
+    a.state.localeCompare(b.state) || a.county.localeCompare(b.county),
+  );
+});
+
+export const loadPartnerCities = cache(async function loadPartnerCities(
+  _organizationIdRaw: string,
+  serviceAreas: PartnerServiceArea[],
+): Promise<PartnerCity[]> {
+  const counties = await loadPartnerCoverageCounties(serviceAreas);
+  return counties.flatMap((county) => county.communities);
 });

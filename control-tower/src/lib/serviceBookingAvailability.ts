@@ -1,12 +1,19 @@
 import { getDbPool } from "@/lib/db";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { BOOKING_MINIMUM_NOTICE_MINUTES } from "@/lib/bookingPolicy";
+import {
+  resolveCanonicalCountyByName,
+  resolveCanonicalGeographyByCoordinates,
+  type CanonicalGeography,
+} from "@/lib/canonicalGeography";
 
 export type BookingCoverageInput = {
   state: string;
   county: string;
   city: string;
   postalCode?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type BookingPartnerOption = {
@@ -36,6 +43,18 @@ export type BookingAvailability = {
     depositValue: number;
     minimumNoticeMinutes: number;
   };
+  geography: Pick<CanonicalGeography,
+    | "stateName"
+    | "stateCode"
+    | "stateFips"
+    | "countyName"
+    | "countyFips"
+    | "countyGeoid"
+    | "placeName"
+    | "placeGeoid"
+    | "source"
+    | "confidence"
+  >;
   coverageAvailable: boolean;
   slots: BookingAvailabilitySlot[];
 };
@@ -69,7 +88,7 @@ function normalizeLocation(value: string) {
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/\b(county|parish|borough|municipality|census area)\b/g, " ")
+    .replace(/\b(county|parish|borough|municipio|municipality|census area)\b/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -101,6 +120,28 @@ function stateCandidates(value: string) {
   return [...new Set([normalized, code, name].filter(Boolean))] as string[];
 }
 
+async function resolveBookingGeography(coverage: BookingCoverageInput) {
+  const hasLatitude = Number.isFinite(coverage.latitude);
+  const hasLongitude = Number.isFinite(coverage.longitude);
+  if (hasLatitude !== hasLongitude) {
+    throw new Error("A complete verified location is required to confirm county coverage.");
+  }
+  if (hasLatitude && hasLongitude) {
+    return resolveCanonicalGeographyByCoordinates({
+      latitude: Number(coverage.latitude),
+      longitude: Number(coverage.longitude),
+    });
+  }
+  const canonical = await resolveCanonicalCountyByName({
+    state: coverage.state,
+    county: coverage.county,
+  });
+  if (!canonical) {
+    throw new Error("This address could not be matched to an official U.S. county or Puerto Rico municipio.");
+  }
+  return canonical;
+}
+
 export async function loadBookingAvailability(opts: {
   publicKey: string;
   date: string;
@@ -129,10 +170,9 @@ export async function loadBookingAvailability(opts: {
      where payment.appointment_id = expired.id
        and payment.status in ('pending', 'processing')
   `);
-  const states = stateCandidates(opts.coverage.state);
-  const county = normalizeLocation(opts.coverage.county);
-  const city = normalizeLocation(opts.coverage.city);
-  const postalCode = String(opts.coverage.postalCode || "").trim().toUpperCase();
+  const geography = await resolveBookingGeography(opts.coverage);
+  const states = stateCandidates(geography.stateName);
+  const county = normalizeLocation(geography.countyName);
   const result = await pool.query<AvailabilityRow>(
     `with calendar as (
        select c.id, c.public_key, c.duration_minutes, c.slot_interval_minutes,
@@ -155,24 +195,25 @@ export async function loadBookingAvailability(opts: {
          join app.partner_service_assignments a
            on a.service_id = c.service_id and a.status = 'active'
          join app.partner_profiles p
-           on p.id = a.partner_profile_id and p.website_status in ('ready', 'published')
-        where (
-          exists (
+           on p.id = a.partner_profile_id
+        where exists (
             select 1
               from app.partner_coverage_areas area
              where area.assignment_id = a.id
                and area.status = 'active'
-               and lower(trim(regexp_replace(area.state, '[^a-zA-Z0-9]+', ' ', 'g'))) = any($3::text[])
-               and lower(trim(regexp_replace(
-                     regexp_replace(area.county, '\\m(county|parish|borough|municipality|census area)\\M', '', 'gi'),
-                     '[^a-zA-Z0-9]+', ' ', 'g'
-                   ))) = $4
-               and (nullif(trim(area.city), '') is null
-                    or lower(trim(regexp_replace(area.city, '[^a-zA-Z0-9]+', ' ', 'g'))) = $5)
-               and (cardinality(area.postal_codes) = 0 or $6 = any(area.postal_codes))
+               and (
+                 area.county_geoid = $3
+                 or (
+                   area.county_geoid is null
+                   and lower(trim(regexp_replace(area.state, '[^a-zA-Z0-9]+', ' ', 'g'))) = any($4::text[])
+                   and lower(trim(regexp_replace(
+                         regexp_replace(area.county, '\\m(county|parish|borough|municipio|municipality|census area)\\M', '', 'gi'),
+                         '[^a-zA-Z0-9]+', ' ', 'g'
+                       ))) = $5
+                 )
+               )
           )
-          or ($7::uuid is not null and a.partner_profile_id = $7::uuid)
-        )
+          and ($6::uuid is null or a.partner_profile_id = $6::uuid)
      ), recurring_slots as (
        select e.partner_profile_id, e.partner_slug, e.display_name,
               e.business_name, e.profile_photo_url, e.priority_weight,
@@ -291,7 +332,7 @@ export async function loadBookingAvailability(opts: {
       group by c.public_key, c.service_slug, c.service_name, c.duration_minutes,
                c.currency, c.price, c.deposit_type, c.deposit_value,
                c.minimum_notice_minutes`,
-    [opts.publicKey, opts.date, states, county, city, postalCode, opts.requestedPartnerId || null],
+    [opts.publicKey, opts.date, geography.countyGeoid, states, county, opts.requestedPartnerId || null],
   );
   const row = result.rows[0];
   if (!row) return null;
@@ -323,6 +364,18 @@ export async function loadBookingAvailability(opts: {
       depositType: row.deposit_type,
       depositValue: number(row.deposit_value),
       minimumNoticeMinutes: Math.max(row.minimum_notice_minutes, BOOKING_MINIMUM_NOTICE_MINUTES),
+    },
+    geography: {
+      stateName: geography.stateName,
+      stateCode: geography.stateCode,
+      stateFips: geography.stateFips,
+      countyName: geography.countyName,
+      countyFips: geography.countyFips,
+      countyGeoid: geography.countyGeoid,
+      placeName: geography.placeName,
+      placeGeoid: geography.placeGeoid,
+      source: geography.source,
+      confidence: geography.confidence,
     },
     coverageAvailable: number(row.eligible_count) > 0,
     slots: [...grouped.values()],

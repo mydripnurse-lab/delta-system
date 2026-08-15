@@ -12,7 +12,7 @@ import { PartnerFaq, type PartnerFaqItem } from "@/components/partner/PartnerFaq
 import { PartnerTestimonials } from "@/components/partner/PartnerTestimonials";
 import { PartnerDirectoryAttribution } from "@/components/partner/PartnerDirectoryAttribution";
 import { getPartnerProfileForPublicPage } from "@/lib/partnerProfiles";
-import { loadPartnerCities } from "@/lib/partnerServiceAreas";
+import { loadPartnerCoverageCounties } from "@/lib/partnerServiceAreas";
 import {
   buildPartnerMetadata,
   buildPartnerStructuredData,
@@ -33,7 +33,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) return { title: "Mobile IV care | My Drip Nurse" };
-  const cities = await loadPartnerCities(profile.organizationId, profile.serviceAreas);
+  const coverageCounties = await loadPartnerCoverageCounties(profile.serviceAreas);
+  const cities = coverageCounties.flatMap((county) => county.communities);
   const localSummary = cities.slice(0, 4).map((city) => city.name).join(", ");
   return buildPartnerMetadata({
     profile,
@@ -54,7 +55,8 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
-  const cities = await loadPartnerCities(profile.organizationId, profile.serviceAreas);
+  const coverageCounties = await loadPartnerCoverageCounties(profile.serviceAreas);
+  const cities = coverageCounties.flatMap((county) => county.communities);
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
 
@@ -183,16 +185,47 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           </div>
         </section>
 
-        {cities.length ? (
+        {coverageCounties.length ? (
           <section className={styles.cityCoverage} aria-labelledby="partner-city-coverage">
             <div className={styles.shell}>
               <div className={styles.cityCoverageHeading}>
                 <span className={styles.eyebrow}>Areas we serve</span>
-                <h2 id="partner-city-coverage">Mobile IV therapy close to home.</h2>
-                <p>Appointments are available across these local communities, subject to the selected service and live calendar availability.</p>
+                <h2 id="partner-city-coverage">County-wide care, close to home.</h2>
+                <p>
+                  Every verified address inside a listed county or Puerto Rico municipio is eligible for coverage.
+                  Live appointment times still depend on the selected service and care professional availability.
+                </p>
               </div>
-              <div className={styles.cityGrid} aria-label="Cities served; scroll to view additional cities" tabIndex={0}>
-                {cities.map((city) => <span key={`${city.name}-${city.state}`}>{city.name}</span>)}
+              <div className={styles.countyCoverageList} aria-label="Counties and communities served">
+                {coverageCounties.map((county, index) => (
+                  <details
+                    className={styles.countyCoverageCard}
+                    key={county.countyGeoid}
+                    open={coverageCounties.length === 1 || index === 0}
+                  >
+                    <summary className={styles.countyCoverageSummary}>
+                      <span>
+                        <strong>{county.county}</strong>
+                        <small>{county.state}</small>
+                      </span>
+                      <b>
+                        {county.communities.length
+                          ? `${county.communities.length} ${county.communities.length === 1 ? "community" : "communities"}`
+                          : "County-wide coverage"}
+                      </b>
+                      <i aria-hidden="true">⌄</i>
+                    </summary>
+                    <div className={styles.communityGrid}>
+                      {county.communities.length ? county.communities.map((community) => (
+                        <span key={`${county.countyGeoid}-${community.geoid || community.name}`}>
+                          {community.name}
+                        </span>
+                      )) : (
+                        <p>All verified addresses in this county are evaluated during booking.</p>
+                      )}
+                    </div>
+                  </details>
+                ))}
               </div>
             </div>
           </section>

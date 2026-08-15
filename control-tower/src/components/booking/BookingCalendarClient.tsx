@@ -617,6 +617,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         county: verifiedAddress.county,
         state: verifiedAddress.state,
         postalCode: verifiedAddress.postalCode,
+        latitude: String(verifiedAddress.latitude),
+        longitude: String(verifiedAddress.longitude),
         medicalScreening: "clear",
       });
       if (partnerId) query.set("partnerId", partnerId);

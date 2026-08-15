@@ -8,6 +8,14 @@ export type PartnerServiceArea = {
   county: string;
   locationId: string;
   city?: string;
+  stateCode?: string;
+  stateFips?: string;
+  countyFips?: string;
+  countyGeoid?: string;
+  placeName?: string;
+  placeGeoid?: string;
+  geographySource?: string;
+  geographyVerifiedAt?: string;
 };
 
 export type PartnerService = {
@@ -69,8 +77,8 @@ export const TEMPLATE_PREVIEW_PROFILE: PublicPartnerProfile = {
     { calendarId: "preview-nad-boost", name: "NAD+ Boost", status: "active" },
   ],
   serviceAreas: [
-    { state: "Florida", county: "Orange County", locationId: "preview-location" },
-    { state: "Florida", county: "Osceola County", locationId: "preview-location-2" },
+    { state: "Florida", county: "Orange County", locationId: "preview-location", stateCode: "FL", stateFips: "12", countyFips: "095", countyGeoid: "12095" },
+    { state: "Florida", county: "Osceola County", locationId: "preview-location-2", stateCode: "FL", stateFips: "12", countyFips: "097", countyGeoid: "12097" },
   ],
   websiteStatus: "published",
   directoryStatus: "published",
