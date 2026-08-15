@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getStaffFormConfig,
-  loadEligibleCounties,
+  loadApplicationCounties,
   submitStaffApplication,
   type StaffApplicationInput,
   uploadInternalStaffProfilePhoto,
@@ -91,11 +91,11 @@ export async function POST(req: Request) {
       }
     }
     const config = await getStaffFormConfig(formKey);
-    const eligible = await loadEligibleCounties(config);
+    const eligible = await loadApplicationCounties(config);
     const requested = new Set(input.countyKeys);
     const selected = eligible.filter((county) => requested.has(county.key));
     if (selected.length !== requested.size) {
-      return NextResponse.json({ error: "One or more counties are invalid or no longer have a Location ID" }, { status: 400, headers: cors });
+      return NextResponse.json({ error: "One or more counties are invalid or unavailable in the current catalog" }, { status: 400, headers: cors });
     }
     const submittedPrimaryCounty = primaryCountyKey || input.primaryLocationId;
     const primaryCounty = selected.length === 1

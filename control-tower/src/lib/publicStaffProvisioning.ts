@@ -9,6 +9,7 @@ import { issuePartnerOnboardingLink, readLatestPartnerOnboardingForApplication }
 import { notifyPartnerSitePublished } from "@/lib/partnerSeoNotifications";
 import { hashPassword } from "@/lib/password";
 import { ghlRoutingFieldsForEvent, ghlRoutingFieldsForPayload } from "@/lib/ghlRoutingEnvelope";
+import { listTenantStateFiles } from "@/lib/tenantStateCatalogDb";
 
 const API_BASE = "https://services.leadconnectorhq.com";
 const USER_VERSION = "2023-02-21";
@@ -73,6 +74,7 @@ export type EligibleCounty = {
   state: string;
   county: string;
   locationId: string;
+  operational: boolean;
 };
 
 export type StaffApplicationInput = {
@@ -653,8 +655,106 @@ export async function loadEligibleCounties(config: StaffFormConfig): Promise<Eli
       state,
       county,
       locationId,
+      operational: true,
     });
   }
+  return counties.sort((a, b) => a.state.localeCompare(b.state) || a.county.localeCompare(b.county));
+}
+
+function normalizedCatalogName(value: unknown) {
+  return s(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(county|parish|borough|municipality|census area)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function catalogSlug(value: unknown) {
+  return normalizedCatalogName(value).replace(/\s+/g, "-") || "county";
+}
+
+function formatCatalogCountyName(stateSlug: string, countyName: string) {
+  if (/\b(county|parish|borough|municipality|census area)\b/i.test(countyName)) return countyName;
+  if (stateSlug === "louisiana") return `${countyName} Parish`;
+  if (["alaska", "district-of-columbia", "puerto-rico"].includes(stateSlug)) return countyName;
+  return `${countyName} County`;
+}
+
+/**
+ * Public Partner applications use the complete JSON state catalog. The Sheet
+ * remains the source of operational Location IDs, but an unprovisioned county
+ * is no longer hidden from an applicant who can cover it.
+ */
+export async function loadApplicationCounties(config: StaffFormConfig): Promise<EligibleCounty[]> {
+  let operationalCounties: EligibleCounty[] = [];
+  let operationalError: unknown = null;
+  try {
+    operationalCounties = await loadEligibleCounties(config);
+  } catch (error) {
+    operationalError = error;
+  }
+
+  let stateFiles: Awaited<ReturnType<typeof listTenantStateFiles>> = [];
+  try {
+    stateFiles = await listTenantStateFiles(getDbPool(), config.tenantId);
+  } catch {
+    // Preserve the current Sheet-backed behavior if the JSON catalog has not
+    // been seeded for this tenant yet.
+  }
+
+  if (!stateFiles.length) {
+    if (operationalCounties.length) return operationalCounties;
+    if (operationalError instanceof Error) throw operationalError;
+    throw new Error("No county catalog is configured for this Partner application");
+  }
+
+  const operationalByName = new Map<string, EligibleCounty>();
+  for (const county of operationalCounties) {
+    operationalByName.set(
+      `${normalizedCatalogName(county.state)}:${normalizedCatalogName(county.county)}`,
+      county,
+    );
+  }
+
+  const counties: EligibleCounty[] = [];
+  const seen = new Set<string>();
+  for (const stateFile of stateFiles) {
+    const stateSlug = s(stateFile.state_slug).toLowerCase();
+    const stateName = s(stateFile.state_name) || s(record(stateFile.payload).stateName) || stateSlug;
+    const payloadCounties = record(stateFile.payload).counties;
+    if (!Array.isArray(payloadCounties)) continue;
+
+    for (const item of payloadCounties) {
+      const rawCountyName = s(record(item).countyName);
+      if (!rawCountyName) continue;
+      const lookupKey = `${normalizedCatalogName(stateName)}:${normalizedCatalogName(rawCountyName)}`;
+      const operationalCounty = operationalByName.get(lookupKey);
+      const locationId = operationalCounty?.locationId
+        || `catalog:${stateSlug}:${catalogSlug(rawCountyName)}`;
+      const key = countyKey(config.tenantId, locationId);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      counties.push({
+        key,
+        state: operationalCounty?.state || stateName,
+        county: operationalCounty?.county || formatCatalogCountyName(stateSlug, rawCountyName),
+        locationId,
+        operational: Boolean(operationalCounty),
+      });
+    }
+  }
+
+  // Keep any operational Sheet locations that are not present in an older
+  // JSON snapshot so the merge never removes an existing application option.
+  for (const county of operationalCounties) {
+    if (seen.has(county.key)) continue;
+    seen.add(county.key);
+    counties.push(county);
+  }
+
   return counties.sort((a, b) => a.state.localeCompare(b.state) || a.county.localeCompare(b.county));
 }
 
@@ -2156,7 +2256,12 @@ function applicationPayload(input: StaffApplicationInput, selected: EligibleCoun
     profileConsentAt: input.profileConsentAt,
     referralCode: s(input.referralCode),
     primaryLocationId: s(input.primaryLocationId),
-    counties: selected.map(({ state, county, locationId }) => ({ state, county, locationId })),
+    counties: selected.map(({ state, county, locationId, operational }) => ({
+      state,
+      county,
+      locationId,
+      operational,
+    })),
   };
 }
 

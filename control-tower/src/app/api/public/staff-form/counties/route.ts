@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStaffFormConfig, loadEligibleCounties } from "@/lib/publicStaffProvisioning";
+import { getStaffFormConfig, loadApplicationCounties } from "@/lib/publicStaffProvisioning";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,11 +18,15 @@ export async function GET(req: Request) {
   try {
     const formKey = new URL(req.url).searchParams.get("formKey") || "";
     const config = await getStaffFormConfig(formKey);
-    const rows = await loadEligibleCounties(config);
-    const states = new Map<string, Array<{ key: string; county: string }>>();
+    const rows = await loadApplicationCounties(config);
+    const states = new Map<string, Array<{ key: string; county: string; operational: boolean }>>();
     for (const row of rows) {
       if (!states.has(row.state)) states.set(row.state, []);
-      states.get(row.state)!.push({ key: row.key, county: row.county });
+      states.get(row.state)!.push({
+        key: row.key,
+        county: row.county,
+        operational: row.operational,
+      });
     }
     return NextResponse.json(
       { states: [...states.entries()].map(([state, counties]) => ({ state, counties })) },
