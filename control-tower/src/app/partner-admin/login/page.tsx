@@ -101,6 +101,8 @@ export default function PartnerAdminLoginPage() {
               />
             </label>
 
+            <a className={styles.forgot} href="/forgot-password">Forgot password?</a>
+
             <label className={styles.remember}>
               <input
                 type="checkbox"

@@ -63,8 +63,10 @@ export async function requirePartnerAdmin(req: Request) {
     full_name: string | null;
     avatar_url: string | null;
     is_active: boolean;
+    password_updated_at: Date | string | null;
   }>(
-    `select u.id, u.email, u.full_name, (to_jsonb(u)->>'avatar_url') as avatar_url, u.is_active
+    `select u.id, u.email, u.full_name, (to_jsonb(u)->>'avatar_url') as avatar_url,
+            u.is_active, u.password_updated_at
        from app.users u
       where u.id = $1
         and lower(u.email) = lower($2)
@@ -76,6 +78,21 @@ export async function requirePartnerAdmin(req: Request) {
     return {
       ok: false as const,
       response: NextResponse.json({ ok: false, error: "Access denied." }, { status: 403 }),
+    };
+  }
+
+  const passwordUpdatedAt = user.password_updated_at ? new Date(user.password_updated_at) : null;
+  if (
+    passwordUpdatedAt &&
+    Number.isFinite(passwordUpdatedAt.getTime()) &&
+    Math.floor(passwordUpdatedAt.getTime() / 1000) > session.iat
+  ) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { ok: false, error: "Session expired after a password change. Sign in again." },
+        { status: 401 },
+      ),
     };
   }
 

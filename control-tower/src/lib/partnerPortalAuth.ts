@@ -160,6 +160,16 @@ export async function revokePartnerPortalSession(rawToken: string) {
   );
 }
 
+export async function revokeAllPartnerPortalSessions(profileId: string) {
+  await ensurePortalSessionSchema();
+  await getDbPool().query(
+    `update app.partner_portal_sessions
+        set revoked_at = now()
+      where profile_id = $1 and revoked_at is null`,
+    [profileId],
+  );
+}
+
 export function partnerPortalCookieOptions() {
   const production = process.env.NODE_ENV === "production";
   return {

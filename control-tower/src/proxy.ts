@@ -197,6 +197,14 @@ export function proxy(req: NextRequest) {
       partnerUrl.pathname = "/partner-login";
       return NextResponse.rewrite(partnerUrl);
     }
+    if (pathname === "/forgot-password") {
+      partnerUrl.pathname = "/partner-forgot-password";
+      return NextResponse.rewrite(partnerUrl);
+    }
+    if (pathname === "/reset-password") {
+      partnerUrl.pathname = "/partner-reset-password";
+      return NextResponse.rewrite(partnerUrl);
+    }
     if (pathname === "/portal") {
       partnerUrl.pathname = "/partner-portal";
       return NextResponse.rewrite(partnerUrl);
@@ -207,7 +215,7 @@ export function proxy(req: NextRequest) {
     }
     // These are application routes, not partner profile slugs. Let Next.js
     // resolve them directly before the generic /:slug website rewrite below.
-    if (pathname === "/partner-activate" || pathname === "/partner-login" || pathname === "/partner-portal" || pathname === "/client-login" || pathname.startsWith("/partner-portal/")) {
+    if (pathname === "/partner-activate" || pathname === "/partner-login" || pathname === "/partner-forgot-password" || pathname === "/partner-reset-password" || pathname === "/partner-portal" || pathname === "/client-login" || pathname.startsWith("/partner-portal/")) {
       return NextResponse.next();
     }
 
@@ -289,6 +297,18 @@ export function proxy(req: NextRequest) {
     const internalLoginUrl = req.nextUrl.clone();
     internalLoginUrl.pathname = "/partner-admin/login";
     return NextResponse.rewrite(internalLoginUrl);
+  }
+
+  if (partnerAdminHost && pathname === "/forgot-password") {
+    const forgotPasswordUrl = req.nextUrl.clone();
+    forgotPasswordUrl.pathname = "/partner-admin/forgot-password";
+    return NextResponse.rewrite(forgotPasswordUrl);
+  }
+
+  if (partnerAdminHost && pathname === "/reset-password") {
+    const resetPasswordUrl = req.nextUrl.clone();
+    resetPasswordUrl.pathname = "/partner-admin/reset-password";
+    return NextResponse.rewrite(resetPasswordUrl);
   }
 
   if (partnerAdminHost && (pathname.startsWith("/dashboard") || pathname.startsWith("/projects"))) {

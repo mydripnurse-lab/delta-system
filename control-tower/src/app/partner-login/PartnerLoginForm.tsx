@@ -32,6 +32,7 @@ export function PartnerLoginForm() {
     <form className={styles.form} onSubmit={submit}>
       <label>Email address<input name="email" type="email" autoComplete="email" required /></label>
       <label>Password<input name="password" type="password" autoComplete="current-password" required /></label>
+      <a className={styles.forgot} href="/forgot-password">Forgot password?</a>
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
       <button className={styles.primary} disabled={busy} type="submit">{busy ? "Signing in…" : "Sign in to Partner Portal"}</button>
     </form>

@@ -14,6 +14,9 @@
 .form label { display: grid; gap: 7px; color: #244c50; font-size: 12px; font-weight: 800; }
 .form input { min-height: 48px; border: 1px solid #cddedb; border-radius: 13px; padding: 0 14px; background: #fbfdfc; color: #173b3e; font: inherit; font-size: 15px; }
 .form input:focus { outline: 3px solid rgba(7,133,150,.14); border-color: #078596; }
+.forgot { width: fit-content; margin: -4px 0 1px auto; color: #075c68; font-size: 12px; font-weight: 850; text-decoration: none; }
+.forgot:hover { text-decoration: underline; text-underline-offset: 3px; }
+.forgot:focus-visible { border-radius: 4px; outline: 3px solid rgba(7,133,150,.18); outline-offset: 3px; }
 .form button { border: 0; cursor: pointer; }
 .form button:disabled { cursor: wait; opacity: .68; }
 .error { margin: 0; color: #a62e2e; font-size: 12px; font-weight: 750; }
