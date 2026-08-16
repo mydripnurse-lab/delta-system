@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { getDbPool } from "@/lib/db";
 import { loadBookingAvailability, type BookingCoverageInput } from "@/lib/serviceBookingAvailability";
-import { createStripeCheckoutSession } from "@/lib/stripeCheckout";
+import { createStripeCheckoutSession, getStripePublishableKey } from "@/lib/stripeCheckout";
 import { BOOKING_MINIMUM_NOTICE_MINUTES } from "@/lib/bookingPolicy";
 import { sendConfirmedAppointmentAutomations } from "@/lib/stripePaymentLifecycle";
 import { availableClientBookingReward, redeemClientBookingReward, type ClientBookingReward } from "@/lib/clientRewards";
@@ -103,6 +103,8 @@ export async function createAppointmentCheckout(opts: {
   sourceUrl?: string;
   checkoutReturnBaseUrl?: string;
   checkoutCancelUrl?: string;
+  checkoutReturnUrl?: string;
+  embeddedCheckout?: boolean;
   clientAccountId?: string;
   directoryAttribution?: { source: "partner_directory"; partnerProfileId: string; attributedAt: string };
 }) {
@@ -478,6 +480,8 @@ export async function createAppointmentCheckout(opts: {
     return { status: "confirmed" as const, appointmentId, publicReference: appointmentReference, checkoutUrl: null, referralRewardApplied };
   }
   try {
+    const stripePublishableKey = getStripePublishableKey();
+    const embeddedCheckout = Boolean(opts.embeddedCheckout && stripePublishableKey);
     const checkout = await createStripeCheckoutSession({
       appointmentId,
       publicReference: appointmentReference,
@@ -488,6 +492,8 @@ export async function createAppointmentCheckout(opts: {
       calendarPublicKey: opts.publicKey,
       returnBaseUrl: opts.checkoutReturnBaseUrl,
       cancelUrl: opts.checkoutCancelUrl,
+      returnUrl: opts.checkoutReturnUrl,
+      embedded: embeddedCheckout,
     });
     await pool.query(
       `update app.appointment_payments
@@ -495,7 +501,16 @@ export async function createAppointmentCheckout(opts: {
         where appointment_id = $1`,
       [appointmentId, checkout.id, JSON.stringify({ checkoutStatus: checkout.status })],
     );
-    return { status: "payment_required" as const, appointmentId, publicReference: appointmentReference, checkoutUrl: checkout.url, referralRewardApplied };
+    return {
+      status: "payment_required" as const,
+      appointmentId,
+      publicReference: appointmentReference,
+      checkoutUrl: checkout.url,
+      checkoutClientSecret: embeddedCheckout ? checkout.client_secret : null,
+      checkoutSessionId: embeddedCheckout ? checkout.id : null,
+      stripePublishableKey: embeddedCheckout ? stripePublishableKey : null,
+      referralRewardApplied,
+    };
   } catch (error) {
     const failure = error instanceof Error ? error.message : "Stripe Checkout failed.";
     await Promise.all([

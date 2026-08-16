@@ -45,6 +45,21 @@ function trustedCheckoutCancelUrl(value: string | undefined, origin: string) {
   }
 }
 
+function trustedCheckoutReturnUrl(value: string | undefined, origin: string) {
+  if (!value || !origin) return "";
+  try {
+    const url = new URL(value);
+    if (url.origin !== origin) return "";
+    url.searchParams.delete("payment");
+    url.searchParams.delete("appointment");
+    url.searchParams.delete("session_id");
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
 const medicalScreeningSchema = z.object({
   selected: z.array(z.string().trim().min(1).max(80)).max(10),
   noneSelected: z.boolean(),
@@ -120,10 +135,17 @@ export async function POST(request: Request) {
     const checkoutReturnBaseUrl = trustedCheckoutOrigin(request.headers.get("origin"))
       || trustedCheckoutOrigin(request.url);
     const checkoutCancelUrl = trustedCheckoutCancelUrl(input.returnUrl, checkoutReturnBaseUrl);
+    const checkoutReturnUrl = trustedCheckoutReturnUrl(input.returnUrl, checkoutReturnBaseUrl);
+    const checkoutHostname = checkoutReturnBaseUrl ? new URL(checkoutReturnBaseUrl).hostname : "";
+    const embeddedCheckout = checkoutHostname === "care.mydripnurse.com"
+      || checkoutHostname === "localhost"
+      || checkoutHostname === "127.0.0.1";
     const result = await createAppointmentCheckout({
       ...input,
       checkoutReturnBaseUrl: checkoutReturnBaseUrl || undefined,
       checkoutCancelUrl: checkoutCancelUrl || undefined,
+      checkoutReturnUrl: checkoutReturnUrl || undefined,
+      embeddedCheckout,
       clientAccountId,
       customer: {
         firstName: input.customer.firstName,

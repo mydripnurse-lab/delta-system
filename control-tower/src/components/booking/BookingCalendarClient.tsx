@@ -92,6 +92,101 @@ export type BookingInitialProfile = {
   }>;
 };
 
+type PublicAppointmentConfirmation = {
+  reference: string;
+  status: string;
+  startsAt: string;
+  endsAt: string;
+  timezone: string;
+  service: string;
+  servicePrice: number;
+  depositAmount: number;
+  currency: string;
+  paymentStatus: string;
+  patient: { name: string; email: string; phone: string };
+  hasAdditionalPatients: boolean;
+  additionalPatientsCount: number;
+  location: {
+    addressLine1: string;
+    addressLine2: string;
+    city: string;
+    county: string;
+    state: string;
+    postalCode: string;
+    countryCode: string;
+  };
+};
+
+type EmbeddedCheckoutState = {
+  clientSecret: string;
+  publishableKey: string;
+  publicReference: string;
+  sessionId?: string;
+};
+
+type PaymentReturnState = { publicReference: string; sessionId?: string };
+type EmbeddedCheckout = { mount: (target: string | HTMLElement) => void; destroy: () => void };
+type StripeInstance = {
+  initEmbeddedCheckout: (options: { clientSecret: string; onComplete?: () => void }) => Promise<EmbeddedCheckout>;
+};
+
+declare global {
+  interface Window {
+    Stripe?: (publishableKey: string) => StripeInstance;
+  }
+}
+
+let stripeScriptPromise: Promise<void> | null = null;
+
+function loadStripeScript() {
+  if (typeof window === "undefined" || window.Stripe) return Promise.resolve();
+  if (stripeScriptPromise) return stripeScriptPromise;
+  stripeScriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://js.stripe.com/v3/"]');
+    const script = existing || document.createElement("script");
+    const onLoad = () => resolve();
+    const onError = () => reject(new Error("Secure payment could not be loaded. Please try again."));
+    script.addEventListener("load", onLoad, { once: true });
+    script.addEventListener("error", onError, { once: true });
+    if (!existing) {
+      script.src = "https://js.stripe.com/v3/";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+  return stripeScriptPromise;
+}
+
+function formatConfirmationDate(value: string, timezone: string) {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      dateStyle: "full",
+      timeStyle: "short",
+      timeZone: timezone,
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function formatConfirmationMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: (currency || "USD").toUpperCase(),
+  }).format(amount);
+}
+
+function confirmationAddress(location: PublicAppointmentConfirmation["location"]) {
+  return [
+    location.addressLine1,
+    location.addressLine2,
+    location.city,
+    location.county,
+    location.state,
+    location.postalCode,
+  ].filter(Boolean).join(", ");
+}
+
 const MEDICAL_SCREENING_OPTIONS = [
   { id: "chf", label: "I have been diagnosed with or told I have congestive heart failure (CHF)" },
   { id: "hemophilia", label: "I have been diagnosed with or told I have hemophilia" },
@@ -334,13 +429,52 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [screeningSelected, setScreeningSelected] = useState<string[]>([]);
+  const savedScreeningSelections = initialProfile?.screeningSelections || [];
+  const [screeningSelected, setScreeningSelected] = useState<string[]>(savedScreeningSelections);
   const [screeningSubmitted, setScreeningSubmitted] = useState(false);
-  const hasSavedClearScreening = initialProfile?.screeningSelections?.length === 1 && initialProfile.screeningSelections[0] === "none";
-  const [showFullScreening, setShowFullScreening] = useState(!hasSavedClearScreening);
+  const hasSavedScreening = savedScreeningSelections.length > 0;
+  const [showFullScreening, setShowFullScreening] = useState(!hasSavedScreening);
   const leadCaptureAttemptedRef = useRef(false);
   const leadCaptureKeyRef = useRef("");
   const [sourceContext, setSourceContext] = useState<{ pageUrl: string; referrer: string; attribution: Record<string, string>; requestedPartnerId: string; directoryAttribution: { source: "partner_directory"; partnerProfileId: string; attributedAt: string } | null }>({ pageUrl: "", referrer: "", attribution: {}, requestedPartnerId: "", directoryAttribution: null });
+  const embeddedCheckoutRef = useRef<EmbeddedCheckout | null>(null);
+  const [checkoutState, setCheckoutState] = useState<EmbeddedCheckoutState | null>(null);
+  const [checkoutMountAttempt, setCheckoutMountAttempt] = useState(0);
+  const [paymentReturn, setPaymentReturn] = useState<PaymentReturnState | null>(null);
+  const [confirmation, setConfirmation] = useState<PublicAppointmentConfirmation | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "ready" | "error">("idle");
+  const [paymentError, setPaymentError] = useState("");
+
+  const finalizeCheckout = useCallback(async (publicReference: string, sessionId?: string) => {
+    setPaymentStatus("processing");
+    setPaymentError("");
+    try {
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const response = await fetch("/api/public/booking/checkout/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appointment: publicReference, sessionId }),
+        });
+        const payload = await response.json();
+        if (response.status === 409 && attempt < 5) {
+          await new Promise((resolve) => window.setTimeout(resolve, 900));
+          continue;
+        }
+        if (!response.ok || !payload.ok) throw new Error(payload.error || "Your payment could not be confirmed yet.");
+        setConfirmation(payload.confirmation as PublicAppointmentConfirmation);
+        setCheckoutState(null);
+        setPaymentReturn(null);
+        setPaymentStatus("ready");
+        window.history.replaceState({}, "", `${window.location.pathname}${window.location.hash}`);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      throw new Error("Your payment is still processing. Please try again in a moment.");
+    } catch (checkoutError) {
+      setPaymentStatus("error");
+      setPaymentError(checkoutError instanceof Error ? checkoutError.message : "Your payment could not be confirmed yet.");
+    }
+  }, []);
 
   const screeningIsClear = screeningSubmitted
     && screeningSelected.length === 1
@@ -352,6 +486,13 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const returnedAppointment = params.get("appointment") || "";
+    if (params.get("payment") === "return" && returnedAppointment) {
+      setPaymentReturn({
+        publicReference: returnedAppointment,
+        sessionId: params.get("session_id") || undefined,
+      });
+    }
     const originalPageUrl = window.location.href;
     const referrer = document.referrer;
     const attribution = Object.fromEntries([...params.entries()].filter(([key]) => key.startsWith("utm_") || ["gclid", "fbclid", "ref", "source"].includes(key)).slice(0, 30));
@@ -392,6 +533,40 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     const cleanUrl = `${window.location.pathname}${window.location.hash}`;
     window.history.replaceState({}, "", cleanUrl);
   }, [initialProfile, partnerId]);
+
+  useEffect(() => {
+    if (!paymentReturn) return;
+    void finalizeCheckout(paymentReturn.publicReference, paymentReturn.sessionId);
+  }, [finalizeCheckout, paymentReturn]);
+
+  useEffect(() => {
+    if (!checkoutState) return;
+    let cancelled = false;
+    setPaymentError("");
+    void loadStripeScript().then(async () => {
+      const stripe = window.Stripe?.(checkoutState.publishableKey);
+      if (!stripe) throw new Error("Secure payment could not be initialized. Please try again.");
+      const checkout = await stripe.initEmbeddedCheckout({
+        clientSecret: checkoutState.clientSecret,
+        onComplete: () => void finalizeCheckout(checkoutState.publicReference, checkoutState.sessionId),
+      });
+      if (cancelled) {
+        checkout.destroy();
+        return;
+      }
+      embeddedCheckoutRef.current = checkout;
+      checkout.mount("#mdn-embedded-checkout");
+    }).catch((checkoutError) => {
+      if (cancelled) return;
+      setPaymentStatus("error");
+      setPaymentError(checkoutError instanceof Error ? checkoutError.message : "Secure payment could not be loaded.");
+    });
+    return () => {
+      cancelled = true;
+      embeddedCheckoutRef.current?.destroy();
+      embeddedCheckoutRef.current = null;
+    };
+  }, [checkoutMountAttempt, checkoutState, finalizeCheckout]);
 
   useEffect(() => {
     const query = address.addressLine1.trim();
@@ -476,7 +651,11 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   }, [initialProfile?.accountConnected]);
 
   function confirmSavedScreening() {
-    setScreeningSelected(["none"]);
+    if (!screeningSelected.length) {
+      setError("Review your saved safety answers, or update them before continuing.");
+      setShowFullScreening(true);
+      return;
+    }
     setScreeningSubmitted(true);
     setShowFullScreening(false);
     setError("");
@@ -484,8 +663,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       setContactSubmitted(true);
       setPatientDetailsExpanded(false);
     }
-    setNotice("Safety answers confirmed for today. Continue with your appointment location.");
-    void persistScreening(["none"]);
+    setNotice("Safety answers confirmed for today. Continue with your appointment details.");
+    void persistScreening(screeningSelected);
   }
 
   function addAdditionalPatient() {
@@ -709,10 +888,24 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         return;
       }
       if (!response.ok || !payload.ok) throw new Error(payload.error || "The appointment could not be reserved.");
-      const destination = payload.checkoutUrl
-        || `/booking/complete?appointment=${encodeURIComponent(payload.publicReference)}`;
-      // GHL hosts this page in an iframe. Stripe Checkout must open at the
-      // top-level browsing context instead of being trapped inside that iframe.
+      if (payload.checkoutClientSecret && payload.stripePublishableKey) {
+        setCheckoutState({
+          clientSecret: payload.checkoutClientSecret,
+          publishableKey: payload.stripePublishableKey,
+          publicReference: payload.publicReference,
+          sessionId: payload.checkoutSessionId || undefined,
+        });
+        setPaymentStatus("idle");
+        setPaymentError("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      if (!payload.checkoutUrl) {
+        await finalizeCheckout(payload.publicReference);
+        return;
+      }
+      const destination = payload.checkoutUrl;
+      // Older GHL embeds keep hosted Checkout as a compatibility fallback.
       if (window.top && window.top !== window) window.top.location.assign(destination);
       else window.location.assign(destination);
     } catch (submitError) {
@@ -720,7 +913,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     } finally {
       setSubmitting(false);
     }
-  }, [additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, partnerId, publicKey, screeningIsClear, screeningSelected, selectedPartnerId, selectedSlot, sourceContext.directoryAttribution, sourceContext.requestedPartnerId]);
+  }, [additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, publicKey, screeningIsClear, screeningSelected, selectedPartnerId, selectedSlot, sourceContext.directoryAttribution, sourceContext.requestedPartnerId]);
 
   const submitDemand = useCallback(async () => {
     if (!contactIsComplete) {
@@ -745,6 +938,86 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     }
   }, [address, contact, contactIsComplete, partnerView, publicKey]);
 
+  if (confirmation) {
+    return (
+      <main className={`${styles.page} ${styles.paymentPage}`}>
+        <section className={styles.paymentShell}>
+          <div className={styles.confirmationHero}>
+            <span className={styles.confirmationMark} aria-hidden="true">✓</span>
+            <span className={styles.eyebrow}>APPOINTMENT CONFIRMED</span>
+            <h1>Your mobile care is scheduled.</h1>
+            <p>Everything is complete. Your appointment is now available in My Drip Nurse Care.</p>
+          </div>
+          <div className={styles.confirmationGrid}>
+            <article className={styles.confirmationPrimary}>
+              <span>SERVICE</span>
+              <h2>{confirmation.service}</h2>
+              <dl className={styles.confirmationDetails}>
+                <div><dt>When</dt><dd>{formatConfirmationDate(confirmation.startsAt, confirmation.timezone)}</dd></div>
+                <div><dt>Care location</dt><dd>{confirmationAddress(confirmation.location)}</dd></div>
+                <div><dt>Patient</dt><dd>{confirmation.patient.name}</dd></div>
+                {confirmation.additionalPatientsCount > 0 ? <div><dt>Additional patients</dt><dd>{confirmation.additionalPatientsCount}</dd></div> : null}
+              </dl>
+            </article>
+            <aside className={styles.confirmationPayment}>
+              <span>PAYMENT</span>
+              <strong>{confirmation.depositAmount > 0 ? formatConfirmationMoney(confirmation.depositAmount, confirmation.currency) : "No deposit due"}</strong>
+              <p>{confirmation.depositAmount > 0 ? "Secure deposit paid" : "Your eligible reward was applied"}</p>
+              <small>Confirmation {confirmation.reference}</small>
+            </aside>
+          </div>
+          <div className={styles.confirmationActions}>
+            <a className={styles.primaryLink} href="/appointments">View appointment <span aria-hidden="true">→</span></a>
+            <a className={styles.secondaryLink} href="/">Return home</a>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (checkoutState || paymentReturn || paymentStatus === "processing" || paymentStatus === "error") {
+    const retryConfirmation = () => {
+      if (!paymentReturn && !checkoutState) return;
+      if (paymentReturn) {
+        void finalizeCheckout(paymentReturn.publicReference, paymentReturn.sessionId);
+        return;
+      }
+      setPaymentStatus("idle");
+      setPaymentError("");
+      setCheckoutMountAttempt((current) => current + 1);
+    };
+    return (
+      <main className={`${styles.page} ${styles.paymentPage}`}>
+        <section className={styles.paymentShell}>
+          <header className={styles.paymentHeader}>
+            <span className={styles.eyebrow}>SECURE CHECKOUT</span>
+            <h1>Complete your appointment.</h1>
+            <p>Pay securely without leaving My Drip Nurse Care. Your selected service, time and patient details are already reserved.</p>
+            <div className={styles.paymentTrust}><span aria-hidden="true">⌁</span> Encrypted payment · Powered by Stripe</div>
+          </header>
+          {checkoutState && paymentStatus !== "error" ? (
+            <div className={styles.checkoutFrame}>
+              <div id="mdn-embedded-checkout" />
+            </div>
+          ) : (
+            <div className={styles.paymentStatusCard} role="status" aria-live="polite">
+              {paymentStatus === "error" ? <>
+                <span className={styles.paymentStatusIcon} aria-hidden="true">!</span>
+                <h2>Let’s reconnect your payment.</h2>
+                <p>{paymentError}</p>
+                <button type="button" className={styles.primaryButton} onClick={retryConfirmation}>Try again</button>
+              </> : <>
+                <span className={styles.paymentSpinner} aria-hidden="true" />
+                <h2>Confirming your appointment</h2>
+                <p>Please keep this page open for a moment.</p>
+              </>}
+            </div>
+          )}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
@@ -759,10 +1032,13 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
             <span className={styles.step}>1 · Medical screening</span>
             <h2 className={styles.screeningTitle}>Please select ALL of the following that apply to you.</h2>
             <p className={styles.screeningIntro}>This short screening helps us protect your safety. It is not a diagnosis or a substitute for medical advice.</p>
-            {hasSavedClearScreening && !showFullScreening && !screeningSubmitted ? <div className={styles.savedScreeningReview}>
-              <div><strong>Your saved safety answers are clear.</strong><p>Please confirm they are still accurate today. We never carry a previous confirmation into a new appointment automatically.</p></div>
-              <button className={styles.primaryButton} type="button" onClick={confirmSavedScreening}>I reviewed this today — none apply</button>
-              <button className={styles.secondaryButton} type="button" onClick={() => { setShowFullScreening(true); setScreeningSelected([]); }}>My answers changed</button>
+            {hasSavedScreening && !showFullScreening && !screeningSubmitted ? <div className={styles.savedScreeningReview}>
+              <div>
+                <strong>{screeningSelected.length === 1 && screeningSelected[0] === "none" ? "Your saved safety answers are ready to review." : `${screeningSelected.length} saved safety answer${screeningSelected.length === 1 ? "" : "s"} loaded.`}</strong>
+                <p>Please confirm they are still accurate today. A previous confirmation is never carried into a new appointment automatically.</p>
+              </div>
+              <button className={styles.primaryButton} type="button" onClick={confirmSavedScreening}>I reviewed these answers today</button>
+              <button className={styles.secondaryButton} type="button" onClick={() => setShowFullScreening(true)}>Update my answers</button>
             </div> : <>
             <div className={styles.screeningOptions} role="group" aria-label="Medical screening questions">
               {MEDICAL_SCREENING_OPTIONS.map((option) => {

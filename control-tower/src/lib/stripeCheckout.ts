@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 export type StripeCheckoutSession = {
   id: string;
   url: string | null;
+  client_secret: string | null;
   payment_status: "paid" | "unpaid" | "no_payment_required";
   status: "open" | "complete" | "expired" | null;
   payment_intent: string | null;
@@ -30,6 +31,12 @@ export function isInternalStripeConfigured() {
   );
 }
 
+export function getStripePublishableKey() {
+  return String(
+    process.env.STRIPE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
+  ).trim();
+}
+
 /** Prevents a test webhook from mutating live records (and vice versa). */
 export function assertStripeEventMode(livemode: boolean) {
   const secretKey = requiredEnvironment("STRIPE_SECRET_KEY");
@@ -53,6 +60,8 @@ export async function createStripeCheckoutSession(opts: {
   calendarPublicKey: string;
   returnBaseUrl?: string;
   cancelUrl?: string;
+  returnUrl?: string;
+  embedded?: boolean;
 }) {
   const secretKey = requiredEnvironment("STRIPE_SECRET_KEY");
   const bookingBaseUrl = String(opts.returnBaseUrl || process.env.BOOKING_PUBLIC_BASE_URL || "https://admin.mydripnurse.com")
@@ -63,8 +72,26 @@ export async function createStripeCheckoutSession(opts: {
   form.set("submit_type", "book");
   form.set("client_reference_id", opts.appointmentId);
   form.set("customer_email", opts.customerEmail);
-  form.set("success_url", `${bookingBaseUrl}/booking/complete?appointment=${encodeURIComponent(opts.publicReference)}&session_id={CHECKOUT_SESSION_ID}`);
-  form.set("cancel_url", opts.cancelUrl || `${bookingBaseUrl}/booking/${encodeURIComponent(opts.calendarPublicKey)}?payment=cancelled`);
+  if (opts.embedded) {
+    const returnUrl = new URL(
+      opts.returnUrl || `${bookingBaseUrl}/booking/${encodeURIComponent(opts.calendarPublicKey)}`,
+    );
+    returnUrl.searchParams.set("payment", "return");
+    returnUrl.searchParams.set("appointment", opts.publicReference);
+    returnUrl.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
+    returnUrl.hash = "";
+    form.set("ui_mode", "embedded");
+    // URLSearchParams encodes the braces, but Stripe needs the literal
+    // placeholder after decoding this form body so it can inject the session.
+    form.set(
+      "return_url",
+      returnUrl.toString().replace("%7BCHECKOUT_SESSION_ID%7D", "{CHECKOUT_SESSION_ID}"),
+    );
+    form.set("redirect_on_completion", "if_required");
+  } else {
+    form.set("success_url", `${bookingBaseUrl}/booking/complete?appointment=${encodeURIComponent(opts.publicReference)}&session_id={CHECKOUT_SESSION_ID}`);
+    form.set("cancel_url", opts.cancelUrl || `${bookingBaseUrl}/booking/${encodeURIComponent(opts.calendarPublicKey)}?payment=cancelled`);
+  }
   form.set("expires_at", String(Math.floor(Date.now() / 1000) + 30 * 60));
   form.set("line_items[0][quantity]", "1");
   form.set("line_items[0][price_data][currency]", opts.currency.toLowerCase());
