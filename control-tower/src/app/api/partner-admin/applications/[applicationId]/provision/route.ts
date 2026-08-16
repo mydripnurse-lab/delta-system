@@ -67,6 +67,7 @@ export async function POST(req: NextRequest, context: Context) {
         state: location.state,
         county: location.county,
         locationId: location.locationId,
+        operational: !location.locationId.startsWith("catalog:"),
       })),
     });
     const updated = await getStaffApplication(applicationId);
