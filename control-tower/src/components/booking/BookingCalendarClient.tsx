@@ -910,7 +910,10 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                   className={selectedSlot?.startsAt === slot.startsAt ? styles.selectedSlot : styles.slot}
                   key={slot.startsAt}
                   type="button"
-                  onClick={() => { setSelectedSlot(slot); setSelectedPartnerId(""); }}
+                  onClick={() => {
+                    setSelectedSlot(slot);
+                    setSelectedPartnerId(slot.partners.length === 1 ? slot.partners[0]?.id || "" : "");
+                  }}
                 >
                   <strong>{formatTime(slot.startsAt, slot.timezone)}</strong>
                   <span>{partnerView ? "Available" : `${slot.partners.length} ${slot.partners.length === 1 ? "Partner" : "Partners"} available`}</span>
@@ -920,18 +923,31 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
 
             {selectedSlot && !partnerView ? (
               <div className={styles.partnerPicker}>
-                <div><span className={styles.step}>4 · Choose your Partner</span><p>Select a Partner or leave “Best available” selected for balanced assignment.</p></div>
-                <label className={styles.partnerOption}>
-                  <input type="radio" name="partner" checked={!selectedPartnerId} onChange={() => setSelectedPartnerId("")} />
-                  <span className={styles.partnerAvatar}>✓</span>
-                  <span><strong>Best available</strong><small>Prioritizes a Partner you&apos;ve seen before, then balances appointments fairly.</small></span>
-                </label>
+                {selectedSlot.partners.length === 1 ? (
+                  <div><span className={styles.step}>4 · Your available Partner</span><p>This is the Partner available for your selected appointment time.</p></div>
+                ) : (
+                  <>
+                    <div><span className={styles.step}>4 · Choose your Partner</span><p>Select a Partner or leave “Best available” selected for balanced assignment.</p></div>
+                    <label className={styles.partnerOption}>
+                      <input type="radio" name="partner" checked={!selectedPartnerId} onChange={() => setSelectedPartnerId("")} />
+                      <span className={styles.partnerAvatar}>✓</span>
+                      <span><strong>Best available</strong><small>Prioritizes a Partner you&apos;ve seen before, then balances appointments fairly.</small></span>
+                    </label>
+                  </>
+                )}
                 {selectedSlot.partners.map((partner) => (
-                  <label className={styles.partnerOption} key={partner.id}>
-                    <input type="radio" name="partner" checked={selectedPartnerId === partner.id} onChange={() => setSelectedPartnerId(partner.id)} />
-                    <span className={styles.partnerAvatar}>{initials(partner.displayName)}</span>
-                    <span><strong>{partner.displayName}</strong><small>{partner.businessName || "Verified My Drip Nurse Partner"}</small></span>
-                  </label>
+                  selectedSlot.partners.length === 1 ? (
+                    <div className={`${styles.partnerOption} ${styles.singlePartnerOption}`} key={partner.id}>
+                      <span className={styles.partnerAvatar}>{initials(partner.displayName)}</span>
+                      <span><strong>{partner.displayName}</strong><small>{partner.businessName || "Verified My Drip Nurse Partner"}</small></span>
+                    </div>
+                  ) : (
+                    <label className={styles.partnerOption} key={partner.id}>
+                      <input type="radio" name="partner" checked={selectedPartnerId === partner.id} onChange={() => setSelectedPartnerId(partner.id)} />
+                      <span className={styles.partnerAvatar}>{initials(partner.displayName)}</span>
+                      <span><strong>{partner.displayName}</strong><small>{partner.businessName || "Verified My Drip Nurse Partner"}</small></span>
+                    </label>
+                  )
                 ))}
               </div>
             ) : null}

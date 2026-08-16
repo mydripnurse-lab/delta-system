@@ -56,6 +56,7 @@
 .partnerPicker p { color: #71898b; font-size: .82rem; line-height: 1.5; margin: 7px 0; }
 .partnerOption { align-items: center; border: 1px solid #d4e3e2; border-radius: 16px; cursor: pointer; display: grid; gap: 11px; grid-template-columns: auto auto 1fr; padding: 12px; }
 .partnerOption:has(input:checked) { background: #eef9f7; border-color: #16909c; }
+.singlePartnerOption { background: #eef9f7; border-color: #16909c; cursor: default; grid-template-columns: auto 1fr; }
 .partnerAvatar { align-items: center; background: #096d77; border-radius: 50%; color: #fff; display: flex; font-family: Georgia, serif; font-size: .9rem; height: 40px; justify-content: center; width: 40px; }
 .partnerOption > span:last-child { display: grid; gap: 3px; }
 .partnerOption small { color: #748c8e; line-height: 1.4; }
