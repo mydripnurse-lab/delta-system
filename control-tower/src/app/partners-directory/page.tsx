@@ -8,6 +8,7 @@ import {
 import { enrichDirectoryProfiles } from "@/lib/partnerDirectory";
 import { listPublicPartnerProfiles, type PublicPartnerProfile } from "@/lib/partnerProfiles";
 import { PARTNER_SITE_ORIGIN, serializeStructuredData } from "@/lib/partnerSeo";
+import { getPartnerReviewSummaries } from "@/lib/partnerReviews";
 
 import PartnerDirectoryClient, { type DirectoryPartner } from "./PartnerDirectoryClient";
 import styles from "./PartnerDirectory.module.css";
@@ -111,7 +112,14 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
   const { preview: previewParam } = await searchParams;
   const preview = previewParam === "1";
   const profiles = preview ? PREVIEW_PARTNERS : await listPublicPartnerProfiles();
-  const partners: DirectoryPartner[] = await enrichDirectoryProfiles(profiles);
+  const enrichedPartners = await enrichDirectoryProfiles(profiles);
+  const reviewSummaries = preview
+    ? new Map()
+    : await getPartnerReviewSummaries(enrichedPartners.map((partner) => partner.id));
+  const partners: DirectoryPartner[] = enrichedPartners.map((partner) => ({
+    ...partner,
+    reviewSummary: reviewSummaries.get(partner.id) || { averageRating: 0, reviewCount: 0 },
+  }));
   const directoryJsonLd = {
     "@context": "https://schema.org",
     "@graph": [

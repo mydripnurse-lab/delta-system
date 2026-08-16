@@ -20,7 +20,7 @@ export default function ClientCareProfessional({ accepted, name, photoUrl, publi
     return (
       <div className={`${styles.careProfessionalPending} ${compact ? styles.careProfessionalCompact : ""}`}>
         <span aria-hidden="true">✦</span>
-        <div><b>Matching your care professional</b><small>Their verified profile appears here after they accept.</small></div>
+        <div><b>Matching your care professional</b><small>Their verified profile will appear as soon as the visit is accepted.</small></div>
       </div>
     );
   }
@@ -35,7 +35,7 @@ export default function ClientCareProfessional({ accepted, name, photoUrl, publi
         <b>{name}</b>
         <small>{[publicTitle, credentials].filter(Boolean).join(" · ")}</small>
       </div>
-      <em><i /> Verified Partner</em>
+      <em><i /> Verified professional</em>
     </div>
   );
 }

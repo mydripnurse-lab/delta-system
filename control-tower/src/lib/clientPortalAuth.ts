@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 import { cookies } from "next/headers";
 import { cache } from "react";
@@ -57,7 +57,11 @@ export type ClientAccount = {
   addresses: ClientSavedAddress[];
   screeningSelections: string[];
   screeningUpdatedAt: string;
+  phoneVerified: boolean;
+  phoneVerifiedAt: string;
 };
+
+export type AccountSecurityPurpose = "phone_verification" | "password_change";
 
 export type ClientProfileCompletion = {
   complete: boolean;
@@ -200,6 +204,22 @@ export function newClientAuthToken() {
   return randomBytes(32).toString("base64url");
 }
 
+export function newAccountSecurityCode() {
+  return String(randomInt(100000, 1000000));
+}
+
+export function hashAccountSecurityCode(input: {
+  accountId: string;
+  purpose: AccountSecurityPurpose;
+  code: string;
+}) {
+  const secret = clientSessionSecret();
+  if (!secret) throw new Error("Account security is not configured.");
+  return createHmac("sha256", secret)
+    .update(`${input.accountId}:${input.purpose}:${input.code}`)
+    .digest("hex");
+}
+
 export function isTrustedClientRequest(request: Request) {
   if (process.env.NODE_ENV !== "production") return true;
   const hostname = s(request.headers.get("host")).split(":")[0].toLowerCase();
@@ -251,7 +271,7 @@ export function safeClientNext(value: unknown, fallback = "/") {
 
 export function getClientProfileCompletion(account: ClientAccount): ClientProfileCompletion {
   const signals = [
-    { key: "identity", label: "Confirm your name and mobile number", complete: Boolean(account.fullName && account.phone) },
+    { key: "identity", label: "Confirm your name and verify your mobile number", complete: Boolean(account.fullName && account.phone && account.phoneVerified) },
     { key: "birthDate", label: "Add your date of birth", complete: Boolean(account.dateOfBirth) },
     { key: "wellness", label: "Add your height and weight", complete: Boolean(account.heightInches && account.weightPounds) },
     { key: "gender", label: "Choose your sex / gender preference", complete: Boolean(account.genderIdentity) },
@@ -403,6 +423,29 @@ export async function ensureClientPortalSchema() {
         on app.client_auth_tokens (purpose, token_hash, expires_at)
         where consumed_at is null;
 
+      create table if not exists app.account_security_challenges (
+        id uuid primary key default gen_random_uuid(),
+        account_kind text not null,
+        account_id text not null,
+        purpose text not null,
+        delivery_channel text not null,
+        destination text not null,
+        code_hash text not null,
+        pending_value jsonb not null default '{}'::jsonb,
+        expires_at timestamptz not null,
+        consumed_at timestamptz,
+        attempt_count integer not null default 0,
+        last_sent_at timestamptz not null default now(),
+        created_at timestamptz not null default now(),
+        check (account_kind in ('client', 'partner', 'admin')),
+        check (purpose in ('phone_verification', 'password_change')),
+        check (delivery_channel in ('sms', 'email'))
+      );
+
+      create index if not exists account_security_challenges_lookup_idx
+        on app.account_security_challenges (account_kind, account_id, purpose, expires_at desc)
+        where consumed_at is null;
+
       create table if not exists app.client_appointment_invites (
         id uuid primary key default gen_random_uuid(),
         appointment_id uuid not null references app.appointments(id) on delete cascade,
@@ -460,6 +503,23 @@ export async function ensureClientPortalSchema() {
 
       create index if not exists client_appointment_access_account_idx
         on app.client_appointment_access (client_account_id, created_at desc);
+
+      create table if not exists app.appointment_reviews (
+        id uuid primary key default gen_random_uuid(),
+        appointment_id uuid not null unique references app.appointments(id) on delete cascade,
+        partner_profile_id uuid not null references app.partner_profiles(id) on delete cascade,
+        client_account_id uuid not null references app.client_accounts(id) on delete cascade,
+        rating smallint not null check (rating between 1 and 5),
+        comment varchar(600) not null default '',
+        reviewer_display_name varchar(120) not null default '',
+        is_published boolean not null default true,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      );
+
+      create index if not exists appointment_reviews_partner_created_idx
+        on app.appointment_reviews (partner_profile_id, created_at desc)
+        where is_published = true;
 
       create table if not exists app.client_addresses (
         id uuid primary key default gen_random_uuid(),
@@ -712,6 +772,7 @@ export async function getClientAccount(accountId: string): Promise<ClientAccount
     gender_identity: string;
     screening_selections: unknown;
     screening_updated_at: string;
+    phone_verified_at: string;
   }>(
     `select id, email, full_name, phone, email_verified_at, auth_provider,
             coalesce(preferences #>> '{identity,profilePhotoUrl}', '') as profile_photo_url,
@@ -740,7 +801,12 @@ export async function getClientAccount(accountId: string): Promise<ClientAccount
               then (preferences #>> '{wellness,heightInches}')::double precision else null end as height_inches,
             coalesce(preferences #>> '{wellness,genderIdentity}', '') as gender_identity,
             coalesce(preferences #> '{medicalScreening,selections}', '[]'::jsonb) as screening_selections,
-            coalesce(preferences #>> '{medicalScreening,updatedAt}', '') as screening_updated_at
+            coalesce(preferences #>> '{medicalScreening,updatedAt}', '') as screening_updated_at,
+            case
+              when coalesce(preferences #>> '{phoneVerification,phone}', '') = phone
+                then coalesce(preferences #>> '{phoneVerification,verifiedAt}', '')
+              else ''
+            end as phone_verified_at
        from app.client_accounts where id = $1 limit 1`,
     [accountId],
   );
@@ -818,6 +884,8 @@ export async function getClientAccount(accountId: string): Promise<ClientAccount
     })),
     screeningSelections,
     screeningUpdatedAt: row.screening_updated_at,
+    phoneVerified: Boolean(row.phone_verified_at),
+    phoneVerifiedAt: row.phone_verified_at,
   };
 }
 

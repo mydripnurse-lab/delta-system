@@ -6,6 +6,7 @@ export type ClientAppointmentSummary = {
   reference: string;
   serviceName: string;
   partnerName: string;
+  partnerProfileId: string;
   partnerAccepted: boolean;
   partnerPhotoUrl: string;
   partnerPublicTitle: string;
@@ -29,6 +30,7 @@ export type ClientAppointmentSummary = {
   rewardBenefit: "none" | "deposit_waiver" | "free_appointment";
   clientAmountDueAtVisit: number;
   accessRole: "primary_patient" | "additional_patient";
+  review: { rating: number; comment: string; createdAt: string } | null;
   additionalPatients: Array<{
     firstName: string;
     lastName: string;
@@ -126,6 +128,9 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
     partner_photo_url: string | null;
     partner_public_title: string | null;
     partner_credentials: string | null;
+    review_rating: number | null;
+    review_comment: string | null;
+    review_created_at: string | null;
     starts_at: string;
     ends_at: string;
     timezone: string;
@@ -174,6 +179,9 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
             ) as partner_photo_url,
             nullif(trim(coalesce(profile.public_title, '')), '') as partner_public_title,
             nullif(trim(coalesce(profile.professional_credentials, '')), '') as partner_credentials,
+            review.rating as review_rating,
+            review.comment as review_comment,
+            review.created_at as review_created_at,
             appointment.starts_at, appointment.ends_at, appointment.timezone, appointment.status,
             appointment.address_line_1, appointment.address_line_2,
             appointment.city, appointment.county, appointment.state,
@@ -214,6 +222,7 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
        join app.services service on service.id = appointment.service_id
        left join app.partner_profiles profile on profile.id = appointment.partner_profile_id
        left join app.appointment_payments payment on payment.appointment_id = appointment.id
+       left join app.appointment_reviews review on review.appointment_id = appointment.id
       order by appointment.starts_at desc
       limit 100`,
     [accountId],
@@ -246,6 +255,7 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
     reference: row.public_reference,
     serviceName: row.service_name,
     partnerName: partnerAccepted ? row.partner_name || "My Drip Nurse care professional" : "Care team matching in progress",
+    partnerProfileId: partnerAccepted ? row.partner_profile_id || "" : "",
     partnerAccepted,
     partnerPhotoUrl: partnerAccepted ? row.partner_photo_url || "" : "",
     partnerPublicTitle: partnerAccepted ? row.partner_public_title || "My Drip Nurse care professional" : "",
@@ -271,6 +281,11 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
       : row.reward_benefit === "deposit_waiver" ? "deposit_waiver" : "none",
     clientAmountDueAtVisit: Number(row.client_amount_due_at_visit || 0),
     accessRole: row.access_role,
+    review: row.review_rating && row.review_created_at ? {
+      rating: Number(row.review_rating),
+      comment: row.review_comment || "",
+      createdAt: new Date(row.review_created_at).toISOString(),
+    } : null,
     additionalPatients,
   };
   });

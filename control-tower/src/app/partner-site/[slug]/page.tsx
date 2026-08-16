@@ -9,10 +9,11 @@ import {
   PartnerHeader,
 } from "@/components/partner/PartnerBrand";
 import { PartnerFaq, type PartnerFaqItem } from "@/components/partner/PartnerFaq";
-import { PartnerTestimonials } from "@/components/partner/PartnerTestimonials";
+import { PartnerVerifiedReviews } from "@/components/partner/PartnerVerifiedReviews";
 import { PartnerDirectoryAttribution } from "@/components/partner/PartnerDirectoryAttribution";
 import { getPartnerProfileForPublicPage } from "@/lib/partnerProfiles";
 import { loadPartnerCoverageCounties } from "@/lib/partnerServiceAreas";
+import { getPublicPartnerReviews } from "@/lib/partnerReviews";
 import {
   buildPartnerMetadata,
   buildPartnerStructuredData,
@@ -56,6 +57,9 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
   const coverageCounties = await loadPartnerCoverageCounties(profile.serviceAreas);
+  const reviewData = preview
+    ? { summary: { averageRating: 0, reviewCount: 0 }, reviews: [] }
+    : await getPublicPartnerReviews(profile.id);
   const cities = coverageCounties.flatMap((county) => county.communities);
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
@@ -231,7 +235,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           </section>
         ) : null}
 
-        <PartnerTestimonials />
+        <PartnerVerifiedReviews summary={reviewData.summary} reviews={reviewData.reviews} />
 
         <section className={styles.servicesCta}>
           <div className={styles.shell}>

@@ -22,6 +22,10 @@ export type DirectoryPartner = PublicPartnerProfile & {
     completedAppointments: number;
     organicScore: number;
   };
+  reviewSummary: {
+    averageRating: number;
+    reviewCount: number;
+  };
 };
 
 type Props = {
@@ -538,6 +542,11 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
                     <div className={styles.directorySignals} aria-label="Directory match signals">
                       {userLocation && partnerIndex === 0 ? <span>Closest recommended match</span> : null}
                       {partner.ranking.availabilityConfigured ? <span>Availability ready</span> : null}
+                      {partner.reviewSummary.reviewCount ? (
+                        <span className={styles.reviewSignal}>
+                          <b aria-hidden="true">★</b> {partner.reviewSummary.averageRating.toFixed(1)} · {partner.reviewSummary.reviewCount} verified
+                        </span>
+                      ) : null}
                     </div>
                     <div className={styles.areas}>
                       {partner.serviceAreas.slice(0, 3).map((area) => (

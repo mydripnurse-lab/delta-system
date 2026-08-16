@@ -2,8 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import ClientVisitMap from "@/components/client/ClientVisitMap";
-import ClientVisitProgress, { clientVisitStatusLabel } from "@/components/client/ClientVisitProgress";
+import ClientCareJourney from "@/components/client/ClientCareJourney";
+import { clientVisitStatusLabel } from "@/components/client/ClientVisitProgress";
 import ClientCareProfessional from "@/components/client/ClientCareProfessional";
 import ClientBodyWellnessReference from "@/components/client/ClientBodyWellnessReference";
 import ClientVisitAutoRefresh from "@/components/client/ClientVisitAutoRefresh";
@@ -101,10 +101,9 @@ export default async function ClientHomePage() {
             <div><small>Service address</small><b>{upcoming.addressLine1}<br />{upcoming.city}, {upcoming.state} {upcoming.postalCode}</b></div>
             <div><small>{upcomingPayment?.label}</small><b>{upcomingPayment?.value}</b><span>{upcomingPayment?.detail}</span></div>
           </div>
-          <ClientVisitProgress status={upcoming.status} />
+          <ClientCareJourney status={upcoming.status} partnerAccepted={upcoming.partnerAccepted} />
           <div className={styles.commandFooter}><span>Reference {upcoming.reference}</span><Link href="/appointments">Open visit details <b>→</b></Link></div>
         </div>
-        <ClientVisitMap addressLine1={upcoming.addressLine1} addressLine2={upcoming.addressLine2} city={upcoming.city} state={upcoming.state} postalCode={upcoming.postalCode} />
       </section> : <section className={styles.noVisitCommand}>
         <div className={styles.noVisitVisual}>
           <Image
@@ -126,6 +125,11 @@ export default async function ClientHomePage() {
             Choose the care that fits your needs, select a convenient time, and we will bring the
             My Drip Nurse experience directly to you.
           </p>
+          <div className={styles.emptyJourney} aria-label="How mobile care works">
+            <span><b>01</b><small>Choose care</small></span>
+            <span><b>02</b><small>Pick a time</small></span>
+            <span><b>03</b><small>We come to you</small></span>
+          </div>
           <Link href="/book">
             Book mobile care <b>→</b>
           </Link>

@@ -941,6 +941,16 @@
   text-transform: uppercase;
 }
 
+.directorySignals .reviewSignal {
+  border-color: #eadcaf;
+  color: #735713;
+  background: #fffaf0;
+}
+
+.reviewSignal b {
+  color: #c49a36;
+}
+
 .areas {
   display: flex;
   flex-wrap: wrap;

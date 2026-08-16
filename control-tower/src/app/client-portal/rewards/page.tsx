@@ -23,12 +23,11 @@ function Milestones({ goal, completed }: { goal: number; completed: number }) {
 export default async function ClientRewardsPage() {
   const account = await getAuthenticatedClient();
   if (!account) redirect("/login?next=/rewards");
-  const [invitations, visits, nadVisits] = await Promise.all([
+  const [invitations, visits] = await Promise.all([
     getClientReferralSummary(account.id),
-    getClientVisitRewardSummary(account.id, "wellness"),
-    getClientVisitRewardSummary(account.id, "nad_family"),
+    getClientVisitRewardSummary(account.id),
   ]);
-  const availableRewards = Number(invitations.rewardStatus === "available") + visits.availableRewards + nadVisits.availableRewards;
+  const availableRewards = Number(invitations.rewardStatus === "available") + visits.availableRewards;
 
   return (
     <div className={`${styles.pageShell} ${styles.rewardsPage}`}>
@@ -40,7 +39,7 @@ export default async function ClientRewardsPage() {
         </div>
         <aside className={availableRewards ? styles.rewardsAvailableSummary : styles.rewardsProgressSummary}>
           <small>{availableRewards ? "Ready to use" : "Rewards journey"}</small>
-          <strong>{availableRewards || "3"}</strong>
+          <strong>{availableRewards || "2"}</strong>
           <span>{availableRewards ? `reward${availableRewards === 1 ? "" : "s"} available` : "ways to earn"}</span>
         </aside>
       </section>
@@ -74,9 +73,9 @@ export default async function ClientRewardsPage() {
             </span>
           </header>
           <div className={styles.rewardProgramCopy}>
-            <small>Everyday wellness</small>
-            <h2>Complete visits.<br />Earn free care.</h2>
-            <p>Every {visits.goal} completed non-NAD appointments unlocks one free non-NAD visit. NAD+ and NAD+ Boost progress in their own program.</p>
+            <small>Wellness visits</small>
+            <h2>Complete visits.<br />Earn care rewards.</h2>
+            <p>Every {visits.goal} completed appointments unlocks one free eligible visit. After you use it, your next cycle continues automatically.</p>
           </div>
           <div className={styles.rewardProgramProgress}>
             <div><span>Visits this cycle</span><strong>{visits.cycleCompletedVisits}<small> / {visits.goal}</small></strong></div>
@@ -84,26 +83,6 @@ export default async function ClientRewardsPage() {
           </div>
           <Milestones goal={visits.goal} completed={visits.cycleCompletedVisits} />
           <footer><span>{visits.availableRewards ? "Your free visit is ready" : `${visits.remainingVisits} visit${visits.remainingVisits === 1 ? "" : "s"} to go`}</span><b>Open reward →</b></footer>
-        </Link>
-
-        <Link href="/rewards/nad" className={`${styles.rewardProgramCard} ${styles.rewardNadCard}`}>
-          <header>
-            <div className={styles.rewardProgramIcon} aria-hidden="true">N+</div>
-            <span className={nadVisits.availableRewards ? styles.rewardReadyPill : styles.rewardActivePill}>
-              {nadVisits.availableRewards ? `${nadVisits.availableRewards} ready` : "Premium progress"}
-            </span>
-          </header>
-          <div className={styles.rewardProgramCopy}>
-            <small>NAD+ care</small>
-            <h2>Build your rhythm.<br />Unlock an NAD+ visit.</h2>
-            <p>Every {nadVisits.goal} completed NAD+ or NAD+ Boost visits unlocks one free eligible NAD-family visit. Your next cycle then starts automatically.</p>
-          </div>
-          <div className={styles.rewardProgramProgress}>
-            <div><span>NAD+ visits this cycle</span><strong>{nadVisits.cycleCompletedVisits}<small> / {nadVisits.goal}</small></strong></div>
-            <div className={styles.rewardCardRing} style={{ "--reward-progress": `${nadVisits.percent * 3.6}deg` } as CSSProperties}><span>{nadVisits.percent}%</span></div>
-          </div>
-          <Milestones goal={nadVisits.goal} completed={nadVisits.cycleCompletedVisits} />
-          <footer><span>{nadVisits.availableRewards ? "Your NAD+ reward is ready" : `${nadVisits.remainingVisits} NAD+ visit${nadVisits.remainingVisits === 1 ? "" : "s"} to go`}</span><b>Open reward →</b></footer>
         </Link>
       </section>
 

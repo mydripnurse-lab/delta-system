@@ -101,7 +101,6 @@ async function applicationContext(applicationId: string) {
     locationId: location.locationId,
     state: location.state,
     county: location.county,
-    operational: !location.locationId.startsWith("catalog:"),
   }));
   return { application, config, locations };
 }

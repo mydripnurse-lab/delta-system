@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import ClientVisitMap from "@/components/client/ClientVisitMap";
-import ClientVisitProgress, { clientVisitStatusLabel } from "@/components/client/ClientVisitProgress";
+import ClientCareJourney from "@/components/client/ClientCareJourney";
+import ClientAppointmentReview from "@/components/client/ClientAppointmentReview";
+import { clientVisitStatusLabel } from "@/components/client/ClientVisitProgress";
 import ClientCareProfessional from "@/components/client/ClientCareProfessional";
 import ClientVisitAutoRefresh from "@/components/client/ClientVisitAutoRefresh";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
@@ -61,7 +62,7 @@ export default async function ClientAppointmentsPage() {
         <div className={styles.appointmentDetailBody}>
           <div className={styles.commandHeader}><div><span className={styles.eyebrow}>Up next</span><h2>{featured.serviceName}</h2></div><span className={featured.status === "in_progress" ? styles.attentionPill : styles.statusPill}>{clientVisitStatusLabel(featured.status)}</span></div>
           <p className={styles.visitLead}>{displayDate(featured.startsAt)}</p>
-          <ClientVisitProgress status={featured.status} />
+          <ClientCareJourney status={featured.status} partnerAccepted={featured.partnerAccepted} />
           <ClientCareProfessional accepted={featured.partnerAccepted} name={featured.partnerName} photoUrl={featured.partnerPhotoUrl} publicTitle={featured.partnerPublicTitle} credentials={featured.partnerCredentials} />
           <div className={styles.appointmentDetailGrid}>
             <div><small>Service location</small><b>{featured.addressLine1}</b><span>{featured.city}, {featured.state} {featured.postalCode}</span></div>
@@ -74,7 +75,6 @@ export default async function ClientAppointmentsPage() {
             <ul>{featured.additionalPatients.map((patient) => <li key={patient.email}><span>{patient.fullName || patient.email}</span><em>{patient.invitationStatus === "claimed" ? "Care account connected" : patient.invitationStatus === "pending" ? "Invitation sent" : "Included in appointment"}</em></li>)}</ul>
           </div> : null}
         </div>
-        <ClientVisitMap addressLine1={featured.addressLine1} addressLine2={featured.addressLine2} city={featured.city} state={featured.state} postalCode={featured.postalCode} />
       </section> : <section className={styles.appointmentSection}><div className={styles.emptyState}><span>✦</span><h3>No upcoming visits.</h3><p>Your next appointment will appear here after booking.</p><Link href="/book">Book your first visit →</Link></div></section>}
 
       {later.length ? <section className={styles.appointmentSection}>
@@ -87,7 +87,7 @@ export default async function ClientAppointmentsPage() {
 
       {history.length ? <section className={styles.appointmentSection}>
         <div className={styles.sectionTitle}><h2>Care history</h2><span>{history.length}</span></div>
-        <div className={styles.historyList}>{history.map((item) => <article key={item.id}><div><span>{clientVisitStatusLabel(item.status)}</span><h3>{item.serviceName}</h3><p>{displayDate(item.startsAt)} · {item.partnerName}</p></div><b>{item.reference}</b></article>)}</div>
+        <div className={styles.historyList}>{history.map((item) => <article key={item.id} className={styles.historyEntry}><div className={styles.historySummary}><div><span>{clientVisitStatusLabel(item.status)}</span><h3>{item.serviceName}</h3><p>{displayDate(item.startsAt)} · {item.partnerName}</p></div><b>{item.reference}</b></div>{item.status === "completed" && item.partnerProfileId ? <ClientAppointmentReview appointmentId={item.id} partnerName={item.partnerName} existingReview={item.review} /> : null}</article>)}</div>
       </section> : null}
     </div>
   );
