@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "@/components/booking/bookingCalendar.module.css";
@@ -385,7 +386,7 @@ function PhoneField({
   );
 }
 
-export function BookingCalendarClient({ publicKey, partnerId = "", partnerView = false, embedMode = false, initialProfile, onMacroStepChange }: { publicKey: string; partnerId?: string; partnerView?: boolean; embedMode?: boolean; initialProfile?: BookingInitialProfile; onMacroStepChange?: (step: 2 | 3) => void }) {
+export function BookingCalendarClient({ publicKey, partnerId = "", partnerView = false, embedMode = false, initialProfile, onMacroStepChange, serviceName = "", serviceImageUrl = "", serviceImageAlt = "" }: { publicKey: string; partnerId?: string; partnerView?: boolean; embedMode?: boolean; initialProfile?: BookingInitialProfile; onMacroStepChange?: (step: 2 | 3) => void; serviceName?: string; serviceImageUrl?: string; serviceImageAlt?: string }) {
   const initialPhone = initialProfile?.phone || "";
   const initialPhoneCountry = getPhoneCountry(initialPhone);
   const [contact, setContact] = useState<Contact>(() => ({
@@ -1103,8 +1104,26 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     <main className={`${styles.page} ${embedMode ? styles.embeddedPage : ""}`}>
       <section className={styles.shell}>
         <header className={styles.intro}>
-          <span className={styles.eyebrow}>MY DRIP NURSE · SECURE BOOKING</span>
-          <h1>Choose a time that works for you.</h1>
+          {serviceName ? <div className={styles.selectedServiceHero}>
+            <div className={styles.selectedServiceImage}>
+              <Image
+                src={serviceImageUrl || "/brand/care-mobile-iv-at-home.jpeg"}
+                alt={serviceImageAlt || `${serviceName} mobile IV therapy`}
+                width={108}
+                height={108}
+                priority
+                unoptimized
+              />
+            </div>
+            <div>
+              <span className={styles.eyebrow}>YOUR SELECTED SERVICE</span>
+              <h1>{serviceName}</h1>
+              <strong>Choose a time that works for you.</strong>
+            </div>
+          </div> : <>
+            <span className={styles.eyebrow}>MY DRIP NURSE · SECURE BOOKING</span>
+            <h1>Choose a time that works for you.</h1>
+          </>}
           <p>{partnerView ? "Live availability is shown for this service. Enter your location so we can confirm the appointment details." : "We show only qualified Partners who cover your appointment area and are available for this service."}</p>
         </header>
 

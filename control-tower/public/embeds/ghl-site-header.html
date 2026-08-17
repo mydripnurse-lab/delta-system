@@ -1,118 +1,84 @@
 <!--
-  MY DRIP NURSE — GHL SITE HEADER
-  Copy and paste this entire block into a GHL Custom HTML/JavaScript element.
-  Keep the three GHL custom values unchanged so each location receives its
-  website URL, business phone number and county/state name.
+  MY DRIP NURSE — NATIVE GHL HEADER
+  Paste this entire block into one GHL Custom HTML/JavaScript element.
+  The navigation is rendered directly in GHL so dropdowns are not limited by
+  an iframe. Only the Care account/avatar uses a small isolated iframe.
 -->
 <style>
-  .mdn-site-header-mount {
-    position: relative;
-    z-index: 2147483000;
-    width: 100%;
-    height: 120px;
-    min-height: 120px;
-    background: #fff;
-    isolation: isolate;
-    overflow: visible !important;
-  }
-
-  .mdn-site-header-frame {
-    display: block;
-    position: absolute;
-    z-index: 2147483001;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 120px;
-    border: 0;
-    background: transparent;
-    overflow: visible;
-  }
-
-  @media (max-width: 820px) {
-    .mdn-site-header-mount {
-      height: 72px;
-      min-height: 72px;
-    }
-
-    .mdn-site-header-frame {
-      height: 72px;
-    }
-  }
+  .mdn-ghl-header{--mdn-teal:#044c5c;--mdn-bright:#078596;--mdn-ink:#173d42;--mdn-muted:#667d80;position:sticky;z-index:2147483000;top:0;width:100%;overflow:visible;color:var(--mdn-ink);background:#fff;font-family:Arial,Helvetica,sans-serif;box-shadow:0 8px 28px rgba(27,61,65,.09);isolation:isolate}
+  .mdn-ghl-banner{min-height:38px;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 18px;color:#163b40;background:#edf5fb;font-size:13px;font-style:italic;font-weight:800;line-height:1.35;text-align:center}.mdn-ghl-banner span{font-size:17px;font-style:normal;font-weight:500}
+  .mdn-ghl-bar{width:min(calc(100% - 36px),1440px);min-height:82px;margin:0 auto;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:26px}
+  .mdn-ghl-logo{display:flex;align-items:center}.mdn-ghl-logo img{display:block;width:clamp(174px,15vw,220px);height:auto}
+  .mdn-ghl-nav{display:flex;align-items:center;justify-content:flex-end;gap:clamp(15px,2vw,30px);min-width:0}.mdn-ghl-menu{position:relative}.mdn-ghl-nav>a,.mdn-ghl-menu-button{min-height:48px;display:flex;align-items:center;border:0;color:#1d3033;background:transparent;font:700 clamp(13px,1.05vw,16px)/1 Arial,sans-serif;white-space:nowrap;text-decoration:none;cursor:pointer}.mdn-ghl-menu-button{gap:8px;padding:0}.mdn-ghl-chevron{width:11px;height:8px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .18s ease}.mdn-ghl-menu[data-open="true"]>.mdn-ghl-menu-button .mdn-ghl-chevron{transform:rotate(180deg)}
+  .mdn-ghl-dropdown{position:absolute;z-index:2147483002;top:56px;left:50%;width:270px;display:none;padding:10px;border:1px solid #d6e5e3;border-radius:18px;background:#fff;box-shadow:0 22px 55px rgba(22,61,65,.18);transform:translateX(-50%)}.mdn-ghl-menu[data-open="true"]>.mdn-ghl-dropdown{display:grid}.mdn-ghl-dropdown a{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:10px 12px;border-radius:11px;color:#294b4f;font-size:13px;font-weight:750;text-decoration:none}.mdn-ghl-dropdown a:hover,.mdn-ghl-dropdown a:focus-visible{color:var(--mdn-teal);background:#edf8f5;outline:none}.mdn-ghl-dropdown a span{color:var(--mdn-bright)}.mdn-ghl-dropdown-wide{width:580px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mdn-ghl-actions{display:flex;align-items:center;gap:10px}.mdn-ghl-phone{min-height:50px;display:flex;align-items:center;gap:9px;padding:0 20px;border-radius:999px;color:#fff;background:#044c5c;font-size:14px;font-weight:900;letter-spacing:.01em;text-decoration:none;white-space:nowrap}.mdn-ghl-phone svg{width:19px;fill:currentColor}.mdn-ghl-account-frame{width:180px;height:58px;display:block;border:0;background:transparent}.mdn-ghl-mobile-toggle{width:44px;height:44px;display:none;padding:11px;border:1px solid #cfe2df;border-radius:14px;background:#f6fbfa;cursor:pointer}.mdn-ghl-mobile-toggle span{height:2px;display:block;margin:4px 0;border-radius:2px;background:var(--mdn-teal);transition:transform .18s ease,opacity .18s ease}.mdn-ghl-mobile-toggle[aria-expanded="true"] span:nth-child(1){transform:translateY(6px) rotate(45deg)}.mdn-ghl-mobile-toggle[aria-expanded="true"] span:nth-child(2){opacity:0}.mdn-ghl-mobile-toggle[aria-expanded="true"] span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+  .mdn-ghl-mobile-drawer{display:none}.mdn-ghl-mobile-account{display:none}
+  @media(max-width:1100px){.mdn-ghl-bar{width:min(calc(100% - 26px),1440px);gap:18px}.mdn-ghl-nav{gap:15px}.mdn-ghl-nav>a,.mdn-ghl-menu-button{font-size:12px}.mdn-ghl-phone{padding:0 15px}.mdn-ghl-phone span{display:none}.mdn-ghl-account-frame{width:62px}}
+  @media(max-width:820px){.mdn-ghl-header{box-shadow:0 6px 22px rgba(27,61,65,.08)}.mdn-ghl-banner{display:none}.mdn-ghl-bar{width:calc(100% - 22px);min-height:72px;grid-template-columns:auto 1fr;gap:12px}.mdn-ghl-logo img{width:158px}.mdn-ghl-nav,.mdn-ghl-phone,.mdn-ghl-desktop-account{display:none}.mdn-ghl-actions{justify-self:end}.mdn-ghl-mobile-toggle{display:block}.mdn-ghl-header[data-mobile-open="true"] .mdn-ghl-mobile-drawer{display:grid}.mdn-ghl-mobile-drawer{position:absolute;z-index:2147483003;top:72px;left:0;width:100%;max-height:calc(100svh - 72px);overflow:auto;padding:8px 13px 18px;border-top:1px solid #e1ecea;background:#fff;box-shadow:0 24px 45px rgba(27,61,65,.18)}.mdn-ghl-mobile-nav{display:grid}.mdn-ghl-mobile-menu{border-bottom:1px solid #e3edeb}.mdn-ghl-mobile-menu>button,.mdn-ghl-mobile-nav>a{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 7px;border:0;color:var(--mdn-ink);background:transparent;font-size:14px;font-weight:850;text-align:left;text-decoration:none;cursor:pointer}.mdn-ghl-mobile-menu[data-open="true"]>button .mdn-ghl-chevron{transform:rotate(180deg)}.mdn-ghl-mobile-menu .mdn-ghl-dropdown{position:static;width:100%;padding:0 0 9px;border:0;border-radius:0;box-shadow:none;transform:none}.mdn-ghl-mobile-menu[data-open="true"]>.mdn-ghl-dropdown{display:grid}.mdn-ghl-mobile-menu .mdn-ghl-dropdown a{min-height:45px;padding-left:17px;background:#f8fbfa}.mdn-ghl-dropdown-wide{grid-template-columns:1fr}.mdn-ghl-mobile-account{display:block;margin:12px 0 4px}.mdn-ghl-mobile-account .mdn-ghl-account-frame{width:100%;height:64px}.mdn-ghl-mobile-phone{min-height:50px;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:12px;border-radius:999px;color:#fff;background:#044c5c;font-size:14px;font-weight:900;text-decoration:none}.mdn-ghl-mobile-phone svg{width:19px;fill:currentColor}}
+  @media(max-width:390px){.mdn-ghl-logo img{width:140px}}
 </style>
 
-<div class="mdn-site-header-mount" data-mdn-site-header-host="true">
-  <iframe
-    class="mdn-site-header-frame"
-    src="https://care.mydripnurse.com/embed/site-header?website={{custom_values.website_url}}&amp;phone={{custom_values.business__phone}}&amp;location={{custom_values.county_name_and_state}}"
-    title="My Drip Nurse navigation"
-    scrolling="no"
-    referrerpolicy="strict-origin-when-cross-origin"
-  ></iframe>
-</div>
+<header class="mdn-ghl-header" data-mdn-ghl-header="true" data-mobile-open="false">
+  <div class="mdn-ghl-banner">Licensed Nurses <span>♡</span> Same-Day Appointments <span>♡</span> Mobile IV Therapy in {{custom_values.county_name_and_state}}</div>
+  <div class="mdn-ghl-bar">
+    <a class="mdn-ghl-logo" href="{{custom_values.website_url}}" aria-label="My Drip Nurse home"><img src="https://care.mydripnurse.com/mdn-logo.png" alt="My Drip Nurse" width="240" height="51"></a>
+    <nav class="mdn-ghl-nav" aria-label="Main navigation">
+      <div class="mdn-ghl-menu" data-menu="iv" data-open="false">
+        <button class="mdn-ghl-menu-button" type="button" aria-expanded="false">IV Therapy <svg class="mdn-ghl-chevron" aria-hidden="true" viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"></path></svg></button>
+        <div class="mdn-ghl-dropdown mdn-ghl-dropdown-wide">
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-immunity-defense-cold-flu">Immunity Defense / Cold &amp; Flu <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-immunity-defense-cold-flu-and-glutathione">Immunity Defense + Glutathione <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-myers-cocktail">Myers' Cocktail <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-myers-cocktail-and-glutathione-push">Myers' Cocktail + Glutathione <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-recovery-and-performance">Recovery &amp; Performance <span>→</span></a>
+          <a href="{{custom_values.website_url}}/hydration-mobile-iv-therapy">Hydration <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-hangover-jet-lag">Hangover / Jet Lag <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-the-glow-beauty-iv-drip">The Glow / Beauty IV Drip <span>→</span></a>
+          <a href="{{custom_values.website_url}}/get-lean-weight-loss-mobile-iv-therapy">Get Lean / Weight Loss <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-alleviate">Alleviate <span>→</span></a>
+          <a href="{{custom_values.website_url}}/mobile-iv-therapy-brain-storm">Brain Storm <span>→</span></a>
+        </div>
+      </div>
+      <div class="mdn-ghl-menu" data-menu="nad" data-open="false"><button class="mdn-ghl-menu-button" type="button" aria-expanded="false">NAD+ <svg class="mdn-ghl-chevron" aria-hidden="true" viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"></path></svg></button><div class="mdn-ghl-dropdown"><a href="{{custom_values.website_url}}/nad-plus-mobile-iv-therapy">NAD+ <span>→</span></a><a href="{{custom_values.website_url}}/nad-plus-boost-mobile-iv-therapy">NAD+ Boost <span>→</span></a></div></div>
+      <div class="mdn-ghl-menu" data-menu="weight" data-open="false"><button class="mdn-ghl-menu-button" type="button" aria-expanded="false">Weight Loss <svg class="mdn-ghl-chevron" aria-hidden="true" viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"></path></svg></button><div class="mdn-ghl-dropdown"><a href="{{custom_values.website_url}}/weight-loss-semaglutide">Semaglutide <span>→</span></a><a href="{{custom_values.website_url}}/weight-loss-tirzepatide">Tirzepatide <span>→</span></a></div></div>
+      <a href="https://partners.mydripnurse.com">Directory</a><a href="{{custom_values.website_url}}/contact-us">Contact</a>
+    </nav>
+    <div class="mdn-ghl-actions">
+      <a class="mdn-ghl-phone" href="tel:{{custom_values.business__phone}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.6 10.8a15.8 15.8 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.2 1.2.4 2.5.7 3.8.7.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.8 21 3 13.2 3 3.7c0-.6.4-1 1-1h3.3c.6 0 1 .4 1 1 0 1.3.2 2.6.7 3.8.1.4 0 .8-.2 1.1l-2.2 2.2Z"></path></svg><span>{{custom_values.business__phone}}</span></a>
+      <div class="mdn-ghl-desktop-account"><iframe class="mdn-ghl-account-frame" src="https://care.mydripnurse.com/embed/site-header/account" title="My Drip Nurse Care account" scrolling="no"></iframe></div>
+      <button class="mdn-ghl-mobile-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <div class="mdn-ghl-mobile-drawer">
+    <nav class="mdn-ghl-mobile-nav" aria-label="Mobile navigation">
+      <div class="mdn-ghl-mobile-menu" data-open="false"><button type="button" aria-expanded="false">IV Therapy <svg class="mdn-ghl-chevron" aria-hidden="true" viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"></path></svg></button><div class="mdn-ghl-dropdown mdn-ghl-dropdown-wide">
+        <a href="{{custom_values.website_url}}/mobile-iv-therapy-immunity-defense-cold-flu">Immunity Defense / Cold &amp; Flu <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-therapy-immunity-defense-cold-flu-and-glutathione">Immunity Defense + Glutathione <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-therapy-myers-cocktail">Myers' Cocktail <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-therapy-myers-cocktail-and-glutathione-push">Myers' Cocktail + Glutathione <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-therapy-recovery-and-performance">Recovery &amp; Performance <span>→</span></a><a href="{{custom_values.website_url}}/hydration-mobile-iv-therapy">Hydration <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-therapy-hangover-jet-lag">Hangover / Jet Lag <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-the-glow-beauty-iv-drip">The Glow / Beauty IV Drip <span>→</span></a><a href="{{custom_values.website_url}}/get-lean-weight-loss-mobile-iv-therapy">Get Lean / Weight Loss <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-therapy-alleviate">Alleviate <span>→</span></a><a href="{{custom_values.website_url}}/mobile-iv-therapy-brain-storm">Brain Storm <span>→</span></a>
+      </div></div>
+      <div class="mdn-ghl-mobile-menu" data-open="false"><button type="button" aria-expanded="false">NAD+ <svg class="mdn-ghl-chevron" aria-hidden="true" viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"></path></svg></button><div class="mdn-ghl-dropdown"><a href="{{custom_values.website_url}}/nad-plus-mobile-iv-therapy">NAD+ <span>→</span></a><a href="{{custom_values.website_url}}/nad-plus-boost-mobile-iv-therapy">NAD+ Boost <span>→</span></a></div></div>
+      <div class="mdn-ghl-mobile-menu" data-open="false"><button type="button" aria-expanded="false">Weight Loss <svg class="mdn-ghl-chevron" aria-hidden="true" viewBox="0 0 12 8"><path d="m1 1 5 5 5-5"></path></svg></button><div class="mdn-ghl-dropdown"><a href="{{custom_values.website_url}}/weight-loss-semaglutide">Semaglutide <span>→</span></a><a href="{{custom_values.website_url}}/weight-loss-tirzepatide">Tirzepatide <span>→</span></a></div></div>
+      <a href="https://partners.mydripnurse.com">Directory <span>→</span></a><a href="{{custom_values.website_url}}/contact-us">Contact <span>→</span></a>
+    </nav>
+    <div class="mdn-ghl-mobile-account"><iframe class="mdn-ghl-account-frame" src="https://care.mydripnurse.com/embed/site-header/account" title="My Drip Nurse Care account" scrolling="no"></iframe></div>
+    <a class="mdn-ghl-mobile-phone" href="tel:{{custom_values.business__phone}}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6.6 10.8a15.8 15.8 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.2 1.2.4 2.5.7 3.8.7.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.8 21 3 13.2 3 3.7c0-.6.4-1 1-1h3.3c.6 0 1 .4 1 1 0 1.3.2 2.6.7 3.8.1.4 0 .8-.2 1.1l-2.2 2.2Z"></path></svg>{{custom_values.business__phone}}</a>
+  </div>
+</header>
 
 <script>
-(function () {
-  var script = document.currentScript;
-  var host = script && script.previousElementSibling;
-  while (host && !host.getAttribute("data-mdn-site-header-host")) {
-    host = host.previousElementSibling;
-  }
-  if (!host) {
-    var hosts = document.querySelectorAll("[data-mdn-site-header-host]");
-    for (var index = hosts.length - 1; index >= 0; index -= 1) {
-      if (hosts[index].getAttribute("data-mdn-ready") !== "true") {
-        host = hosts[index];
-        break;
-      }
-    }
-  }
-  if (!host || host.getAttribute("data-mdn-ready") === "true") return;
-  host.setAttribute("data-mdn-ready", "true");
-
-  var iframe = host.querySelector("iframe");
-  if (!iframe) return;
-
-  /* GHL wraps custom code in its own element. Making that wrapper sticky keeps
-     the complete header fixed instead of constraining sticky behavior inside
-     the iframe. */
-  var stickyWrapper = host.parentElement || host;
-  stickyWrapper.style.position = "sticky";
-  stickyWrapper.style.top = "0";
-  stickyWrapper.style.zIndex = "2147483000";
-  stickyWrapper.style.setProperty("overflow", "visible", "important");
-
-  /* GHL commonly adds overflow rules to the custom-code, column and row
-     wrappers. Those rules would clip an iframe regardless of its z-index. */
-  var ancestor = stickyWrapper.parentElement;
-  var ancestorDepth = 0;
-  while (ancestor && ancestor !== document.body && ancestorDepth < 6) {
-    ancestor.style.setProperty("overflow", "visible", "important");
-    ancestor.style.setProperty("overflow-x", "visible", "important");
-    ancestor.style.setProperty("overflow-y", "visible", "important");
-    ancestor = ancestor.parentElement;
-    ancestorDepth += 1;
-  }
-
-  function closeHeaderMenus() {
-    if (iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: "mdn-site-header-close" }, "https://care.mydripnurse.com");
-    }
-  }
-
-  function handleResizeMessage(event) {
-    var data = event.data || {};
-    if (event.origin !== "https://care.mydripnurse.com") return;
-    if (event.source !== iframe.contentWindow || data.type !== "mdn-site-header-resize") return;
-    var height = Math.max(72, Math.min(1400, Number(data.height) || 0));
-    iframe.style.height = Math.ceil(height) + "px";
-  }
-
-  window.addEventListener("message", handleResizeMessage, false);
-  document.addEventListener("pointerdown", function (event) {
-    if (!host.contains(event.target)) closeHeaderMenus();
-  }, true);
-  window.addEventListener("resize", closeHeaderMenus, { passive: true });
-  window.addEventListener("scroll", closeHeaderMenus, { passive: true });
+(function(){
+  var script=document.currentScript;
+  var header=script&&script.previousElementSibling;
+  if(!header||!header.getAttribute("data-mdn-ghl-header")){var headers=document.querySelectorAll("[data-mdn-ghl-header]");header=headers[headers.length-1];}
+  if(!header||header.getAttribute("data-mdn-ready")==="true")return;
+  header.setAttribute("data-mdn-ready","true");
+  var wrapper=header.parentElement||header;
+  wrapper.style.setProperty("position","sticky","important");wrapper.style.setProperty("top","0","important");wrapper.style.setProperty("z-index","2147483000","important");wrapper.style.setProperty("overflow","visible","important");
+  var ancestor=wrapper.parentElement,depth=0;while(ancestor&&ancestor!==document.body&&depth<6){ancestor.style.setProperty("overflow","visible","important");ancestor=ancestor.parentElement;depth+=1;}
+  function closeDesktop(){var menus=header.querySelectorAll(".mdn-ghl-menu");for(var i=0;i<menus.length;i+=1){menus[i].setAttribute("data-open","false");var button=menus[i].querySelector("button");if(button)button.setAttribute("aria-expanded","false");}}
+  function closeMobileSections(){var menus=header.querySelectorAll(".mdn-ghl-mobile-menu");for(var i=0;i<menus.length;i+=1){menus[i].setAttribute("data-open","false");var button=menus[i].querySelector("button");if(button)button.setAttribute("aria-expanded","false");}}
+  var desktopButtons=header.querySelectorAll(".mdn-ghl-menu-button");for(var i=0;i<desktopButtons.length;i+=1){desktopButtons[i].addEventListener("click",function(event){var menu=event.currentTarget.parentElement;var opening=menu.getAttribute("data-open")!=="true";closeDesktop();if(opening){menu.setAttribute("data-open","true");event.currentTarget.setAttribute("aria-expanded","true");}});}
+  var mobileButtons=header.querySelectorAll(".mdn-ghl-mobile-menu>button");for(var j=0;j<mobileButtons.length;j+=1){mobileButtons[j].addEventListener("click",function(event){var menu=event.currentTarget.parentElement;var opening=menu.getAttribute("data-open")!=="true";closeMobileSections();if(opening){menu.setAttribute("data-open","true");event.currentTarget.setAttribute("aria-expanded","true");}});}
+  var toggle=header.querySelector(".mdn-ghl-mobile-toggle");if(toggle){toggle.addEventListener("click",function(){var opening=header.getAttribute("data-mobile-open")!=="true";header.setAttribute("data-mobile-open",opening?"true":"false");toggle.setAttribute("aria-expanded",opening?"true":"false");toggle.setAttribute("aria-label",opening?"Close navigation":"Open navigation");closeDesktop();closeMobileSections();});}
+  document.addEventListener("pointerdown",function(event){if(!header.contains(event.target)){closeDesktop();header.setAttribute("data-mobile-open","false");if(toggle)toggle.setAttribute("aria-expanded","false");}},true);
+  document.addEventListener("keydown",function(event){if(event.key==="Escape"){closeDesktop();closeMobileSections();header.setAttribute("data-mobile-open","false");if(toggle)toggle.setAttribute("aria-expanded","false");}});
 })();
 </script>

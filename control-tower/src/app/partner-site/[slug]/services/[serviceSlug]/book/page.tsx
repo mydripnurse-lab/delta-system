@@ -111,6 +111,9 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
                     publicKey={service.calendarId}
                     partnerId={profile.id}
                     partnerView
+                    serviceName={service.name}
+                    serviceImageUrl={service.imageUrl}
+                    serviceImageAlt={`${service.name} mobile IV therapy`}
                     initialProfile={clientAccount ? {
                       fullName: clientAccount.fullName,
                       email: clientAccount.email,

@@ -157,6 +157,9 @@ export default function ClientBookingFlow({
                 partnerId={partnerId}
                 initialProfile={initialProfile}
                 onMacroStepChange={updateBookingStep}
+                serviceName={selectedService.name}
+                serviceImageUrl={selectedService.imageUrl}
+                serviceImageAlt={selectedService.imageAlt}
               />
             </div>
           </>

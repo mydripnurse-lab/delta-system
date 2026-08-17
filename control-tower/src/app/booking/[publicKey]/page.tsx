@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { BookingCalendarClient } from "@/components/booking/BookingCalendarClient";
 import BookingIdentityPanel from "@/components/booking/BookingIdentityPanel";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
+import { loadPublicBookingCalendarSummary } from "@/lib/serviceBookingAvailability";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,10 @@ export default async function BookingCalendarPage({
     });
     redirect(destination.toString());
   }
-  const clientAccount = await getAuthenticatedClient();
+  const [clientAccount, calendarSummary] = await Promise.all([
+    getAuthenticatedClient(),
+    loadPublicBookingCalendarSummary(publicKey).catch(() => null),
+  ]);
   const returnTo = `https://care.mydripnurse.com/booking/${encodeURIComponent(publicKey)}`;
   const embedded = query.embed === "1";
   return (
@@ -40,11 +44,14 @@ export default async function BookingCalendarPage({
       connectedName={clientAccount?.fullName.split(/\s+/)[0] || ""}
       embedded={embedded}
       returnTo={returnTo}
-      serviceName="mobile wellness"
+      serviceName={calendarSummary?.serviceName || "mobile wellness"}
     >
       <BookingCalendarClient
         embedMode={embedded}
         publicKey={publicKey}
+        serviceName={calendarSummary?.serviceName || ""}
+        serviceImageUrl={calendarSummary?.serviceImageUrl || ""}
+        serviceImageAlt={calendarSummary?.serviceImageAlt || ""}
         initialProfile={clientAccount ? {
           fullName: clientAccount.fullName,
           email: clientAccount.email,

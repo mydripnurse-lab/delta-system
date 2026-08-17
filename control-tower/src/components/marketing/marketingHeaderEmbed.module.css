@@ -1,4 +1,4 @@
-.root{--teal:#075d6a;--bright:#078596;--ink:#173d42;--muted:#667d80;position:relative;z-index:1000;width:100%;min-height:120px;color:var(--ink);background:linear-gradient(to bottom,#edf5fb 0 38px,#fff 38px 120px,transparent 120px);font-family:Arial,Helvetica,sans-serif;transition:padding-bottom .2s ease}
+.root{--teal:#044c5c;--bright:#078596;--ink:#173d42;--muted:#667d80;position:relative;z-index:1000;width:100%;min-height:120px;color:var(--ink);background:linear-gradient(to bottom,#edf5fb 0 38px,#fff 38px 120px,transparent 120px);font-family:Arial,Helvetica,sans-serif;transition:padding-bottom .2s ease}
 .locationBanner{min-height:38px;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 18px;color:#163b40;background:#edf5fb;font-size:13px;font-style:italic;font-weight:800;line-height:1.35;text-align:center}.locationBanner span{font-size:17px;font-style:normal;font-weight:500}
 .bar{width:min(100% - 36px,1440px);min-height:82px;margin:0 auto;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:28px}
 .logo{display:flex;align-items:center}.logo img{display:block;width:clamp(174px,15vw,220px);height:auto}

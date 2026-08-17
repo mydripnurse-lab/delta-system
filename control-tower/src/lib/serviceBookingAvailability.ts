@@ -59,6 +59,39 @@ export type BookingAvailability = {
   slots: BookingAvailabilitySlot[];
 };
 
+export type PublicBookingCalendarSummary = {
+  serviceName: string;
+  serviceImageUrl: string;
+  serviceImageAlt: string;
+};
+
+export async function loadPublicBookingCalendarSummary(publicKey: string): Promise<PublicBookingCalendarSummary | null> {
+  await ensureBookingEngineSchema();
+  const result = await getDbPool().query<{
+    service_name: string;
+    image_url: string;
+    image_alt: string;
+  }>(
+    `select service.name as service_name,
+            coalesce(service.image_url, '') as image_url,
+            coalesce(service.image_alt, '') as image_alt
+       from app.service_calendars calendar
+       join app.services service on service.id = calendar.service_id
+      where calendar.public_key = $1
+        and calendar.status = 'active'
+        and service.is_active = true
+      limit 1`,
+    [publicKey],
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    serviceName: row.service_name,
+    serviceImageUrl: row.image_url || "/brand/care-mobile-iv-at-home.jpeg",
+    serviceImageAlt: row.image_alt || `${row.service_name} mobile IV therapy`,
+  };
+}
+
 type AvailabilityRow = {
   public_key: string;
   service_slug: string;
