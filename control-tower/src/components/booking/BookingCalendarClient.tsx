@@ -99,10 +99,20 @@ type PublicAppointmentConfirmation = {
   endsAt: string;
   timezone: string;
   service: string;
+  serviceImageUrl: string;
+  serviceImageAlt: string;
   servicePrice: number;
   depositAmount: number;
+  amountDueAtVisit: number;
   currency: string;
   paymentStatus: string;
+  professional: {
+    name: string;
+    photoUrl: string;
+    publicTitle: string;
+    credentials: string;
+    accepted: boolean;
+  };
   patient: { name: string; email: string; phone: string };
   hasAdditionalPatients: boolean;
   additionalPatientsCount: number;
@@ -114,6 +124,8 @@ type PublicAppointmentConfirmation = {
     state: string;
     postalCode: string;
     countryCode: string;
+    latitude?: number;
+    longitude?: number;
   };
 };
 
@@ -176,15 +188,12 @@ function formatConfirmationMoney(amount: number, currency: string) {
   }).format(amount);
 }
 
-function confirmationAddress(location: PublicAppointmentConfirmation["location"]) {
-  return [
-    location.addressLine1,
-    location.addressLine2,
-    location.city,
-    location.county,
-    location.state,
-    location.postalCode,
-  ].filter(Boolean).join(", ");
+function confirmationMapImage(longitude?: number, latitude?: number, token?: string) {
+  if (!token || !Number.isFinite(longitude ?? NaN) || !Number.isFinite(latitude ?? NaN)) return "";
+  const lng = Number.isFinite(longitude) ? longitude.toFixed(6) : "";
+  const lat = Number.isFinite(latitude) ? latitude.toFixed(6) : "";
+  if (!lng || !lat) return "";
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${lng},${lat},14,0/900x340@2x?access_token=${encodeURIComponent(token)}`;
 }
 
 const MEDICAL_SCREENING_OPTIONS = [
@@ -449,15 +458,16 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     setPaymentStatus("processing");
     setPaymentError("");
     try {
-      for (let attempt = 0; attempt < 6; attempt += 1) {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
         const response = await fetch("/api/public/booking/checkout/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ appointment: publicReference, sessionId }),
         });
         const payload = await response.json();
-        if (response.status === 409 && attempt < 5) {
-          await new Promise((resolve) => window.setTimeout(resolve, 900));
+        if (response.status === 409 && attempt < 7) {
+          const retryDelay = Math.min(800 + (attempt * 400), 2_000);
+          await new Promise((resolve) => window.setTimeout(resolve, retryDelay));
           continue;
         }
         if (!response.ok || !payload.ok) throw new Error(payload.error || "Your payment could not be confirmed yet.");
@@ -548,7 +558,25 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       if (!stripe) throw new Error("Secure payment could not be initialized. Please try again.");
       const checkout = await stripe.initEmbeddedCheckout({
         clientSecret: checkoutState.clientSecret,
-        onComplete: () => void finalizeCheckout(checkoutState.publicReference, checkoutState.sessionId),
+        onComplete: () => {
+          // Stripe otherwise keeps its own success screen visible while the
+          // appointment is reconciled. Move immediately into the Care-branded
+          // progress state; declined payments never call onComplete and remain
+          // in the embedded form so the customer can correct them.
+          const mountedCheckout = embeddedCheckoutRef.current;
+          embeddedCheckoutRef.current = null;
+          try {
+            mountedCheckout?.destroy();
+          } catch {
+            // The payment is already complete; a visual teardown issue must
+            // never block server-side confirmation.
+          }
+          setPaymentStatus("processing");
+          setPaymentReturn({
+            publicReference: checkoutState.publicReference,
+            sessionId: checkoutState.sessionId,
+          });
+        },
       });
       if (cancelled) {
         checkout.destroy();
@@ -566,7 +594,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       embeddedCheckoutRef.current?.destroy();
       embeddedCheckoutRef.current = null;
     };
-  }, [checkoutMountAttempt, checkoutState, finalizeCheckout]);
+  }, [checkoutMountAttempt, checkoutState]);
 
   useEffect(() => {
     const query = address.addressLine1.trim();
@@ -944,6 +972,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   }, [address, contact, contactIsComplete, partnerView, publicKey]);
 
   if (confirmation) {
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() || "";
+    const mapImage = confirmationMapImage(confirmation.location.longitude, confirmation.location.latitude, mapboxToken);
     return (
       <main className={`${styles.page} ${styles.paymentPage}`}>
         <section className={styles.paymentShell}>
@@ -955,19 +985,58 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           </div>
           <div className={styles.confirmationGrid}>
             <article className={styles.confirmationPrimary}>
-              <span>SERVICE</span>
-              <h2>{confirmation.service}</h2>
+              <header className={styles.confirmationServiceHeader}>
+                <img
+                  alt={confirmation.serviceImageAlt || confirmation.service}
+                  className={styles.confirmationServiceImage}
+                  src={confirmation.serviceImageUrl || "/brand/care-mobile-iv-at-home.jpeg"}
+                />
+                <div>
+                  <span>SERVICE</span>
+                  <h2>{confirmation.service}</h2>
+                </div>
+              </header>
               <dl className={styles.confirmationDetails}>
                 <div><dt>When</dt><dd>{formatConfirmationDate(confirmation.startsAt, confirmation.timezone)}</dd></div>
-                <div><dt>Care location</dt><dd>{confirmationAddress(confirmation.location)}</dd></div>
+                <div><dt>Reference</dt><dd>{confirmation.reference}</dd></div>
+              </dl>
+              <div className={styles.confirmationMap} role="img" aria-label="Map of the appointment area">
+                {mapImage ? <img alt="" className={styles.confirmationMapImage} src={mapImage} /> : null}
+                <div className={styles.confirmationMapPin}>
+                  <img
+                    alt={confirmation.serviceImageAlt || confirmation.service}
+                    className={styles.confirmationMapIcon}
+                    src={confirmation.serviceImageUrl || "/brand/care-mobile-iv-at-home.jpeg"}
+                  />
+                </div>
+                {!mapImage ? <div className={styles.confirmationMapFallback}>Map is not available right now.</div> : null}
+              </div>
+              <section className={styles.confirmationProfessional} aria-label="Your care professional">
+                <div className={styles.confirmationProfessionalPhoto}>
+                  {confirmation.professional.photoUrl ? (
+                    <img
+                      alt={confirmation.professional.name}
+                      src={confirmation.professional.photoUrl}
+                    />
+                  ) : <span>{initials(confirmation.professional.name)}</span>}
+                </div>
+                <div className={styles.confirmationProfessionalIdentity}>
+                  <span>YOUR CARE PROFESSIONAL</span>
+                  <h3>{confirmation.professional.name}</h3>
+                  <p>{[confirmation.professional.publicTitle, confirmation.professional.credentials].filter(Boolean).join(" · ")}</p>
+                  <small><i aria-hidden="true" /> {confirmation.professional.accepted ? "Visit accepted" : "Assigned to your visit"}</small>
+                </div>
+              </section>
+              <dl className={styles.confirmationDetails}>
                 <div><dt>Patient</dt><dd>{confirmation.patient.name}</dd></div>
                 {confirmation.additionalPatientsCount > 0 ? <div><dt>Additional patients</dt><dd>{confirmation.additionalPatientsCount}</dd></div> : null}
               </dl>
             </article>
             <aside className={styles.confirmationPayment}>
               <span>PAYMENT</span>
-              <strong>{confirmation.depositAmount > 0 ? formatConfirmationMoney(confirmation.depositAmount, confirmation.currency) : "No deposit due"}</strong>
-              <p>{confirmation.depositAmount > 0 ? "Secure deposit paid" : "Your eligible reward was applied"}</p>
+              <strong>{formatConfirmationMoney(confirmation.depositAmount, confirmation.currency)} deposit paid</strong>
+              <p>{confirmation.depositAmount > 0 ? "Payment secured with Stripe." : "Your eligible reward was applied."}</p>
+              <small>Balance to pay at the visit: {formatConfirmationMoney(Math.max(confirmation.amountDueAtVisit, 0), confirmation.currency)}</small>
               <small>Confirmation {confirmation.reference}</small>
             </aside>
           </div>
@@ -993,28 +1062,32 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     };
     return (
       <main className={`${styles.page} ${styles.paymentPage}`}>
-        <section className={styles.paymentShell}>
+        <section className={`${styles.paymentShell} ${styles.checkoutPaymentShell}`}>
           <header className={styles.paymentHeader}>
-            <span className={styles.eyebrow}>SECURE CHECKOUT</span>
-            <h1>Complete your appointment.</h1>
-            <p>Pay securely without leaving My Drip Nurse Care. Your selected service, time and patient details are already reserved.</p>
-            <div className={styles.paymentTrust}><span aria-hidden="true">⌁</span> Encrypted payment · Powered by Stripe</div>
+            <span className={styles.eyebrow}>PAYMENT</span>
+            <h1>Complete your booking.</h1>
+            <p>Your appointment details are reserved while you finish payment below.</p>
           </header>
-          {checkoutState && paymentStatus !== "error" ? (
+          {checkoutState && paymentStatus === "idle" ? (
             <div className={styles.checkoutFrame}>
               <div id="mdn-embedded-checkout" />
             </div>
           ) : (
-            <div className={styles.paymentStatusCard} role="status" aria-live="polite">
+            <div className={styles.paymentStatusCard} role={paymentStatus === "error" ? "alert" : "status"} aria-live="polite">
               {paymentStatus === "error" ? <>
                 <span className={styles.paymentStatusIcon} aria-hidden="true">!</span>
-                <h2>Let’s reconnect your payment.</h2>
+                <h2>We’re checking your payment.</h2>
                 <p>{paymentError}</p>
-                <button type="button" className={styles.primaryButton} onClick={retryConfirmation}>Try again</button>
+                <small>Your appointment remains reserved. Checking again will not create a second charge.</small>
+                <button type="button" className={styles.primaryButton} onClick={retryConfirmation}>
+                  {paymentReturn ? "Check payment status" : "Reload secure payment"}
+                </button>
               </> : <>
-                <span className={styles.paymentSpinner} aria-hidden="true" />
-                <h2>Confirming your appointment</h2>
-                <p>Please keep this page open for a moment.</p>
+                <span className={styles.paymentProgressIcon} aria-hidden="true"><i /></span>
+                <span className={styles.paymentStatusEyebrow}>SECURING YOUR VISIT</span>
+                <h2>Payment received.</h2>
+                <p>We’re preparing your appointment and care professional details.</p>
+                <span className={styles.paymentProgressBar} aria-hidden="true"><i /></span>
               </>}
             </div>
           )}

@@ -78,7 +78,7 @@ export default async function ClientAppointmentsPage() {
         <Link href="/book" className={styles.primaryAction}>Book another visit <span>→</span></Link>
       </section>
 
-      {featured ? <section className={styles.appointmentDetail}>
+      {featured ? <section id={`upcoming-${featured.id}`} className={styles.appointmentDetail}>
         <div className={styles.appointmentDetailBody}>
           <div className={styles.appointmentDetailHeader}>
             <div className={styles.commandServicePhoto}>

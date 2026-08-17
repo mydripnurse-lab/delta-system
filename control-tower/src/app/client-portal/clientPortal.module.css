@@ -161,7 +161,7 @@
 .bodyWellnessFormFooter > button:disabled { opacity: .58; cursor: wait; }
 
 .commandCenter,.appointmentDetail { display: grid; grid-template-columns: 1fr; min-height: 0; overflow: hidden; border: 1px solid #c9dfdc; border-radius: 30px; background: #fff; box-shadow: 0 24px 65px rgba(21,57,61,.1); }
-.commandCenterMain,.appointmentDetailBody { display: grid; align-content: space-between; gap: 30px; padding: clamp(30px, 4vw, 52px); }
+.commandCenterMain,.appointmentDetailBody { min-width: 0; display: grid; align-content: space-between; gap: 30px; padding: clamp(30px, 4vw, 52px); }
 .pendingCommandCenter { border-color: #b9ded8; background: radial-gradient(circle at 15% 0%, rgba(127,222,207,.16), transparent 24rem), #fff; box-shadow: 0 28px 80px rgba(7,92,104,.13); }
 .pendingVisitSignal { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border: 1px solid #c4e5df; border-radius: 18px; background: rgba(236,249,246,.82); }
 .pendingVisitSignal > span { position: relative; width: 12px; height: 12px; flex: 0 0 12px; border-radius: 50%; background: #0ea99b; box-shadow: 0 0 0 7px rgba(14,169,155,.1); }
@@ -174,8 +174,8 @@
 .commandHeader { display: flex; align-items: start; justify-content: space-between; gap: 24px; }
 .commandHeader h2,.noVisitCommand h2,.appointmentDetailBody h2 { margin: 10px 0 0; font: 400 clamp(34px, 3.4vw, 52px)/1.02 Georgia, serif; letter-spacing: -.04em; }
 .attentionPill { display: inline-flex; align-items: center; padding: 9px 13px; border-radius: 999px; color: #fff; background: #d55b53; font-size: 10px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 8px 18px rgba(197,71,62,.2); }
-.commandFacts { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--care-line); }
-.commandFacts > div { min-height: 110px; display: grid; align-content: center; gap: 7px; border-bottom: 1px solid var(--care-line); }
+.commandFacts { width: 100%; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--care-line); }
+.commandFacts > div { min-width: 0; min-height: 110px; display: grid; align-content: center; gap: 7px; border-bottom: 1px solid var(--care-line); }
 .commandFacts > div:nth-child(odd) { padding-right: 24px; }
 .commandFacts > div:nth-child(even) { padding-left: 24px; border-left: 1px solid var(--care-line); }
 .commandFacts b { font-size: 13px; line-height: 1.5; }
@@ -188,9 +188,22 @@
 .commandServicePhoto img { width: 100% !important; height: 100% !important; object-fit: cover; }
 .commandMapTile { grid-column: 1 / -1; padding: 16px !important; }
 .commandMapTile .visitMapCard { min-height: 270px; border-radius: 18px; border: 1px solid var(--care-line); }
-.queueStrip { display: grid; gap: 10px; padding-top: 6px; }
-.queueStrip span { color: var(--care-muted); font-size: 9px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.queueStrip a { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 12px; color: var(--care-teal); text-decoration: none; background: #f4fbf9; font-size: 11px; font-weight: 900; }
+.upcomingVisitList { display: grid; gap: 14px; padding-top: 4px; }
+.upcomingVisitListHeader { display: flex; align-items: end; justify-content: space-between; gap: 18px; }
+.upcomingVisitListHeader h3 { margin: 5px 0 0; font: 400 24px/1.08 Georgia, serif; letter-spacing: -.025em; }
+.upcomingVisitListHeader > a { display: inline-flex; align-items: center; gap: 10px; padding: 8px 0; color: var(--care-teal); font-size: 10px; font-weight: 900; text-decoration: none; white-space: nowrap; }
+.upcomingVisitRows { overflow: hidden; border: 1px solid var(--care-line); border-radius: 18px; background: #fff; }
+.upcomingVisitRow { min-height: 72px; display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 11px 14px; border-top: 1px solid #e6efed; color: var(--care-ink); text-decoration: none; transition: background .18s ease; }
+.upcomingVisitRow:first-child { border-top: 0; }
+.upcomingVisitRow:hover { background: #f4faf8; }
+.upcomingVisitImage { width: 48px; height: 48px; overflow: hidden; border: 1px solid #d9e8e5; border-radius: 14px; background: var(--care-soft); }
+.upcomingVisitImage img { width: 100%; height: 100%; object-fit: cover; }
+.upcomingVisitCopy { min-width: 0; display: grid; gap: 5px; }
+.upcomingVisitCopy strong,.upcomingVisitCopy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upcomingVisitCopy strong { font-size: 12px; }
+.upcomingVisitCopy small { color: var(--care-copy); font-size: 9px; }
+.upcomingVisitArrow { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: var(--care-teal); background: #e9f6f3; font-size: 14px; transition: transform .18s ease; }
+.upcomingVisitRow:hover .upcomingVisitArrow { transform: translateX(2px); }
 .commandProfessionalFact { padding-top: 12px; padding-bottom: 12px; }
 .careProfessional,.careProfessionalPending { min-width: 0; display: flex; align-items: center; gap: 14px; padding: 14px; border: 1px solid #cfe5e1; border-radius: 18px; background: linear-gradient(135deg, #f7fcfa, #eef8f5); }
 .careProfessionalPhoto { position: relative; width: 68px; height: 68px; display: grid; overflow: hidden; flex: 0 0 auto; place-items: center; border: 3px solid #fff; border-radius: 21px; color: #fff; background: linear-gradient(145deg, var(--care-teal), var(--care-teal-bright)); box-shadow: 0 9px 22px rgba(7,103,116,.16); font-size: 15px; font-weight: 900; }
@@ -213,6 +226,7 @@
 .commandFooter { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .commandFooter > span { color: var(--care-muted); font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 .commandFooter a { min-height: 47px; display: inline-flex; align-items: center; gap: 28px; padding: 0 17px; border-radius: 14px; color: #fff; background: var(--care-teal); font-size: 11px; font-weight: 900; text-decoration: none; }
+.appointmentDetail,.appointmentCard { scroll-margin-top: 108px; }
 
 .visitProgress { display: grid; grid-template-columns: repeat(4, 1fr); }
 .progressStep,.progressStepActive { position: relative; display: grid; gap: 9px; color: #99a7a6; font-size: 9px; font-weight: 800; line-height: 1.35; }
@@ -609,10 +623,20 @@
   .commandCenter,.appointmentDetail,.noVisitCommand { border-radius: 23px; }
   .commandCenterMain,.appointmentDetailBody { gap: 26px; padding: 24px 20px; }
   .commandHeader { align-items: start; flex-direction: column-reverse; }
+  .commandHeader > div { min-width: 0; max-width: 100%; }
+  .commandHeader h2 { overflow-wrap: anywhere; }
   .commandFacts,.appointmentDetailGrid { grid-template-columns: 1fr; }
   .commandFacts > div,.appointmentDetailGrid > div { min-height: 86px; padding: 0 !important; border-left: 0 !important; }
+  .commandServiceRow { grid-template-columns: 56px minmax(0, 1fr); column-gap: 13px; row-gap: 14px; padding: 14px 0 !important; }
+  .commandServicePhoto { width: 56px; height: 56px; border-radius: 15px; }
+  .commandServiceRow .commandServiceMeta:last-child { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid #e5eeec; }
+  .commandServiceMeta b { overflow-wrap: anywhere; word-break: break-word; }
   .commandFooter { align-items: stretch; flex-direction: column; }
   .commandFooter a { justify-content: space-between; }
+  .upcomingVisitListHeader h3 { font-size: 22px; }
+  .upcomingVisitRow { min-height: 68px; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 11px; padding: 10px 11px; }
+  .upcomingVisitImage { width: 44px; height: 44px; border-radius: 13px; }
+  .upcomingVisitCopy small { white-space: normal; line-height: 1.45; }
   .visitProgress { overflow-x: auto; padding-bottom: 4px; }
   .progressStep,.progressStepActive { min-width: 95px; }
   .commandCenter .visitMapCard,.appointmentDetail .visitMapCard { min-height: 330px; }
@@ -858,8 +882,10 @@
 .referralEmpty h3 { margin: 10px 0 5px; font: 400 25px Georgia,serif; }
 .referralEmpty p { margin: 0; color: var(--care-copy); font-size: 10px; }
 .referralHomeLink { background: linear-gradient(145deg,#edf9f6,#fff) !important; }
-.referralHomeProgress { height: 5px; overflow: hidden; margin-top: auto; border-radius: 999px; background: #dceae7; }
+.quickStack .referralHomeLink h3 { margin-top: 38px; }
+.referralHomeProgress { width: 100%; height: 5px; flex: 0 0 5px; overflow: hidden; margin-top: 26px; border-radius: 999px; background: #dceae7; }
 .referralHomeProgress i { height: 100%; display: block; border-radius: inherit; background: linear-gradient(90deg,var(--care-teal),var(--care-teal-bright)); }
+.quickStack .referralHomeLink > b { margin-top: 17px; }
 
 @media (max-width: 980px) {
   .rewardProgramGrid,.visitRewardHero,.visitRewardDetails { grid-template-columns: 1fr; }
@@ -869,6 +895,10 @@
 }
 
 @media (max-width: 640px) {
+  .quickStack a.referralHomeLink { min-height: 230px; padding: 25px 27px; }
+  .quickStack .referralHomeLink h3 { margin-top: 34px; }
+  .referralHomeProgress { margin-top: 24px; }
+  .quickStack .referralHomeLink > b { margin-top: 15px; }
   .rewardsPage,.visitRewardsPage { gap: 14px; }
   .rewardsHero { min-height: 0; grid-template-columns: 1fr; gap: 22px; padding: 25px 19px 19px; border-radius: 23px; }
   .rewardsHero h1 { font-size: 39px; }

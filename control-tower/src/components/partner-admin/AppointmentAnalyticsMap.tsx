@@ -7,10 +7,20 @@ import styles from "@/app/partner-admin/partnerAdmin.module.css";
 import { CountyPartnerProspecting } from "@/components/partner-admin/CountyPartnerProspecting";
 import type { AppointmentGeoPoint, AppointmentMapHistoryItem, AppointmentMapPerson, BusinessCoverageArea } from "@/lib/adminAppointmentAnalytics";
 
-export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverageVisible }: { points: AppointmentGeoPoint[]; people: AppointmentMapPerson[]; coverageAreas: BusinessCoverageArea[]; coverageVisible: boolean }) {
+type CoverageBoundaryFeature = {
+  type: "Feature";
+  geometry: BusinessCoverageArea["geometry"];
+  properties: { GEOID: string; STATE: string; NAME: string; BASENAME: string };
+};
+
+type CoverageBoundaryCollection = { type: "FeatureCollection"; features: CoverageBoundaryFeature[] };
+
+export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverageVisible, coverageGapsVisible }: { points: AppointmentGeoPoint[]; people: AppointmentMapPerson[]; coverageAreas: BusinessCoverageArea[]; coverageVisible: boolean; coverageGapsVisible: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
+  const [coverageBoundaries, setCoverageBoundaries] = useState<CoverageBoundaryCollection | null>(null);
+  const [coverageGapsState, setCoverageGapsState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [selectedKey, setSelectedKey] = useState("");
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() || "";
   const styleUrl = process.env.NEXT_PUBLIC_MAPBOX_STYLE_URL?.trim() || "mapbox://styles/mapbox/light-v11";
@@ -34,6 +44,9 @@ export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverag
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       map.on("load", () => {
         if (!map) return;
+        map.addSource("business-coverage-gaps", { type: "geojson", data: emptyCoverageBoundaryCollection() });
+        map.addLayer({ id: "business-coverage-gaps-fill", type: "fill", source: "business-coverage-gaps", layout: { visibility: "none" }, paint: { "fill-color": "#d37e63", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 2, .08, 7, .13, 11, .07] } });
+        map.addLayer({ id: "business-coverage-gaps-outline", type: "line", source: "business-coverage-gaps", layout: { visibility: "none" }, paint: { "line-color": "#bb745f", "line-width": ["interpolate", ["linear"], ["zoom"], 2, .25, 8, .8], "line-opacity": .35 } });
         map.addSource("business-coverage", { type: "geojson", data: coverageFeatureCollection(coverageAreas) });
         map.addLayer({ id: "business-coverage-fill", type: "fill", source: "business-coverage", paint: { "fill-color": "#39b8a6", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 2, .11, 7, .18, 11, .1] } });
         map.addLayer({ id: "business-coverage-outline", type: "line", source: "business-coverage", paint: { "line-color": "#078596", "line-width": ["interpolate", ["linear"], ["zoom"], 2, .8, 8, 1.8], "line-opacity": .72 } });
@@ -58,6 +71,24 @@ export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverag
   }, [token, styleUrl]);
 
   useEffect(() => {
+    if (!coverageGapsVisible || coverageBoundaries) return;
+    const controller = new AbortController();
+    setCoverageGapsState("loading");
+    void fetch("/api/partner-admin/analytics/coverage-boundaries", { cache: "force-cache", signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json() as { ok?: boolean; boundaries?: CoverageBoundaryCollection; error?: string };
+        if (!response.ok || !payload.ok || !payload.boundaries) throw new Error(payload.error || "Coverage boundaries are unavailable.");
+        setCoverageBoundaries(payload.boundaries);
+        setCoverageGapsState("ready");
+      })
+      .catch((loadError: unknown) => {
+        if (loadError instanceof DOMException && loadError.name === "AbortError") return;
+        setCoverageGapsState("error");
+      });
+    return () => controller.abort();
+  }, [coverageBoundaries, coverageGapsVisible]);
+
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || state !== "ready") return;
     (map.getSource("appointments") as GeoJSONSource | undefined)?.setData(featureCollection(points));
@@ -71,17 +102,33 @@ export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverag
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || state !== "ready" || !coverageBoundaries) return;
+    (map.getSource("business-coverage-gaps") as GeoJSONSource | undefined)?.setData(coverageGapFeatureCollection(coverageBoundaries, coverageAreas));
+  }, [coverageAreas, coverageBoundaries, state]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || state !== "ready") return;
     const visibility = coverageVisible ? "visible" : "none";
     map.setLayoutProperty("business-coverage-fill", "visibility", visibility);
     map.setLayoutProperty("business-coverage-outline", "visibility", visibility);
   }, [coverageVisible, state]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state !== "ready") return;
+    const visibility = coverageGapsVisible && coverageGapsState === "ready" ? "visible" : "none";
+    map.setLayoutProperty("business-coverage-gaps-fill", "visibility", visibility);
+    map.setLayoutProperty("business-coverage-gaps-outline", "visibility", visibility);
+  }, [coverageGapsState, coverageGapsVisible, state]);
+
   return <div className={styles.analyticsMapWrap}>
     <div ref={containerRef} className={styles.analyticsMap} />
     {state === "loading" ? <div className={styles.analyticsMapState}>Preparing the appointment map…</div> : null}
     {state === "missing" ? <div className={styles.analyticsMapState}><strong>Mapbox setup required</strong><span>Add `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` in Vercel to display the live map.</span></div> : null}
     {state === "error" ? <div className={styles.analyticsMapState}><strong>The map could not load</strong><span>The tables and geographic metrics remain available.</span></div> : null}
+    {state === "ready" && coverageGapsVisible && coverageGapsState === "loading" ? <div className={styles.analyticsMapLayerState}>Loading USA &amp; Puerto Rico coverage gaps…</div> : null}
+    {state === "ready" && coverageGapsVisible && coverageGapsState === "error" ? <div className={`${styles.analyticsMapLayerState} ${styles.analyticsMapLayerError}`}>Coverage gaps could not be loaded.</div> : null}
     {selectedPoint ? <section className={styles.analyticsLeadPanel} role="dialog" aria-modal="false" aria-label={`Patient activity for ${pointName(selectedPoint)}`}>
       <header>
         <div><span>Location activity</span><h3>{pointName(selectedPoint)}</h3><p>{selectedPoint.people} {selectedPoint.people === 1 ? "person" : "people"} · {selectedPoint.total} appointments · {selectedPoint.intents} booking attempts</p></div>
@@ -145,6 +192,30 @@ function featureCollection(points: AppointmentGeoPoint[]) {
 function coverageFeatureCollection(areas: BusinessCoverageArea[]) {
   return { type: "FeatureCollection" as const, features: areas.map((area) => ({ type: "Feature" as const, geometry: area.geometry, properties: { key: area.key, county: area.county, state: area.state, partnerCount: area.partnerCount, serviceCount: area.serviceCount } })) };
 }
+
+function emptyCoverageBoundaryCollection(): CoverageBoundaryCollection {
+  return { type: "FeatureCollection", features: [] };
+}
+
+function coverageGapFeatureCollection(boundaries: CoverageBoundaryCollection, coveredAreas: BusinessCoverageArea[]): CoverageBoundaryCollection {
+  const coveredKeys = new Set(coveredAreas.map((area) => `${stateFips(area.state)}|${normalizeCounty(area.county)}`));
+  return {
+    type: "FeatureCollection",
+    features: boundaries.features.filter((feature) => !coveredKeys.has(`${feature.properties.STATE}|${normalizeCounty(feature.properties.BASENAME || feature.properties.NAME)}`)),
+  };
+}
+
+function normalizeCounty(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\b(county|parish|borough|municipio|municipality|census area)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function stateFips(value: string) {
+  return STATE_FIPS[value.trim().toLowerCase()] || "";
+}
+
+const STATE_FIPS: Record<string, string> = {
+  alabama: "01", alaska: "02", arizona: "04", arkansas: "05", california: "06", colorado: "08", connecticut: "09", delaware: "10", "district of columbia": "11", florida: "12", georgia: "13", hawaii: "15", idaho: "16", illinois: "17", indiana: "18", iowa: "19", kansas: "20", kentucky: "21", louisiana: "22", maine: "23", maryland: "24", massachusetts: "25", michigan: "26", minnesota: "27", mississippi: "28", missouri: "29", montana: "30", nebraska: "31", nevada: "32", "new hampshire": "33", "new jersey": "34", "new mexico": "35", "new york": "36", "north carolina": "37", "north dakota": "38", ohio: "39", oklahoma: "40", oregon: "41", pennsylvania: "42", "rhode island": "44", "south carolina": "45", "south dakota": "46", tennessee: "47", texas: "48", utah: "49", vermont: "50", virginia: "51", washington: "53", "west virginia": "54", wisconsin: "55", wyoming: "56", "puerto rico": "72",
+};
 
 function HistoryItem({ item }: { item: AppointmentMapHistoryItem }) {
   const assessment = item.lossReason ? lossReason(item) : null;

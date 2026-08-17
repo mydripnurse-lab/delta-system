@@ -169,11 +169,21 @@
   box-shadow: 0 28px 76px rgba(25, 76, 80, .12);
 }
 
+.checkoutPaymentShell {
+  width: min(100%, 760px);
+  border-radius: clamp(20px, 3vw, 28px);
+  box-shadow: 0 22px 64px rgba(25, 76, 80, .1);
+}
+
 .paymentHeader,
 .confirmationHero {
   padding: clamp(30px, 5vw, 62px);
   background: linear-gradient(125deg, #effaf7 0%, #fff 72%);
   border-bottom: 1px solid #d7e8e6;
+}
+
+.checkoutPaymentShell .paymentHeader {
+  padding: clamp(24px, 5vw, 38px);
 }
 
 .paymentHeader h1,
@@ -189,6 +199,13 @@
   text-wrap: balance;
 }
 
+.checkoutPaymentShell .paymentHeader h1 {
+  max-width: 600px;
+  margin: 10px 0 10px;
+  font-size: clamp(1.9rem, 5vw, 2.75rem);
+  line-height: 1.06;
+}
+
 .paymentHeader p,
 .confirmationHero p {
   max-width: 720px;
@@ -198,38 +215,28 @@
   line-height: 1.65;
 }
 
-.paymentTrust {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 22px;
-  padding: 9px 13px;
-  border-radius: 999px;
-  background: #e2f5f1;
-  color: #086c75;
-  font-size: .74rem;
-  font-weight: 900;
-  letter-spacing: .04em;
+.checkoutFrame {
+  min-height: 500px;
+  padding: clamp(8px, 2.5vw, 22px);
+  background: #fff;
 }
 
-.checkoutFrame {
-  min-height: 520px;
-  padding: clamp(10px, 3vw, 30px);
-  background: #fff;
+.checkoutFrame > div {
+  min-width: 0;
 }
 
 .paymentStatusCard {
   display: grid;
   justify-items: center;
   gap: 14px;
-  min-height: 330px;
-  padding: 64px 24px;
+  min-height: 300px;
+  padding: clamp(38px, 8vw, 64px) clamp(20px, 5vw, 40px);
   color: #60797b;
   text-align: center;
 }
 
 .paymentStatusIcon,
-.paymentSpinner {
+.paymentProgressIcon {
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -244,10 +251,32 @@
   font-weight: 900;
 }
 
-.paymentSpinner {
-  border: 4px solid #dcecea;
-  border-top-color: #078597;
-  animation: paymentSpin .8s linear infinite;
+.paymentProgressIcon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbe4e0;
+  background: linear-gradient(145deg, #eff9f6, #fff);
+  box-shadow: 0 12px 30px rgba(8, 109, 121, .1);
+}
+
+.paymentProgressIcon::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 2px solid transparent;
+  border-top-color: #087887;
+  border-right-color: #8bcfc5;
+  border-radius: inherit;
+  animation: paymentSpin .9s linear infinite;
+}
+
+.paymentProgressIcon i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #087887;
+  box-shadow: 0 0 0 6px rgba(8, 120, 135, .1);
 }
 
 .paymentStatusCard h2 {
@@ -259,6 +288,11 @@
 }
 
 .paymentStatusCard p { max-width: 540px; margin: 0; line-height: 1.6; }
+.paymentStatusCard small { max-width: 480px; color: #789092; font-size: .78rem; line-height: 1.5; }
+.paymentStatusCard .primaryButton { width: auto; min-width: 210px; margin-top: 4px; padding-inline: 26px; }
+.paymentStatusEyebrow { margin-top: 2px; color: #087887; font-size: .66rem; font-weight: 900; letter-spacing: .17em; }
+.paymentProgressBar { width: min(210px, 70vw); height: 3px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: #e2eeec; }
+.paymentProgressBar i { display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #087887, #65c8ba); animation: paymentProgress 1.25s ease-in-out infinite alternate; }
 
 .confirmationHero { position: relative; }
 
@@ -283,7 +317,6 @@
 }
 
 .confirmationPrimary,
-.confirmationDetails,
 .confirmationPayment {
   padding: clamp(26px, 4vw, 46px);
   background: #fff;
@@ -311,7 +344,24 @@
 .confirmationDetails dd,
 .confirmationPayment small { color: #60797b; line-height: 1.55; }
 
-.confirmationDetails { display: grid; gap: 20px; }
+.confirmationServiceHeader {
+  display: grid;
+  gap: 14px;
+  align-items: center;
+  grid-template-columns: 58px minmax(0, 1fr);
+  padding: 0 0 20px;
+  border-bottom: 1px solid #e3edeb;
+}
+
+.confirmationServiceImage {
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid #d6ece8;
+}
+
+.confirmationDetails { display: grid; gap: 18px; padding: 20px 0; }
 .confirmationDetails div { display: grid; gap: 6px; }
 .confirmationDetails dt,
 .confirmationDetails dd { margin: 0; }
@@ -324,6 +374,103 @@
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 500;
 }
+
+.confirmationMap {
+  position: relative;
+  margin-top: 6px;
+  border-radius: 18px;
+  border: 1px solid #cfe0de;
+  min-height: 220px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(17, 144, 155, .18), transparent 45%),
+    linear-gradient(125deg, #eef8f6, #f9fbfa 55%, #dbeff0 100%);
+}
+
+.confirmationMapImage {
+  width: 100%;
+  min-height: 220px;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.confirmationMapPin {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 5px solid rgba(255, 255, 255, 0.9);
+  background: #e6f5f3;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  box-shadow: 0 16px 28px rgba(5, 111, 122, .2);
+  overflow: hidden;
+  padding: 7px;
+}
+
+.confirmationMapIcon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 999px;
+}
+
+.confirmationMapFallback {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: center;
+  padding: 16px 16px 20px;
+  color: #708d90;
+  font-weight: 800;
+  font-size: .9rem;
+}
+
+.confirmationProfessional {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #d7e7e4;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f3faf8, #fff 75%);
+}
+
+.confirmationProfessionalPhoto {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  overflow: hidden;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #dcefeb;
+  box-shadow: 0 10px 24px rgba(23, 78, 81, .14);
+  color: #086d77;
+  font-family: Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.confirmationProfessionalPhoto img { width: 100%; height: 100%; object-fit: cover; }
+.confirmationProfessionalIdentity { min-width: 0; display: grid; gap: 4px; }
+.confirmationProfessionalIdentity > span { color: #758c8d; font-size: .63rem; font-weight: 900; letter-spacing: .14em; }
+.confirmationProfessionalIdentity h3 { margin: 0; color: #173e43; font-family: Georgia, serif; font-size: clamp(1.3rem, 3vw, 1.65rem); font-weight: 500; }
+.confirmationProfessionalIdentity p { margin: 0; color: #60797b; font-size: .78rem; line-height: 1.45; }
+.confirmationProfessionalIdentity small { display: flex; align-items: center; gap: 7px; margin-top: 4px; color: #477174; font-size: .72rem; font-weight: 800; }
+.confirmationProfessionalIdentity small i { width: 7px; height: 7px; border-radius: 50%; background: #22a78c; box-shadow: 0 0 0 4px rgba(34, 167, 140, .1); }
 
 .confirmationActions {
   display: flex;
@@ -352,17 +499,29 @@
 .secondaryLink:hover { background: #edf8f5; }
 
 @keyframes paymentSpin { to { transform: rotate(360deg); } }
+@keyframes paymentProgress { from { transform: translateX(-70%); } to { transform: translateX(140%); } }
 
 @media (min-width: 800px) {
-  .confirmationGrid { grid-template-columns: 1.2fr 1fr .8fr; }
+  .confirmationGrid { grid-template-columns: minmax(0, 1.35fr) minmax(250px, .65fr); }
+}
+
+@media (min-width: 1020px) {
+  .confirmationPrimary,
+  .confirmationPayment { padding: 38px; }
 }
 
 @media (max-width: 560px) {
-  .paymentPage { padding: 10px; }
-  .paymentShell { border-radius: 24px; }
+  .paymentPage { padding: 8px; }
+  .paymentShell { border-radius: 20px; }
   .paymentHeader,
-  .confirmationHero { padding: 28px 22px; }
-  .checkoutFrame { padding: 2px; }
+  .confirmationHero { padding: 26px 20px; }
+  .checkoutPaymentShell .paymentHeader { padding: 24px 20px 22px; }
+  .checkoutPaymentShell .paymentHeader p { font-size: .9rem; line-height: 1.5; }
+  .checkoutFrame { min-height: 460px; padding: 0; }
+  .paymentStatusCard { min-height: 280px; padding: 38px 20px; }
+  .paymentStatusCard .primaryButton { width: 100%; min-width: 0; }
+  .confirmationProfessional { grid-template-columns: 58px minmax(0, 1fr); gap: 13px; padding: 15px; border-radius: 17px; }
+  .confirmationProfessionalPhoto { width: 58px; height: 58px; }
   .confirmationActions { flex-direction: column; }
   .primaryLink,
   .secondaryLink { width: 100%; }

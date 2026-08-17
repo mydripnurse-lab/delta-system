@@ -5,6 +5,13 @@ import { sendAppointmentCreatedWebhook, sendAppointmentLifecycleWebhook } from "
 import { sendAppointmentRefundNotification } from "@/lib/appointmentRefundNotifications";
 import { createPartnerAppointmentPush } from "@/lib/partnerPushNotifications";
 
+const PAYMENT_CONFIRMED_APPOINTMENT_STATUSES = new Set([
+  "confirmed",
+  "partner_acknowledged",
+  "in_progress",
+  "completed",
+]);
+
 function text(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -61,6 +68,7 @@ export async function confirmStripeCheckoutPayment(opts: {
   const pool = getDbPool();
   const client = await pool.connect();
   let confirmed = false;
+  let alreadyConfirmed = false;
   try {
     await client.query("begin");
     const locked = await client.query<{
@@ -91,6 +99,13 @@ export async function confirmStripeCheckoutPayment(opts: {
       throw new Error("Stripe payment amount or currency does not match the appointment deposit.");
     }
 
+    // The signed webhook can finish a payment a fraction of a second before
+    // Embedded Checkout calls this browser-return path. Treat that state as a
+    // successful, idempotent reconciliation instead of leaving the customer on
+    // a false "payment is still processing" screen.
+    alreadyConfirmed = PAYMENT_CONFIRMED_APPOINTMENT_STATUSES.has(row.appointment_status)
+      && row.payment_status === "paid";
+
     if (row.appointment_status === "payment_pending") {
       const updated = await client.query<{ id: string }>(
         `update app.appointments
@@ -103,7 +118,7 @@ export async function confirmStripeCheckoutPayment(opts: {
       confirmed = Boolean(updated.rows[0]);
     }
 
-    if (confirmed || (row.appointment_status === "confirmed" && row.payment_status === "paid")) {
+    if (confirmed || alreadyConfirmed) {
       await client.query(
         `update app.appointment_payments
             set status = 'paid', checkout_session_id = coalesce(checkout_session_id, $2),
@@ -132,7 +147,7 @@ export async function confirmStripeCheckoutPayment(opts: {
   }
 
   if (confirmed) await sendConfirmedAppointmentAutomations(opts.appointmentId);
-  return { confirmed, appointmentId: opts.appointmentId };
+  return { confirmed: confirmed || alreadyConfirmed, appointmentId: opts.appointmentId };
 }
 
 export async function markStripeCheckoutProcessing(opts: {

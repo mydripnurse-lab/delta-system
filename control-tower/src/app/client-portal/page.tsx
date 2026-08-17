@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import ClientCareJourney from "@/components/client/ClientCareJourney";
 import { clientVisitStatusLabel } from "@/components/client/ClientVisitProgress";
 import ClientCareProfessional from "@/components/client/ClientCareProfessional";
 import ClientBodyWellnessReference from "@/components/client/ClientBodyWellnessReference";
@@ -74,7 +73,7 @@ export default async function ClientHomePage() {
     .filter((item) => activeStatuses.has(item.status))
     .sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || a.startsAt.localeCompare(b.startsAt));
   const upcoming = upcomingVisits[0];
-  const soonQueue = upcomingVisits.slice(1, 3);
+  const upcomingQueue = upcomingVisits.slice(1);
   const completedVisits = appointments.filter((item) => item.status === "completed").length;
   const firstName = account.fullName.split(/\s+/)[0] || "there";
   const profile = getClientProfileCompletion(account);
@@ -83,7 +82,7 @@ export default async function ClientHomePage() {
 
   return (
     <div className={styles.pageShell}>
-      <ClientVisitAutoRefresh enabled={Boolean(upcoming && !upcoming.partnerAccepted)} />
+      <ClientVisitAutoRefresh enabled={upcomingVisits.some((visit) => !visit.partnerAccepted)} />
       <section className={styles.welcomeHero}>
         <div>
           <span className={styles.eyebrow}>My care</span>
@@ -98,15 +97,6 @@ export default async function ClientHomePage() {
         <article><span>Upcoming</span><strong>{upcomingVisits.length}</strong><small>Active wellness visit{upcomingVisits.length === 1 ? "" : "s"}</small></article>
         <article><span>Completed</span><strong>{completedVisits}</strong><small>Visits in your care history</small></article>
       </section>
-
-      <ClientBodyWellnessReference
-        reference={bodyWellnessReference}
-        profile={{
-          dateOfBirth: account.dateOfBirth,
-          weightPounds: account.weightPounds,
-          heightInches: account.heightInches,
-        }}
-      />
 
       {upcoming ? <section className={`${styles.commandCenter} ${!upcoming.partnerAccepted ? styles.pendingCommandCenter : ""}`}>
         <div className={styles.commandCenterMain}>
@@ -145,50 +135,43 @@ export default async function ClientHomePage() {
               />
             </div>
           </div>
-          {soonQueue.length ? (
-            <div className={styles.queueStrip}>
-              <span>{soonQueue.length} more visit{soonQueue.length === 1 ? "" : "s"} in queue</span>
-              {soonQueue.map((item) => (
-                <Link href={`/appointments#upcoming-${item.id}`} key={item.id}>
-                  {displayDate(item.startsAt).split(",").slice(0, 2).join(",")} · {item.serviceName}
-                </Link>
-              ))}
-            </div>
+          {upcomingQueue.length ? (
+            <section className={styles.upcomingVisitList} aria-labelledby="upcoming-visits-title">
+              <div className={styles.upcomingVisitListHeader}>
+                <div>
+                  <span className={styles.eyebrow}>Upcoming visits</span>
+                  <h3 id="upcoming-visits-title">Your scheduled care</h3>
+                </div>
+                <Link href="/appointments">View all <span aria-hidden="true">→</span></Link>
+              </div>
+              <div className={styles.upcomingVisitRows}>
+                {upcomingQueue.map((item) => (
+                  <Link className={styles.upcomingVisitRow} href={`/appointments#upcoming-${item.id}`} key={item.id}>
+                    <span className={styles.upcomingVisitImage}>
+                      <Image src={item.serviceImageUrl} alt="" width={48} height={48} unoptimized />
+                    </span>
+                    <span className={styles.upcomingVisitCopy}>
+                      <strong>{item.serviceName}</strong>
+                      <small>{displayDate(item.startsAt)} · {clientVisitStatusLabel(item.status)}</small>
+                    </span>
+                    <span className={styles.upcomingVisitArrow} aria-hidden="true">→</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
           ) : null}
-          <ClientCareJourney status={upcoming.status} partnerAccepted={upcoming.partnerAccepted} />
-          <div className={styles.commandFooter}><span>Reference {upcoming.reference}</span><Link href="/appointments">Open visit details <b>→</b></Link></div>
+          <div className={styles.commandFooter}><span>Reference {upcoming.reference}</span><Link href={`/appointments#upcoming-${upcoming.id}`}>Open visit details <b>→</b></Link></div>
         </div>
-      </section> : <section className={styles.noVisitCommand}>
-        <div className={styles.noVisitVisual}>
-          <Image
-            src="/brand/care-mobile-iv-at-home.jpeg"
-            alt="A patient enjoying a My Drip Nurse mobile IV wellness visit at home"
-            fill
-            sizes="(max-width: 640px) calc(100vw - 28px), (max-width: 980px) calc(100vw - 32px), 42vw"
-            quality={88}
-          />
-          <div className={styles.noVisitVisualCaption}>
-            <span aria-hidden="true">✦</span>
-            <div><small>Mobile wellness</small><p>Care that comes to you</p></div>
-          </div>
-        </div>
-        <div className={styles.noVisitContent}>
-          <span className={styles.eyebrow}>Next visit</span>
-          <h2>Your next wellness moment starts here.</h2>
-          <p>
-            Choose the care that fits your needs, select a convenient time, and we will bring the
-            My Drip Nurse experience directly to you.
-          </p>
-          <div className={styles.emptyJourney} aria-label="How mobile care works">
-            <span><b>01</b><small>Choose care</small></span>
-            <span><b>02</b><small>Pick a time</small></span>
-            <span><b>03</b><small>We come to you</small></span>
-          </div>
-          <Link href="/book">
-            Book mobile care <b>→</b>
-          </Link>
-        </div>
-      </section>}
+      </section> : null}
+
+      <ClientBodyWellnessReference
+        reference={bodyWellnessReference}
+        profile={{
+          dateOfBirth: account.dateOfBirth,
+          weightPounds: account.weightPounds,
+          heightInches: account.heightInches,
+        }}
+      />
 
       <section className={styles.homeGridSecondary}>
         <article className={styles.careCard}>

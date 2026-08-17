@@ -8,10 +8,20 @@ export type PublicAppointmentConfirmation = {
   endsAt: string;
   timezone: string;
   service: string;
+  serviceImageUrl: string;
+  serviceImageAlt: string;
   servicePrice: number;
   depositAmount: number;
+  amountDueAtVisit: number;
   currency: string;
   paymentStatus: string;
+  professional: {
+    name: string;
+    photoUrl: string;
+    publicTitle: string;
+    credentials: string;
+    accepted: boolean;
+  };
   patient: {
     name: string;
     email: string;
@@ -28,6 +38,8 @@ export type PublicAppointmentConfirmation = {
     state: string;
     postalCode: string;
     countryCode: string;
+    latitude?: number;
+    longitude?: number;
   };
 };
 
@@ -84,6 +96,14 @@ export async function getPublicAppointmentConfirmation(reference: string): Promi
     state: string;
     postal_code: string;
     country_code: string;
+    service_image_url: string;
+    service_image_alt: string;
+    latitude: string;
+    longitude: string;
+    professional_name: string | null;
+    professional_photo_url: string | null;
+    professional_public_title: string | null;
+    professional_credentials: string | null;
     metadata: unknown;
   }>(
     `select appointment.public_reference as reference, appointment.status,
@@ -96,9 +116,20 @@ export async function getPublicAppointmentConfirmation(reference: string): Promi
             appointment.address_line_1, appointment.address_line_2,
             appointment.city, appointment.county, appointment.state,
             appointment.postal_code, appointment.country_code, appointment.metadata
+            , service.image_url as service_image_url, service.image_alt as service_image_alt,
+            appointment.latitude, appointment.longitude,
+            nullif(trim(coalesce(professional.display_name, '')), '') as professional_name,
+            coalesce(
+              nullif(trim(coalesce(professional.profile_photo_url, '')), ''),
+              case when coalesce(professional.profile_photo_data, '') <> ''
+                then '/api/public/partner-profile-photo/' || professional.id::text else '' end
+            ) as professional_photo_url,
+            nullif(trim(coalesce(professional.public_title, '')), '') as professional_public_title,
+            nullif(trim(coalesce(professional.professional_credentials, '')), '') as professional_credentials
        from app.appointments appointment
        join app.services service on service.id = appointment.service_id
        join app.booking_customers customer on customer.id = appointment.customer_id
+       left join app.partner_profiles professional on professional.id = appointment.partner_profile_id
        left join app.appointment_payments payment on payment.appointment_id = appointment.id
       where appointment.public_reference = $1
       limit 1`,
@@ -111,6 +142,11 @@ export async function getPublicAppointmentConfirmation(reference: string): Promi
   const additionalPatients = Array.isArray(metadata.additional_patients)
     ? metadata.additional_patients.map(person).filter((item) => item.name || item.email || item.phone)
     : [];
+  const metadataClientReward = stringRecord((metadata as Record<string, unknown>)?.client_reward);
+  const metadataAmountDueAtVisit = Number(metadataClientReward.clientAmountDueAtVisit);
+  const computedAmountDueAtVisit = metadataAmountDueAtVisit && Number.isFinite(metadataAmountDueAtVisit)
+    ? metadataAmountDueAtVisit
+    : amount(row.service_price) - amount(row.deposit_amount);
   return {
     reference: row.reference,
     status: row.status,
@@ -118,10 +154,20 @@ export async function getPublicAppointmentConfirmation(reference: string): Promi
     endsAt: row.ends_at,
     timezone: row.timezone,
     service: row.service_name,
+    serviceImageUrl: text(row.service_image_url) || "/brand/care-mobile-iv-at-home.jpeg",
+    serviceImageAlt: text(row.service_image_alt) || row.service_name,
     servicePrice: amount(row.service_price),
     depositAmount: amount(row.deposit_amount),
+    amountDueAtVisit: Math.max(0, computedAmountDueAtVisit),
     currency: row.currency,
     paymentStatus: text(row.payment_status) || (row.status === "confirmed" ? "paid" : "pending"),
+    professional: {
+      name: text(row.professional_name) || "My Drip Nurse care professional",
+      photoUrl: text(row.professional_photo_url),
+      publicTitle: text(row.professional_public_title) || "Mobile wellness professional",
+      credentials: text(row.professional_credentials),
+      accepted: ["partner_acknowledged", "in_progress", "completed"].includes(row.status),
+    },
     patient: {
       name: row.customer_name,
       email: row.customer_email,
@@ -138,6 +184,8 @@ export async function getPublicAppointmentConfirmation(reference: string): Promi
       state: row.state,
       postalCode: row.postal_code,
       countryCode: row.country_code,
+      latitude: Number.isFinite(Number(row.latitude)) ? Number(row.latitude) : undefined,
+      longitude: Number.isFinite(Number(row.longitude)) ? Number(row.longitude) : undefined,
     },
   };
 }

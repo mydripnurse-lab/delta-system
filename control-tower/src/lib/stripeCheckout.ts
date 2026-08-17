@@ -32,9 +32,30 @@ export function isInternalStripeConfigured() {
 }
 
 export function getStripePublishableKey() {
-  return String(
+  const publishableKey = String(
     process.env.STRIPE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
   ).trim();
+  if (!publishableKey) return "";
+
+  const secretKey = String(process.env.STRIPE_SECRET_KEY || "").trim();
+  const publishableMode = publishableKey.startsWith("pk_live_")
+    ? "live"
+    : publishableKey.startsWith("pk_test_")
+      ? "test"
+      : "unsupported";
+  const secretMode = secretKey.startsWith("sk_live_")
+    ? "live"
+    : secretKey.startsWith("sk_test_")
+      ? "test"
+      : "unsupported";
+
+  if (publishableMode === "unsupported") {
+    throw new Error("STRIPE_PUBLISHABLE_KEY has an unsupported mode.");
+  }
+  if (secretMode !== "unsupported" && publishableMode !== secretMode) {
+    throw new Error("Stripe publishable and secret keys must use the same test or live mode.");
+  }
+  return publishableKey;
 }
 
 /** Prevents a test webhook from mutating live records (and vice versa). */
@@ -81,6 +102,11 @@ export async function createStripeCheckoutSession(opts: {
     returnUrl.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
     returnUrl.hash = "";
     form.set("ui_mode", "embedded");
+    form.set("branding_settings[display_name]", "My Drip Nurse Care");
+    form.set("branding_settings[background_color]", "#FFFFFF");
+    form.set("branding_settings[button_color]", "#066D79");
+    form.set("branding_settings[border_style]", "pill");
+    form.set("branding_settings[font_family]", "inter");
     // URLSearchParams encodes the braces, but Stripe needs the literal
     // placeholder after decoding this form body so it can inject the session.
     form.set(
@@ -108,6 +134,7 @@ export async function createStripeCheckoutSession(opts: {
       Authorization: `Bearer ${secretKey}`,
       "Content-Type": "application/x-www-form-urlencoded",
       "Idempotency-Key": `mdn-appointment-${opts.appointmentId}`,
+      "Stripe-Version": "2026-02-25.clover",
     },
     body: form,
     signal: AbortSignal.timeout(20_000),

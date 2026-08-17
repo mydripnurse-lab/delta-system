@@ -172,6 +172,22 @@ export async function POST(request: Request) {
         { status: 409, headers: { ...cors, "Cache-Control": "no-store" } },
       );
     }
+    if (
+      result.status === "payment_required"
+      && result.checkoutUrl
+      && !result.checkoutClientSecret
+      && !result.stripePublishableKey
+      && checkoutHostname === "care.mydripnurse.com"
+    ) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Embedded checkout is not available for care.mydripnurse.com. Verify STRIPE_PUBLISHABLE_KEY is configured for this environment.",
+          status: result.status,
+        },
+        { status: 503, headers: { ...cors, "Cache-Control": "no-store" } },
+      );
+    }
     return NextResponse.json(
       { ok: true, ...result },
       { status: 201, headers: { ...cors, "Cache-Control": "no-store" } },

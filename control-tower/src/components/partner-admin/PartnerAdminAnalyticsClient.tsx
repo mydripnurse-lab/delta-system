@@ -54,6 +54,7 @@ export function PartnerAdminAnalyticsClient() {
   const [granularity, setGranularity] = useState<Granularity>("week");
   const [dimension, setDimension] = useState<"city" | "county" | "state">("county");
   const [coverageVisible, setCoverageVisible] = useState(true);
+  const [coverageGapsVisible, setCoverageGapsVisible] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -104,6 +105,7 @@ export function PartnerAdminAnalyticsClient() {
   }, [analytics, dimension]);
 
   const summary = analytics?.summary;
+  const activeMapLayerCount = Number(coverageVisible) + Number(coverageGapsVisible);
 
   return <PartnerAdminShell title="Business Analytics" actions={<button type="button" className={styles.secondaryButton} onClick={() => void load()} disabled={loading}>{loading ? "Refreshing…" : "Refresh data"}</button>}>
     <div className={styles.frame}>
@@ -143,7 +145,7 @@ export function PartnerAdminAnalyticsClient() {
                 <button type="button" className={styles.analyticsLayersTrigger} aria-expanded={layersOpen} aria-haspopup="menu" onClick={() => setLayersOpen((open) => !open)}>
                   <span className={styles.analyticsLayersIcon} aria-hidden="true"><i /><i /></span>
                   <span>Layers</span>
-                  <small>{coverageVisible ? "1 on" : "All off"}</small>
+                  <small>{activeMapLayerCount ? `${activeMapLayerCount} on` : "All off"}</small>
                   <b aria-hidden="true">⌄</b>
                 </button>
                 {layersOpen ? <div className={styles.analyticsLayersMenu} role="menu" aria-label="Map layers">
@@ -153,11 +155,16 @@ export function PartnerAdminAnalyticsClient() {
                     <span><strong>Active coverage</strong><small>{analytics.coverageAreas.length} covered {analytics.coverageAreas.length === 1 ? "county" : "counties"}</small></span>
                     <span className={styles.analyticsLayerSwitch} data-active={coverageVisible ? "true" : "false"} aria-hidden="true"><i /></span>
                   </button>
+                  <button type="button" role="menuitemcheckbox" aria-checked={coverageGapsVisible} onClick={() => setCoverageGapsVisible((visible) => !visible)}>
+                    <i className={styles.legendCoverageGap} aria-hidden="true" />
+                    <span><strong>Coverage gaps</strong><small>Uncovered counties across USA &amp; Puerto Rico</small></span>
+                    <span className={styles.analyticsLayerSwitch} data-active={coverageGapsVisible ? "true" : "false"} aria-hidden="true"><i /></span>
+                  </button>
                 </div> : null}
               </div>
             </div>
           </header>
-          <AppointmentAnalyticsMap points={analytics.points} people={analytics.people || []} coverageAreas={analytics.coverageAreas || []} coverageVisible={coverageVisible} />
+          <AppointmentAnalyticsMap points={analytics.points} people={analytics.people || []} coverageAreas={analytics.coverageAreas || []} coverageVisible={coverageVisible} coverageGapsVisible={coverageGapsVisible} />
         </section>
         <section className={styles.analyticsLowerGrid}>
           <article className={styles.analyticsTrend}><header><div><h2>Appointment momentum</h2><span>{granularity === "week" ? "Weekly" : granularity === "month" ? "Monthly" : "Yearly"} appointments, completions and lost opportunities</span></div><div className={styles.chartTools}><div className={styles.trendLegend}><span><i className={styles.legendAppointments} />Appointments</span><span><i className={styles.legendCompleted} />Completed</span><span><i className={styles.legendLost} />Lost</span></div><div className={styles.chartSwitches}><div className={styles.dimensionSwitch} aria-label="Chart interval">{(["week", "month", "year"] as Granularity[]).map((item) => <button type="button" aria-pressed={granularity === item} className={granularity === item ? styles.dimensionActive : ""} onClick={() => setGranularity(item)} key={item}>{item === "week" ? "Weekly" : item === "month" ? "Monthly" : "Yearly"}</button>)}</div><div className={styles.dimensionSwitch} aria-label="Chart style"><button type="button" aria-pressed={chartType === "line"} className={chartType === "line" ? styles.dimensionActive : ""} onClick={() => setChartType("line")}>Line</button><button type="button" aria-pressed={chartType === "bar"} className={chartType === "bar" ? styles.dimensionActive : ""} onClick={() => setChartType("bar")}>Bars</button></div></div></div></header><TrendChart points={analytics.trend} type={chartType} granularity={granularity} /></article>
