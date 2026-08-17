@@ -7,6 +7,9 @@
 }
 
 .shell { margin: 0 auto; max-width: 1180px; }
+.embeddedPage { min-height: 0; padding: clamp(8px, 2vw, 20px); background: #f7faf9; }
+.embeddedPage .intro { padding-top: 10px; }
+.embeddedPage .slots { max-height: none; overflow: visible; padding-right: 0; }
 .intro { max-width: 860px; padding: 24px 4px 28px; }
 .eyebrow, .step { color: #087887; font-size: .74rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
 .intro h1 { font-family: Georgia, serif; font-size: clamp(2rem, 4.2vw, 3.75rem); font-weight: 500; letter-spacing: -.04em; line-height: 1.02; margin: 14px 0 16px; max-width: 820px; text-wrap: balance; }
@@ -99,6 +102,12 @@
   .slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
+@media (max-width: 700px) {
+  .embeddedPage { padding: 7px; }
+  .embeddedPage .intro { padding: 14px 5px 20px; }
+  .embeddedPage .card { border-radius: 18px; padding: 17px 15px; box-shadow: 0 10px 28px rgba(29, 85, 88, .06); }
+}
+
 @media (min-width: 1020px) {
   .layout { grid-template-columns: .9fr 1.1fr; }
   .card { padding: 30px; }
@@ -158,6 +167,8 @@
   color: #163b40;
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.paymentPage.embeddedPage { min-height: 0; padding: clamp(8px, 2vw, 20px); background: #f7faf9; }
 
 .paymentShell {
   width: min(100%, 1160px);

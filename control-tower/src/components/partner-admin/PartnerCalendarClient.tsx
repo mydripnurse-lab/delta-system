@@ -101,10 +101,10 @@ export function PartnerCalendarClient() {
   const totalPartners = new Set(calendars.flatMap((calendar) => calendar.partners.map((partner) => partner.id))).size;
   const totalAssignments = calendars.reduce((sum, calendar) => sum + calendar.activePartnerCount, 0);
   const bookingUrl = selected?.publicKey.startsWith("mdn-")
-    ? `https://partners.mydripnurse.com/booking/${selected.publicKey}`
+    ? `https://care.mydripnurse.com/booking/${selected.publicKey}`
     : "";
   const embedCode = bookingUrl && selected
-    ? `<div id="mdn-calendar-${selected.slug}" style="width:100%"></div>
+    ? `<div id="mdn-calendar-${selected.slug}" style="width:min(100%,1200px);margin:0 auto"></div>
 <script>
 (() => {
   const host = document.getElementById("mdn-calendar-${selected.slug}");
@@ -117,9 +117,15 @@ export function PartnerCalendarClient() {
   iframe.title = ${JSON.stringify(`${selected.name} booking calendar`)};
   iframe.loading = "lazy";
   iframe.allow = "payment";
+  iframe.scrolling = "no";
   iframe.referrerPolicy = "strict-origin-when-cross-origin";
-  iframe.style.cssText = "display:block;width:100%;min-height:1180px;border:0;border-radius:20px;background:#edf8fa";
+  iframe.style.cssText = "display:block;width:100%;height:520px;border:0;border-radius:20px;background:#f7faf9;overflow:hidden";
   host.appendChild(iframe);
+  window.addEventListener("message", (event) => {
+    if (event.source !== iframe.contentWindow || event.data?.type !== "mdn-booking-resize") return;
+    const height = Math.max(420, Math.min(12000, Number(event.data.height) || 0));
+    iframe.style.height = Math.ceil(height) + "px";
+  });
 })();
 </script>`
     : "Save this service first to generate its booking embed code.";

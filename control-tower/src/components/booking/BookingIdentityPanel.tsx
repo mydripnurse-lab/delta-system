@@ -8,6 +8,7 @@ import styles from "./bookingIdentityPanel.module.css";
 type Props = {
   children?: ReactNode;
   connectedName?: string;
+  embedded?: boolean;
   returnTo: string;
   serviceName: string;
 };
@@ -23,7 +24,7 @@ function GoogleMark() {
   );
 }
 
-export default function BookingIdentityPanel({ children, connectedName = "", returnTo, serviceName }: Props) {
+export default function BookingIdentityPanel({ children, connectedName = "", embedded = false, returnTo, serviceName }: Props) {
   const [guest, setGuest] = useState(false);
   const [ready, setReady] = useState(Boolean(connectedName));
   const [emailOpen, setEmailOpen] = useState(false);
@@ -34,6 +35,44 @@ export default function BookingIdentityPanel({ children, connectedName = "", ret
   useEffect(() => {
     setGuest(window.sessionStorage.getItem("mdn:booking-as-guest") === "1");
   }, []);
+
+  useEffect(() => {
+    if (!embedded || window.parent === window) return;
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootBackground = root.style.background;
+    const previousBodyBackground = body.style.background;
+    root.style.background = "#f7faf9";
+    body.style.background = "#f7faf9";
+
+    let frame = 0;
+    const publishHeight = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const bodyTop = body.getBoundingClientRect().top;
+        const contentBottom = Array.from(body.children).reduce((bottom, child) => (
+          Math.max(bottom, child.getBoundingClientRect().bottom - bodyTop)
+        ), 0);
+        const height = Math.max(320, Math.ceil(contentBottom + 16));
+        window.parent.postMessage({ type: "mdn-booking-resize", height }, "*");
+      });
+    };
+    const observer = new ResizeObserver(publishHeight);
+    observer.observe(body);
+    Array.from(body.children).forEach((child) => observer.observe(child));
+    window.addEventListener("load", publishHeight);
+    publishHeight();
+    const delayed = window.setTimeout(publishHeight, 350);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(delayed);
+      window.removeEventListener("load", publishHeight);
+      observer.disconnect();
+      root.style.background = previousRootBackground;
+      body.style.background = previousBodyBackground;
+    };
+  }, [embedded]);
 
   if (connectedName) {
     return <>

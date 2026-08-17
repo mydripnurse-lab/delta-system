@@ -385,7 +385,7 @@ function PhoneField({
   );
 }
 
-export function BookingCalendarClient({ publicKey, partnerId = "", partnerView = false, initialProfile, onMacroStepChange }: { publicKey: string; partnerId?: string; partnerView?: boolean; initialProfile?: BookingInitialProfile; onMacroStepChange?: (step: 2 | 3) => void }) {
+export function BookingCalendarClient({ publicKey, partnerId = "", partnerView = false, embedMode = false, initialProfile, onMacroStepChange }: { publicKey: string; partnerId?: string; partnerView?: boolean; embedMode?: boolean; initialProfile?: BookingInitialProfile; onMacroStepChange?: (step: 2 | 3) => void }) {
   const initialPhone = initialProfile?.phone || "";
   const initialPhoneCountry = getPhoneCountry(initialPhone);
   const [contact, setContact] = useState<Contact>(() => ({
@@ -977,7 +977,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() || "";
     const mapImage = confirmationMapImage(confirmation.location.longitude, confirmation.location.latitude, mapboxToken);
     return (
-      <main className={`${styles.page} ${styles.paymentPage}`}>
+      <main className={`${styles.page} ${styles.paymentPage} ${embedMode ? styles.embeddedPage : ""}`}>
         <section className={styles.paymentShell}>
           <div className={styles.confirmationHero}>
             <span className={styles.confirmationMark} aria-hidden="true">✓</span>
@@ -1064,7 +1064,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       setCheckoutMountAttempt((current) => current + 1);
     };
     return (
-      <main className={`${styles.page} ${styles.paymentPage}`}>
+      <main className={`${styles.page} ${styles.paymentPage} ${embedMode ? styles.embeddedPage : ""}`}>
         <section className={`${styles.paymentShell} ${styles.checkoutPaymentShell}`}>
           <header className={styles.paymentHeader}>
             <span className={styles.eyebrow}>PAYMENT</span>
@@ -1100,7 +1100,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   }
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${embedMode ? styles.embeddedPage : ""}`}>
       <section className={styles.shell}>
         <header className={styles.intro}>
           <span className={styles.eyebrow}>MY DRIP NURSE · SECURE BOOKING</span>
