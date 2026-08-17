@@ -139,7 +139,8 @@ export async function POST(request: Request) {
     const checkoutHostname = checkoutReturnBaseUrl ? new URL(checkoutReturnBaseUrl).hostname : "";
     const embeddedCheckout = checkoutHostname === "care.mydripnurse.com"
       || checkoutHostname === "localhost"
-      || checkoutHostname === "127.0.0.1";
+      || checkoutHostname === "127.0.0.1"
+      || checkoutHostname.endsWith(".mydripnurse.com");
     const result = await createAppointmentCheckout({
       ...input,
       checkoutReturnBaseUrl: checkoutReturnBaseUrl || undefined,

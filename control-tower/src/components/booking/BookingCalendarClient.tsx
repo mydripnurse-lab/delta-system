@@ -900,6 +900,11 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
+      if (typeof window !== "undefined" && window.location.hostname === "care.mydripnurse.com" && payload.checkoutUrl) {
+        setPaymentStatus("error");
+        setPaymentError("Secure checkout could not be initialized. Please refresh and try again.");
+        return;
+      }
       if (!payload.checkoutUrl) {
         await finalizeCheckout(payload.publicReference);
         return;
