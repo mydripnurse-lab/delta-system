@@ -7,6 +7,7 @@ import ClientProfileAvatar from "@/components/client/ClientProfileAvatar";
 import styles from "./marketingHeaderEmbed.module.css";
 
 type MenuName = "iv" | "nad" | "weight" | "account" | null;
+type MobileSection = Exclude<MenuName, "account" | null>;
 
 type HeaderAccount = {
   fullName: string;
@@ -49,16 +50,19 @@ function Chevron() {
 
 export default function MarketingHeaderEmbed({
   account,
+  location,
   phone,
   websiteUrl,
 }: {
   account: HeaderAccount | null;
+  location: string;
   phone: string;
   websiteUrl: string;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const [openMenu, setOpenMenu] = useState<MenuName>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSection, setMobileSection] = useState<MobileSection | null>(null);
   const firstName = account?.fullName.trim().split(/\s+/)[0] || "";
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, "")}`;
   const href = (path: string) => `${websiteUrl}${path}`;
@@ -88,10 +92,21 @@ export default function MarketingHeaderEmbed({
       if (event.key === "Escape") {
         setOpenMenu(null);
         setMobileOpen(false);
+        setMobileSection(null);
       }
     };
+    const closeFromParent = (event: MessageEvent) => {
+      if (event.data?.type !== "mdn-site-header-close") return;
+      setOpenMenu(null);
+      setMobileOpen(false);
+      setMobileSection(null);
+    };
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    window.addEventListener("message", closeFromParent);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("message", closeFromParent);
+    };
   }, []);
 
   const menuButton = (name: Exclude<MenuName, "account" | null>, label: string) => (
@@ -111,6 +126,25 @@ export default function MarketingHeaderEmbed({
     </div>
   );
 
+  const mobileAccordion = (
+    name: MobileSection,
+    label: string,
+    items: ReadonlyArray<readonly [string, string]>,
+  ) => {
+    const expanded = mobileSection === name;
+    return <div className={styles.mobileSection}>
+      <button
+        type="button"
+        className={styles.mobileSectionButton}
+        aria-expanded={expanded}
+        onClick={() => setMobileSection((current) => current === name ? null : name)}
+      >
+        {label}<Chevron />
+      </button>
+      {expanded ? menuLinks(items) : null}
+    </div>;
+  };
+
   return (
     <header
       ref={rootRef}
@@ -119,6 +153,9 @@ export default function MarketingHeaderEmbed({
       data-open-menu={openMenu || ""}
       data-mobile-open={mobileOpen ? "true" : "false"}
     >
+      <div className={styles.locationBanner}>
+        Licensed Nurses <span>♡</span> Same-Day Appointments <span>♡</span> Mobile IV Therapy in {location}
+      </div>
       <div className={styles.bar}>
         <a className={styles.logo} href={websiteUrl} target="_top" aria-label="My Drip Nurse home">
           <Image src="/mdn-logo.png" alt="My Drip Nurse" width={240} height={51} priority />
@@ -148,7 +185,7 @@ export default function MarketingHeaderEmbed({
               </div> : null}
             </div>
           ) : <a className={styles.login} href="https://care.mydripnurse.com/login" target="_top">Log in</a>}
-          <button type="button" className={styles.mobileToggle} aria-label={mobileOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileOpen} onClick={() => { setMobileOpen((value) => !value); setOpenMenu(null); }}>
+          <button type="button" className={styles.mobileToggle} aria-label={mobileOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileOpen} onClick={() => { setMobileOpen((value) => !value); setOpenMenu(null); setMobileSection(null); }}>
             <span /><span /><span />
           </button>
         </div>
@@ -156,9 +193,9 @@ export default function MarketingHeaderEmbed({
 
       {mobileOpen ? <div className={styles.mobileDrawer}>
         <nav aria-label="Mobile navigation">
-          <details><summary>IV Therapy<Chevron /></summary>{menuLinks(IV_LINKS)}</details>
-          <details><summary>NAD+<Chevron /></summary>{menuLinks(NAD_LINKS)}</details>
-          <details><summary>Weight Loss<Chevron /></summary>{menuLinks(WEIGHT_LINKS)}</details>
+          {mobileAccordion("iv", "IV Therapy", IV_LINKS)}
+          {mobileAccordion("nad", "NAD+", NAD_LINKS)}
+          {mobileAccordion("weight", "Weight Loss", WEIGHT_LINKS)}
           <a href="https://partners.mydripnurse.com" target="_top">Directory<span>→</span></a>
           <a href={href("/contact-us")} target="_top">Contact<span>→</span></a>
           {account ? <a href="https://care.mydripnurse.com" target="_top">Client Portal<span>→</span></a> : <a href="https://care.mydripnurse.com/login" target="_top">Log in<span>→</span></a>}

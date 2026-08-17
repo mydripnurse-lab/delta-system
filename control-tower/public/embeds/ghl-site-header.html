@@ -1,32 +1,100 @@
 <!--
   MY DRIP NURSE — GHL SITE HEADER
   Copy and paste this entire block into a GHL Custom HTML/JavaScript element.
-  Keep the two GHL custom values unchanged so each location receives its own
-  website URL and business phone number.
+  Keep the three GHL custom values unchanged so each location receives its
+  website URL, business phone number and county/state name.
 -->
-<div id="mdn-site-header" style="position:relative;z-index:9999;width:100%"></div>
+<style>
+  .mdn-site-header-mount {
+    position: relative;
+    z-index: 2147483000;
+    width: 100%;
+    min-height: 120px;
+    background: #fff;
+    isolation: isolate;
+  }
+
+  .mdn-site-header-frame {
+    display: block;
+    width: 100%;
+    height: 120px;
+    border: 0;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  @media (max-width: 820px) {
+    .mdn-site-header-mount {
+      min-height: 72px;
+    }
+
+    .mdn-site-header-frame {
+      height: 72px;
+    }
+  }
+</style>
+
+<div class="mdn-site-header-mount" data-mdn-site-header-host="true">
+  <iframe
+    class="mdn-site-header-frame"
+    src="https://care.mydripnurse.com/embed/site-header?website={{custom_values.website_url}}&amp;phone={{custom_values.business__phone}}&amp;location={{custom_values.county_name_and_state}}"
+    title="My Drip Nurse navigation"
+    scrolling="no"
+    referrerpolicy="strict-origin-when-cross-origin"
+  ></iframe>
+</div>
+
 <script>
-(() => {
-  const host = document.getElementById("mdn-site-header");
-  if (!host || host.dataset.ready === "true") return;
-  host.dataset.ready = "true";
+(function () {
+  var script = document.currentScript;
+  var host = script && script.previousElementSibling;
+  while (host && !host.getAttribute("data-mdn-site-header-host")) {
+    host = host.previousElementSibling;
+  }
+  if (!host) {
+    var hosts = document.querySelectorAll("[data-mdn-site-header-host]");
+    for (var index = hosts.length - 1; index >= 0; index -= 1) {
+      if (hosts[index].getAttribute("data-mdn-ready") !== "true") {
+        host = hosts[index];
+        break;
+      }
+    }
+  }
+  if (!host || host.getAttribute("data-mdn-ready") === "true") return;
+  host.setAttribute("data-mdn-ready", "true");
 
-  const url = new URL("https://care.mydripnurse.com/embed/site-header");
-  url.searchParams.set("website", "{{custom_values.website_url}}");
-  url.searchParams.set("phone", "{{custom_values.business__phone}}");
+  var iframe = host.querySelector("iframe");
+  if (!iframe) return;
 
-  const iframe = document.createElement("iframe");
-  iframe.src = url.toString();
-  iframe.title = "My Drip Nurse navigation";
-  iframe.scrolling = "no";
-  iframe.referrerPolicy = "strict-origin-when-cross-origin";
-  iframe.style.cssText = "display:block;width:100%;height:82px;border:0;background:#fff;overflow:hidden";
-  host.appendChild(iframe);
+  /* GHL wraps custom code in its own element. Making that wrapper sticky keeps
+     the complete header fixed instead of constraining sticky behavior inside
+     the iframe. */
+  var stickyWrapper = host.parentElement || host;
+  stickyWrapper.style.position = "sticky";
+  stickyWrapper.style.top = "0";
+  stickyWrapper.style.zIndex = "2147483000";
+  stickyWrapper.style.overflow = "visible";
 
-  window.addEventListener("message", (event) => {
-    if (event.source !== iframe.contentWindow || event.data?.type !== "mdn-site-header-resize") return;
-    const height = Math.max(72, Math.min(1400, Number(event.data.height) || 0));
+  function closeHeaderMenus() {
+    if (iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: "mdn-site-header-close" }, "https://care.mydripnurse.com");
+    }
+  }
+
+  function handleResizeMessage(event) {
+    var data = event.data || {};
+    if (event.origin !== "https://care.mydripnurse.com") return;
+    if (event.source !== iframe.contentWindow || data.type !== "mdn-site-header-resize") return;
+    var height = Math.max(72, Math.min(1400, Number(data.height) || 0));
     iframe.style.height = Math.ceil(height) + "px";
-  });
+    host.style.minHeight = Math.ceil(height) + "px";
+  }
+
+  window.addEventListener("message", handleResizeMessage, false);
+  document.addEventListener("pointerdown", function (event) {
+    if (!host.contains(event.target)) closeHeaderMenus();
+  }, true);
+  window.addEventListener("resize", closeHeaderMenus, { passive: true });
+  window.addEventListener("scroll", closeHeaderMenus, { passive: true });
 })();
 </script>

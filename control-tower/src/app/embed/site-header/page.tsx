@@ -36,6 +36,13 @@ function safePhone(value: string) {
     : candidate.slice(0, 40);
 }
 
+function safeLocation(value: string) {
+  const candidate = value.trim();
+  return !candidate || candidate.includes("{{") || candidate.includes("}}")
+    ? "Orange County, Florida"
+    : candidate.slice(0, 80);
+}
+
 export default async function SiteHeaderEmbedPage({
   searchParams,
 }: {
@@ -51,6 +58,7 @@ export default async function SiteHeaderEmbedPage({
         photoUrl: account.profilePhotoUrl,
         photoUpdatedAt: account.profilePhotoUpdatedAt,
       } : null}
+      location={safeLocation(first(query.location))}
       phone={safePhone(first(query.phone))}
       websiteUrl={safeWebsiteUrl(first(query.website))}
     />
