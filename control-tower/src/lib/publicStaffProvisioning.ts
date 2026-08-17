@@ -132,6 +132,7 @@ export async function ensureStaffSchema() {
         add column if not exists appointment_completed_webhook_url text,
         add column if not exists appointment_refunded_webhook_url text,
         add column if not exists client_referral_webhook_url text,
+        add column if not exists account_security_webhook_url text,
         add column if not exists admin_base_url text not null default 'https://admin.mydripnurse.com',
         add column if not exists affiliate_commission_rate numeric(5,2) not null default 2.00;
       alter table app.staff_form_configs

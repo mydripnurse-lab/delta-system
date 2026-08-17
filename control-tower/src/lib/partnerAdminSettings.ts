@@ -51,6 +51,7 @@ type SettingsRow = {
   appointment_completed_webhook_url: string | null;
   appointment_refunded_webhook_url: string | null;
   client_referral_webhook_url: string | null;
+  account_security_webhook_url: string | null;
   admin_base_url: string | null;
   affiliate_commission_rate: string | number | null;
   updated_at: string;
@@ -67,7 +68,8 @@ export type PartnerAdminCommunicationRouter =
   | "application_received"
   | "account_ready"
   | "booking_appointments"
-  | "care_rewards";
+  | "care_rewards"
+  | "account_security";
 
 export type PartnerAdminCommunicationEvent = {
   target: PartnerAdminWebhookTarget;
@@ -106,6 +108,7 @@ export type PartnerAdminNotificationSettings = {
   appointmentCompletedWebhookUrl: string;
   appointmentRefundedWebhookUrl: string;
   clientReferralWebhookUrl: string;
+  accountSecurityWebhookUrl: string;
   accountReadyWebhookConfigured: boolean;
   applicantReceivedWebhookConfigured: boolean;
   adminNotificationWebhookConfigured: boolean;
@@ -121,6 +124,7 @@ export type PartnerAdminNotificationSettings = {
   appointmentCompletedWebhookConfigured: boolean;
   appointmentRefundedWebhookConfigured: boolean;
   clientReferralWebhookConfigured: boolean;
+  accountSecurityWebhookConfigured: boolean;
   communications: PartnerAdminCommunicationSummary[];
   webhooks: PartnerAdminWebhookSummary[];
   adminBaseUrl: string;
@@ -162,6 +166,7 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     || s(row.appointment_completed_webhook_url)
     || s(row.appointment_refunded_webhook_url);
   const careRewardsUrl = s(row.client_referral_webhook_url);
+  const accountSecurityUrl = s(row.account_security_webhook_url);
   const applicationReceivedConfigured = routerIsConfigured(applicationReceivedUrl, [
     row.applicant_received_webhook_url,
     row.admin_notification_webhook_url,
@@ -200,6 +205,7 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     appointmentCompletedWebhookUrl: s(row.appointment_completed_webhook_url),
     appointmentRefundedWebhookUrl: s(row.appointment_refunded_webhook_url),
     clientReferralWebhookUrl: s(row.client_referral_webhook_url),
+    accountSecurityWebhookUrl: accountSecurityUrl,
     accountReadyWebhookConfigured: Boolean(s(row.webhook_url)),
     applicantReceivedWebhookConfigured: Boolean(s(row.applicant_received_webhook_url)),
     adminNotificationWebhookConfigured: Boolean(s(row.admin_notification_webhook_url)),
@@ -215,6 +221,7 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     appointmentCompletedWebhookConfigured: Boolean(s(row.appointment_completed_webhook_url)),
     appointmentRefundedWebhookConfigured: Boolean(s(row.appointment_refunded_webhook_url)),
     clientReferralWebhookConfigured: Boolean(s(row.client_referral_webhook_url)),
+    accountSecurityWebhookConfigured: Boolean(accountSecurityUrl),
     communications: [
       {
         id: "application_received",
@@ -273,6 +280,18 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
           { target: "client_referral_reward_earned", label: "Reward earned", event: "client.referral.reward.earned" },
         ],
       },
+      {
+        id: "account_security",
+        name: "Account security",
+        workflowName: "MDN | Care | Account Security SMS",
+        description: "Sends Care phone-verification codes through GHL SMS. Password-security emails are delivered separately and securely by Resend.",
+        configured: Boolean(accountSecurityUrl),
+        endpoint: safeWebhookEndpoint(accountSecurityUrl),
+        webhookUrl: accountSecurityUrl,
+        events: [
+          { target: "account_security", label: "Phone verification code", event: "account_security_challenge_requested" },
+        ],
+      },
     ],
     webhooks: [
       { target: "account_ready", label: "Account-ready welcome", configured: Boolean(s(row.webhook_url)), endpoint: safeWebhookEndpoint(row.webhook_url) },
@@ -290,6 +309,7 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
       { target: "appointment_completed", label: "Appointment completed", configured: Boolean(s(row.appointment_completed_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_completed_webhook_url) },
       { target: "appointment_refunded", label: "Appointment refunded", configured: Boolean(s(row.appointment_refunded_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_refunded_webhook_url) },
       { target: "client_referral", label: "Client referral invitations", configured: Boolean(s(row.client_referral_webhook_url)), endpoint: safeWebhookEndpoint(row.client_referral_webhook_url) },
+      { target: "account_security", label: "Care account security SMS", configured: Boolean(accountSecurityUrl), endpoint: safeWebhookEndpoint(accountSecurityUrl) },
     ],
     adminBaseUrl: s(row.admin_base_url) || DEFAULT_ADMIN_BASE_URL,
     affiliateCommissionRate: Number(row.affiliate_commission_rate ?? 2) || 2,
@@ -317,6 +337,7 @@ const SETTINGS_SELECT = `
          c.appointment_completed_webhook_url,
          c.appointment_refunded_webhook_url,
          c.client_referral_webhook_url,
+         c.account_security_webhook_url,
          c.admin_base_url,
          c.affiliate_commission_rate,
          c.updated_at::text
@@ -518,6 +539,7 @@ export async function savePartnerAdminNotificationSettings(input: {
                 c.appointment_completed_webhook_url,
                 c.appointment_refunded_webhook_url,
                 c.client_referral_webhook_url,
+                c.account_security_webhook_url,
                 c.admin_base_url,
                 c.affiliate_commission_rate,
                 c.updated_at::text`,
@@ -570,7 +592,7 @@ export async function savePartnerAdminCommunicationRouter(input: {
   await ensureStaffSchema();
   const tenantId = s(input.tenantId);
   if (!tenantId) throw new Error("Tenant ID is required.");
-  if (!(["application_received", "account_ready", "booking_appointments", "care_rewards"] as string[]).includes(input.router)) {
+  if (!(["application_received", "account_ready", "booking_appointments", "care_rewards", "account_security"] as string[]).includes(input.router)) {
     throw new Error("Invalid communication router.");
   }
 
@@ -614,10 +636,18 @@ export async function savePartnerAdminCommunicationRouter(input: {
         where organization_id = $1::uuid`,
       [tenantId, webhookUrl],
     );
-  } else {
+  } else if (input.router === "care_rewards") {
     await getDbPool().query(
       `update app.staff_form_configs
           set client_referral_webhook_url = $2,
+              updated_at = now()
+        where organization_id = $1::uuid`,
+      [tenantId, webhookUrl],
+    );
+  } else {
+    await getDbPool().query(
+      `update app.staff_form_configs
+          set account_security_webhook_url = $2,
               updated_at = now()
         where organization_id = $1::uuid`,
       [tenantId, webhookUrl],
@@ -651,7 +681,8 @@ export type PartnerAdminWebhookTarget =
   | "appointment_refunded"
   | "client_referral"
   | "client_referral_registered"
-  | "client_referral_reward_earned";
+  | "client_referral_reward_earned"
+  | "account_security";
 
 function webhookUrlForTarget(row: SettingsRow, target: PartnerAdminWebhookTarget) {
   const exact = {
@@ -673,6 +704,7 @@ function webhookUrlForTarget(row: SettingsRow, target: PartnerAdminWebhookTarget
     client_referral: row.client_referral_webhook_url,
     client_referral_registered: row.client_referral_webhook_url,
     client_referral_reward_earned: row.client_referral_webhook_url,
+    account_security: row.account_security_webhook_url,
   } satisfies Record<PartnerAdminWebhookTarget, string | null>;
   return s(exact[target]);
 }
@@ -694,7 +726,7 @@ export async function testPartnerAdminNotificationWebhook(input: {
     "appointment_completed",
     "appointment_refunded",
   ] as const;
-  if (input.target !== "appointment_created" && !(["account_ready", "applicant_received", "admin_notification", "partner_notification", "additional_patient_invitation", "lead_capture", "client_referral", "client_referral_registered", "client_referral_reward_earned", ...lifecycleTargets] as string[]).includes(input.target)) {
+  if (input.target !== "appointment_created" && !(["account_ready", "applicant_received", "admin_notification", "partner_notification", "additional_patient_invitation", "lead_capture", "client_referral", "client_referral_registered", "client_referral_reward_earned", "account_security", ...lifecycleTargets] as string[]).includes(input.target)) {
     throw new Error("Invalid webhook target.");
   }
 
@@ -772,7 +804,32 @@ export async function testPartnerAdminNotificationWebhook(input: {
     phoneNumber: "+15550100200",
     phone_number: "+15550100200",
   };
-  const payload = input.target === "client_referral_reward_earned"
+  const payload = input.target === "account_security"
+    ? {
+        event: "account_security_challenge_requested",
+        eventId: "safe-test-account-security-code",
+        idempotencyKey: "account_security_challenge_requested:safe-test",
+        version: 1,
+        success: true,
+        test: true,
+        purpose: "phone_verification",
+        delivery: { channel: "sms", provider: "ghl" },
+        audience: { role: "client" },
+        recipient: {
+          accountId: "safe-test-client-id",
+          firstName: "Test",
+          lastName: "Client",
+          fullName: "Test Client",
+          phone: "+15550100100",
+        },
+        security: { code: "123456", expiresInMinutes: 10 },
+        copy: {
+          sms: "My Drip Nurse: Your phone verification code is 123456. It expires in 10 minutes. Do not share this code.",
+        },
+        occurredAt: submittedAt,
+        note: "Safe SMS mapping test only. No phone number or password was changed.",
+      }
+    : input.target === "client_referral_reward_earned"
     ? {
         event: "client.referral.reward.earned",
         version: 1,

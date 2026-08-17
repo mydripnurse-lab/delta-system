@@ -8,6 +8,8 @@ const generatedPaths = [
   resolve(projectRoot, ".turbo"),
   resolve(projectRoot, "tsconfig.tsbuildinfo"),
   resolve(projectRoot, "tsconfig.source-check.tsbuildinfo"),
+  resolve(projectRoot, "storage"),
+  resolve(projectRoot, "data/cache"),
 ];
 
 for (const generatedPath of generatedPaths) {

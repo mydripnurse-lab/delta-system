@@ -67,6 +67,7 @@ export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSet
     account_ready: "account_ready",
     booking_appointments: "lead_capture",
     care_rewards: "client_referral",
+    account_security: "account_security",
   });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -236,6 +237,9 @@ export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSet
         appointment_completed: "Appointment completed",
         appointment_refunded: "Appointment refunded",
         client_referral: "Client referral invitations",
+        client_referral_registered: "Client referral registered",
+        client_referral_reward_earned: "Client referral reward earned",
+        account_security: "Account security",
       }[target];
       if (target === "account_ready" && payload.result.testReceiver === true) {
         setSettingsError(

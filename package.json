@@ -4,7 +4,14 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "repo:doctor": "node ./scripts/repo-doctor.mjs",
+    "repo:guard": "node ./scripts/repo-guard.mjs",
+    "repo:domain-map": "node ./scripts/repo-domain-map.mjs",
+    "repo:cross-domain-scan": "node ./scripts/repo-cross-domain-scan.mjs",
+    "repo:light-audit": "node ./scripts/repo-lightweight-audit.mjs",
+    "repo:prune-runtime": "node ./scripts/repo-clean-runtime.mjs",
+    "repo:prune-runtime:dry-run": "node ./scripts/repo-clean-runtime.mjs --dry-run"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

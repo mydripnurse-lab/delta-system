@@ -7,6 +7,14 @@ type VerificationEmailInput = {
 
 type PasswordResetEmailInput = VerificationEmailInput;
 
+type PasswordChangeCodeEmailInput = {
+  email: string;
+  fullName: string;
+  code: string;
+  challengeId: string;
+  expiresInMinutes: number;
+};
+
 function s(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -76,5 +84,31 @@ export async function sendClientPasswordResetEmail(input: PasswordResetEmailInpu
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new Error(`Password reset email failed (${response.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`);
+  }
+}
+
+export async function sendClientPasswordChangeCodeEmail(input: PasswordChangeCodeEmailInput) {
+  const apiKey = s(process.env.RESEND_API_KEY);
+  const from = s(process.env.CLIENT_EMAIL_FROM || process.env.EMAIL_FROM);
+  if (!apiKey || !from) throw new Error("Client password security email is not configured.");
+  const safeName = escapeHtml(input.fullName || "there");
+  const safeCode = escapeHtml(input.code);
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+      "idempotency-key": `mdn-client-password-code-${input.challengeId}`,
+    },
+    body: JSON.stringify({
+      from,
+      to: [input.email],
+      subject: "Your My Drip Nurse security code",
+      html: `<!doctype html><html><body style="margin:0;background:#f2f7f6;font-family:Arial,sans-serif;color:#17353a"><div style="max-width:560px;margin:0 auto;padding:42px 20px"><div style="background:#fff;border:1px solid #dce7e6;border-radius:28px;padding:38px"><img src="https://care.mydripnurse.com/mdn-logo.png" width="178" alt="My Drip Nurse" style="display:block;margin-bottom:32px"><p style="margin:0 0 12px;color:#078596;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase">Account security</p><h1 style="margin:0 0 18px;font-family:Georgia,serif;font-size:36px;font-weight:400;line-height:1.08">Confirm your password change, ${safeName}.</h1><p style="margin:0 0 22px;color:#526b70;font-size:16px;line-height:1.65">Enter this one-time code in My Drip Nurse Care:</p><div style="margin:0 0 24px;padding:18px 22px;border-radius:18px;background:#e8f8f5;color:#075c68;font-size:34px;font-weight:800;letter-spacing:.2em;text-align:center">${safeCode}</div><p style="margin:0;color:#78898b;font-size:12px;line-height:1.5">This code expires in ${input.expiresInMinutes} minutes and can only be used once. If you did not request this change, keep your current password and ignore this email.</p></div></div></body></html>`,
+    }),
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Password security email failed (${response.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`);
   }
 }

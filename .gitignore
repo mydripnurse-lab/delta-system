@@ -47,6 +47,17 @@ scripts/_checkpoints/
 # Local repository copies/workspaces
 /delta-system/
 /mydripnurse-sitemaps-staging/
+/tmp/
+/tmp/**
+/storage/
+/storage/**
+/states/
+/states/**
+/resources/tenants/
+/resources/tenants/**
+
+# Duplicate files created by editors/collisions
+**/* 2.*
 
 # Google
 secrets/

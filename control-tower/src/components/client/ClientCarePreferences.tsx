@@ -74,6 +74,7 @@ export default function ClientCarePreferences({
   const [searching, setSearching] = useState(false);
   const [addressMessage, setAddressMessage] = useState("");
   const [addressBusy, setAddressBusy] = useState(false);
+  const [addressPendingRemoval, setAddressPendingRemoval] = useState("");
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() || "";
@@ -102,6 +103,10 @@ export default function ClientCarePreferences({
 
   async function saveScreening() {
     setScreeningMessage("");
+    if (!screening.length) {
+      setScreeningMessage("Select the conditions that apply, or choose “None of these apply to me.”");
+      return;
+    }
     setScreeningBusy(true);
     try {
       const response = await fetch("/api/client-account/profile", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "medical_screening", screeningSelections: screening }) });
@@ -140,6 +145,7 @@ export default function ClientCarePreferences({
       const response = await fetch("/api/client-account/addresses", { method: operation === "delete" ? "DELETE" : "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(operation === "delete" ? { id } : { id, isDefault: true }) });
       const result = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(result.error || "The address could not be updated.");
+      setAddressPendingRemoval("");
       router.refresh();
     } catch (error) { setAddressMessage(error instanceof Error ? error.message : "The address could not be updated."); }
     finally { setAddressBusy(false); }
@@ -153,7 +159,7 @@ export default function ClientCarePreferences({
           <div><b>Saved care locations</b><p>Keep more than one verified address and choose the right one whenever you book.</p></div>
           <button type="button" onClick={() => setAdding((value) => !value)}>{adding ? "Cancel" : "+ Add address"}</button>
         </div>
-        <div className={styles.addressGrid}>{account.addresses.map((address) => <article key={address.id} className={address.isDefault ? styles.defaultAddress : ""}><div><small>{address.label}{address.isDefault ? " · Preferred" : ""}</small><strong>{address.addressLine1}{address.addressLine2 ? `, ${address.addressLine2}` : ""}</strong><p>{address.city}, {address.state} {address.postalCode}<br />{address.county}</p></div><div>{!address.isDefault ? <button type="button" disabled={addressBusy} onClick={() => void updateAddress(address.id, "default")}>Make preferred</button> : null}<button type="button" disabled={addressBusy} onClick={() => void updateAddress(address.id, "delete")}>Remove</button></div></article>)}</div>
+        <div className={styles.addressGrid}>{account.addresses.map((address) => <article key={address.id} className={address.isDefault ? styles.defaultAddress : ""}><div><small>{address.label}{address.isDefault ? " · Preferred" : ""}</small><strong>{address.addressLine1}{address.addressLine2 ? `, ${address.addressLine2}` : ""}</strong><p>{address.city}, {address.state} {address.postalCode}<br />{address.county}</p></div><div className={styles.addressActions}>{!address.isDefault ? <button type="button" disabled={addressBusy} onClick={() => void updateAddress(address.id, "default")}>Make preferred</button> : null}{addressPendingRemoval === address.id ? <div className={styles.removeConfirmation}><span>Remove this saved address?</span><button type="button" className={styles.cancelRemove} disabled={addressBusy} onClick={() => setAddressPendingRemoval("")}>Keep it</button><button type="button" className={styles.confirmRemove} disabled={addressBusy} onClick={() => void updateAddress(address.id, "delete")}>Remove</button></div> : <button type="button" className={styles.removeAddress} disabled={addressBusy} onClick={() => setAddressPendingRemoval(address.id)}>Remove address</button>}</div></article>)}</div>
         {!account.addresses.length && !adding ? <div className={styles.empty}>No saved addresses yet. You can still enter one during booking.</div> : null}
         {adding ? <div className={styles.addForm}>
           <label>Label<select value={label} onChange={(event) => setLabel(event.target.value)}><option>Home</option><option>Work</option><option>Family</option><option>Other</option></select></label>
@@ -221,7 +227,7 @@ export default function ClientCarePreferences({
             </label>;
           })}
         </div>
-        <div className={styles.saveRow}><p role="status">{screeningMessage}</p><button type="button" disabled={screeningBusy || !screening.length} onClick={() => void saveScreening()}>{screeningBusy ? "Saving…" : "Save screening answers"}</button></div>
+        <div className={styles.saveRow}><p role="status">{screeningMessage}</p><button type="button" disabled={screeningBusy} onClick={() => void saveScreening()}>{screeningBusy ? "Saving securely…" : "Save screening answers"}</button></div>
       </div> : null}
     </article>
   </div>;
