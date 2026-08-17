@@ -235,6 +235,7 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
   );
   return result.rows.map((row) => {
     const partnerAccepted = ["partner_acknowledged", "in_progress", "completed"].includes(row.status);
+    const hasAssignedPartner = Boolean(row.partner_profile_id);
     const invites = new Map((Array.isArray(row.guest_invites) ? row.guest_invites : []).map((value) => {
       const item = record(value);
       return [text(item.normalizedEmail || item.email).toLowerCase(), text(item.status)] as const;
@@ -262,12 +263,12 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
     serviceName: row.service_name,
     serviceImageUrl: row.service_image_url || "/brand/care-mobile-iv-at-home.jpeg",
     serviceImageAlt: row.service_image_alt || `${row.service_name} visit`,
-    partnerName: partnerAccepted ? row.partner_name || "My Drip Nurse care professional" : "Care team matching in progress",
-    partnerProfileId: partnerAccepted ? row.partner_profile_id || "" : "",
+    partnerName: hasAssignedPartner ? row.partner_name || "My Drip Nurse care professional" : "",
+    partnerProfileId: hasAssignedPartner ? row.partner_profile_id || "" : "",
     partnerAccepted,
-    partnerPhotoUrl: partnerAccepted ? row.partner_photo_url || "" : "",
-    partnerPublicTitle: partnerAccepted ? row.partner_public_title || "My Drip Nurse care professional" : "",
-    partnerCredentials: partnerAccepted ? row.partner_credentials || "" : "",
+    partnerPhotoUrl: hasAssignedPartner ? row.partner_photo_url || "" : "",
+    partnerPublicTitle: hasAssignedPartner ? row.partner_public_title || "My Drip Nurse care professional" : "",
+    partnerCredentials: hasAssignedPartner ? row.partner_credentials || "" : "",
     startsAt: new Date(row.starts_at).toISOString(),
     endsAt: new Date(row.ends_at).toISOString(),
     timezone: row.timezone,

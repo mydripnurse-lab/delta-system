@@ -110,7 +110,7 @@ export default async function ClientHomePage() {
 
       {upcoming ? <section className={`${styles.commandCenter} ${!upcoming.partnerAccepted ? styles.pendingCommandCenter : ""}`}>
         <div className={styles.commandCenterMain}>
-          {!upcoming.partnerAccepted ? <div className={styles.pendingVisitSignal}><span aria-hidden="true" /><div><small>Care team matching</small><strong>Your appointment is secured.</strong><p>We’ll reveal your professional’s name and photo as soon as they accept the visit.</p></div></div> : null}
+          {!upcoming.partnerAccepted ? <div className={styles.pendingVisitSignal}><span aria-hidden="true" /><div><small>Care team matching</small><strong>Your appointment is secured.</strong><p>We have already sent this appointment to a care professional. We’re waiting for acceptance.</p></div></div> : null}
           <div className={styles.commandHeader}>
             <div><span className={styles.eyebrow}>{upcoming.partnerAccepted ? "Your next visit" : "Upcoming appointment"}</span><h2>{upcoming.serviceName}</h2></div>
             <span className={upcoming.status === "in_progress" ? styles.attentionPill : styles.statusPill}>{clientVisitStatusLabel(upcoming.status)}</span>

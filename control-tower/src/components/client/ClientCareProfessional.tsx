@@ -16,7 +16,7 @@ function initials(name: string) {
 }
 
 export default function ClientCareProfessional({ accepted, name, photoUrl, publicTitle, credentials, compact = false }: Props) {
-  if (!accepted) {
+  if (!accepted && !name) {
     return (
       <div className={`${styles.careProfessionalPending} ${compact ? styles.careProfessionalCompact : ""}`}>
         <span aria-hidden="true">✦</span>
@@ -25,17 +25,23 @@ export default function ClientCareProfessional({ accepted, name, photoUrl, publi
     );
   }
 
+  const statusLabel = accepted ? "Verified professional" : "Assignment pending";
+
   return (
     <div className={`${styles.careProfessional} ${compact ? styles.careProfessionalCompact : ""}`}>
       <div className={styles.careProfessionalPhoto}>
-        {photoUrl ? <Image src={photoUrl} alt={`Your My Drip Nurse care professional, ${name}`} fill sizes={compact ? "52px" : "80px"} /> : <span>{initials(name)}</span>}
+        {photoUrl ? (
+          <Image src={photoUrl} alt={`Your My Drip Nurse care professional, ${name}`} fill sizes={compact ? "52px" : "80px"} />
+        ) : (
+          <span>{initials(name)}</span>
+        )}
       </div>
       <div className={styles.careProfessionalIdentity}>
         <span>Your care professional</span>
         <b>{name}</b>
         <small>{[publicTitle, credentials].filter(Boolean).join(" · ")}</small>
       </div>
-      <em><i /> Verified professional</em>
+      <em><i /> {statusLabel}</em>
     </div>
   );
 }

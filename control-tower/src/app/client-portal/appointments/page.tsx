@@ -125,7 +125,7 @@ export default async function ClientAppointmentsPage() {
             <h3>{item.serviceName}</h3>
             <p>{displayDate(item.startsAt)}</p>
             <p>{item.addressLine1}<br />{item.city}, {item.state} {item.postalCode}</p>
-            <small>{item.partnerAccepted ? `Care professional: ${item.partnerName}` : "Care team matching in progress"}</small>
+            <small>{item.partnerAccepted ? `Care professional: ${item.partnerName}` : item.partnerName ? `Assigned care professional: ${item.partnerName}` : "Care team matching in progress"}</small>
             <div className={styles.appointmentCardMeta}><small>{item.addressLine1 ? "Reference" : "Reference"}</small><b>{item.reference}</b></div>
             <ClientCareProfessional accepted={item.partnerAccepted} name={item.partnerName} photoUrl={item.partnerPhotoUrl} publicTitle={item.partnerPublicTitle} credentials={item.partnerCredentials} compact />
           </div>
