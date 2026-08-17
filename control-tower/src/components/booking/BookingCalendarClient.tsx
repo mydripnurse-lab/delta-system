@@ -1044,10 +1044,12 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
               <small>Confirmation {confirmation.reference}</small>
             </aside>
           </div>
-          <div className={styles.confirmationActions}>
-            <a className={styles.primaryLink} href="/appointments">View appointment <span aria-hidden="true">→</span></a>
-            <a className={styles.secondaryLink} href="/">Return home</a>
-          </div>
+          {!embedMode ? (
+            <div className={styles.confirmationActions}>
+              <a className={styles.primaryLink} href="/appointments">View appointment <span aria-hidden="true">→</span></a>
+              <a className={styles.secondaryLink} href="/">Return home</a>
+            </div>
+          ) : null}
         </section>
       </main>
     );
