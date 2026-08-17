@@ -76,7 +76,7 @@ export default function BookingIdentityPanel({ children, connectedName = "", emb
 
   if (connectedName) {
     return <>
-      <section className={styles.connected} aria-label="Care account connected">
+      <section className={styles.connected} data-mdn-booking-embed={embedded ? "true" : undefined} aria-label="Care account connected">
         <span aria-hidden="true">✓</span>
         <div><small>My Drip Nurse Care connected</small><strong>Welcome back, {connectedName}.</strong><p>Your saved details are ready. You will still review today&apos;s safety screening and appointment address.</p></div>
       </section>
@@ -86,7 +86,7 @@ export default function BookingIdentityPanel({ children, connectedName = "", emb
 
   if (guest) {
     return <>
-      <section className={styles.guest} aria-label="Guest booking">
+      <section className={styles.guest} data-mdn-booking-embed={embedded ? "true" : undefined} aria-label="Guest booking">
         <div><small>Guest booking</small><strong>Continue without an account.</strong><p>We&apos;ll ask only for the details needed for this {serviceName} visit.</p></div>
         <div className={styles.guestActions}>
           {!ready ? <button type="button" className={styles.continueGuest} onClick={() => { setReady(true); window.setTimeout(() => document.getElementById("booking-medical-screening")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}>Continue booking</button> : null}
@@ -129,7 +129,7 @@ export default function BookingIdentityPanel({ children, connectedName = "", emb
   }
 
   const googleUrl = `https://care.mydripnurse.com/api/client-auth/google/start?returnTo=${encodeURIComponent(returnTo)}`;
-  return <section className={styles.panel} aria-label="Choose how to book">
+  return <section className={styles.panel} data-mdn-booking-embed={embedded ? "true" : undefined} aria-label="Choose how to book">
     <div className={styles.heading}><small>Start here</small><strong>Continue your booking.</strong><p>Sign in to use your saved details, or continue as a guest. Your selected service stays right here.</p></div>
     <div className={styles.actions}>
       <a className={styles.google} href={googleUrl} target="_top"><GoogleMark />Sign in with Google</a>

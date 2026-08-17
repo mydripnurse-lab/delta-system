@@ -1,0 +1,32 @@
+<!--
+  MY DRIP NURSE — GHL SITE HEADER
+  Copy and paste this entire block into a GHL Custom HTML/JavaScript element.
+  Keep the two GHL custom values unchanged so each location receives its own
+  website URL and business phone number.
+-->
+<div id="mdn-site-header" style="position:relative;z-index:9999;width:100%"></div>
+<script>
+(() => {
+  const host = document.getElementById("mdn-site-header");
+  if (!host || host.dataset.ready === "true") return;
+  host.dataset.ready = "true";
+
+  const url = new URL("https://care.mydripnurse.com/embed/site-header");
+  url.searchParams.set("website", "{{custom_values.website_url}}");
+  url.searchParams.set("phone", "{{custom_values.business__phone}}");
+
+  const iframe = document.createElement("iframe");
+  iframe.src = url.toString();
+  iframe.title = "My Drip Nurse navigation";
+  iframe.scrolling = "no";
+  iframe.referrerPolicy = "strict-origin-when-cross-origin";
+  iframe.style.cssText = "display:block;width:100%;height:82px;border:0;background:#fff;overflow:hidden";
+  host.appendChild(iframe);
+
+  window.addEventListener("message", (event) => {
+    if (event.source !== iframe.contentWindow || event.data?.type !== "mdn-site-header-resize") return;
+    const height = Math.max(72, Math.min(1400, Number(event.data.height) || 0));
+    iframe.style.height = Math.ceil(height) + "px";
+  });
+})();
+</script>

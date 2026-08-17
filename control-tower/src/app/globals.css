@@ -45,6 +45,35 @@ body::before {
   background:#242932;
 }
 
+/* Public booking embeds use the Care surface from the first server paint.
+   This prevents the Admin dashboard background from flashing through the
+   iframe before the client-side resize bridge hydrates. */
+html:has([data-mdn-booking-embed="true"]),
+body:has([data-mdn-booking-embed="true"]) {
+  height: auto;
+  min-height: 0;
+  color: #163b40;
+  background: #f7faf9;
+}
+
+body:has([data-mdn-booking-embed="true"])::before {
+  display: none;
+  background: #f7faf9;
+}
+
+html:has([data-mdn-site-header-embed="true"]),
+body:has([data-mdn-site-header-embed="true"]) {
+  height: auto;
+  min-height: 0;
+  color: #173d42;
+  background: #fff;
+}
+
+body:has([data-mdn-site-header-embed="true"])::before {
+  display: none;
+  background: #fff;
+}
+
 a { color: inherit; text-decoration: none; }
 
 button, input, select { font-family: inherit; }
