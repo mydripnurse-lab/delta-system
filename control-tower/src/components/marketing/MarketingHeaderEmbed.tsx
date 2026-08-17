@@ -152,6 +152,12 @@ export default function MarketingHeaderEmbed({
       data-mdn-site-header-embed="true"
       data-open-menu={openMenu || ""}
       data-mobile-open={mobileOpen ? "true" : "false"}
+      onPointerDown={(event) => {
+        if (!openMenu) return;
+        const target = event.target instanceof Element ? event.target : null;
+        if (target?.closest(`.${styles.menuButton}, .${styles.accountButton}, .${styles.dropdown}`)) return;
+        setOpenMenu(null);
+      }}
     >
       <div className={styles.locationBanner}>
         Licensed Nurses <span>♡</span> Same-Day Appointments <span>♡</span> Mobile IV Therapy in {location}

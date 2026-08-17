@@ -66,12 +66,12 @@ body:has([data-mdn-site-header-embed="true"]) {
   height: auto;
   min-height: 0;
   color: #173d42;
-  background: #fff;
+  background: transparent;
 }
 
 body:has([data-mdn-site-header-embed="true"])::before {
   display: none;
-  background: #fff;
+  background: transparent;
 }
 
 a { color: inherit; text-decoration: none; }
