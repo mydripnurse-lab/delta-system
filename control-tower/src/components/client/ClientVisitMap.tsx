@@ -11,9 +11,11 @@ type VisitMapProps = {
   city: string;
   state: string;
   postalCode: string;
+  markerImageUrl?: string;
+  markerLabel?: string;
 };
 
-export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, state, postalCode }: VisitMapProps) {
+export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, state, postalCode, markerImageUrl, markerLabel }: VisitMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRef = useRef<MapboxMarker | null>(null);
@@ -52,8 +54,18 @@ export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, 
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
         const markerElement = document.createElement("span");
         markerElement.className = styles.visitMapMarker;
-        markerElement.setAttribute("aria-label", "Appointment location");
-        markerRef.current = new mapboxgl.Marker({ element: markerElement }).setLngLat(center).addTo(map);
+        markerElement.setAttribute("aria-label", markerLabel || "Appointment location");
+        if (markerImageUrl) {
+          markerElement.classList.add(styles.visitMapMarkerImageWrap);
+          markerElement.innerHTML = "";
+          const imageElement = document.createElement("img");
+          imageElement.src = markerImageUrl;
+          imageElement.alt = markerLabel || "Appointment service marker";
+          markerElement.appendChild(imageElement);
+          markerRef.current = new mapboxgl.Marker({ element: markerElement }).setLngLat(center).addTo(map);
+        } else {
+          markerRef.current = new mapboxgl.Marker({ element: markerElement }).setLngLat(center).addTo(map);
+        }
         map.on("load", () => setMapState("ready"));
         map.on("error", () => setMapState((current) => current === "ready" ? current : "error"));
       })
@@ -68,7 +80,7 @@ export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, 
       map?.remove();
       mapRef.current = null;
     };
-  }, [address, styleUrl, token]);
+  }, [address, markerImageUrl, markerLabel, styleUrl, token]);
 
   return (
     <div className={styles.visitMapCard}>

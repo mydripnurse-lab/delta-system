@@ -7,6 +7,7 @@ import { clientVisitStatusLabel } from "@/components/client/ClientVisitProgress"
 import ClientCareProfessional from "@/components/client/ClientCareProfessional";
 import ClientBodyWellnessReference from "@/components/client/ClientBodyWellnessReference";
 import ClientVisitAutoRefresh from "@/components/client/ClientVisitAutoRefresh";
+import ClientVisitMap from "@/components/client/ClientVisitMap";
 import { calculateClientBodyWellnessReference, getAuthenticatedClient, getClientProfileCompletion } from "@/lib/clientPortalAuth";
 import { getClientAppointments } from "@/lib/clientPortalData";
 import { getClientReferralSummary } from "@/lib/clientReferrals";
@@ -55,6 +56,7 @@ export default async function ClientHomePage() {
     .filter((item) => activeStatuses.has(item.status))
     .sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || a.startsAt.localeCompare(b.startsAt));
   const upcoming = upcomingVisits[0];
+  const soonQueue = upcomingVisits.slice(1, 3);
   const completedVisits = appointments.filter((item) => item.status === "completed").length;
   const firstName = account.fullName.split(/\s+/)[0] || "there";
   const profile = getClientProfileCompletion(account);
@@ -96,11 +98,42 @@ export default async function ClientHomePage() {
             <span className={upcoming.status === "in_progress" ? styles.attentionPill : styles.statusPill}>{clientVisitStatusLabel(upcoming.status)}</span>
           </div>
           <div className={styles.commandFacts}>
+            <div className={styles.commandServiceRow}>
+              <div className={styles.commandServicePhoto}>
+                <Image src={upcoming.serviceImageUrl} alt={upcoming.serviceImageAlt || upcoming.serviceName} width={64} height={64} unoptimized />
+              </div>
+              <div>
+                <small>Service</small>
+                <b>{upcoming.serviceName}</b>
+              </div>
+              <div><small>Reference</small><b>{upcoming.reference}</b></div>
+            </div>
             <div><small>When</small><b>{displayDate(upcoming.startsAt)}</b></div>
             <div className={styles.commandProfessionalFact}><ClientCareProfessional accepted={upcoming.partnerAccepted} name={upcoming.partnerName} photoUrl={upcoming.partnerPhotoUrl} publicTitle={upcoming.partnerPublicTitle} credentials={upcoming.partnerCredentials} compact /></div>
             <div><small>Service address</small><b>{upcoming.addressLine1}<br />{upcoming.city}, {upcoming.state} {upcoming.postalCode}</b></div>
             <div><small>{upcomingPayment?.label}</small><b>{upcomingPayment?.value}</b><span>{upcomingPayment?.detail}</span></div>
+            <div className={styles.commandMapTile}>
+              <ClientVisitMap
+                addressLine1={upcoming.addressLine1}
+                addressLine2={upcoming.addressLine2}
+                city={upcoming.city}
+                state={upcoming.state}
+                postalCode={upcoming.postalCode}
+                markerImageUrl={upcoming.serviceImageUrl}
+                markerLabel={`${upcoming.serviceName} location`}
+              />
+            </div>
           </div>
+          {soonQueue.length ? (
+            <div className={styles.queueStrip}>
+              <span>{soonQueue.length} more visit{soonQueue.length === 1 ? "" : "s"} in queue</span>
+              {soonQueue.map((item) => (
+                <Link href={`/appointments#upcoming-${item.id}`} key={item.id}>
+                  {displayDate(item.startsAt).split(",").slice(0, 2).join(",")} · {item.serviceName}
+                </Link>
+              ))}
+            </div>
+          ) : null}
           <ClientCareJourney status={upcoming.status} partnerAccepted={upcoming.partnerAccepted} />
           <div className={styles.commandFooter}><span>Reference {upcoming.reference}</span><Link href="/appointments">Open visit details <b>→</b></Link></div>
         </div>

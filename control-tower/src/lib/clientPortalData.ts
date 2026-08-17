@@ -5,6 +5,8 @@ export type ClientAppointmentSummary = {
   id: string;
   reference: string;
   serviceName: string;
+  serviceImageUrl: string;
+  serviceImageAlt: string;
   partnerName: string;
   partnerProfileId: string;
   partnerAccepted: boolean;
@@ -128,6 +130,8 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
     partner_photo_url: string | null;
     partner_public_title: string | null;
     partner_credentials: string | null;
+    service_image_url: string | null;
+    service_image_alt: string | null;
     review_rating: number | null;
     review_comment: string | null;
     review_created_at: string | null;
@@ -179,6 +183,8 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
             ) as partner_photo_url,
             nullif(trim(coalesce(profile.public_title, '')), '') as partner_public_title,
             nullif(trim(coalesce(profile.professional_credentials, '')), '') as partner_credentials,
+            nullif(trim(coalesce(service.image_url, '')), '') as service_image_url,
+            nullif(trim(coalesce(service.image_alt, '')), '') as service_image_alt,
             review.rating as review_rating,
             review.comment as review_comment,
             review.created_at as review_created_at,
@@ -254,6 +260,8 @@ export async function getClientAppointments(accountId: string): Promise<ClientAp
     id: row.id,
     reference: row.public_reference,
     serviceName: row.service_name,
+    serviceImageUrl: row.service_image_url || "/brand/care-mobile-iv-at-home.jpeg",
+    serviceImageAlt: row.service_image_alt || `${row.service_name} visit`,
     partnerName: partnerAccepted ? row.partner_name || "My Drip Nurse care professional" : "Care team matching in progress",
     partnerProfileId: partnerAccepted ? row.partner_profile_id || "" : "",
     partnerAccepted,

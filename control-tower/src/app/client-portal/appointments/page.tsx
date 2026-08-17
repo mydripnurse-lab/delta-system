@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import Image from "next/image";
 
 import ClientCareJourney from "@/components/client/ClientCareJourney";
 import ClientAppointmentReview from "@/components/client/ClientAppointmentReview";
 import { clientVisitStatusLabel } from "@/components/client/ClientVisitProgress";
 import ClientCareProfessional from "@/components/client/ClientCareProfessional";
 import ClientVisitAutoRefresh from "@/components/client/ClientVisitAutoRefresh";
+import ClientVisitMap from "@/components/client/ClientVisitMap";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 import { getClientAppointments } from "@/lib/clientPortalData";
 
@@ -60,15 +62,33 @@ export default async function ClientAppointmentsPage() {
 
       {featured ? <section className={styles.appointmentDetail}>
         <div className={styles.appointmentDetailBody}>
-          <div className={styles.commandHeader}><div><span className={styles.eyebrow}>Up next</span><h2>{featured.serviceName}</h2></div><span className={featured.status === "in_progress" ? styles.attentionPill : styles.statusPill}>{clientVisitStatusLabel(featured.status)}</span></div>
-          <p className={styles.visitLead}>{displayDate(featured.startsAt)}</p>
-          <ClientCareJourney status={featured.status} partnerAccepted={featured.partnerAccepted} />
+          <div className={styles.appointmentDetailHeader}>
+            <div className={styles.commandServicePhoto}>
+              <Image src={featured.serviceImageUrl} alt={featured.serviceImageAlt || featured.serviceName} width={78} height={78} unoptimized />
+            </div>
+            <div className={styles.appointmentDetailContent}>
+              <div className={styles.commandHeader}><div><span className={styles.eyebrow}>Up next</span><h2>{featured.serviceName}</h2></div><span className={featured.status === "in_progress" ? styles.attentionPill : styles.statusPill}>{clientVisitStatusLabel(featured.status)}</span></div>
+              <p className={styles.visitLead}>{displayDate(featured.startsAt)}</p>
+              <ClientCareJourney status={featured.status} partnerAccepted={featured.partnerAccepted} />
+            </div>
+          </div>
+          <div className={styles.appointmentMapWrap}>
+            <ClientVisitMap
+              addressLine1={featured.addressLine1}
+              addressLine2={featured.addressLine2}
+              city={featured.city}
+              state={featured.state}
+              postalCode={featured.postalCode}
+              markerImageUrl={featured.serviceImageUrl}
+              markerLabel={`${featured.serviceName} location`}
+            />
+          </div>
           <ClientCareProfessional accepted={featured.partnerAccepted} name={featured.partnerName} photoUrl={featured.partnerPhotoUrl} publicTitle={featured.partnerPublicTitle} credentials={featured.partnerCredentials} />
           <div className={styles.appointmentDetailGrid}>
             <div><small>Service location</small><b>{featured.addressLine1}</b><span>{featured.city}, {featured.state} {featured.postalCode}</span></div>
+            <div><small>County</small><b>{featured.county}</b><span>Based on your service address</span></div>
             <div><small>{featuredPayment?.label}</small><b>{featuredPayment?.value}</b><span>{featuredPayment?.detail}</span></div>
-            <div><small>Appointment</small><b>{featured.reference}</b><span>{featured.county}</span></div>
-            <div><small>Care status</small><b>{featured.partnerAccepted ? "Professional confirmed" : "Acceptance pending"}</b><span>{featured.partnerAccepted ? "Your care team is ready" : "We will reveal their profile after acceptance"}</span></div>
+            <div><small>Reference</small><b>{featured.reference}</b><span>{featured.partnerAccepted ? "Professional confirmed" : "Acceptance pending"}</span></div>
           </div>
           {featured.additionalPatients.length ? <div className={styles.visitGuests}>
             <div><small>{featured.accessRole === "primary_patient" ? "People in this visit" : "Shared appointment"}</small><b>{featured.accessRole === "primary_patient" ? `${featured.additionalPatients.length} invited patient${featured.additionalPatients.length === 1 ? "" : "s"}` : "You were invited to this visit"}</b></div>
@@ -79,9 +99,18 @@ export default async function ClientAppointmentsPage() {
 
       {later.length ? <section className={styles.appointmentSection}>
         <div className={styles.sectionTitle}><h2>Coming up later</h2><span>{later.length}</span></div>
-        <div className={styles.appointmentList}>{later.map((item) => <article key={item.id} className={styles.appointmentCard}>
+        <div className={styles.appointmentList}>{later.map((item) => <article key={item.id} id={`upcoming-${item.id}`} className={styles.appointmentCard}>
           <div className={styles.dateTile}><span>{new Date(item.startsAt).toLocaleString("en-US", { month: "short" })}</span><b>{new Date(item.startsAt).getDate()}</b></div>
-          <div><span className={styles.statusText}>{clientVisitStatusLabel(item.status)}</span><h3>{item.serviceName}</h3><p>{displayDate(item.startsAt)} · {item.city}, {item.state}</p><small>{item.partnerName} · {item.reference}</small></div>
+          <div className={styles.appointmentCardBody}>
+            <span className={styles.statusText}>{clientVisitStatusLabel(item.status)}</span>
+            <h3>{item.serviceName}</h3>
+            <p>{displayDate(item.startsAt)}</p>
+            <p>{item.addressLine1}<br />{item.city}, {item.state} {item.postalCode}</p>
+            <small>{item.partnerAccepted ? `Care professional: ${item.partnerName}` : "Care team matching in progress"}</small>
+            <div className={styles.appointmentCardMeta}><small>{item.addressLine1 ? "Reference" : "Reference"}</small><b>{item.reference}</b></div>
+            <ClientCareProfessional accepted={item.partnerAccepted} name={item.partnerName} photoUrl={item.partnerPhotoUrl} publicTitle={item.partnerPublicTitle} credentials={item.partnerCredentials} compact />
+          </div>
+          <div className={styles.appointmentCardImage}><Image src={item.serviceImageUrl} alt={item.serviceImageAlt || item.serviceName} width={86} height={86} unoptimized /></div>
         </article>)}</div>
       </section> : null}
 
