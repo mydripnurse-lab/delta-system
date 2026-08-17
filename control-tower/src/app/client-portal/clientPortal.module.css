@@ -181,6 +181,9 @@
 .commandFacts b { font-size: 13px; line-height: 1.5; }
 .commandFacts span,.appointmentDetailGrid span { color: var(--care-muted); font-size: 10px; text-transform: capitalize; }
 .commandServiceRow { display: grid; grid-template-columns: auto minmax(180px, 1fr) minmax(150px, 1fr); gap: 16px; align-items: center; }
+.commandServiceMeta { min-width: 0; display: grid; gap: 4px; }
+.commandServiceMeta small { color: var(--care-muted); }
+.commandServiceMeta b { margin: 0; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; text-wrap: pretty; }
 .commandServicePhoto { width: 64px; height: 64px; border-radius: 16px; overflow: hidden; border: 1px solid var(--care-line); background: var(--care-soft); }
 .commandServicePhoto img { width: 100% !important; height: 100% !important; object-fit: cover; }
 .commandMapTile { grid-column: 1 / -1; padding: 16px !important; }
@@ -232,13 +235,13 @@
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid #fff;
-  background: #f2fcfa;
+  background: var(--care-mint);
   box-shadow: 0 14px 26px rgba(6, 75, 78, .25);
 }
 .visitMapFallbackMarker img { width: 100%; height: 100%; object-fit: cover; }
 .visitMapMarker { width: 29px; height: 29px; display: block; border: 7px solid #fff; border-radius: 50% 50% 50% 0; background: var(--care-teal); box-shadow: 0 8px 22px rgba(10,64,69,.34); transform: rotate(-45deg); }
 .visitMapMarker::after { position: absolute; inset: 4px; border-radius: 50%; content: ""; background: #84dfd2; }
-.visitMapMarkerImageWrap { border-radius: 50%; transform: none; border: 2px solid #fff; background: transparent; box-shadow: 0 10px 22px rgba(9, 73, 79, .28); width: 52px; height: 52px; position: relative; overflow: hidden; }
+.visitMapMarkerImageWrap { border-radius: 50%; transform: none; border: 2px solid #fff; background: var(--care-mint); box-shadow: 0 10px 22px rgba(9, 73, 79, .28); width: 52px; height: 52px; position: relative; overflow: hidden; }
 .visitMapMarkerImageWrap::after { content: none; }
 .visitMapMarkerImageWrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; transform: none; border: 0; }
 .visitMapOverlay { position: absolute; right: 19px; bottom: 19px; left: 19px; display: flex; align-items: center; justify-content: space-between; gap: 18px; pointer-events: none; }

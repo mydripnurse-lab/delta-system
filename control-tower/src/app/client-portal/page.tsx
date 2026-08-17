@@ -115,16 +115,16 @@ export default async function ClientHomePage() {
             <div><span className={styles.eyebrow}>{upcoming.partnerAccepted ? "Your next visit" : "Upcoming appointment"}</span><h2>{upcoming.serviceName}</h2></div>
             <span className={upcoming.status === "in_progress" ? styles.attentionPill : styles.statusPill}>{clientVisitStatusLabel(upcoming.status)}</span>
           </div>
-          <div className={styles.commandFacts}>
+            <div className={styles.commandFacts}>
             <div className={styles.commandServiceRow}>
               <div className={styles.commandServicePhoto}>
                 <Image src={upcoming.serviceImageUrl} alt={upcoming.serviceImageAlt || upcoming.serviceName} width={64} height={64} unoptimized />
               </div>
-              <div>
+              <div className={styles.commandServiceMeta}>
                 <small>Service</small>
                 <b>{upcoming.serviceName}</b>
               </div>
-              <div><small>Reference</small><b>{upcoming.reference}</b></div>
+              <div className={styles.commandServiceMeta}><small>Reference</small><b>{upcoming.reference}</b></div>
             </div>
             <div><small>When</small><b>{displayDate(upcoming.startsAt)}</b></div>
             <div className={styles.commandProfessionalFact}><ClientCareProfessional accepted={upcoming.partnerAccepted} name={upcoming.partnerName} photoUrl={upcoming.partnerPhotoUrl} publicTitle={upcoming.partnerPublicTitle} credentials={upcoming.partnerCredentials} compact /></div>
