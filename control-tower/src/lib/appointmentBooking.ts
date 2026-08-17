@@ -207,39 +207,38 @@ export async function createAppointmentCheckout(opts: {
     const partnerIds = slot.partners.map((partner) => partner.id);
     if (!partnerIds.length) throw new Error("That appointment time is no longer available.");
 
-    // Serialize the assignment for this exact service/time. This prevents two
-    // simultaneous checkouts from selecting the same first Partner before the
-    // conflict check runs, while still allowing the next eligible Partner to
-    // receive the appointment when the first one is already occupied.
+    // Serialize every automatic assignment for this calendar. The lock keeps
+    // simultaneous bookings from reading the same load and repeatedly choosing
+    // the same professional before either appointment has been inserted.
     await client.query(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [
-      `${opts.publicKey}:${requestedStart}`,
+      `${opts.publicKey}:professional-assignment`,
     ]);
 
-    const affinity = await client.query<{ partner_profile_id: string }>(
-      `select partner_profile_id
-         from app.customer_partner_affinities
-        where customer_id = $1
-          and status = 'preferred'
-          and partner_profile_id = any($2::uuid[])
-        order by successful_appointments desc, last_completed_at desc nulls last
-        limit 1`,
-      [customerId, partnerIds],
-    );
-    const preferredPartnerId = affinity.rows[0]?.partner_profile_id || "";
     const requestedPartnerId = opts.requestedPartnerId && partnerIds.includes(opts.requestedPartnerId)
       ? opts.requestedPartnerId
       : "";
-    const orderedPartnerIds = [
-      requestedPartnerId,
-      preferredPartnerId,
-      ...partnerIds,
-    ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index);
+    const balancedPartners = requestedPartnerId ? [] : await client.query<{ partner_profile_id: string }>(
+      `select candidate.partner_profile_id
+         from unnest($1::uuid[]) with ordinality as candidate(partner_profile_id, position)
+         left join lateral (
+           select count(*)::int as appointment_count
+             from app.appointments assigned
+            where assigned.partner_profile_id = candidate.partner_profile_id
+              and assigned.status in ('payment_pending', 'confirmed', 'partner_acknowledged', 'in_progress', 'completed')
+              and (assigned.status <> 'payment_pending' or assigned.hold_expires_at is null or assigned.hold_expires_at > now())
+              and assigned.starts_at >= now() - interval '30 days'
+              and assigned.starts_at < now() + interval '30 days'
+         ) load on true
+        order by coalesce(load.appointment_count, 0), candidate.position, candidate.partner_profile_id`,
+      [partnerIds],
+    );
+    const orderedPartnerIds = requestedPartnerId
+      ? [requestedPartnerId]
+      : balancedPartners.rows.map((row) => row.partner_profile_id);
     let partnerId = "";
-    const selectionMode: "customer_selected" | "returning_partner" | "balanced" = requestedPartnerId
+    const selectionMode: "customer_selected" | "balanced" = requestedPartnerId
       ? "customer_selected"
-      : preferredPartnerId
-        ? "returning_partner"
-        : "balanced";
+      : "balanced";
     let facts: {
       service_id: string;
       calendar_id: string;

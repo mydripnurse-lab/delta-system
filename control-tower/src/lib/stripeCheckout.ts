@@ -115,7 +115,17 @@ export async function createStripeCheckoutSession(opts: {
     );
     form.set("redirect_on_completion", "if_required");
   } else {
-    form.set("success_url", `${bookingBaseUrl}/booking/complete?appointment=${encodeURIComponent(opts.publicReference)}&session_id={CHECKOUT_SESSION_ID}`);
+    const successUrl = new URL(
+      opts.returnUrl || `${bookingBaseUrl}/booking/${encodeURIComponent(opts.calendarPublicKey)}`,
+    );
+    successUrl.searchParams.set("payment", "return");
+    successUrl.searchParams.set("appointment", opts.publicReference);
+    successUrl.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
+    successUrl.hash = "";
+    form.set(
+      "success_url",
+      successUrl.toString().replace("%7BCHECKOUT_SESSION_ID%7D", "{CHECKOUT_SESSION_ID}"),
+    );
     form.set("cancel_url", opts.cancelUrl || `${bookingBaseUrl}/booking/${encodeURIComponent(opts.calendarPublicKey)}?payment=cancelled`);
   }
   form.set("expires_at", String(Math.floor(Date.now() / 1000) + 30 * 60));

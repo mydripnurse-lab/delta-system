@@ -231,10 +231,15 @@ export function safeClientReturnUrl(value: unknown) {
   if (!raw) return "";
   try {
     const parsed = new URL(raw);
-    if (parsed.protocol !== "https:" || parsed.hostname !== "partners.mydripnurse.com") return "";
+    if (parsed.protocol !== "https:") return "";
     const pathname = parsed.pathname.replace(/\/+$/, "");
-    if (!/^\/[a-z0-9-]+\/services\/[a-z0-9-]+\/book$/i.test(pathname)) return "";
-    return `https://partners.mydripnurse.com${pathname}`;
+    if (parsed.hostname === "partners.mydripnurse.com" && /^\/[a-z0-9-]+\/services\/[a-z0-9-]+\/book$/i.test(pathname)) {
+      return `https://partners.mydripnurse.com${pathname}`;
+    }
+    if (parsed.hostname === "care.mydripnurse.com" && /^\/booking\/[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(pathname)) {
+      return `https://care.mydripnurse.com${pathname}`;
+    }
+    return "";
   } catch {
     return "";
   }

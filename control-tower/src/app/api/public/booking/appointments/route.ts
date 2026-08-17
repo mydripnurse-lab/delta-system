@@ -97,6 +97,7 @@ const bookingSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startsAt: z.string().datetime({ offset: true }),
   timezone: z.string().trim().min(3).max(100),
+  assignmentStrategy: z.enum(["balanced", "requested"]).optional().default("balanced"),
   requestedPartnerId: z.string().uuid().optional(),
   customer: personSchema,
   attendees: z.array(personSchema).max(8).optional().default([]),
@@ -143,6 +144,7 @@ export async function POST(request: Request) {
       || checkoutHostname.endsWith(".mydripnurse.com");
     const result = await createAppointmentCheckout({
       ...input,
+      requestedPartnerId: input.assignmentStrategy === "requested" ? input.requestedPartnerId : undefined,
       checkoutReturnBaseUrl: checkoutReturnBaseUrl || undefined,
       checkoutCancelUrl: checkoutCancelUrl || undefined,
       checkoutReturnUrl: checkoutReturnUrl || undefined,
@@ -170,22 +172,6 @@ export async function POST(request: Request) {
           message: "My Drip Nurse does not currently have an available Partner for this service area. Your request was saved for coverage expansion.",
         },
         { status: 409, headers: { ...cors, "Cache-Control": "no-store" } },
-      );
-    }
-    if (
-      result.status === "payment_required"
-      && result.checkoutUrl
-      && !result.checkoutClientSecret
-      && !result.stripePublishableKey
-      && checkoutHostname === "care.mydripnurse.com"
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Embedded checkout is not available for care.mydripnurse.com. Verify STRIPE_PUBLISHABLE_KEY is configured for this environment.",
-          status: result.status,
-        },
-        { status: 503, headers: { ...cors, "Cache-Control": "no-store" } },
       );
     }
     return NextResponse.json(

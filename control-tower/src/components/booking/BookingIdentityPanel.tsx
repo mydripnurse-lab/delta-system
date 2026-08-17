@@ -93,7 +93,7 @@ export default function BookingIdentityPanel({ children, connectedName = "", ret
   return <section className={styles.panel} aria-label="Choose how to book">
     <div className={styles.heading}><small>Start here</small><strong>Continue your booking.</strong><p>Sign in to use your saved details, or continue as a guest. Your selected service stays right here.</p></div>
     <div className={styles.actions}>
-      <a className={styles.google} href={googleUrl}><GoogleMark />Sign in with Google</a>
+      <a className={styles.google} href={googleUrl} target="_top"><GoogleMark />Sign in with Google</a>
       <button type="button" className={styles.email} aria-expanded={emailOpen} onClick={() => setEmailOpen((value) => !value)}>Continue with email</button>
       <button type="button" className={styles.guestButton} onClick={() => { window.sessionStorage.setItem("mdn:booking-as-guest", "1"); setGuest(true); setReady(true); window.setTimeout(() => document.getElementById("booking-medical-screening")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}>Continue as guest</button>
     </div>

@@ -432,7 +432,6 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   const [date, setDate] = useState(todayDate);
   const [availability, setAvailability] = useState<BookingAvailability | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<BookingAvailabilitySlot | null>(null);
-  const [selectedPartnerId, setSelectedPartnerId] = useState("");
   const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -687,11 +686,12 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     setScreeningSubmitted(true);
     setShowFullScreening(false);
     setError("");
-    if (contactIsComplete && additionalPatients.length === 0) {
+    const savedScreeningIsClear = screeningSelected.length === 1 && screeningSelected[0] === "none";
+    if (savedScreeningIsClear && contactIsComplete && additionalPatients.length === 0) {
       setContactSubmitted(true);
       setPatientDetailsExpanded(false);
     }
-    setNotice("Safety answers confirmed for today. Continue with your appointment details.");
+    setNotice(savedScreeningIsClear ? "Safety answers confirmed for today. Continue with your appointment details." : "");
     void persistScreening(screeningSelected);
   }
 
@@ -809,13 +809,12 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     setNotice("");
     setAvailability(null);
     setSelectedSlot(null);
-    setSelectedPartnerId("");
     try {
       const verifiedAddress = await geocodeAddress();
       await saveAddressToCareProfile().catch(() => undefined);
       if (!screeningIsClear) {
         await captureLead({ ...address, ...verifiedAddress }, null);
-        setNotice("Your information was received. Online booking is unavailable when one or more screening conditions apply; please contact a qualified healthcare professional.");
+        setNotice("");
         return;
       }
       const query = new URLSearchParams({
@@ -860,10 +859,14 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   }, [additionalPatientsAreComplete, contactIsComplete]);
 
   const submitMedicalScreening = useCallback(() => {
+    if (!screeningSelected.length) {
+      setScreeningSubmitted(false);
+      setError("Select every condition that applies, or choose ‘None of the above’ before continuing.");
+      return;
+    }
     setScreeningSubmitted(true);
     setAvailability(null);
     setSelectedSlot(null);
-    setSelectedPartnerId("");
     setError("");
     if (screeningSelected.length) void persistScreening(screeningSelected);
     if (screeningSelected.length === 1 && screeningSelected[0] === "none") {
@@ -875,7 +878,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         setNotice("Screening complete. Add only the patient details still missing from your Care profile.");
       }
     } else {
-      setNotice("Online booking is not available when any of the listed conditions apply. Please contact your healthcare professional before seeking mobile IV therapy.");
+      setNotice("");
     }
   }, [additionalPatients.length, contactIsComplete, persistScreening, screeningSelected]);
 
@@ -896,7 +899,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           date,
           startsAt: selectedSlot.startsAt,
           timezone: selectedSlot.timezone,
-          requestedPartnerId: partnerId || selectedPartnerId || sourceContext.requestedPartnerId || undefined,
+          assignmentStrategy: partnerView ? "requested" : "balanced",
+          requestedPartnerId: partnerView ? partnerId || undefined : undefined,
           customer: normalizedPerson(contact),
           attendees: additionalPatients.map((patient) => normalizedPerson(patient)),
           address,
@@ -928,17 +932,15 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
-      if (typeof window !== "undefined" && window.location.hostname === "care.mydripnurse.com" && payload.checkoutUrl) {
-        setPaymentStatus("error");
-        setPaymentError("Secure checkout could not be initialized. Please refresh and try again.");
-        return;
-      }
       if (!payload.checkoutUrl) {
         await finalizeCheckout(payload.publicReference);
         return;
       }
       const destination = payload.checkoutUrl;
-      // Older GHL embeds keep hosted Checkout as a compatibility fallback.
+      // Hosted Checkout is a compatibility fallback when Stripe embedded
+      // checkout is unavailable. Its success URL returns to this booking so
+      // the customer still sees the Care confirmation instead of a legacy
+      // thank-you page.
       if (window.top && window.top !== window) window.top.location.assign(destination);
       else window.location.assign(destination);
     } catch (submitError) {
@@ -946,7 +948,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     } finally {
       setSubmitting(false);
     }
-  }, [additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, publicKey, screeningIsClear, screeningSelected, selectedPartnerId, selectedSlot, sourceContext.directoryAttribution, sourceContext.requestedPartnerId]);
+  }, [additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, partnerView, publicKey, screeningIsClear, screeningSelected, selectedSlot, sourceContext.directoryAttribution]);
 
   const submitDemand = useCallback(async () => {
     if (!contactIsComplete) {
@@ -1000,17 +1002,18 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                 <div><dt>When</dt><dd>{formatConfirmationDate(confirmation.startsAt, confirmation.timezone)}</dd></div>
                 <div><dt>Reference</dt><dd>{confirmation.reference}</dd></div>
               </dl>
-              <div className={styles.confirmationMap} role="img" aria-label="Map of the appointment area">
-                {mapImage ? <img alt="" className={styles.confirmationMapImage} src={mapImage} /> : null}
-                <div className={styles.confirmationMapPin}>
-                  <img
-                    alt={confirmation.serviceImageAlt || confirmation.service}
-                    className={styles.confirmationMapIcon}
-                    src={confirmation.serviceImageUrl || "/brand/care-mobile-iv-at-home.jpeg"}
-                  />
+              {mapImage ? (
+                <div className={styles.confirmationMap} role="img" aria-label="Map of the appointment area">
+                  <img alt="" className={styles.confirmationMapImage} src={mapImage} />
+                  <div className={styles.confirmationMapPin}>
+                    <img
+                      alt={confirmation.serviceImageAlt || confirmation.service}
+                      className={styles.confirmationMapIcon}
+                      src={confirmation.serviceImageUrl || "/brand/care-mobile-iv-at-home.jpeg"}
+                    />
+                  </div>
                 </div>
-                {!mapImage ? <div className={styles.confirmationMapFallback}>Map is not available right now.</div> : null}
-              </div>
+              ) : null}
               <section className={styles.confirmationProfessional} aria-label="Your care professional">
                 <div className={styles.confirmationProfessionalPhoto}>
                   {confirmation.professional.photoUrl ? (
@@ -1146,14 +1149,14 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
             </>}
           </section>
 
-          {screeningSubmitted && contactSubmitted && !patientDetailsExpanded ? (
+          {screeningIsClear && contactSubmitted && !patientDetailsExpanded ? (
           <section className={`${styles.card} ${styles.connectedProfileCard}`}>
             <div><span className={styles.step}>2 · Care profile connected</span><h2 className={styles.sectionTitle}>{fullName(contact)}</h2><p className={styles.sectionIntro}>We loaded your verified email and saved wellness details. You only need to review what is missing or changed.</p></div>
             <button className={styles.secondaryButton} type="button" onClick={() => { setContactSubmitted(false); setPatientDetailsExpanded(true); }}>Review patient details</button>
           </section>
           ) : null}
 
-          {screeningSubmitted && (!contactSubmitted || patientDetailsExpanded) ? (
+          {screeningIsClear && (!contactSubmitted || patientDetailsExpanded) ? (
           <section className={`${styles.card} ${styles.patientCard}`}>
             <span className={styles.step}>2 · Patient details</span>
             <h2 className={styles.sectionTitle}>Review the primary patient.</h2>
@@ -1179,7 +1182,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           </section>
           ) : null}
 
-          {screeningSubmitted ? (
+          {screeningIsClear ? (
           <section className={`${styles.card} ${styles.additionalPatientsCard}`} id="booking-additional-patients">
             <div className={styles.additionalPatientsIntro}>
               <div>
@@ -1216,7 +1219,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           </section>
           ) : null}
 
-          {screeningSubmitted && contactSubmitted ? (
+          {screeningIsClear && contactSubmitted ? (
           <section className={styles.card}>
             <span className={styles.step}>3 · Appointment location</span>
             {savedAddresses.length ? <div className={styles.savedAddressPicker}>
@@ -1266,45 +1269,13 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                   type="button"
                   onClick={() => {
                     setSelectedSlot(slot);
-                    setSelectedPartnerId(slot.partners.length === 1 ? slot.partners[0]?.id || "" : "");
                   }}
                 >
                   <strong>{formatTime(slot.startsAt, slot.timezone)}</strong>
-                  <span>{partnerView ? "Available" : `${slot.partners.length} ${slot.partners.length === 1 ? "Partner" : "Partners"} available`}</span>
+                  <span>Available</span>
                 </button>
               ))}
             </div>
-
-            {selectedSlot && !partnerView ? (
-              <div className={styles.partnerPicker}>
-                {selectedSlot.partners.length === 1 ? (
-                  <div><span className={styles.step}>4 · Your available Partner</span><p>This is the Partner available for your selected appointment time.</p></div>
-                ) : (
-                  <>
-                    <div><span className={styles.step}>4 · Choose your Partner</span><p>Select a Partner or leave “Best available” selected for balanced assignment.</p></div>
-                    <label className={styles.partnerOption}>
-                      <input type="radio" name="partner" checked={!selectedPartnerId} onChange={() => setSelectedPartnerId("")} />
-                      <span className={styles.partnerAvatar}>✓</span>
-                      <span><strong>Best available</strong><small>Prioritizes a Partner you&apos;ve seen before, then balances appointments fairly.</small></span>
-                    </label>
-                  </>
-                )}
-                {selectedSlot.partners.map((partner) => (
-                  selectedSlot.partners.length === 1 ? (
-                    <div className={`${styles.partnerOption} ${styles.singlePartnerOption}`} key={partner.id}>
-                      <span className={styles.partnerAvatar}>{initials(partner.displayName)}</span>
-                      <span><strong>{partner.displayName}</strong><small>{partner.businessName || "Verified My Drip Nurse Partner"}</small></span>
-                    </div>
-                  ) : (
-                    <label className={styles.partnerOption} key={partner.id}>
-                      <input type="radio" name="partner" checked={selectedPartnerId === partner.id} onChange={() => setSelectedPartnerId(partner.id)} />
-                      <span className={styles.partnerAvatar}>{initials(partner.displayName)}</span>
-                      <span><strong>{partner.displayName}</strong><small>{partner.businessName || "Verified My Drip Nurse Partner"}</small></span>
-                    </label>
-                  )
-                ))}
-              </div>
-            ) : null}
           </section>
           ) : null}
 
