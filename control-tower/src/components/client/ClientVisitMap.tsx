@@ -21,6 +21,7 @@ export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, 
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRef = useRef<MapboxMarker | null>(null);
   const [mapState, setMapState] = useState<"loading" | "ready" | "missing" | "error">("loading");
+  const hasMarkerImage = Boolean(markerImageUrl?.trim());
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() || "";
   const styleUrl = process.env.NEXT_PUBLIC_MAPBOX_STYLE_URL?.trim() || "mapbox://styles/mapbox/light-v11";
   const address = useMemo(() => [addressLine1, addressLine2, city, state, postalCode].filter(Boolean).join(", "), [addressLine1, addressLine2, city, state, postalCode]);
@@ -87,6 +88,9 @@ export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, 
       {mapState !== "ready" ? <div className={styles.visitMapFallback}>
         <span aria-hidden="true">⌖</span>
         <strong>{mapState === "loading" ? "Preparing your visit map…" : "Your service location"}</strong>
+        {hasMarkerImage ? <span className={styles.visitMapFallbackMarker} aria-hidden="true">
+          <img src={markerImageUrl} alt={markerLabel || "Appointment service"} />
+        </span> : null}
         <small>{address}</small>
       </div> : null}
       {showDirections ? (

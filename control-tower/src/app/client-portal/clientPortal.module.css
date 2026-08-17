@@ -224,6 +224,18 @@
 .visitMapFallback { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 9px; padding: 32px; color: var(--care-ink); text-align: center; background: radial-gradient(circle at 50% 45%, rgba(117,216,202,.45), transparent 12rem), linear-gradient(145deg, #e2f2ef, #f7fbfa); }
 .visitMapFallback > span { width: 53px; height: 53px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--care-teal); box-shadow: 0 13px 30px rgba(7,103,116,.2); }
 .visitMapFallback small { max-width: 290px; color: var(--care-copy); line-height: 1.55; }
+.visitMapFallbackMarker {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #fff;
+  background: #f2fcfa;
+  box-shadow: 0 14px 26px rgba(6, 75, 78, .25);
+}
+.visitMapFallbackMarker img { width: 100%; height: 100%; object-fit: cover; }
 .visitMapMarker { width: 29px; height: 29px; display: block; border: 7px solid #fff; border-radius: 50% 50% 50% 0; background: var(--care-teal); box-shadow: 0 8px 22px rgba(10,64,69,.34); transform: rotate(-45deg); }
 .visitMapMarker::after { position: absolute; inset: 4px; border-radius: 50%; content: ""; background: #84dfd2; }
 .visitMapMarkerImageWrap { border-radius: 50%; transform: none; border: 2px solid #fff; background: transparent; box-shadow: 0 10px 22px rgba(9, 73, 79, .28); width: 52px; height: 52px; position: relative; overflow: hidden; }
