@@ -13,9 +13,10 @@ type VisitMapProps = {
   postalCode: string;
   markerImageUrl?: string;
   markerLabel?: string;
+  showDirections?: boolean;
 };
 
-export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, state, postalCode, markerImageUrl, markerLabel }: VisitMapProps) {
+export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, state, postalCode, markerImageUrl, markerLabel, showDirections = false }: VisitMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRef = useRef<MapboxMarker | null>(null);
@@ -23,7 +24,6 @@ export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, 
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() || "";
   const styleUrl = process.env.NEXT_PUBLIC_MAPBOX_STYLE_URL?.trim() || "mapbox://styles/mapbox/light-v11";
   const address = useMemo(() => [addressLine1, addressLine2, city, state, postalCode].filter(Boolean).join(", "), [addressLine1, addressLine2, city, state, postalCode]);
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
 
   useEffect(() => {
     if (!token || !address) { setMapState("missing"); return; }
@@ -51,7 +51,6 @@ export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, 
           cooperativeGestures: true,
         });
         mapRef.current = map;
-        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
         const markerElement = document.createElement("span");
         markerElement.className = styles.visitMapMarker;
         markerElement.setAttribute("aria-label", markerLabel || "Appointment location");
@@ -90,10 +89,11 @@ export default function ClientVisitMap({ addressLine1, addressLine2 = "", city, 
         <strong>{mapState === "loading" ? "Preparing your visit map…" : "Your service location"}</strong>
         <small>{address}</small>
       </div> : null}
-      <div className={styles.visitMapOverlay}>
-        <span className={styles.mapSignal}><i />Service location</span>
-        <a href={directionsUrl} target="_blank" rel="noreferrer">Directions <b>↗</b></a>
-      </div>
+      {showDirections ? (
+        <div className={styles.visitMapOverlay}>
+          <span className={styles.mapSignal}><i />Service location</span>
+        </div>
+      ) : null}
     </div>
   );
 }

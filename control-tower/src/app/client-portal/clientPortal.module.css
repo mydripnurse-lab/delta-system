@@ -180,7 +180,7 @@
 .commandFacts > div:nth-child(even) { padding-left: 24px; border-left: 1px solid var(--care-line); }
 .commandFacts b { font-size: 13px; line-height: 1.5; }
 .commandFacts span,.appointmentDetailGrid span { color: var(--care-muted); font-size: 10px; text-transform: capitalize; }
-.commandServiceRow { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.commandServiceRow { display: grid; grid-template-columns: auto minmax(180px, 1fr) minmax(150px, 1fr); gap: 16px; align-items: center; }
 .commandServicePhoto { width: 64px; height: 64px; border-radius: 16px; overflow: hidden; border: 1px solid var(--care-line); background: var(--care-soft); }
 .commandServicePhoto img { width: 100% !important; height: 100% !important; object-fit: cover; }
 .commandMapTile { grid-column: 1 / -1; padding: 16px !important; }

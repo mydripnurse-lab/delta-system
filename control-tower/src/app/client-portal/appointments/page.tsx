@@ -26,17 +26,35 @@ function appointmentPaymentSummary(appointment: {
   depositAmount: number;
   currency: string;
   paymentStatus: string;
+  clientAmountDueAtVisit: number;
 }) {
   if (appointment.rewardBenefit === "free_appointment") {
-    return { label: "Free visit reward", value: "Visit covered", detail: "No deposit or payment due" };
+    return {
+      paidTodayLabel: "Amount paid today",
+      paidTodayValue: money(0, appointment.currency),
+      paidTodayDetail: "No payment due",
+      dueAtVisitLabel: "Amount due at visit",
+      dueAtVisitValue: money(0, appointment.currency),
+      dueAtVisitDetail: "Covered by your visit reward",
+    };
   }
   if (appointment.rewardBenefit === "deposit_waiver") {
-    return { label: "Care reward", value: "Deposit covered", detail: "Care professional payment unchanged" };
+    return {
+      paidTodayLabel: "Amount paid today",
+      paidTodayValue: money(0, appointment.currency),
+      paidTodayDetail: "Covered by your visit reward",
+      dueAtVisitLabel: "Amount due at visit",
+      dueAtVisitValue: money(appointment.clientAmountDueAtVisit, appointment.currency),
+      dueAtVisitDetail: "Deposit was waived",
+    };
   }
   return {
-    label: "Booking deposit",
-    value: money(appointment.depositAmount, appointment.currency),
-    detail: appointment.paymentStatus === "paid" ? "Paid securely" : appointment.paymentStatus.replaceAll("_", " "),
+    paidTodayLabel: "Amount paid today",
+    paidTodayValue: money(appointment.depositAmount, appointment.currency),
+    paidTodayDetail: appointment.paymentStatus === "paid" ? "Booking charge paid" : "Booking charge pending",
+    dueAtVisitLabel: "Amount due at visit",
+    dueAtVisitValue: money(appointment.clientAmountDueAtVisit, appointment.currency),
+    dueAtVisitDetail: appointment.clientAmountDueAtVisit > 0 ? "Pay this in-person at your visit" : "Nothing due at visit",
   };
 }
 
@@ -87,7 +105,8 @@ export default async function ClientAppointmentsPage() {
           <div className={styles.appointmentDetailGrid}>
             <div><small>Service location</small><b>{featured.addressLine1}</b><span>{featured.city}, {featured.state} {featured.postalCode}</span></div>
             <div><small>County</small><b>{featured.county}</b><span>Based on your service address</span></div>
-            <div><small>{featuredPayment?.label}</small><b>{featuredPayment?.value}</b><span>{featuredPayment?.detail}</span></div>
+            <div><small>{featuredPayment?.paidTodayLabel}</small><b>{featuredPayment?.paidTodayValue}</b><span>{featuredPayment?.paidTodayDetail}</span></div>
+            <div><small>{featuredPayment?.dueAtVisitLabel}</small><b>{featuredPayment?.dueAtVisitValue}</b><span>{featuredPayment?.dueAtVisitDetail}</span></div>
             <div><small>Reference</small><b>{featured.reference}</b><span>{featured.partnerAccepted ? "Professional confirmed" : "Acceptance pending"}</span></div>
           </div>
           {featured.additionalPatients.length ? <div className={styles.visitGuests}>
