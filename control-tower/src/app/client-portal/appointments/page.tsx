@@ -72,7 +72,7 @@ export default async function ClientAppointmentsPage() {
   const history = appointments.filter((item) => !upcoming.some((future) => future.id === item.id));
   return (
     <div className={styles.pageShell}>
-      <ClientVisitAutoRefresh enabled={Boolean(featured && !featured.partnerAccepted)} />
+      <ClientVisitAutoRefresh enabled={upcoming.some((visit) => !visit.partnerAccepted)} />
       <section className={styles.pageIntro}>
         <div><span className={styles.eyebrow}>Appointments</span><h1>Your care timeline.</h1><p>Every mobile wellness visit, clearly organized from booking to completion.</p></div>
         <Link href="/book" className={styles.primaryAction}>Book another visit <span>→</span></Link>
@@ -87,9 +87,9 @@ export default async function ClientAppointmentsPage() {
             <div className={styles.appointmentDetailContent}>
               <div className={styles.commandHeader}><div><span className={styles.eyebrow}>Up next</span><h2>{featured.serviceName}</h2></div><span className={featured.status === "in_progress" ? styles.attentionPill : styles.statusPill}>{clientVisitStatusLabel(featured.status)}</span></div>
               <p className={styles.visitLead}>{displayDate(featured.startsAt)}</p>
-              <ClientCareJourney status={featured.status} partnerAccepted={featured.partnerAccepted} />
             </div>
           </div>
+          <ClientCareJourney status={featured.status} partnerAccepted={featured.partnerAccepted} />
           <div className={styles.appointmentMapWrap}>
             <ClientVisitMap
               addressLine1={featured.addressLine1}
@@ -125,8 +125,7 @@ export default async function ClientAppointmentsPage() {
             <h3>{item.serviceName}</h3>
             <p>{displayDate(item.startsAt)}</p>
             <p>{item.addressLine1}<br />{item.city}, {item.state} {item.postalCode}</p>
-            <small>{item.partnerAccepted ? `Care professional: ${item.partnerName}` : item.partnerName ? `Assigned care professional: ${item.partnerName}` : "Care team matching in progress"}</small>
-            <div className={styles.appointmentCardMeta}><small>{item.addressLine1 ? "Reference" : "Reference"}</small><b>{item.reference}</b></div>
+            <div className={styles.appointmentCardMeta}><small>Reference</small><b>{item.reference}</b></div>
             <ClientCareProfessional accepted={item.partnerAccepted} name={item.partnerName} photoUrl={item.partnerPhotoUrl} publicTitle={item.partnerPublicTitle} credentials={item.partnerCredentials} compact />
           </div>
           <div className={styles.appointmentCardImage}><Image src={item.serviceImageUrl} alt={item.serviceImageAlt || item.serviceName} width={86} height={86} unoptimized /></div>

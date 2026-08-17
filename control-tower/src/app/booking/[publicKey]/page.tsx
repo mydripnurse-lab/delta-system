@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { BookingCalendarClient } from "@/components/booking/BookingCalendarClient";
 import BookingIdentityPanel from "@/components/booking/BookingIdentityPanel";
-import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
+import { getAuthenticatedClient, safeClientReturnUrl } from "@/lib/clientPortalAuth";
 import { loadPublicBookingCalendarSummary } from "@/lib/serviceBookingAvailability";
 
 export const dynamic = "force-dynamic";
@@ -37,8 +37,10 @@ export default async function BookingCalendarPage({
     getAuthenticatedClient(),
     loadPublicBookingCalendarSummary(publicKey).catch(() => null),
   ]);
-  const returnTo = `https://care.mydripnurse.com/booking/${encodeURIComponent(publicKey)}`;
   const embedded = query.embed === "1";
+  const requestedReturnTo = Array.isArray(query.returnTo) ? query.returnTo[0] : query.returnTo;
+  const bookingReturnTo = `https://care.mydripnurse.com/booking/${encodeURIComponent(publicKey)}`;
+  const returnTo = embedded ? safeClientReturnUrl(requestedReturnTo) || bookingReturnTo : bookingReturnTo;
   return (
     <BookingIdentityPanel
       connectedName={clientAccount?.fullName.split(/\s+/)[0] || ""}

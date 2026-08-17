@@ -120,7 +120,13 @@ export default function BookingIdentityPanel({ children, connectedName = "", emb
         setMessage(result.message || "Check your email to verify your account, then you will return to this booking.");
         return;
       }
-      window.location.assign(result.next || returnTo);
+      const destination = result.next || returnTo;
+      if (embedded && window.parent !== window) {
+        window.parent.postMessage({ type: "mdn-booking-auth-return", url: destination }, "*");
+        window.setTimeout(() => {
+          if (window.top && window.top !== window) window.top.location.assign(destination);
+        }, 50);
+      } else window.location.assign(destination);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "We could not complete that request.");
     } finally {
