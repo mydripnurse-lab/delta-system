@@ -449,7 +449,9 @@ export async function processDueBookingLeadWebhooks(limit = 25) {
       where organization_id = any($1::uuid[])`,
     [organizationIds],
   );
-  const webhookByOrganization = new Map(configs.rows.map((row) => [row.organization_id, validWebhookUrl(row.webhook_url)]));
+  const webhookByOrganization = new Map<string, string>(
+    configs.rows.map((row) => [row.organization_id, validWebhookUrl(row.webhook_url)] as const),
+  );
   const totals = { claimed: claimed.rows.length, sent: 0, retried: 0, failed: 0, notConfigured: 0 };
 
   for (const event of claimed.rows) {
