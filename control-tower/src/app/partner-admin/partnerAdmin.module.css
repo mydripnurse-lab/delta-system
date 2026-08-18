@@ -1376,6 +1376,9 @@
 .communicationIntro code { padding: 2px 5px; border-radius: 5px; color: #075c68; background: rgba(255,255,255,.75); font: 700 10px ui-monospace,SFMono-Regular,Menlo,monospace; }
 .communicationPulse { width: 10px; height: 10px; margin-top: 3px; border-radius: 50%; background: #0a9a91; box-shadow: 0 0 0 5px rgba(10,154,145,.1); }
 .communicationsGrid { display: grid; gap: 13px; }
+.communicationCategory { display: flex; align-items: center; gap: 12px; margin: 10px 2px 0; }
+.communicationCategory span { color: #173f45; font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.communicationCategory i { height: 1px; flex: 1; background: #dbe4e1; }
 .communicationCard { position: relative; display: grid; gap: 14px; padding: 19px; overflow: hidden; border: 1px solid #dde5e1; border-radius: 19px; background: #fff; box-shadow: 0 12px 34px rgba(31,55,58,.045); }
 .communicationCard::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: #d8dfdd; }
 .communicationCardActive::before { background: linear-gradient(180deg,#075c68,#16aaa1); }
@@ -1402,6 +1405,9 @@
 .communicationEventChip { min-width: 0; display: grid; gap: 3px; padding: 9px 10px; border: 1px solid #e2ebe7; border-radius: 10px; background: #f8fbfa; }
 .communicationEventChip strong { overflow: hidden; color: #3f5b57; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .communicationEventChip code { overflow: hidden; color: #159096; font: 600 8px ui-monospace,SFMono-Regular,Menlo,monospace; text-overflow: ellipsis; white-space: nowrap; }
+.communicationEventLine { display: flex; align-items: center; gap: 9px; padding-top: 12px; border-top: 1px solid #edf0ee; }
+.communicationEventLine span { color: #98a19e; font-size: 8px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.communicationEventLine code { color: #087f88; font: 700 9px ui-monospace,SFMono-Regular,Menlo,monospace; }
 .communicationActions { display: flex; align-items: flex-end; justify-content: flex-end; gap: 8px; }
 .communicationTest { margin-left: auto; display: grid; grid-template-columns: minmax(220px,290px) auto; align-items: end; gap: 8px; }
 .communicationTestSingle { grid-template-columns: auto; }

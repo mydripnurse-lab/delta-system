@@ -51,6 +51,8 @@ type SettingsRow = {
   appointment_completed_webhook_url: string | null;
   appointment_refunded_webhook_url: string | null;
   client_referral_webhook_url: string | null;
+  client_referral_registered_webhook_url: string | null;
+  client_referral_reward_earned_webhook_url: string | null;
   account_security_webhook_url: string | null;
   admin_base_url: string | null;
   affiliate_commission_rate: string | number | null;
@@ -67,8 +69,17 @@ export type PartnerAdminWebhookSummary = {
 export type PartnerAdminCommunicationRouter =
   | "application_received"
   | "account_ready"
-  | "booking_appointments"
-  | "care_rewards"
+  | "lead_capture"
+  | "new_booking"
+  | "partner_rescheduled"
+  | "appointment_accepted"
+  | "appointment_declined"
+  | "appointment_reassigned"
+  | "appointment_completed"
+  | "appointment_refunded"
+  | "client_referral"
+  | "client_referral_registered"
+  | "client_referral_reward_earned"
   | "account_security";
 
 export type PartnerAdminCommunicationEvent = {
@@ -79,6 +90,7 @@ export type PartnerAdminCommunicationEvent = {
 
 export type PartnerAdminCommunicationSummary = {
   id: PartnerAdminCommunicationRouter;
+  category: "Partner onboarding" | "Bookings" | "Appointment updates" | "Care rewards" | "Account security";
   name: string;
   workflowName: string;
   description: string;
@@ -108,6 +120,8 @@ export type PartnerAdminNotificationSettings = {
   appointmentCompletedWebhookUrl: string;
   appointmentRefundedWebhookUrl: string;
   clientReferralWebhookUrl: string;
+  clientReferralRegisteredWebhookUrl: string;
+  clientReferralRewardEarnedWebhookUrl: string;
   accountSecurityWebhookUrl: string;
   accountReadyWebhookConfigured: boolean;
   applicantReceivedWebhookConfigured: boolean;
@@ -124,6 +138,8 @@ export type PartnerAdminNotificationSettings = {
   appointmentCompletedWebhookConfigured: boolean;
   appointmentRefundedWebhookConfigured: boolean;
   clientReferralWebhookConfigured: boolean;
+  clientReferralRegisteredWebhookConfigured: boolean;
+  clientReferralRewardEarnedWebhookConfigured: boolean;
   accountSecurityWebhookConfigured: boolean;
   communications: PartnerAdminCommunicationSummary[];
   webhooks: PartnerAdminWebhookSummary[];
@@ -154,36 +170,27 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
   const applicationReceivedUrl = s(row.applicant_received_webhook_url)
     || s(row.admin_notification_webhook_url);
   const accountReadyUrl = s(row.webhook_url);
-  const bookingAppointmentsUrl = s(row.new_booking_webhook_url)
-    || s(row.lead_capture_webhook_url)
-    || s(row.partner_notification_webhook_url)
-    || s(row.appointment_created_webhook_url)
-    || s(row.partner_confirmation_required_webhook_url)
-    || s(row.partner_rescheduled_webhook_url)
-    || s(row.appointment_accepted_webhook_url)
-    || s(row.appointment_declined_webhook_url)
-    || s(row.appointment_reassigned_webhook_url)
-    || s(row.appointment_completed_webhook_url)
-    || s(row.appointment_refunded_webhook_url);
-  const careRewardsUrl = s(row.client_referral_webhook_url);
   const accountSecurityUrl = s(row.account_security_webhook_url);
   const applicationReceivedConfigured = routerIsConfigured(applicationReceivedUrl, [
     row.applicant_received_webhook_url,
     row.admin_notification_webhook_url,
   ]);
-  const bookingAppointmentsConfigured = routerIsConfigured(bookingAppointmentsUrl, [
-    row.partner_notification_webhook_url,
-    row.lead_capture_webhook_url,
-    row.appointment_created_webhook_url,
-    row.new_booking_webhook_url,
-    row.partner_confirmation_required_webhook_url,
-    row.partner_rescheduled_webhook_url,
-    row.appointment_accepted_webhook_url,
-    row.appointment_declined_webhook_url,
-    row.appointment_reassigned_webhook_url,
-    row.appointment_completed_webhook_url,
-    row.appointment_refunded_webhook_url,
-  ]);
+  const separatedCommunications: PartnerAdminCommunicationSummary[] = [
+    { id: "application_received", category: "Partner onboarding", name: "Application received", workflowName: "MDN | Partner | Application Received", description: "Acknowledges the applicant and alerts the internal Admin team.", configured: applicationReceivedConfigured, endpoint: safeWebhookEndpoint(applicationReceivedUrl), webhookUrl: applicationReceivedUrl, events: [{ target: "applicant_received", label: "Application submitted", event: "partner_application_received" }] },
+    { id: "account_ready", category: "Partner onboarding", name: "Account-ready welcome", workflowName: "MDN | Partner | Account-ready Welcome", description: "Runs after approval and account provisioning with the activation link.", configured: Boolean(accountReadyUrl), endpoint: safeWebhookEndpoint(accountReadyUrl), webhookUrl: accountReadyUrl, events: [{ target: "account_ready", label: "Account ready", event: "partner_account_ready" }] },
+    { id: "lead_capture", category: "Bookings", name: "Lead captured", workflowName: "MDN | Booking | Lead Captured", description: "Receives an unfinished booking lead and its coverage and availability context.", configured: Boolean(s(row.lead_capture_webhook_url)), endpoint: safeWebhookEndpoint(row.lead_capture_webhook_url), webhookUrl: s(row.lead_capture_webhook_url), events: [{ target: "lead_capture", label: "Lead captured", event: "booking.lead.created" }] },
+    { id: "new_booking", category: "Bookings", name: "New booking", workflowName: "MDN | Booking | New Booking", description: "Receives a paid booking with the patient, assigned professional and additional patients.", configured: Boolean(s(row.new_booking_webhook_url)), endpoint: safeWebhookEndpoint(row.new_booking_webhook_url), webhookUrl: s(row.new_booking_webhook_url), events: [{ target: "new_booking", label: "New booking", event: "new_booking" }] },
+    { id: "partner_rescheduled", category: "Appointment updates", name: "Professional rescheduled", workflowName: "MDN | Appointment | Rescheduled", description: "Notifies the applicable workflow when the professional changes the visit time.", configured: Boolean(s(row.partner_rescheduled_webhook_url)), endpoint: safeWebhookEndpoint(row.partner_rescheduled_webhook_url), webhookUrl: s(row.partner_rescheduled_webhook_url), events: [{ target: "partner_rescheduled", label: "Professional rescheduled", event: "partner_rescheduled" }] },
+    { id: "appointment_accepted", category: "Appointment updates", name: "Appointment accepted", workflowName: "MDN | Appointment | Accepted", description: "Sends the assigned professional profile to the customer workflow.", configured: Boolean(s(row.appointment_accepted_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_accepted_webhook_url), webhookUrl: s(row.appointment_accepted_webhook_url), events: [{ target: "appointment_accepted", label: "Appointment accepted", event: "appointment_accepted" }] },
+    { id: "appointment_declined", category: "Appointment updates", name: "Appointment declined", workflowName: "MDN | Appointment | Declined", description: "Triggers the decline and reassignment communication flow.", configured: Boolean(s(row.appointment_declined_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_declined_webhook_url), webhookUrl: s(row.appointment_declined_webhook_url), events: [{ target: "appointment_declined", label: "Appointment declined", event: "appointment_declined" }] },
+    { id: "appointment_reassigned", category: "Appointment updates", name: "Appointment reassigned", workflowName: "MDN | Appointment | Reassigned", description: "Sends the visit to the newly assigned professional workflow.", configured: Boolean(s(row.appointment_reassigned_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_reassigned_webhook_url), webhookUrl: s(row.appointment_reassigned_webhook_url), events: [{ target: "appointment_reassigned", label: "Appointment reassigned", event: "appointment_reassigned" }] },
+    { id: "appointment_completed", category: "Appointment updates", name: "Appointment completed", workflowName: "MDN | Appointment | Completed", description: "Starts post-visit communication after completion.", configured: Boolean(s(row.appointment_completed_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_completed_webhook_url), webhookUrl: s(row.appointment_completed_webhook_url), events: [{ target: "appointment_completed", label: "Appointment completed", event: "appointment_completed" }] },
+    { id: "appointment_refunded", category: "Appointment updates", name: "Appointment refunded", workflowName: "MDN | Appointment | Refunded", description: "Sends refund-specific customer and operations context.", configured: Boolean(s(row.appointment_refunded_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_refunded_webhook_url), webhookUrl: s(row.appointment_refunded_webhook_url), events: [{ target: "appointment_refunded", label: "Appointment refunded", event: "appointment_refunded" }] },
+    { id: "client_referral", category: "Care rewards", name: "Personal invitation", workflowName: "MDN | Rewards | Invitation", description: "Delivers a new personal referral invitation.", configured: Boolean(s(row.client_referral_webhook_url)), endpoint: safeWebhookEndpoint(row.client_referral_webhook_url), webhookUrl: s(row.client_referral_webhook_url), events: [{ target: "client_referral", label: "Personal invitation", event: "client.referral.invite.created" }] },
+    { id: "client_referral_registered", category: "Care rewards", name: "Referral registered", workflowName: "MDN | Rewards | Referral Registered", description: "Records verified referral progress in its own workflow.", configured: Boolean(s(row.client_referral_registered_webhook_url)), endpoint: safeWebhookEndpoint(row.client_referral_registered_webhook_url), webhookUrl: s(row.client_referral_registered_webhook_url), events: [{ target: "client_referral_registered", label: "Referral registered", event: "client.referral.registered" }] },
+    { id: "client_referral_reward_earned", category: "Care rewards", name: "Reward earned", workflowName: "MDN | Rewards | Reward Earned", description: "Triggers the earned-reward workflow independently.", configured: Boolean(s(row.client_referral_reward_earned_webhook_url)), endpoint: safeWebhookEndpoint(row.client_referral_reward_earned_webhook_url), webhookUrl: s(row.client_referral_reward_earned_webhook_url), events: [{ target: "client_referral_reward_earned", label: "Reward earned", event: "client.referral.reward.earned" }] },
+    { id: "account_security", category: "Account security", name: "Phone verification", workflowName: "MDN | Care | Account Security SMS", description: "Sends Care phone-verification codes through a dedicated GHL workflow.", configured: Boolean(accountSecurityUrl), endpoint: safeWebhookEndpoint(accountSecurityUrl), webhookUrl: accountSecurityUrl, events: [{ target: "account_security", label: "Phone verification code", event: "account_security_challenge_requested" }] },
+  ];
 
   return {
     tenantId: row.organization_id,
@@ -205,6 +212,8 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     appointmentCompletedWebhookUrl: s(row.appointment_completed_webhook_url),
     appointmentRefundedWebhookUrl: s(row.appointment_refunded_webhook_url),
     clientReferralWebhookUrl: s(row.client_referral_webhook_url),
+    clientReferralRegisteredWebhookUrl: s(row.client_referral_registered_webhook_url),
+    clientReferralRewardEarnedWebhookUrl: s(row.client_referral_reward_earned_webhook_url),
     accountSecurityWebhookUrl: accountSecurityUrl,
     accountReadyWebhookConfigured: Boolean(s(row.webhook_url)),
     applicantReceivedWebhookConfigured: Boolean(s(row.applicant_received_webhook_url)),
@@ -221,78 +230,10 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     appointmentCompletedWebhookConfigured: Boolean(s(row.appointment_completed_webhook_url)),
     appointmentRefundedWebhookConfigured: Boolean(s(row.appointment_refunded_webhook_url)),
     clientReferralWebhookConfigured: Boolean(s(row.client_referral_webhook_url)),
+    clientReferralRegisteredWebhookConfigured: Boolean(s(row.client_referral_registered_webhook_url)),
+    clientReferralRewardEarnedWebhookConfigured: Boolean(s(row.client_referral_reward_earned_webhook_url)),
     accountSecurityWebhookConfigured: Boolean(accountSecurityUrl),
-    communications: [
-      {
-        id: "application_received",
-        name: "Application Received",
-        workflowName: "MDN | Partner | Application Received",
-        description: "Receives a new Partner application. One GHL enrollment acknowledges the applicant and sends the internal Admin alert.",
-        configured: applicationReceivedConfigured,
-        endpoint: safeWebhookEndpoint(applicationReceivedUrl),
-        webhookUrl: applicationReceivedUrl,
-        events: [
-          { target: "applicant_received", label: "Application submitted · applicant + Admin", event: "partner_application_received" },
-        ],
-      },
-      {
-        id: "account_ready",
-        name: "Account-ready Welcome",
-        workflowName: "MDN | Partner | Account-ready Welcome",
-        description: "Runs only after approval and account provisioning, using the activation link and approved Partner profile data.",
-        configured: Boolean(accountReadyUrl),
-        endpoint: safeWebhookEndpoint(accountReadyUrl),
-        webhookUrl: accountReadyUrl,
-        events: [
-          { target: "account_ready", label: "Account-ready welcome", event: "partner_account_ready" },
-        ],
-      },
-      {
-        id: "booking_appointments",
-        name: "Booking & appointments",
-        workflowName: "MDN | Router 02 | Booking & Appointments",
-        description: "One GHL workflow routes leads and every appointment event. New booking includes the patient, Partner and an additional-patient list for a single GHL loop.",
-        configured: bookingAppointmentsConfigured,
-        endpoint: safeWebhookEndpoint(bookingAppointmentsUrl),
-        webhookUrl: bookingAppointmentsUrl,
-        events: [
-          { target: "lead_capture", label: "Lead captured", event: "booking.lead.created" },
-          { target: "new_booking", label: "New booking · all recipients", event: "new_booking" },
-          { target: "partner_rescheduled", label: "Partner rescheduled", event: "partner_rescheduled" },
-          { target: "appointment_accepted", label: "Appointment accepted", event: "appointment_accepted" },
-          { target: "appointment_declined", label: "Appointment declined", event: "appointment_declined" },
-          { target: "appointment_reassigned", label: "Appointment reassigned", event: "appointment_reassigned" },
-          { target: "appointment_completed", label: "Appointment completed", event: "appointment_completed" },
-          { target: "appointment_refunded", label: "Appointment refunded", event: "appointment_refunded" },
-        ],
-      },
-      {
-        id: "care_rewards",
-        name: "Care rewards",
-        workflowName: "MDN | Router 03 | Care Rewards",
-        description: "One GHL workflow routes personal invitations, verified referral progress and earned rewards.",
-        configured: Boolean(careRewardsUrl),
-        endpoint: safeWebhookEndpoint(careRewardsUrl),
-        webhookUrl: careRewardsUrl,
-        events: [
-          { target: "client_referral", label: "Personal invitation", event: "client.referral.invite.created" },
-          { target: "client_referral_registered", label: "Referral registered", event: "client.referral.registered" },
-          { target: "client_referral_reward_earned", label: "Reward earned", event: "client.referral.reward.earned" },
-        ],
-      },
-      {
-        id: "account_security",
-        name: "Account security",
-        workflowName: "MDN | Care | Account Security SMS",
-        description: "Sends Care phone-verification codes through GHL SMS. Password-security emails are delivered separately and securely by Resend.",
-        configured: Boolean(accountSecurityUrl),
-        endpoint: safeWebhookEndpoint(accountSecurityUrl),
-        webhookUrl: accountSecurityUrl,
-        events: [
-          { target: "account_security", label: "Phone verification code", event: "account_security_challenge_requested" },
-        ],
-      },
-    ],
+    communications: separatedCommunications,
     webhooks: [
       { target: "account_ready", label: "Account-ready welcome", configured: Boolean(s(row.webhook_url)), endpoint: safeWebhookEndpoint(row.webhook_url) },
       { target: "applicant_received", label: "Application received", configured: Boolean(s(row.applicant_received_webhook_url)), endpoint: safeWebhookEndpoint(row.applicant_received_webhook_url) },
@@ -309,6 +250,8 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
       { target: "appointment_completed", label: "Appointment completed", configured: Boolean(s(row.appointment_completed_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_completed_webhook_url) },
       { target: "appointment_refunded", label: "Appointment refunded", configured: Boolean(s(row.appointment_refunded_webhook_url)), endpoint: safeWebhookEndpoint(row.appointment_refunded_webhook_url) },
       { target: "client_referral", label: "Client referral invitations", configured: Boolean(s(row.client_referral_webhook_url)), endpoint: safeWebhookEndpoint(row.client_referral_webhook_url) },
+      { target: "client_referral_registered", label: "Client referral registered", configured: Boolean(s(row.client_referral_registered_webhook_url)), endpoint: safeWebhookEndpoint(row.client_referral_registered_webhook_url) },
+      { target: "client_referral_reward_earned", label: "Client referral reward earned", configured: Boolean(s(row.client_referral_reward_earned_webhook_url)), endpoint: safeWebhookEndpoint(row.client_referral_reward_earned_webhook_url) },
       { target: "account_security", label: "Care account security SMS", configured: Boolean(accountSecurityUrl), endpoint: safeWebhookEndpoint(accountSecurityUrl) },
     ],
     adminBaseUrl: s(row.admin_base_url) || DEFAULT_ADMIN_BASE_URL,
@@ -337,6 +280,8 @@ const SETTINGS_SELECT = `
          c.appointment_completed_webhook_url,
          c.appointment_refunded_webhook_url,
          c.client_referral_webhook_url,
+         c.client_referral_registered_webhook_url,
+         c.client_referral_reward_earned_webhook_url,
          c.account_security_webhook_url,
          c.admin_base_url,
          c.affiliate_commission_rate,
@@ -539,6 +484,8 @@ export async function savePartnerAdminNotificationSettings(input: {
                 c.appointment_completed_webhook_url,
                 c.appointment_refunded_webhook_url,
                 c.client_referral_webhook_url,
+                c.client_referral_registered_webhook_url,
+                c.client_referral_reward_earned_webhook_url,
                 c.account_security_webhook_url,
                 c.admin_base_url,
                 c.affiliate_commission_rate,
@@ -592,7 +539,22 @@ export async function savePartnerAdminCommunicationRouter(input: {
   await ensureStaffSchema();
   const tenantId = s(input.tenantId);
   if (!tenantId) throw new Error("Tenant ID is required.");
-  if (!(["application_received", "account_ready", "booking_appointments", "care_rewards", "account_security"] as string[]).includes(input.router)) {
+  const routerColumns: Partial<Record<PartnerAdminCommunicationRouter, keyof SettingsRow>> = {
+    account_ready: "webhook_url",
+    lead_capture: "lead_capture_webhook_url",
+    new_booking: "new_booking_webhook_url",
+    partner_rescheduled: "partner_rescheduled_webhook_url",
+    appointment_accepted: "appointment_accepted_webhook_url",
+    appointment_declined: "appointment_declined_webhook_url",
+    appointment_reassigned: "appointment_reassigned_webhook_url",
+    appointment_completed: "appointment_completed_webhook_url",
+    appointment_refunded: "appointment_refunded_webhook_url",
+    client_referral: "client_referral_webhook_url",
+    client_referral_registered: "client_referral_registered_webhook_url",
+    client_referral_reward_earned: "client_referral_reward_earned_webhook_url",
+    account_security: "account_security_webhook_url",
+  };
+  if (input.router !== "application_received" && !routerColumns[input.router]) {
     throw new Error("Invalid communication router.");
   }
 
@@ -610,44 +572,12 @@ export async function savePartnerAdminCommunicationRouter(input: {
         where organization_id = $1::uuid`,
       [tenantId, webhookUrl],
     );
-  } else if (input.router === "account_ready") {
-    await getDbPool().query(
-      `update app.staff_form_configs
-          set webhook_url = $2,
-              updated_at = now()
-        where organization_id = $1::uuid`,
-      [tenantId, webhookUrl],
-    );
-  } else if (input.router === "booking_appointments") {
-    await getDbPool().query(
-      `update app.staff_form_configs
-          set partner_notification_webhook_url = $2,
-              lead_capture_webhook_url = $2,
-              appointment_created_webhook_url = $2,
-              new_booking_webhook_url = $2,
-              partner_confirmation_required_webhook_url = $2,
-              partner_rescheduled_webhook_url = $2,
-              appointment_accepted_webhook_url = $2,
-              appointment_declined_webhook_url = $2,
-              appointment_reassigned_webhook_url = $2,
-              appointment_completed_webhook_url = $2,
-              appointment_refunded_webhook_url = $2,
-              updated_at = now()
-        where organization_id = $1::uuid`,
-      [tenantId, webhookUrl],
-    );
-  } else if (input.router === "care_rewards") {
-    await getDbPool().query(
-      `update app.staff_form_configs
-          set client_referral_webhook_url = $2,
-              updated_at = now()
-        where organization_id = $1::uuid`,
-      [tenantId, webhookUrl],
-    );
   } else {
+    const column = routerColumns[input.router];
+    if (!column) throw new Error("Invalid communication router.");
     await getDbPool().query(
       `update app.staff_form_configs
-          set account_security_webhook_url = $2,
+          set ${column} = $2,
               updated_at = now()
         where organization_id = $1::uuid`,
       [tenantId, webhookUrl],
@@ -702,8 +632,8 @@ function webhookUrlForTarget(row: SettingsRow, target: PartnerAdminWebhookTarget
     appointment_completed: row.appointment_completed_webhook_url,
     appointment_refunded: row.appointment_refunded_webhook_url,
     client_referral: row.client_referral_webhook_url,
-    client_referral_registered: row.client_referral_webhook_url,
-    client_referral_reward_earned: row.client_referral_webhook_url,
+    client_referral_registered: row.client_referral_registered_webhook_url,
+    client_referral_reward_earned: row.client_referral_reward_earned_webhook_url,
     account_security: row.account_security_webhook_url,
   } satisfies Record<PartnerAdminWebhookTarget, string | null>;
   return s(exact[target]);

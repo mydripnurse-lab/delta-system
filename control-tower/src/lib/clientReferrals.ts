@@ -62,16 +62,29 @@ function registrationUrl(code: string) {
   return `https://care.mydripnurse.com/register?${params.toString()}`;
 }
 
-async function configuredReferralWebhookUrl() {
+async function configuredReferralWebhookUrl(eventType: string) {
   await ensureStaffSchema();
-  const result = await getDbPool().query<{ client_referral_webhook_url: string | null }>(
-    `select config.client_referral_webhook_url
+  const result = await getDbPool().query<{
+    client_referral_webhook_url: string | null;
+    client_referral_registered_webhook_url: string | null;
+    client_referral_reward_earned_webhook_url: string | null;
+  }>(
+    `select config.client_referral_webhook_url,
+            config.client_referral_registered_webhook_url,
+            config.client_referral_reward_earned_webhook_url
        from app.staff_form_configs config
        join app.organizations organization on organization.id = config.organization_id
       where organization.slug = 'my-drip-nurse'
       limit 1`,
   );
-  return text(result.rows[0]?.client_referral_webhook_url);
+  const config = result.rows[0];
+  if (eventType === "client.referral.registered") {
+    return text(config?.client_referral_registered_webhook_url);
+  }
+  if (eventType === "client.referral.reward.earned") {
+    return text(config?.client_referral_reward_earned_webhook_url);
+  }
+  return text(config?.client_referral_webhook_url);
 }
 
 async function deliverReferralWebhook(input: {
@@ -92,7 +105,7 @@ async function deliverReferralWebhook(input: {
   const deliveryId = inserted.rows[0]?.id;
   if (!deliveryId) return { status: "duplicate" as const };
 
-  const webhookUrl = await configuredReferralWebhookUrl();
+  const webhookUrl = await configuredReferralWebhookUrl(input.eventType);
   if (!webhookUrl) {
     await pool.query(
       `update app.client_referral_webhook_deliveries

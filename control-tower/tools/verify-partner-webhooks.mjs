@@ -46,8 +46,20 @@ const checks = [
     message: "Application Received must save only its applicant/Admin destination.",
   },
   {
-    ok: /input\.router === "account_ready"[\s\S]*?set webhook_url = \$2/.test(settingsSource),
+    ok: /account_ready:\s*"webhook_url"/.test(settingsSource),
     message: "Account-ready Welcome must save its own destination.",
+  },
+  {
+    ok: /lead_capture:\s*"lead_capture_webhook_url"/.test(settingsSource)
+      && /new_booking:\s*"new_booking_webhook_url"/.test(settingsSource)
+      && /appointment_accepted:\s*"appointment_accepted_webhook_url"/.test(settingsSource)
+      && /appointment_refunded:\s*"appointment_refunded_webhook_url"/.test(settingsSource),
+    message: "Booking and appointment events must keep independent webhook destinations.",
+  },
+  {
+    ok: /client_referral_registered:\s*"client_referral_registered_webhook_url"/.test(settingsSource)
+      && /client_referral_reward_earned:\s*"client_referral_reward_earned_webhook_url"/.test(settingsSource),
+    message: "Care reward events must keep independent webhook destinations.",
   },
   {
     ok: !/set webhook_url = \$2,\s*applicant_received_webhook_url = \$2/.test(settingsSource),

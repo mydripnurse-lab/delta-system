@@ -62,13 +62,6 @@ export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSet
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [editingRouter, setEditingRouter] = useState<PartnerAdminCommunicationRouter | "">("");
   const [routerDraft, setRouterDraft] = useState("");
-  const [selectedTestTargets, setSelectedTestTargets] = useState<Record<PartnerAdminCommunicationRouter, PartnerAdminWebhookTarget>>({
-    application_received: "applicant_received",
-    account_ready: "account_ready",
-    booking_appointments: "lead_capture",
-    care_rewards: "client_referral",
-    account_security: "account_security",
-  });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsError, setSettingsError] = useState("");
@@ -356,7 +349,6 @@ export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSet
           testingTarget={testingTarget}
           editingRouter={editingRouter}
           routerDraft={routerDraft}
-          selectedTestTargets={selectedTestTargets}
           onTenantChange={setSelectedTenantId}
           onRouterDraftChange={setRouterDraft}
           onEdit={editCommunication}
@@ -365,7 +357,6 @@ export function PartnerAdminClient({ initialSettingsOpen = false }: { initialSet
             setRouterDraft("");
           }}
           onSave={(router, clear) => void saveCommunication(router, clear)}
-          onTestTargetChange={(router, target) => setSelectedTestTargets((current) => ({ ...current, [router]: target }))}
           onTest={(target) => void testWebhook(target)}
           onClose={closeSettings}
         />

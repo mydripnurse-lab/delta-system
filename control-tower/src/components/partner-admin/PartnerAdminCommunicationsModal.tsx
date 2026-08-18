@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import type {
   PartnerAdminCommunicationRouter,
   PartnerAdminNotificationSettings,
@@ -18,13 +19,11 @@ type Props = {
   testingTarget: PartnerAdminWebhookTarget | "";
   editingRouter: PartnerAdminCommunicationRouter | "";
   routerDraft: string;
-  selectedTestTargets: Record<PartnerAdminCommunicationRouter, PartnerAdminWebhookTarget>;
   onTenantChange: (tenantId: string) => void;
   onRouterDraftChange: (value: string) => void;
   onEdit: (router: PartnerAdminCommunicationRouter, webhookUrl: string) => void;
   onCancelEdit: () => void;
   onSave: (router: PartnerAdminCommunicationRouter, clear?: boolean) => void;
-  onTestTargetChange: (router: PartnerAdminCommunicationRouter, target: PartnerAdminWebhookTarget) => void;
   onTest: (target: PartnerAdminWebhookTarget) => void;
   onClose: () => void;
 };
@@ -40,13 +39,11 @@ export function PartnerAdminCommunicationsModal({
   testingTarget,
   editingRouter,
   routerDraft,
-  selectedTestTargets,
   onTenantChange,
   onRouterDraftChange,
   onEdit,
   onCancelEdit,
   onSave,
-  onTestTargetChange,
   onTest,
   onClose,
 }: Props) {
@@ -65,7 +62,7 @@ export function PartnerAdminCommunicationsModal({
           <div>
             <span className={styles.eyebrow}>My Drip Nurse · GHL</span>
             <h2 id="communications-title">Communications</h2>
-            <p>Independent Partner onboarding endpoints and optimized lifecycle routers power every GHL email and SMS workflow.</p>
+            <p>One dedicated endpoint for every GHL email, SMS and lifecycle workflow.</p>
           </div>
           <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close communications" disabled={locked}>×</button>
         </header>
@@ -95,8 +92,8 @@ export function PartnerAdminCommunicationsModal({
               <div className={styles.communicationIntro}>
                 <span className={styles.communicationPulse} aria-hidden="true" />
                 <div>
-                  <strong>One endpoint per GHL workflow</strong>
-                  <p>Application Received and Account-ready Welcome are configured and tested independently. Booking and rewards keep optimized routers; use <code>event</code>, <code>workflowRouter</code> and <code>primaryAudience</code> inside GHL. Safe Tests use the live contract without creating production records.</p>
+                  <strong>Independent, event-specific webhooks</strong>
+                  <p>Each workflow now has its own endpoint and Safe Test. The test sends the same event contract and mapping fields as production without creating a real lead, booking or appointment.</p>
                 </div>
               </div>
 
@@ -106,12 +103,18 @@ export function PartnerAdminCommunicationsModal({
               <div className={styles.communicationsGrid}>
                 {selectedSettings.communications.map((communication, index) => {
                   const isEditing = editingRouter === communication.id;
-                  const selectedTarget = selectedTestTargets[communication.id];
-                  const selectedEvent = communication.events.find((event) => event.target === selectedTarget) || communication.events[0];
-                  const hasMultipleTestEvents = communication.events.length > 1;
+                  const selectedEvent = communication.events[0];
+                  const startsCategory = index === 0 || selectedSettings.communications[index - 1]?.category !== communication.category;
 
                   return (
-                    <article className={`${styles.communicationCard} ${communication.configured ? styles.communicationCardActive : ""}`} key={communication.id}>
+                    <Fragment key={communication.id}>
+                    {startsCategory ? (
+                      <div className={styles.communicationCategory}>
+                        <span>{communication.category}</span>
+                        <i aria-hidden="true" />
+                      </div>
+                    ) : null}
+                    <article className={`${styles.communicationCard} ${communication.configured ? styles.communicationCardActive : ""}`}>
                       <div className={styles.communicationCardTop}>
                         <span className={styles.communicationIndex}>{String(index + 1).padStart(2, "0")}</span>
                         <div className={styles.communicationIdentity}>
@@ -131,17 +134,10 @@ export function PartnerAdminCommunicationsModal({
                         <strong>{communication.configured ? communication.endpoint : "Not connected"}</strong>
                       </div>
 
-                      <details className={styles.communicationEvents}>
-                        <summary>{communication.events.length} routed {communication.events.length === 1 ? "event" : "events"} <span>View payload events</span></summary>
-                        <div className={styles.communicationEventList}>
-                          {communication.events.map((event) => (
-                            <span className={styles.communicationEventChip} key={`${communication.id}-${event.target}`}>
-                              <strong>{event.label}</strong>
-                              <code>{event.event}</code>
-                            </span>
-                          ))}
-                        </div>
-                      </details>
+                      <div className={styles.communicationEventLine}>
+                        <span>Payload event</span>
+                        <code>{selectedEvent.event}</code>
+                      </div>
 
                       {isEditing ? (
                         <div className={styles.communicationEditor}>
@@ -173,20 +169,7 @@ export function PartnerAdminCommunicationsModal({
                           <button type="button" className={styles.secondaryButton} onClick={() => onEdit(communication.id, communication.webhookUrl)} disabled={locked}>
                             Edit
                           </button>
-                          <div className={`${styles.communicationTest} ${hasMultipleTestEvents ? "" : styles.communicationTestSingle}`}>
-                            {hasMultipleTestEvents ? (
-                              <label>
-                                <span>Safe Test event</span>
-                                <select
-                                  className={styles.select}
-                                  value={selectedEvent?.target || ""}
-                                  onChange={(event) => onTestTargetChange(communication.id, event.target.value as PartnerAdminWebhookTarget)}
-                                  disabled={!communication.configured || locked}
-                                >
-                                  {communication.events.map((event) => <option value={event.target} key={event.target}>{event.label}</option>)}
-                                </select>
-                              </label>
-                            ) : null}
+                          <div className={`${styles.communicationTest} ${styles.communicationTestSingle}`}>
                             <button
                               type="button"
                               className={styles.button}
@@ -199,6 +182,7 @@ export function PartnerAdminCommunicationsModal({
                         </div>
                       )}
                     </article>
+                    </Fragment>
                   );
                 })}
               </div>
