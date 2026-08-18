@@ -7,6 +7,7 @@ import PhoneInputField from "@/components/shared/PhoneInputField";
 import type { ClientAccount } from "@/lib/clientPortalAuth";
 import type { ClientProfileSectionId } from "@/lib/clientProfileSections";
 import { GENDER_IDENTITY_OPTIONS, normalizeGenderIdentity } from "@/lib/genderIdentity";
+import { phoneIsComplete } from "@/lib/phoneInput";
 
 import styles from "@/app/client-portal/clientPortal.module.css";
 
@@ -68,6 +69,9 @@ export default function ClientProfileForm({
   const [phoneChallengeId, setPhoneChallengeId] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
   const [phoneVerified, setPhoneVerified] = useState(account.phoneVerified);
+  const [phoneMessage, setPhoneMessage] = useState("");
+  const [phoneError, setPhoneError] = useState(false);
+  const [phoneWorking, setPhoneWorking] = useState(false);
   const [passwordChallengeId, setPasswordChallengeId] = useState("");
   const [passwordCode, setPasswordCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -98,28 +102,28 @@ export default function ClientProfileForm({
   }
 
   async function requestPhoneCode() {
-    setMessage(""); setWorking(true);
+    setMessage(""); setPhoneMessage(""); setPhoneError(false); setPhoneWorking(true);
     try {
       const response = await fetch("/api/client-account/security/phone/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ phone }) });
       const result = await response.json().catch(() => ({})) as { error?: string; challengeId?: string };
       if (!response.ok || !result.challengeId) throw new Error(result.error || "The verification code could not be sent.");
       setPhoneChallengeId(result.challengeId); setPhoneCode("");
-      setMessage("A 6-digit verification code was sent by SMS.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "The verification code could not be sent."); }
-    finally { setWorking(false); }
+      setPhoneMessage("We sent a 6-digit code by SMS. It expires in 10 minutes.");
+    } catch (error) { setPhoneError(true); setPhoneMessage(error instanceof Error ? error.message : "The verification code could not be sent."); }
+    finally { setPhoneWorking(false); }
   }
 
   async function verifyPhoneCode() {
-    setMessage(""); setWorking(true);
+    setMessage(""); setPhoneMessage(""); setPhoneError(false); setPhoneWorking(true);
     try {
       const response = await fetch("/api/client-account/security/phone/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ challengeId: phoneChallengeId, code: phoneCode }) });
       const result = await response.json().catch(() => ({})) as { error?: string; phone?: string };
       if (!response.ok) throw new Error(result.error || "The phone number could not be verified.");
       if (result.phone) setPhone(result.phone);
       setPhoneVerified(true); setPhoneChallengeId(""); setPhoneCode("");
-      setMessage("Mobile number verified and saved."); router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "The phone number could not be verified."); }
-    finally { setWorking(false); }
+      setPhoneMessage("Verified and saved securely."); router.refresh();
+    } catch (error) { setPhoneError(true); setPhoneMessage(error instanceof Error ? error.message : "The phone number could not be verified."); }
+    finally { setPhoneWorking(false); }
   }
 
   async function requestPasswordCode() {
@@ -154,12 +158,20 @@ export default function ClientProfileForm({
         <div className={styles.profileAccordionFields}>
           <label><small>Full name</small><input value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" required maxLength={120} /></label>
           <label><small>Date of birth</small><input type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} autoComplete="bday" max={new Date().toISOString().slice(0, 10)} /></label>
-          <PhoneInputField label={<small>Mobile number</small>} value={phone} onValueChange={(value) => { setPhone(value); setPhoneVerified(value === account.phone && account.phoneVerified); setPhoneChallengeId(""); }} />
+          <div className={styles.profilePhoneVerification}>
+            <div className={styles.profilePhoneInputShell}>
+              <PhoneInputField className={styles.profilePhoneInput} label={<small>Mobile number</small>} value={phone} onValueChange={(value) => { setPhone(value); setPhoneVerified(value === account.phone && account.phoneVerified); setPhoneChallengeId(""); setPhoneCode(""); setPhoneMessage(""); setPhoneError(false); }} />
+              {phoneVerified
+                ? <span className={styles.profilePhoneVerified}>✓ Verified</span>
+                : <button type="button" className={styles.profilePhoneVerifyAction} disabled={phoneWorking || !phoneIsComplete(phone)} onClick={() => void requestPhoneCode()}>{phoneWorking ? "Sending…" : phoneChallengeId ? "Resend" : "Verify"}</button>}
+            </div>
+            {!phoneVerified && phoneChallengeId ? <div className={styles.profilePhoneOtp}>
+              <input value={phoneCode} onChange={(event) => setPhoneCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" aria-label="Phone verification code" autoFocus />
+              <button type="button" disabled={phoneWorking || phoneCode.length !== 6} onClick={() => void verifyPhoneCode()}>{phoneWorking ? "Verifying…" : "Verify & save"}</button>
+            </div> : null}
+            <span className={`${styles.profilePhoneMessage} ${phoneError ? styles.profilePhoneMessageError : ""}`} role="status">{phoneMessage || (phoneVerified ? "Saved for appointment updates and account security." : "Verify this number to save it to your Care profile.")}</span>
+          </div>
           <label><small>Email address</small><input value={account.email} disabled /><span>Verified login email</span></label>
-        </div>
-        <div className={styles.profileSecurityPanel}>
-          <div><b>Mobile verification</b><p>{phoneVerified ? "Verified for account security and appointment updates." : "Verify this number before it becomes your saved mobile number."}</p></div>
-          {phoneVerified ? <span className={styles.profileVerificationBadge}>Verified ✓</span> : phoneChallengeId ? <div className={styles.profileOtpRow}><input value={phoneCode} onChange={(event) => setPhoneCode(event.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" aria-label="Phone verification code" /><button type="button" disabled={working || phoneCode.length !== 6} onClick={() => void verifyPhoneCode()}>Verify number</button></div> : <button type="button" className={styles.profileSecondaryAction} disabled={working || !phone.trim()} onClick={() => void requestPhoneCode()}>Send SMS code</button>}
         </div>
         <div className={styles.profileSecurityPanel}>
           <div><b>Password & security</b><p>Use a one-time code sent to your verified email before choosing a new password.</p></div>
