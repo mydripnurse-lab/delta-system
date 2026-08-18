@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     const result = await captureBookingLead(input);
     return NextResponse.json(
       { ok: true, ...result },
-      { status: result.status === "failed" ? 202 : 201, headers: { ...cors, "Cache-Control": "no-store" } },
+      { status: result.status === "queued" ? 202 : 200, headers: { ...cors, "Cache-Control": "no-store" } },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -443,7 +443,6 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   const [screeningSubmitted, setScreeningSubmitted] = useState(false);
   const hasSavedScreening = savedScreeningSelections.length > 0;
   const [showFullScreening, setShowFullScreening] = useState(!hasSavedScreening);
-  const leadCaptureAttemptedRef = useRef(false);
   const leadCaptureKeyRef = useRef("");
   const [sourceContext, setSourceContext] = useState<{ pageUrl: string; referrer: string; attribution: Record<string, string>; requestedPartnerId: string; directoryAttribution: { source: "partner_directory"; partnerProfileId: string; attributedAt: string } | null }>({ pageUrl: "", referrer: "", attribution: {}, requestedPartnerId: "", directoryAttribution: null });
   const embeddedCheckoutRef = useRef<EmbeddedCheckout | null>(null);
@@ -705,8 +704,6 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   }
 
   const captureLead = useCallback(async (verifiedAddress: Address, available: BookingAvailability | null) => {
-    if (leadCaptureAttemptedRef.current) return;
-    leadCaptureAttemptedRef.current = true;
     if (!leadCaptureKeyRef.current) {
       leadCaptureKeyRef.current = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
@@ -741,8 +738,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         cache: "no-store",
       });
     } catch (leadError) {
-      // The event is intentionally not retried in the browser. The server
-      // reserves the idempotency key before delivery to guarantee at-most-once.
+      // The next availability search can refresh the same canonical lead. The
+      // server deduplicates it and owns delayed delivery.
       console.warn("Lead capture request could not be completed.", leadError);
     }
   }, [additionalPatients, contact, date, partnerId, publicKey, screeningIsClear, screeningSelected, sourceContext]);

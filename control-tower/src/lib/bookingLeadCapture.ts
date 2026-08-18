@@ -123,40 +123,36 @@ function uniquePartners(value: EligiblePartner[] | undefined) {
   }));
 }
 
-function canonicalLeadKey(input: BookingLeadCaptureInput, serviceId: string) {
-  const normalized = {
-    serviceId,
-    publicKey: text(input.publicKey),
-    requestedDate: text(input.requestedDate),
-    customer: {
-      email: text(input.customer.email).toLowerCase(),
-      phone: text(input.customer.phone).replace(/\D/g, ""),
-    },
-    attendees: (input.attendees || []).map((person) => ({
-      email: text(person.email).toLowerCase(),
-      phone: text(person.phone).replace(/\D/g, ""),
-    })).sort((a, b) => `${a.email}:${a.phone}`.localeCompare(`${b.email}:${b.phone}`)),
-    address: {
-      line1: text(input.address.addressLine1).toLowerCase(),
-      line2: text(input.address.addressLine2).toLowerCase(),
-      city: text(input.address.city).toLowerCase(),
-      county: text(input.address.county).toLowerCase(),
-      state: text(input.address.state).toLowerCase(),
-      postalCode: text(input.address.postalCode).toLowerCase(),
-      countryCode: text(input.address.countryCode || "US").toUpperCase(),
-    },
+function normalizedEmail(value: unknown) {
+  return text(value).toLowerCase();
+}
+
+function normalizedPhone(value: unknown) {
+  const digits = text(value).replace(/\D/g, "");
+  if (digits.length === 10) return `1${digits}`;
+  return digits;
+}
+
+function canonicalLeadIdentity(input: BookingLeadCaptureInput) {
+  const email = normalizedEmail(input.customer.email);
+  const phone = normalizedPhone(input.customer.phone);
+  // Phone is required by the booking flow and remains stable across reloads,
+  // dates, services and addresses. Email is retained for matching and audit.
+  const identity = phone ? `phone:${phone}` : `email:${email}`;
+  return {
+    email,
+    phone,
+    key: createHash("sha256").update(identity).digest("hex"),
   };
-  return createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
 }
 
 /**
- * Captures a lead independently from appointment creation. The event is first
- * reserved with a unique key, then sent once to the single Admin-configured
- * webhook. A duplicate request returns the existing event and never sends a
- * second outbound request.
+ * Captures or refreshes one canonical lead per person. Delivery is deferred
+ * until ten minutes after the latest activity and is handled by the durable
+ * cron queue below, never by the customer's booking request.
  */
 export async function captureBookingLead(input: BookingLeadCaptureInput) {
-  await Promise.all([ensureBookingEngineSchema(), ensureStaffSchema()]);
+  await ensureBookingEngineSchema();
   const pool = getDbPool();
   const calendar = await pool.query<{
     organization_id: string;
@@ -167,7 +163,6 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
     public_key: string;
     price: string;
     currency: string;
-    webhook_url: string | null;
   }>(
     `select s.organization_id::text,
             o.name as organization_name,
@@ -176,20 +171,16 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
             s.name as service_name,
             c.public_key,
             s.price::text,
-            s.currency,
-            cfg.lead_capture_webhook_url as webhook_url
+            s.currency
        from app.service_calendars c
        join app.services s on s.id = c.service_id
        join app.organizations o on o.id = s.organization_id
-       left join app.staff_form_configs cfg on cfg.organization_id = s.organization_id
       where c.public_key = $1
       limit 1`,
     [input.publicKey],
   );
   const row = calendar.rows[0];
   if (!row) throw new Error("The service calendar was not found.");
-  const webhookUrl = validWebhookUrl(row.webhook_url);
-  if (!webhookUrl) return { status: "not_configured" as const };
 
   const requestedPartnerResult = isUuid(input.requestedPartnerId)
     ? await pool.query<{
@@ -242,9 +233,10 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
 
   const clientIdempotencyKey = text(input.idempotencyKey);
   if (!clientIdempotencyKey) throw new Error("A lead idempotency key is required.");
-  // The server-owned key is stable across reloads, retries, and navigation.
-  // This prevents a billable webhook from being sent twice for the same lead.
-  const idempotencyKey = canonicalLeadKey(input, row.service_id);
+  const identity = canonicalLeadIdentity(input);
+  // The server key intentionally excludes service, date and address so one
+  // person remains one lead while they refine the same booking journey.
+  const idempotencyKey = `booking.lead.created:${identity.key}`;
   const capturedAt = new Date().toISOString();
   const primaryPatient = webhookPerson(input.customer);
   const additionalPatients = (input.attendees || []).map(webhookPerson);
@@ -267,6 +259,9 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
     idempotencyKey,
     clientIdempotencyKey,
     capturedAt,
+    bookingAttemptCount: 1,
+    deduplicatedLead: true,
+    followUpDelayMinutes: 10,
     organization: { id: row.organization_id, name: row.organization_name, slug: "my-drip-nurse" },
     firstName: primaryPatient.firstName,
     lastName: primaryPatient.lastName,
@@ -354,60 +349,206 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
     },
   };
 
-  const reserved = await pool.query<{ id: string; status: string }>(
+  const reserved = await pool.query<{ id: string; status: string; attempt_count: number; send_after: string }>(
     `insert into app.booking_lead_events
-       (organization_id, idempotency_key, public_key, payload, status)
-     values ($1::uuid, $2, $3, $4::jsonb, 'pending')
-     on conflict (organization_id, idempotency_key) do nothing
-     returning id, status`,
-    [row.organization_id, idempotencyKey, row.public_key, JSON.stringify(storedPayload)],
+       (organization_id, idempotency_key, identity_key, normalized_email, normalized_phone,
+        public_key, payload, status, attempt_count, last_activity_at, send_after)
+     values ($1::uuid, $2, $3, $4, $5, $6, $7::jsonb, 'pending', 1, now(), now() + interval '10 minutes')
+     on conflict (organization_id, identity_key) where identity_key <> ''
+     do update set
+       idempotency_key = excluded.idempotency_key,
+       normalized_email = excluded.normalized_email,
+       normalized_phone = excluded.normalized_phone,
+       public_key = excluded.public_key,
+       payload = jsonb_set(
+         excluded.payload,
+         '{bookingAttemptCount}',
+         to_jsonb(app.booking_lead_events.attempt_count + 1),
+         true
+       ),
+       attempt_count = app.booking_lead_events.attempt_count + 1,
+       last_activity_at = now(),
+       status = case
+         when app.booking_lead_events.status in ('processing', 'sent', 'converted') then app.booking_lead_events.status
+         else 'pending'
+       end,
+       send_after = case
+         when app.booking_lead_events.status in ('processing', 'sent', 'converted') then app.booking_lead_events.send_after
+         else now() + interval '10 minutes'
+       end,
+       next_attempt_at = null,
+       processing_started_at = case when app.booking_lead_events.status = 'processing' then app.booking_lead_events.processing_started_at else null end,
+       retry_count = case when app.booking_lead_events.status in ('processing', 'sent', 'converted') then app.booking_lead_events.retry_count else 0 end,
+       error = case when app.booking_lead_events.status in ('processing', 'sent', 'converted') then app.booking_lead_events.error else '' end,
+       updated_at = now()
+     returning id::text, status, attempt_count, send_after::text`,
+    [row.organization_id, idempotencyKey, identity.key, identity.email, identity.phone, row.public_key, JSON.stringify(storedPayload)],
   );
-  if (!reserved.rows[0]) {
-    const existing = await pool.query<{ status: string }>(
-      `select status from app.booking_lead_events where organization_id = $1::uuid and idempotency_key = $2 limit 1`,
-      [row.organization_id, idempotencyKey],
-    );
-    return { status: "already_captured" as const, eventStatus: existing.rows[0]?.status || "pending" };
-  }
+  const event = reserved.rows[0];
+  return {
+    status: event.status === "sent" || event.status === "converted" ? "already_captured" as const : "queued" as const,
+    eventId: event.id,
+    eventStatus: event.status,
+    attemptCount: event.attempt_count,
+    sendAfter: event.send_after,
+  };
+}
 
-  const eventId = reserved.rows[0].id;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000);
-  try {
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "X-MDN-Event": "booking.lead.created",
-        "X-MDN-Event-Id": eventId,
-        "X-MDN-Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    const responseText = (await response.text()).slice(0, 2000);
-    if (!response.ok) throw new Error(`Lead capture webhook returned HTTP ${response.status}.`);
-    await pool.query(
-      `update app.booking_lead_events
-          set status = 'sent', http_status = $2, response_text = $3, sent_at = now(), updated_at = now()
-        where id = $1`,
-      [eventId, response.status, responseText],
-    );
-    return { status: "sent" as const, eventId };
-  } catch (error) {
-    const message = error instanceof Error && error.name === "AbortError"
-      ? "Lead capture webhook timed out after 8 seconds."
-      : error instanceof Error ? error.message : "Lead capture webhook failed.";
-    await pool.query(
-      `update app.booking_lead_events set status = 'failed', error = $2, updated_at = now() where id = $1`,
-      [eventId, message],
-    );
-    // The event remains failed and is deliberately not retried automatically:
-    // the configured endpoint is billable and this flow guarantees at-most-once delivery.
-    return { status: "failed" as const, eventId, error: message };
-  } finally {
-    clearTimeout(timeout);
+type ClaimedLeadDelivery = {
+  id: string;
+  organization_id: string;
+  idempotency_key: string;
+  payload: Record<string, unknown>;
+  retry_count: number;
+};
+
+/**
+ * Claims due rows without blocking parallel workers, then performs network
+ * delivery outside the database transaction. GHL receives the canonical
+ * idempotency key in both the payload and headers.
+ */
+export async function processDueBookingLeadWebhooks(limit = 25) {
+  await Promise.all([ensureBookingEngineSchema(), ensureStaffSchema()]);
+  const pool = getDbPool();
+  const safeLimit = Math.min(100, Math.max(1, Math.round(limit)));
+
+  await pool.query(
+    `update app.booking_lead_events
+        set status = 'pending', processing_started_at = null,
+            next_attempt_at = now(), updated_at = now()
+      where status = 'processing'
+        and processing_started_at < now() - interval '5 minutes'`,
+  );
+
+  const claimed = await pool.query<ClaimedLeadDelivery>(
+    `with due as (
+       select id
+         from app.booking_lead_events
+        where status = 'pending'
+          and identity_key <> ''
+          and converted_at is null
+          and coalesce(next_attempt_at, send_after) <= now()
+        order by coalesce(next_attempt_at, send_after), created_at
+        limit $1
+        for update skip locked
+     )
+     update app.booking_lead_events event
+        set status = 'processing', processing_started_at = now(), updated_at = now()
+       from due
+      where event.id = due.id
+      returning event.id::text, event.organization_id::text, event.idempotency_key,
+                event.payload, event.retry_count`,
+    [safeLimit],
+  );
+  if (!claimed.rows.length) return { claimed: 0, sent: 0, retried: 0, failed: 0, notConfigured: 0 };
+
+  const organizationIds = [...new Set(claimed.rows.map((row) => row.organization_id))];
+  const configs = await pool.query<{ organization_id: string; webhook_url: string | null }>(
+    `select organization_id::text, lead_capture_webhook_url as webhook_url
+       from app.staff_form_configs
+      where organization_id = any($1::uuid[])`,
+    [organizationIds],
+  );
+  const webhookByOrganization = new Map(configs.rows.map((row) => [row.organization_id, validWebhookUrl(row.webhook_url)]));
+  const totals = { claimed: claimed.rows.length, sent: 0, retried: 0, failed: 0, notConfigured: 0 };
+
+  for (const event of claimed.rows) {
+    const webhookUrl = webhookByOrganization.get(event.organization_id) || "";
+    if (!webhookUrl) {
+      totals.notConfigured += 1;
+      await pool.query(
+        `update app.booking_lead_events
+            set status = 'pending', processing_started_at = null,
+                next_attempt_at = now() + interval '1 hour',
+                error = 'Lead capture webhook is not configured.', updated_at = now()
+          where id = $1::uuid and status = 'processing'`,
+        [event.id],
+      );
+      continue;
+    }
+
+    const webhookPayload = { ...(event.payload || {}) };
+    delete webhookPayload._internalAnalytics;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "X-MDN-Event": "booking.lead.created",
+          "X-MDN-Event-Id": event.id,
+          "X-MDN-Idempotency-Key": event.idempotency_key,
+          "Idempotency-Key": event.idempotency_key,
+        },
+        body: JSON.stringify(webhookPayload),
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      const responseText = (await response.text()).slice(0, 2000);
+      if (!response.ok) throw new Error(`Lead capture webhook returned HTTP ${response.status}.`);
+      const updated = await pool.query(
+        `update app.booking_lead_events
+            set status = 'sent', http_status = $2, response_text = $3,
+                error = '', sent_at = now(), processing_started_at = null, updated_at = now()
+          where id = $1::uuid and status = 'processing' and converted_at is null`,
+        [event.id, response.status, responseText],
+      );
+      if (updated.rowCount) totals.sent += 1;
+    } catch (error) {
+      const message = error instanceof Error && error.name === "AbortError"
+        ? "Lead capture webhook timed out after 8 seconds."
+        : error instanceof Error ? error.message : "Lead capture webhook failed.";
+      const nextRetryCount = event.retry_count + 1;
+      const terminal = nextRetryCount >= 3;
+      await pool.query(
+        `update app.booking_lead_events
+            set status = $2, retry_count = $3, processing_started_at = null,
+                next_attempt_at = case when $2 = 'pending' then now() + ($4::text || ' minutes')::interval else null end,
+                error = $5, updated_at = now()
+          where id = $1::uuid and status = 'processing' and converted_at is null`,
+        [event.id, terminal ? "failed" : "pending", nextRetryCount, Math.min(30, 2 ** nextRetryCount), message],
+      );
+      if (terminal) totals.failed += 1;
+      else totals.retried += 1;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
+  return totals;
+}
+
+/** Marks a pending lead as converted only after the appointment is paid. */
+export async function markBookingLeadConverted(appointmentId: string) {
+  await ensureBookingEngineSchema();
+  const result = await getDbPool().query(
+    `with confirmed_customer as (
+       select appointment.id, appointment.organization_id,
+              lower(trim(customer.email)) as normalized_email,
+              regexp_replace(customer.phone, '[^0-9]', '', 'g') as normalized_phone
+         from app.appointments appointment
+         join app.booking_customers customer on customer.id = appointment.customer_id
+        where appointment.id = $1::uuid
+          and appointment.status in ('confirmed', 'partner_acknowledged', 'in_progress', 'completed')
+     )
+     update app.booking_lead_events event
+        set status = case when event.status = 'sent' then 'sent' else 'converted' end,
+            converted_at = coalesce(event.converted_at, now()),
+            appointment_id = confirmed_customer.id,
+            processing_started_at = null,
+            next_attempt_at = null,
+            updated_at = now()
+       from confirmed_customer
+      where event.organization_id = confirmed_customer.organization_id
+        and event.converted_at is null
+        and (
+          (event.normalized_email <> '' and event.normalized_email = confirmed_customer.normalized_email)
+          or (event.normalized_phone <> '' and right(event.normalized_phone, 10) = right(confirmed_customer.normalized_phone, 10))
+          or lower(event.payload #>> '{lead,primaryPatient,email}') = confirmed_customer.normalized_email
+          or right(regexp_replace(event.payload #>> '{lead,primaryPatient,phone}', '[^0-9]', '', 'g'), 10) = right(confirmed_customer.normalized_phone, 10)
+        )`,
+    [appointmentId],
+  );
+  return { converted: result.rowCount || 0 };
 }

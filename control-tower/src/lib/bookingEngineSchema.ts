@@ -397,8 +397,42 @@ export async function ensureBookingEngineSchema() {
         unique (organization_id, idempotency_key),
         check (status in ('pending', 'sent', 'failed'))
       );
+      alter table app.booking_lead_events
+        add column if not exists identity_key text not null default '',
+        add column if not exists normalized_email text not null default '',
+        add column if not exists normalized_phone text not null default '',
+        add column if not exists attempt_count integer not null default 1,
+        add column if not exists last_activity_at timestamptz,
+        add column if not exists send_after timestamptz,
+        add column if not exists next_attempt_at timestamptz,
+        add column if not exists processing_started_at timestamptz,
+        add column if not exists retry_count integer not null default 0,
+        add column if not exists converted_at timestamptz,
+        add column if not exists appointment_id uuid references app.appointments(id) on delete set null;
+      update app.booking_lead_events
+         set last_activity_at = greatest(created_at, updated_at)
+       where last_activity_at is null;
+      update app.booking_lead_events
+         set send_after = created_at + interval '10 minutes'
+       where send_after is null;
+      alter table app.booking_lead_events
+        alter column last_activity_at set default now(),
+        alter column last_activity_at set not null,
+        alter column send_after set default (now() + interval '10 minutes'),
+        alter column send_after set not null;
+      alter table app.booking_lead_events
+        drop constraint if exists booking_lead_events_status_check;
+      alter table app.booking_lead_events
+        add constraint booking_lead_events_status_check
+        check (status in ('pending', 'processing', 'sent', 'failed', 'converted'));
       create index if not exists booking_lead_events_created_idx
         on app.booking_lead_events (organization_id, created_at desc);
+      create unique index if not exists booking_lead_events_identity_uidx
+        on app.booking_lead_events (organization_id, identity_key)
+        where identity_key <> '';
+      create index if not exists booking_lead_events_due_idx
+        on app.booking_lead_events (coalesce(next_attempt_at, send_after), created_at)
+        where status = 'pending';
 
       create table if not exists app.appointment_webhook_events (
         id uuid primary key default gen_random_uuid(),

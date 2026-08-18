@@ -6,6 +6,9 @@ const sourcePath = fileURLToPath(sourceUrl);
 const source = await readFile(sourceUrl, "utf8");
 const settingsUrl = new URL("../src/lib/partnerAdminSettings.ts", import.meta.url);
 const settingsSource = await readFile(settingsUrl, "utf8");
+const leadCaptureSource = await readFile(new URL("../src/lib/bookingLeadCapture.ts", import.meta.url), "utf8");
+const bookingSchemaSource = await readFile(new URL("../src/lib/bookingEngineSchema.ts", import.meta.url), "utf8");
+const vercelConfig = await readFile(new URL("../vercel.json", import.meta.url), "utf8");
 
 const checks = [
   {
@@ -64,6 +67,20 @@ const checks = [
   {
     ok: !/set webhook_url = \$2,\s*applicant_received_webhook_url = \$2/.test(settingsSource),
     message: "Saving an onboarding workflow must never overwrite the other onboarding webhook URL.",
+  },
+  {
+    ok: /now\(\) \+ interval '10 minutes'/.test(leadCaptureSource)
+      && /on conflict \(organization_id, identity_key\)/.test(leadCaptureSource),
+    message: "Booking leads must be deduplicated and delayed for ten minutes.",
+  },
+  {
+    ok: /for update skip locked/.test(leadCaptureSource)
+      && /booking_lead_events_due_idx/.test(bookingSchemaSource),
+    message: "Booking lead delivery must use the durable non-blocking queue.",
+  },
+  {
+    ok: /booking-lead-webhooks/.test(vercelConfig),
+    message: "Vercel must schedule the booking lead webhook worker.",
   },
 ];
 

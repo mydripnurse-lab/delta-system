@@ -4,6 +4,7 @@ import { recordPartnerAffiliateCommission } from "@/lib/partnerAffiliate";
 import { sendAppointmentCreatedWebhook, sendAppointmentLifecycleWebhook } from "@/lib/appointmentCreatedWebhook";
 import { sendAppointmentRefundNotification } from "@/lib/appointmentRefundNotifications";
 import { createPartnerAppointmentPush } from "@/lib/partnerPushNotifications";
+import { markBookingLeadConverted } from "@/lib/bookingLeadCapture";
 
 const PAYMENT_CONFIRMED_APPOINTMENT_STATUSES = new Set([
   "confirmed",
@@ -45,6 +46,7 @@ async function runNotificationTasks(tasks: Array<Promise<unknown>>) {
  */
 export async function sendConfirmedAppointmentAutomations(appointmentId: string) {
   await runNotificationTasks([
+    markBookingLeadConverted(appointmentId),
     recordPartnerAffiliateCommission(appointmentId),
     createPartnerAppointmentPush(appointmentId, "appointment_confirmation"),
     sendAppointmentCreatedWebhook(appointmentId),

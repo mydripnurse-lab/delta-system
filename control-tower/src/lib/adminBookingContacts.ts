@@ -48,7 +48,7 @@ function splitName(fullName: string) {
 function contactKey(email: string, phone: string) {
   const normalizedEmail = email.toLowerCase().trim();
   const normalizedPhone = phone.replace(/\D/g, "");
-  return normalizedEmail ? `email:${normalizedEmail}` : `phone:${normalizedPhone}`;
+  return normalizedPhone ? `phone:${normalizedPhone.slice(-10)}` : `email:${normalizedEmail}`;
 }
 
 function uniqueLocations(locations: AdminContactLocation[]) {
@@ -106,8 +106,11 @@ export async function listAdminBookingContacts(options: { search?: string; limit
         limit $${values.length}`,
       values,
     ),
-    pool.query<{ id: string; payload: Record<string, unknown>; created_at: string }>(
-      `select id::text, payload, created_at::text from app.booking_lead_events order by created_at desc limit 750`,
+    pool.query<{ id: string; payload: Record<string, unknown>; status: string; created_at: string; last_activity_at: string; send_after: string; converted_at: string | null }>(
+      `select id::text, payload, status, created_at::text, last_activity_at::text,
+              send_after::text, converted_at::text
+         from app.booking_lead_events
+        order by last_activity_at desc limit 750`,
     ),
     pool.query<{ id: string; full_name: string; email: string; phone: string; city: string; county: string; state: string; postal_code: string; created_at: string }>(
       `select id::text, full_name, email, phone, city, county, state, postal_code, created_at::text from app.booking_demand_requests order by created_at desc limit 750`,
@@ -143,6 +146,7 @@ export async function listAdminBookingContacts(options: { search?: string; limit
     if (!existing.dateOfBirth) existing.dateOfBirth = prospect.dateOfBirth;
   };
 
+  const seenLeadIdentities = new Set<string>();
   for (const row of leadResult.rows) {
     const payload = row.payload || {};
     const lead = (payload.lead || {}) as Record<string, unknown>;
@@ -152,11 +156,15 @@ export async function listAdminBookingContacts(options: { search?: string; limit
     const fullName = text(patient.fullName) || [text(patient.firstName), text(patient.lastName)].filter(Boolean).join(" ");
     const email = text(patient.email); const phone = text(patient.phone);
     if (!fullName || (!email && !phone)) continue;
+    const identity = contactKey(email, phone);
+    if (seenLeadIdentities.has(identity)) continue;
+    seenLeadIdentities.add(identity);
     mergeProspect({
       id: `lead:${row.id}`, fullName, firstName: text(patient.firstName), lastName: text(patient.lastName), email, phone,
       dateOfBirth: text(patient.dateOfBirth), source: "lead", appointmentCount: 0, completedCount: 0, upcomingCount: 0,
-      leadIntentCount: 1, lostOpportunity: true,
-      lifetimeValue: 0, currency: text(service.currency) || "USD", firstSeenAt: row.created_at, lastSeenAt: row.created_at,
+      leadIntentCount: 1,
+      lostOpportunity: !row.converted_at && row.status !== "converted" && new Date(row.send_after).getTime() <= Date.now(),
+      lifetimeValue: 0, currency: text(service.currency) || "USD", firstSeenAt: row.created_at, lastSeenAt: row.last_activity_at || row.created_at,
       locations: uniqueLocations([{ address: [text(coverage.addressLine1), text(coverage.addressLine2)].filter(Boolean).join(", "), city: text(coverage.city), county: text(coverage.county), state: text(coverage.state), postalCode: text(coverage.postalCode) }]),
       services: text(service.name) ? [text(service.name)] : [],
     });

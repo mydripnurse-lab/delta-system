@@ -110,7 +110,16 @@ export type BusinessCoverageArea = {
   };
 };
 
-type LeadEventRow = { id: string; payload: Record<string, unknown>; created_at: string };
+type LeadEventRow = {
+  id: string;
+  payload: Record<string, unknown>;
+  status: string;
+  attempt_count: number;
+  created_at: string;
+  last_activity_at: string;
+  send_after: string;
+  converted_at: string | null;
+};
 type AppointmentActivityRow = {
   id: string;
   customer_id: string;
@@ -276,8 +285,38 @@ function leadDetails(row: LeadEventRow) {
     additionalPatientsCount,
     screeningEligible: typeof eligible === "boolean" ? eligible : null,
     sourceUrl: text(source.sourceUrl) || text(source.pageUrl), referrer: text(source.referrer),
-    createdAt: text(row.payload?.capturedAt) || row.created_at,
+    status: row.status,
+    attemptCount: numeric(row.attempt_count),
+    createdAt: row.created_at,
+    lastActivityAt: row.last_activity_at || text(row.payload?.capturedAt) || row.created_at,
+    sendAfter: row.send_after,
+    convertedAt: row.converted_at || "",
   };
+}
+
+function canonicalLeadIdentity(lead: ReturnType<typeof leadDetails>) {
+  const phone = lead.phone.replace(/\D/g, "");
+  if (phone) return `phone:${phone.slice(-10)}`;
+  if (lead.email) return `email:${lead.email.toLowerCase()}`;
+  return `event:${lead.id}`;
+}
+
+function uniqueLeadDetails(rows: LeadEventRow[]) {
+  const unique = new Map<string, ReturnType<typeof leadDetails>>();
+  for (const row of rows) {
+    const lead = leadDetails(row);
+    const key = canonicalLeadIdentity(lead);
+    const current = unique.get(key);
+    if (!current) {
+      unique.set(key, lead);
+      continue;
+    }
+    const attempts = current.attemptCount + lead.attemptCount;
+    const newest = new Date(lead.lastActivityAt).getTime() > new Date(current.lastActivityAt).getTime() ? lead : current;
+    newest.attemptCount = attempts;
+    unique.set(key, newest);
+  }
+  return [...unique.values()];
 }
 
 function lossReasonForLead(lead: ReturnType<typeof leadDetails>): AppointmentMapLead["lossReason"] {
@@ -426,8 +465,21 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
          ) saved_address on true
         order by appointment.created_at desc
         limit 5000`),
-    pool.query<LeadEventRow>(`select id::text, payload, created_at::text from app.booking_lead_events order by created_at desc limit 5000`),
-    pool.query<{ email: string; phone: string }>(`select customer.email, customer.phone from app.booking_customers customer where exists (select 1 from app.appointments appointment where appointment.customer_id = customer.id)`),
+    pool.query<LeadEventRow>(`select id::text, payload, status, attempt_count,
+                                    created_at::text, last_activity_at::text,
+                                    send_after::text, converted_at::text
+                               from app.booking_lead_events
+                              order by last_activity_at desc limit 5000`),
+    pool.query<{ email: string; phone: string }>(
+      `select customer.email, customer.phone
+         from app.booking_customers customer
+        where exists (
+          select 1
+            from app.appointments appointment
+           where appointment.customer_id = customer.id
+             and appointment.status in ('confirmed', 'partner_acknowledged', 'in_progress', 'completed')
+        )`,
+    ),
     pool.query<CoverageRow>(
       `select area.state, area.county, coalesce(area.city, '') as city, area.postal_codes,
               assignment.service_id::text, service.name as service_name,
@@ -454,7 +506,8 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   const convertedIdentities = new Set(convertedResult.rows.flatMap((row) => identityValues(text(row.email), text(row.phone))));
   const fromTime = from ? new Date(`${from}T00:00:00Z`).getTime() : (!to && period !== "all" ? Date.now() - Number(period) * 86400000 : Number.NEGATIVE_INFINITY);
   const toTime = to ? new Date(`${to}T23:59:59.999Z`).getTime() : Number.POSITIVE_INFINITY;
-  const filteredLeads = leadResult.rows.map(leadDetails).filter((lead) => {
+  const allLeads = uniqueLeadDetails(leadResult.rows);
+  const filteredLeads = allLeads.filter((lead) => {
     const time = new Date(lead.createdAt).getTime();
     const matchesSearch = !search || [lead.fullName, lead.email, lead.phone, lead.city, lead.county, lead.state, lead.postalCode, lead.service].some((value) => value.toLowerCase().includes(search));
     return time >= fromTime && time <= toTime && matchesSearch;
@@ -466,7 +519,17 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
       .some((value) => text(value).toLowerCase().includes(search));
     return time >= fromTime && time <= toTime && matchesStatus && matchesSearch;
   });
-  const lostLeads = filteredLeads.filter((lead) => !identityValues(lead.email, lead.phone).some((key) => convertedIdentities.has(key)));
+  const convertedLeads = filteredLeads.filter((lead) => (
+    Boolean(lead.convertedAt)
+    || lead.status === "converted"
+    || identityValues(lead.email, lead.phone).some((key) => convertedIdentities.has(key))
+  ));
+  const lostLeads = filteredLeads.filter((lead) => (
+    !lead.convertedAt
+    && lead.status !== "converted"
+    && new Date(lead.sendAfter).getTime() <= Date.now()
+    && !identityValues(lead.email, lead.phone).some((key) => convertedIdentities.has(key))
+  ));
   const includedLostLeads = status && status !== "lost_opportunity" ? [] : lostLeads;
 
   const identityAliases = new Map<string, string>();
@@ -710,7 +773,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
     rememberLocation(person, appointmentAddress(row));
     pushHistory(person, appointmentHistory(row));
   }
-  for (const lead of leadResult.rows.map(leadDetails)) {
+  for (const lead of allLeads) {
     const person = existingPersonFor(`lead:${lead.id}`, lead.email, lead.phone);
     if (!person) continue;
     person.dateOfBirth ||= lead.dateOfBirth;
@@ -747,7 +810,9 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
       latitude = exactAddress.latitude;
       longitude = exactAddress.longitude;
     }
-    const activity = location.total + location.intents;
+    // The map marker represents unique people at a location. Appointment and
+    // lead history remain visible in the detail panel without inflating the pin.
+    const activity = location.personIds.size;
     return {
       key: location.key,
       city: location.city,
@@ -799,6 +864,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   }
   const summaryRow = summaryResult.rows[0];
   const total = numeric(summaryRow?.total);
+  const bookingAttempts = filteredLeads.reduce((sum, lead) => sum + Math.max(1, lead.attemptCount), 0);
   const currentCoverageByCounty = new Map<string, { key: string; state: string; county: string; partners: Set<string>; services: Set<string> }>();
   for (const row of coverageResult.rows) {
     const key = `${normalizeLocation(row.state)}|${normalizeLocation(row.county)}`;
@@ -869,7 +935,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   }, { no_coverage: 0, no_availability: 0, screening: 0, booking_not_completed: 0, coverage_or_availability: 0, unclassified: 0 });
   return {
     period, status, from, to, search, granularity,
-    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, lostOpportunities: includedLostLeads.length, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round(((filteredLeads.length - lostLeads.length) / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), markets: markets.length, coveredCounties: coverageAreas.length },
+    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, bookingAttempts, lostOpportunities: includedLostLeads.length, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round((convertedLeads.length / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), markets: markets.length, coveredCounties: coverageAreas.length },
     points: resolved.filter((point): point is AppointmentGeoPoint => Boolean(point)),
     people,
     leads: mapLeads,

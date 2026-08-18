@@ -10,7 +10,7 @@ import type { AppointmentGeoPoint, AppointmentMapLossReason, AppointmentMapPerso
 type LostReasons = Record<AppointmentMapLossReason, number>;
 
 type AnalyticsPayload = {
-  summary: { total: number; contacts: number; completed: number; active: number; cancelled: number; appointmentIntents: number; lostOpportunities: number; lostWithCurrentCoverage: number; lostWithoutCurrentCoverage: number; lostReasons: LostReasons; conversionRate: number; completionRate: number; completedValue: number; partnerEarnings: number; platformRevenue: number; markets: number; coveredCounties: number };
+  summary: { total: number; contacts: number; completed: number; active: number; cancelled: number; appointmentIntents: number; bookingAttempts: number; lostOpportunities: number; lostWithCurrentCoverage: number; lostWithoutCurrentCoverage: number; lostReasons: LostReasons; conversionRate: number; completionRate: number; completedValue: number; partnerEarnings: number; platformRevenue: number; markets: number; coveredCounties: number };
   points: AppointmentGeoPoint[];
   people: AppointmentMapPerson[];
   coverageAreas: BusinessCoverageArea[];
@@ -118,7 +118,7 @@ export function PartnerAdminAnalyticsClient() {
       {analytics ? <>
         <section className={styles.analyticsKpis}>
           <article><span>Total appointments</span><strong>{summary?.total || 0}</strong><small>{summary?.contacts || 0} unique contacts</small></article>
-          <article><span>Appointment intents</span><strong>{summary?.appointmentIntents || 0}</strong><small>Single Lead Captured events</small></article>
+          <article><span>Appointment intents</span><strong>{summary?.appointmentIntents || 0}</strong><small>{summary?.bookingAttempts || 0} booking attempts · unique people</small></article>
           <article className={styles.lostKpi}><span>Lost opportunities</span><strong>{summary?.lostOpportunities || 0}</strong><small>{summary?.conversionRate || 0}% intent conversion</small></article>
           <article><span>Completed</span><strong>{summary?.completed || 0}</strong><small>{summary?.completionRate || 0}% completion rate</small></article>
           <article><span>Active pipeline</span><strong>{summary?.active || 0}</strong><small>Scheduled or in progress</small></article>
