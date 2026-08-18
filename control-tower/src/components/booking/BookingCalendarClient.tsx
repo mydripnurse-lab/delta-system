@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "@/components/booking/bookingCalendar.module.css";
 import { GENDER_IDENTITY_OPTIONS, normalizeGenderIdentity } from "@/lib/genderIdentity";
+import { phoneCountry as nanpPhoneCountry } from "@/lib/phoneInput";
 import type { BookingAvailability, BookingAvailabilitySlot } from "@/lib/serviceBookingAvailability";
 
 const PHONE_COUNTRY_DIAL_CODES = {
@@ -271,13 +272,25 @@ function newAdditionalPatient(): AdditionalPatient {
 
 function getPhoneCountry(value: string): PhoneCountryCode {
   const digits = value.replace(/\D/g, "");
+  const nationalNanpDigits = digits.length > 10 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if ((value.trim().startsWith("+1") || digits.length === 10 || digits.length === 11 && digits.startsWith("1")) && nationalNanpDigits.length >= 3) {
+    return nanpPhoneCountry(nationalNanpDigits, "US");
+  }
   if (digits.startsWith("52")) return "MX";
-  if (digits.startsWith("1787") || digits.startsWith("1939")) return "PR";
   const matched = PHONE_COUNTRIES
     .filter((country) => digits.startsWith(country.dialCode.replace("+", "")))
     .sort((a, b) => b.dialCode.length - a.dialCode.length)[0];
   if (!matched || matched.dialCode === "+1") return "US";
   return PREFERRED_COUNTRY_BY_DIAL_CODE[matched.dialCode.slice(1)] || matched.code;
+}
+
+function detectedPhoneCountry(value: string, currentCountry: PhoneCountryCode): PhoneCountryCode {
+  if (value.trim().startsWith("+")) return getPhoneCountry(value);
+  if (currentCountry === "US" || currentCountry === "CA" || currentCountry === "PR") {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length >= 3) return nanpPhoneCountry(digits, currentCountry);
+  }
+  return currentCountry;
 }
 
 function nationalPhoneDigits(value: string, countryCode: PhoneCountryCode) {
@@ -309,6 +322,12 @@ function formatPhone(value: string, countryCode: PhoneCountryCode) {
 function phoneForSubmission(person: Contact) {
   const country = PHONE_COUNTRIES.find((item) => item.code === person.phoneCountry) || PHONE_COUNTRIES[0];
   return `${country.dialCode}${nationalPhoneDigits(person.phone, person.phoneCountry)}`;
+}
+
+function phoneIsComplete(person: Contact) {
+  const digits = nationalPhoneDigits(person.phone, person.phoneCountry);
+  if (person.phoneCountry === "US" || person.phoneCountry === "CA" || person.phoneCountry === "PR" || person.phoneCountry === "MX") return digits.length === 10;
+  return digits.length >= 6 && digits.length <= 15;
 }
 
 function phoneForDisplay(person: Contact) {
@@ -375,10 +394,15 @@ function PhoneField({
         <input
           type="tel"
           value={value}
-          onChange={(event) => onChange(formatPhone(event.target.value, country.code))}
+          onChange={(event) => {
+            const nextCountry = detectedPhoneCountry(event.target.value, country.code);
+            if (nextCountry !== country.code) onCountryChange(nextCountry);
+            onChange(formatPhone(event.target.value, nextCountry));
+          }}
           placeholder={country.placeholder}
           inputMode="tel"
-          autoComplete={autoComplete}
+          autoComplete={autoComplete || "tel-national"}
+          maxLength={22}
           aria-label={`${country.name} phone number`}
         />
       </div>
@@ -745,11 +769,11 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   }, [additionalPatients, contact, date, partnerId, publicKey, screeningIsClear, screeningSelected, sourceContext]);
 
   const contactIsComplete = useMemo(() => (
-    Boolean(contact.firstName.trim() && contact.lastName.trim() && contact.email.trim() && contact.phone.trim() && contact.dateOfBirth && weightIsComplete(contact.weight) && heightIsComplete(contact) && contact.genderIdentity)
+    Boolean(contact.firstName.trim() && contact.lastName.trim() && contact.email.trim() && phoneIsComplete(contact) && contact.dateOfBirth && weightIsComplete(contact.weight) && heightIsComplete(contact) && contact.genderIdentity)
   ), [contact]);
 
   const additionalPatientsAreComplete = useMemo(() => additionalPatients.every((patient) => (
-    patient.firstName.trim() && patient.lastName.trim() && patient.email.trim() && patient.phone.trim() && patient.dateOfBirth && weightIsComplete(patient.weight) && heightIsComplete(patient) && patient.genderIdentity
+    patient.firstName.trim() && patient.lastName.trim() && patient.email.trim() && phoneIsComplete(patient) && patient.dateOfBirth && weightIsComplete(patient.weight) && heightIsComplete(patient) && patient.genderIdentity
   )), [additionalPatients]);
 
   const canSearch = useMemo(() => (

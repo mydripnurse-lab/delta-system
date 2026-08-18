@@ -17,7 +17,7 @@ const schema = z.object({
   customer: z.object({
     fullName: z.string().trim().min(2).max(160),
     email: z.string().trim().email().max(254),
-    phone: z.string().trim().min(7).max(30),
+    phone: z.string().trim().regex(/^\+[1-9]\d{6,14}$/),
   }),
   address: z.object({
     addressLine1: z.string().trim().max(200).default(""),

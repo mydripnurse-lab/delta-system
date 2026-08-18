@@ -80,12 +80,13 @@ const heightSchema = z.string().trim().max(3).regex(/^\d+$/, "Enter height in to
   const height = Number(value);
   return Number.isInteger(height) && height >= 1 && height <= 107;
 }, "Height must be between 1 and 107 inches.");
+const phoneSchema = z.string().trim().regex(/^\+[1-9]\d{6,14}$/, "Enter a complete mobile number.");
 
 const personSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
   email: z.string().trim().email().max(254),
-  phone: z.string().trim().min(7).max(30),
+  phone: phoneSchema,
   dateOfBirth: dateOfBirthSchema,
   weight: weightSchema,
   height: heightSchema,

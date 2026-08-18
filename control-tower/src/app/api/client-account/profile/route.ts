@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedClient, isTrustedClientRequest } from "@/lib/clientPortalAuth";
 import { getDbPool } from "@/lib/db";
 import { isGenderIdentity } from "@/lib/genderIdentity";
+import { normalizePhone, phoneCountry, phoneIsComplete } from "@/lib/phoneInput";
 
 export const runtime = "nodejs";
 
@@ -109,11 +110,12 @@ export async function PATCH(request: Request) {
 
   if (body?.mode === "emergency_contact") {
     const name = String(body.emergencyContactName || "").trim();
-    const phone = String(body.emergencyContactPhone || "").trim();
-    if (name.length > 120 || phone.length > 40 || Boolean(name) !== Boolean(phone)) {
+    const rawPhone = String(body.emergencyContactPhone || "").trim();
+    const phone = rawPhone ? normalizePhone(rawPhone, phoneCountry(rawPhone)) : "";
+    if (name.length > 120 || rawPhone.length > 40 || Boolean(name) !== Boolean(rawPhone) || Boolean(rawPhone && !phoneIsComplete(rawPhone))) {
       return NextResponse.json({
         ok: false,
-        error: "Enter both the emergency contact name and phone, or leave both blank.",
+        error: "Enter a complete emergency contact name and mobile number, or leave both blank.",
       }, { status: 400 });
     }
     await pool.query(

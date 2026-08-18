@@ -13,6 +13,7 @@ import { clientEmailIsConfigured, sendClientVerificationEmail } from "@/lib/clie
 import { claimClientReferralRegistration, safeClientReferralCode } from "@/lib/clientReferrals";
 import { getDbPool } from "@/lib/db";
 import { hashPassword, validatePasswordStrength } from "@/lib/password";
+import { normalizePhone, phoneCountry, phoneIsComplete } from "@/lib/phoneInput";
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,8 @@ export async function POST(request: Request) {
   if (!body) return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   const fullName = s(body.fullName);
   const email = s(body.email).toLowerCase();
-  const phone = s(body.phone);
+  const rawPhone = s(body.phone);
+  const phone = rawPhone ? normalizePhone(rawPhone, phoneCountry(rawPhone)) : "";
   const password = s(body.password);
   const referralCode = safeClientReferralCode(body.referral);
   const destination = safeClientDestination(body.next, body.returnTo);
@@ -38,6 +40,9 @@ export async function POST(request: Request) {
   }
   if (!/^\S+@\S+\.\S+$/.test(email)) {
     return NextResponse.json({ ok: false, error: "Enter a valid email address." }, { status: 400 });
+  }
+  if (rawPhone && !phoneIsComplete(rawPhone)) {
+    return NextResponse.json({ ok: false, error: "Enter a complete mobile number." }, { status: 400 });
   }
   const passwordError = validatePasswordStrength(password);
   if (passwordError) return NextResponse.json({ ok: false, error: passwordError }, { status: 400 });

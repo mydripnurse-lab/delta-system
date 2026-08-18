@@ -39,15 +39,15 @@ export default function PhoneInputField({
   onCountryChange,
   required,
   disabled,
-  autoComplete = "tel",
+  autoComplete = "tel-national",
   className = "",
 }: PhoneInputFieldProps) {
   const initialValue = value ?? defaultValue;
   const [localCountry, setLocalCountry] = useState<PhoneCountryCode>(() => defaultCountryCode || phoneCountry(initialValue));
-  const [localValue, setLocalValue] = useState(() => formatPhone(initialValue));
+  const [localValue, setLocalValue] = useState(() => formatPhone(initialValue, defaultCountryCode || phoneCountry(initialValue)));
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedCountry = countryCode || localCountry;
-  const displayedValue = value === undefined ? localValue : formatPhone(value);
+  const displayedValue = value === undefined ? localValue : formatPhone(value, selectedCountry);
   const normalizedValue = useMemo(() => normalizePhone(displayedValue, selectedCountry), [displayedValue, selectedCountry]);
   const selected = phoneCountryOption(selectedCountry);
 
@@ -56,22 +56,29 @@ export default function PhoneInputField({
     if (!form || value !== undefined) return;
     const reset = () => {
       setLocalCountry(defaultCountryCode || phoneCountry(defaultValue));
-      setLocalValue(formatPhone(defaultValue));
+      setLocalValue(formatPhone(defaultValue, defaultCountryCode || phoneCountry(defaultValue)));
     };
     form.addEventListener("reset", reset);
     return () => form.removeEventListener("reset", reset);
   }, [defaultCountryCode, defaultValue, value]);
 
   function updateValue(nextRawValue: string, nextCountry = selectedCountry) {
-    const formattedValue = formatPhone(nextRawValue);
+    const detectedCountry = phoneCountry(nextRawValue, nextCountry);
+    const formattedValue = formatPhone(nextRawValue, detectedCountry);
+    if (detectedCountry !== selectedCountry) {
+      if (countryCode === undefined) setLocalCountry(detectedCountry);
+      onCountryChange?.(detectedCountry);
+    }
     if (value === undefined) setLocalValue(formattedValue);
-    onValueChange?.(normalizePhone(formattedValue, nextCountry), formattedValue, nextCountry);
+    onValueChange?.(normalizePhone(formattedValue, detectedCountry), formattedValue, detectedCountry);
   }
 
   function updateCountry(nextCountry: PhoneCountryCode) {
     if (countryCode === undefined) setLocalCountry(nextCountry);
     onCountryChange?.(nextCountry);
-    onValueChange?.(normalizePhone(displayedValue, nextCountry), displayedValue, nextCountry);
+    const formattedValue = formatPhone(displayedValue, nextCountry);
+    if (value === undefined) setLocalValue(formattedValue);
+    onValueChange?.(normalizePhone(formattedValue, nextCountry), formattedValue, nextCountry);
   }
 
   return (
