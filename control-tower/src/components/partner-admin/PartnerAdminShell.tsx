@@ -114,8 +114,8 @@ export function PartnerAdminShell({
 }) {
   const pathname = usePathname();
   const { t } = usePortalLocale();
-  const prefixedAdmin = pathname.startsWith("/partner-admin");
-  const automationsHref = pathname.startsWith("/partner-admin")
+  const prefixedAdmin = pathname.startsWith("/partner-admin") || pathname === "/care";
+  const automationsHref = prefixedAdmin
     ? "/partner-admin/automations"
     : "/automations";
   const automationsActive = pathname.startsWith("/partner-admin/automations")
