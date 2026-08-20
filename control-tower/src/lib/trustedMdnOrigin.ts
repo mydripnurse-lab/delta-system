@@ -1,8 +1,11 @@
 const RESERVED_APP_HOSTS = new Set([
   "admin.mydripnurse.com",
   "care.mydripnurse.com",
+  "onboarding.mydripnurse.com",
   "partner.mydripnurse.com",
   "partners.mydripnurse.com",
+  "policy.mydripnurse.com",
+  "sitemaps.mydripnurse.com",
 ]);
 
 export function trustedMdnHome(value: string | null | undefined) {

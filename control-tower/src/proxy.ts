@@ -85,24 +85,12 @@ export function proxy(req: NextRequest) {
     }
 
     if (pathname === "/login") {
-      if (req.cookies.get(CLIENT_SESSION_COOKIE_NAME)?.value) {
-        const homeUrl = req.nextUrl.clone();
-        homeUrl.pathname = "/";
-        homeUrl.search = "";
-        return NextResponse.redirect(homeUrl);
-      }
       const loginUrl = req.nextUrl.clone();
       loginUrl.pathname = "/client-login";
       return NextResponse.rewrite(loginUrl);
     }
 
     if (pathname === "/register") {
-      if (req.cookies.get(CLIENT_SESSION_COOKIE_NAME)?.value) {
-        const homeUrl = req.nextUrl.clone();
-        homeUrl.pathname = "/";
-        homeUrl.search = "";
-        return NextResponse.redirect(homeUrl);
-      }
       const registerUrl = req.nextUrl.clone();
       registerUrl.pathname = "/client-register";
       return NextResponse.rewrite(registerUrl);

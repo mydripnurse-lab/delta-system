@@ -6,6 +6,7 @@ import { FormEvent, useMemo, useState } from "react";
 
 import styles from "@/app/client-login/clientLogin.module.css";
 import PhoneInputField from "@/components/shared/PhoneInputField";
+import { safeClientReturnUrl } from "@/lib/clientAuthDestination";
 
 type ClientAuthFormProps = {
   mode: "login" | "register";
@@ -34,24 +35,10 @@ function safeNext(value: string | null) {
   }
 }
 
-function safeReturnTo(value: string | null) {
-  if (!value || value.length > 2048) return "";
-  try {
-    const parsed = new URL(value);
-    const hostname = parsed.hostname.toLowerCase();
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) return "";
-    return hostname === "mydripnurse.com" || hostname.endsWith(".mydripnurse.com")
-      ? parsed.toString()
-      : "";
-  } catch {
-    return "";
-  }
-}
-
 export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
   const params = useSearchParams();
   const next = useMemo(() => safeNext(params.get("next")), [params]);
-  const returnTo = useMemo(() => safeReturnTo(params.get("returnTo")), [params]);
+  const returnTo = useMemo(() => safeClientReturnUrl(params.get("returnTo")), [params]);
   const googleError = params.get("error");
   const invitedEmail = params.get("email") || "";
   const referral = useMemo(() => {

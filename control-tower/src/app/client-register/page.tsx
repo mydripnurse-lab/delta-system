@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import ClientAuthForm from "@/components/client/ClientAuthForm";
 import ClientOriginLogo from "@/components/client/ClientOriginLogo";
+import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 
 import styles from "@/app/client-login/clientLogin.module.css";
 
@@ -12,7 +14,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function ClientRegisterPage() {
+export default async function ClientRegisterPage() {
+  if (await getAuthenticatedClient()) redirect("/");
+
   return (
     <main className={styles.page}>
       <section className={styles.brandPanel}>

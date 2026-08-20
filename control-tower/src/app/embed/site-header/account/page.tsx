@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 
 import MarketingHeaderAccountEmbed from "@/components/marketing/MarketingHeaderAccountEmbed";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
-import { trustedMdnHome } from "@/lib/trustedMdnOrigin";
+import { isMdnMarketingHome, trustedMdnHome } from "@/lib/trustedMdnOrigin";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,11 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] || "" : value || "";
 }
 
+function marketingHome(value: string | null | undefined) {
+  const home = trustedMdnHome(value);
+  return home && isMdnMarketingHome(home) ? home : "";
+}
+
 export default async function SiteHeaderAccountEmbedPage({
   searchParams,
 }: {
@@ -26,7 +31,7 @@ export default async function SiteHeaderAccountEmbedPage({
     searchParams,
     headers(),
   ]);
-  const returnTo = trustedMdnHome(first(query.returnTo)) || trustedMdnHome(requestHeaders.get("referer"));
+  const returnTo = marketingHome(first(query.returnTo)) || marketingHome(requestHeaders.get("referer"));
   return <MarketingHeaderAccountEmbed account={account ? {
     fullName: account.fullName,
     email: account.email,

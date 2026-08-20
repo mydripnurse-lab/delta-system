@@ -1,6 +1,10 @@
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 import { cookies } from "next/headers";
+
+import { safeClientReturnUrl } from "@/lib/clientAuthDestination";
+
+export { safeClientReturnUrl } from "@/lib/clientAuthDestination";
 import { cache } from "react";
 
 import { getDbPool } from "@/lib/db";
@@ -224,39 +228,6 @@ export function isTrustedClientRequest(request: Request) {
   if (process.env.NODE_ENV !== "production") return true;
   const hostname = s(request.headers.get("host")).split(":")[0].toLowerCase();
   return hostname === "care.mydripnurse.com" || hostname === "partners.mydripnurse.com";
-}
-
-export function safeClientReturnUrl(value: unknown) {
-  const raw = s(value);
-  if (!raw || raw.length > 2048) return "";
-  try {
-    const parsed = new URL(raw);
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) return "";
-    const hostname = parsed.hostname.toLowerCase();
-    const pathname = parsed.pathname.replace(/\/+$/, "");
-    if (hostname === "partners.mydripnurse.com" && (pathname === "" || pathname === "/" || /^\/[a-z0-9-]+\/services\/[a-z0-9-]+\/book$/i.test(pathname))) {
-      return `https://partners.mydripnurse.com${pathname || "/"}`;
-    }
-    if (hostname === "care.mydripnurse.com" && /^\/booking\/[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(pathname)) {
-      return `https://care.mydripnurse.com${pathname}`;
-    }
-    const reservedAppHosts = new Set([
-      "admin.mydripnurse.com",
-      "care.mydripnurse.com",
-      "onboarding.mydripnurse.com",
-      "partners.mydripnurse.com",
-      "policy.mydripnurse.com",
-      "search-embedded.telahagocrecer.com",
-      "sitemaps.mydripnurse.com",
-    ]);
-    const marketingHost = hostname === "mydripnurse.com"
-      || hostname === "www.mydripnurse.com"
-      || (hostname.endsWith(".mydripnurse.com") && !reservedAppHosts.has(hostname));
-    if (marketingHost) return parsed.toString();
-    return "";
-  } catch {
-    return "";
-  }
 }
 
 export function safeClientDestination(nextValue: unknown, returnValue: unknown, fallback = "/") {
