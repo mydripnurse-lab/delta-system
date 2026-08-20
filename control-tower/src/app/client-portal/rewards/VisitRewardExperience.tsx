@@ -1,17 +1,29 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 
 import type { ClientVisitRewardSummary } from "@/lib/clientRewards";
+import type { MyDripNurseServiceDefinition } from "@/lib/myDripNurseServices";
 
 import styles from "../clientPortal.module.css";
 
 type VisitRewardExperienceProps = {
   summary: ClientVisitRewardSummary;
   variant: "wellness" | "nad";
+  services: MyDripNurseServiceDefinition[];
 };
 
-export default function VisitRewardExperience({ summary, variant }: VisitRewardExperienceProps) {
+export default function VisitRewardExperience({ summary, variant, services }: VisitRewardExperienceProps) {
   const isNad = variant === "nad";
+  const eligibleServices = services.filter((service) => (
+    isNad ? ["nad-plus", "nad-boost"].includes(service.id) : !["nad-plus", "nad-boost"].includes(service.id)
+  ));
+  const serviceCatalog = new Map(services.map((service) => [service.id, service]));
+  const completedByService = summary.cycleVisits.reduce<Map<string, number>>((counts, visit) => {
+    const slug = visit.serviceSlug.trim().toLowerCase();
+    counts.set(slug, (counts.get(slug) || 0) + 1);
+    return counts;
+  }, new Map());
   const rewardTitle = summary.availableRewards
     ? `${summary.availableRewards} free ${isNad ? "NAD+ " : ""}visit reward${summary.availableRewards === 1 ? " is" : "s are"} ready.`
     : `${summary.remainingVisits} completed ${isNad ? "NAD+ " : ""}visit${summary.remainingVisits === 1 ? "" : "s"} to your next reward.`;
@@ -40,17 +52,69 @@ export default function VisitRewardExperience({ summary, variant }: VisitRewardE
             <div className={styles.rewardCardRing} style={{ "--reward-progress": `${summary.percent * 3.6}deg` } as CSSProperties}><span>{summary.percent}%</span></div>
           </div>
           <div className={styles.visitRewardTrack} aria-label={`${summary.cycleCompletedVisits} of ${summary.goal} visits complete`}>
-            {Array.from({ length: summary.goal }, (_, index) => (
-              <span key={index} className={index < summary.cycleCompletedVisits ? styles.visitRewardTrackComplete : ""}>
-                <i aria-hidden="true">{index < summary.cycleCompletedVisits ? "✓" : index + 1}</i>
-                <small>{index + 1 === summary.goal ? "Reward" : `Visit ${index + 1}`}</small>
-              </span>
-            ))}
+            {Array.from({ length: summary.goal }, (_, index) => {
+              const visit = summary.cycleVisits[index];
+              const catalogService = visit ? serviceCatalog.get(visit.serviceSlug.trim().toLowerCase()) : undefined;
+              const imageUrl = visit?.serviceImageUrl || catalogService?.imageUrl;
+              return (
+                <span
+                  key={visit?.id || index}
+                  className={`${index < summary.cycleCompletedVisits ? styles.visitRewardTrackComplete : ""} ${visit ? styles.visitRewardTrackService : ""}`}
+                  title={visit?.serviceName}
+                >
+                  <i aria-hidden="true">
+                    {visit && imageUrl
+                      ? <Image src={imageUrl} alt="" width={38} height={38} sizes="38px" />
+                      : index < summary.cycleCompletedVisits ? "✓" : index + 1}
+                  </i>
+                  <small>{visit?.serviceName || (index + 1 === summary.goal ? "Reward" : `Visit ${index + 1}`)}</small>
+                </span>
+              );
+            })}
           </div>
           <div className={summary.availableRewards ? styles.visitRewardReadyState : styles.visitRewardProgressState}>
             <span aria-hidden="true">✦</span><div><small>{summary.availableRewards ? "Unlocked" : "Your progress"}</small><strong>{rewardTitle}</strong></div>
           </div>
         </div>
+      </section>
+
+      <section className={styles.visitRewardEligible} aria-labelledby="eligible-reward-services">
+        <header className={styles.visitRewardEligibleHeader}>
+          <div>
+            <span className={styles.eyebrow}>{isNad ? "NAD+ reward collection" : "Eligible wellness collection"}</span>
+            <h2 id="eligible-reward-services">{isNad ? "Your eligible NAD+ care." : "Every eligible IV moves you forward."}</h2>
+            <p>
+              {isNad
+                ? "Both NAD+ services build this reward and can be selected when your free visit is ready."
+                : "Choose any service below. Every completed visit adds one step to this wellness reward."}
+            </p>
+          </div>
+          <span>{eligibleServices.length} eligible service{eligibleServices.length === 1 ? "" : "s"}</span>
+        </header>
+        <div className={styles.visitRewardServiceGrid}>
+          {eligibleServices.map((service) => {
+            const completedCount = completedByService.get(service.id) || 0;
+            return (
+              <article
+                key={service.id}
+                className={`${styles.visitRewardService} ${completedCount ? styles.visitRewardServiceComplete : ""}`}
+              >
+                <div className={styles.visitRewardServiceImage}>
+                  <Image src={service.imageUrl} alt={service.name} width={78} height={78} sizes="78px" />
+                </div>
+                <div className={styles.visitRewardServiceCopy}>
+                  <small>{completedCount ? "Completed this cycle" : "Eligible service"}</small>
+                  <strong>{service.name}</strong>
+                  <span>{completedCount ? `${completedCount} visit${completedCount === 1 ? "" : "s"} earned progress` : "Completes one step"}</span>
+                </div>
+                <b aria-label={completedCount ? `${completedCount} completed this cycle` : "Eligible for this reward"}>
+                  {completedCount ? `✓ ${completedCount}` : "+1"}
+                </b>
+              </article>
+            );
+          })}
+        </div>
+        <footer><span aria-hidden="true">✦</span><p><strong>Your wellness trail updates automatically.</strong> Completed services light up here and in your current reward cycle.</p></footer>
       </section>
 
       <section className={styles.visitRewardDetails}>

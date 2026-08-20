@@ -8,6 +8,14 @@ export const CLIENT_NAD_VISIT_REWARD_GOAL = 6;
 
 export type ClientVisitRewardProgram = "wellness" | "nad_family";
 
+export type ClientVisitRewardProgressVisit = {
+  id: string;
+  serviceSlug: string;
+  serviceName: string;
+  serviceImageUrl: string;
+  completedAt: string;
+};
+
 export type ClientVisitRewardSummary = {
   program: ClientVisitRewardProgram;
   goal: number;
@@ -19,6 +27,7 @@ export type ClientVisitRewardSummary = {
   earnedRewards: number;
   redeemedRewards: number;
   nextMilestone: number;
+  cycleVisits: ClientVisitRewardProgressVisit[];
 };
 
 export type ClientBookingReward = {
@@ -64,6 +73,59 @@ async function completedVisitCount(client: PoolClient, accountId: string, progra
     [accountId, program],
   );
   return Number(result.rows[0]?.count || 0);
+}
+
+async function completedCycleVisits(
+  client: PoolClient,
+  accountId: string,
+  program: ClientVisitRewardProgram,
+  limit: number,
+) {
+  if (limit <= 0) return [];
+  const result = await client.query<{
+    id: string;
+    service_slug: string;
+    service_name: string;
+    service_image_url: string;
+    completed_at: string;
+  }>(
+    `select appointment.id,
+            coalesce(service.slug, '') as service_slug,
+            coalesce(service.name, 'Wellness service') as service_name,
+            coalesce(service.image_url, '') as service_image_url,
+            appointment.starts_at::text as completed_at
+       from app.appointments appointment
+       left join app.services service on service.id = appointment.service_id
+      where appointment.status = 'completed'
+        and (
+          ($2::text = 'nad_family' and lower(coalesce(service.slug, '')) in ('nad-plus', 'nad-boost'))
+          or ($2::text = 'wellness' and lower(coalesce(service.slug, '')) not in ('nad-plus', 'nad-boost'))
+        )
+        and (
+          exists (
+            select 1
+              from app.client_customer_links link
+             where link.client_account_id = $1
+               and link.booking_customer_id = appointment.customer_id
+          )
+          or exists (
+            select 1
+              from app.client_appointment_access access
+             where access.client_account_id = $1
+               and access.appointment_id = appointment.id
+          )
+        )
+      order by appointment.starts_at desc
+      limit $3`,
+    [accountId, program, limit],
+  );
+  return result.rows.reverse().map((visit) => ({
+    id: visit.id,
+    serviceSlug: visit.service_slug,
+    serviceName: visit.service_name,
+    serviceImageUrl: visit.service_image_url,
+    completedAt: visit.completed_at,
+  }));
 }
 
 async function syncClientVisitRewards(client: PoolClient, accountId: string, program: ClientVisitRewardProgram) {
@@ -146,8 +208,6 @@ export async function getClientVisitRewardSummary(
         order by milestone_number asc`,
       [accountId, program, goal],
     );
-    await client.query("commit");
-
     const availableRewards = rewards.rows.filter((reward) => reward.status === "available").length;
     const redeemedRewards = rewards.rows.filter((reward) => reward.status === "redeemed").length;
     const earnedRewards = availableRewards + redeemedRewards;
@@ -155,6 +215,8 @@ export async function getClientVisitRewardSummary(
     const cycleCompletedVisits = availableRewards > 0 && remainder === 0
       ? goal
       : remainder;
+    const cycleVisits = await completedCycleVisits(client, accountId, program, cycleCompletedVisits);
+    await client.query("commit");
     return {
       program,
       goal,
@@ -166,6 +228,7 @@ export async function getClientVisitRewardSummary(
       earnedRewards,
       redeemedRewards,
       nextMilestone: (Math.floor(completedVisits / goal) + 1) * goal,
+      cycleVisits,
     };
   } catch (error) {
     await client.query("rollback").catch(() => undefined);

@@ -43,6 +43,7 @@ type MapTransform = {
 
 const MAP_WIDTH = 960;
 const MAP_HEIGHT = 610;
+const MAX_NEARBY_DISTANCE_MILES = 50;
 const projection = geoAlbersUsa().translate([MAP_WIDTH / 2, MAP_HEIGHT / 2]).scale(1240);
 const path = geoPath(projection);
 const stateFeatures = (
@@ -86,6 +87,40 @@ function nearestDistance(
   return Math.min(...partner.mapPoints.map((point) => haversineMiles(location, point)));
 }
 
+type Coordinate = [number, number];
+
+function pointInRing([x, y]: Coordinate, ring: number[][]) {
+  let inside = false;
+  for (let current = 0, previous = ring.length - 1; current < ring.length; previous = current, current += 1) {
+    const [currentX, currentY] = ring[current] || [];
+    const [previousX, previousY] = ring[previous] || [];
+    const crosses = (currentY > y) !== (previousY > y)
+      && x < ((previousX - currentX) * (y - currentY)) / ((previousY - currentY) || Number.EPSILON) + currentX;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInCoverage(location: { latitude: number; longitude: number }, coverage: PartnerCountyCoverage) {
+  const point: Coordinate = [location.longitude, location.latitude];
+  const polygons = coverage.geometry.type === "Polygon"
+    ? [coverage.geometry.coordinates as number[][][]]
+    : coverage.geometry.coordinates as number[][][][];
+  return polygons.some((polygon) => {
+    const outer = polygon[0];
+    if (!outer || !pointInRing(point, outer)) return false;
+    return !polygon.slice(1).some((hole) => pointInRing(point, hole));
+  });
+}
+
+function partnerCoversLocation(location: { latitude: number; longitude: number }, partner: DirectoryPartner) {
+  return partner.countyCoverages.some((coverage) => pointInCoverage(location, coverage));
+}
+
+function partnerIsNearby(location: { latitude: number; longitude: number }, partner: DirectoryPartner) {
+  return partnerCoversLocation(location, partner) || nearestDistance(location, partner) <= MAX_NEARBY_DISTANCE_MILES;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -94,6 +129,8 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
   const [query, setQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [countyFilter, setCountyFilter] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("split");
   const [selectedPartnerId, setSelectedPartnerId] = useState("");
   const [selectedPointKey, setSelectedPointKey] = useState("");
@@ -144,11 +181,26 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
     [partners, stateFilter],
   );
 
+  const serviceOptions = useMemo(
+    () => [...new Set(partners.flatMap((partner) => partner.services.map((service) => service.name)).filter(Boolean))].sort(),
+    [partners],
+  );
+
+  const nearbyPartnerIds = useMemo(() => {
+    if (!userLocation) return null;
+    return new Set(
+      partners
+        .filter((partner) => partnerIsNearby(userLocation, partner))
+        .map((partner) => partner.id),
+    );
+  }, [partners, userLocation]);
+
   const filteredPartners = useMemo(() => {
     const needle = normalize(deferredQuery);
     const filtered = partners.filter((partner) => {
       const matchesState = !stateFilter || partner.serviceAreas.some((area) => area.state === stateFilter);
       const matchesCounty = !countyFilter || partner.serviceAreas.some((area) => area.county === countyFilter);
+      const matchesService = !serviceFilter || partner.services.some((service) => service.name === serviceFilter);
       const searchable = [
         partner.displayName,
         partner.businessName,
@@ -159,7 +211,8 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
       ]
         .map(normalize)
         .join(" ");
-      return matchesState && matchesCounty && (!needle || searchable.includes(needle));
+      const matchesLocation = !nearbyPartnerIds || nearbyPartnerIds.has(partner.id);
+      return matchesState && matchesCounty && matchesService && matchesLocation && (!needle || searchable.includes(needle));
     });
 
     const compareOrganicFit = (a: DirectoryPartner, b: DirectoryPartner) =>
@@ -171,10 +224,9 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
     return [...filtered].sort((a, b) => {
       const distanceA = nearestDistance(userLocation, a);
       const distanceB = nearestDistance(userLocation, b);
-      const distanceBandDifference = Math.floor(distanceA / 10) - Math.floor(distanceB / 10);
-      return distanceBandDifference || compareOrganicFit(a, b) || distanceA - distanceB;
+      return distanceA - distanceB || compareOrganicFit(a, b);
     });
-  }, [countyFilter, deferredQuery, partners, stateFilter, userLocation]);
+  }, [countyFilter, deferredQuery, nearbyPartnerIds, partners, serviceFilter, stateFilter, userLocation]);
 
   useEffect(() => {
     if (preview || !filteredPartners.length || typeof IntersectionObserver === "undefined") return;
@@ -282,13 +334,27 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
 
   const selectedPartner =
     filteredPartners.find((partner) => partner.id === selectedPartnerId) || filteredPartners[0] || null;
-  const activeCounties = new Set(partners.flatMap((partner) => partner.serviceAreas.map((area) => `${area.state}:${area.county}`))).size;
-  const activeServices = new Set(partners.flatMap((partner) => partner.services.map((service) => service.name))).size;
+  const activeFilterCount = Number(Boolean(stateFilter)) + Number(Boolean(countyFilter));
+  const noNearbyPartners = Boolean(userLocation && partners.length && nearbyPartnerIds?.size === 0);
 
   function resetFilters() {
     setQuery("");
     setStateFilter("");
     setCountyFilter("");
+    setServiceFilter("");
+    setFiltersOpen(false);
+    setUserLocation(null);
+    setLocationQuery("");
+    setLocationLabel("");
+    setLocationStatus("");
+  }
+
+  function clearAreaFilters() {
+    setStateFilter("");
+    setCountyFilter("");
+  }
+
+  function viewAllLocations() {
     setUserLocation(null);
     setLocationQuery("");
     setLocationLabel("");
@@ -299,7 +365,7 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
     event.preventDefault();
     const requestedLocation = locationQuery.trim();
     if (!requestedLocation) {
-      setLocationStatus("Enter a city or ZIP code to find nearby Partners.");
+      setLocationStatus("Enter a city or ZIP code to find nearby care.");
       return;
     }
 
@@ -310,7 +376,7 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
     }
 
     setIsLocating(true);
-    setLocationStatus(`Finding Partners near ${requestedLocation}…`);
+    setLocationStatus(`Finding verified care near ${requestedLocation}…`);
     try {
       const params = new URLSearchParams({
         access_token: token,
@@ -338,7 +404,7 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
       setCountyFilter("");
       setUserLocation({ latitude: match.center[1], longitude: match.center[0] });
       setLocationLabel(match.place_name || match.text || requestedLocation);
-      setLocationStatus(`Recommended by distance from ${match.place_name || match.text || requestedLocation}.`);
+      setLocationStatus("Showing professionals who cover this area or are within 50 miles.");
     } catch {
       setLocationStatus("We could not search that location right now. Please try again.");
     } finally {
@@ -352,12 +418,14 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
       return;
     }
     setIsLocating(true);
-    setLocationStatus("Finding Partners near you…");
+    setLocationStatus("Finding verified care near you…");
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        setStateFilter("");
+        setCountyFilter("");
         setUserLocation({ latitude: coords.latitude, longitude: coords.longitude });
         setLocationLabel("your current location");
-        setLocationStatus("Sorted by distance from your current location.");
+        setLocationStatus("Showing professionals who cover your area or are within 50 miles.");
         setIsLocating(false);
       },
       () => {
@@ -374,12 +442,12 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
     if (!("permissions" in navigator)) return;
     void navigator.permissions.query({ name: "geolocation" }).then((permission) => {
       if (permission.state !== "granted") return;
-      setLocationStatus("Finding Partners near you…");
+      setLocationStatus("Finding verified care near you…");
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           setUserLocation({ latitude: coords.latitude, longitude: coords.longitude });
           setLocationLabel("your current location");
-          setLocationStatus("Recommended by distance from your current location.");
+          setLocationStatus("Showing professionals who cover your area or are within 50 miles.");
         },
         () => setLocationStatus("Use the location button or search by county or state."),
         { enableHighAccuracy: false, maximumAge: 300000, timeout: 8000 },
@@ -402,11 +470,6 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
             <span className={styles.eyebrow}>Verified local care</span>
             <h1>Find trusted mobile IV care near you.</h1>
             <p>Search by service area, explore the map, and meet the professional behind your care.</p>
-          </div>
-          <div className={styles.networkStats} aria-label="Partner network statistics">
-            <div><strong>{partners.length}</strong><span>Partners</span></div>
-            <div><strong>{activeCounties}</strong><span>Counties</span></div>
-            <div><strong>{activeServices}</strong><span>Services</span></div>
           </div>
         </div>
 
@@ -435,48 +498,81 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
         <div className={styles.searchPanel}>
           <label className={styles.searchField}>
             <span aria-hidden="true">⌕</span>
-            <span className={styles.srOnly}>Search Partners</span>
+            <span className={styles.srOnly}>Search the directory</span>
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by Partner, county, business, or service"
+              placeholder="Search by professional, county, business, or service"
             />
           </label>
 
-          <label className={styles.filterField}>
-            <span>State</span>
-            <select
-              value={stateFilter}
-              onChange={(event) => {
-                setStateFilter(event.target.value);
-                setCountyFilter("");
-              }}
-            >
-              <option value="">All states</option>
-              {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
+          <label className={`${styles.filterField} ${styles.serviceFilter}`}>
+            <span>Wellness service</span>
+            <select value={serviceFilter} onChange={(event) => setServiceFilter(event.target.value)}>
+              <option value="">All IV services</option>
+              {serviceOptions.map((service) => <option key={service} value={service}>{service}</option>)}
             </select>
           </label>
 
-          <label className={styles.filterField}>
-            <span>County</span>
-            <select value={countyFilter} onChange={(event) => setCountyFilter(event.target.value)}>
-              <option value="">All counties</option>
-              {countyOptions.map((county) => <option key={county} value={county}>{county}</option>)}
-            </select>
-          </label>
+          <button
+            type="button"
+            className={styles.filterToggle}
+            aria-expanded={filtersOpen}
+            aria-controls="directory-area-filters"
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            <span aria-hidden="true">☷</span> Filters
+            {activeFilterCount ? <b>{activeFilterCount}</b> : null}
+          </button>
+
+          <div id="directory-area-filters" className={`${styles.advancedFilters} ${filtersOpen ? styles.advancedFiltersOpen : ""}`}>
+            <label className={styles.filterField}>
+              <span>State</span>
+              <select
+                value={stateFilter}
+                onChange={(event) => {
+                  if (event.target.value) viewAllLocations();
+                  setStateFilter(event.target.value);
+                  setCountyFilter("");
+                }}
+              >
+                <option value="">All states</option>
+                {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
+              </select>
+            </label>
+
+            <label className={styles.filterField}>
+              <span>County</span>
+              <select value={countyFilter} onChange={(event) => {
+                if (event.target.value) viewAllLocations();
+                setCountyFilter(event.target.value);
+              }}>
+                <option value="">All counties</option>
+                {countyOptions.map((county) => <option key={county} value={county}>{county}</option>)}
+              </select>
+            </label>
+
+            {activeFilterCount ? <button type="button" className={styles.clearAreaFilters} onClick={clearAreaFilters}>Clear area filters</button> : null}
+          </div>
 
         </div>
 
         <div className={styles.resultsBar}>
           <div>
             <strong>
-              {locationLabel ? `Recommended near ${locationLabel}` : `${filteredPartners.length}`}
+              {locationLabel
+                ? filteredPartners.length ? `Care near ${locationLabel}` : "No nearby care found"
+                : `${filteredPartners.length}`}
             </strong>
             <span>
               {locationLabel
-                ? `${filteredPartners.length} ${filteredPartners.length === 1 ? "Partner" : "Partners"} ordered by distance`
-                : filteredPartners.length === 1 ? "Partner found" : "Partners found"}
+                ? filteredPartners.length
+                  ? `${filteredPartners.length} verified ${filteredPartners.length === 1 ? "professional covers" : "professionals cover"} this area`
+                  : noNearbyPartners
+                    ? "No verified professional currently covers this nearby area"
+                    : "No nearby professional matches the selected filters"
+                : filteredPartners.length === 1 ? "Professional found" : "Professionals found"}
             </span>
             {locationStatus ? <small role="status">{locationStatus}</small> : null}
           </div>
@@ -556,7 +652,9 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
                     <div className={styles.cardMeta}>
                       <span>
                         {userLocation && partner.mapPoints.length
-                          ? `${Math.round(nearestDistance(userLocation, partner))} mi away`
+                          ? partnerCoversLocation(userLocation, partner)
+                            ? "Covers your area"
+                            : `${Math.round(nearestDistance(userLocation, partner))} mi away`
                           : `${partner.services.length} services`}
                       </span>
                       {partner.websiteStatus === "published" ? (
@@ -573,13 +671,17 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
         ) : (
           <div className={styles.empty}>
             <span aria-hidden="true">⌕</span>
-            <strong>{partners.length ? "No Partners match those filters." : "Our Partner network is being prepared."}</strong>
+            <strong>{noNearbyPartners ? "No verified care professional is nearby yet." : partners.length ? "No professionals match those filters." : "Our care network is being prepared."}</strong>
             <p>
-              {partners.length
+              {noNearbyPartners
+                ? "We could not find coverage in your local service area or within 50 miles. Try another location or view every available professional."
+                : partners.length
                 ? "Try a different county, state, or search term."
                 : "Verified profiles will appear here automatically as soon as they are published."}
             </p>
-            {partners.length ? <button type="button" onClick={resetFilters}>Clear all filters</button> : null}
+            {noNearbyPartners
+              ? <button type="button" onClick={viewAllLocations}>View all locations</button>
+              : partners.length ? <button type="button" onClick={resetFilters}>Clear all filters</button> : null}
           </div>
         )}
       </div>

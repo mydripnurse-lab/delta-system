@@ -120,7 +120,7 @@ export function PartnerCalendarClient() {
   iframe.allow = "payment";
   iframe.scrolling = "no";
   iframe.referrerPolicy = "strict-origin-when-cross-origin";
-  iframe.style.cssText = "display:block;width:100%;height:520px;border:0;border-radius:20px;background:#f7faf9;overflow:hidden";
+  iframe.style.cssText = "display:block;width:100%;height:520px;border:0;border-radius:20px;background:#ebf2f9;overflow:hidden";
   host.appendChild(iframe);
   window.addEventListener("message", (event) => {
     if (event.source !== iframe.contentWindow) return;

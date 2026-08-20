@@ -42,8 +42,8 @@ export default function BookingIdentityPanel({ children, connectedName = "", emb
     const body = document.body;
     const previousRootBackground = root.style.background;
     const previousBodyBackground = body.style.background;
-    root.style.background = "#f7faf9";
-    body.style.background = "#f7faf9";
+    root.style.background = "#ebf2f9";
+    body.style.background = "#ebf2f9";
 
     let frame = 0;
     const publishHeight = () => {

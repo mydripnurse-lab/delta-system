@@ -99,9 +99,9 @@
 .form input { width: 100%; min-height: 56px; padding: 0 17px; border: 1px solid #cfdedc; border-radius: 15px; outline: none; color: var(--ink); background: #fff; font-size: 15px; transition: .18s ease; }
 .form input:focus { border-color: #0b8894; box-shadow: 0 0 0 4px rgba(11, 136, 148, .1); }
 .form input::placeholder { color: #a4aeae; }
-.form button { min-height: 60px; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding: 0 23px; border: 0; border-radius: 17px; color: #fff; background: linear-gradient(110deg, #075d69, #07909a); box-shadow: 0 16px 30px rgba(7, 93, 105, .18); cursor: pointer; font-size: 14px; font-weight: 900; }
-.form button:disabled { cursor: default; opacity: .65; }
-.form button b { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: var(--teal); background: #fff; }
+.form .submitButton { min-height: 60px; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding: 0 23px; border: 0; border-radius: 17px; color: #fff; background: linear-gradient(110deg, #075d69, #07909a); box-shadow: 0 16px 30px rgba(7, 93, 105, .18); cursor: pointer; font-size: 14px; font-weight: 900; }
+.form .submitButton:disabled { cursor: default; opacity: .65; }
+.form .submitButton b { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: var(--teal); background: #fff; }
 .errorMessage,.successMessage { margin: 0; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
 .errorMessage { color: #a64141; background: #fff0ef; }
 .successMessage { color: #176b58; background: #e5f7f1; }
@@ -138,7 +138,7 @@
   .twoColumns { grid-template-columns: 1fr; }
   .authPanel { padding-inline: 18px; }
   .googleButton,.form input { min-height: 54px; }
-  .form button { min-height: 58px; }
+  .form .submitButton { min-height: 58px; }
   .privacyNote { padding-bottom: 8px; }
 }
 

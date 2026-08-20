@@ -8,10 +8,11 @@ type HeaderAccount = {
   photoUpdatedAt: string;
 };
 
-export default function MarketingHeaderAccountEmbed({ account }: { account: HeaderAccount | null }) {
+export default function MarketingHeaderAccountEmbed({ account, returnTo }: { account: HeaderAccount | null; returnTo?: string }) {
+  const loginHref = `https://care.mydripnurse.com/login${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
   if (!account) {
     return <div className={styles.root} data-mdn-header-account-embed="true">
-      <a className={styles.login} href="https://care.mydripnurse.com/login" target="_top">Log in</a>
+      <a className={styles.login} href={loginHref} target="_top">Log in</a>
     </div>;
   }
 

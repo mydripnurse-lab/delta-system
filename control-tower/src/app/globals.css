@@ -53,12 +53,12 @@ body:has([data-mdn-booking-embed="true"]) {
   height: auto;
   min-height: 0;
   color: #163b40;
-  background: #f7faf9;
+  background: #ebf2f9;
 }
 
 body:has([data-mdn-booking-embed="true"])::before {
   display: none;
-  background: #f7faf9;
+  background: #ebf2f9;
 }
 
 html:has([data-mdn-site-header-embed="true"]),

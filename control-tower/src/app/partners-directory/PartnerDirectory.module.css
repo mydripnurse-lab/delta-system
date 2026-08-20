@@ -75,10 +75,6 @@
 }
 
 .directoryHeading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 42px;
   margin-bottom: 34px;
 }
 
@@ -97,48 +93,6 @@
   color: var(--partner-copy);
   font-size: 15px;
   line-height: 1.6;
-}
-
-.networkStats {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 6px;
-  padding: 7px;
-  border: 1px solid var(--partner-border);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 14px 45px rgba(17, 63, 70, 0.07);
-}
-
-.networkStats div {
-  min-width: 86px;
-  padding: 10px 14px;
-  text-align: center;
-}
-
-.networkStats div + div {
-  border-left: 1px solid #e1ebea;
-}
-
-.networkStats strong,
-.networkStats span {
-  display: block;
-}
-
-.networkStats strong {
-  color: var(--partner-teal);
-  font-size: 22px;
-  line-height: 1;
-}
-
-.networkStats span {
-  margin-top: 5px;
-  color: var(--partner-muted);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .locationPanel,
@@ -160,8 +114,12 @@
 }
 
 .searchPanel {
-  grid-template-columns: minmax(320px, 1fr) 170px 190px;
+  grid-template-columns: minmax(280px, 1fr) 220px 150px 180px;
 }
+
+.advancedFilters { display: contents; }
+.filterToggle,
+.clearAreaFilters { display: none; }
 
 .locationField {
   display: flex;
@@ -284,6 +242,55 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 750;
+}
+
+.filterToggle {
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid #bfd7d5;
+  border-radius: 999px;
+  color: var(--partner-teal);
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.filterToggle > span { font-size: 16px; }
+
+.filterToggle b {
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--partner-teal);
+  font-size: 8px;
+}
+
+.filterToggle[aria-expanded="true"] {
+  border-color: var(--partner-teal-bright);
+  background: #ebf2f9;
+}
+
+.clearAreaFilters {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--partner-teal);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .nearButton {
@@ -948,7 +955,7 @@
 
 @media (max-width: 1080px) {
   .locationPanel {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(240px, 1fr) auto auto;
   }
 
   .locationDivider {
@@ -960,7 +967,7 @@
   }
 
   .searchPanel {
-    grid-template-columns: 1fr 150px 170px;
+    grid-template-columns: minmax(210px, 1fr) 180px 120px 135px;
   }
 
   .explorer {
@@ -997,42 +1004,39 @@
   }
 
   .previewNotice,
-  .directoryHeading,
   .resultsBar {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .directoryHeading {
-    gap: 22px;
-  }
-
-  .networkStats {
-    width: 100%;
-  }
-
-  .networkStats div {
-    min-width: 0;
-    flex: 1;
-  }
-
   .searchPanel {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 20px;
   }
 
   .locationPanel {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 20px;
   }
 
-  .locationField,
+  .locationField { grid-column: 1 / -1; }
+
   .locationSearchButton,
-  .locationPanel .nearButton {
-    grid-column: 1 / -1;
-  }
+  .locationPanel .nearButton { grid-column: auto; min-height: 50px; padding: 0 12px; font-size: 10px; }
 
-  .searchField {
-    grid-column: 1 / -1;
-  }
+  .searchField { grid-column: 1 / -1; min-height: 52px; }
+  .searchField input { font-size: 12px; }
+  .serviceFilter { min-height: 50px; padding: 7px 15px; border-radius: 999px; }
+  .serviceFilter > span { display: none; }
+  .filterToggle { display: inline-flex; }
+  .advancedFilters { grid-column: 1 / -1; display: none; grid-template-columns: 1fr 1fr; gap: 8px; padding-top: 2px; }
+  .advancedFiltersOpen { display: grid; }
+  .advancedFilters .filterField { min-height: 54px; border-color: #d3e1e6; background: #f8fbfd; }
+  .clearAreaFilters { grid-column: 1 / -1; display: inline-flex; align-items: center; justify-content: center; }
 
   .resultsBar {
     gap: 12px;
@@ -1080,39 +1084,80 @@
 
 }
 
-@media (max-width: 470px) {
+@media (max-width: 560px) {
   .searchPanel {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .searchField,
-  .nearButton,
-  .locationField,
-  .locationSearchButton {
-    grid-column: auto;
-  }
+  .locationField { grid-column: 1 / -1; }
 
-  .networkStats {
-    align-items: stretch;
-  }
+  .locationSearchButton,
+  .locationPanel .nearButton { grid-column: auto; }
 
-  .networkStats div {
-    padding: 8px;
+  .advancedFilters { grid-template-columns: 1fr; }
+  .filterToggle { min-width: 96px; padding: 0 12px; }
+
+  .explorer { gap: 24px; }
+
+  .partnerList,
+  .cardGrid {
+    gap: 18px;
+    padding: 2px 1px 6px;
   }
 
   .card,
   .cardGrid .card {
     grid-template-columns: 1fr;
+    min-height: 0;
+    border-radius: 21px;
+    box-shadow: 0 14px 34px rgba(16, 63, 69, 0.08);
   }
 
   .cardGrid .cardPhoto,
   .cardPhoto {
-    min-height: 280px;
-    aspect-ratio: 1.15 / 1;
+    height: 210px;
+    min-height: 210px;
+    aspect-ratio: auto;
+    background: linear-gradient(145deg, #ebf2f9, #dcebea);
+  }
+
+  .cardPhotoImage img.cardPhotoForeground {
+    padding: 8px 30px 4px;
+  }
+
+  .cardPhotoImage img.cardPhotoBackdrop {
+    opacity: 0.24;
+    filter: blur(18px) saturate(0.8) brightness(0.96);
+  }
+
+  .cardPhoto > small {
+    left: 10px;
+    bottom: 10px;
   }
 
   .cardGrid .cardCopy,
   .cardCopy {
-    min-height: 205px;
+    min-height: 0;
+    padding: 20px 18px 18px;
+  }
+
+  .card h3,
+  .cardGrid .card h3 {
+    font-size: 25px;
+    line-height: 1.04;
+  }
+
+  .directorySignals {
+    min-height: 0;
+    margin-top: 10px;
+  }
+
+  .areas {
+    margin: 13px 0 15px;
+  }
+
+  .cardMeta {
+    padding-top: 13px;
   }
 }

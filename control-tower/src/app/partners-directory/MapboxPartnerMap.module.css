@@ -224,7 +224,7 @@
 
 @media (max-width: 560px) {
   .mapPanel {
-    min-height: 410px;
+    min-height: 350px;
     border-radius: 21px;
   }
 

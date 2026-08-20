@@ -85,7 +85,8 @@ export default function MarketingHeaderEmbed({
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, "")}`;
   const href = (path: string) => `${resolvedWebsiteUrl}${path}`;
   const directoryReturnTo = "https://partners.mydripnurse.com/";
-  const clientLoginHref = `https://care.mydripnurse.com/login?returnTo=${encodeURIComponent(directoryReturnTo)}`;
+  const clientReturnTo = showPartnerPortal ? directoryReturnTo : resolvedWebsiteUrl;
+  const clientLoginHref = `https://care.mydripnurse.com/login?returnTo=${encodeURIComponent(clientReturnTo)}`;
   const partnerLoginHref = "https://partners.mydripnurse.com/partner-login?returnTo=%2F";
 
   useEffect(() => {
@@ -243,7 +244,7 @@ export default function MarketingHeaderEmbed({
                 <a href={partnerLoginHref} target="_top">Partner login<span>→</span></a>
               </div> : null}
             </div>
-          ) : <a className={styles.login} href="https://care.mydripnurse.com/login" target="_top">Log in</a>}
+          ) : <a className={styles.login} href={clientLoginHref} target="_top">Log in</a>}
           <button type="button" className={styles.mobileToggle} aria-label={mobileOpen ? "Close navigation" : "Open navigation"} aria-expanded={mobileOpen} onClick={() => { setMobileOpen((value) => !value); setOpenMenu(null); setMobileSection(null); }}>
             <span /><span /><span />
           </button>

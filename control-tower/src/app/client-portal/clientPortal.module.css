@@ -458,8 +458,9 @@
 .profilePhoneVerification { min-width: 0; min-height: 108px; display: grid; align-content: center; gap: 9px; padding: 14px 0; border-bottom: 1px solid var(--care-line); }
 .profilePhoneInputShell { position: relative; min-width: 0; }
 .profilePhoneInput { gap: 8px; }
-.profilePhoneInput input { padding-right: 108px !important; }
-.profilePhoneVerifyAction,.profilePhoneVerified { position: absolute; right: 9px; bottom: 9px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0 13px; border-radius: 10px; white-space: nowrap; font: inherit; font-size: 9px; font-weight: 900; }
+.profilePhoneInput > span small,.profileStandalonePhoneField > span small { color: var(--care-muted); font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.profileStandalonePhoneField { min-height: 108px; align-content: center; border-bottom: 1px solid var(--care-line); }
+.profilePhoneVerifyAction,.profilePhoneVerified { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; padding: 0 14px; border-radius: 11px; white-space: nowrap; font: inherit; font-size: 9px; font-weight: 900; }
 .profilePhoneVerifyAction { border: 0; color: #fff; background: var(--care-teal); cursor: pointer; box-shadow: 0 7px 16px rgba(7,103,116,.14); }
 .profilePhoneVerifyAction:disabled { cursor: not-allowed; opacity: .5; box-shadow: none; }
 .profilePhoneVerified { color: #066d68; background: #ddf5ee; }
@@ -760,8 +761,8 @@
   .profileAccordionFields { grid-template-columns: 1fr; }
   .profileAccordionFields label { min-height: 102px; }
   .profilePhoneVerification { min-height: 102px; padding-block: 16px; }
-  .profilePhoneInput input { padding-right: 94px !important; }
-  .profilePhoneVerifyAction,.profilePhoneVerified { right: 8px; bottom: 8px; min-height: 38px; padding-inline: 11px; }
+  .profileStandalonePhoneField { min-height: 102px; }
+  .profilePhoneVerifyAction,.profilePhoneVerified { min-height: 42px; padding-inline: 10px; font-size: 8px; }
   .phoneOtpModalBackdrop { align-items: end; padding: 12px; }
   .phoneOtpModal { width: 100%; padding: 30px 18px 24px; border-radius: 26px; }
   .phoneOtpDigits { gap: 6px; }
@@ -817,6 +818,8 @@
 .rewardNadCard .rewardProgramIcon { background: linear-gradient(145deg,#075e68,#a98d3f); }
 .rewardProgramCard > header { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .rewardProgramIcon { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 17px; color: #fff; background: linear-gradient(145deg,var(--care-teal),var(--care-teal-bright)); box-shadow: 0 12px 25px rgba(7,103,116,.2); font-size: 20px; }
+.rewardProgramIcon.rewardServiceIcon,.rewardNadCard .rewardProgramIcon.rewardServiceIcon { overflow: hidden; padding: 4px; border: 1px solid rgba(112,183,173,.42); background: #ebf2f9; box-shadow: 0 12px 25px rgba(7,103,116,.13); }
+.rewardServiceIcon img { width: 100%; height: 100%; object-fit: contain; }
 .rewardActivePill,.rewardReadyPill { padding: 9px 12px; border-radius: 999px; font-size: 8px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
 .rewardActivePill { color: var(--care-teal); background: var(--care-mint); }
 .rewardReadyPill { color: #fff; background: linear-gradient(110deg,#075f6a,#0ba6a5); box-shadow: 0 10px 24px rgba(7,103,116,.16); }
@@ -863,12 +866,36 @@
 .visitRewardTrack i { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #d9e7e4; border-radius: 50%; color: #8ca09d; background: #f3f7f6; font-size: 9px; font-style: normal; font-weight: 900; }
 .visitRewardTrack small { color: var(--care-muted); font-size: 7px; font-weight: 800; white-space: nowrap; }
 .visitRewardTrack > span.visitRewardTrackComplete i { border-color: var(--care-teal-bright); color: #fff; background: linear-gradient(145deg,var(--care-teal),var(--care-teal-bright)); box-shadow: 0 8px 18px rgba(7,130,141,.18); }
+.visitRewardTrack > span.visitRewardTrackService i { overflow: hidden; padding: 2px; border-color: #9ed7ce; background: #ebf2f9; }
+.visitRewardTrackService i img { width: 100%; height: 100%; object-fit: contain; }
+.visitRewardTrackService small { max-width: 68px; overflow: hidden; color: var(--care-teal); text-overflow: ellipsis; }
 .visitRewardProgressState,.visitRewardReadyState { display: flex; align-items: center; gap: 13px; padding: 17px; border-radius: 17px; background: #f2f7f5; }
 .visitRewardProgressState > span,.visitRewardReadyState > span { width: 39px; height: 39px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 13px; color: var(--care-teal); background: #dff4ef; }
 .visitRewardProgressState strong,.visitRewardReadyState strong { display: block; margin-top: 4px; font-size: 11px; line-height: 1.4; }
 .visitRewardReadyState { color: #fff; background: linear-gradient(120deg,#075e68,#079ba3); }
 .visitRewardReadyState small,.visitRewardReadyState > span { color: #fff; }
 .visitRewardReadyState > span { background: rgba(255,255,255,.15); }
+.visitRewardEligible { display: grid; gap: 24px; padding: clamp(27px,4vw,48px); border: 1px solid var(--care-line); border-radius: 30px; background: radial-gradient(circle at 96% 0,rgba(117,222,207,.17),transparent 24rem),#fff; box-shadow: 0 20px 52px rgba(20,55,59,.06); }
+.visitRewardEligibleHeader { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.visitRewardEligibleHeader h2 { max-width: 740px; margin: 8px 0 10px; font: 400 clamp(31px,3.7vw,48px)/1.02 Georgia,"Times New Roman",serif; letter-spacing: -.04em; text-wrap: balance; }
+.visitRewardEligibleHeader p { max-width: 720px; margin: 0; color: var(--care-copy); font-size: 12px; line-height: 1.65; }
+.visitRewardEligibleHeader > span { flex: 0 0 auto; padding: 10px 13px; border-radius: 999px; color: var(--care-teal); background: var(--care-mint); font-size: 8px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+.visitRewardServiceGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 11px; }
+.visitRewardService { position: relative; min-width: 0; min-height: 106px; display: grid; grid-template-columns: 68px minmax(0,1fr); align-items: center; gap: 12px; padding: 13px 42px 13px 13px; overflow: hidden; border: 1px solid #d8e7e4; border-radius: 19px; background: #f9fbfb; transition: border-color .2s ease,transform .2s ease,box-shadow .2s ease; }
+.visitRewardService:hover { transform: translateY(-2px); border-color: #a8d7cf; box-shadow: 0 14px 28px rgba(20,55,59,.07); }
+.visitRewardServiceComplete { border-color: #6bc8ba; background: linear-gradient(145deg,#edf9f6,#fff); }
+.visitRewardServiceImage { width: 68px; height: 76px; display: grid; place-items: center; overflow: hidden; border-radius: 15px; background: #ebf2f9; }
+.visitRewardServiceImage img { width: 100%; height: 100%; padding: 5px; object-fit: contain; }
+.visitRewardServiceCopy { min-width: 0; display: grid; gap: 4px; }
+.visitRewardServiceCopy small { color: var(--care-teal-bright); font-size: 7px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.visitRewardServiceCopy strong { overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; }
+.visitRewardServiceCopy span { color: var(--care-muted); font-size: 8px; line-height: 1.35; }
+.visitRewardService > b { position: absolute; top: 12px; right: 11px; min-width: 26px; min-height: 26px; display: grid; place-items: center; padding: 0 6px; border-radius: 9px; color: var(--care-teal); background: #e3f4f0; font-size: 8px; }
+.visitRewardServiceComplete > b { color: #fff; background: var(--care-teal); }
+.visitRewardEligible > footer { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 17px; background: #f0f7f5; }
+.visitRewardEligible > footer > span { width: 35px; height: 35px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 12px; color: var(--care-teal); background: #d9f1ec; }
+.visitRewardEligible > footer p { margin: 0; color: var(--care-copy); font-size: 10px; line-height: 1.5; }
+.visitRewardEligible > footer strong { color: var(--care-ink); }
 .visitRewardDetails { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
 .visitRewardDetails article { min-height: 230px; display: grid; grid-template-columns: 38px 1fr; align-content: start; gap: 14px; padding: 28px; border: 1px solid var(--care-line); border-radius: 24px; background: #fff; box-shadow: 0 17px 42px rgba(20,55,59,.05); }
 .visitRewardDetails article > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--care-teal); background: var(--care-mint); font-size: 9px; font-weight: 900; }
@@ -961,6 +988,7 @@
 @media (max-width: 980px) {
   .rewardProgramGrid,.visitRewardHero,.visitRewardDetails { grid-template-columns: 1fr; }
   .visitRewardProgressCard { width: 100%; }
+  .visitRewardServiceGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .referralHero,.referralInviteGrid { grid-template-columns: 1fr; }
   .referralProgressCard { width: 100%; }
 }
@@ -1005,6 +1033,15 @@
   .visitRewardTrack { gap: 2px; margin: 21px 0; }
   .visitRewardTrack i { width: 31px; height: 31px; }
   .visitRewardTrack small { font-size: 6px; }
+  .visitRewardTrackService small { max-width: 52px; }
+  .visitRewardEligible { gap: 19px; padding: 22px 17px; border-radius: 22px; }
+  .visitRewardEligibleHeader { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .visitRewardEligibleHeader h2 { font-size: 34px; }
+  .visitRewardEligibleHeader p { font-size: 11px; }
+  .visitRewardServiceGrid { display: flex; gap: 10px; margin-right: -17px; padding-right: 17px; overflow-x: auto; scroll-padding: 17px; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .visitRewardServiceGrid::-webkit-scrollbar { display: none; }
+  .visitRewardService { min-width: min(78vw,270px); scroll-snap-align: start; }
+  .visitRewardEligible > footer { align-items: flex-start; }
   .visitRewardDetails { gap: 12px; }
   .visitRewardDetails article { min-height: 0; padding: 20px 17px; border-radius: 20px; }
   .visitRewardCta { align-items: stretch; flex-direction: column; gap: 22px; padding: 25px 20px; border-radius: 22px; }

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Suspense } from "react";
 
 import ClientAuthForm from "@/components/client/ClientAuthForm";
+import ClientOriginLogo from "@/components/client/ClientOriginLogo";
 
 import styles from "./clientLogin.module.css";
 
@@ -16,9 +16,7 @@ export default function ClientLoginPage() {
   return (
     <main className={styles.page}>
       <section className={styles.brandPanel}>
-        <a href="https://mydripnurse.com" className={styles.logoLink} aria-label="My Drip Nurse home">
-          <Image src="/mdn-logo.png" alt="My Drip Nurse" width={240} height={51} priority />
-        </a>
+        <ClientOriginLogo className={styles.logoLink} width={240} height={51} priority />
         <div className={styles.brandCopy}>
           <span>My Drip Nurse Care</span>
           <h2>Wellness that moves with you.</h2>
@@ -31,9 +29,7 @@ export default function ClientLoginPage() {
         </div>
       </section>
       <section className={styles.authPanel}>
-        <a href="https://mydripnurse.com" className={styles.mobileLogo} aria-label="My Drip Nurse home">
-          <Image src="/mdn-logo.png" alt="My Drip Nurse" width={200} height={43} priority />
-        </a>
+        <ClientOriginLogo className={styles.mobileLogo} width={200} height={43} priority />
         <Suspense fallback={<div className={styles.formSkeleton} aria-hidden="true" />}>
           <ClientAuthForm mode="login" />
         </Suspense>

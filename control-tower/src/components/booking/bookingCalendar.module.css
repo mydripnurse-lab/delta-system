@@ -7,9 +7,21 @@
 }
 
 .shell { margin: 0 auto; max-width: 1180px; }
-.embeddedPage { min-height: 0; padding: clamp(8px, 2vw, 20px); background: #f7faf9; }
+.embeddedPage { min-height: 0; padding: clamp(8px, 2vw, 20px); background: #ebf2f9; }
 .embeddedPage .intro { padding-top: 10px; }
 .embeddedPage .slots { max-height: none; overflow: visible; padding-right: 0; }
+.embeddedPage .card { border-color: #c7dce7; background: linear-gradient(145deg,#fff 0%,#f7fafd 55%,#ebf2f9 100%); box-shadow: 0 18px 50px rgba(25,65,83,.075); }
+.embeddedPage .selectedServiceImage { border-color: #c4dae6; background: #ebf2f9; }
+.embeddedPage .grid input,.embeddedPage .grid select,.embeddedPage .phoneControl { border-color: #c6dae5; background: rgba(255,255,255,.88); }
+.embeddedPage .countrySelect { border-right-color: #c8dce7; background: #ebf2f9; }
+.embeddedPage .placeholder,.embeddedPage .slot { border-color: #c7dce7; background: rgba(235,242,249,.72); }
+.embeddedPage .selectedSlot { border-color: #078597; background: linear-gradient(145deg,#e1f4f2,#ebf2f9); }
+.embeddedPage .screeningOption { border-color: #cbdde7; background: rgba(255,255,255,.82); }
+.embeddedPage .screeningOption:has(input:checked) { border-color: #0a6a73; background: linear-gradient(145deg,#e3f5f1,#ebf2f9); }
+.embeddedPage .savedScreeningReview,.embeddedPage .connectedProfileCard { border-color: #a9d1d8; background: linear-gradient(120deg,#ebf2f9,#fff); }
+.embeddedPage .savedAddressPicker,.embeddedPage .saveAddressChoice,.embeddedPage .additionalPatient,.embeddedPage .confirmSummary,.embeddedPage .depositNote { border-color: #c7dce7; background: #ebf2f9; }
+.embeddedPage .secondaryButton,.embeddedPage .removeButton { border-color: #b9d2df; background: rgba(255,255,255,.8); }
+.embeddedPage .secondaryButton:hover,.embeddedPage .removeButton:hover { border-color: #078597; background: #e1edf6; }
 .intro { max-width: 860px; padding: 24px 4px 28px; }
 .eyebrow, .step { color: #087887; font-size: .74rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
 .intro h1 { font-family: Georgia, serif; font-size: clamp(2rem, 4.2vw, 3.75rem); font-weight: 500; letter-spacing: -.04em; line-height: 1.02; margin: 14px 0 16px; max-width: 820px; text-wrap: balance; }
@@ -179,7 +191,11 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.paymentPage.embeddedPage { min-height: 0; padding: clamp(8px, 2vw, 20px); background: #f7faf9; }
+.paymentPage.embeddedPage { min-height: 0; padding: clamp(8px, 2vw, 20px); background: #ebf2f9; }
+.paymentPage.embeddedPage .paymentShell { border-color: #c6dce7; background: linear-gradient(145deg,#fff,#f6f9fc 62%,#ebf2f9); }
+.paymentPage.embeddedPage .paymentHeader,.paymentPage.embeddedPage .confirmationHero { border-bottom-color: #cadde7; background: linear-gradient(125deg,#ebf2f9 0%,#fff 72%); }
+.paymentPage.embeddedPage .checkoutFrame,.paymentPage.embeddedPage .confirmationPrimary,.paymentPage.embeddedPage .confirmationPayment { background: rgba(255,255,255,.9); }
+.paymentPage.embeddedPage .confirmationProfessional,.paymentPage.embeddedPage .confirmationActions { border-color: #cadde7; background: #ebf2f9; }
 
 .paymentShell {
   width: min(100%, 1160px);

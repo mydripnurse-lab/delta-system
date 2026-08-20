@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -5,6 +6,7 @@ import type { CSSProperties } from "react";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 import { getClientReferralSummary } from "@/lib/clientReferrals";
 import { getClientVisitRewardSummary } from "@/lib/clientRewards";
+import { loadCurrentMyDripNurseServices, MY_DRIP_NURSE_SERVICES } from "@/lib/myDripNurseServices";
 
 import styles from "../clientPortal.module.css";
 
@@ -23,12 +25,16 @@ function Milestones({ goal, completed }: { goal: number; completed: number }) {
 export default async function ClientRewardsPage() {
   const account = await getAuthenticatedClient();
   if (!account) redirect("/login?next=/rewards");
-  const [invitations, visits, nadVisits] = await Promise.all([
+  const [invitations, visits, nadVisits, currentServices] = await Promise.all([
     getClientReferralSummary(account.id),
     getClientVisitRewardSummary(account.id, "wellness"),
     getClientVisitRewardSummary(account.id, "nad_family"),
+    loadCurrentMyDripNurseServices(),
   ]);
   const availableRewards = Number(invitations.rewardStatus === "available") + visits.availableRewards + nadVisits.availableRewards;
+  const services = currentServices.length ? currentServices : MY_DRIP_NURSE_SERVICES;
+  const myersCocktail = services.find((service) => service.id === "myers-cocktail");
+  const nadBoost = services.find((service) => service.id === "nad-boost");
 
   return (
     <div className={`${styles.pageShell} ${styles.rewardsPage}`}>
@@ -68,7 +74,9 @@ export default async function ClientRewardsPage() {
 
         <Link href="/rewards/visits" className={`${styles.rewardProgramCard} ${styles.rewardVisitsCard}`}>
           <header>
-            <div className={styles.rewardProgramIcon} aria-hidden="true">◎</div>
+            <div className={`${styles.rewardProgramIcon} ${styles.rewardServiceIcon}`} aria-hidden="true">
+              {myersCocktail ? <Image src={myersCocktail.imageUrl} alt="" width={62} height={62} sizes="62px" /> : "◎"}
+            </div>
             <span className={visits.availableRewards ? styles.rewardReadyPill : styles.rewardActivePill}>
               {visits.availableRewards ? `${visits.availableRewards} ready` : "Always earning"}
             </span>
@@ -88,7 +96,9 @@ export default async function ClientRewardsPage() {
 
         <Link href="/rewards/nad" className={`${styles.rewardProgramCard} ${styles.rewardNadCard}`}>
           <header>
-            <div className={styles.rewardProgramIcon} aria-hidden="true">N+</div>
+            <div className={`${styles.rewardProgramIcon} ${styles.rewardServiceIcon}`} aria-hidden="true">
+              {nadBoost ? <Image src={nadBoost.imageUrl} alt="" width={62} height={62} sizes="62px" /> : "N+"}
+            </div>
             <span className={nadVisits.availableRewards ? styles.rewardReadyPill : styles.rewardActivePill}>
               {nadVisits.availableRewards ? `${nadVisits.availableRewards} ready` : "Premium progress"}
             </span>

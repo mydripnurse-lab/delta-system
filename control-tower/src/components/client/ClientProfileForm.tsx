@@ -179,10 +179,15 @@ export default function ClientProfileForm({
           <label><small>Date of birth</small><input type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} autoComplete="bday" max={new Date().toISOString().slice(0, 10)} /></label>
           <div className={styles.profilePhoneVerification}>
             <div className={styles.profilePhoneInputShell}>
-              <PhoneInputField className={styles.profilePhoneInput} label={<small>Mobile number</small>} value={phone} onValueChange={(value) => { setPhone(value); setPhoneVerified(value === account.phone && account.phoneVerified); setPhoneChallengeId(""); setPhoneCode(""); setPhoneMessage(""); setPhoneError(false); setPhoneModalOpen(false); }} />
-              {phoneVerified
-                ? <span className={styles.profilePhoneVerified}>✓ Verified</span>
-                : <button type="button" className={styles.profilePhoneVerifyAction} disabled={phoneWorking || !phoneIsComplete(phone)} onClick={() => phoneChallengeId ? setPhoneModalOpen(true) : void requestPhoneCode()}>{phoneWorking ? "Sending…" : phoneChallengeId ? "Enter code" : "Verify number"}</button>}
+              <PhoneInputField
+                className={styles.profilePhoneInput}
+                label={<small>Mobile number</small>}
+                value={phone}
+                onValueChange={(value) => { setPhone(value); setPhoneVerified(value === account.phone && account.phoneVerified); setPhoneChallengeId(""); setPhoneCode(""); setPhoneMessage(""); setPhoneError(false); setPhoneModalOpen(false); }}
+                action={phoneVerified
+                  ? <span className={styles.profilePhoneVerified}>✓ Verified</span>
+                  : <button type="button" className={styles.profilePhoneVerifyAction} disabled={phoneWorking || !phoneIsComplete(phone)} onClick={() => phoneChallengeId ? setPhoneModalOpen(true) : void requestPhoneCode()}>{phoneWorking ? "Sending…" : phoneChallengeId ? "Enter code" : "Verify number"}</button>}
+              />
             </div>
             <span className={`${styles.profilePhoneMessage} ${phoneError ? styles.profilePhoneMessageError : ""}`} role="status">{phoneMessage || (phoneVerified ? "Saved for appointment updates and account security." : "Verification is required for secure appointment updates.")}</span>
           </div>
@@ -213,7 +218,7 @@ export default function ClientProfileForm({
       {activeSection === "emergency" ? <div id="profile-section-emergency" className={styles.profileAccordionPanel}>
         <div className={styles.profileAccordionFields}>
           <label><small>Contact name</small><input value={emergencyContactName} onChange={(event) => setEmergencyContactName(event.target.value)} maxLength={120} placeholder="Full name" /></label>
-          <PhoneInputField label={<small>Contact phone</small>} value={emergencyContactPhone} onValueChange={setEmergencyContactPhone} />
+          <PhoneInputField className={styles.profileStandalonePhoneField} label={<small>Contact phone</small>} value={emergencyContactPhone} onValueChange={setEmergencyContactPhone} />
         </div>
         <div className={styles.profileAccordionSave}><p role="status">{message}</p><button type="button" disabled={working} onClick={() => void saveSection("emergency_contact", { emergencyContactName, emergencyContactPhone }, "Emergency contact saved.")}>{working ? "Saving securely…" : "Save changes"}</button></div>
       </div> : null}

@@ -142,6 +142,7 @@ export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
             <PhoneInputField
               name="phone"
               label={<>Mobile number <small>{referral ? "Required for this invitation" : "Optional"}</small></>}
+              hint="Select your country or begin with + to detect it automatically."
               required={Boolean(referral)}
             />
           </div>
@@ -164,7 +165,7 @@ export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
         {message ? (
           <p className={isSuccess ? styles.successMessage : styles.errorMessage} role="status">{message}</p>
         ) : null}
-        <button type="submit" disabled={submitting || isSuccess}>
+        <button className={styles.submitButton} type="submit" disabled={submitting || isSuccess}>
           <span>{submitting ? "Please wait…" : mode === "login" ? "Sign in securely" : "Create my account"}</span>
           <b aria-hidden="true">→</b>
         </button>
