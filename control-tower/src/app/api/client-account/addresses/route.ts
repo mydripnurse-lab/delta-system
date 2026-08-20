@@ -23,9 +23,9 @@ async function syncPreferredAddress(client: PoolClient, accountId: string) {
   await client.query(
     `update app.client_accounts
         set preferences = coalesce(preferences, '{}'::jsonb) || jsonb_build_object('address', jsonb_build_object(
-          'addressLine1', $2, 'addressLine2', $3, 'city', $4, 'county', $5, 'state', $6,
-          'postalCode', $7, 'countryCode', $8, 'verified', true, 'verificationProvider', 'mapbox',
-          'mapboxFeatureId', $9, 'verifiedLabel', $10, 'longitude', $11, 'latitude', $12,
+          'addressLine1', $2::text, 'addressLine2', $3::text, 'city', $4::text, 'county', $5::text, 'state', $6::text,
+          'postalCode', $7::text, 'countryCode', $8::text, 'verified', true, 'verificationProvider', 'mapbox',
+          'mapboxFeatureId', $9::text, 'verifiedLabel', $10::text, 'longitude', $11::double precision, 'latitude', $12::double precision,
           'verifiedAt', now()
         )), updated_at = now()
       where id = $1`,
