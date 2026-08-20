@@ -48,7 +48,10 @@ export async function POST(request: Request) {
       `update app.client_accounts
           set password_hash = $2,
               auth_provider = case when auth_provider = 'google' then 'hybrid' else 'email' end,
-              failed_login_attempts = 0, locked_until = null, updated_at = now()
+              failed_login_attempts = 0,
+              locked_until = null,
+              last_login_at = now(),
+              updated_at = now()
         where id = $1`,
       [account.id, passwordHash],
     );

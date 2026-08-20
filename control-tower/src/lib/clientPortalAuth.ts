@@ -884,6 +884,7 @@ export const getAuthenticatedClient = cache(async (): Promise<ClientAccount | nu
   const session = verifyClientSessionToken(cookieStore.get(CLIENT_SESSION_COOKIE_NAME)?.value || "");
   if (!session) return null;
   const account = await getClientAccount(session.sub);
+  if (account) await backfillClientLastLogin(account.id, session.iat);
   if (account?.emailVerified) await linkVerifiedClientCustomers(account.id, account.authProvider === "google" ? "google" : "verified_email");
   return account;
 });
@@ -898,5 +899,16 @@ export async function getAuthenticatedClientFromRequest(request: Request): Promi
   const session = verifyClientSessionToken(decodeURIComponent(token));
   if (!session) return null;
   const account = await getClientAccount(session.sub);
+  if (account) await backfillClientLastLogin(account.id, session.iat);
   return account?.emailVerified ? account : null;
+}
+
+async function backfillClientLastLogin(accountId: string, issuedAt: number) {
+  if (!Number.isFinite(issuedAt) || issuedAt <= 0) return;
+  await getDbPool().query(
+    `update app.client_accounts
+        set last_login_at = to_timestamp($2), updated_at = now()
+      where id = $1 and last_login_at is null`,
+    [accountId, issuedAt],
+  );
 }

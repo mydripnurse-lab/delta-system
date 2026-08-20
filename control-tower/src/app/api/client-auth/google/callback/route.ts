@@ -71,13 +71,16 @@ export async function GET(request: NextRequest) {
       full_name: string;
     }>(
       `insert into app.client_accounts (
-         email, normalized_email, full_name, auth_provider, google_sub, email_verified_at, preferences
-       ) values ($1, $4, $2, 'google', $3, now(), $5::jsonb)
+         email, normalized_email, full_name, auth_provider, google_sub, email_verified_at, preferences, last_login_at
+       ) values ($1, $4, $2, 'google', $3, now(), $5::jsonb, now())
        on conflict (normalized_email) do update set
          full_name = case when app.client_accounts.full_name = '' then excluded.full_name else app.client_accounts.full_name end,
          google_sub = coalesce(app.client_accounts.google_sub, excluded.google_sub),
          auth_provider = case when app.client_accounts.password_hash is null then 'google' else 'hybrid' end,
          email_verified_at = coalesce(app.client_accounts.email_verified_at, now()),
+         failed_login_attempts = 0,
+         locked_until = null,
+         last_login_at = now(),
          preferences = app.client_accounts.preferences || jsonb_build_object(
            'identity', coalesce(app.client_accounts.preferences -> 'identity', '{}'::jsonb)
              || coalesce(excluded.preferences -> 'identity', '{}'::jsonb)

@@ -47,7 +47,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "This verification link is invalid or has expired." }, { status: 400 });
     }
     await client.query(`update app.client_auth_tokens set consumed_at = now() where id = $1`, [account.token_id]);
-    await client.query(`update app.client_accounts set email_verified_at = coalesce(email_verified_at, now()), updated_at = now() where id = $1`, [account.id]);
+    await client.query(
+      `update app.client_accounts
+          set email_verified_at = coalesce(email_verified_at, now()),
+              failed_login_attempts = 0,
+              locked_until = null,
+              last_login_at = now(),
+              updated_at = now()
+        where id = $1`,
+      [account.id],
+    );
     await client.query("commit");
     await linkVerifiedClientCustomers(account.id);
     await claimClientReferralRegistration(account.id);

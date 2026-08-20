@@ -158,6 +158,10 @@ export async function POST(request: Request) {
 
   // Development fallback only. Production must configure transactional email.
   if (referralCode) await claimClientReferralRegistration(account.id, referralCode);
+  await pool.query(
+    `update app.client_accounts set last_login_at = now(), updated_at = now() where id = $1`,
+    [account.id],
+  );
   const session = createClientSessionToken({ id: account.id, email: account.email, fullName: account.full_name });
   return new NextResponse(JSON.stringify({ ok: true, requiresVerification: false, next: destination }), {
     status: 201,
