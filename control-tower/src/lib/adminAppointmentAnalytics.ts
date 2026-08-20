@@ -943,8 +943,12 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   });
   const lostWithCurrentCoverage = mapLeads.filter((lead) => lead.currentCoverageAvailable).length;
   const lostWithoutCurrentCoverage = mapLeads.length - lostWithCurrentCoverage;
-  const serviceFinancialById = new Map(serviceFinancialResult.rows.map((service) => [service.id, service]));
-  const serviceFinancialByName = new Map(serviceFinancialResult.rows.map((service) => [normalizeLocation(service.name), service]));
+  const serviceFinancialById = new Map<string, ServiceFinancialRow>();
+  const serviceFinancialByName = new Map<string, ServiceFinancialRow>();
+  for (const service of serviceFinancialResult.rows) {
+    serviceFinancialById.set(service.id, service);
+    serviceFinancialByName.set(normalizeLocation(service.name), service);
+  }
   const lostFinancials = includedLostLeads.reduce((totals, lead) => {
     const currentService = serviceFinancialById.get(lead.serviceId) || serviceFinancialByName.get(normalizeLocation(lead.service));
     const grossValue = lead.servicePrice || numeric(currentService?.price);
