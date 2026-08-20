@@ -8,7 +8,8 @@ import styles from "./marketingHeaderEmbed.module.css";
 
 type MenuName = "iv" | "nad" | "weight" | "account" | null;
 type MobileSection = Exclude<MenuName, "account" | null>;
-type MenuLink = readonly [label: string, path: string, imageUrl?: string];
+export type MarketingHeaderMenuLink = readonly [label: string, path: string, imageUrl?: string];
+export type MarketingHeaderNavLink = readonly [label: string, path: string];
 
 export type MarketingHeaderAccount = {
   fullName: string;
@@ -33,12 +34,12 @@ const IV_LINKS = [
   ["Get Lean / Weight Loss", "/get-lean-weight-loss-mobile-iv-therapy", "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb3191717d5dd4e1934c0e.png"],
   ["Alleviate", "/mobile-iv-therapy-alleviate", "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eea0199fe87a9994383bdb.png"],
   ["Brain Storm", "/mobile-iv-therapy-brain-storm", "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b16b0e5e2bb7ffb13f6.png"],
-] as const satisfies readonly MenuLink[];
+] as const satisfies readonly MarketingHeaderMenuLink[];
 
 const NAD_LINKS = [
   ["NAD+", "/nad-plus-mobile-iv-therapy", "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31910d66f2a665c92182.png"],
   ["NAD+ Boost", "/nad-plus-boost-mobile-iv-therapy", "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b7e05d4199001cead8a.png"],
-] as const satisfies readonly MenuLink[];
+] as const satisfies readonly MarketingHeaderMenuLink[];
 
 const WEIGHT_LINKS = [
   ["Semaglutide", "/weight-loss-semaglutide"],
@@ -63,6 +64,12 @@ export default function MarketingHeaderEmbed({
   preferPreviousMdnOrigin = false,
   showPartnerPortal = false,
   showDirectory = true,
+  showWeightLoss = true,
+  showContact = true,
+  showPhone = true,
+  ivMenuLinks = IV_LINKS,
+  nadMenuLinks = NAD_LINKS,
+  additionalNavLinks = [],
   nativeNavigation = false,
 }: {
   account: MarketingHeaderAccount | null;
@@ -74,6 +81,12 @@ export default function MarketingHeaderEmbed({
   preferPreviousMdnOrigin?: boolean;
   showPartnerPortal?: boolean;
   showDirectory?: boolean;
+  showWeightLoss?: boolean;
+  showContact?: boolean;
+  showPhone?: boolean;
+  ivMenuLinks?: readonly MarketingHeaderMenuLink[];
+  nadMenuLinks?: readonly MarketingHeaderMenuLink[];
+  additionalNavLinks?: readonly MarketingHeaderNavLink[];
   nativeNavigation?: boolean;
 }) {
   const rootRef = useRef<HTMLElement>(null);
@@ -86,6 +99,7 @@ export default function MarketingHeaderEmbed({
   const primaryPortalLabel = partnerAccount ? "Partner Portal" : "Client Portal";
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, "")}`;
   const href = (path: string) => `${resolvedWebsiteUrl}${path}`;
+  const menuHref = (path: string) => /^https?:\/\//i.test(path) ? path : href(path);
   const directoryReturnTo = "https://partners.mydripnurse.com/";
   const clientReturnTo = showPartnerPortal ? directoryReturnTo : resolvedWebsiteUrl;
   const clientLoginHref = `https://care.mydripnurse.com/login?returnTo=${encodeURIComponent(clientReturnTo)}`;
@@ -156,9 +170,9 @@ export default function MarketingHeaderEmbed({
     </button>
   );
 
-  const menuLinks = (items: readonly MenuLink[], wide = false) => (
+  const menuLinks = (items: readonly MarketingHeaderMenuLink[], wide = false) => (
     <div className={`${styles.dropdown} ${wide ? styles.wideDropdown : ""}`}>
-      {items.map(([label, path, imageUrl]) => <a key={path} className={imageUrl ? styles.serviceLink : ""} href={href(path)} target="_top" onClick={() => setOpenMenu(null)}>
+      {items.map(([label, path, imageUrl]) => <a key={path} className={imageUrl ? styles.serviceLink : ""} href={menuHref(path)} target="_top" onClick={() => setOpenMenu(null)}>
         {imageUrl ? <><span className={styles.serviceThumb}><Image src={imageUrl} alt="" width={52} height={52} loading="lazy" /></span><b>{label}</b></> : label}
         <span className={styles.linkArrow}>→</span>
       </a>)}
@@ -168,7 +182,7 @@ export default function MarketingHeaderEmbed({
   const mobileAccordion = (
     name: MobileSection,
     label: string,
-    items: readonly MenuLink[],
+    items: readonly MarketingHeaderMenuLink[],
   ) => {
     const expanded = mobileSection === name;
     return <div className={styles.mobileSection}>
@@ -208,15 +222,16 @@ export default function MarketingHeaderEmbed({
         </a>
 
         <nav className={styles.desktopNav} aria-label="Main navigation">
-          <div>{menuButton("iv", "IV Therapy")}{openMenu === "iv" ? menuLinks(IV_LINKS, true) : null}</div>
-          <div>{menuButton("nad", "NAD+")}{openMenu === "nad" ? menuLinks(NAD_LINKS) : null}</div>
-          <div>{menuButton("weight", "Weight Loss")}{openMenu === "weight" ? menuLinks(WEIGHT_LINKS) : null}</div>
+          {ivMenuLinks.length ? <div>{menuButton("iv", "IV Therapy")}{openMenu === "iv" ? menuLinks(ivMenuLinks, true) : null}</div> : null}
+          {nadMenuLinks.length ? <div>{menuButton("nad", "NAD+")}{openMenu === "nad" ? menuLinks(nadMenuLinks) : null}</div> : null}
+          {showWeightLoss ? <div>{menuButton("weight", "Weight Loss")}{openMenu === "weight" ? menuLinks(WEIGHT_LINKS) : null}</div> : null}
           {showDirectory ? <a href="https://partners.mydripnurse.com" target="_top">Directory</a> : null}
-          <a href={href("/contact-us")} target="_top">Contact</a>
+          {showContact ? <a href={href("/contact-us")} target="_top">Contact</a> : null}
+          {additionalNavLinks.map(([label, path]) => <a key={path} href={menuHref(path)} target="_top">{label}</a>)}
         </nav>
 
         <div className={styles.actions}>
-          <a className={styles.phone} href={phoneHref} target="_top" aria-label={`Call My Drip Nurse at ${phone}`}><PhoneIcon /><span>Call Us</span></a>
+          {showPhone ? <a className={styles.phone} href={phoneHref} target="_top" aria-label={`Call My Drip Nurse at ${phone}`}><PhoneIcon /><span>Call Us</span></a> : null}
           {primaryAccount ? (
             <div className={styles.accountWrap}>
               <button type="button" className={styles.accountButton} aria-expanded={openMenu === "account"} onClick={() => setOpenMenu((current) => current === "account" ? null : "account")}>
@@ -255,11 +270,12 @@ export default function MarketingHeaderEmbed({
 
       {mobileOpen ? <div className={styles.mobileDrawer}>
         <nav aria-label="Mobile navigation">
-          {mobileAccordion("iv", "IV Therapy", IV_LINKS)}
-          {mobileAccordion("nad", "NAD+", NAD_LINKS)}
-          {mobileAccordion("weight", "Weight Loss", WEIGHT_LINKS)}
+          {ivMenuLinks.length ? mobileAccordion("iv", "IV Therapy", ivMenuLinks) : null}
+          {nadMenuLinks.length ? mobileAccordion("nad", "NAD+", nadMenuLinks) : null}
+          {showWeightLoss ? mobileAccordion("weight", "Weight Loss", WEIGHT_LINKS) : null}
           {showDirectory ? <a href="https://partners.mydripnurse.com" target="_top">Directory<span>→</span></a> : null}
-          <a href={href("/contact-us")} target="_top">Contact<span>→</span></a>
+          {showContact ? <a href={href("/contact-us")} target="_top">Contact<span>→</span></a> : null}
+          {additionalNavLinks.map(([label, path]) => <a key={path} href={menuHref(path)} target="_top">{label}<span>→</span></a>)}
           {account ? <a href="https://care.mydripnurse.com" target="_top">Client Portal<span>→</span></a> : <a href={clientLoginHref} target="_top">Client login<span>→</span></a>}
           {showPartnerPortal ? (partnerAccount
             ? <a href="https://partners.mydripnurse.com/portal" target="_top">Partner Portal<span>→</span></a>
@@ -269,7 +285,7 @@ export default function MarketingHeaderEmbed({
           <ClientProfileAvatar className={styles.avatar} fullName={primaryAccount.fullName} photoUrl={primaryAccount.photoUrl} photoUpdatedAt={primaryAccount.photoUpdatedAt} sizes="42px" />
           <span><b>{primaryAccount.fullName}</b><small>{primaryPortalLabel}</small></span>
         </div> : null}
-        <a className={styles.mobilePhone} href={phoneHref} target="_top" aria-label={`Call My Drip Nurse at ${phone}`}><PhoneIcon />Call Us</a>
+        {showPhone ? <a className={styles.mobilePhone} href={phoneHref} target="_top" aria-label={`Call My Drip Nurse at ${phone}`}><PhoneIcon />Call Us</a> : null}
       </div> : null}
     </header>
   );

@@ -29,7 +29,7 @@ export default async function PartnerApplicationPage({ params, searchParams }: P
 
   return (
     <PartnerExperience>
-      <PartnerPublicHeader profile={profile} />
+      <PartnerPublicHeader profile={profile} preview={preview} />
       <main>
         {preview ? (
           <div role="status" style={{ background: "#073f4b", color: "white", padding: "10px 20px", textAlign: "center", fontWeight: 700 }}>

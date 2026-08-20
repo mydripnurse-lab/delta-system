@@ -125,7 +125,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeStructuredData(faqStructuredData) }}
         />
-        <PartnerPublicHeader profile={profile} />
+        <PartnerPublicHeader profile={profile} preview={preview} />
 
         <section className={styles.servicesHero}>
           <div className={styles.shell}>

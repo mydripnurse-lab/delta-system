@@ -211,10 +211,19 @@ async function loadOfficialCommunitiesUncached(countyGeoid: string) {
   countyUrl.searchParams.set("outFields", "GEOID");
   countyUrl.searchParams.set("returnGeometry", "true");
   countyUrl.searchParams.set("outSR", "4326");
+  // A full TIGER county polygon can be hundreds of kilobytes. Simplifying it
+  // keeps the subsequent spatial place queries reliable without changing the
+  // public-facing county coverage boundary in a meaningful way.
+  countyUrl.searchParams.set("maxAllowableOffset", "0.001");
+  countyUrl.searchParams.set("geometryPrecision", "5");
   countyUrl.searchParams.set("f", "json");
   const countyResponse = await fetch(countyUrl, { next: { revalidate: 604_800 }, signal: withTimeout(12_000) });
-  if (!countyResponse.ok) return [];
-  const countyPayload = await countyResponse.json() as { features?: Array<{ geometry?: unknown }> };
+  if (!countyResponse.ok) throw new Error("The official county boundary service is temporarily unavailable.");
+  const countyPayload = await countyResponse.json() as {
+    error?: unknown;
+    features?: Array<{ geometry?: unknown }>;
+  };
+  if (countyPayload.error) throw new Error("The official county boundary service rejected the request.");
   const geometry = countyPayload.features?.[0]?.geometry;
   if (!geometry) return [];
 
@@ -236,8 +245,12 @@ async function loadOfficialCommunitiesUncached(countyGeoid: string) {
       next: { revalidate: 604_800 },
       signal: withTimeout(12_000),
     });
-    if (!response.ok) return [];
-    const payload = await response.json() as { features?: Array<{ attributes?: Record<string, unknown> }> };
+    if (!response.ok) throw new Error("The official community service is temporarily unavailable.");
+    const payload = await response.json() as {
+      error?: unknown;
+      features?: Array<{ attributes?: Record<string, unknown> }>;
+    };
+    if (payload.error) throw new Error("The official community service rejected the request.");
     return (payload.features || []).flatMap((feature) => {
       const name = text(feature.attributes?.NAME);
       const geoid = text(feature.attributes?.GEOID);
@@ -245,10 +258,11 @@ async function loadOfficialCommunitiesUncached(countyGeoid: string) {
     });
   };
 
-  const communities = [
-    ...await queryLayer(4, "incorporated_place"),
-    ...await queryLayer(5, "census_designated_place"),
-  ];
+  const [incorporatedPlaces, censusDesignatedPlaces] = await Promise.all([
+    queryLayer(4, "incorporated_place"),
+    queryLayer(5, "census_designated_place"),
+  ]);
+  const communities = [...incorporatedPlaces, ...censusDesignatedPlaces];
   const unique = new Map(communities.map((community) => [normalizeGeographyName(community.name), community]));
   return [...unique.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -257,7 +271,12 @@ export async function loadOfficialCountyCommunities(countyGeoid: string) {
   const geoid = text(countyGeoid);
   if (!/^\d{5}$/.test(geoid)) return [];
   if (!communitiesCache.has(geoid)) {
-    communitiesCache.set(geoid, loadOfficialCommunitiesUncached(geoid).catch(() => []));
+    const pending = loadOfficialCommunitiesUncached(geoid).catch(() => {
+      // Allow a future request to recover after a temporary Census outage.
+      communitiesCache.delete(geoid);
+      return [];
+    });
+    communitiesCache.set(geoid, pending);
   }
   return communitiesCache.get(geoid)!;
 }

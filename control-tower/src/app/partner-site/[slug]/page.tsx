@@ -118,7 +118,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeStructuredData(faqStructuredData) }}
         />
-        <PartnerPublicHeader profile={profile} />
+        <PartnerPublicHeader profile={profile} preview={preview} />
 
         <section className={styles.hero}>
           <div className={styles.shell}>
@@ -207,19 +207,34 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
                       </span>
                       <b>
                         {county.communities.length
-                          ? `${county.communities.length} ${county.communities.length === 1 ? "community" : "communities"}`
+                          ? `${county.communities.length} ${county.communities.length === 1 ? "location" : "locations"}`
                           : "County-wide coverage"}
                       </b>
                       <i aria-hidden="true">⌄</i>
                     </summary>
-                    <div className={styles.communityGrid}>
-                      {county.communities.length ? county.communities.map((community) => (
-                        <span key={`${county.countyGeoid}-${community.geoid || community.name}`}>
-                          {community.name}
-                        </span>
-                      )) : (
-                        <p>All verified addresses in this county are evaluated during booking.</p>
-                      )}
+                    <div className={styles.communityPanel}>
+                      {county.communities.length ? (
+                        <div className={styles.communityMeta}>
+                          <strong>Cities and communities served</strong>
+                          <small>
+                            {county.communities.length} verified {county.communities.length === 1 ? "location" : "locations"}
+                            {county.communities.length > 8 ? " · Scroll to explore" : ""}
+                          </small>
+                        </div>
+                      ) : null}
+                      <div
+                        className={styles.communityGrid}
+                        tabIndex={county.communities.length > 8 ? 0 : undefined}
+                        aria-label={county.communities.length > 8 ? `Scrollable list of cities and communities in ${county.county}` : undefined}
+                      >
+                        {county.communities.length ? county.communities.map((community) => (
+                          <span key={`${county.countyGeoid}-${community.geoid || community.name}`}>
+                            {community.name}
+                          </span>
+                        )) : (
+                          <p>All verified addresses in this county are evaluated during booking.</p>
+                        )}
+                      </div>
                     </div>
                   </details>
                 ))}

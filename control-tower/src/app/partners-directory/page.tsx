@@ -176,11 +176,14 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
             profileHref: signedInPartner?.slug ? `https://partners.mydripnurse.com/${signedInPartner.slug}` : undefined,
           } : null}
           location="your area"
-          phone="321-989-6446"
+          phone="1 (833) 381-0071"
           websiteUrl="https://mydripnurse.com"
           bannerText="Licensed Nurses · Same-Day Appointments · Verified Mobile IV Care"
           preferPreviousMdnOrigin
           showPartnerPortal
+          showDirectory={false}
+          showWeightLoss={false}
+          showContact={false}
           nativeNavigation
         />
 

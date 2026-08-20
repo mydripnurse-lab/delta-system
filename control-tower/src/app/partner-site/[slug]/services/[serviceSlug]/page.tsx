@@ -131,7 +131,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · This page is not published yet</div> : null}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
-        <PartnerPublicHeader profile={profile} />
+        <PartnerPublicHeader profile={profile} preview={preview} />
 
         <section className={styles.serviceDetailHero}>
           <div className={styles.shell}>

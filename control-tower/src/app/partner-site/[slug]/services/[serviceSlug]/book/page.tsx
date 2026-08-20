@@ -64,7 +64,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
     <PartnerExperience>
       <main className={styles.page}>
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · Booking pages remain hidden from search engines</div> : null}
-        <PartnerPublicHeader profile={profile} />
+        <PartnerPublicHeader profile={profile} preview={preview} />
 
         <section className={styles.bookingPageHero}>
           <div className={styles.shell}>

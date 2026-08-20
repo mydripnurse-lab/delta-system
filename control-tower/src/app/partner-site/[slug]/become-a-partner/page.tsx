@@ -95,7 +95,7 @@ export default async function AffiliateLandingPage({ params, searchParams }: Pro
 
   return (
     <PartnerExperience>
-      <PartnerPublicHeader profile={profile} />
+      <PartnerPublicHeader profile={profile} preview={preview} />
 
       <main className={styles.page}>
         {preview ? <div className={styles.previewBanner}>Private Partner landing page preview</div> : null}
