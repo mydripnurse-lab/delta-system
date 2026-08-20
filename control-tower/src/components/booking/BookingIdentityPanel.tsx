@@ -78,7 +78,7 @@ export default function BookingIdentityPanel({ children, connectedName = "", emb
     return <>
       <section className={styles.connected} data-mdn-booking-embed={embedded ? "true" : undefined} aria-label="Care account connected">
         <span aria-hidden="true">✓</span>
-        <div><small>My Drip Nurse Care connected</small><strong>Welcome back, {connectedName}.</strong><p>Your saved details are ready. You will still review today&apos;s safety screening and appointment address.</p></div>
+        <div><small>My Drip Nurse Care connected</small><strong>Welcome back, {connectedName}.</strong><p>Your details are ready. Review today&apos;s screening and appointment address.</p></div>
       </section>
       {children}
     </>;

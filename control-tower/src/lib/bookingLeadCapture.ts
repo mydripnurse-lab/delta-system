@@ -163,6 +163,8 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
     public_key: string;
     price: string;
     currency: string;
+    deposit_type: "percentage" | "fixed";
+    deposit_value: string;
   }>(
     `select s.organization_id::text,
             o.name as organization_name,
@@ -171,7 +173,9 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
             s.name as service_name,
             c.public_key,
             s.price::text,
-            s.currency
+            s.currency,
+            s.deposit_type,
+            s.deposit_value::text
        from app.service_calendars c
        join app.services s on s.id = c.service_id
        join app.organizations o on o.id = s.organization_id
@@ -298,6 +302,8 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
       calendarPublicKey: row.public_key,
       price: Number(row.price) || 0,
       currency: row.currency,
+      depositType: row.deposit_type,
+      depositValue: Number(row.deposit_value) || 0,
     },
     coverage: {
       addressLine1: input.address.addressLine1,

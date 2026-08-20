@@ -161,6 +161,13 @@ type CoverageRow = {
   account_activated: boolean;
   availability_configured: boolean;
 };
+type ServiceFinancialRow = {
+  id: string;
+  name: string;
+  price: string;
+  deposit_type: "percentage" | "fixed";
+  deposit_value: string;
+};
 
 const STATE_CODES: Record<string, string> = {
   alabama: "al", alaska: "ak", arizona: "az", arkansas: "ar", california: "ca", colorado: "co", connecticut: "ct", delaware: "de", florida: "fl", georgia: "ga", hawaii: "hi", idaho: "id", illinois: "il", indiana: "in", iowa: "ia", kansas: "ks", kentucky: "ky", louisiana: "la", maine: "me", maryland: "md", massachusetts: "ma", michigan: "mi", minnesota: "mn", mississippi: "ms", missouri: "mo", montana: "mt", nebraska: "ne", nevada: "nv", "new hampshire": "nh", "new jersey": "nj", "new mexico": "nm", "new york": "ny", "north carolina": "nc", "north dakota": "nd", ohio: "oh", oklahoma: "ok", oregon: "or", pennsylvania: "pa", "rhode island": "ri", "south carolina": "sc", "south dakota": "sd", tennessee: "tn", texas: "tx", utah: "ut", vermont: "vt", virginia: "va", washington: "wa", "west virginia": "wv", wisconsin: "wi", wyoming: "wy", "district of columbia": "dc", "puerto rico": "pr",
@@ -276,6 +283,8 @@ function leadDetails(row: LeadEventRow) {
     longitude: Number.isFinite(Number(internalAnalytics.longitude ?? coverage.longitude)) ? Number(internalAnalytics.longitude ?? coverage.longitude) : null,
     latitude: Number.isFinite(Number(internalAnalytics.latitude ?? coverage.latitude)) ? Number(internalAnalytics.latitude ?? coverage.latitude) : null,
     serviceId: text(service.id), service: text(service.name), servicePrice: numeric(service.price), currency: text(service.currency) || "USD",
+    depositType: service.depositType === "percentage" || service.depositType === "fixed" ? service.depositType : "",
+    depositValue: numeric(service.depositValue),
     requestedDate: text(appointmentRequest.requestedDate), timezone: text(appointmentRequest.timezone),
     requestedPartnerName: text(requestedPartner.fullName) || text(requestedPartner.displayName),
     coverageAtCapture: coverageAvailableAtCapture ?? (hasEligiblePartnersSnapshot ? eligiblePartners.length > 0 : null),
@@ -380,7 +389,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   }
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
   const pool = getDbPool();
-  const [summaryResult, marketResult, trendResult, appointmentActivityResult, leadResult, convertedResult, coverageResult] = await Promise.all([
+  const [summaryResult, marketResult, trendResult, appointmentActivityResult, leadResult, convertedResult, coverageResult, serviceFinancialResult] = await Promise.all([
     pool.query<{ total: string; contacts: string; completed: string; active: string; cancelled: string; completed_value: string; partner_earnings: string; platform_revenue: string }>(
       `select count(*)::text as total, count(distinct appointment.customer_id)::text as contacts,
               count(*) filter (where appointment.status = 'completed')::text as completed,
@@ -500,6 +509,11 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
          join app.services service
            on service.id = assignment.service_id and service.is_active = true
         where area.status = 'active'`,
+    ),
+    pool.query<ServiceFinancialRow>(
+      `select service.id::text, service.name, service.price::text,
+              service.deposit_type, service.deposit_value::text
+         from app.services service`,
     ),
   ]);
 
@@ -929,9 +943,24 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   });
   const lostWithCurrentCoverage = mapLeads.filter((lead) => lead.currentCoverageAvailable).length;
   const lostWithoutCurrentCoverage = mapLeads.length - lostWithCurrentCoverage;
-  const lostOpportunityValue = includedLostLeads.reduce((totalValue, lead) => (
-    totalValue + (lead.servicePrice * Math.max(1, lead.additionalPatientsCount + 1))
-  ), 0);
+  const serviceFinancialById = new Map(serviceFinancialResult.rows.map((service) => [service.id, service]));
+  const serviceFinancialByName = new Map(serviceFinancialResult.rows.map((service) => [normalizeLocation(service.name), service]));
+  const lostFinancials = includedLostLeads.reduce((totals, lead) => {
+    const currentService = serviceFinancialById.get(lead.serviceId) || serviceFinancialByName.get(normalizeLocation(lead.service));
+    const grossValue = lead.servicePrice || numeric(currentService?.price);
+    const depositType = lead.depositType || currentService?.deposit_type || "percentage";
+    const depositValue = lead.depositType ? lead.depositValue : numeric(currentService?.deposit_value);
+    const platformValue = depositType === "fixed"
+      ? Math.min(grossValue, depositValue)
+      : Math.min(grossValue, (grossValue * depositValue) / 100);
+    totals.total += grossValue;
+    totals.platform += platformValue;
+    totals.partners += Math.max(grossValue - platformValue, 0);
+    return totals;
+  }, { total: 0, platform: 0, partners: 0 });
+  const lostOpportunityValue = Math.round(lostFinancials.total * 100) / 100;
+  const lostPlatformRevenue = Math.round(lostFinancials.platform * 100) / 100;
+  const lostPartnerEarnings = Math.round(lostFinancials.partners * 100) / 100;
   const lostOpportunityRate = filteredLeads.length
     ? Math.round((includedLostLeads.length / filteredLeads.length) * 1000) / 10
     : 0;
@@ -941,7 +970,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   }, { no_coverage: 0, no_availability: 0, screening: 0, booking_not_completed: 0, coverage_or_availability: 0, unclassified: 0 });
   return {
     period, status, from, to, search, granularity,
-    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, bookingAttempts, lostOpportunities: includedLostLeads.length, lostOpportunityValue, lostOpportunityRate, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round((convertedLeads.length / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), markets: markets.length, coveredCounties: coverageAreas.length },
+    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, bookingAttempts, lostOpportunities: includedLostLeads.length, lostOpportunityValue, lostPlatformRevenue, lostPartnerEarnings, lostOpportunityRate, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round((convertedLeads.length / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), markets: markets.length, coveredCounties: coverageAreas.length },
     points: resolved.filter((point): point is AppointmentGeoPoint => Boolean(point)),
     people,
     leads: mapLeads,
