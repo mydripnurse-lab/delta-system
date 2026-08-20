@@ -127,15 +127,15 @@ export async function verifyMapboxAddress(input: {
   const payload = await response.json() as { features?: MapboxFeature[] };
   const feature = payload.features?.[0];
   const line1 = [feature?.address, feature?.text].filter(Boolean).join(" ").trim();
-  const city = text(contextValue(feature || {}, ["place", "locality", "municipality"])?.text);
-  const county = text(contextValue(feature || {}, ["district", "county"])?.text);
+  const city = text(contextValue(feature || {}, ["place", "locality", "municipality", "district", "county"])?.text);
+  const county = text(contextValue(feature || {}, ["district", "county"])?.text) || city;
   const state = text(contextValue(feature || {}, ["region"])?.text);
   const postalCode = text(contextValue(feature || {}, ["postcode"])?.text);
   const countryCode = text(contextValue(feature || {}, ["country"])?.short_code || input.countryCode || "US").toUpperCase();
   const [longitude, latitude] = feature?.center || [];
 
   if (
-    !feature?.id || feature.id !== input.selectedFeatureId || !feature.id.startsWith("address.") ||
+    !input.selectedFeatureId.startsWith("address.") || !feature?.id || !feature.id.startsWith("address.") ||
     !line1 || !city || !county || !state || !postalCode ||
     !Number.isFinite(longitude) || !Number.isFinite(latitude)
   ) {

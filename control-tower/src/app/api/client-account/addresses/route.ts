@@ -22,7 +22,7 @@ async function syncPreferredAddress(client: PoolClient, accountId: string) {
   if (!row) return;
   await client.query(
     `update app.client_accounts
-        set preferences = preferences || jsonb_build_object('address', jsonb_build_object(
+        set preferences = coalesce(preferences, '{}'::jsonb) || jsonb_build_object('address', jsonb_build_object(
           'addressLine1', $2, 'addressLine2', $3, 'city', $4, 'county', $5, 'state', $6,
           'postalCode', $7, 'countryCode', $8, 'verified', true, 'verificationProvider', 'mapbox',
           'mapboxFeatureId', $9, 'verifiedLabel', $10, 'longitude', $11, 'latitude', $12,
@@ -58,9 +58,42 @@ export async function POST(request: Request) {
   const client = await getDbPool().connect();
   try {
     await client.query("begin");
+    await client.query(`select id from app.client_accounts where id = $1 for update`, [account.id]);
     const count = await client.query<{ count: string }>(`select count(*)::text as count from app.client_addresses where client_account_id = $1`, [account.id]);
     const makeDefault = body?.isDefault === true || Number(count.rows[0]?.count || 0) === 0;
     if (makeDefault) await client.query(`update app.client_addresses set is_default = false, updated_at = now() where client_account_id = $1`, [account.id]);
+    const existing = await client.query<{ id: string; is_default: boolean }>(
+      `select id, is_default
+         from app.client_addresses
+        where client_account_id = $1
+          and (
+            mapbox_feature_id = $2
+            or (
+              lower(address_line_1) = lower($3)
+              and lower(city) = lower($4)
+              and lower(state) = lower($5)
+              and lower(postal_code) = lower($6)
+            )
+          )
+        order by created_at asc
+        limit 1`,
+      [account.id, verified.mapboxFeatureId, verified.addressLine1, verified.city, verified.state, verified.postalCode],
+    );
+    if (existing.rows[0]) {
+      await client.query(
+        `update app.client_addresses
+            set label = $3, address_line_1 = $4, address_line_2 = $5, city = $6, county = $7,
+                state = $8, postal_code = $9, country_code = $10, mapbox_feature_id = $11,
+                verified_label = $12, longitude = $13, latitude = $14,
+                is_default = case when $15 then true else is_default end,
+                updated_at = now()
+          where client_account_id = $1 and id = $2`,
+        [account.id, existing.rows[0].id, label, verified.addressLine1, addressLine2, verified.city, verified.county, verified.state, verified.postalCode, verified.countryCode, verified.mapboxFeatureId, verified.verifiedLabel, verified.longitude, verified.latitude, makeDefault],
+      );
+      if (makeDefault || existing.rows[0].is_default) await syncPreferredAddress(client, account.id);
+      await client.query("commit");
+      return NextResponse.json({ ok: true, id: existing.rows[0].id, address: { ...verified, addressLine2, label, isDefault: makeDefault || existing.rows[0].is_default }, updated: true });
+    }
     const created = await client.query<{ id: string }>(
       `insert into app.client_addresses (
          client_account_id, label, address_line_1, address_line_2, city, county, state, postal_code,
@@ -74,7 +107,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: created.rows[0]?.id, address: { ...verified, addressLine2, label, isDefault: makeDefault } });
   } catch (error) {
     await client.query("rollback").catch(() => undefined);
-    throw error;
+    console.error("client_address_create_failed", error);
+    return NextResponse.json({ ok: false, error: "The address could not be saved. Please try again." }, { status: 500 });
   } finally {
     client.release();
   }
@@ -106,7 +140,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     await client.query("rollback").catch(() => undefined);
-    throw error;
+    console.error("client_address_update_failed", error);
+    return NextResponse.json({ ok: false, error: "The address could not be updated. Please try again." }, { status: 500 });
   } finally { client.release(); }
 }
 
@@ -134,6 +169,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     await client.query("rollback").catch(() => undefined);
-    throw error;
+    console.error("client_address_delete_failed", error);
+    return NextResponse.json({ ok: false, error: "The address could not be removed. Please try again." }, { status: 500 });
   } finally { client.release(); }
 }

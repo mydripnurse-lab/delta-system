@@ -34,9 +34,24 @@ function safeNext(value: string | null) {
   }
 }
 
+function safeReturnTo(value: string | null) {
+  if (!value || value.length > 2048) return "";
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) return "";
+    return hostname === "mydripnurse.com" || hostname.endsWith(".mydripnurse.com")
+      ? parsed.toString()
+      : "";
+  } catch {
+    return "";
+  }
+}
+
 export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
   const params = useSearchParams();
   const next = useMemo(() => safeNext(params.get("next")), [params]);
+  const returnTo = useMemo(() => safeReturnTo(params.get("returnTo")), [params]);
   const googleError = params.get("error");
   const invitedEmail = params.get("email") || "";
   const referral = useMemo(() => {
@@ -59,6 +74,7 @@ export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
       phone: data.get("phone"),
       password: data.get("password"),
       next,
+      returnTo,
       referral,
     };
     try {
@@ -95,7 +111,7 @@ export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
         <h1>{mode === "login" ? "Sign in to your care." : "Create your care account."}</h1>
         <p>
           {mode === "login"
-            ? "Appointments, treatments and future membership benefits—securely in one place."
+            ? "Appointments, care details and your trusted care team—securely in one place."
             : "Use the same email you use when booking to connect your appointments automatically."}
         </p>
       </div>
@@ -104,7 +120,7 @@ export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
         <p className={styles.successMessage} role="status">You were personally invited to My Drip Nurse Care. Create your account to count toward your friend&apos;s referral progress.</p>
       ) : null}
 
-      <a className={styles.googleButton} href={`/api/client-auth/google/start?next=${encodeURIComponent(next)}${referral ? `&referral=${encodeURIComponent(referral)}` : ""}`}>
+      <a className={styles.googleButton} href={`/api/client-auth/google/start?next=${encodeURIComponent(next)}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}${referral ? `&referral=${encodeURIComponent(referral)}` : ""}`}>
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.91h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.4Z" />
           <path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.63-2.37l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.61A10 10 0 0 0 12 22Z" />
@@ -156,7 +172,7 @@ export default function ClientAuthForm({ mode }: ClientAuthFormProps) {
 
       <p className={styles.switchMode}>
         {mode === "login" ? "New to My Drip Nurse?" : "Already have an account?"}{" "}
-        <Link href={`${mode === "login" ? "/register" : "/login"}?${new URLSearchParams({ ...(next !== "/" ? { next } : {}), ...(referral ? { referral } : {}) }).toString()}`}>
+        <Link href={`${mode === "login" ? "/register" : "/login"}?${new URLSearchParams({ ...(next !== "/" ? { next } : {}), ...(returnTo ? { returnTo } : {}), ...(referral ? { referral } : {}) }).toString()}`}>
           {mode === "login" ? "Create account" : "Sign in"}
         </Link>
       </p>

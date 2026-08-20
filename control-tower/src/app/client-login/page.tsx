@@ -22,7 +22,7 @@ export default function ClientLoginPage() {
         <div className={styles.brandCopy}>
           <span>My Drip Nurse Care</span>
           <h2>Wellness that moves with you.</h2>
-          <p>Your appointments, trusted care team and future membership benefits—thoughtfully connected.</p>
+          <p>Your appointments and trusted care team—thoughtfully connected.</p>
         </div>
         <div className={styles.trustStrip}>
           <span><b>✓</b> Secure patient access</span>

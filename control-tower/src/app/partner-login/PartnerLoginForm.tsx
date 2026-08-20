@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 
 import styles from "./partnerLogin.module.css";
 
-export function PartnerLoginForm() {
+export function PartnerLoginForm({ returnTo = "" }: { returnTo?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -17,7 +17,7 @@ export function PartnerLoginForm() {
       const response = await fetch("/api/public/partner-portal/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.get("email"), password: form.get("password") }),
+        body: JSON.stringify({ email: form.get("email"), password: form.get("password"), returnTo }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Unable to sign in.");

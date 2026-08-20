@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 
-import {
-  PartnerExperience,
-  PartnerFooter,
-  PartnerHeader,
-} from "@/components/partner/PartnerBrand";
+import MarketingHeaderEmbed from "@/components/marketing/MarketingHeaderEmbed";
+import { PartnerExperience } from "@/components/partner/PartnerBrand";
+import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 import { enrichDirectoryProfiles } from "@/lib/partnerDirectory";
+import { getPartnerPortalSession } from "@/lib/partnerPortalAuth";
 import { listPublicPartnerProfiles, type PublicPartnerProfile } from "@/lib/partnerProfiles";
 import { PARTNER_SITE_ORIGIN, serializeStructuredData } from "@/lib/partnerSeo";
 import { getPartnerReviewSummaries } from "@/lib/partnerReviews";
@@ -120,6 +119,13 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
     ...partner,
     reviewSummary: reviewSummaries.get(partner.id) || { averageRating: 0, reviewCount: 0 },
   }));
+  const [clientAccount, partnerSession] = await Promise.all([
+    getAuthenticatedClient(),
+    getPartnerPortalSession(),
+  ]);
+  const signedInPartner = partnerSession
+    ? partners.find((partner) => partner.id === partnerSession.profile_id) || null
+    : null;
   const directoryJsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -155,38 +161,30 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
     <PartnerExperience>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(directoryJsonLd) }} />
       <main className={styles.page}>
-        <PartnerHeader
-          navItems={[
-            { href: "/", label: "Find Care" },
-            { href: "https://mydripnurse.com/#services", label: "IV Services" },
-            { href: "https://mydripnurse.com/#about", label: "About" },
-          ]}
-          action={{
-            href: "https://orange-county.mydripnurse.com/become-a-partner",
-            label: "Become a Partner",
-          }}
-          loginItems={[
-            { href: "/login", label: "Partner login", note: "Manage appointments and your profile" },
-            { href: "/client-login", label: "Client login", note: "Your future care portal" },
-          ]}
+        <MarketingHeaderEmbed
+          account={clientAccount ? {
+            fullName: clientAccount.fullName,
+            email: clientAccount.email,
+            photoUrl: clientAccount.profilePhotoUrl,
+            photoUpdatedAt: clientAccount.profilePhotoUpdatedAt,
+          } : null}
+          partnerAccount={partnerSession ? {
+            fullName: signedInPartner?.displayName || partnerSession.display_name,
+            email: partnerSession.email,
+            photoUrl: signedInPartner?.profilePhotoUrl || "",
+            photoUpdatedAt: "",
+            profileHref: signedInPartner?.slug ? `https://partners.mydripnurse.com/${signedInPartner.slug}` : undefined,
+          } : null}
+          location="your area"
+          phone="321-989-6446"
+          websiteUrl="https://mydripnurse.com"
+          bannerText="Licensed Nurses · Same-Day Appointments · Verified Mobile IV Care"
+          preferPreviousMdnOrigin
+          showPartnerPortal
+          nativeNavigation
         />
 
-        <section className={styles.hero}>
-          <div className={styles.shell}>
-            <div className={styles.networkBadge}><i /> Live Partner Network</div>
-            <h1>Trusted mobile IV care, <em>right where you are.</em></h1>
-            <p>Discover verified My Drip Nurse Partners, explore their coverage areas, and book with confidence.</p>
-            <div className={styles.heroSignals}>
-              <span>Verified professionals</span>
-              <span>Local service areas</span>
-              <span>Secure online booking</span>
-            </div>
-          </div>
-        </section>
-
         <PartnerDirectoryClient partners={partners} preview={preview} />
-
-        <PartnerFooter />
       </main>
     </PartnerExperience>
   );

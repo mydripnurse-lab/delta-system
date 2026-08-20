@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!session) {
       return NextResponse.json({ ok: false, error: "Email or password is incorrect." }, { status: 401 });
     }
-    const response = NextResponse.json({ ok: true, redirectTo: "/portal" });
+    const response = NextResponse.json({ ok: true, redirectTo: body?.returnTo === "/" ? "/" : "/portal" });
     response.cookies.set(PARTNER_PORTAL_COOKIE, session.token, partnerPortalCookieOptions());
     return response;
   } catch (error) {

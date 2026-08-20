@@ -400,7 +400,7 @@ export default function PartnerDirectoryClient({ partners, preview = false }: Pr
         <div className={styles.directoryHeading}>
           <div>
             <span className={styles.eyebrow}>Verified local care</span>
-            <h2>Find your My Drip Nurse Partner.</h2>
+            <h1>Find trusted mobile IV care near you.</h1>
             <p>Search by service area, explore the map, and meet the professional behind your care.</p>
           </div>
           <div className={styles.networkStats} aria-label="Partner network statistics">
