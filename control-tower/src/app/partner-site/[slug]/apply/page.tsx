@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { PartnerExperience, PartnerFooter, PartnerHeader } from "@/components/partner/PartnerBrand";
+import { PartnerExperience, PartnerFooter } from "@/components/partner/PartnerBrand";
+import PartnerPublicHeader from "@/components/partner/PartnerPublicHeader";
 import { getPartnerProfileForPublicPage } from "@/lib/partnerProfiles";
 
 import styles from "../become-a-partner/affiliateLanding.module.css";
@@ -28,14 +29,7 @@ export default async function PartnerApplicationPage({ params, searchParams }: P
 
   return (
     <PartnerExperience>
-      <PartnerHeader
-        navItems={[
-          { href: partnerHref(), label: "Home" },
-          { href: partnerHref("/services"), label: "Services" },
-          { href: partnerHref("/become-a-partner"), label: "Partner With Us" },
-        ]}
-        action={{ href: partnerHref("/become-a-partner"), label: "Program details" }}
-      />
+      <PartnerPublicHeader profile={profile} />
       <main>
         {preview ? (
           <div role="status" style={{ background: "#073f4b", color: "white", padding: "10px 20px", textAlign: "center", fontWeight: 700 }}>

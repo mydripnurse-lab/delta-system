@@ -8,8 +8,8 @@ import BookingIdentityPanel from "@/components/booking/BookingIdentityPanel";
 import {
   PartnerExperience,
   PartnerFooter,
-  PartnerHeader,
 } from "@/components/partner/PartnerBrand";
+import PartnerPublicHeader from "@/components/partner/PartnerPublicHeader";
 import { loadPartnerServicePage } from "@/lib/partnerServicePages";
 import { buildPartnerMetadata } from "@/lib/partnerSeo";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
@@ -64,13 +64,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
     <PartnerExperience>
       <main className={styles.page}>
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · Booking pages remain hidden from search engines</div> : null}
-        <PartnerHeader
-          navItems={[
-            { href: partnerHref(), label: "Home" },
-            { href: partnerHref("/services"), label: "Services" },
-          ]}
-          action={{ href: partnerHref(`/services/${serviceSlug}`), label: "Service details" }}
-        />
+        <PartnerPublicHeader profile={profile} />
 
         <section className={styles.bookingPageHero}>
           <div className={styles.shell}>

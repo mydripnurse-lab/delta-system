@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { PartnerExperience, PartnerFooter, PartnerHeader } from "@/components/partner/PartnerBrand";
+import { PartnerExperience, PartnerFooter } from "@/components/partner/PartnerBrand";
+import PartnerPublicHeader from "@/components/partner/PartnerPublicHeader";
 import { PartnerTestimonials } from "@/components/partner/PartnerTestimonials";
 import { getPartnerProfileForPublicPage } from "@/lib/partnerProfiles";
 import { buildPartnerMetadata, partnerPublicUrl, serializeStructuredData } from "@/lib/partnerSeo";
@@ -94,14 +95,7 @@ export default async function AffiliateLandingPage({ params, searchParams }: Pro
 
   return (
     <PartnerExperience>
-      <PartnerHeader
-        navItems={[
-          { href: partnerHref(), label: "Home" },
-          { href: partnerHref("/services"), label: "Services" },
-          { href: partnerHref("/become-a-partner"), label: "Partner With Us" },
-        ]}
-        action={{ href: applicationUrl, label: "Apply now" }}
-      />
+      <PartnerPublicHeader profile={profile} />
 
       <main className={styles.page}>
         {preview ? <div className={styles.previewBanner}>Private Partner landing page preview</div> : null}

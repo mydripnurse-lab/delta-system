@@ -62,6 +62,7 @@ export default function MarketingHeaderEmbed({
   bannerText,
   preferPreviousMdnOrigin = false,
   showPartnerPortal = false,
+  showDirectory = true,
   nativeNavigation = false,
 }: {
   account: MarketingHeaderAccount | null;
@@ -72,6 +73,7 @@ export default function MarketingHeaderEmbed({
   bannerText?: string;
   preferPreviousMdnOrigin?: boolean;
   showPartnerPortal?: boolean;
+  showDirectory?: boolean;
   nativeNavigation?: boolean;
 }) {
   const rootRef = useRef<HTMLElement>(null);
@@ -209,7 +211,7 @@ export default function MarketingHeaderEmbed({
           <div>{menuButton("iv", "IV Therapy")}{openMenu === "iv" ? menuLinks(IV_LINKS, true) : null}</div>
           <div>{menuButton("nad", "NAD+")}{openMenu === "nad" ? menuLinks(NAD_LINKS) : null}</div>
           <div>{menuButton("weight", "Weight Loss")}{openMenu === "weight" ? menuLinks(WEIGHT_LINKS) : null}</div>
-          <a href="https://partners.mydripnurse.com" target="_top">Directory</a>
+          {showDirectory ? <a href="https://partners.mydripnurse.com" target="_top">Directory</a> : null}
           <a href={href("/contact-us")} target="_top">Contact</a>
         </nav>
 
@@ -256,7 +258,7 @@ export default function MarketingHeaderEmbed({
           {mobileAccordion("iv", "IV Therapy", IV_LINKS)}
           {mobileAccordion("nad", "NAD+", NAD_LINKS)}
           {mobileAccordion("weight", "Weight Loss", WEIGHT_LINKS)}
-          <a href="https://partners.mydripnurse.com" target="_top">Directory<span>→</span></a>
+          {showDirectory ? <a href="https://partners.mydripnurse.com" target="_top">Directory<span>→</span></a> : null}
           <a href={href("/contact-us")} target="_top">Contact<span>→</span></a>
           {account ? <a href="https://care.mydripnurse.com" target="_top">Client Portal<span>→</span></a> : <a href={clientLoginHref} target="_top">Client login<span>→</span></a>}
           {showPartnerPortal ? (partnerAccount

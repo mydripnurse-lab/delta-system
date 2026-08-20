@@ -6,8 +6,8 @@ import { notFound } from "next/navigation";
 import {
   PartnerExperience,
   PartnerFooter,
-  PartnerHeader,
 } from "@/components/partner/PartnerBrand";
+import PartnerPublicHeader from "@/components/partner/PartnerPublicHeader";
 import { PartnerFaq, type PartnerFaqItem } from "@/components/partner/PartnerFaq";
 import { PartnerTestimonials } from "@/components/partner/PartnerTestimonials";
 import { PartnerDirectoryAttribution } from "@/components/partner/PartnerDirectoryAttribution";
@@ -131,14 +131,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · This page is not published yet</div> : null}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
-        <PartnerHeader
-          navItems={[
-            { href: partnerHref(), label: "Home" },
-            { href: partnerHref("/services"), label: "Services" },
-            { href: partnerHref("/become-a-partner"), label: "Join our network" },
-          ]}
-          action={{ href: outOfStock ? "#availability-status" : partnerHref(`/services/${serviceSlug}/book`), label: outOfStock ? "Out of Stock" : "Book this service" }}
-        />
+        <PartnerPublicHeader profile={profile} />
 
         <section className={styles.serviceDetailHero}>
           <div className={styles.shell}>

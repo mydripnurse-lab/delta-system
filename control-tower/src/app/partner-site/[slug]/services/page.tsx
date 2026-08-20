@@ -6,8 +6,8 @@ import { notFound } from "next/navigation";
 import {
   PartnerExperience,
   PartnerFooter,
-  PartnerHeader,
 } from "@/components/partner/PartnerBrand";
+import PartnerPublicHeader from "@/components/partner/PartnerPublicHeader";
 import { PartnerFaq, type PartnerFaqItem } from "@/components/partner/PartnerFaq";
 import { PartnerTestimonials } from "@/components/partner/PartnerTestimonials";
 import { PartnerDirectoryAttribution } from "@/components/partner/PartnerDirectoryAttribution";
@@ -125,14 +125,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeStructuredData(faqStructuredData) }}
         />
-        <PartnerHeader
-          navItems={[
-            { href: partnerHref(), label: "Home" },
-            { href: partnerHref("/services"), label: "Services" },
-            { href: partnerHref("/become-a-partner"), label: "Join our network" },
-          ]}
-          action={{ href: "#services", label: "Explore services" }}
-        />
+        <PartnerPublicHeader profile={profile} />
 
         <section className={styles.servicesHero}>
           <div className={styles.shell}>
