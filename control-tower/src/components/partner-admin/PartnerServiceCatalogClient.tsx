@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import styles from "@/app/partner-admin/partnerAdmin.module.css";
 import { PartnerAdminShell } from "@/components/partner-admin/PartnerAdminShell";
+import { buildBookingEmbedCode } from "@/lib/bookingEmbedCode";
 import type { AdminService, PartnerServiceSuggestion } from "@/lib/myDripNurseServiceCatalog";
 
 type CatalogResponse = {
@@ -181,37 +182,7 @@ export function PartnerServiceCatalogClient() {
     ? `https://care.mydripnurse.com/booking/${draft.calendar.publicKey}`
     : "";
   const embedCode = bookingUrl && draft
-    ? `<div id="mdn-calendar-${draft.slug}" style="width:min(100%,1200px);margin:0 auto"></div>
-<script>
-(() => {
-  const host = document.getElementById("mdn-calendar-${draft.slug}");
-  if (!host) return;
-  const bookingUrl = new URL(${JSON.stringify(bookingUrl)});
-  bookingUrl.searchParams.set("embed", "1");
-  new URLSearchParams(window.location.search).forEach((value, key) => bookingUrl.searchParams.set(key, value));
-  bookingUrl.searchParams.set("returnTo", window.location.href);
-  const iframe = document.createElement("iframe");
-  iframe.src = bookingUrl.toString();
-  iframe.title = ${JSON.stringify(`${draft.name} booking calendar`)};
-  iframe.loading = "lazy";
-  iframe.allow = "payment";
-  iframe.scrolling = "no";
-  iframe.referrerPolicy = "strict-origin-when-cross-origin";
-  iframe.style.cssText = "display:block;width:100%;height:520px;border:0;border-radius:20px;background:#f7faf9;overflow:hidden";
-  host.appendChild(iframe);
-  window.addEventListener("message", (event) => {
-    if (event.source !== iframe.contentWindow) return;
-    if (event.data?.type === "mdn-booking-auth-return" && String(event.data.url || "") === window.location.href) {
-      window.location.assign(window.location.href);
-      return;
-    }
-    if (event.data?.type === "mdn-booking-resize") {
-      const height = Math.max(420, Math.min(12000, Number(event.data.height) || 0));
-      iframe.style.height = Math.ceil(height) + "px";
-    }
-  });
-})();
-</script>`
+    ? buildBookingEmbedCode({ bookingUrl, serviceName: draft.name, slug: draft.slug })
     : "Save the service first to generate its booking embed code.";
 
   async function copyEmbedCode() {

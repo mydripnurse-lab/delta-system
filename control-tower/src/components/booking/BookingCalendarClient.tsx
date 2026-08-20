@@ -715,8 +715,11 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       setContactSubmitted(true);
       setPatientDetailsExpanded(false);
     }
-    setNotice(savedScreeningIsClear ? "Safety answers confirmed for today. Continue with your appointment details." : "");
+    setNotice("");
     void persistScreening(screeningSelected);
+    if (savedScreeningIsClear) {
+      window.setTimeout(() => document.getElementById(contactIsComplete && additionalPatients.length === 0 ? "booking-appointment-location" : "booking-patient-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    }
   }
 
   function addAdditionalPatient() {
@@ -855,8 +858,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       if (!response.ok) throw new Error(payload.error || "Availability could not be loaded.");
       await captureLead({ ...address, ...verifiedAddress }, payload as BookingAvailability);
       setAvailability(payload);
-      if (!payload.coverageAvailable) setNotice(partnerView ? "This service is not currently available in this area. Submit your request below so My Drip Nurse can track local demand." : "No Partner currently covers this service area. Submit your request below so My Drip Nurse can track local demand.");
-      else if (!payload.slots?.length) setNotice(partnerView ? "This area is covered, but no times are open on this date. Try another day." : "Partners cover this area, but no times are open on this date. Try another day.");
+      setNotice("");
+      window.setTimeout(() => document.getElementById(payload.coverageAvailable ? "booking-available-times" : "booking-coverage-request")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Availability could not be loaded.");
     } finally {
@@ -877,7 +880,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     setContactSubmitted(true);
     setPatientDetailsExpanded(false);
     setError("");
-    setNotice("Your details are saved for this booking. Enter the appointment location to see live times.");
+    setNotice("");
+    window.setTimeout(() => document.getElementById("booking-appointment-location")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   }, [additionalPatientsAreComplete, contactIsComplete]);
 
   const submitMedicalScreening = useCallback(() => {
@@ -895,10 +899,9 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       if (contactIsComplete && additionalPatients.length === 0) {
         setContactSubmitted(true);
         setPatientDetailsExpanded(false);
-        setNotice("Screening complete. Your Care profile is connected, so you can continue with the appointment location.");
-      } else {
-        setNotice("Screening complete. Add only the patient details still missing from your Care profile.");
       }
+      setNotice("");
+      window.setTimeout(() => document.getElementById(contactIsComplete && additionalPatients.length === 0 ? "booking-appointment-location" : "booking-patient-details")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
     } else {
       setNotice("");
     }
@@ -987,7 +990,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       });
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "The coverage request could not be saved.");
-      setNotice(partnerView ? "Thank you. Your request is now saved, and we will notify you when availability opens." : "Thank you. Your request is now in the My Drip Nurse coverage expansion list, and we will notify you when a qualified Partner becomes available.");
+      setNotice(partnerView ? "Thank you. Your request is now saved, and we will notify you when availability opens." : "Thank you. Your request is in our coverage expansion list. We will notify you when a qualified care professional becomes available.");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "The coverage request could not be saved.");
     } finally {
@@ -1141,27 +1144,27 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
             <div>
               <span className={styles.eyebrow}>YOUR SELECTED SERVICE</span>
               <h1>{serviceName}</h1>
-              <strong>Choose a time that works for you.</strong>
+              <strong>Select your preferred appointment time.</strong>
             </div>
           </div> : <>
             <span className={styles.eyebrow}>MY DRIP NURSE · SECURE BOOKING</span>
             <h1>Choose a time that works for you.</h1>
           </>}
-          <p>{partnerView ? "Live availability is shown for this service. Enter your location so we can confirm the appointment details." : "We show only qualified Partners who cover your appointment area and are available for this service."}</p>
+          <p>{partnerView ? "Enter your location to confirm live availability for this service." : "Available times reflect qualified care professionals serving your area."}</p>
         </header>
 
         <div className={styles.layout}>
           <section className={`${styles.card} ${styles.screeningCard}`} id="booking-medical-screening">
             <span className={styles.step}>1 · Medical screening</span>
-            <h2 className={styles.screeningTitle}>Please select ALL of the following that apply to you.</h2>
-            <p className={styles.screeningIntro}>This short screening helps us protect your safety. It is not a diagnosis or a substitute for medical advice.</p>
+            <h2 className={styles.screeningTitle}>{hasSavedScreening && !showFullScreening ? "Review your safety screening." : "Select all that apply to you."}</h2>
+            {!hasSavedScreening || showFullScreening ? <p className={styles.screeningIntro}>This brief screening helps us protect your safety. It is not a diagnosis or medical advice.</p> : null}
             {hasSavedScreening && !showFullScreening && !screeningSubmitted ? <div className={styles.savedScreeningReview}>
               <div>
-                <strong>{screeningSelected.length === 1 && screeningSelected[0] === "none" ? "Your saved safety answers are ready to review." : `${screeningSelected.length} saved safety answer${screeningSelected.length === 1 ? "" : "s"} loaded.`}</strong>
-                <p>Please confirm they are still accurate today. A previous confirmation is never carried into a new appointment automatically.</p>
+                <strong>{screeningSelected.length === 1 && screeningSelected[0] === "none" ? "Confirm your saved safety answers." : `${screeningSelected.length} saved safety answer${screeningSelected.length === 1 ? "" : "s"} ready.`}</strong>
+                <p>Review them for today&apos;s visit. Each appointment requires a new confirmation.</p>
               </div>
-              <button className={styles.primaryButton} type="button" onClick={confirmSavedScreening}>I reviewed these answers today</button>
-              <button className={styles.secondaryButton} type="button" onClick={() => setShowFullScreening(true)}>Update my answers</button>
+              <button className={styles.primaryButton} type="button" onClick={confirmSavedScreening}>Confirm answers</button>
+              <button className={styles.secondaryButton} type="button" onClick={() => setShowFullScreening(true)}>Edit answers</button>
             </div> : <>
             <div className={styles.screeningOptions} role="group" aria-label="Medical screening questions">
               {MEDICAL_SCREENING_OPTIONS.map((option) => {
@@ -1199,7 +1202,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           ) : null}
 
           {screeningIsClear && (!contactSubmitted || patientDetailsExpanded) ? (
-          <section className={`${styles.card} ${styles.patientCard}`}>
+          <section className={`${styles.card} ${styles.patientCard}`} id="booking-patient-details">
             <span className={styles.step}>2 · Patient details</span>
             <h2 className={styles.sectionTitle}>Review the primary patient.</h2>
             <p className={styles.sectionIntro}>Confirm the information for the main patient. Other patients can be added separately without reopening these details.</p>
@@ -1225,7 +1228,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           ) : null}
 
           {screeningIsClear ? (
-          <section className={`${styles.card} ${styles.additionalPatientsCard}`} id="booking-additional-patients">
+          <section className={`${styles.card} ${styles.additionalPatientsCard} ${additionalPatients.length ? "" : styles.additionalPatientsCardEmpty}`} id="booking-additional-patients">
             <div className={styles.additionalPatientsIntro}>
               <div>
                 <span className={styles.optionalLabel}>Optional</span>
@@ -1262,7 +1265,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           ) : null}
 
           {screeningIsClear && contactSubmitted ? (
-          <section className={styles.card}>
+          <section className={styles.card} id="booking-appointment-location">
             <span className={styles.step}>3 · Appointment location</span>
             {savedAddresses.length ? <div className={styles.savedAddressPicker}>
               <label>Choose a saved address
@@ -1293,16 +1296,13 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           </section>
           ) : null}
 
-          {screeningIsClear && contactSubmitted ? (
-          <section className={styles.card}>
+          {screeningIsClear && contactSubmitted && availability?.coverageAvailable ? (
+          <section className={styles.card} id="booking-available-times">
             <span className={styles.step}>4 · Available times</span>
-            {!availability ? <div className={styles.placeholder}>Enter the appointment location to see live availability.</div> : null}
-            {availability ? (
-              <div className={styles.serviceSummary}>
-                <div><strong>{availability.calendar.serviceName}</strong><span>{availability.calendar.durationMinutes} minutes · book at least {Math.round(availability.calendar.minimumNoticeMinutes / 60)} hours ahead</span></div>
-                <strong>{money(availability.calendar.price, availability.calendar.currency)}</strong>
-              </div>
-            ) : null}
+            <div className={styles.serviceSummary}>
+              <div><strong>{availability.calendar.serviceName}</strong><span>{availability.calendar.durationMinutes} minutes · book at least {Math.round(availability.calendar.minimumNoticeMinutes / 60)} hours ahead</span></div>
+              <strong>{money(availability.calendar.price, availability.calendar.currency)}</strong>
+            </div>
             <div className={styles.slots}>
               {availability?.slots.map((slot) => (
                 <button
@@ -1311,6 +1311,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                   type="button"
                   onClick={() => {
                     setSelectedSlot(slot);
+                    window.setTimeout(() => document.getElementById("booking-confirmation")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
                   }}
                 >
                   <strong>{formatTime(slot.startsAt, slot.timezone)}</strong>
@@ -1318,11 +1319,12 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                 </button>
               ))}
             </div>
+            {!availability.slots.length ? <div className={styles.placeholder}>No times are open on this date. Choose another appointment date and check again.</div> : null}
           </section>
           ) : null}
 
           {screeningIsClear && selectedSlot ? (
-            <section className={`${styles.card} ${styles.confirmCard}`}>
+            <section className={`${styles.card} ${styles.confirmCard}`} id="booking-confirmation">
               <span className={styles.step}>5 · Confirm your details</span>
               <div className={styles.confirmSummary}><strong>{fullName(contact)}</strong><span>{contact.email} · {phoneForDisplay(contact)}</span><small>{additionalPatients.length ? `${additionalPatients.length} additional patient${additionalPatients.length === 1 ? "" : "s"} included` : "Primary patient only"}</small></div>
               <div className={styles.depositNote}>
@@ -1337,16 +1339,16 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           ) : null}
 
           {availability && !availability.coverageAvailable ? (
-            <section className={`${styles.card} ${styles.confirmCard}`}>
+            <section className={`${styles.card} ${styles.confirmCard}`} id="booking-coverage-request">
               <span className={styles.step}>Coverage request</span>
-              <p className={styles.sectionIntro}>{partnerView ? "We have your contact details and will notify you when availability opens in this area." : "We have your contact details and will notify you when a qualified Partner becomes available in this area."}</p>
+              <p className={styles.sectionIntro}>{partnerView ? "We have your contact details and will notify you when availability opens in this area." : "No care professional currently serves this appointment area. Leave your request and we will notify you when coverage becomes available."}</p>
               <div className={styles.confirmSummary}><strong>{fullName(contact)}</strong><span>{contact.email} · {phoneForDisplay(contact)}</span></div>
               <button className={styles.primaryButton} type="button" disabled={submitting} onClick={() => void submitDemand()}>{submitting ? "Saving your request…" : "Notify me when coverage opens"}</button>
             </section>
           ) : null}
         </div>
-        {error ? <div className={styles.error}>{error}</div> : null}
-        {notice ? <div className={styles.notice}>{notice}</div> : null}
+        {error ? <div className={styles.error} role="alert">{error}</div> : null}
+        {notice ? <div className={styles.notice} role="status" aria-live="polite">{notice}</div> : null}
       </section>
     </main>
   );

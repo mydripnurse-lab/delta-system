@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PartnerAdminShell } from "@/components/partner-admin/PartnerAdminShell";
 import styles from "@/app/partner-admin/partnerAdmin.module.css";
+import { buildBookingEmbedCode } from "@/lib/bookingEmbedCode";
 
 type AdminBookingCalendar = {
   serviceId: string;
@@ -104,37 +105,7 @@ export function PartnerCalendarClient() {
     ? `https://care.mydripnurse.com/booking/${selected.publicKey}`
     : "";
   const embedCode = bookingUrl && selected
-    ? `<div id="mdn-calendar-${selected.slug}" style="width:min(100%,1200px);margin:0 auto"></div>
-<script>
-(() => {
-  const host = document.getElementById("mdn-calendar-${selected.slug}");
-  if (!host) return;
-  const bookingUrl = new URL(${JSON.stringify(bookingUrl)});
-  bookingUrl.searchParams.set("embed", "1");
-  new URLSearchParams(window.location.search).forEach((value, key) => bookingUrl.searchParams.set(key, value));
-  bookingUrl.searchParams.set("returnTo", window.location.href);
-  const iframe = document.createElement("iframe");
-  iframe.src = bookingUrl.toString();
-  iframe.title = ${JSON.stringify(`${selected.name} booking calendar`)};
-  iframe.loading = "lazy";
-  iframe.allow = "payment";
-  iframe.scrolling = "no";
-  iframe.referrerPolicy = "strict-origin-when-cross-origin";
-  iframe.style.cssText = "display:block;width:100%;height:520px;border:0;border-radius:20px;background:#ebf2f9;overflow:hidden";
-  host.appendChild(iframe);
-  window.addEventListener("message", (event) => {
-    if (event.source !== iframe.contentWindow) return;
-    if (event.data?.type === "mdn-booking-auth-return" && String(event.data.url || "") === window.location.href) {
-      window.location.assign(window.location.href);
-      return;
-    }
-    if (event.data?.type === "mdn-booking-resize") {
-      const height = Math.max(420, Math.min(12000, Number(event.data.height) || 0));
-      iframe.style.height = Math.ceil(height) + "px";
-    }
-  });
-})();
-</script>`
+    ? buildBookingEmbedCode({ bookingUrl, serviceName: selected.name, slug: selected.slug })
     : "Save this service first to generate its booking embed code.";
 
   async function copyEmbedCode() {

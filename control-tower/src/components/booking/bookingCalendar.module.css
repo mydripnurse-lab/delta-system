@@ -8,6 +8,8 @@
 
 .shell { margin: 0 auto; max-width: 1180px; }
 .embeddedPage { min-height: 0; padding: clamp(8px, 2vw, 20px); background: #ebf2f9; }
+.embeddedPage .shell { max-width: 1040px; }
+.embeddedPage .layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .embeddedPage .intro { padding-top: 10px; }
 .embeddedPage .slots { max-height: none; overflow: visible; padding-right: 0; }
 .embeddedPage .card { border-color: #c7dce7; background: linear-gradient(145deg,#fff 0%,#f7fafd 55%,#ebf2f9 100%); box-shadow: 0 18px 50px rgba(25,65,83,.075); }
@@ -34,10 +36,11 @@
 .selectedServiceHero strong { display: block; color: #476b6e; font-size: .94rem; line-height: 1.45; }
 .layout { display: grid; gap: 16px; }
 .card { background: rgba(255, 255, 255, .92); border: 1px solid #cfe2e1; border-radius: 24px; box-shadow: 0 18px 50px rgba(29, 85, 88, .08); padding: 22px; }
+.card[id] { scroll-margin-top: 18px; }
 .grid { display: grid; gap: 14px; grid-template-columns: 1fr; margin: 20px 0; }
 .grid label { color: #375c60; display: grid; font-size: .8rem; font-weight: 800; gap: 7px; }
 .grid small { color: #8aa0a1; font-weight: 500; }
-.grid input,.grid select { background: #fbfcfb; border: 1px solid #ccdedd; border-radius: 13px; color: #173d42; font: inherit; min-width: 0; padding: 14px 15px; width: 100%; }
+.grid input,.grid select { background: #fbfcfb; border: 1px solid #ccdedd; border-radius: 13px; color: #173d42; font: inherit; min-height: 50px; min-width: 0; padding: 14px 15px; width: 100%; }
 .grid input:focus,.grid select:focus { border-color: #078597; box-shadow: 0 0 0 3px rgba(7, 133, 151, .13); outline: none; }
 .addressSearchField { position: relative; z-index: 8; }
 .addressInputWrap { position: relative; display: block; }
@@ -61,9 +64,11 @@
 .phoneControl input.grid input, .phoneControl input { background: transparent; border: 0; border-radius: 0; box-shadow: none; min-width: 0; padding: 14px 15px; }
 .phoneControl input:focus { border: 0; box-shadow: none; outline: none; }
 .phoneField small { color: #8aa0a1; font-size: .72rem; font-weight: 500; line-height: 1.35; }
-.primaryButton { background: #066d79; border: 0; border-radius: 999px; color: #fff; cursor: pointer; font-size: .92rem; font-weight: 900; padding: 15px 22px; width: 100%; }
+.primaryButton { background: linear-gradient(120deg, #066d79, #0a929b); border: 0; border-radius: 999px; color: #fff; cursor: pointer; font-size: .92rem; font-weight: 900; min-height: 50px; padding: 14px 22px; transition: filter .18s ease, transform .18s ease; width: 100%; }
 .primaryButton:hover { background: #045762; }
-.primaryButton:disabled { cursor: wait; opacity: .6; }
+.primaryButton:active { transform: translateY(1px); }
+.primaryButton:disabled { cursor: wait; opacity: .6; transform: none; }
+.primaryButton:focus-visible,.secondaryButton:focus-visible,.addPatientButton:focus-visible,.removeButton:focus-visible,.slot:focus-visible,.selectedSlot:focus-visible { outline: 3px solid rgba(7,133,151,.22); outline-offset: 2px; }
 .placeholder { align-items: center; border: 1px dashed #c9dcdb; border-radius: 18px; color: #789092; display: flex; justify-content: center; margin-top: 18px; min-height: 150px; padding: 24px; text-align: center; }
 .serviceSummary { align-items: center; border-bottom: 1px solid #e1ebea; display: flex; justify-content: space-between; margin-top: 18px; padding-bottom: 16px; }
 .serviceSummary div { display: grid; gap: 4px; }
@@ -90,6 +95,9 @@
 .sectionTitle { color: #123b43; font-family: Georgia, serif; font-size: clamp(1.35rem, 2vw, 1.85rem); font-weight: 500; letter-spacing: -.025em; line-height: 1.12; margin: 12px 0 8px; text-wrap: balance; }
 .sectionIntro { color: #5f7678; line-height: 1.55; margin: 0 0 18px; max-width: 760px; }
 .additionalPatientsCard { grid-column: 1 / -1; scroll-margin-top: 18px; }
+.additionalPatientsCardEmpty { padding-block: 19px; }
+.additionalPatientsCardEmpty .sectionTitle { font-size: 1.4rem; margin-block: 7px 5px; }
+.additionalPatientsCardEmpty .sectionIntro { font-size: .84rem; }
 .additionalPatientsIntro { align-items: center; display: flex; gap: 22px; justify-content: space-between; }
 .additionalPatientsIntro > div { min-width: 0; }
 .additionalPatientsIntro .sectionIntro { margin-bottom: 0; }
@@ -109,7 +117,7 @@
 .depositNote { align-items: center; background: #edf8f6; border-radius: 16px; display: flex; justify-content: space-between; margin-bottom: 16px; padding: 14px 16px; }
 .depositNote span { color: #4f6d70; font-size: .84rem; text-align: right; }
 .security { color: #778f91; display: block; line-height: 1.5; margin-top: 12px; text-align: center; }
-.error, .notice { border-radius: 16px; font-weight: 700; margin-top: 16px; padding: 15px 18px; }
+.error, .notice { border-radius: 16px; font-size: .88rem; font-weight: 700; line-height: 1.45; margin-top: 16px; padding: 15px 18px; }
 .error { background: #fff0ef; color: #9a342e; }
 .notice { background: #fff7df; color: #805d10; }
 
@@ -121,20 +129,40 @@
 }
 
 @media (max-width: 700px) {
-  .embeddedPage { padding: 7px; }
-  .embeddedPage .intro { padding: 14px 5px 20px; }
-  .embeddedPage .card { border-radius: 18px; padding: 17px 15px; box-shadow: 0 10px 28px rgba(29, 85, 88, .06); }
-  .selectedServiceHero { align-items: center; gap: 13px; margin-bottom: 13px; }
-  .selectedServiceImage { width: 76px; height: 76px; flex-basis: 76px; border-radius: 18px; }
-  .selectedServiceImage img { padding: 6px; }
-  .selectedServiceHero h1 { margin: 5px 0; font-size: clamp(1.8rem, 10vw, 2.55rem); line-height: 1; }
-  .selectedServiceHero strong { font-size: .8rem; }
+  .embeddedPage { padding: 8px 10px 14px; }
+  .embeddedPage .intro { padding: 18px 7px 22px; }
+  .embeddedPage .card { border-radius: 20px; padding: 19px 16px; box-shadow: 0 10px 28px rgba(29, 85, 88, .055); }
+  .layout { gap: 14px; }
+  .selectedServiceHero { align-items: center; gap: 12px; margin-bottom: 11px; }
+  .selectedServiceHero > div:last-child { flex: 1; }
+  .selectedServiceImage { width: 60px; height: 60px; flex-basis: 60px; border-radius: 16px; box-shadow: 0 9px 24px rgba(29,85,88,.075); }
+  .selectedServiceImage img { padding: 5px; }
+  .eyebrow,.step { font-size: .62rem; letter-spacing: .145em; }
+  .selectedServiceHero h1 { max-width: 270px; margin: 4px 0; font-size: clamp(1.65rem, 7.2vw, 1.95rem); letter-spacing: -.035em; line-height: 1.01; text-wrap: pretty; }
+  .selectedServiceHero strong { font-size: .75rem; line-height: 1.35; }
+  .intro > p { max-width: 34rem; font-size: .84rem; line-height: 1.55; }
+  .grid { gap: 12px; margin: 16px 0; }
+  .grid label { font-size: .75rem; gap: 6px; }
+  .grid input,.grid select,.phoneControl { border-radius: 14px; }
+  .grid input,.grid select,.phoneControl input { font-size: 16px; }
+  .sectionTitle { font-size: 1.24rem; margin: 9px 0 6px; }
+  .sectionIntro { font-size: .8rem; line-height: 1.5; margin-bottom: 15px; }
+  .serviceSummary { align-items: flex-start; flex-direction: column; gap: 10px; margin-top: 14px; padding-bottom: 14px; }
+  .serviceSummary > strong { font-size: 1.45rem; }
+  .slots { gap: 9px; margin-top: 14px; }
+  .slot,.selectedSlot { min-height: 62px; padding: 11px 12px; }
+  .depositNote { align-items: flex-start; flex-direction: column; gap: 5px; padding: 13px 14px; }
+  .depositNote span { text-align: left; }
+  .confirmSummary { padding: 14px; }
+  .error,.notice { border-radius: 14px; font-size: .8rem; margin-top: 12px; padding: 13px 14px; }
 }
 
 @media (min-width: 1020px) {
   .layout { grid-template-columns: .9fr 1.1fr; }
   .card { padding: 30px; }
   .confirmCard { grid-column: 1 / -1; grid-template-columns: 1fr; }
+  .embeddedPage .layout { grid-template-columns: minmax(0, 1fr); }
+  .embeddedPage .card { padding: 30px 32px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -165,20 +193,36 @@
 
 @media (max-width: 700px) {
   .screeningCard { grid-column: auto; }
+  .screeningTitle { margin: 10px 0 7px; font-size: 1.12rem; line-height: 1.18; }
+  .screeningIntro { margin-bottom: 14px; font-size: .78rem; line-height: 1.5; }
   .patientCard { grid-column: auto; }
   .additionalPatientsCard { grid-column: auto; }
   .connectedProfileCard { grid-column: auto; align-items: stretch; flex-direction: column; }
   .screeningOption { padding: 11px 12px; font-size: .95rem; }
   .screeningActions { margin-top: 16px; padding-top: 2px; }
   .patientCard > .primaryButton { margin-top: 16px; }
-  .savedScreeningReview { grid-template-columns: 1fr; }
+  .savedScreeningReview { grid-template-columns: 1fr; gap: 12px; padding: 14px; border-radius: 16px; }
+  .savedScreeningReview > div { gap: 4px; }
+  .savedScreeningReview strong { font-size: .9rem; line-height: 1.25; }
+  .savedScreeningReview p { font-size: .73rem; line-height: 1.45; }
   .savedScreeningReview .primaryButton,.savedScreeningReview .secondaryButton { width: 100%; }
   .saveAddressChoice { align-items: stretch; flex-direction: column; }
   .saveAddressChoice select { width: 100%; }
   .countrySelect { min-width: 82px; width: 82px; }
   .additionalPatientsIntro { align-items: stretch; flex-direction: column; gap: 14px; }
+  .additionalPatientsCardEmpty { padding-block: 17px !important; }
+  .additionalPatientsCardEmpty .additionalPatientsIntro { gap: 12px; }
+  .additionalPatientsCardEmpty .sectionTitle { font-size: 1.12rem; }
+  .additionalPatientsCardEmpty .sectionIntro { font-size: .75rem; margin-bottom: 0; }
   .addPatientButton { width: 100%; }
   .secondaryButton { width: 100%; }
+}
+
+@media (max-width: 380px) {
+  .embeddedPage { padding-inline: 7px; }
+  .embeddedPage .card { padding-inline: 14px; }
+  .slots { grid-template-columns: 1fr; }
+  .selectedServiceHero h1 { font-size: 1.55rem; }
 }
 
 .paymentPage {
@@ -550,14 +594,25 @@
 
 @media (max-width: 560px) {
   .paymentPage { padding: 8px; }
+  .paymentPage.embeddedPage { padding: 7px; }
   .paymentShell { border-radius: 20px; }
+  .paymentPage.embeddedPage .paymentShell { border-radius: 18px; box-shadow: 0 12px 34px rgba(25,76,80,.08); }
   .paymentHeader,
   .confirmationHero { padding: 26px 20px; }
+  .confirmationHero h1 { margin-block: 9px 10px; font-size: 2rem; line-height: 1.04; }
+  .confirmationHero p { font-size: .84rem; line-height: 1.5; }
+  .confirmationMark { width: 48px; height: 48px; margin-bottom: 17px; border-radius: 15px; }
   .checkoutPaymentShell .paymentHeader { padding: 24px 20px 22px; }
   .checkoutPaymentShell .paymentHeader p { font-size: .9rem; line-height: 1.5; }
   .checkoutFrame { min-height: 460px; padding: 0; }
   .paymentStatusCard { min-height: 280px; padding: 38px 20px; }
   .paymentStatusCard .primaryButton { width: 100%; min-width: 0; }
+  .confirmationPrimary,.confirmationPayment { padding: 22px 18px; }
+  .confirmationServiceHeader { grid-template-columns: 52px minmax(0,1fr); gap: 12px; padding-bottom: 17px; }
+  .confirmationServiceImage { width: 52px; height: 52px; }
+  .confirmationDetails { gap: 15px; padding-block: 17px; }
+  .confirmationMap,.confirmationMapImage { min-height: 190px; }
+  .confirmationPayment strong { font-size: 1.75rem; }
   .confirmationProfessional { grid-template-columns: 58px minmax(0, 1fr); gap: 13px; padding: 15px; border-radius: 17px; }
   .confirmationProfessionalPhoto { width: 58px; height: 58px; }
   .confirmationActions { flex-direction: column; }
