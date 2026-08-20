@@ -929,13 +929,19 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   });
   const lostWithCurrentCoverage = mapLeads.filter((lead) => lead.currentCoverageAvailable).length;
   const lostWithoutCurrentCoverage = mapLeads.length - lostWithCurrentCoverage;
+  const lostOpportunityValue = includedLostLeads.reduce((totalValue, lead) => (
+    totalValue + (lead.servicePrice * Math.max(1, lead.additionalPatientsCount + 1))
+  ), 0);
+  const lostOpportunityRate = filteredLeads.length
+    ? Math.round((includedLostLeads.length / filteredLeads.length) * 1000) / 10
+    : 0;
   const lostReasons = mapLeads.reduce<Record<AppointmentMapLead["lossReason"], number>>((totals, lead) => {
     totals[lead.lossReason] += 1;
     return totals;
   }, { no_coverage: 0, no_availability: 0, screening: 0, booking_not_completed: 0, coverage_or_availability: 0, unclassified: 0 });
   return {
     period, status, from, to, search, granularity,
-    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, bookingAttempts, lostOpportunities: includedLostLeads.length, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round((convertedLeads.length / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), markets: markets.length, coveredCounties: coverageAreas.length },
+    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, bookingAttempts, lostOpportunities: includedLostLeads.length, lostOpportunityValue, lostOpportunityRate, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round((convertedLeads.length / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), markets: markets.length, coveredCounties: coverageAreas.length },
     points: resolved.filter((point): point is AppointmentGeoPoint => Boolean(point)),
     people,
     leads: mapLeads,
