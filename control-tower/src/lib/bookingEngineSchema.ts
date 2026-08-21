@@ -434,6 +434,63 @@ export async function ensureBookingEngineSchema() {
         on app.booking_lead_events (coalesce(next_attempt_at, send_after), created_at)
         where status = 'pending';
 
+      create table if not exists app.booking_attribution_sessions (
+        session_id text primary key,
+        visitor_id text not null,
+        first_url text not null default '',
+        first_referrer text not null default '',
+        first_source text not null default 'direct',
+        first_channel text not null default 'direct',
+        first_campaign text not null default '',
+        last_url text not null default '',
+        last_referrer text not null default '',
+        last_source text not null default 'direct',
+        last_channel text not null default 'direct',
+        last_campaign text not null default '',
+        touch_count integer not null default 0,
+        first_touched_at timestamptz not null default now(),
+        last_touched_at timestamptz not null default now(),
+        metadata jsonb not null default '{}'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        check (touch_count >= 0)
+      );
+      create index if not exists booking_attribution_sessions_visitor_idx
+        on app.booking_attribution_sessions (visitor_id, last_touched_at desc);
+
+      create table if not exists app.booking_attribution_touchpoints (
+        id uuid primary key default gen_random_uuid(),
+        event_id text not null unique,
+        session_id text not null references app.booking_attribution_sessions(session_id) on delete cascade,
+        visitor_id text not null,
+        event_type text not null,
+        page_url text not null default '',
+        referrer text not null default '',
+        source text not null default 'direct',
+        channel text not null default 'direct',
+        campaign text not null default '',
+        service_slug text not null default '',
+        partner_profile_id text not null default '',
+        metadata jsonb not null default '{}'::jsonb,
+        occurred_at timestamptz not null default now(),
+        created_at timestamptz not null default now()
+      );
+      create index if not exists booking_attribution_touchpoints_session_idx
+        on app.booking_attribution_touchpoints (session_id, occurred_at, created_at);
+      create index if not exists booking_attribution_touchpoints_visitor_idx
+        on app.booking_attribution_touchpoints (visitor_id, occurred_at desc);
+
+      alter table app.booking_lead_events
+        add column if not exists attribution_session_id text not null default '',
+        add column if not exists attribution_visitor_id text not null default '';
+      alter table app.appointments
+        add column if not exists attribution_session_id text not null default '',
+        add column if not exists attribution_visitor_id text not null default '';
+      create index if not exists booking_lead_events_attribution_idx
+        on app.booking_lead_events (attribution_session_id) where attribution_session_id <> '';
+      create index if not exists appointments_attribution_idx
+        on app.appointments (attribution_session_id) where attribution_session_id <> '';
+
       create table if not exists app.appointment_webhook_events (
         id uuid primary key default gen_random_uuid(),
         organization_id uuid not null references app.organizations(id) on delete cascade,

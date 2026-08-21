@@ -56,6 +56,12 @@ export type AppointmentMapHistoryItem = {
   screeningEligible: boolean | null;
   sourceUrl: string;
   referrer: string;
+  firstTouchUrl: string;
+  lastTouchUrl: string;
+  attributionSource: string;
+  attributionChannel: string;
+  attributionCampaign: string;
+  attributionTouchCount: number;
   createdAt: string;
 };
 
@@ -266,6 +272,9 @@ function leadDetails(row: LeadEventRow) {
   const appointmentRequest = (row.payload?.appointmentRequest || {}) as Record<string, unknown>;
   const requestedPartner = (appointmentRequest.requestedPartner || {}) as Record<string, unknown>;
   const source = (row.payload?.source || {}) as Record<string, unknown>;
+  const journey = (source.journey || {}) as Record<string, unknown>;
+  const firstTouch = (journey.firstTouch || {}) as Record<string, unknown>;
+  const lastTouch = (journey.lastTouch || {}) as Record<string, unknown>;
   const internalAnalytics = (row.payload?._internalAnalytics || {}) as Record<string, unknown>;
   const additionalPatientsCount = numeric(lead.additionalPatientsCount ?? row.payload?.additionalPatientsCount);
   const eligible = screening.eligible;
@@ -293,7 +302,10 @@ function leadDetails(row: LeadEventRow) {
     availableSlotCount: numeric(internalAnalytics.availableSlotCount),
     additionalPatientsCount,
     screeningEligible: typeof eligible === "boolean" ? eligible : null,
-    sourceUrl: text(source.sourceUrl) || text(source.pageUrl), referrer: text(source.referrer),
+    sourceUrl: text(firstTouch.url) || text(source.sourceUrl) || text(source.pageUrl), referrer: text(source.referrer),
+    firstTouchUrl: text(firstTouch.url), lastTouchUrl: text(lastTouch.url),
+    attributionSource: text(firstTouch.source), attributionChannel: text(firstTouch.channel), attributionCampaign: text(firstTouch.campaign),
+    attributionTouchCount: numeric(journey.touchCount),
     status: row.status,
     attemptCount: numeric(row.attempt_count),
     createdAt: row.created_at,
@@ -390,7 +402,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
   const pool = getDbPool();
   const [summaryResult, marketResult, trendResult, appointmentActivityResult, leadResult, convertedResult, coverageResult, serviceFinancialResult] = await Promise.all([
-    pool.query<{ total: string; contacts: string; completed: string; active: string; cancelled: string; completed_value: string; partner_earnings: string; platform_revenue: string }>(
+    pool.query<{ total: string; contacts: string; completed: string; active: string; cancelled: string; completed_value: string; partner_earnings: string; platform_revenue: string; refunded_revenue: string; pending_deposits: string; failed_deposit_value: string; active_pipeline_value: string; active_partner_value: string; lost_appointment_value: string; lost_appointment_platform_value: string; lost_appointment_partner_value: string }>(
       `select count(*)::text as total, count(distinct appointment.customer_id)::text as contacts,
               count(*) filter (where appointment.status = 'completed')::text as completed,
               count(*) filter (where appointment.status in ('payment_pending','confirmed','partner_acknowledged','in_progress'))::text as active,
@@ -398,10 +410,18 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
               coalesce(sum(appointment.service_price) filter (where appointment.status = 'completed'),0)::text as completed_value,
               coalesce(sum(greatest(appointment.service_price - coalesce(appointment.deposit_amount, 0), 0)) filter (where appointment.status = 'completed'),0)::text as partner_earnings,
               coalesce(sum(coalesce((
-                select max(payment.amount)
+                select max(greatest(payment.amount - payment.refunded_amount, 0))
                   from app.appointment_payments payment
-                 where payment.appointment_id = appointment.id and payment.status = 'paid'
-              ), 0)) filter (where appointment.status = 'completed'),0)::text as platform_revenue
+                 where payment.appointment_id = appointment.id and payment.status in ('paid','partially_refunded','refunded')
+              ), 0)),0)::text as platform_revenue,
+              coalesce(sum(coalesce((select max(payment.refunded_amount) from app.appointment_payments payment where payment.appointment_id = appointment.id), 0)),0)::text as refunded_revenue,
+              coalesce(sum(coalesce((select max(payment.amount) from app.appointment_payments payment where payment.appointment_id = appointment.id and payment.status in ('pending','processing')), 0)),0)::text as pending_deposits,
+              coalesce(sum(coalesce((select max(payment.amount) from app.appointment_payments payment where payment.appointment_id = appointment.id and payment.status in ('failed','cancelled')), 0)),0)::text as failed_deposit_value,
+              coalesce(sum(appointment.service_price) filter (where appointment.status in ('payment_pending','confirmed','partner_acknowledged','in_progress')),0)::text as active_pipeline_value,
+              coalesce(sum(greatest(appointment.service_price - coalesce(appointment.deposit_amount, 0), 0)) filter (where appointment.status in ('payment_pending','confirmed','partner_acknowledged','in_progress')),0)::text as active_partner_value,
+              coalesce(sum(appointment.service_price) filter (where appointment.status in ('partner_declined','cancelled','refunded','failed')),0)::text as lost_appointment_value,
+              coalesce(sum(coalesce(appointment.deposit_amount, 0)) filter (where appointment.status in ('partner_declined','cancelled','refunded','failed')),0)::text as lost_appointment_platform_value,
+              coalesce(sum(greatest(appointment.service_price - coalesce(appointment.deposit_amount, 0), 0)) filter (where appointment.status in ('partner_declined','cancelled','refunded','failed')),0)::text as lost_appointment_partner_value
          from app.appointments appointment ${where}`, values),
     pool.query<{ city: string; county: string; state: string; total: string; completed: string; active: string; cancelled: string; completed_value: string }>(
       `select appointment.city, appointment.county, appointment.state, count(*)::text as total,
@@ -658,6 +678,10 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
 
   const appointmentHistory = (row: AppointmentActivityRow): AppointmentMapHistoryItem => {
     const additionalPatients = Array.isArray(row.metadata?.additional_patients) ? row.metadata.additional_patients : [];
+    const attribution = (row.metadata?.attribution || {}) as Record<string, unknown>;
+    const journey = (attribution.journey || {}) as Record<string, unknown>;
+    const firstTouch = (journey.firstTouch || {}) as Record<string, unknown>;
+    const lastTouch = (journey.lastTouch || {}) as Record<string, unknown>;
     return {
       id: row.id,
       kind: "appointment",
@@ -685,8 +709,14 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
       lossReason: null,
       additionalPatientsCount: additionalPatients.length,
       screeningEligible: true,
-      sourceUrl: row.source_url,
-      referrer: "",
+      sourceUrl: text(firstTouch.url) || row.source_url,
+      referrer: text(attribution.referrer),
+      firstTouchUrl: text(firstTouch.url),
+      lastTouchUrl: text(lastTouch.url),
+      attributionSource: text(firstTouch.source),
+      attributionChannel: text(firstTouch.channel),
+      attributionCampaign: text(firstTouch.campaign),
+      attributionTouchCount: numeric(journey.touchCount),
       createdAt: row.created_at,
     };
   };
@@ -732,6 +762,12 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
       screeningEligible: lead.screeningEligible,
       sourceUrl: lead.sourceUrl,
       referrer: lead.referrer,
+      firstTouchUrl: lead.firstTouchUrl,
+      lastTouchUrl: lead.lastTouchUrl,
+      attributionSource: lead.attributionSource,
+      attributionChannel: lead.attributionChannel,
+      attributionCampaign: lead.attributionCampaign,
+      attributionTouchCount: lead.attributionTouchCount,
       createdAt: lead.createdAt,
     };
   };
@@ -938,6 +974,12 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
       screeningEligible: lead.screeningEligible,
       sourceUrl: lead.sourceUrl,
       referrer: lead.referrer,
+      firstTouchUrl: lead.firstTouchUrl,
+      lastTouchUrl: lead.lastTouchUrl,
+      attributionSource: lead.attributionSource,
+      attributionChannel: lead.attributionChannel,
+      attributionCampaign: lead.attributionCampaign,
+      attributionTouchCount: lead.attributionTouchCount,
       createdAt: lead.createdAt,
     };
   });
@@ -949,7 +991,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
     serviceFinancialById.set(service.id, service);
     serviceFinancialByName.set(normalizeLocation(service.name), service);
   }
-  const lostFinancials = includedLostLeads.reduce((totals, lead) => {
+  const financialsFor = (leads: typeof filteredLeads) => leads.reduce((totals, lead) => {
     const currentService = serviceFinancialById.get(lead.serviceId) || serviceFinancialByName.get(normalizeLocation(lead.service));
     const grossValue = lead.servicePrice || numeric(currentService?.price);
     const depositType = lead.depositType || currentService?.deposit_type || "percentage";
@@ -962,9 +1004,14 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
     totals.partners += Math.max(grossValue - platformValue, 0);
     return totals;
   }, { total: 0, platform: 0, partners: 0 });
-  const lostOpportunityValue = Math.round(lostFinancials.total * 100) / 100;
-  const lostPlatformRevenue = Math.round(lostFinancials.platform * 100) / 100;
-  const lostPartnerEarnings = Math.round(lostFinancials.partners * 100) / 100;
+  const intentFinancials = financialsFor(filteredLeads);
+  const lostFinancials = financialsFor(includedLostLeads);
+  const intentOpportunityValue = Math.round(intentFinancials.total * 100) / 100;
+  const intentPlatformRevenue = Math.round(intentFinancials.platform * 100) / 100;
+  const intentPartnerEarnings = Math.round(intentFinancials.partners * 100) / 100;
+  const lostOpportunityValue = Math.round((lostFinancials.total + numeric(summaryRow?.lost_appointment_value)) * 100) / 100;
+  const lostPlatformRevenue = Math.round((lostFinancials.platform + numeric(summaryRow?.lost_appointment_platform_value)) * 100) / 100;
+  const lostPartnerEarnings = Math.round((lostFinancials.partners + numeric(summaryRow?.lost_appointment_partner_value)) * 100) / 100;
   const lostOpportunityRate = filteredLeads.length
     ? Math.round((includedLostLeads.length / filteredLeads.length) * 1000) / 10
     : 0;
@@ -974,7 +1021,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   }, { no_coverage: 0, no_availability: 0, screening: 0, booking_not_completed: 0, coverage_or_availability: 0, unclassified: 0 });
   return {
     period, status, from, to, search, granularity,
-    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, bookingAttempts, lostOpportunities: includedLostLeads.length, lostOpportunityValue, lostPlatformRevenue, lostPartnerEarnings, lostOpportunityRate, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round((convertedLeads.length / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), markets: markets.length, coveredCounties: coverageAreas.length },
+    summary: { total, contacts: numeric(summaryRow?.contacts), completed: numeric(summaryRow?.completed), active: numeric(summaryRow?.active), cancelled: numeric(summaryRow?.cancelled), appointmentIntents: status && status !== "lost_opportunity" ? 0 : filteredLeads.length, bookingAttempts, intentOpportunityValue, intentPlatformRevenue, intentPartnerEarnings, lostOpportunities: includedLostLeads.length, lostAppointments: numeric(summaryRow?.cancelled), lostOpportunityValue, lostPlatformRevenue, lostPartnerEarnings, lostOpportunityRate, lostWithCurrentCoverage, lostWithoutCurrentCoverage, lostReasons, conversionRate: filteredLeads.length ? Math.round((convertedLeads.length / filteredLeads.length) * 1000) / 10 : 0, completionRate: total ? Math.round((numeric(summaryRow?.completed) / total) * 1000) / 10 : 0, completedValue: numeric(summaryRow?.completed_value), partnerEarnings: numeric(summaryRow?.partner_earnings), platformRevenue: numeric(summaryRow?.platform_revenue), refundedRevenue: numeric(summaryRow?.refunded_revenue), pendingDeposits: numeric(summaryRow?.pending_deposits), failedDepositValue: numeric(summaryRow?.failed_deposit_value), activePipelineValue: numeric(summaryRow?.active_pipeline_value), activePartnerValue: numeric(summaryRow?.active_partner_value), activePlatformValue: Math.max(numeric(summaryRow?.active_pipeline_value) - numeric(summaryRow?.active_partner_value), 0), markets: markets.length, coveredCounties: coverageAreas.length },
     points: resolved.filter((point): point is AppointmentGeoPoint => Boolean(point)),
     people,
     leads: mapLeads,

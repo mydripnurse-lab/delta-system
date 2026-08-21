@@ -8,6 +8,7 @@ import { BOOKING_MINIMUM_NOTICE_MINUTES } from "@/lib/bookingPolicy";
 import { sendConfirmedAppointmentAutomations } from "@/lib/stripePaymentLifecycle";
 import { availableClientBookingReward, redeemClientBookingReward, type ClientBookingReward } from "@/lib/clientRewards";
 import { ensureClientPortalSchema } from "@/lib/clientPortalAuth";
+import { attributionSessionSummary, recordBookingAttributionTouchpoint } from "@/lib/bookingAttribution";
 
 type BookingCustomerInput = {
   firstName?: string;
@@ -107,6 +108,13 @@ export async function createAppointmentCheckout(opts: {
   embeddedCheckout?: boolean;
   clientAccountId?: string;
   directoryAttribution?: { source: "partner_directory"; partnerProfileId: string; attributedAt: string };
+  attribution?: {
+    visitorId: string;
+    sessionId: string;
+    pageUrl: string;
+    referrer?: string;
+    params?: Record<string, string>;
+  };
 }) {
   const screeningIsClear = opts.medicalScreening.noneSelected
     && opts.medicalScreening.selected.length === 1
@@ -148,6 +156,19 @@ export async function createAppointmentCheckout(opts: {
   let freeVisitRewardApplied = false;
   let bookingReward: ClientBookingReward | null = null;
   let referralRewardApplied = false;
+  if (opts.attribution) {
+    await recordBookingAttributionTouchpoint({
+      eventId: `checkout:${opts.attribution.sessionId}:${opts.startsAt}`,
+      eventType: "checkout_started",
+      sessionId: opts.attribution.sessionId,
+      visitorId: opts.attribution.visitorId,
+      pageUrl: opts.attribution.pageUrl,
+      referrer: opts.attribution.referrer,
+      partnerProfileId: opts.requestedPartnerId,
+      attribution: opts.attribution.params,
+    }).catch(() => undefined);
+  }
+  const attributionJourney = await attributionSessionSummary(opts.attribution?.sessionId || "").catch(() => null);
   try {
     await client.query("begin");
     const email = opts.customer.email.toLowerCase();
@@ -319,7 +340,7 @@ export async function createAppointmentCheckout(opts: {
          latitude, longitude, geography_source, geography_verified_at,
          source_url, source_city, source_county, source_state,
          service_price, deposit_type, deposit_value, deposit_amount, currency,
-         hold_expires_at
+         hold_expires_at, attribution_session_id, attribution_visitor_id
        ) values (
          $1, $2, $3, $4,
          $5, $6, $7, $8,
@@ -329,7 +350,8 @@ export async function createAppointmentCheckout(opts: {
          $24, $25, $26, now(),
          $27, $14, $15, $16,
          $28, $29, $30, $31, $32,
-         case when $33::boolean then now() + interval '30 minutes' else null end
+         case when $33::boolean then now() + interval '30 minutes' else null end,
+         $34, $35
        ) returning id`,
       [
         appointmentReference, facts.organization_id, facts.service_id, facts.calendar_id,
@@ -346,7 +368,7 @@ export async function createAppointmentCheckout(opts: {
         Number.isFinite(opts.address.longitude) ? opts.address.longitude : null,
         availability.geography.source, opts.sourceUrl || "",
         price, facts.deposit_type, depositValue, standardDepositCents / 100, facts.currency,
-        amountCents > 0,
+        amountCents > 0, opts.attribution?.sessionId || "", opts.attribution?.visitorId || "",
       ],
     );
     appointmentId = appointment.rows[0]?.id || "";
@@ -392,6 +414,10 @@ export async function createAppointmentCheckout(opts: {
           source: "mapbox_verified",
         } : undefined,
         directory_attribution: directoryAttribution,
+        attribution: opts.attribution ? {
+          ...opts.attribution,
+          journey: attributionJourney,
+        } : undefined,
         client_reward: bookingReward ? {
           applied: true,
           rewardId: bookingReward.id,

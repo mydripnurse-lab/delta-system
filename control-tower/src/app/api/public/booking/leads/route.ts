@@ -54,6 +54,8 @@ const schema = z.object({
   pageUrl: z.string().trim().url().max(2000).optional(),
   referrer: z.string().trim().url().max(2000).optional(),
   attribution: z.record(z.string().max(100), z.string().max(300)).optional().default({}),
+  visitorId: z.string().trim().min(8).max(160).optional(),
+  sessionId: z.string().trim().min(8).max(160).optional(),
   eligiblePartners: z.array(z.object({
     id: z.string().uuid(),
     displayName: z.string().max(160),

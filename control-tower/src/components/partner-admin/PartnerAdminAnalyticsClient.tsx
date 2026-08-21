@@ -10,7 +10,7 @@ import type { AppointmentGeoPoint, AppointmentMapLossReason, AppointmentMapPerso
 type LostReasons = Record<AppointmentMapLossReason, number>;
 
 type AnalyticsPayload = {
-  summary: { total: number; contacts: number; completed: number; active: number; cancelled: number; appointmentIntents: number; bookingAttempts: number; lostOpportunities: number; lostOpportunityValue: number; lostPlatformRevenue: number; lostPartnerEarnings: number; lostOpportunityRate: number; lostWithCurrentCoverage: number; lostWithoutCurrentCoverage: number; lostReasons: LostReasons; conversionRate: number; completionRate: number; completedValue: number; partnerEarnings: number; platformRevenue: number; markets: number; coveredCounties: number };
+  summary: { total: number; contacts: number; completed: number; active: number; cancelled: number; appointmentIntents: number; bookingAttempts: number; intentOpportunityValue: number; intentPlatformRevenue: number; intentPartnerEarnings: number; lostOpportunities: number; lostAppointments: number; lostOpportunityValue: number; lostPlatformRevenue: number; lostPartnerEarnings: number; lostOpportunityRate: number; lostWithCurrentCoverage: number; lostWithoutCurrentCoverage: number; lostReasons: LostReasons; conversionRate: number; completionRate: number; completedValue: number; partnerEarnings: number; platformRevenue: number; refundedRevenue: number; pendingDeposits: number; failedDepositValue: number; activePipelineValue: number; activePartnerValue: number; activePlatformValue: number; markets: number; coveredCounties: number };
   points: AppointmentGeoPoint[];
   people: AppointmentMapPerson[];
   coverageAreas: BusinessCoverageArea[];
@@ -118,7 +118,7 @@ export function PartnerAdminAnalyticsClient() {
       {analytics ? <>
         <section className={styles.analyticsKpis}>
           <article><span>Total appointments</span><strong>{summary?.total || 0}</strong><small>{summary?.contacts || 0} unique contacts</small></article>
-          <article><span>Appointment intents</span><strong>{summary?.appointmentIntents || 0}</strong><small>{summary?.bookingAttempts || 0} booking attempts · unique people</small></article>
+          <article><span>Intent opportunity value</span><strong>{money(summary?.intentOpportunityValue || 0)}</strong><div className={styles.lostKpiBreakdown}><div><small>My Drip Nurse</small><b>{money(summary?.intentPlatformRevenue || 0)}</b></div><div><small>Partners</small><b>{money(summary?.intentPartnerEarnings || 0)}</b></div></div><small>{summary?.appointmentIntents || 0} unique people · {summary?.bookingAttempts || 0} booking attempts</small></article>
           <article className={styles.lostKpi}>
             <span>Lost opportunity value</span>
             <strong>{money(summary?.lostOpportunityValue || 0)}</strong>
@@ -126,12 +126,12 @@ export function PartnerAdminAnalyticsClient() {
               <div><small>My Drip Nurse</small><b>{money(summary?.lostPlatformRevenue || 0)}</b></div>
               <div><small>Partners</small><b>{money(summary?.lostPartnerEarnings || 0)}</b></div>
             </div>
-            <small>{summary?.lostOpportunities || 0} lost opportunities · {summary?.lostOpportunityRate || 0}% of intents</small>
+            <small>{summary?.lostOpportunities || 0} lost leads · {summary?.lostAppointments || 0} cancelled or failed appointments</small>
           </article>
           <article><span>Completed</span><strong>{summary?.completed || 0}</strong><small>{summary?.completionRate || 0}% completion rate</small></article>
-          <article><span>Active pipeline</span><strong>{summary?.active || 0}</strong><small>Scheduled or in progress</small></article>
+          <article className={styles.partnerRevenueKpi}><span>Active pipeline value</span><strong>{money(summary?.activePipelineValue || 0)}</strong><div className={styles.lostKpiBreakdown}><div><small>My Drip Nurse</small><b>{money(summary?.activePlatformValue || 0)}</b></div><div><small>Partners</small><b>{money(summary?.activePartnerValue || 0)}</b></div></div><small>{summary?.active || 0} scheduled or in progress · {money(summary?.pendingDeposits || 0)} pending deposits</small></article>
           <article className={styles.partnerRevenueKpi}><span>Generated for Partners</span><strong>{money(summary?.partnerEarnings || 0)}</strong><small>Service earnings from completed visits</small></article>
-          <article className={styles.platformRevenueKpi}><span>My Drip Nurse revenue</span><strong>{money(summary?.platformRevenue || 0)}</strong><small>Gross deposit revenue from completed visits</small></article>
+          <article className={styles.platformRevenueKpi}><span>My Drip Nurse collected</span><strong>{money(summary?.platformRevenue || 0)}</strong><div className={styles.lostKpiBreakdown}><div><small>Refunded</small><b>{money(summary?.refundedRevenue || 0)}</b></div><div><small>Failed</small><b>{money(summary?.failedDepositValue || 0)}</b></div></div><small>Net deposits collected across paid appointments</small></article>
           <article><span>Markets reached</span><strong>{summary?.markets || 0}</strong><small>Unique city and county combinations</small></article>
         </section>
         <section className={styles.analyticsCausePanel}>

@@ -4,6 +4,7 @@ import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { ensureStaffSchema } from "@/lib/publicStaffProvisioning";
 import { getDbPool } from "@/lib/db";
 import { ghlRoutingFieldsForEvent, ghlRoutingFieldsForPayload } from "@/lib/ghlRoutingEnvelope";
+import { attributionSessionSummary, recordBookingAttributionTouchpoint } from "@/lib/bookingAttribution";
 
 type LeadPerson = {
   firstName: string;
@@ -52,6 +53,8 @@ export type BookingLeadCaptureInput = {
   pageUrl?: string;
   referrer?: string;
   attribution?: Record<string, string>;
+  visitorId?: string;
+  sessionId?: string;
   eligiblePartners?: EligiblePartner[];
   availabilityDiagnostics?: {
     availabilityChecked: boolean;
@@ -244,6 +247,21 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
   const capturedAt = new Date().toISOString();
   const primaryPatient = webhookPerson(input.customer);
   const additionalPatients = (input.attendees || []).map(webhookPerson);
+  if (input.sessionId && input.visitorId && (input.pageUrl || input.sourceUrl)) {
+    await recordBookingAttributionTouchpoint({
+      eventId: `lead:${clientIdempotencyKey}:${Date.now()}`,
+      eventType: input.availabilityDiagnostics?.availabilityChecked ? "availability_searched" : "booking_started",
+      sessionId: input.sessionId,
+      visitorId: input.visitorId,
+      pageUrl: input.pageUrl || input.sourceUrl || "",
+      referrer: input.referrer,
+      serviceSlug: row.service_slug,
+      partnerProfileId: input.requestedPartnerId,
+      attribution: input.attribution,
+      occurredAt: capturedAt,
+    }).catch(() => undefined);
+  }
+  const journey = await attributionSessionSummary(text(input.sessionId)).catch(() => null);
   const payload = {
     event: "booking.lead.created",
     version: 1,
@@ -326,6 +344,9 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
       pageUrl: text(input.pageUrl),
       referrer: text(input.referrer),
       attribution: input.attribution || {},
+      visitorId: text(input.visitorId),
+      sessionId: text(input.sessionId),
+      journey,
     },
   };
   Object.assign(payload, ghlRoutingFieldsForPayload("booking.lead.created", payload, {
@@ -358,14 +379,17 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
   const reserved = await pool.query<{ id: string; status: string; attempt_count: number; send_after: string }>(
     `insert into app.booking_lead_events
        (organization_id, idempotency_key, identity_key, normalized_email, normalized_phone,
-        public_key, payload, status, attempt_count, last_activity_at, send_after)
-     values ($1::uuid, $2, $3, $4, $5, $6, $7::jsonb, 'pending', 1, now(), now() + interval '10 minutes')
+        public_key, payload, status, attempt_count, last_activity_at, send_after,
+        attribution_session_id, attribution_visitor_id)
+     values ($1::uuid, $2, $3, $4, $5, $6, $7::jsonb, 'pending', 1, now(), now() + interval '10 minutes', $8, $9)
      on conflict (organization_id, identity_key) where identity_key <> ''
      do update set
        idempotency_key = excluded.idempotency_key,
        normalized_email = excluded.normalized_email,
        normalized_phone = excluded.normalized_phone,
        public_key = excluded.public_key,
+       attribution_session_id = excluded.attribution_session_id,
+       attribution_visitor_id = excluded.attribution_visitor_id,
        payload = jsonb_set(
          excluded.payload,
          '{bookingAttemptCount}',
@@ -388,7 +412,7 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
        error = case when app.booking_lead_events.status in ('processing', 'sent', 'converted') then app.booking_lead_events.error else '' end,
        updated_at = now()
      returning id::text, status, attempt_count, send_after::text`,
-    [row.organization_id, idempotencyKey, identity.key, identity.email, identity.phone, row.public_key, JSON.stringify(storedPayload)],
+    [row.organization_id, idempotencyKey, identity.key, identity.email, identity.phone, row.public_key, JSON.stringify(storedPayload), text(input.sessionId), text(input.visitorId)],
   );
   const event = reserved.rows[0];
   return {

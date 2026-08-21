@@ -239,7 +239,12 @@ function HistoryItem({ item }: { item: AppointmentMapHistoryItem }) {
       <div data-covered={item.currentCoveredPartnerCount === 0 ? "unknown" : item.currentActivatedPartnerCount > 0 ? "yes" : "no"}><span>Account now</span><strong>{item.currentActivatedPartnerCount > 0 ? `${item.currentActivatedPartnerCount} activated` : item.currentCoveredPartnerCount > 0 ? "Activation pending" : "No Partner"}</strong></div>
       <div data-covered={item.currentActivatedPartnerCount === 0 ? "unknown" : item.currentScheduleReadyPartnerCount > 0 ? "yes" : "no"}><span>Availability now</span><strong>{item.currentScheduleReadyPartnerCount > 0 ? `${item.currentScheduleReadyPartnerCount} schedule-ready` : item.currentActivatedPartnerCount > 0 ? "Not configured" : "Waiting for activation"}</strong></div>
     </div> : null}
-    {item.sourceUrl ? <a className={styles.analyticsHistorySource} href={item.sourceUrl} target="_blank" rel="noreferrer">Source: {sourceName(item.sourceUrl)} ↗</a> : null}
+    {item.firstTouchUrl || item.lastTouchUrl ? <div className={styles.analyticsLeadAssessment}>
+      <span>Attribution journey · {Math.max(item.attributionTouchCount, 1)} {Math.max(item.attributionTouchCount, 1) === 1 ? "touch" : "touches"}</span>
+      <strong>{item.attributionSource || sourceName(item.firstTouchUrl || item.sourceUrl)}{item.attributionChannel ? ` · ${item.attributionChannel}` : ""}</strong>
+      <p>First: {sourceName(item.firstTouchUrl || item.sourceUrl)}{item.lastTouchUrl ? ` · Last: ${sourceName(item.lastTouchUrl)}` : ""}{item.attributionCampaign ? ` · Campaign: ${item.attributionCampaign}` : ""}</p>
+    </div> : null}
+    {item.sourceUrl ? <a className={styles.analyticsHistorySource} href={item.sourceUrl} target="_blank" rel="noreferrer">First-touch page: {sourceName(item.sourceUrl)} ↗</a> : null}
   </article>;
 }
 

@@ -121,6 +121,13 @@ const bookingSchema = z.object({
     partnerProfileId: z.string().uuid(),
     attributedAt: z.string().datetime({ offset: true }),
   }).optional(),
+  attribution: z.object({
+    visitorId: z.string().trim().min(8).max(160),
+    sessionId: z.string().trim().min(8).max(160),
+    pageUrl: z.string().trim().url().max(2000),
+    referrer: z.string().trim().url().max(2000).optional(),
+    params: z.record(z.string().max(100), z.string().max(300)).optional().default({}),
+  }).optional(),
 });
 
 export async function OPTIONS() {

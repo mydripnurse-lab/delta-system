@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./globals.css";
 import SessionKeepAlive from "@/components/SessionKeepAlive";
+import AttributionTracker from "@/components/AttributionTracker";
 
 const BRAND_ICON_URL = "https://sitemaps.mydripnurse.com/favicon.ico";
 
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <SessionKeepAlive />
+        <AttributionTracker />
         {children}
       </body>
     </html>

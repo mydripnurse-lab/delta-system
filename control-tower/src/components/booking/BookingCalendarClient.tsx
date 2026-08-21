@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import styles from "@/components/booking/bookingCalendar.module.css";
+import { currentAttributionContext, trackBookingAttribution } from "@/lib/clientAttribution";
 import { GENDER_IDENTITY_OPTIONS, normalizeGenderIdentity } from "@/lib/genderIdentity";
 import { phoneCountry as nanpPhoneCountry } from "@/lib/phoneInput";
 import type { BookingAvailability, BookingAvailabilitySlot } from "@/lib/serviceBookingAvailability";
@@ -468,7 +469,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   const hasSavedScreening = savedScreeningSelections.length > 0;
   const [showFullScreening, setShowFullScreening] = useState(!hasSavedScreening);
   const leadCaptureKeyRef = useRef("");
-  const [sourceContext, setSourceContext] = useState<{ pageUrl: string; referrer: string; attribution: Record<string, string>; requestedPartnerId: string; directoryAttribution: { source: "partner_directory"; partnerProfileId: string; attributedAt: string } | null }>({ pageUrl: "", referrer: "", attribution: {}, requestedPartnerId: "", directoryAttribution: null });
+  const [sourceContext, setSourceContext] = useState<{ visitorId: string; sessionId: string; pageUrl: string; referrer: string; attribution: Record<string, string>; requestedPartnerId: string; directoryAttribution: { source: "partner_directory"; partnerProfileId: string; attributedAt: string } | null }>({ visitorId: "", sessionId: "", pageUrl: "", referrer: "", attribution: {}, requestedPartnerId: "", directoryAttribution: null });
   const embeddedCheckoutRef = useRef<EmbeddedCheckout | null>(null);
   const [checkoutState, setCheckoutState] = useState<EmbeddedCheckoutState | null>(null);
   const [checkoutMountAttempt, setCheckoutMountAttempt] = useState(0);
@@ -494,6 +495,14 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           continue;
         }
         if (!response.ok || !payload.ok) throw new Error(payload.error || "Your payment could not be confirmed yet.");
+        trackBookingAttribution("payment_completed", {
+          visitorId: sourceContext.visitorId,
+          sessionId: sourceContext.sessionId,
+          pageUrl: sourceContext.pageUrl,
+          referrer: sourceContext.referrer,
+          attribution: sourceContext.attribution,
+          partnerProfileId: partnerId || sourceContext.requestedPartnerId || undefined,
+        });
         setConfirmation(payload.confirmation as PublicAppointmentConfirmation);
         setCheckoutState(null);
         setPaymentReturn(null);
@@ -507,7 +516,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       setPaymentStatus("error");
       setPaymentError(checkoutError instanceof Error ? checkoutError.message : "Your payment could not be confirmed yet.");
     }
-  }, []);
+  }, [partnerId, sourceContext]);
 
   const screeningIsClear = screeningSubmitted
     && screeningSelected.length === 1
@@ -526,8 +535,9 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         sessionId: params.get("session_id") || undefined,
       });
     }
-    const originalPageUrl = window.location.href;
-    const referrer = document.referrer;
+    const attributionContext = currentAttributionContext();
+    const originalPageUrl = attributionContext.pageUrl;
+    const referrer = attributionContext.referrer;
     const attribution = Object.fromEntries([...params.entries()].filter(([key]) => key.startsWith("utm_") || ["gclid", "fbclid", "ref", "source"].includes(key)).slice(0, 30));
     const requestedPartnerId = params.get("partnerId") || params.get("partner") || "";
     let directoryAttribution: { source: "partner_directory"; partnerProfileId: string; attributedAt: string } | null = null;
@@ -537,7 +547,12 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         directoryAttribution = { source: "partner_directory", partnerProfileId: stored.partnerId, attributedAt: new Date(stored.at).toISOString() };
       }
     } catch { /* attribution must never interrupt booking */ }
-    setSourceContext({ pageUrl: originalPageUrl, referrer, attribution, requestedPartnerId, directoryAttribution });
+    const bookingContext = trackBookingAttribution("booking_started", {
+      ...attributionContext,
+      attribution,
+      partnerProfileId: partnerId || requestedPartnerId || undefined,
+    });
+    setSourceContext({ visitorId: bookingContext.visitorId, sessionId: bookingContext.sessionId, pageUrl: originalPageUrl, referrer, attribution, requestedPartnerId, directoryAttribution });
     const initialPhone = params.get("phone") || initialProfile?.phone || "";
     const initialPhoneCountry = getPhoneCountry(initialPhone);
     const initialName = params.get("fullName") || params.get("name") || initialProfile?.fullName || "";
@@ -755,6 +770,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           pageUrl: sourceContext.pageUrl || window.location.href,
           referrer: sourceContext.referrer || undefined,
           attribution: sourceContext.attribution,
+          visitorId: sourceContext.visitorId || undefined,
+          sessionId: sourceContext.sessionId || undefined,
           eligiblePartners,
           availabilityDiagnostics: {
             availabilityChecked: available !== null,
@@ -856,6 +873,14 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       const response = await fetch(`/api/public/booking/calendars/${encodeURIComponent(publicKey)}/availability?${query}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Availability could not be loaded.");
+      trackBookingAttribution("availability_searched", {
+        visitorId: sourceContext.visitorId,
+        sessionId: sourceContext.sessionId,
+        pageUrl: sourceContext.pageUrl,
+        referrer: sourceContext.referrer,
+        attribution: sourceContext.attribution,
+        partnerProfileId: partnerId || sourceContext.requestedPartnerId || undefined,
+      });
       await captureLead({ ...address, ...verifiedAddress }, payload as BookingAvailability);
       setAvailability(payload);
       setNotice("");
@@ -866,7 +891,19 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       setGeocoding(false);
       setLoading(false);
     }
-  }, [address, canSearch, captureLead, date, geocodeAddress, partnerId, partnerView, publicKey, saveAddressToCareProfile, screeningIsClear]);
+  }, [address, canSearch, captureLead, date, geocodeAddress, partnerId, publicKey, saveAddressToCareProfile, screeningIsClear, sourceContext]);
+
+  useEffect(() => {
+    if (!selectedSlot || !sourceContext.sessionId) return;
+    trackBookingAttribution("slot_selected", {
+      visitorId: sourceContext.visitorId,
+      sessionId: sourceContext.sessionId,
+      pageUrl: sourceContext.pageUrl,
+      referrer: sourceContext.referrer,
+      attribution: sourceContext.attribution,
+      partnerProfileId: partnerId || sourceContext.requestedPartnerId || undefined,
+    });
+  }, [partnerId, selectedSlot, sourceContext]);
 
   const continueToLocation = useCallback(() => {
     if (!contactIsComplete) {
@@ -916,6 +953,14 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     setSubmitting(true);
     setError("");
     try {
+      trackBookingAttribution("checkout_started", {
+        visitorId: sourceContext.visitorId,
+        sessionId: sourceContext.sessionId,
+        pageUrl: sourceContext.pageUrl,
+        referrer: sourceContext.referrer,
+        attribution: sourceContext.attribution,
+        partnerProfileId: partnerId || sourceContext.requestedPartnerId || undefined,
+      });
       const response = await fetch("/api/public/booking/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -934,9 +979,16 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
             noneSelected: screeningIsClear,
             completedAt: new Date().toISOString(),
           },
-          sourceUrl: document.referrer || window.location.origin,
+          sourceUrl: sourceContext.pageUrl || sourceContext.referrer || window.location.origin,
           returnUrl: window.location.href,
           directoryAttribution: sourceContext.directoryAttribution || undefined,
+          attribution: {
+            visitorId: sourceContext.visitorId,
+            sessionId: sourceContext.sessionId,
+            pageUrl: sourceContext.pageUrl,
+            referrer: sourceContext.referrer || undefined,
+            params: sourceContext.attribution,
+          },
         }),
       });
       const payload = await response.json();
@@ -973,7 +1025,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     } finally {
       setSubmitting(false);
     }
-  }, [additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, partnerView, publicKey, screeningIsClear, screeningSelected, selectedSlot, sourceContext.directoryAttribution]);
+  }, [additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, partnerView, publicKey, screeningIsClear, screeningSelected, selectedSlot, sourceContext]);
 
   const submitDemand = useCallback(async () => {
     if (!contactIsComplete) {
