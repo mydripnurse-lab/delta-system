@@ -121,6 +121,12 @@ export function proxy(req: NextRequest) {
       return NextResponse.next();
     }
 
+    // Public by design: signed-in clients receive their connected appointments,
+    // while guests can submit only after matching a booking reference and email.
+    if (pathname === "/refund-request") {
+      return NextResponse.next();
+    }
+
     const clientRoutes = new Map([
       ["/", "/client-portal"],
       ["/book", "/client-portal/book"],
@@ -332,6 +338,7 @@ export function proxy(req: NextRequest) {
       pathname === "/applications" || pathname.startsWith("/applications/") ||
       pathname === "/partners" || pathname.startsWith("/partners/") ||
       pathname === "/appointments" || pathname.startsWith("/appointments/") ||
+      pathname === "/refunds" || pathname.startsWith("/refunds/") ||
       pathname === "/contacts" || pathname.startsWith("/contacts/") ||
       pathname === "/analytics" || pathname.startsWith("/analytics/") ||
       pathname === "/directory-analytics" || pathname.startsWith("/directory-analytics/") ||

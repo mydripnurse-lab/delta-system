@@ -15,6 +15,7 @@ export async function GET() {
       version: APPOINTMENT_DEPOSIT_POLICY_VERSION,
       cancellationWindowHours: APPOINTMENT_CANCELLATION_WINDOW_HOURS,
       supportEmail: APPOINTMENT_DEPOSIT_SUPPORT_EMAIL,
+      refundRequestUrl: "https://care.mydripnurse.com/refund-request",
       depositMessage: APPOINTMENT_DEPOSIT_MESSAGE,
       summary: APPOINTMENT_DEPOSIT_POLICY_SUMMARY,
     },

@@ -27,6 +27,9 @@ export function safeClientReturnUrl(value: unknown) {
     if (hostname === "care.mydripnurse.com" && /^\/booking\/[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(pathname)) {
       return `https://care.mydripnurse.com${pathname}`;
     }
+    if (hostname === "care.mydripnurse.com" && pathname === "/refund-request") {
+      return "https://care.mydripnurse.com/refund-request";
+    }
     const marketingHost = hostname === "mydripnurse.com"
       || hostname === "www.mydripnurse.com"
       || (hostname.endsWith(".mydripnurse.com") && !RESERVED_APP_HOSTS.has(hostname));

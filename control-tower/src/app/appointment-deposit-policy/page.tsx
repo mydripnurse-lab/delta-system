@@ -198,6 +198,9 @@ export default function AppointmentDepositPolicyPage() {
             <a href={`mailto:${APPOINTMENT_DEPOSIT_SUPPORT_EMAIL}`}>
               {APPOINTMENT_DEPOSIT_SUPPORT_EMAIL}
             </a>
+            <a href="https://care.mydripnurse.com/refund-request">
+              Request a deposit refund
+            </a>
           </section>
         </article>
       </section>

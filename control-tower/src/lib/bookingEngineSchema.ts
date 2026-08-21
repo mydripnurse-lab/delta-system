@@ -285,6 +285,57 @@ export async function ensureBookingEngineSchema() {
       create index if not exists appointment_refunds_payment_idx
         on app.appointment_refunds (appointment_payment_id, status, created_at desc);
 
+      create table if not exists app.appointment_refund_requests (
+        id uuid primary key default gen_random_uuid(),
+        public_reference text not null unique,
+        appointment_id uuid not null references app.appointments(id) on delete cascade,
+        client_account_id uuid,
+        requester_name text not null default '',
+        requester_email text not null default '',
+        requester_phone text not null default '',
+        reason_code text not null,
+        details text not null default '',
+        status text not null default 'submitted',
+        policy_assessment text not null default 'manual_review',
+        policy_version text not null,
+        policy_snapshot jsonb not null default '{}'::jsonb,
+        source_url text not null default '',
+        reviewed_by text not null default '',
+        reviewed_at timestamptz,
+        resolution_note text not null default '',
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        check (reason_code in (
+          'cancel_24_hours', 'provider_unavailable', 'provider_no_show',
+          'duplicate_charge', 'incorrect_charge', 'exceptional_circumstance', 'other'
+        )),
+        check (status in ('submitted', 'under_review', 'approved', 'declined', 'completed', 'cancelled')),
+        check (policy_assessment in (
+          'likely_eligible', 'manual_review', 'outside_standard_window',
+          'already_refunded', 'no_payment', 'not_eligible'
+        ))
+      );
+      create index if not exists appointment_refund_requests_queue_idx
+        on app.appointment_refund_requests (status, created_at desc);
+      create index if not exists appointment_refund_requests_appointment_idx
+        on app.appointment_refund_requests (appointment_id, created_at desc);
+      create unique index if not exists appointment_refund_requests_open_uq
+        on app.appointment_refund_requests (appointment_id)
+        where status in ('submitted', 'under_review', 'approved');
+
+      create table if not exists app.appointment_refund_request_events (
+        id uuid primary key default gen_random_uuid(),
+        refund_request_id uuid not null references app.appointment_refund_requests(id) on delete cascade,
+        event_type text not null,
+        actor_type text not null default 'system',
+        actor_id text not null default '',
+        payload jsonb not null default '{}'::jsonb,
+        created_at timestamptz not null default now(),
+        check (actor_type in ('system', 'admin', 'customer'))
+      );
+      create index if not exists appointment_refund_request_events_idx
+        on app.appointment_refund_request_events (refund_request_id, created_at);
+
       create table if not exists app.customer_partner_affinities (
         id uuid primary key default gen_random_uuid(),
         organization_id uuid not null references app.organizations(id) on delete cascade,

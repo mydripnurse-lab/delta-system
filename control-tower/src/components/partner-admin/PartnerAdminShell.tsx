@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/", labelKey: "nav.applications", icon: "inbox" },
   { href: "/partners", labelKey: "nav.partners", icon: "users" },
   { href: "/appointments", labelKey: "nav.appointments", icon: "appointments" },
+  { href: "/refunds", labelKey: "nav.refunds", icon: "refunds" },
   { href: "/contacts", labelKey: "nav.contacts", icon: "contacts" },
   { href: "/care", labelKey: "nav.care", icon: "care" },
   { href: "/analytics", labelKey: "nav.analytics", icon: "analytics" },
@@ -35,6 +36,7 @@ const TITLE_KEYS: Record<string, string> = {
   Applications: "nav.applications",
   Partners: "nav.partners",
   Appointments: "nav.appointments",
+  "Refund requests": "nav.refunds",
   Contacts: "nav.contacts",
   Care: "nav.care",
   Analytics: "nav.analytics",
@@ -51,6 +53,7 @@ function NavIcon({ name }: { name: (typeof NAV_ITEMS)[number]["icon"] }) {
   if (name === "inbox") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 14h4l2 2h4l2-2h4" /></svg>;
   if (name === "users") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3 19a5.5 5.5 0 0 1 11 0M16 11a2.5 2.5 0 1 0 0-5M16 14a5 5 0 0 1 5 5" /></svg>;
   if (name === "appointments") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v3M19 4v3M4 9h16M5 6h14a1 1 0 0 1 1 1v13H4V7a1 1 0 0 1 1-1Z" /><path d="M8 13h3M8 16h3M14 13h2M14 16h2" /></svg>;
+  if (name === "refunds") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v11H4zM7 7V5h10v2M8 12h8M8 15h5" /><path d="m6 10-2 2 2 2" /></svg>;
   if (name === "contacts") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM2.5 20a5.5 5.5 0 0 1 11 0M16 7h5M16 11h5M16 15h4" /></svg>;
   if (name === "care") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20S4 15.4 4 9.2A4.2 4.2 0 0 1 11.2 6L12 7l.8-1A4.2 4.2 0 0 1 20 9.2C20 15.4 12 20 12 20Z" /><path d="M8 12h2l1-2 2 4 1-2h2" /></svg>;
   if (name === "analytics") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>;
