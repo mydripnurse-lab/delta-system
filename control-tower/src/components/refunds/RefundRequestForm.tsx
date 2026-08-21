@@ -3,15 +3,9 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-import type { RefundRequestAppointment } from "@/lib/appointmentRefundRequests";
+import type { RefundRequestContext } from "@/lib/appointmentRefundRequests";
 import { REFUND_REASON_OPTIONS } from "@/lib/refundRequestPolicy";
 import styles from "@/app/refund-request/refundRequest.module.css";
-
-type Context = {
-  authenticated: boolean;
-  account: { fullName: string; email: string; phone: string } | null;
-  appointments: RefundRequestAppointment[];
-};
 
 type Receipt = {
   reference: string;
@@ -45,7 +39,7 @@ function statusLabel(status: string) {
   } as Record<string, string>)[status] || status.replaceAll("_", " ");
 }
 
-export default function RefundRequestForm({ initialContext, embedded }: { initialContext: Context; embedded: boolean }) {
+export default function RefundRequestForm({ initialContext, embedded }: { initialContext: RefundRequestContext; embedded: boolean }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const [context, setContext] = useState(initialContext);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(

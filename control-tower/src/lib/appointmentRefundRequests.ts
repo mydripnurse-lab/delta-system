@@ -44,6 +44,12 @@ export type RefundRequestAppointment = {
   };
 };
 
+export type RefundRequestContext = {
+  authenticated: boolean;
+  account: { fullName: string; email: string; phone: string } | null;
+  appointments: RefundRequestAppointment[];
+};
+
 function text(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -106,7 +112,7 @@ export function assessRefundPolicy(input: {
   return { assessment: "manual_review", hoursBeforeStart, headline: "Our team will review this request", explanation: "We will compare the request with the appointment, payment, and current Appointment & Deposit Policy." };
 }
 
-export async function getRefundRequestContext(account: ClientAccount | null) {
+export async function getRefundRequestContext(account: ClientAccount | null): Promise<RefundRequestContext> {
   await ensureBookingEngineSchema();
   if (!account) return { authenticated: false as const, account: null, appointments: [] as RefundRequestAppointment[] };
   const appointments = await getClientAppointments(account.id);
@@ -125,14 +131,22 @@ export async function getRefundRequestContext(account: ClientAccount | null) {
       [ids],
     ),
   ]) : [{ rows: [] }, { rows: [] }];
-  const requestByAppointment = new Map(requests.rows.map((row) => [row.appointment_id, row]));
-  const refundByAppointment = new Map(payments.rows.map((row) => [row.appointment_id, Number(row.refunded_amount || 0)]));
+  const requestByAppointment = new Map<string, {
+    appointment_id: string;
+    public_reference: string;
+    status: RefundRequestStatus;
+    policy_assessment: RefundPolicyAssessment;
+    created_at: string;
+  }>(requests.rows.map((row) => [row.appointment_id, row]));
+  const refundByAppointment = new Map<string, number>(
+    payments.rows.map((row) => [row.appointment_id, Number(row.refunded_amount || 0)]),
+  );
   return {
     authenticated: true as const,
     account: { fullName: account.fullName, email: account.email, phone: account.phone },
     appointments: appointments
       .filter((item) => ["paid", "partially_refunded", "processing", "refunded"].includes(item.paymentStatus))
-      .map((item) => {
+      .map<RefundRequestAppointment>((item) => {
         const request = requestByAppointment.get(item.id);
         return {
           id: item.id,
