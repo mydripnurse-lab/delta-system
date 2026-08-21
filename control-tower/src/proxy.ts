@@ -129,6 +129,7 @@ export function proxy(req: NextRequest) {
       ["/referrals", "/client-portal/referrals"],
       ["/rewards", "/client-portal/rewards"],
       ["/rewards/invitations", "/client-portal/rewards/invitations"],
+      ["/rewards/nad", "/client-portal/rewards/nad"],
       ["/rewards/visits", "/client-portal/rewards/visits"],
       ["/membership", "/client-portal/membership"],
       ["/products", "/client-portal/products"],

@@ -17,7 +17,7 @@ function safeNext(value: string | null) {
   try {
     const parsed = new URL(value, "https://care.mydripnurse.com");
     const pathname = parsed.pathname.replace(/\/$/, "") || "/";
-    if (!["/", "/book", "/services", "/appointments", "/referrals", "/rewards", "/rewards/invitations", "/rewards/visits", "/products", "/profile"].includes(pathname) && !/^\/book\/[a-z0-9-]+$/i.test(pathname)) return "/";
+    if (!["/", "/book", "/services", "/appointments", "/referrals", "/rewards", "/rewards/invitations", "/rewards/nad", "/rewards/visits", "/products", "/profile"].includes(pathname) && !/^\/book\/[a-z0-9-]+$/i.test(pathname)) return "/";
     const partnerId = parsed.searchParams.get("partner") || "";
     const validPartnerId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(partnerId) ? partnerId : "";
     if (pathname === "/book") {

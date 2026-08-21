@@ -244,7 +244,7 @@ export function safeClientNext(value: unknown, fallback = "/") {
     return fallback;
   }
   const pathname = parsed.pathname.replace(/\/$/, "") || "/";
-  const allowed = new Set(["/", "/book", "/services", "/appointments", "/products", "/profile", "/referrals", "/rewards", "/rewards/invitations", "/rewards/visits"]);
+  const allowed = new Set(["/", "/book", "/services", "/appointments", "/products", "/profile", "/referrals", "/rewards", "/rewards/invitations", "/rewards/nad", "/rewards/visits"]);
   if (!allowed.has(pathname) && !/^\/book\/[a-z0-9-]+$/i.test(pathname)) return fallback;
   const partnerId = s(parsed.searchParams.get("partner"));
   const validPartnerId = partnerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(partnerId) ? partnerId : "";
