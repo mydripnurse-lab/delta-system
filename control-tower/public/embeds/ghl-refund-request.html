@@ -1,5 +1,5 @@
 <!-- My Drip Nurse · Refund request embed for GoHighLevel -->
-<div id="mdn-refund-request" style="width:100%;margin:0;background:#ebf2f9;">
+<div id="mdn-refund-request" style="width:100%;margin:0;line-height:0;background:#ebf2f9;">
   <iframe
     id="mdn-refund-request-frame"
     src="https://care.mydripnurse.com/refund-request?embed=1"
@@ -19,7 +19,7 @@
       if (!event.data || event.data.type !== "mdn-refund-resize") return;
       var height = Number(event.data.height || 0);
       if (!Number.isFinite(height) || height < 420 || height > 4000) return;
-      frame.style.height = Math.ceil(height + 8) + "px";
+      frame.style.height = Math.ceil(height) + "px";
     });
   })();
 </script>

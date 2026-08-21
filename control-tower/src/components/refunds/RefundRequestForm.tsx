@@ -41,6 +41,7 @@ function statusLabel(status: string) {
 
 export default function RefundRequestForm({ initialContext, embedded }: { initialContext: RefundRequestContext; embedded: boolean }) {
   const shellRef = useRef<HTMLDivElement>(null);
+  const stepTwoRef = useRef<HTMLElement>(null);
   const [context, setContext] = useState(initialContext);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(
     initialContext.appointments.find((item) => !item.request && item.paymentStatus !== "refunded")?.id || "",
@@ -50,10 +51,29 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [returnTo, setReturnTo] = useState("");
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [manualLookupReady, setManualLookupReady] = useState(false);
+  const [manualLookup, setManualLookup] = useState({ appointmentReference: "", email: "", phone: "" });
   const selected = useMemo(
     () => context.appointments.find((item) => item.id === selectedAppointmentId) || null,
     [context.appointments, selectedAppointmentId],
   );
+
+  function updateManualLookup(field: keyof typeof manualLookup, value: string) {
+    const next = { ...manualLookup, [field]: value };
+    setManualLookup(next);
+    setManualLookupReady(Object.values(next).some((item) => item.trim()));
+  }
+
+  function continueToRequest() {
+    if (!selectedAppointmentId && !manualLookupReady) {
+      setError("Enter any one booking detail, or sign in to choose an appointment.");
+      return;
+    }
+    setError("");
+    setCurrentStep(2);
+    window.requestAnimationFrame(() => stepTwoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 
   useEffect(() => {
     if (embedded && document.referrer) setReturnTo(document.referrer);
@@ -76,8 +96,7 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
     event.preventDefault();
     setError("");
     const data = new FormData(event.currentTarget);
-    const hasManualIdentifier = ["appointmentReference", "email", "phone"]
-      .some((field) => String(data.get(field) || "").trim());
+    const hasManualIdentifier = Object.values(manualLookup).some((value) => value.trim());
     if (!selectedAppointmentId && !hasManualIdentifier) {
       setError("Enter any one booking detail, or sign in to choose an appointment.");
       return;
@@ -89,9 +108,9 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           appointmentId: selectedAppointmentId,
-          appointmentReference: data.get("appointmentReference"),
-          email: data.get("email"),
-          phone: data.get("phone"),
+          appointmentReference: manualLookup.appointmentReference,
+          email: manualLookup.email,
+          phone: manualLookup.phone,
           reasonCode: data.get("reasonCode"),
           details: data.get("details"),
           sourceUrl: embedded ? document.referrer || window.location.href : window.location.href,
@@ -112,7 +131,7 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
 
   if (receipt) {
     return (
-      <div ref={shellRef} className={`${styles.experience} ${embedded ? styles.embedded : ""}`}>
+      <div ref={shellRef} data-mdn-booking-embed={embedded ? "true" : undefined} className={`${styles.experience} ${embedded ? styles.embedded : ""}`}>
         <section className={styles.receipt} aria-live="polite">
           <div className={styles.receiptMark} aria-hidden="true">✓</div>
           <p className={styles.eyebrow}>Request received</p>
@@ -134,7 +153,7 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
   }
 
   return (
-    <div ref={shellRef} className={`${styles.experience} ${embedded ? styles.embedded : ""}`}>
+    <div ref={shellRef} data-mdn-booking-embed={embedded ? "true" : undefined} className={`${styles.experience} ${embedded ? styles.embedded : ""}`}>
       {!embedded ? (
         <header className={styles.header}>
           <Link href="/" aria-label="My Drip Nurse Care home"><img src="/mdn-logo.png" alt="My Drip Nurse" /></Link>
@@ -162,6 +181,7 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
       </section>
 
       <form className={styles.form} onSubmit={submit}>
+        {currentStep === 1 ? (
         <section className={styles.step}>
           <div className={styles.stepHeading}><span>1 · Appointment</span><div><h2>Find your appointment.</h2><p>We only use the booking details needed to process this request.</p></div></div>
 
@@ -173,7 +193,7 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
                     const disabled = Boolean(appointment.request) || appointment.paymentStatus === "refunded";
                     return (
                       <label key={appointment.id} className={`${styles.appointmentCard} ${selectedAppointmentId === appointment.id ? styles.appointmentSelected : ""} ${disabled ? styles.appointmentDisabled : ""}`}>
-                        <input type="radio" name="appointmentId" value={appointment.id} checked={selectedAppointmentId === appointment.id} disabled={disabled} onChange={() => setSelectedAppointmentId(appointment.id)} />
+                        <input type="radio" name="appointmentId" value={appointment.id} checked={selectedAppointmentId === appointment.id} disabled={disabled} onChange={() => { setSelectedAppointmentId(appointment.id); setManualLookupReady(true); }} />
                         <span className={styles.serviceImage}><img src={appointment.serviceImageUrl} alt="" /></span>
                         <span className={styles.appointmentCopy}>
                           <strong>{appointment.serviceName}</strong>
@@ -187,12 +207,12 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
                 </div>
               ) : <div className={styles.emptyState}><strong>No paid appointments are connected yet.</strong><p>Use the manual option below if you booked with another email.</p></div>}
               <details className={styles.manualDetails} open={!selectedAppointmentId}>
-                <summary onClick={() => setSelectedAppointmentId("")}>Use different booking details</summary>
+                <summary onClick={() => { setSelectedAppointmentId(""); setManualLookupReady(Object.values(manualLookup).some((value) => value.trim())); }}>Use different booking details</summary>
                 <p className={styles.lookupHint}>Enter any one field. If more than one appointment matches, we will ask for another detail.</p>
                 <div className={styles.fieldGrid}>
-                  <label><span>Appointment reference <small>Optional</small></span><input name="appointmentReference" placeholder="MDN-..." /></label>
-                  <label><span>Booking email <small>Optional</small></span><input name="email" type="email" placeholder="you@example.com" /></label>
-                  <label><span>Booking phone <small>Optional</small></span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" /></label>
+                  <label><span>Appointment reference <small>Optional</small></span><input name="appointmentReference" placeholder="MDN-..." value={manualLookup.appointmentReference} onChange={(event) => updateManualLookup("appointmentReference", event.target.value)} /></label>
+                  <label><span>Booking email <small>Optional</small></span><input name="email" type="email" placeholder="you@example.com" value={manualLookup.email} onChange={(event) => updateManualLookup("email", event.target.value)} /></label>
+                  <label><span>Booking phone <small>Optional</small></span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" value={manualLookup.phone} onChange={(event) => updateManualLookup("phone", event.target.value)} /></label>
                 </div>
               </details>
             </div>
@@ -205,15 +225,29 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
               <div className={styles.orDivider}><span>or locate your appointment</span></div>
               <p className={styles.lookupHint}>Enter any one field below. We only request another detail when it is needed to identify the correct appointment.</p>
               <div className={styles.fieldGrid}>
-                <label><span>Appointment reference <small>Optional</small></span><input name="appointmentReference" placeholder="MDN-..." /></label>
-                <label><span>Booking email <small>Optional</small></span><input name="email" type="email" placeholder="you@example.com" /></label>
-                <label><span>Booking phone <small>Optional</small></span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" /></label>
+                <label><span>Appointment reference <small>Optional</small></span><input name="appointmentReference" placeholder="MDN-..." value={manualLookup.appointmentReference} onChange={(event) => updateManualLookup("appointmentReference", event.target.value)} /></label>
+                <label><span>Booking email <small>Optional</small></span><input name="email" type="email" placeholder="you@example.com" value={manualLookup.email} onChange={(event) => updateManualLookup("email", event.target.value)} /></label>
+                <label><span>Booking phone <small>Optional</small></span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" value={manualLookup.phone} onChange={(event) => updateManualLookup("phone", event.target.value)} /></label>
               </div>
             </div>
           )}
+          <div className={styles.stepActions}>
+            <span>Next, tell us what happened.</span>
+            <button type="button" onClick={continueToRequest}>Continue →</button>
+          </div>
+          {error ? <p className={styles.error} role="alert">{error}</p> : null}
         </section>
+        ) : (
+          <section className={styles.completedStep}>
+            <span aria-hidden="true">✓</span>
+            <div><small>1 · Appointment</small><strong>{selected?.serviceName || "Booking details entered"}</strong></div>
+            <button type="button" onClick={() => { setCurrentStep(1); setError(""); }}>Edit</button>
+          </section>
+        )}
 
-        <section className={styles.step}>
+        {currentStep === 2 ? (
+        <>
+        <section ref={stepTwoRef} className={styles.step}>
           <div className={styles.stepHeading}><span>2 · Request details</span><div><h2>Tell us what happened.</h2><p>Choose the closest reason. Avoid including medical details.</p></div></div>
           <div className={styles.reasonLayout}>
             <label className={styles.fullField}><span>Reason for the request</span><select name="reasonCode" value={reasonCode} onChange={(event) => setReasonCode(event.target.value)} required><option value="">Choose one</option>{REFUND_REASON_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
@@ -233,6 +267,8 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
           <button className={styles.submitButton} type="submit" disabled={busy}>{busy ? "Submitting securely…" : "Submit refund request →"}</button>
         </section>
         {error ? <p className={styles.error} role="alert">{error}</p> : null}
+        </>
+        ) : null}
       </form>
     </div>
   );

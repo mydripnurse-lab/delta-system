@@ -62,6 +62,15 @@
 .manualDetails summary { cursor: pointer; color: var(--brand); font-size: 13px; font-weight: 900; }
 .manualDetails[open] summary { margin-bottom: 18px; }
 .lookupHint { margin: -7px 0 16px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.stepActions { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+.stepActions span { color: var(--muted); font-size: 12px; }
+.stepActions button, .completedStep button { min-height: 50px; padding: 0 22px; border: 0; border-radius: 999px; cursor: pointer; color: #fff; background: linear-gradient(135deg,var(--brand),#0a99a4); font-size: 13px; font-weight: 900; box-shadow: 0 12px 26px rgba(7,92,104,.16); }
+.completedStep { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 14px; padding: 17px 20px; border: 1px solid #c7dce7; border-radius: 20px; background: linear-gradient(120deg,#ebf2f9,#fff); }
+.completedStep > span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: #fff; background: #076d79; font-weight: 900; }
+.completedStep > div { display: grid; gap: 4px; }
+.completedStep small { color: #087887; font-size: .64rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+.completedStep strong { color: #163b40; font-size: 15px; }
+.completedStep button { min-height: 42px; color: var(--brand); background: #fff; border: 1px solid #9ecfca; box-shadow: none; }
 
 .signInCard { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px; border: 1px solid #a9d1d8; border-radius: 17px; background: linear-gradient(120deg,#ebf2f9,#fff); }
 .signInCard a, .secondaryButton { flex: 0 0 auto; padding: 13px 19px; border: 1px solid #9ecfca; border-radius: 999px; color: var(--brand); background: #fff; font-size: 13px; font-weight: 900; text-decoration: none; }
@@ -137,6 +146,13 @@
   .fullField textarea { font-size: 16px; }
   .signInCard { align-items: flex-start; flex-direction: column; }
   .signInCard a { width: 100%; box-sizing: border-box; text-align: center; }
+  .stepActions { align-items: stretch; flex-direction: column; gap: 11px; margin-top: 18px; padding-top: 17px; }
+  .stepActions span { text-align: center; }
+  .stepActions button { width: 100%; }
+  .completedStep { grid-template-columns: auto minmax(0,1fr) auto; gap: 10px; padding: 14px; border-radius: 18px; }
+  .completedStep > span { width: 32px; height: 32px; }
+  .completedStep strong { font-size: 13px; }
+  .completedStep button { min-height: 38px; padding-inline: 15px; }
   .livePolicyNote { grid-template-columns: 1fr; }
   .reviewBar { grid-template-columns: 1fr; gap: 16px; padding: 18px; border-radius: 23px; }
   .reviewAmount { padding-top: 14px; border-top: 1px solid var(--line); }
