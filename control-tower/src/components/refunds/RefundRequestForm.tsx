@@ -75,8 +75,14 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setBusy(true);
     const data = new FormData(event.currentTarget);
+    const hasManualIdentifier = ["appointmentReference", "email", "phone"]
+      .some((field) => String(data.get(field) || "").trim());
+    if (!selectedAppointmentId && !hasManualIdentifier) {
+      setError("Enter any one booking detail, or sign in to choose an appointment.");
+      return;
+    }
+    setBusy(true);
     try {
       const response = await fetch("/api/public/refund-requests", {
         method: "POST",
@@ -136,22 +142,31 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
         </header>
       ) : null}
 
+      {context.authenticated ? (
+        <section className={styles.accountBanner}>
+          <span aria-hidden="true">✓</span>
+          <div>
+            <small>My Drip Nurse Care connected</small>
+            <strong>Welcome back, {context.account?.fullName?.split(" ")[0] || "there"}.</strong>
+            <p>Your appointments and verified booking details are ready.</p>
+          </div>
+        </section>
+      ) : null}
+
       <section className={styles.hero}>
         <div>
           <p className={styles.eyebrow}>Appointment support</p>
-          <h1>Request a deposit refund.</h1>
-          <p>Choose the appointment, tell us what happened, and receive a clear policy-based receipt. Every request is verified before money moves.</p>
+          <h1>Request a deposit refund</h1>
+          <p>Locate the appointment and send a secure request for review under our Appointment &amp; Deposit Policy.</p>
         </div>
-        <div className={styles.policyPill}><span>24h</span><p><strong>Standard cancellation window</strong><small>Exceptional circumstances are reviewed individually.</small></p></div>
       </section>
 
       <form className={styles.form} onSubmit={submit}>
         <section className={styles.step}>
-          <div className={styles.stepHeading}><span>01</span><div><h2>Find your appointment</h2><p>We only show the details needed to process this request.</p></div></div>
+          <div className={styles.stepHeading}><span>1 · Appointment</span><div><h2>Find your appointment.</h2><p>We only use the booking details needed to process this request.</p></div></div>
 
           {context.authenticated ? (
             <div className={styles.connectedBlock}>
-              <div className={styles.connectedLine}><span className={styles.connectedCheck}>✓</span><p><strong>Care account connected</strong><small>{context.account?.fullName} · {context.account?.email}</small></p></div>
               {context.appointments.length ? (
                 <div className={styles.appointmentList} role="radiogroup" aria-label="Choose appointment">
                   {context.appointments.map((appointment) => {
@@ -172,11 +187,12 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
                 </div>
               ) : <div className={styles.emptyState}><strong>No paid appointments are connected yet.</strong><p>Use the manual option below if you booked with another email.</p></div>}
               <details className={styles.manualDetails} open={!selectedAppointmentId}>
-                <summary onClick={() => setSelectedAppointmentId("")}>Use a different booking reference</summary>
+                <summary onClick={() => setSelectedAppointmentId("")}>Use different booking details</summary>
+                <p className={styles.lookupHint}>Enter any one field. If more than one appointment matches, we will ask for another detail.</p>
                 <div className={styles.fieldGrid}>
-                  <label><span>Appointment reference</span><input name="appointmentReference" placeholder="MDN-..." required={!selectedAppointmentId} /></label>
-                  <label><span>Booking email</span><input name="email" type="email" placeholder="you@example.com" required={!selectedAppointmentId} /></label>
-                  <label><span>Booking phone</span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" required={!selectedAppointmentId} /></label>
+                  <label><span>Appointment reference <small>Optional</small></span><input name="appointmentReference" placeholder="MDN-..." /></label>
+                  <label><span>Booking email <small>Optional</small></span><input name="email" type="email" placeholder="you@example.com" /></label>
+                  <label><span>Booking phone <small>Optional</small></span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" /></label>
                 </div>
               </details>
             </div>
@@ -186,18 +202,19 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
                 <p><strong>Already use My Drip Nurse Care?</strong><small>Sign in to securely choose from your appointments.</small></p>
                 <a href={`/login?next=/refund-request${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}`} target={embedded ? "_top" : undefined}>Sign in</a>
               </div>
-              <div className={styles.orDivider}><span>or locate one booking</span></div>
+              <div className={styles.orDivider}><span>or locate your appointment</span></div>
+              <p className={styles.lookupHint}>Enter any one field below. We only request another detail when it is needed to identify the correct appointment.</p>
               <div className={styles.fieldGrid}>
-                <label><span>Appointment reference</span><input name="appointmentReference" placeholder="MDN-..." required /></label>
-                <label><span>Booking email</span><input name="email" type="email" placeholder="you@example.com" required /></label>
-                <label><span>Booking phone</span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" required /></label>
+                <label><span>Appointment reference <small>Optional</small></span><input name="appointmentReference" placeholder="MDN-..." /></label>
+                <label><span>Booking email <small>Optional</small></span><input name="email" type="email" placeholder="you@example.com" /></label>
+                <label><span>Booking phone <small>Optional</small></span><input name="phone" inputMode="tel" autoComplete="tel" placeholder="(555) 123-4567" /></label>
               </div>
             </div>
           )}
         </section>
 
         <section className={styles.step}>
-          <div className={styles.stepHeading}><span>02</span><div><h2>Tell us what happened</h2><p>Choose the closest reason. Avoid including medical details.</p></div></div>
+          <div className={styles.stepHeading}><span>2 · Request details</span><div><h2>Tell us what happened.</h2><p>Choose the closest reason. Avoid including medical details.</p></div></div>
           <div className={styles.reasonLayout}>
             <label className={styles.fullField}><span>Reason for the request</span><select name="reasonCode" value={reasonCode} onChange={(event) => setReasonCode(event.target.value)} required><option value="">Choose one</option>{REFUND_REASON_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
             <label className={styles.fullField}><span>Anything else we need to verify? <small>Optional</small></span><textarea name="details" maxLength={1000} rows={4} placeholder="Share only billing or scheduling details relevant to this request. Do not include diagnoses or medical history." /></label>
