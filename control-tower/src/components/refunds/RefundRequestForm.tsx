@@ -153,7 +153,12 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
   }
 
   return (
-    <div ref={shellRef} data-mdn-booking-embed={embedded ? "true" : undefined} className={`${styles.experience} ${embedded ? styles.embedded : ""}`}>
+    <div
+      ref={shellRef}
+      data-mdn-booking-embed={embedded ? "true" : undefined}
+      data-mdn-refund-embed={embedded ? "true" : undefined}
+      className={`${styles.experience} ${embedded ? styles.embedded : ""}`}
+    >
       {!embedded ? (
         <header className={styles.header}>
           <Link href="/" aria-label="My Drip Nurse Care home"><img src="/mdn-logo.png" alt="My Drip Nurse" /></Link>

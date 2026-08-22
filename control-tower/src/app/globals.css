@@ -61,6 +61,18 @@ body:has([data-mdn-booking-embed="true"])::before {
   background: #ebf2f9;
 }
 
+/* Refund embeds keep the calendar's card language without painting the
+   complete iframe blue. The pale brand color remains inside the UI only. */
+html:has([data-mdn-refund-embed="true"]),
+body:has([data-mdn-refund-embed="true"]) {
+  background: #fff;
+}
+
+body:has([data-mdn-refund-embed="true"])::before {
+  display: none;
+  background: #fff;
+}
+
 html:has([data-mdn-site-header-embed="true"]),
 body:has([data-mdn-site-header-embed="true"]) {
   height: auto;

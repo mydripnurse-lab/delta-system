@@ -21,7 +21,7 @@
   box-sizing: border-box;
   border: 1px solid #c7dce7;
   border-radius: clamp(24px, 3vw, 32px);
-  background: var(--mist);
+  background: #fff;
   box-shadow: 0 20px 56px rgba(25,65,83,.08);
 }
 .accountBanner, .hero, .form { width: 100%; margin-inline: auto; }
