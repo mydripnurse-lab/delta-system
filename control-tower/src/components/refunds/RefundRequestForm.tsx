@@ -155,7 +155,6 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
   return (
     <div
       ref={shellRef}
-      data-mdn-booking-embed={embedded ? "true" : undefined}
       data-mdn-refund-embed={embedded ? "true" : undefined}
       className={`${styles.experience} ${embedded ? styles.embedded : ""}`}
     >
