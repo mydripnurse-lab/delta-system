@@ -193,8 +193,8 @@ export async function submitRefundRequest(input: SubmitRefundRequestInput) {
   const connectedSelection = Boolean(input.account && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(appointmentId));
   const email = normalizeEmail(connectedSelection ? input.account?.email : input.email);
   const phone = normalizePhone(connectedSelection ? input.account?.phone : input.phone);
-  if (!connectedSelection && (!appointmentReference || !email || !phone)) {
-    throw new Error("Enter the appointment reference, booking email, and booking phone—or sign in to Care.");
+  if (!connectedSelection && !appointmentReference && !email && !phone) {
+    throw new Error("Enter any one booking detail—or sign in to Care to choose an appointment.");
   }
   const pool = getDbPool();
   const lookup = await pool.query<{
@@ -212,20 +212,28 @@ export async function submitRefundRequest(input: SubmitRefundRequestInput) {
        left join app.appointment_payments payment on payment.appointment_id = appointment.id
       where ($1::uuid is not null and appointment.id = $1::uuid)
          or ($2::text <> '' and upper(appointment.public_reference) = $2)
-      limit 1`,
-    [/^[0-9a-f-]{36}$/i.test(appointmentId) ? appointmentId : null, appointmentReference],
+         or ($3::text <> '' and lower(customer.normalized_email) = $3)
+         or ($4::text <> '' and customer.normalized_phone = $4)
+      order by appointment.created_at desc
+      limit 25`,
+    [/^[0-9a-f-]{36}$/i.test(appointmentId) ? appointmentId : null, appointmentReference, email, phone],
   );
-  const appointment = lookup.rows[0];
-  if (!appointment) throw new Error("We could not match that appointment. Check the reference and booking email.");
+  const matches = connectedSelection
+    ? lookup.rows.filter((row) => row.id === appointmentId)
+    : lookup.rows.filter((row) => {
+        const referenceMatches = !appointmentReference || row.public_reference.toUpperCase() === appointmentReference;
+        const emailMatches = !email || email === normalizeEmail(row.normalized_email || row.customer_email);
+        const phoneMatches = !phone || phone === normalizePhone(row.normalized_phone || row.customer_phone);
+        return referenceMatches && emailMatches && phoneMatches;
+      });
+  if (!matches.length) throw new Error("We could not match an appointment with those booking details.");
+  if (matches.length > 1) {
+    throw new Error("More than one appointment matches. Add the appointment reference or sign in to Care to choose the correct one.");
+  }
+  const appointment = matches[0];
   if (connectedSelection && input.account) {
     const accessible = (await getClientAppointments(input.account.id)).some((item) => item.id === appointment.id);
     if (!accessible) throw new Error("This appointment is not connected to your Care account.");
-  } else {
-    const emailMatches = email && email === normalizeEmail(appointment.normalized_email || appointment.customer_email);
-    const phoneMatches = phone && phone === normalizePhone(appointment.normalized_phone || appointment.customer_phone);
-    if (!emailMatches || !phoneMatches) {
-      throw new Error("We could not match that appointment. Check the reference and booking contact details.");
-    }
   }
   const assessment = assessRefundPolicy({
     startsAt: new Date(appointment.starts_at).toISOString(),
