@@ -161,26 +161,27 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
         </header>
       ) : null}
 
-      {context.authenticated ? (
-        <section className={styles.accountBanner}>
-          <span aria-hidden="true">✓</span>
+      <div className={styles.shell}>
+        {context.authenticated ? (
+          <section className={styles.accountBanner}>
+            <span aria-hidden="true">✓</span>
+            <div>
+              <small>My Drip Nurse Care connected</small>
+              <strong>Welcome back, {context.account?.fullName?.split(" ")[0] || "there"}.</strong>
+              <p>Your appointments and verified booking details are ready.</p>
+            </div>
+          </section>
+        ) : null}
+
+        <section className={styles.hero}>
           <div>
-            <small>My Drip Nurse Care connected</small>
-            <strong>Welcome back, {context.account?.fullName?.split(" ")[0] || "there"}.</strong>
-            <p>Your appointments and verified booking details are ready.</p>
+            <p className={styles.eyebrow}>Appointment support</p>
+            <h1>Request a deposit refund</h1>
+            <p>Locate the appointment and send a secure request for review under our Appointment &amp; Deposit Policy.</p>
           </div>
         </section>
-      ) : null}
 
-      <section className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>Appointment support</p>
-          <h1>Request a deposit refund</h1>
-          <p>Locate the appointment and send a secure request for review under our Appointment &amp; Deposit Policy.</p>
-        </div>
-      </section>
-
-      <form className={styles.form} onSubmit={submit}>
+        <form className={styles.form} onSubmit={submit}>
         {currentStep === 1 ? (
         <section className={styles.step}>
           <div className={styles.stepHeading}><span>1 · Appointment</span><div><h2>Find your appointment.</h2><p>We only use the booking details needed to process this request.</p></div></div>
@@ -269,7 +270,8 @@ export default function RefundRequestForm({ initialContext, embedded }: { initia
         {error ? <p className={styles.error} role="alert">{error}</p> : null}
         </>
         ) : null}
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

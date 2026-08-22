@@ -9,11 +9,22 @@
   padding: clamp(8px, 2vw, 20px);
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
-  background: var(--mist);
+  background: #f8fafb;
 }
 
-.embedded { min-height: auto; background: var(--mist); }
-.header, .accountBanner, .hero, .form, .receipt { width: min(1040px, 100%); margin-inline: auto; }
+.embedded { min-height: auto; background: transparent; }
+.header, .receipt { width: min(1040px, 100%); margin-inline: auto; }
+.shell {
+  width: min(1040px, 100%);
+  margin-inline: auto;
+  padding: clamp(12px, 2.2vw, 22px);
+  box-sizing: border-box;
+  border: 1px solid #c7dce7;
+  border-radius: clamp(24px, 3vw, 32px);
+  background: var(--mist);
+  box-shadow: 0 20px 56px rgba(25,65,83,.08);
+}
+.accountBanner, .hero, .form { width: 100%; margin-inline: auto; }
 .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 4px 28px; }
 .header img { display: block; width: 175px; height: auto; }
 .header a:last-child { color: var(--brand); font-size: 14px; font-weight: 800; text-decoration: none; }
@@ -120,6 +131,7 @@
 
 @media (max-width: 760px) {
   .experience, .embedded { padding: 8px 10px 14px; }
+  .shell { padding: 8px; border-radius: 24px; box-shadow: 0 12px 34px rgba(25,65,83,.07); }
   .header { padding: 8px 5px 18px; }
   .header img { width: 142px; }
   .accountBanner { gap: 11px; margin-bottom: 18px; padding: 15px; border-radius: 18px; }
@@ -165,6 +177,7 @@
 
 @media (max-width: 380px) {
   .experience, .embedded { padding-inline: 8px; }
+  .shell { padding-inline: 7px; }
   .step { padding-inline: 14px; }
   .appointmentCard { padding-inline: 9px; }
 }
