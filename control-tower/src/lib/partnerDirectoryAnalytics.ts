@@ -244,12 +244,26 @@ export async function getPartnerDirectoryRankingSignals(profileIds: string[]): P
   }));
 }
 
-export async function getPartnerDirectoryAdminAnalytics(rawDays: number): Promise<PartnerDirectoryAdminAnalytics> {
+export async function getPartnerDirectoryAdminAnalytics(rawDays: number, stateCodes: string[] = []): Promise<PartnerDirectoryAdminAnalytics> {
   await ensurePartnerDirectoryAnalyticsSchema();
   const days: 7 | 30 | 90 = rawDays === 7 ? 7 : rawDays === 90 ? 90 : 30;
   const currentStart = utcDateOffset(days - 1);
   const previousStart = utcDateOffset(days * 2 - 1);
   const previousEnd = utcDateOffset(days);
+  const normalizedStates = stateCodes.map((value) => value.trim().toUpperCase()).filter(Boolean);
+  const profileValues: unknown[] = [currentStart, previousStart, previousEnd];
+  const stateScopeSql = normalizedStates.length
+    ? `where exists (
+         select 1
+           from app.partner_service_assignments assignment
+           join app.partner_coverage_areas area on area.assignment_id = assignment.id
+          where assignment.partner_profile_id = profile.id
+            and assignment.status = 'active'
+            and area.status = 'active'
+            and upper(trim(area.state)) = any($4::text[])
+       )`
+    : "";
+  if (normalizedStates.length) profileValues.push(normalizedStates);
   const result = await getDbPool().query<{
     id: string;
     application_id: string;
@@ -284,9 +298,10 @@ export async function getPartnerDirectoryAdminAnalytics(rawDays: number): Promis
        left join app.partner_directory_daily_metrics metric
          on metric.partner_profile_id = profile.id
         and metric.metric_date >= $2::date
+      ${stateScopeSql}
       group by profile.id
       order by current_impressions desc, current_profile_clicks desc, profile.display_name`,
-    [currentStart, previousStart, previousEnd],
+    profileValues,
   );
   const profileIds = result.rows.map((row) => row.id);
   const ranking = await getPartnerDirectoryRankingSignals(profileIds);
@@ -322,16 +337,20 @@ export async function getPartnerDirectoryAdminAnalytics(rawDays: number): Promis
     profileClicks: total.profileClicks + Number(row.previous_profile_clicks || 0),
     bookingClicks: total.bookingClicks + Number(row.previous_booking_clicks || 0),
   }), { impressions: 0, profileClicks: 0, bookingClicks: 0 });
+  const trendValues: unknown[] = [currentStart];
+  const trendScopeSql = normalizedStates.length ? "and partner_profile_id = any($2::uuid[])" : "";
+  if (normalizedStates.length) trendValues.push(profileIds);
   const trendResult = await getDbPool().query<{ date: string; impressions: string; profile_clicks: string; booking_clicks: string }>(
     `select metric_date::text as date,
             sum(impressions)::text as impressions,
             sum(profile_clicks)::text as profile_clicks,
             sum(booking_clicks)::text as booking_clicks
-       from app.partner_directory_daily_metrics
+      from app.partner_directory_daily_metrics
       where metric_date >= $1::date
+        ${trendScopeSql}
       group by metric_date
       order by metric_date`,
-    [currentStart],
+    trendValues,
   );
   const trendByDate = new Map<string, { date: string; impressions: number; profileClicks: number; bookingClicks: number }>(trendResult.rows.map((row) => [row.date, {
     date: row.date,

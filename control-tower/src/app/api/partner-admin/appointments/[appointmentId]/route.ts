@@ -15,11 +15,11 @@ export const runtime = "nodejs";
 type RouteContext = { params: Promise<{ appointmentId: string }> };
 
 export async function GET(request: NextRequest, context: RouteContext) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "appointments" });
   if ("response" in auth) return auth.response;
   try {
     const { appointmentId } = await context.params;
-    const appointments = await listAdminBookingAppointments({ search: appointmentId, limit: 5 });
+    const appointments = await listAdminBookingAppointments({ search: appointmentId, limit: 5, stateCodes: auth.access.stateCodes });
     const appointment = appointments.find((item) => item.id === appointmentId) || null;
     if (!appointment) return NextResponse.json({ ok: false, error: "Appointment not found." }, { status: 404 });
     const candidates = await listAdminAppointmentCandidates(appointmentId);
@@ -31,10 +31,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "appointments" });
   if ("response" in auth) return auth.response;
   try {
     const { appointmentId } = await context.params;
+    const accessible = await listAdminBookingAppointments({ search: appointmentId, limit: 5, stateCodes: auth.access.stateCodes });
+    if (!accessible.some((item) => item.id === appointmentId)) {
+      return NextResponse.json({ ok: false, error: "Appointment not found." }, { status: 404 });
+    }
     const body = await request.json() as { action?: string; partnerProfileId?: string; reason?: string; reminderAction?: PartnerReminderAction };
     if (body.action === "remind") {
       if (!body.reminderAction || !["accept", "start", "complete"].includes(body.reminderAction)) {

@@ -77,6 +77,19 @@ export async function POST(req: Request) {
       );
     }
 
+    try {
+      await client.query(
+        `update app.admin_access_profiles
+            set status = 'active', updated_at = now()
+          where user_id = $1 and status = 'invited'`,
+        [userId],
+      );
+    } catch (error: unknown) {
+      const code = error && typeof error === "object" && "code" in error
+        ? String((error as { code?: string }).code || "") : "";
+      if (code !== "42P01") throw error;
+    }
+
     // Promote pending memberships tied directly to this user id.
     await client.query(
       `

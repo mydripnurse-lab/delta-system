@@ -292,8 +292,12 @@ export async function submitRefundRequest(input: SubmitRefundRequestInput) {
   }
 }
 
-export async function listAdminRefundRequests() {
+export async function listAdminRefundRequests(stateCodes: string[] = []) {
   await ensureBookingEngineSchema();
+  const values: unknown[] = [];
+  const stateFilter = stateCodes.length
+    ? (values.push(stateCodes.map((code) => code.toUpperCase())), `where upper(trim(appointment.state)) = any($1::text[])`)
+    : "";
   const result = await getDbPool().query<{
     id: string; public_reference: string; appointment_id: string; appointment_reference: string; service_name: string;
     appointment_starts_at: string; appointment_status: string; deposit_amount: string; currency: string; payment_status: string | null;
@@ -311,8 +315,9 @@ export async function listAdminRefundRequests() {
        join app.appointments appointment on appointment.id = request.appointment_id
        join app.services service on service.id = appointment.service_id
        left join app.appointment_payments payment on payment.appointment_id = appointment.id
+      ${stateFilter}
       order by case request.status when 'submitted' then 0 when 'under_review' then 1 else 2 end, request.created_at desc
-      limit 500`,
+      limit 500`, values,
   );
   return result.rows.map((row) => ({
     id: row.id,

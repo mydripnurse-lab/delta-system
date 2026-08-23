@@ -113,7 +113,7 @@ export async function ensureServiceCatalogSchema() {
       price numeric(12,2) not null default 0,
       currency text not null default 'USD',
       deposit_type text not null default 'percentage',
-      deposit_value numeric(12,2) not null default 35,
+      deposit_value numeric(12,2) not null default 40,
       image_url text not null default '',
       image_alt text not null default '',
       image_title text not null default '',
@@ -134,7 +134,7 @@ export async function ensureServiceCatalogSchema() {
       check (deposit_type <> 'percentage' or deposit_value <= 100),
       check (editorial_status in ('draft', 'review', 'approved', 'published', 'archived'))
     );
-    alter table app.services alter column deposit_value set default 35;
+    alter table app.services alter column deposit_value set default 40;
     create index if not exists services_organization_status_idx
       on app.services (organization_id, is_active, editorial_status, name);
 
@@ -422,7 +422,7 @@ export async function seedMyDripNurseServices() {
           number(legacy?.price),
           legacy?.currency || "USD",
           "percentage",
-          35,
+          40,
           definition.imageUrl,
           `${definition.name} mobile IV therapy`,
           `${definition.name} mobile IV therapy`,

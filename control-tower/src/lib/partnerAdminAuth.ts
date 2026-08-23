@@ -5,25 +5,25 @@ import {
   PARTNER_ADMIN_SESSION_COOKIE_NAME,
 } from "@/lib/partnerAdminSession";
 import { readCookieFromHeader, verifySessionToken } from "@/lib/session";
+import {
+  canAccessPartnerAdminModule,
+  isPlatformOwnerEmail,
+  resolvePartnerAdminAccess,
+  type PartnerAdminModule,
+} from "@/lib/stateMarketManagers";
 
 function text(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function allowedEmails() {
-  return new Set(
-    (text(process.env.PARTNER_ADMIN_EMAILS) || "ac@devasks.com")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean),
-  );
-}
-
 export function isPartnerAdminEmailAllowed(email: string) {
-  return allowedEmails().has(text(email).toLowerCase());
+  return isPlatformOwnerEmail(email);
 }
 
-export async function requirePartnerAdmin(req: Request) {
+export async function requirePartnerAdmin(
+  req: Request,
+  options?: { module?: PartnerAdminModule; ownerOnly?: boolean },
+) {
   const secret = getPartnerAdminSessionSecret();
   if (!secret) {
     return {
@@ -50,13 +50,6 @@ export async function requirePartnerAdmin(req: Request) {
     };
   }
 
-  if (!isPartnerAdminEmailAllowed(session.email)) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ ok: false, error: "Access denied." }, { status: 403 }),
-    };
-  }
-
   const existing = await getDbPool().query<{
     id: string;
     email: string;
@@ -74,7 +67,20 @@ export async function requirePartnerAdmin(req: Request) {
     [session.sub, session.email],
   );
   const user = existing.rows[0] || null;
-  if (!user || !user.is_active || !isPartnerAdminEmailAllowed(user.email)) {
+  if (!user || !user.is_active) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ ok: false, error: "Access denied." }, { status: 403 }),
+    };
+  }
+
+  const access = await resolvePartnerAdminAccess({ userId: user.id, email: user.email });
+  if (
+    !access ||
+    access.status !== "active" ||
+    (options?.ownerOnly && !access.isOwner) ||
+    !canAccessPartnerAdminModule(access, options?.module)
+  ) {
     return {
       ok: false as const,
       response: NextResponse.json({ ok: false, error: "Access denied." }, { status: 403 }),
@@ -104,5 +110,6 @@ export async function requirePartnerAdmin(req: Request) {
       fullName: user.full_name || null,
       avatarUrl: user.avatar_url || null,
     },
+    access,
   };
 }

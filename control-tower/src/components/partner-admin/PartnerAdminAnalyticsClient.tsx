@@ -16,6 +16,9 @@ type AnalyticsPayload = {
   coverageAreas: BusinessCoverageArea[];
   markets: Array<Omit<AppointmentGeoPoint, "latitude" | "longitude">>;
   trend: TrendPoint[];
+  viewer: { role: "platform_owner" | "state_market_manager"; isOwner: boolean; stateCodes: string[]; stateNames: string[] };
+  managerFinancials: null | { completedAppointments: number; grossCompletedValue: number; platformShareRate: number; platformShareValue: number; managerRateOfPlatformShare: number; effectiveGrossRate: number; estimatedCommission: number; grossAppointmentValue: number; earnedCommission: number; paidCommission: number; pendingCommission: number };
+  managerPerformance: Array<{ userId: string; fullName: string; email: string; status: "invited" | "active" | "suspended"; managerCommissionRate: number; states: Array<{ code: string; name: string }>; completedAppointments: number; grossAppointmentValue: number; platformShareValue: number; earnedCommission: number; paidCommission: number; pendingCommission: number }>;
 };
 
 type TrendPoint = { date: string; total: number; completed: number; intents: number; lost: number };
@@ -133,7 +136,21 @@ export function PartnerAdminAnalyticsClient() {
           <article className={styles.partnerRevenueKpi}><span>Generated for Partners</span><strong>{money(summary?.partnerEarnings || 0)}</strong><small>Service earnings from completed visits</small></article>
           <article className={styles.platformRevenueKpi}><span>My Drip Nurse collected</span><strong>{money(summary?.platformRevenue || 0)}</strong><div className={styles.lostKpiBreakdown}><div><small>Refunded</small><b>{money(summary?.refundedRevenue || 0)}</b></div><div><small>Failed</small><b>{money(summary?.failedDepositValue || 0)}</b></div></div><small>Net deposits collected across paid appointments</small></article>
           <article><span>Markets reached</span><strong>{summary?.markets || 0}</strong><small>Unique city and county combinations</small></article>
+          {analytics.managerFinancials ? <article className={styles.managerEarningsKpi}><span>Lifetime manager earnings</span><strong>{money(analytics.managerFinancials.earnedCommission)}</strong><div className={styles.lostKpiBreakdown}><div><small>Paid</small><b>{money(analytics.managerFinancials.paidCommission)}</b></div><div><small>Payable</small><b>{money(analytics.managerFinancials.pendingCommission)}</b></div></div><small>{analytics.managerFinancials.managerRateOfPlatformShare}% of the {analytics.managerFinancials.platformShareRate}% platform share ({analytics.managerFinancials.effectiveGrossRate.toFixed(2)}% gross) · {money(analytics.managerFinancials.estimatedCommission)} estimated in this view</small></article> : null}
         </section>
+        {analytics.viewer.isOwner ? <section className={`${styles.analyticsCausePanel} ${styles.managerPerformancePanel}`}>
+          <header><div><span className={styles.eyebrow}>Market management</span><h2>State Market Manager performance</h2><p>Commission results are calculated from completed appointments only. Pending amounts have not yet been marked as paid.</p></div><div className={styles.analyticsCoverageSummary}><span><strong>{analytics.managerPerformance.length}</strong> managers</span><span><strong>{money(analytics.managerPerformance.reduce((total, manager) => total + manager.earnedCommission, 0))}</strong> earned</span><span><strong>{money(analytics.managerPerformance.reduce((total, manager) => total + manager.pendingCommission, 0))}</strong> payable</span></div></header>
+          <div className={styles.managerPerformanceRows}>
+            {analytics.managerPerformance.length ? analytics.managerPerformance.map((manager) => <article key={manager.userId}>
+              <div><strong>{manager.fullName || manager.email}</strong><small>{manager.states.map((state) => state.name).join(" · ") || "No states assigned"}</small></div>
+              <span><small>Completed</small><strong>{manager.completedAppointments}</strong></span>
+              <span><small>Gross value</small><strong>{money(manager.grossAppointmentValue)}</strong></span>
+              <span><small>Earned</small><strong>{money(manager.earnedCommission)}</strong></span>
+              <span><small>Payable</small><strong>{money(manager.pendingCommission)}</strong></span>
+              <span><small>Rate</small><strong>{manager.managerCommissionRate}% <em>of 40%</em></strong></span>
+            </article>) : <p>No State Market Managers have been created yet.</p>}
+          </div>
+        </section> : null}
         <section className={styles.analyticsCausePanel}>
           <header><div><span className={styles.eyebrow}>Opportunity diagnosis</span><h2>Why bookings were not completed</h2><p>Exact diagnostics are recorded for new leads. Earlier leads remain clearly marked when coverage and availability cannot be safely separated.</p></div><div className={styles.analyticsCoverageSummary}><span><strong>{summary?.coveredCounties || 0}</strong> covered counties</span><span><strong>{summary?.lostWithCurrentCoverage || 0}</strong> recoverable with coverage now</span><span data-gap="true"><strong>{summary?.lostWithoutCurrentCoverage || 0}</strong> current coverage gaps</span></div></header>
           <div className={styles.analyticsCauseGrid}>

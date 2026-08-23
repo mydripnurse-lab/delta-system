@@ -67,7 +67,7 @@ function errorMessage(error: unknown) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "services", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     return NextResponse.json(
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "services", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     const input = serviceInputSchema.parse(await req.json()) as AdminServiceInput;
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "services", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     const body = await req.json();

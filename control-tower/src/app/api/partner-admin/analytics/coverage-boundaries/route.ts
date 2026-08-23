@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
+import { stateFipsForCode } from "@/lib/usStateOptions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,11 +23,18 @@ type TigerBoundaryCollection = {
 };
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "analytics" });
   if ("response" in auth) return auth.response;
 
+  const scopedFips = auth.access.isOwner
+    ? INCLUDED_STATE_FIPS
+    : auth.access.stateCodes.map(stateFipsForCode).filter(Boolean);
+  if (!scopedFips.length) {
+    return NextResponse.json({ ok: true, boundaries: { type: "FeatureCollection", features: [] } });
+  }
+
   const params = new URLSearchParams({
-    where: `STATE IN (${INCLUDED_STATE_FIPS.map((fips) => `'${fips}'`).join(",")})`,
+    where: `STATE IN (${scopedFips.map((fips) => `'${fips}'`).join(",")})`,
     outFields: "GEOID,STATE,NAME,BASENAME",
     returnGeometry: "true",
     outSR: "4326",

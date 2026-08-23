@@ -1,4 +1,5 @@
 import { getDbPool } from "@/lib/db";
+import { stateMatchesScope } from "@/lib/usStateOptions";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import {
   ensureStaffSchema,
@@ -227,6 +228,15 @@ function mapApplication(row: ApplicationRow): StaffAdminApplication {
   };
 }
 
+export function staffApplicationMatchesStateScope(
+  application: StaffAdminApplication,
+  stateCodes: readonly string[],
+) {
+  return !stateCodes.length || application.locations.some((location) =>
+    stateMatchesScope(location.state, stateCodes),
+  );
+}
+
 const APPLICATION_SELECT = `
   select
     a.*,
@@ -266,6 +276,7 @@ export async function listStaffApplications(opts?: {
   search?: string;
   status?: string;
   limit?: number;
+  stateCodes?: string[];
 }) {
   await ensureBookingEngineSchema();
   const pool = getDbPool();
@@ -273,6 +284,14 @@ export async function listStaffApplications(opts?: {
   const where: string[] = [];
   const search = s(opts?.search);
   const status = s(opts?.status);
+  if (opts?.stateCodes?.length) {
+    values.push(opts.stateCodes.map((code) => code.toUpperCase()));
+    where.push(`exists (
+      select 1 from app.staff_application_location_steps scope_location
+      where scope_location.application_id = a.id
+        and upper(trim(scope_location.state)) = any($${values.length}::text[])
+    )`);
+  }
   if (search) {
     values.push(`%${search}%`);
     where.push(`(

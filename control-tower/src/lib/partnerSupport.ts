@@ -1,5 +1,6 @@
 import { ensureStaffSchema } from "@/lib/publicStaffProvisioning";
 import { getDbPool } from "@/lib/db";
+import { stateScopeNames } from "@/lib/usStateOptions";
 
 let supportSchemaReady: Promise<void> | null = null;
 
@@ -167,9 +168,36 @@ export async function addPartnerSupportMessage(input: { ticketId: string; profil
   await getDbPool().query(`update app.partner_support_tickets set status = 'open', updated_at = now(), last_message_at = now() where id = $1`, [input.ticketId]);
 }
 
-export async function listAdminSupportTickets(organizationId: string) {
+function supportStateScopeSql(stateCodes: readonly string[], parameterNumber: number) {
+  if (!stateCodes.length) return "";
+  return `and exists (
+    select 1
+      from app.partner_service_assignments scope_assignment
+      join app.partner_coverage_areas scope_area
+        on scope_area.assignment_id = scope_assignment.id
+       and scope_area.status = 'active'
+     where scope_assignment.partner_profile_id = t.partner_profile_id
+       and scope_assignment.status = 'active'
+       and lower(trim(scope_area.state)) = any($${parameterNumber}::text[])
+  )`;
+}
+
+function normalizedSupportStateValues(stateCodes: readonly string[]) {
+  return [...stateCodes, ...stateScopeNames(stateCodes)].map((value) => value.toLowerCase());
+}
+
+export async function listAdminSupportTickets(organizationId: string, stateCodes: string[] = []) {
   await ensurePartnerSupportSchema();
-  const result = await getDbPool().query(`${ticketSelect} where t.organization_id = $1 order by case when t.status = 'open' then 0 when t.status = 'pending' then 1 else 2 end, t.last_message_at desc`, [organizationId]);
+  const values: unknown[] = [organizationId];
+  if (stateCodes.length) values.push(normalizedSupportStateValues(stateCodes));
+  const result = await getDbPool().query(
+    `${ticketSelect}
+      where t.organization_id = $1
+      ${supportStateScopeSql(stateCodes, values.length)}
+      order by case when t.status = 'open' then 0 when t.status = 'pending' then 1 else 2 end,
+               t.last_message_at desc`,
+    values,
+  );
   return result.rows.map(mapTicket);
 }
 
@@ -188,15 +216,22 @@ export async function updateAdminSupportTicket(input: {
   body?: string;
   status?: SupportTicketStatus;
   assignedUserId?: string | null;
+  stateCodes?: string[];
 }) {
   await ensurePartnerSupportSchema();
   const pool = getDbPool();
   const client = await pool.connect();
   try {
     await client.query("begin");
+    const values: unknown[] = [input.ticketId, input.organizationId];
+    if (input.stateCodes?.length) values.push(normalizedSupportStateValues(input.stateCodes));
     const owned = await client.query<{ id: string; partner_profile_id: string }>(
-      `select id, partner_profile_id from app.partner_support_tickets where id = $1 and organization_id = $2 for update`,
-      [input.ticketId, input.organizationId],
+      `select t.id, t.partner_profile_id
+         from app.partner_support_tickets t
+        where t.id = $1 and t.organization_id = $2
+          ${supportStateScopeSql(input.stateCodes || [], values.length)}
+        for update`,
+      values,
     );
     if (!owned.rows[0]) throw new Error("Ticket not found.");
     if (input.body) {

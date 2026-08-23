@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
+import { getStaffApplication, staffApplicationMatchesStateScope } from "@/lib/staffAdmin";
 import {
   listPartnerServiceAssignments,
   setPartnerServiceAssignment,
@@ -17,10 +18,14 @@ function message(error: unknown) {
 }
 
 export async function GET(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications" });
   if ("response" in auth) return auth.response;
   try {
     const { applicationId } = await context.params;
+    const application = await getStaffApplication(applicationId);
+    if (!application || !staffApplicationMatchesStateScope(application, auth.access.stateCodes)) {
+      return NextResponse.json({ ok: false, error: "Application not found." }, { status: 404 });
+    }
     const matrix = await listPartnerServiceAssignments(applicationId);
     return NextResponse.json({ ok: true, matrix }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
@@ -30,7 +35,7 @@ export async function GET(req: NextRequest, context: Context) {
 }
 
 export async function PATCH(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     const { applicationId } = await context.params;

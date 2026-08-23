@@ -136,7 +136,7 @@ export async function ensureStaffSchema() {
         add column if not exists client_referral_reward_earned_webhook_url text,
         add column if not exists account_security_webhook_url text,
         add column if not exists admin_base_url text not null default 'https://admin.mydripnurse.com',
-        add column if not exists affiliate_commission_rate numeric(5,2) not null default 2.00;
+        add column if not exists affiliate_commission_rate numeric(5,2) not null default 3.00;
       alter table app.staff_form_configs
         drop constraint if exists staff_form_configs_calendar_mode_ck;
       alter table app.staff_form_configs
@@ -3179,7 +3179,7 @@ export async function provisionInternalPartnerApplication(opts: {
       `update app.staff_application_location_steps
           set stripe_status = 'complete', staff_status = 'complete', calendars_status = 'complete',
               deposit_status = 'complete',
-              deposit_config = jsonb_build_object('percentage', 35, 'source', 'service_catalog', 'platform', 'stripe'),
+              deposit_config = jsonb_build_object('percentage', 40, 'source', 'service_catalog', 'platform', 'stripe'),
               stripe_completed_at = coalesce(stripe_completed_at, now()), deposit_completed_at = now(),
               last_error = null, updated_at = now()
         where application_id = $1`,

@@ -1,5 +1,6 @@
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { getDbPool } from "@/lib/db";
+import { stateMatchesScope } from "@/lib/usStateOptions";
 
 export type AdminContactLocation = {
   address: string;
@@ -61,18 +62,26 @@ function uniqueLocations(locations: AdminContactLocation[]) {
   });
 }
 
-export async function listAdminBookingContacts(options: { search?: string; limit?: number; from?: string; to?: string; relationship?: string } = {}) {
+export async function listAdminBookingContacts(options: { search?: string; limit?: number; from?: string; to?: string; relationship?: string; stateCodes?: string[] } = {}) {
   await ensureBookingEngineSchema();
   const pool = getDbPool();
   const search = text(options.search);
   const limit = Math.min(750, Math.max(1, Number(options.limit || 400)));
   const values: unknown[] = [];
-  let where = "";
+  const filters: string[] = [];
+  let appointmentScope = "";
+  if (options.stateCodes?.length) {
+    values.push(options.stateCodes.map((code) => code.toUpperCase()));
+    appointmentScope = ` and upper(trim(appointment.state)) = any($${values.length}::text[])`;
+    filters.push("appointment.id is not null");
+  }
   if (search) {
     values.push(`%${search}%`);
-    where = `where customer.full_name ilike $1 or customer.email ilike $1 or customer.phone ilike $1
-      or exists (select 1 from app.appointments search_appointment where search_appointment.customer_id = customer.id and (search_appointment.city ilike $1 or search_appointment.county ilike $1 or search_appointment.state ilike $1))`;
+    const placeholder = `$${values.length}`;
+    filters.push(`(customer.full_name ilike ${placeholder} or customer.email ilike ${placeholder} or customer.phone ilike ${placeholder}
+      or exists (select 1 from app.appointments search_appointment where search_appointment.customer_id = customer.id and (search_appointment.city ilike ${placeholder} or search_appointment.county ilike ${placeholder} or search_appointment.state ilike ${placeholder})))`);
   }
+  const where = filters.length ? `where ${filters.join(" and ")}` : "";
   values.push(limit);
 
   const [customerResult, leadResult, demandResult] = await Promise.all([
@@ -98,7 +107,7 @@ export async function listAdminBookingContacts(options: { search?: string; limit
               )) filter (where appointment.id is not null), '[]'::jsonb) as locations,
               coalesce(array_agg(distinct service.name) filter (where service.name is not null), array[]::text[]) as services
          from app.booking_customers customer
-         left join app.appointments appointment on appointment.customer_id = customer.id
+         left join app.appointments appointment on appointment.customer_id = customer.id${appointmentScope}
          left join app.services service on service.id = appointment.service_id
          ${where}
         group by customer.id
@@ -153,6 +162,7 @@ export async function listAdminBookingContacts(options: { search?: string; limit
     const patient = (lead.primaryPatient || {}) as Record<string, unknown>;
     const coverage = (payload.coverage || {}) as Record<string, unknown>;
     const service = (payload.service || {}) as Record<string, unknown>;
+    if (options.stateCodes?.length && !stateMatchesScope(coverage.state, options.stateCodes)) continue;
     const fullName = text(patient.fullName) || [text(patient.firstName), text(patient.lastName)].filter(Boolean).join(" ");
     const email = text(patient.email); const phone = text(patient.phone);
     if (!fullName || (!email && !phone)) continue;
@@ -171,6 +181,7 @@ export async function listAdminBookingContacts(options: { search?: string; limit
   }
 
   for (const row of demandResult.rows) {
+    if (options.stateCodes?.length && !stateMatchesScope(row.state, options.stateCodes)) continue;
     if (!row.full_name || (!row.email && !row.phone)) continue;
     const name = splitName(row.full_name);
     mergeProspect({
@@ -185,6 +196,7 @@ export async function listAdminBookingContacts(options: { search?: string; limit
   const toTime = options.to ? new Date(`${options.to}T23:59:59.999`).getTime() : Number.POSITIVE_INFINITY;
   const relationship = text(options.relationship);
   return [...contacts.values()]
+    .filter((contact) => !options.stateCodes?.length || contact.locations.some((location) => stateMatchesScope(location.state, options.stateCodes || [])))
     .filter((contact) => !search || [contact.fullName, contact.email, contact.phone, ...contact.locations.flatMap((location) => [location.city, location.county, location.state])].some((value) => value.toLowerCase().includes(search.toLowerCase())))
     .filter((contact) => {
       const seenAt = new Date(contact.lastSeenAt).getTime();

@@ -509,9 +509,19 @@ export async function backfillPartnerServiceAssignments() {
   }
 }
 
-export async function listPartnerAdminDirectory(): Promise<PartnerAdminDirectoryItem[]> {
+export async function listPartnerAdminDirectory(stateCodes: string[] = []): Promise<PartnerAdminDirectoryItem[]> {
   await ensureBookingEngineSchema();
   await backfillPartnerServiceAssignments();
+  const values: unknown[] = [];
+  const stateFilter = stateCodes.length
+    ? (values.push(stateCodes.map((code) => code.toUpperCase())), `where exists (
+        select 1 from app.partner_service_assignments scoped_assignment
+        join app.partner_coverage_areas scoped_area on scoped_area.assignment_id = scoped_assignment.id
+        where scoped_assignment.partner_profile_id = p.id
+          and scoped_assignment.status = 'active' and scoped_area.status = 'active'
+          and upper(trim(scoped_area.state)) = any($1::text[])
+      )`)
+    : "";
   const result = await getDbPool().query<{
     id: string;
     application_id: string;
@@ -534,8 +544,9 @@ export async function listPartnerAdminDirectory(): Promise<PartnerAdminDirectory
        from app.partner_profiles p
        left join app.partner_service_assignments a on a.partner_profile_id = p.id
        left join app.partner_coverage_areas area on area.assignment_id = a.id
+      ${stateFilter}
       group by p.id
-      order by p.display_name`,
+      order by p.display_name`, values,
   );
   const websiteBase = (text(process.env.PARTNER_WEBSITE_BASE_URL) || "https://partners.mydripnurse.com").replace(/\/+$/, "");
   return result.rows.map((row) => ({

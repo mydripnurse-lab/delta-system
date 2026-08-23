@@ -13,7 +13,7 @@ function text(value: unknown) {
 }
 
 export async function DELETE(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications", ownerOnly: true });
   if ("response" in auth) return auth.response;
 
   try {

@@ -546,6 +546,7 @@
 .lostKpiBreakdown b { color: #6d3b3b; font-family: Georgia,"Times New Roman",serif; font-size: 14px; font-weight: 500; }
 .analyticsKpis .partnerRevenueKpi { border-color: rgba(18,145,132,.22); background: linear-gradient(145deg,#fbfffe,#e9f8f4); }
 .analyticsKpis .platformRevenueKpi { border-color: rgba(4,111,128,.2); background: linear-gradient(145deg,#fff,#eef8fa); }
+.analyticsKpis .managerEarningsKpi { border-color: rgba(4,111,128,.25); background: linear-gradient(145deg,#fff,#e8f6f8); }
 .analyticsKpis span { color: #7f8d89; font-size: 9px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
 .analyticsKpis strong { color: #17353a; font-family: Georgia,"Times New Roman",serif; font-size: clamp(26px,3vw,36px); font-weight: 400; }
 .analyticsKpis small { color: #8e9995; font-size: 9px; line-height: 1.45; }
@@ -553,6 +554,16 @@
 .analyticsCausePanel > header { padding: 21px 23px; border-bottom: 1px solid #e8ece8; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
 .analyticsCausePanel h2 { margin: 5px 0 4px; color: #17353a; font-family: Georgia,"Times New Roman",serif; font-size: 25px; font-weight: 400; }
 .analyticsCausePanel header p { max-width: 720px; margin: 0; color: #7d8c88; font-size: 9px; line-height: 1.5; }
+.managerPerformanceRows { display: grid; }
+.managerPerformanceRows > p { margin: 0; padding: 24px; color: #7d8c88; font-size: 10px; }
+.managerPerformanceRows article { min-width: 0; padding: 15px 22px; border-bottom: 1px solid #edf0ed; display: grid; grid-template-columns: minmax(190px,1.4fr) repeat(5,minmax(86px,.55fr)); align-items: center; gap: 16px; }
+.managerPerformanceRows article:last-child { border-bottom: 0; }
+.managerPerformanceRows article > div { min-width: 0; display: grid; gap: 4px; }
+.managerPerformanceRows article > div strong { overflow: hidden; color: #17353a; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.managerPerformanceRows article small { color: #899793; font-size: 8px; line-height: 1.4; }
+.managerPerformanceRows article > span { min-width: 0; display: grid; gap: 4px; }
+.managerPerformanceRows article > span strong { color: #29494e; font-size: 11px; }
+.managerPerformanceRows article > span em { color: #8a9995; font-size: 8px; font-style: normal; font-weight: 600; }
 .analyticsCoverageSummary { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .analyticsCoverageSummary span { min-height: 34px; padding: 0 11px; border: 1px solid #cfe7e2; border-radius: 999px; color: #5f7b77; background: #f2faf8; display: inline-flex; align-items: center; gap: 4px; font-size: 8px; white-space: nowrap; }
 .analyticsCoverageSummary span[data-gap="true"] { border-color: #efd1cd; color: #9f4b4b; background: #fff5f3; }
@@ -1197,6 +1208,8 @@
   .analyticsFilters { width: 100%; min-width: 0; }
   .contactFilters { grid-template-columns: 1.4fr repeat(2,minmax(130px,.7fr)) minmax(170px,.9fr) auto; }
   .analyticsKpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .managerPerformanceRows article { grid-template-columns: minmax(180px,1.3fr) repeat(3,minmax(82px,.55fr)); }
+  .managerPerformanceRows article > span:nth-of-type(2),.managerPerformanceRows article > span:nth-of-type(5) { display: none; }
   .analyticsCauseGrid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .analyticsCauseGrid article { border-bottom: 1px solid #eceeea; }
   .analyticsLowerGrid { grid-template-columns: 1fr; }
@@ -1273,6 +1286,9 @@
   .analyticsKpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .analyticsKpis article { min-height: 108px; padding: 14px; }
   .analyticsCausePanel > header { align-items: flex-start; flex-direction: column; }
+  .managerPerformanceRows article { padding: 16px; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; }
+  .managerPerformanceRows article > div { grid-column: 1 / -1; }
+  .managerPerformanceRows article > span:nth-of-type(2),.managerPerformanceRows article > span:nth-of-type(5) { display: grid; }
   .analyticsCoverageSummary { justify-content: flex-start; }
   .analyticsCauseGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .analyticsCauseGrid article { min-height: 106px; padding: 14px; }

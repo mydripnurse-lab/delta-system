@@ -14,7 +14,7 @@ function errorMessage(error: unknown) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { ownerOnly: true });
   if ("response" in auth) return auth.response;
 
   try {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { ownerOnly: true });
   if ("response" in auth) return auth.response;
 
   try {

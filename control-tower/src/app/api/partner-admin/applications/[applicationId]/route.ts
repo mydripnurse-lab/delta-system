@@ -5,6 +5,7 @@ import {
   completeStaffApplication,
   deleteStaffApplicationRecord,
   getStaffApplication,
+  staffApplicationMatchesStateScope,
   rejectStaffApplication,
   reviewStaffApplication,
   updateStaffApplicationNotes,
@@ -19,13 +20,13 @@ function text(value: unknown) {
 }
 
 export async function GET(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications" });
   if ("response" in auth) return auth.response;
 
   try {
     const { applicationId } = await context.params;
     const application = await getStaffApplication(applicationId);
-    if (!application) {
+    if (!application || !staffApplicationMatchesStateScope(application, auth.access.stateCodes)) {
       return NextResponse.json({ ok: false, error: "Application not found." }, { status: 404 });
     }
     return NextResponse.json({ ok: true, application });
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest, context: Context) {
 }
 
 export async function PATCH(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications", ownerOnly: true });
   if ("response" in auth) return auth.response;
 
   try {
@@ -88,7 +89,7 @@ export async function PATCH(req: NextRequest, context: Context) {
 }
 
 export async function DELETE(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications", ownerOnly: true });
   if ("response" in auth) return auth.response;
 
   try {

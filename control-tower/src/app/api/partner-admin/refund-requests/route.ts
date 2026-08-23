@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "refunds" });
   if ("response" in auth) return auth.response;
   try {
-    return NextResponse.json({ ok: true, requests: await listAdminRefundRequests() }, { headers: { "cache-control": "no-store" } });
+    return NextResponse.json({ ok: true, requests: await listAdminRefundRequests(auth.access.stateCodes) }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.error("[admin refund requests] list failed", error);
     return NextResponse.json({ ok: false, error: "Could not load refund requests." }, { status: 500 });
@@ -19,14 +19,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "refunds" });
   if ("response" in auth) return auth.response;
   try {
     const body = await request.json().catch(() => null) as { requestId?: string; action?: string; note?: string } | null;
     if (!body?.requestId) return NextResponse.json({ ok: false, error: "Refund request is required." }, { status: 400 });
+    const scopedItem = (await listAdminRefundRequests(auth.access.stateCodes)).find((requestItem) => requestItem.id === body.requestId);
+    if (!scopedItem) return NextResponse.json({ ok: false, error: "Refund request not found." }, { status: 404 });
     if (body.action === "approve") {
       if (!String(body.note || "").trim()) return NextResponse.json({ ok: false, error: "Add the policy basis before approving the refund." }, { status: 400 });
-      const item = (await listAdminRefundRequests()).find((requestItem) => requestItem.id === body.requestId);
+      const item = scopedItem;
       if (!item) return NextResponse.json({ ok: false, error: "Refund request not found." }, { status: 404 });
       if (["duplicate_charge", "incorrect_charge"].includes(item.reasonCode)) {
         return NextResponse.json({ ok: false, error: "Charge disputes require manual Stripe payment verification before any refund is issued." }, { status: 400 });

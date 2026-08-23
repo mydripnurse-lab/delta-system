@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "partners" });
   if ("response" in auth) return auth.response;
   try {
-    const partners = await listPartnerAdminDirectory();
+    const partners = await listPartnerAdminDirectory(auth.access.stateCodes);
     return NextResponse.json({ ok: true, partners }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     return NextResponse.json(

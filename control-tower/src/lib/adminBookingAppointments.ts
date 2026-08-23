@@ -61,6 +61,7 @@ export async function listAdminBookingAppointments(options: {
   search?: string;
   status?: string;
   limit?: number;
+  stateCodes?: string[];
 } = {}) {
   await ensureBookingEngineSchema();
   const values: unknown[] = [];
@@ -68,6 +69,11 @@ export async function listAdminBookingAppointments(options: {
   const search = text(options.search);
   const status = text(options.status);
   const limit = Math.min(500, Math.max(1, Number(options.limit || 250)));
+
+  if (options.stateCodes?.length) {
+    values.push(options.stateCodes.map((code) => code.toUpperCase()));
+    conditions.push(`upper(trim(appointment.state)) = any($${values.length}::text[])`);
+  }
 
   if (STATUS_FILTERS.has(status)) {
     values.push(status);

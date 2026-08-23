@@ -455,7 +455,7 @@ export async function savePartnerCalendarServiceSetup(opts: {
           `update app.services
               set price = coalesce($3, price),
                   deposit_type = 'percentage',
-                  deposit_value = 35,
+                  deposit_value = 40,
                   is_active = $4,
                   updated_at = now()
             where organization_id = $1 and slug = $2`,

@@ -11,7 +11,7 @@ function errorMessage(error: unknown) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "calendars", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     const calendars = await listAdminBookingCalendarDirectory();
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "calendars", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     return NextResponse.json(
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "calendars", ownerOnly: true });
   if ("response" in auth) return auth.response;
   return NextResponse.json(
     { ok: false, error: "Calendar setup is managed from the Services catalog. Use the Services screen to edit price, deposit or booking rules." },

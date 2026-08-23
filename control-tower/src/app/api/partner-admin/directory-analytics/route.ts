@@ -8,12 +8,12 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "directory-analytics" });
   if ("response" in auth) return auth.response;
   try {
     const days = Number(request.nextUrl.searchParams.get("days") || 30);
     return NextResponse.json(
-      { ok: true, analytics: await getPartnerDirectoryAdminAnalytics(days) },
+      { ok: true, analytics: await getPartnerDirectoryAdminAnalytics(days, auth.access.stateCodes) },
       { headers: { "cache-control": "no-store" } },
     );
   } catch (error) {

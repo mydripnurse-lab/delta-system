@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
+import { getStaffApplication, staffApplicationMatchesStateScope } from "@/lib/staffAdmin";
 import {
   getApplicationWeeklyAvailability,
   PARTNER_TIMEZONES,
@@ -39,10 +40,14 @@ function errorMessage(error: unknown) {
 }
 
 export async function GET(request: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "applications" });
   if ("response" in auth) return auth.response;
   try {
     const { applicationId } = await context.params;
+    const application = await getStaffApplication(applicationId);
+    if (!application || !staffApplicationMatchesStateScope(application, auth.access.stateCodes)) {
+      return NextResponse.json({ ok: false, error: "Application not found." }, { status: 404 });
+    }
     const availability = await getApplicationWeeklyAvailability(applicationId);
     return NextResponse.json({ ok: true, availability }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
@@ -52,7 +57,7 @@ export async function GET(request: NextRequest, context: Context) {
 }
 
 export async function PUT(request: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "applications", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     const { applicationId } = await context.params;

@@ -255,7 +255,7 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
       { target: "account_security", label: "Care account security SMS", configured: Boolean(accountSecurityUrl), endpoint: safeWebhookEndpoint(accountSecurityUrl) },
     ],
     adminBaseUrl: s(row.admin_base_url) || DEFAULT_ADMIN_BASE_URL,
-    affiliateCommissionRate: Number(row.affiliate_commission_rate ?? 2) || 2,
+    affiliateCommissionRate: Number(row.affiliate_commission_rate ?? 3) || 3,
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : "",
   };
 }
@@ -369,7 +369,7 @@ export async function savePartnerAdminNotificationSettings(input: {
   const appointmentRefundedWebhook = validatedUrl(input.appointmentRefundedWebhookUrl, "Appointment refunded webhook");
   const clientReferralWebhook = validatedUrl(input.clientReferralWebhookUrl, "Client referral webhook");
   const adminBaseUrl = validatedUrl(input.adminBaseUrl, "Admin base URL", { required: true });
-  const affiliateCommissionRate = Number(input.affiliateCommissionRate ?? 2);
+  const affiliateCommissionRate = Number(input.affiliateCommissionRate ?? 3);
   if (!Number.isFinite(affiliateCommissionRate) || affiliateCommissionRate < 0 || affiliateCommissionRate > 100) {
     throw new Error("Affiliate commission rate must be between 0 and 100.");
   }
@@ -676,9 +676,9 @@ export async function testPartnerAdminNotificationWebhook(input: {
   const submittedAt = new Date().toISOString();
   const adminBaseUrl = s(row.admin_base_url) || DEFAULT_ADMIN_BASE_URL;
   const safeOfferUrl = "https://partners.mydripnurse.com/partner-portal/appointments?appointment=test-appointment-id&offer=1";
-  const safeEarnings = 142.35;
-  const safeEarningsFormatted = "$142.35";
-  const safeEarningsDisplay = "$142.35 + tips";
+  const safeEarnings = 131.4;
+  const safeEarningsFormatted = "$131.40";
+  const safeEarningsDisplay = "$131.40 + tips";
   const safeSmsMessage = `My Drip Nurse: New appointment. Earn ${safeEarningsDisplay}. Hydration · tomorrow at 10:00 AM EDT. Accept or decline: ${safeOfferUrl}`;
   const safePatientInvitationUrl = "https://care.mydripnurse.com/register?next=%2Fappointments&invite=1&email=additional-patient%40mydripnurse.com";
   const safeAdditionalPatient = {
@@ -1076,7 +1076,7 @@ export async function testPartnerAdminNotificationWebhook(input: {
           endsAt: new Date(Date.now() + 90 * 60_000).toISOString(),
           timezone: "America/New_York",
           service: { id: "test-service-id", slug: "hydration", name: "Hydration", calendarPublicKey: "test-calendar", price: 219, currency: "USD", durationMinutes: 60 },
-          payment: { status: "pending", servicePrice: 219, depositType: "percentage", depositValue: 35, depositAmount: 76.65, amountDueAtVisit: safeEarnings, estimatedEarnings: safeEarnings, tipsEligible: true, tipsIncluded: false, earningsDisplay: safeEarningsDisplay, currency: "USD" },
+          payment: { status: "pending", servicePrice: 219, depositType: "percentage", depositValue: 40, depositAmount: 87.6, amountDueAtVisit: safeEarnings, estimatedEarnings: safeEarnings, tipsEligible: true, tipsIncluded: false, earningsDisplay: safeEarningsDisplay, currency: "USD" },
           serviceAddress: { addressLine1: "100 Main Street", city: "Orlando", county: "Orange County", state: "Florida", postalCode: "32801", countryCode: "US" },
           source: { url: "https://example.com/orlando/hydration", city: "Orlando", county: "Orange County", state: "Florida" },
         },
@@ -1148,7 +1148,7 @@ export async function testPartnerAdminNotificationWebhook(input: {
           endsAt: new Date(Date.now() + 90 * 60_000).toISOString(),
           timezone: "America/New_York",
           service: { id: "test-service-id", slug: "hydration", name: "Hydration", calendarPublicKey: "test-calendar", price: 219, currency: "USD", durationMinutes: 60 },
-          payment: { status: "paid", servicePrice: 219, depositType: "percentage", depositValue: 35, depositAmount: 76.65, amountDueAtVisit: safeEarnings, estimatedEarnings: safeEarnings, tipsEligible: true, tipsIncluded: false, earningsDisplay: safeEarningsDisplay, currency: "USD" },
+          payment: { status: "paid", servicePrice: 219, depositType: "percentage", depositValue: 40, depositAmount: 87.6, amountDueAtVisit: safeEarnings, estimatedEarnings: safeEarnings, tipsEligible: true, tipsIncluded: false, earningsDisplay: safeEarningsDisplay, currency: "USD" },
           serviceAddress: { addressLine1: "100 Main Street", city: "Orlando", county: "Orange County", state: "Florida", postalCode: "32801", countryCode: "US" },
           source: { url: "https://example.com/orlando/hydration", city: "Orlando", county: "Orange County", state: "Florida" },
         },

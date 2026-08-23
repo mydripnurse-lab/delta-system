@@ -5,7 +5,7 @@ import { testPartnerAdminNotificationWebhook, type PartnerAdminWebhookTarget } f
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
     const body = await request.json();

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
-import { isPartnerAdminEmailAllowed } from "@/lib/partnerAdminAuth";
 import {
   buildPartnerAdminSessionCookie,
   getPartnerAdminSessionSecret,
@@ -8,6 +7,7 @@ import {
 } from "@/lib/partnerAdminSession";
 import { verifyPassword } from "@/lib/password";
 import { createSessionToken } from "@/lib/session";
+import { resolvePartnerAdminAccess } from "@/lib/stateMarketManagers";
 
 export const runtime = "nodejs";
 
@@ -41,10 +41,6 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  if (!isPartnerAdminEmailAllowed(email)) {
-    return NextResponse.json({ ok: false, error: "Invalid credentials." }, { status: 401 });
-  }
-
   const pool = getDbPool();
   const result = await pool.query<{
     id: string;
@@ -64,6 +60,11 @@ export async function POST(req: Request) {
   );
   const user = result.rows[0] || null;
   if (!user || !user.is_active) {
+    return NextResponse.json({ ok: false, error: "Invalid credentials." }, { status: 401 });
+  }
+
+  const access = await resolvePartnerAdminAccess({ userId: user.id, email: user.email }, pool);
+  if (!access || access.status !== "active") {
     return NextResponse.json({ ok: false, error: "Invalid credentials." }, { status: 401 });
   }
 
@@ -108,6 +109,7 @@ export async function POST(req: Request) {
     JSON.stringify({
       ok: true,
       user: { id: user.id, email: user.email, fullName: user.full_name || null },
+      access,
     }),
     {
       status: 200,

@@ -1,5 +1,6 @@
 import { ensureClientPortalSchema } from "@/lib/clientPortalAuth";
 import { getDbPool } from "@/lib/db";
+import { stateMatchesScope } from "@/lib/usStateOptions";
 
 export type AdminCareAccountStatus = "active" | "dormant" | "never_signed_in" | "locked";
 
@@ -75,7 +76,7 @@ function accountStatus(row: AccountRow): AdminCareAccountStatus {
   return "dormant";
 }
 
-export async function listAdminCareAccounts(options: { search?: string; status?: string; provider?: string; limit?: number } = {}) {
+export async function listAdminCareAccounts(options: { search?: string; status?: string; provider?: string; limit?: number; stateCodes?: string[] } = {}) {
   await ensureClientPortalSchema();
   const pool = getDbPool();
   const search = String(options.search || "").trim();
@@ -107,12 +108,12 @@ export async function listAdminCareAccounts(options: { search?: string; status?:
     pool.query<AccountRow>(
       `with accessible_appointments as (
          select link.client_account_id, appointment.id, appointment.status, appointment.starts_at,
-                appointment.service_price, appointment.currency
+                appointment.service_price, appointment.currency, appointment.state
            from app.client_customer_links link
            join app.appointments appointment on appointment.customer_id = link.booking_customer_id
          union
          select access.client_account_id, appointment.id, appointment.status, appointment.starts_at,
-                appointment.service_price, appointment.currency
+                appointment.service_price, appointment.currency, appointment.state
            from app.client_appointment_access access
            join app.appointments appointment on appointment.id = access.appointment_id
        ), appointment_rollup as (
@@ -122,7 +123,8 @@ export async function listAdminCareAccounts(options: { search?: string; status?:
                 count(*) filter (where status = 'completed')::text as completed_count,
                 coalesce(sum(service_price) filter (where status = 'completed'), 0)::text as lifetime_value,
                 coalesce(max(currency), 'USD') as currency,
-                max(starts_at)::text as last_appointment_at
+                max(starts_at)::text as last_appointment_at,
+                max(state) as appointment_state
            from accessible_appointments
           group by client_account_id
        ), address_rollup as (
@@ -143,7 +145,7 @@ export async function listAdminCareAccounts(options: { search?: string; status?:
               (account.email_verified_at is not null) as email_verified,
               coalesce(account.preferences #>> '{identity,profilePhotoUrl}', '') as profile_photo_url,
               coalesce(account.preferences #>> '{address,city}', '') as city,
-              coalesce(account.preferences #>> '{address,state}', '') as state,
+              coalesce(nullif(account.preferences #>> '{address,state}', ''), appointments.appointment_state, '') as state,
               account.created_at::text, account.last_login_at::text, account.locked_until::text,
               coalesce(addresses.saved_address_count, '0') as saved_address_count,
               coalesce(appointments.appointment_count, '0') as appointment_count,
@@ -207,9 +209,9 @@ export async function listAdminCareAccounts(options: { search?: string; status?:
     lastAppointmentAt: row.last_appointment_at || "",
     referralCount: number(row.referral_count),
     availableRewardCount: number(row.available_reward_count),
-  }));
+  })).filter((account) => !options.stateCodes?.length || stateMatchesScope(account.state, options.stateCodes));
   const summaryRow = summaryResult.rows[0];
-  const summary: AdminCareSummary = {
+  const databaseSummary: AdminCareSummary = {
     total: number(summaryRow?.total),
     active30Days: number(summaryRow?.active_30_days),
     dormant: number(summaryRow?.dormant),
@@ -217,5 +219,13 @@ export async function listAdminCareAccounts(options: { search?: string; status?:
     verified: number(summaryRow?.verified),
     locked: number(summaryRow?.locked),
   };
+  const summary: AdminCareSummary = options.stateCodes?.length ? {
+    total: accounts.length,
+    active30Days: accounts.filter((account) => account.status === "active").length,
+    dormant: accounts.filter((account) => account.status === "dormant").length,
+    neverSignedIn: accounts.filter((account) => account.status === "never_signed_in").length,
+    verified: accounts.filter((account) => account.emailVerified).length,
+    locked: accounts.filter((account) => account.status === "locked").length,
+  } : databaseSummary;
   return { accounts, summary };
 }

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ applicationId: string }> };
 
 export async function GET(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications", ownerOnly: true });
   if ("response" in auth) return auth.response;
   const { applicationId } = await context.params;
   try {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, context: Context) {
 }
 
 export async function PATCH(req: NextRequest, context: Context) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications", ownerOnly: true });
   if ("response" in auth) return auth.response;
   const { applicationId } = await context.params;
   try {

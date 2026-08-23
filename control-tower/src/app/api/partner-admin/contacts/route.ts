@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "contacts" });
   if ("response" in auth) return auth.response;
   try {
     const contacts = await listAdminBookingContacts({
@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
       from: request.nextUrl.searchParams.get("from") || "",
       to: request.nextUrl.searchParams.get("to") || "",
       relationship: request.nextUrl.searchParams.get("relationship") || "all",
+      stateCodes: auth.access.stateCodes,
     });
     return NextResponse.json({ ok: true, contacts }, { headers: { "cache-control": "no-store" } });
   } catch (error) {

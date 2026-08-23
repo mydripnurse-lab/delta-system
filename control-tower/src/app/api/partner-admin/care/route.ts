@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "care" });
   if ("response" in auth) return auth.response;
   try {
     const result = await listAdminCareAccounts({
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
       status: request.nextUrl.searchParams.get("status") || "all",
       provider: request.nextUrl.searchParams.get("provider") || "all",
       limit: Number(request.nextUrl.searchParams.get("limit") || 250),
+      stateCodes: auth.access.stateCodes,
     });
     return NextResponse.json({ ok: true, ...result }, { headers: { "cache-control": "no-store" } });
   } catch (error) {

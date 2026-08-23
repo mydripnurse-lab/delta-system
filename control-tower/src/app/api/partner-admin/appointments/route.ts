@@ -7,13 +7,14 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "appointments" });
   if ("response" in auth) return auth.response;
   try {
     const appointments = await listAdminBookingAppointments({
       search: request.nextUrl.searchParams.get("search") || "",
       status: request.nextUrl.searchParams.get("status") || "",
       limit: Number(request.nextUrl.searchParams.get("limit") || 250),
+      stateCodes: auth.access.stateCodes,
     });
     return NextResponse.json({ ok: true, appointments }, { headers: { "cache-control": "no-store" } });
   } catch (error) {

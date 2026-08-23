@@ -5,7 +5,7 @@ import { listStaffApplications } from "@/lib/staffAdmin";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePartnerAdmin(req);
+  const auth = await requirePartnerAdmin(req, { module: "applications" });
   if ("response" in auth) return auth.response;
 
   try {
@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       search: searchParams.get("search") || "",
       status: searchParams.get("status") || "all",
       limit: Number(searchParams.get("limit") || 250),
+      stateCodes: auth.access.stateCodes,
     });
     return NextResponse.json({ ok: true, applications });
   } catch (error) {

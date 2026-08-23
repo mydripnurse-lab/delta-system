@@ -16,20 +16,28 @@ type AdminUser = {
   avatarUrl: string | null;
 };
 
+type AdminAccess = {
+  role: "platform_owner" | "state_market_manager";
+  isOwner: boolean;
+  stateCodes: string[];
+  modules: string[];
+};
+
 const NAV_ITEMS = [
-  { href: "/", labelKey: "nav.applications", icon: "inbox" },
-  { href: "/partners", labelKey: "nav.partners", icon: "users" },
-  { href: "/appointments", labelKey: "nav.appointments", icon: "appointments" },
-  { href: "/refunds", labelKey: "nav.refunds", icon: "refunds" },
-  { href: "/contacts", labelKey: "nav.contacts", icon: "contacts" },
-  { href: "/care", labelKey: "nav.care", icon: "care" },
-  { href: "/analytics", labelKey: "nav.analytics", icon: "analytics" },
-  { href: "/directory-analytics", labelKey: "nav.directoryAnalytics", icon: "directory" },
-  { href: "/services", labelKey: "nav.services", icon: "services" },
-  { href: "/calendars", labelKey: "nav.calendars", icon: "calendar" },
-  { href: "/support", labelKey: "nav.supportInbox", icon: "support" },
-  { href: "/rewards", labelKey: "nav.rewards", icon: "rewards", comingSoon: true },
-  { href: "/products", labelKey: "nav.products", icon: "products", comingSoon: true },
+  { href: "/", labelKey: "nav.applications", icon: "inbox", module: "applications" },
+  { href: "/partners", labelKey: "nav.partners", icon: "users", module: "partners" },
+  { href: "/appointments", labelKey: "nav.appointments", icon: "appointments", module: "appointments" },
+  { href: "/refunds", labelKey: "nav.refunds", icon: "refunds", module: "refunds" },
+  { href: "/contacts", labelKey: "nav.contacts", icon: "contacts", module: "contacts" },
+  { href: "/care", labelKey: "nav.care", icon: "care", module: "care" },
+  { href: "/analytics", labelKey: "nav.analytics", icon: "analytics", module: "analytics" },
+  { href: "/directory-analytics", labelKey: "nav.directoryAnalytics", icon: "directory", module: "directory-analytics" },
+  { href: "/services", labelKey: "nav.services", icon: "services", module: "services", ownerOnly: true },
+  { href: "/calendars", labelKey: "nav.calendars", icon: "calendar", module: "calendars", ownerOnly: true },
+  { href: "/support", labelKey: "nav.supportInbox", icon: "support", module: "support" },
+  { href: "/market-management", labelKey: "nav.marketManagers", icon: "market", module: "market-management", ownerOnly: true },
+  { href: "/rewards", labelKey: "nav.rewards", icon: "rewards", module: "rewards", comingSoon: true, ownerOnly: true },
+  { href: "/products", labelKey: "nav.products", icon: "products", module: "products", comingSoon: true, ownerOnly: true },
 ] as const;
 
 const TITLE_KEYS: Record<string, string> = {
@@ -47,6 +55,7 @@ const TITLE_KEYS: Record<string, string> = {
   "Support inbox": "nav.supportInbox",
   Rewards: "nav.rewards",
   Products: "nav.products",
+  "Market Managers": "nav.marketManagers",
 };
 
 function NavIcon({ name }: { name: (typeof NAV_ITEMS)[number]["icon"] }) {
@@ -58,6 +67,7 @@ function NavIcon({ name }: { name: (typeof NAV_ITEMS)[number]["icon"] }) {
   if (name === "care") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20S4 15.4 4 9.2A4.2 4.2 0 0 1 11.2 6L12 7l.8-1A4.2 4.2 0 0 1 20 9.2C20 15.4 12 20 12 20Z" /><path d="M8 12h2l1-2 2 4 1-2h2" /></svg>;
   if (name === "analytics") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>;
   if (name === "directory") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12Z" /><circle cx="12" cy="9" r="2.5" /></svg>;
+  if (name === "market") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M16 5v14M4 10h16M4 15h16" /><circle cx="12" cy="12" r="2" /></svg>;
   if (name === "services") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v6H5zM5 14h6v6H5zM15 14h4v6h-4z" /></svg>;
   if (name === "support") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 3v-3h0A2.5 2.5 0 0 1 4 13.5Z" /><path d="M8 9h8M8 12h5" /></svg>;
   if (name === "rewards") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v4a4 4 0 0 1-8 0Z" /><path d="M8 6H5v2a4 4 0 0 0 4 4M16 6h3v2a4 4 0 0 1-4 4M12 12v5M8 20h8M9 17h6" /></svg>;
@@ -125,6 +135,7 @@ export function PartnerAdminShell({
     || pathname.startsWith("/automations");
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [access, setAccess] = useState<AdminAccess | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
@@ -140,6 +151,7 @@ export function PartnerAdminShell({
       .then((payload) => {
         if (active && payload?.user) {
           setUser(payload.user);
+          setAccess(payload.access || null);
           setProfileName(payload.user.fullName || "");
           setProfileAvatar(payload.user.avatarUrl || "");
         }
@@ -165,6 +177,12 @@ export function PartnerAdminShell({
   }, [profileOpen]);
 
   const userLabel = useMemo(() => user?.fullName || user?.email?.split("@")[0] || "Administrator", [user]);
+  const visibleNavItems = useMemo(() => NAV_ITEMS.filter((item) => {
+    if (!access) return true;
+    if (access.isOwner) return true;
+    if ("ownerOnly" in item && item.ownerOnly) return false;
+    return access.modules.includes(item.module);
+  }), [access]);
 
   async function selectAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -218,7 +236,7 @@ export function PartnerAdminShell({
 
         <nav className={styles.crmNav} aria-label="Partner Admin">
           <span className={styles.crmNavLabel}>{t("nav.workspace")}</span>
-          {NAV_ITEMS.map((item, index) => {
+          {visibleNavItems.map((item, index) => {
             const active = item.href === "/"
               ? pathname === "/" || pathname === "/partner-admin" || pathname === "/applications" || pathname.startsWith("/applications/")
               : pathname.startsWith(item.href) || pathname.startsWith(`/partner-admin${item.href}`);
@@ -234,16 +252,16 @@ export function PartnerAdminShell({
             );
           })}
 
-          <span className={styles.crmNavLabel}>{t("nav.system")}</span>
-          <Link href={automationsHref} className={`${styles.crmNavItem} ${automationsActive ? styles.crmNavItemActive : ""}`} onClick={() => setMenuOpen(false)}>
-            <span className={styles.navDot} />{t("nav.automations")}
-          </Link>
-          <span className={`${styles.crmNavItem} ${styles.crmNavItemMuted}`}><span className={styles.navDot} />{t("nav.settings")}<small>{t("common.comingSoon")}</small></span>
+          {access?.isOwner !== false ? <><span className={styles.crmNavLabel}>{t("nav.system")}</span>
+            <Link href={automationsHref} className={`${styles.crmNavItem} ${automationsActive ? styles.crmNavItemActive : ""}`} onClick={() => setMenuOpen(false)}>
+              <span className={styles.navDot} />{t("nav.automations")}
+            </Link>
+            <span className={`${styles.crmNavItem} ${styles.crmNavItemMuted}`}><span className={styles.navDot} />{t("nav.settings")}<small>{t("common.comingSoon")}</small></span></> : null}
         </nav>
 
         <div className={styles.crmSidebarFooter}>
           <span className={styles.healthDot} />
-          <div><strong>{t("admin.privateWorkspace")}</strong><span>{t("admin.privateOnly")}</span></div>
+          <div><strong>{access?.isOwner === false ? "State-scoped workspace" : t("admin.privateWorkspace")}</strong><span>{access?.isOwner === false ? `${access.stateCodes.join(", ")} markets` : t("admin.privateOnly")}</span></div>
         </div>
       </aside>
 

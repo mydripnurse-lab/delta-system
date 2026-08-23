@@ -28,7 +28,7 @@ const EMPTY_SERVICE: AdminService = {
   price: 0,
   currency: "USD",
   depositType: "percentage",
-  depositValue: 35,
+  depositValue: 40,
   imageUrl: "",
   imageAlt: "",
   imageTitle: "",

@@ -3,6 +3,7 @@ import { calculateClientBmi, ensureClientPortalSchema } from "@/lib/clientPortal
 import { getDbPool } from "@/lib/db";
 import { resolveMapboxAddressCoordinates } from "@/lib/mapboxAddressVerification";
 import { resolveCountyBoundary } from "@/lib/partnerDirectoryGeo";
+import { stateMatchesScope } from "@/lib/usStateOptions";
 
 export type AppointmentGeoPoint = {
   key: string;
@@ -380,7 +381,7 @@ function coverageStatusForLead(lead: ReturnType<typeof leadDetails>, rows: Cover
 
 const VALID_STATUSES = new Set(["payment_pending", "confirmed", "partner_acknowledged", "in_progress", "completed", "partner_declined", "cancelled", "refunded", "failed", "lost_opportunity"]);
 
-export async function loadAdminAppointmentAnalytics(options: { period?: string; status?: string; from?: string; to?: string; search?: string; granularity?: string } = {}) {
+export async function loadAdminAppointmentAnalytics(options: { period?: string; status?: string; from?: string; to?: string; search?: string; granularity?: string; stateCodes?: string[] } = {}) {
   await Promise.all([ensureBookingEngineSchema(), ensureClientPortalSchema()]);
   const period = ["30", "90", "365", "all"].includes(String(options.period)) ? String(options.period) : "90";
   const status = VALID_STATUSES.has(String(options.status)) ? String(options.status) : "";
@@ -390,6 +391,11 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   const granularity = (["week", "month", "year"].includes(String(options.granularity)) ? String(options.granularity) : "week") as "week" | "month" | "year";
   const values: unknown[] = [];
   const conditions: string[] = [];
+  const stateCodes = (options.stateCodes || []).map((value) => value.trim().toUpperCase()).filter(Boolean);
+  if (stateCodes.length) {
+    values.push(stateCodes);
+    conditions.push(`upper(trim(appointment.state)) = any($${values.length}::text[])`);
+  }
   if (from) { values.push(from); conditions.push(`appointment.created_at >= $${values.length}::date`); }
   if (to) { values.push(to); conditions.push(`appointment.created_at < ($${values.length}::date + interval '1 day')`); }
   if (!from && !to && period !== "all") { values.push(Number(period)); conditions.push(`appointment.created_at >= now() - ($${values.length}::text || ' days')::interval`); }
@@ -507,7 +513,9 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
             from app.appointments appointment
            where appointment.customer_id = customer.id
              and appointment.status in ('confirmed', 'partner_acknowledged', 'in_progress', 'completed')
+             ${stateCodes.length ? "and upper(trim(appointment.state)) = any($1::text[])" : ""}
         )`,
+      stateCodes.length ? [stateCodes] : [],
     ),
     pool.query<CoverageRow>(
       `select area.state, area.county, coalesce(area.city, '') as city, area.postal_codes,
@@ -537,6 +545,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
     ),
   ]);
 
+  const scopedCoverageRows = coverageResult.rows.filter((row) => stateMatchesScope(row.state, stateCodes));
   const convertedIdentities = new Set(convertedResult.rows.flatMap((row) => identityValues(text(row.email), text(row.phone))));
   const fromTime = from ? new Date(`${from}T00:00:00Z`).getTime() : (!to && period !== "all" ? Date.now() - Number(period) * 86400000 : Number.NEGATIVE_INFINITY);
   const toTime = to ? new Date(`${to}T23:59:59.999Z`).getTime() : Number.POSITIVE_INFINITY;
@@ -544,14 +553,14 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   const filteredLeads = allLeads.filter((lead) => {
     const time = new Date(lead.createdAt).getTime();
     const matchesSearch = !search || [lead.fullName, lead.email, lead.phone, lead.city, lead.county, lead.state, lead.postalCode, lead.service].some((value) => value.toLowerCase().includes(search));
-    return time >= fromTime && time <= toTime && matchesSearch;
+    return time >= fromTime && time <= toTime && matchesSearch && stateMatchesScope(lead.state, stateCodes);
   });
   const filteredAppointmentRows = appointmentActivityResult.rows.filter((row) => {
     const time = new Date(row.created_at).getTime();
     const matchesStatus = status === "lost_opportunity" ? false : !status || row.status === status;
     const matchesSearch = !search || [row.full_name, row.email, row.phone, row.address_line_1, row.city, row.county, row.state, row.postal_code, row.service_name, row.partner_name]
       .some((value) => text(value).toLowerCase().includes(search));
-    return time >= fromTime && time <= toTime && matchesStatus && matchesSearch;
+    return time >= fromTime && time <= toTime && matchesStatus && matchesSearch && stateMatchesScope(row.state, stateCodes);
   });
   const convertedLeads = filteredLeads.filter((lead) => (
     Boolean(lead.convertedAt)
@@ -732,7 +741,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   });
 
   const leadHistory = (lead: ReturnType<typeof leadDetails>, isLost: boolean): AppointmentMapHistoryItem => {
-    const currentCoverage = coverageStatusForLead(lead, coverageResult.rows);
+    const currentCoverage = coverageStatusForLead(lead, scopedCoverageRows);
     return {
       id: lead.id,
       kind: "intent",
@@ -814,7 +823,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
 
   // Keep map points constrained by the active filters, but enrich every visible
   // patient card with their complete booking history and all known addresses.
-  for (const row of appointmentActivityResult.rows) {
+  for (const row of appointmentActivityResult.rows.filter((item) => stateMatchesScope(item.state, stateCodes))) {
     const person = existingPersonFor(row.customer_id, row.email, row.phone);
     if (!person) continue;
     person.dateOfBirth ||= row.date_of_birth;
@@ -823,7 +832,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
     rememberLocation(person, appointmentAddress(row));
     pushHistory(person, appointmentHistory(row));
   }
-  for (const lead of allLeads) {
+  for (const lead of allLeads.filter((item) => stateMatchesScope(item.state, stateCodes))) {
     const person = existingPersonFor(`lead:${lead.id}`, lead.email, lead.phone);
     if (!person) continue;
     person.dateOfBirth ||= lead.dateOfBirth;
@@ -916,7 +925,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
   const total = numeric(summaryRow?.total);
   const bookingAttempts = filteredLeads.reduce((sum, lead) => sum + Math.max(1, lead.attemptCount), 0);
   const currentCoverageByCounty = new Map<string, { key: string; state: string; county: string; partners: Set<string>; services: Set<string> }>();
-  for (const row of coverageResult.rows) {
+  for (const row of scopedCoverageRows) {
     const key = `${normalizeLocation(row.state)}|${normalizeLocation(row.county)}`;
     const area = currentCoverageByCounty.get(key) || { key, state: row.state, county: row.county, partners: new Set<string>(), services: new Set<string>() };
     area.partners.add(row.partner_id);
@@ -939,7 +948,7 @@ export async function loadAdminAppointmentAnalytics(options: { period?: string; 
     } satisfies BusinessCoverageArea;
   }))).filter((area): area is BusinessCoverageArea => Boolean(area));
   const mapLeads: AppointmentMapLead[] = includedLostLeads.map((lead) => {
-    const currentCoverage = coverageStatusForLead(lead, coverageResult.rows);
+    const currentCoverage = coverageStatusForLead(lead, scopedCoverageRows);
     return {
       id: lead.id,
       kind: "intent",

@@ -43,7 +43,7 @@ async function organizationId(userId: string, email: string) {
 }
 
 async function context(request: NextRequest, county: string, state: string) {
-  const auth = await requirePartnerAdmin(request);
+  const auth = await requirePartnerAdmin(request, { module: "automations", ownerOnly: true });
   if ("response" in auth) return { response: auth.response } as const;
   if (!county || !state) return { response: NextResponse.json({ ok: false, error: "County and state are required." }, { status: 400 }) } as const;
   const organization = await organizationId(auth.user.id, auth.user.email);
