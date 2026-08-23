@@ -342,6 +342,7 @@ export function proxy(req: NextRequest) {
       pathname === "/contacts" || pathname.startsWith("/contacts/") ||
       pathname === "/analytics" || pathname.startsWith("/analytics/") ||
       pathname === "/directory-analytics" || pathname.startsWith("/directory-analytics/") ||
+      pathname === "/market-management" || pathname.startsWith("/market-management/") ||
       pathname === "/services" || pathname.startsWith("/services/") ||
       pathname === "/calendars" || pathname.startsWith("/calendars/") ||
       pathname === "/automations" || pathname.startsWith("/automations/") ||
@@ -413,6 +414,7 @@ export const config = {
     "/analytic/:path*",
     "/analytics/:path*",
     "/directory-analytics/:path*",
+    "/market-management/:path*",
     "/services/:path*",
     "/calendars/:path*",
     "/automations/:path*",

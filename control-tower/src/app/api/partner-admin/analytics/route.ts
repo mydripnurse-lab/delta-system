@@ -23,9 +23,20 @@ export async function GET(request: NextRequest) {
     });
     const platformShareRate = 40;
     const managerRateOfPlatformShare = auth.access.managerCommissionRate;
-    const ledgerFinancials = auth.access.isOwner
-      ? null
-      : await getStateMarketManagerCommissionSummary(auth.user.id);
+    let ledgerFinancials: Awaited<ReturnType<typeof getStateMarketManagerCommissionSummary>> | null = null;
+    let managerPerformance: Awaited<ReturnType<typeof listStateMarketManagers>> = [];
+
+    // Manager commissions enrich the report, but they must never make the
+    // core geographic analytics unavailable while a new schema is rolling out.
+    try {
+      if (auth.access.isOwner) {
+        managerPerformance = await listStateMarketManagers();
+      } else {
+        ledgerFinancials = await getStateMarketManagerCommissionSummary(auth.user.id);
+      }
+    } catch (error) {
+      console.warn("[partner-admin analytics] market manager enrichment unavailable", error);
+    }
     const managerFinancials = auth.access.isOwner || !ledgerFinancials
       ? null
       : {
@@ -41,8 +52,6 @@ export async function GET(request: NextRequest) {
             (platformShareRate / 100) *
             (managerRateOfPlatformShare / 100),
         };
-    const managerPerformance = auth.access.isOwner ? await listStateMarketManagers() : [];
-
     return NextResponse.json(
       {
         ok: true,

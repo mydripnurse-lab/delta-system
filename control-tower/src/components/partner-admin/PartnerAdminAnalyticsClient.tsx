@@ -72,7 +72,10 @@ export function PartnerAdminAnalyticsClient() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Could not load analytics.");
       setAnalytics(payload.analytics);
-    } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Could not load analytics."); }
+    } catch (loadError) {
+      console.error("[partner-admin-analytics] Could not load analytics.", loadError);
+      setError("We could not refresh this analytics view.");
+    }
     finally { setLoading(false); }
   }, [from, granularity, period, search, status, to]);
 
@@ -116,8 +119,13 @@ export function PartnerAdminAnalyticsClient() {
         <div><span className={styles.eyebrow}>Growth intelligence</span><h1>Business Analytics</h1><p>Connect demand, completed visits, lost opportunities and active coverage to understand where the business can grow.</p></div>
         <div className={styles.analyticsFilters}><label className={styles.analyticsSearch}><span>Search</span><input className={styles.input} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Market, ZIP, service or lead" /></label><label><span>Preset</span><select className={styles.select} value={period} onChange={(event) => { setPeriod(event.target.value); setFrom(""); setTo(""); }}><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last 12 months</option><option value="all">All time</option></select></label><label><span>From</span><input className={styles.input} type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} /></label><label><span>To</span><input className={styles.input} type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} /></label><label><span>Activity</span><select className={styles.select} value={status} onChange={(event) => setStatus(event.target.value)}>{STATUS_OPTIONS.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>{(search || from || to || status) ? <button type="button" className={styles.filterReset} onClick={() => { setSearch(""); setFrom(""); setTo(""); setStatus(""); setPeriod("90"); }}>Clear</button> : null}</div>
       </section>
-      {error ? <div className={`${styles.empty} ${styles.error}`}>{error}</div> : null}
-      {loading && !analytics ? <div className={styles.loading}>Building geographic intelligence…</div> : null}
+      {error && !analytics ? <section className={styles.analyticsRecovery} role="status">
+        <div className={styles.analyticsRecoveryIcon} aria-hidden="true">↻</div>
+        <div><span className={styles.eyebrow}>Data connection</span><h2>Analytics is temporarily unavailable.</h2><p>No information was changed. Try loading this view again in a moment.</p></div>
+        <button type="button" className={styles.secondaryButton} onClick={() => void load()} disabled={loading}>{loading ? "Retrying…" : "Try again"}</button>
+      </section> : null}
+      {error && analytics ? <div className={styles.analyticsRefreshNotice} role="status">Showing the last loaded view. Refresh to try again.</div> : null}
+      {loading && !analytics && !error ? <div className={styles.loading}>Building geographic intelligence…</div> : null}
       {analytics ? <>
         <section className={styles.analyticsKpis}>
           <article><span>Total appointments</span><strong>{summary?.total || 0}</strong><small>{summary?.contacts || 0} unique contacts</small></article>

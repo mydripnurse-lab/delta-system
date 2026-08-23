@@ -40,6 +40,117 @@ function n(value: unknown) {
 
 const PLATFORM_OWNER_EMAIL = "ac@devasks.com";
 
+let stateMarketManagerSchemaReady: Promise<void> | null = null;
+
+async function initializeStateMarketManagerSchema(pool: Pool) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("select pg_advisory_xact_lock(hashtext('app.state_market_manager_schema_v1'))");
+    await client.query(`
+      create schema if not exists app;
+
+      create table if not exists app.admin_access_profiles (
+        user_id uuid primary key references app.users(id) on delete restrict,
+        role text not null,
+        status text not null default 'invited',
+        manager_commission_rate numeric(7,4) not null default 5.0000,
+        created_by uuid references app.users(id) on delete set null,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        constraint admin_access_profiles_role_ck
+          check (role in ('platform_owner', 'state_market_manager')),
+        constraint admin_access_profiles_status_ck
+          check (status in ('invited', 'active', 'suspended')),
+        constraint admin_access_profiles_commission_ck
+          check (manager_commission_rate >= 0 and manager_commission_rate <= 100)
+      );
+
+      create table if not exists app.admin_state_assignments (
+        id uuid primary key default gen_random_uuid(),
+        manager_user_id uuid not null references app.admin_access_profiles(user_id) on delete cascade,
+        state_code text not null,
+        state_name text not null,
+        assigned_by uuid references app.users(id) on delete set null,
+        created_at timestamptz not null default now(),
+        constraint admin_state_assignments_state_code_ck check (state_code ~ '^[A-Z]{2}$'),
+        constraint admin_state_assignments_state_uq unique (state_code),
+        constraint admin_state_assignments_manager_state_uq unique (manager_user_id, state_code)
+      );
+      create index if not exists admin_state_assignments_manager_idx
+        on app.admin_state_assignments (manager_user_id);
+
+      create table if not exists app.state_manager_commissions (
+        id uuid primary key default gen_random_uuid(),
+        appointment_id uuid not null,
+        manager_user_id uuid not null references app.admin_access_profiles(user_id) on delete restrict,
+        state_code text not null,
+        service_gross_amount numeric(14,2) not null default 0,
+        platform_share_rate numeric(7,4) not null default 40.0000,
+        manager_rate_of_platform_share numeric(7,4) not null default 5.0000,
+        manager_commission_amount numeric(14,2) not null default 0,
+        status text not null default 'pending',
+        earned_at timestamptz,
+        paid_at timestamptz,
+        reversed_at timestamptz,
+        metadata jsonb not null default '{}'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        constraint state_manager_commissions_appointment_uq unique (appointment_id),
+        constraint state_manager_commissions_state_code_ck check (state_code ~ '^[A-Z]{2}$'),
+        constraint state_manager_commissions_status_ck check (status in ('pending', 'earned', 'paid', 'reversed')),
+        constraint state_manager_commissions_amounts_ck check (
+          service_gross_amount >= 0 and
+          platform_share_rate >= 0 and platform_share_rate <= 100 and
+          manager_rate_of_platform_share >= 0 and manager_rate_of_platform_share <= 100 and
+          manager_commission_amount >= 0
+        )
+      );
+      create index if not exists state_manager_commissions_manager_created_idx
+        on app.state_manager_commissions (manager_user_id, created_at desc);
+      create index if not exists state_manager_commissions_state_created_idx
+        on app.state_manager_commissions (state_code, created_at desc);
+
+      create table if not exists app.admin_access_audit_log (
+        id uuid primary key default gen_random_uuid(),
+        actor_user_id uuid references app.users(id) on delete set null,
+        target_user_id uuid references app.users(id) on delete set null,
+        action text not null,
+        before_payload jsonb,
+        after_payload jsonb,
+        created_at timestamptz not null default now()
+      );
+      create index if not exists admin_access_audit_target_created_idx
+        on app.admin_access_audit_log (target_user_id, created_at desc);
+
+      insert into app.admin_access_profiles (user_id, role, status, manager_commission_rate)
+      select id, 'platform_owner', 'active', 0
+        from app.users
+       where lower(email) = lower($1)
+      on conflict (user_id) do update
+        set role = 'platform_owner', status = 'active', updated_at = now();
+    `, [PLATFORM_OWNER_EMAIL]);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function ensureStateMarketManagerSchema(pool: Pool = getDbPool()) {
+  if (!stateMarketManagerSchemaReady) {
+    stateMarketManagerSchemaReady = initializeStateMarketManagerSchema(pool);
+  }
+  try {
+    await stateMarketManagerSchemaReady;
+  } catch (error) {
+    stateMarketManagerSchemaReady = null;
+    throw error;
+  }
+}
+
 export function ownerEmails() {
   return new Set([PLATFORM_OWNER_EMAIL]);
 }
@@ -58,6 +169,7 @@ export async function resolvePartnerAdminAccess(
 ): Promise<PartnerAdminAccess | null> {
   const ownerFallback = isPlatformOwnerEmail(input.email);
   try {
+    await ensureStateMarketManagerSchema(pool);
     const result = await pool.query<{
       role: PartnerAdminRole;
       status: PartnerAdminAccess["status"];
@@ -96,7 +208,11 @@ export async function resolvePartnerAdminAccess(
     };
   } catch (error: unknown) {
     const code = error && typeof error === "object" && "code" in error ? String((error as { code?: string }).code || "") : "";
-    if (code === "42P01" && ownerFallback) {
+    if (ownerFallback) {
+      console.warn("[state-market-managers] Falling back to platform owner access.", {
+        code,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return {
         role: "platform_owner", status: "active", isOwner: true,
         stateCodes: [], stateNames: [], managerCommissionRate: 0,
@@ -139,6 +255,7 @@ export async function getStateMarketManagerCommissionSummary(
   userId: string,
   pool: Pool = getDbPool(),
 ): Promise<StateMarketManagerCommissionSummary> {
+  await ensureStateMarketManagerSchema(pool);
   const result = await pool.query<{
     completed_appointments: string | number;
     gross_appointment_value: string | number;
@@ -169,6 +286,7 @@ export async function getStateMarketManagerCommissionSummary(
 }
 
 export async function listStateMarketManagers(pool: Pool = getDbPool()) {
+  await ensureStateMarketManagerSchema(pool);
   const result = await pool.query<{
     user_id: string; full_name: string | null; email: string; phone: string | null;
     status: PartnerAdminAccess["status"]; manager_commission_rate: string | number;
@@ -254,6 +372,7 @@ export async function createStateMarketManager(input: {
   if (rate < 0 || rate > 100) throw new Error("Commission must be between 0% and 100% of the platform share.");
 
   const pool = getDbPool();
+  await ensureStateMarketManagerSchema(pool);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -316,6 +435,7 @@ export async function updateStateMarketManager(input: {
   if (!s(input.fullName) || !stateCodes.length) throw new Error("Name and at least one state are required.");
   if (rate < 0 || rate > 100) throw new Error("Commission must be between 0% and 100% of the platform share.");
   const pool = getDbPool();
+  await ensureStateMarketManagerSchema(pool);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -351,6 +471,7 @@ export async function updateStateMarketManager(input: {
 
 export async function suspendStateMarketManager(userId: string, actorUserId: string) {
   const pool = getDbPool();
+  await ensureStateMarketManagerSchema(pool);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

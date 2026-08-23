@@ -893,6 +893,24 @@
 .resultsEmpty span { font-size: 12px; }
 .error { color: #a63636; }
 
+.analyticsRecovery {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin: 20px 0;
+  padding: 24px;
+  border: 1px solid #cfe4e6;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #f7fbfb, #fff);
+  box-shadow: 0 18px 45px rgba(20, 53, 58, .07);
+}
+.analyticsRecoveryIcon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; color: #fff; background: linear-gradient(135deg, #044c5c, #0795a2); font-size: 22px; font-weight: 800; }
+.analyticsRecovery > div:nth-child(2) { display: grid; gap: 5px; }
+.analyticsRecovery h2 { margin: 0; color: #17353a; font-size: clamp(20px, 2vw, 26px); line-height: 1.15; }
+.analyticsRecovery p { margin: 0; color: #657b77; font-size: 13px; line-height: 1.55; }
+.analyticsRefreshNotice { margin: 16px 0; padding: 12px 16px; border: 1px solid #dbe8e7; border-radius: 14px; color: #58716d; background: #f7fbfa; font-size: 12px; }
+
 .detailHeader { margin: 34px 4px 22px; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
 .detailHeader h1 { font-size: clamp(38px, 4vw, 56px); }
 .detailGrid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(310px, .7fr); gap: 16px; }
@@ -1283,6 +1301,8 @@
   .careAccountRow .tableAction { grid-column: 2; grid-row: 2; }
   .careModalAvatar { width: 44px; height: 44px; flex-basis: 44px; border-radius: 13px; }
   .analyticsFilters { grid-template-columns: 1fr; }
+  .analyticsRecovery { grid-template-columns: 1fr; padding: 20px; }
+  .analyticsRecovery .secondaryButton { width: 100%; }
   .analyticsKpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .analyticsKpis article { min-height: 108px; padding: 14px; }
   .analyticsCausePanel > header { align-items: flex-start; flex-direction: column; }
