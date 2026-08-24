@@ -65,10 +65,12 @@ async function listMigrationFiles() {
 
 async function main() {
   await loadLocalEnvFiles();
-  const databaseUrl = String(process.env.DATABASE_URL || "").trim();
+  const production = process.argv.includes("--production");
+  const databaseUrl = String(production ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL || "").trim();
   if (!databaseUrl) {
-    fail("Missing DATABASE_URL env var.");
+    fail(production ? "Missing PROD_DATABASE_URL env var." : "Missing DATABASE_URL env var.");
   }
+  console.log(`[db:migrate] target ${production ? "production" : "default"}`);
 
   const only = requestedMigration();
   const allFiles = await listMigrationFiles();
