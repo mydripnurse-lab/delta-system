@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const auth = await requirePartnerAdmin(req);
   if ("response" in auth) return auth.response;
-  return NextResponse.json({ ok: true, user: auth.user, access: auth.access }, { headers: { "cache-control": "no-store" } });
+  return NextResponse.json({ ok: true, user: auth.user, access: { ...auth.access, delegated: Boolean(auth.delegation) } }, { headers: { "cache-control": "no-store" } });
 }
 
 function text(value: unknown) {
@@ -18,6 +18,7 @@ function text(value: unknown) {
 export async function PATCH(req: Request) {
   const auth = await requirePartnerAdmin(req);
   if ("response" in auth) return auth.response;
+  if (auth.delegation) return NextResponse.json({ ok: false, error: "Return to the Owner account before editing a profile." }, { status: 403 });
   try {
     const body = await req.json();
     const fullName = text(body?.fullName);

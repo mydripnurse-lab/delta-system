@@ -94,6 +94,7 @@ export default function MarketingHeaderEmbed({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSection, setMobileSection] = useState<MobileSection | null>(null);
   const [resolvedWebsiteUrl, setResolvedWebsiteUrl] = useState(websiteUrl);
+  const [serviceMediaByPath, setServiceMediaByPath] = useState<Record<string, string>>({});
   const primaryAccount = partnerAccount || account;
   const firstName = primaryAccount?.fullName.trim().split(/\s+/)[0] || "";
   const primaryPortalLabel = partnerAccount ? "Partner Portal" : "Client Portal";
@@ -111,11 +112,35 @@ export default function MarketingHeaderEmbed({
       const previous = new URL(document.referrer);
       const hostname = previous.hostname.toLowerCase();
       if (previous.protocol !== "https:" || (hostname !== "mydripnurse.com" && !hostname.endsWith(".mydripnurse.com"))) return;
-      setResolvedWebsiteUrl(previous.origin);
+      const timer = window.setTimeout(() => setResolvedWebsiteUrl(previous.origin), 0);
+      return () => window.clearTimeout(timer);
     } catch {
       // Keep the configured website URL when the referrer is unavailable or invalid.
     }
   }, [preferPreviousMdnOrigin]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/public/service-media", { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) throw new Error("service-media");
+        return response.json() as Promise<{ services?: Array<{ landingPath?: string; imageUrl?: string }> }>;
+      })
+      .then((payload) => {
+        if (!active || !Array.isArray(payload.services)) return;
+        const nextMedia: Record<string, string> = {};
+        payload.services.forEach((service) => {
+          if (service.landingPath && service.imageUrl) nextMedia[service.landingPath] = service.imageUrl;
+        });
+        setServiceMediaByPath(nextMedia);
+      })
+      .catch(() => {
+        // Keep the embedded fallback images if the live catalog is unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -172,10 +197,14 @@ export default function MarketingHeaderEmbed({
 
   const menuLinks = (items: readonly MarketingHeaderMenuLink[], wide = false) => (
     <div className={`${styles.dropdown} ${wide ? styles.wideDropdown : ""}`}>
-      {items.map(([label, path, imageUrl]) => <a key={path} className={imageUrl ? styles.serviceLink : ""} href={menuHref(path)} target="_top" onClick={() => setOpenMenu(null)}>
-        {imageUrl ? <><span className={styles.serviceThumb}><Image src={imageUrl} alt="" width={52} height={52} loading="lazy" /></span><b>{label}</b></> : label}
-        <span className={styles.linkArrow}>→</span>
-      </a>)}
+      {items.map(([label, path, imageUrl]) => {
+        const resolvedImageUrl = serviceMediaByPath[path] || imageUrl;
+        const imageDescription = `${label} in ${location}`;
+        return <a key={path} className={resolvedImageUrl ? styles.serviceLink : ""} href={menuHref(path)} target="_top" onClick={() => setOpenMenu(null)}>
+          {resolvedImageUrl ? <><span className={styles.serviceThumb}><Image src={resolvedImageUrl} alt={imageDescription} title={imageDescription} width={52} height={52} loading="lazy" /></span><b>{label}</b></> : label}
+          <span className={styles.linkArrow}>→</span>
+        </a>;
+      })}
     </div>
   );
 

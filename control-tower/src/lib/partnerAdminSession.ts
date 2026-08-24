@@ -4,6 +4,7 @@ import {
 } from "@/lib/session";
 
 export const PARTNER_ADMIN_SESSION_COOKIE_NAME = "mdn_partner_admin_session";
+export const PARTNER_ADMIN_DELEGATION_COOKIE_NAME = "mdn_partner_admin_delegation";
 export { DEFAULT_SESSION_TTL_SECONDS as PARTNER_ADMIN_SESSION_TTL_SECONDS };
 
 function text(value: unknown) {
@@ -47,4 +48,28 @@ export function buildClearPartnerAdminSessionCookie() {
   ]
     .filter(Boolean)
     .join("; ");
+}
+
+export function buildPartnerAdminDelegationCookie(input: { token: string; maxAgeSeconds?: number }) {
+  const secure = process.env.NODE_ENV === "production";
+  return [
+    `${PARTNER_ADMIN_DELEGATION_COOKIE_NAME}=${encodeURIComponent(input.token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    secure ? "Secure" : "",
+    `Max-Age=${Math.max(60, Number(input.maxAgeSeconds || 60 * 60 * 2))}`,
+  ].filter(Boolean).join("; ");
+}
+
+export function buildClearPartnerAdminDelegationCookie() {
+  const secure = process.env.NODE_ENV === "production";
+  return [
+    `${PARTNER_ADMIN_DELEGATION_COOKIE_NAME}=`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    secure ? "Secure" : "",
+    "Max-Age=0",
+  ].filter(Boolean).join("; ");
 }

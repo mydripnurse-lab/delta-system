@@ -228,6 +228,39 @@ export const loadCurrentMyDripNurseServices = cache(async function loadCurrentMy
   });
 });
 
+export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<MyDripNurseServiceDefinition, "id" | "name" | "imageUrl" | "landingPath">>> {
+  const catalogOrganizationId = await resolveCatalogOrganizationId("");
+  if (!catalogOrganizationId) {
+    return MY_DRIP_NURSE_SERVICES.map(({ id, name, imageUrl, landingPath }) => ({ id, name, imageUrl, landingPath }));
+  }
+
+  const result = await getDbPool().query<{
+    slug: string;
+    name: string;
+    image_url: string;
+  }>(
+    `select slug, name, image_url
+       from app.services
+      where organization_id = $1
+        and is_active = true`,
+    [catalogOrganizationId],
+  );
+  const catalog = new Map<string, { slug: string; name: string; image_url: string }>(
+    result.rows.map((row) => [row.slug, row]),
+  );
+
+  return MY_DRIP_NURSE_SERVICES.flatMap(({ id, name, imageUrl, landingPath }) => {
+    const current = catalog.get(id);
+    if (!current) return [];
+    return [{
+      id,
+      name: s(current.name) || name,
+      imageUrl: s(current.image_url) || imageUrl,
+      landingPath,
+    }];
+  });
+}
+
 function normalizeCalendarService(value: unknown) {
   return s(value)
     .normalize("NFKD")

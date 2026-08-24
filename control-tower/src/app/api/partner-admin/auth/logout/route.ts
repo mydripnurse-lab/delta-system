@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import { buildClearPartnerAdminSessionCookie } from "@/lib/partnerAdminSession";
+import {
+  buildClearPartnerAdminDelegationCookie,
+  buildClearPartnerAdminSessionCookie,
+} from "@/lib/partnerAdminSession";
 
 export const runtime = "nodejs";
 
 export async function POST() {
-  return new NextResponse(JSON.stringify({ ok: true }), {
+  const response = new NextResponse(JSON.stringify({ ok: true }), {
     status: 200,
     headers: {
       "content-type": "application/json",
-      "set-cookie": buildClearPartnerAdminSessionCookie(),
     },
   });
+  response.headers.append("set-cookie", buildClearPartnerAdminSessionCookie());
+  response.headers.append("set-cookie", buildClearPartnerAdminDelegationCookie());
+  return response;
 }

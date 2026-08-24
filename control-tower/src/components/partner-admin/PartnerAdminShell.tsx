@@ -21,6 +21,7 @@ type AdminAccess = {
   isOwner: boolean;
   stateCodes: string[];
   modules: string[];
+  delegated?: boolean;
 };
 
 const NAV_ITEMS = [
@@ -226,6 +227,12 @@ export function PartnerAdminShell({
     setEditorOpen(true);
   }
 
+  async function returnToOwner() {
+    const response = await fetch("/api/partner-admin/delegation", { method: "DELETE" });
+    const payload = await response.json().catch(() => null);
+    window.location.assign(payload?.redirectTo || "/partner-admin/market-management");
+  }
+
   return (
     <main className={styles.crmShell}>
       <aside className={`${styles.crmSidebar} ${menuOpen ? styles.crmSidebarOpen : ""}`}>
@@ -278,12 +285,12 @@ export function PartnerAdminShell({
             <div className={styles.crmProfile} ref={profileRef}>
               <button type="button" className={styles.crmProfileTrigger} onClick={() => setProfileOpen((current) => !current)} aria-haspopup="menu" aria-expanded={profileOpen}>
                 <span className={`${styles.crmProfileAvatar} ${user?.avatarUrl ? styles.crmProfileAvatarImage : ""}`} style={user?.avatarUrl ? { backgroundImage: `url(${user.avatarUrl})` } : undefined}>{user?.avatarUrl ? "" : initials(user)}</span>
-                <span className={styles.crmProfileCopy}><strong>{userLabel}</strong><span>{user?.email || "Secure session"}</span></span>
+                <span className={styles.crmProfileCopy}><strong>{userLabel}</strong><span>{access?.delegated ? "Viewing as Market Manager" : user?.email || "Secure session"}</span></span>
                 <span className={`${styles.profileChevron} ${profileOpen ? styles.profileChevronOpen : ""}`}>⌄</span>
               </button>
               {profileOpen ? (
                 <div className={styles.profileMenu} role="menu">
-                  <button type="button" role="menuitem" onClick={openProfileEditor}><span>✎</span><span><strong>{t("menu.editProfile")}</strong><small>{t("menu.profileDetails")}</small></span></button>
+                  {access?.delegated ? <button type="button" role="menuitem" onClick={() => void returnToOwner()}><span>←</span><span><strong>Return to Owner</strong><small>Exit the Market Manager view</small></span></button> : <button type="button" role="menuitem" onClick={openProfileEditor}><span>✎</span><span><strong>{t("menu.editProfile")}</strong><small>{t("menu.profileDetails")}</small></span></button>}
                   <PortalLanguageSelector />
                   <PartnerAdminLogout className={styles.profileSignOut} label={t("menu.signOut")} busyLabel={t("menu.signingOut")} />
                 </div>

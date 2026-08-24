@@ -7,6 +7,7 @@ const BRAND_ICON_URL = "https://sitemaps.mydripnurse.com/favicon.ico";
 export const metadata: Metadata = {
   title: "My Drip Nurse Partner Admin",
   description: "Private My Drip Nurse workspace for partner applications, services, calendars and onboarding.",
+  robots: { index: false, follow: false },
   icons: {
     icon: [{ url: BRAND_ICON_URL, type: "image/x-icon" }],
     shortcut: [{ url: BRAND_ICON_URL, type: "image/x-icon" }],

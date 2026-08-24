@@ -29,6 +29,11 @@ export type PartnerAdminAccess = {
   modules: PartnerAdminModule[];
 };
 
+export type StateManagerAssignmentInput = {
+  stateCode: string;
+  commissionRate: number;
+};
+
 function s(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -71,12 +76,29 @@ async function initializeStateMarketManagerSchema(pool: Pool) {
         manager_user_id uuid not null references app.admin_access_profiles(user_id) on delete cascade,
         state_code text not null,
         state_name text not null,
+        manager_commission_rate numeric(7,4) not null default 5.0000,
         assigned_by uuid references app.users(id) on delete set null,
         created_at timestamptz not null default now(),
         constraint admin_state_assignments_state_code_ck check (state_code ~ '^[A-Z]{2}$'),
         constraint admin_state_assignments_state_uq unique (state_code),
         constraint admin_state_assignments_manager_state_uq unique (manager_user_id, state_code)
       );
+      do $schema_upgrade$
+      begin
+        if not exists (
+          select 1 from information_schema.columns
+           where table_schema = 'app' and table_name = 'admin_state_assignments'
+             and column_name = 'manager_commission_rate'
+        ) then
+          alter table app.admin_state_assignments
+            add column manager_commission_rate numeric(7,4) not null default 5.0000;
+          update app.admin_state_assignments assignment
+             set manager_commission_rate = profile.manager_commission_rate
+            from app.admin_access_profiles profile
+           where profile.user_id = assignment.manager_user_id;
+        end if;
+      end
+      $schema_upgrade$;
       create index if not exists admin_state_assignments_manager_idx
         on app.admin_state_assignments (manager_user_id);
 
@@ -123,6 +145,8 @@ async function initializeStateMarketManagerSchema(pool: Pool) {
       create index if not exists admin_access_audit_target_created_idx
         on app.admin_access_audit_log (target_user_id, created_at desc);
 
+    `);
+    await client.query(`
       insert into app.admin_access_profiles (user_id, role, status, manager_commission_rate)
       select id, 'platform_owner', 'active', 0
         from app.users
@@ -230,7 +254,7 @@ export type StateMarketManagerRecord = {
   phone: string;
   status: PartnerAdminAccess["status"];
   managerCommissionRate: number;
-  states: Array<{ code: string; name: string }>;
+  states: Array<{ code: string; name: string; commissionRate: number }>;
   lastLoginAt: string | null;
   createdAt: string;
   completedAppointments: number;
@@ -291,14 +315,14 @@ export async function listStateMarketManagers(pool: Pool = getDbPool()) {
     user_id: string; full_name: string | null; email: string; phone: string | null;
     status: PartnerAdminAccess["status"]; manager_commission_rate: string | number;
     last_login_at: Date | string | null; created_at: Date | string;
-    states: Array<{ code: string; name: string }> | null;
+    states: Array<{ code: string; name: string; commissionRate: number }> | null;
     completed_appointments: string | number; gross_appointment_value: string | number;
     platform_share_value: string | number; earned_commission: string | number;
     paid_commission: string | number; pending_commission: string | number;
   }>(
     `select p.user_id, u.full_name, u.email, u.phone, p.status, p.manager_commission_rate,
             u.last_login_at, p.created_at,
-            coalesce(jsonb_agg(jsonb_build_object('code', a.state_code, 'name', a.state_name)
+            coalesce(jsonb_agg(jsonb_build_object('code', a.state_code, 'name', a.state_name, 'commissionRate', a.manager_commission_rate)
               order by a.state_name) filter (where a.id is not null), '[]'::jsonb) as states,
             finance.completed_appointments, finance.gross_appointment_value,
             finance.platform_share_value, finance.earned_commission,
@@ -342,13 +366,31 @@ export async function listStateMarketManagers(pool: Pool = getDbPool()) {
   }));
 }
 
-async function writeAssignments(client: PoolClient, userId: string, stateCodes: string[], actorUserId: string) {
+function normalizeAssignments(input: unknown, fallbackRate = 5): StateManagerAssignmentInput[] {
+  const entries = Array.isArray(input) ? input : [];
+  const normalized = entries.map((entry) => {
+    if (typeof entry === "string") return { stateCode: entry, commissionRate: fallbackRate };
+    const row = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+    return { stateCode: s(row.stateCode || row.code), commissionRate: n(row.commissionRate ?? fallbackRate) };
+  });
+  const codes = normalizeStateCodes(normalized.map((entry) => entry.stateCode));
+  return codes.map((stateCode) => {
+    const entry = normalized.find((item) => s(item.stateCode).toUpperCase() === stateCode);
+    const commissionRate = n(entry?.commissionRate ?? fallbackRate);
+    if (commissionRate < 0 || commissionRate > 100) {
+      throw new Error(`Commission for ${stateCode} must be between 0% and 100% of the platform share.`);
+    }
+    return { stateCode, commissionRate };
+  });
+}
+
+async function writeAssignments(client: PoolClient, userId: string, assignments: StateManagerAssignmentInput[], actorUserId: string) {
   await client.query(`delete from app.admin_state_assignments where manager_user_id = $1`, [userId]);
-  for (const code of stateCodes) {
+  for (const assignment of assignments) {
     await client.query(
-      `insert into app.admin_state_assignments (manager_user_id, state_code, state_name, assigned_by)
-       values ($1, $2, $3, $4)`,
-      [userId, code, stateNameForCode(code), actorUserId],
+      `insert into app.admin_state_assignments (manager_user_id, state_code, state_name, manager_commission_rate, assigned_by)
+       values ($1, $2, $3, $4, $5)`,
+      [userId, assignment.stateCode, stateNameForCode(assignment.stateCode), assignment.commissionRate, actorUserId],
     );
   }
 }
@@ -358,18 +400,17 @@ function isStateConflict(error: unknown) {
 }
 
 export async function createStateMarketManager(input: {
-  fullName: string; email: string; phone?: string; stateCodes: unknown;
-  managerCommissionRate?: number; actorUserId: string; activationBaseUrl: string;
+  fullName: string; email: string; phone?: string; assignments: unknown;
+  actorUserId: string; activationBaseUrl: string;
 }) {
   const fullName = s(input.fullName);
   const email = s(input.email).toLowerCase();
   const phone = s(input.phone);
-  const stateCodes = normalizeStateCodes(input.stateCodes);
-  const rate = n(input.managerCommissionRate ?? 5);
+  const assignments = normalizeAssignments(input.assignments);
+  const stateCodes = assignments.map((assignment) => assignment.stateCode);
   if (!fullName || !email || !email.includes("@")) throw new Error("A valid name and email are required.");
   if (isPlatformOwnerEmail(email)) throw new Error("The platform owner cannot be converted into a Market Manager.");
   if (!stateCodes.length) throw new Error("Assign at least one state.");
-  if (rate < 0 || rate > 100) throw new Error("Commission must be between 0% and 100% of the platform share.");
 
   const pool = getDbPool();
   await ensureStateMarketManagerSchema(pool);
@@ -402,9 +443,9 @@ export async function createStateMarketManager(input: {
        values ($1, 'state_market_manager', 'invited', $2, $3)
        on conflict (user_id) do update set role = 'state_market_manager', status = 'invited',
          manager_commission_rate = excluded.manager_commission_rate, updated_at = now()`,
-      [userId, rate, input.actorUserId],
+      [userId, assignments[0]?.commissionRate ?? 5, input.actorUserId],
     );
-    await writeAssignments(client, userId, stateCodes, input.actorUserId);
+    await writeAssignments(client, userId, assignments, input.actorUserId);
     const token = await issueActivationToken(client, {
       userId, context: "state_market_manager_invite",
       metadata: { role: "state_market_manager", stateCodes, email },
@@ -412,7 +453,7 @@ export async function createStateMarketManager(input: {
     await client.query(
       `insert into app.admin_access_audit_log (actor_user_id, target_user_id, action, after_payload)
        values ($1, $2, 'state_manager.created', $3::jsonb)`,
-      [input.actorUserId, userId, JSON.stringify({ fullName, email, phone, stateCodes, managerCommissionRate: rate })],
+      [input.actorUserId, userId, JSON.stringify({ fullName, email, phone, assignments })],
     );
     await client.query("COMMIT");
     const base = input.activationBaseUrl.replace(/\/+$/, "");
@@ -427,13 +468,11 @@ export async function createStateMarketManager(input: {
 }
 
 export async function updateStateMarketManager(input: {
-  userId: string; fullName: string; phone?: string; stateCodes: unknown;
-  managerCommissionRate?: number; status?: PartnerAdminAccess["status"]; actorUserId: string;
+  userId: string; fullName: string; phone?: string; assignments: unknown;
+  status?: PartnerAdminAccess["status"]; actorUserId: string;
 }) {
-  const stateCodes = normalizeStateCodes(input.stateCodes);
-  const rate = n(input.managerCommissionRate ?? 5);
-  if (!s(input.fullName) || !stateCodes.length) throw new Error("Name and at least one state are required.");
-  if (rate < 0 || rate > 100) throw new Error("Commission must be between 0% and 100% of the platform share.");
+  const assignments = normalizeAssignments(input.assignments);
+  if (!s(input.fullName) || !assignments.length) throw new Error("Name and at least one state are required.");
   const pool = getDbPool();
   await ensureStateMarketManagerSchema(pool);
   const client = await pool.connect();
@@ -451,13 +490,13 @@ export async function updateStateMarketManager(input: {
     await client.query(
       `update app.admin_access_profiles set manager_commission_rate = $2,
         status = coalesce($3, status), updated_at = now() where user_id = $1`,
-      [input.userId, rate, input.status || null],
+      [input.userId, assignments[0]?.commissionRate ?? 5, input.status || null],
     );
-    await writeAssignments(client, input.userId, stateCodes, input.actorUserId);
+    await writeAssignments(client, input.userId, assignments, input.actorUserId);
     await client.query(
       `insert into app.admin_access_audit_log (actor_user_id, target_user_id, action, before_payload, after_payload)
        values ($1, $2, 'state_manager.updated', $3::jsonb, $4::jsonb)`,
-      [input.actorUserId, input.userId, JSON.stringify(before.rows[0].profile), JSON.stringify({ stateCodes, managerCommissionRate: rate, status: input.status })],
+      [input.actorUserId, input.userId, JSON.stringify(before.rows[0].profile), JSON.stringify({ assignments, status: input.status })],
     );
     await client.query("COMMIT");
   } catch (error) {

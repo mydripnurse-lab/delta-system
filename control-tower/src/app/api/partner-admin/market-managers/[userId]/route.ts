@@ -18,8 +18,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       userId,
       fullName: String(body.fullName || ""),
       phone: String(body.phone || ""),
-      stateCodes: body.stateCodes,
-      managerCommissionRate: Number(body.managerCommissionRate ?? 5),
+      assignments: body.assignments || body.stateCodes,
       status: body.status === "active" || body.status === "invited" ? body.status : undefined,
       actorUserId: auth.user.id,
     });

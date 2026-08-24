@@ -4,8 +4,9 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { PartnerAdminShell } from "@/components/partner-admin/PartnerAdminShell";
 import styles from "@/app/partner-admin/market-management/marketManagement.module.css";
+import controls from "@/app/partner-admin/market-management/marketManagementControls.module.css";
 
-type StateOption = { code: string; name: string };
+type StateOption = { code: string; name: string; commissionRate?: number };
 type Manager = {
   userId: string;
   fullName: string;
@@ -28,8 +29,7 @@ type FormState = {
   fullName: string;
   email: string;
   phone: string;
-  stateCodes: string[];
-  managerCommissionRate: string;
+  assignments: Array<{ stateCode: string; commissionRate: string }>;
   status: "invited" | "active";
 };
 
@@ -37,8 +37,7 @@ const EMPTY_FORM: FormState = {
   fullName: "",
   email: "",
   phone: "",
-  stateCodes: [],
-  managerCommissionRate: "5",
+  assignments: [],
   status: "invited",
 };
 
@@ -63,6 +62,7 @@ export function StateMarketManagersClient() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [stateSearch, setStateSearch] = useState("");
+  const [stateDropdownOpen, setStateDropdownOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<Manager | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -103,6 +103,7 @@ export function StateMarketManagersClient() {
     setEditing(null);
     setForm(EMPTY_FORM);
     setStateSearch("");
+    setStateDropdownOpen(false);
     setActivationLink("");
     setError("");
     setEditorOpen(true);
@@ -114,11 +115,11 @@ export function StateMarketManagersClient() {
       fullName: manager.fullName,
       email: manager.email,
       phone: manager.phone,
-      stateCodes: manager.states.map((state) => state.code),
-      managerCommissionRate: String(manager.managerCommissionRate),
+      assignments: manager.states.map((state) => ({ stateCode: state.code, commissionRate: String(state.commissionRate ?? manager.managerCommissionRate ?? 5) })),
       status: manager.status === "active" ? "active" : "invited",
     });
     setStateSearch("");
+    setStateDropdownOpen(false);
     setActivationLink("");
     setError("");
     setEditorOpen(true);
@@ -127,9 +128,16 @@ export function StateMarketManagersClient() {
   function toggleState(code: string) {
     setForm((current) => ({
       ...current,
-      stateCodes: current.stateCodes.includes(code)
-        ? current.stateCodes.filter((value) => value !== code)
-        : [...current.stateCodes, code],
+      assignments: current.assignments.some((assignment) => assignment.stateCode === code)
+        ? current.assignments.filter((assignment) => assignment.stateCode !== code)
+        : [...current.assignments, { stateCode: code, commissionRate: "5" }],
+    }));
+  }
+
+  function updateAssignmentRate(code: string, commissionRate: string) {
+    setForm((current) => ({
+      ...current,
+      assignments: current.assignments.map((assignment) => assignment.stateCode === code ? { ...assignment, commissionRate } : assignment),
     }));
   }
 
@@ -142,7 +150,10 @@ export function StateMarketManagersClient() {
       const response = await fetch(endpoint, {
         method: editing ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...form, managerCommissionRate: Number(form.managerCommissionRate) }),
+        body: JSON.stringify({
+          ...form,
+          assignments: form.assignments.map((assignment) => ({ ...assignment, commissionRate: Number(assignment.commissionRate) })),
+        }),
       });
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Could not save this Market Manager.");
@@ -181,6 +192,24 @@ export function StateMarketManagersClient() {
     window.setTimeout(() => setCopied(false), 1800);
   }
 
+  async function enterManager(manager: Manager) {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/partner-admin/delegation", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ managerUserId: manager.userId }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Could not enter this Market Manager workspace.");
+      window.location.assign(payload.redirectTo || "/partner-admin/partners");
+    } catch (accessError) {
+      setError(accessError instanceof Error ? accessError.message : "Could not enter this Market Manager workspace.");
+      setBusy(false);
+    }
+  }
+
   return (
     <PartnerAdminShell title="Market Managers" actions={<button type="button" className={styles.topButton} onClick={openCreate}>Add manager</button>}>
       <section className={styles.page}>
@@ -190,10 +219,10 @@ export function StateMarketManagersClient() {
             <h1>Market Managers</h1>
             <p>Assign one accountable manager per state while giving each person access to every market they oversee.</p>
           </div>
-          <div className={styles.commissionCard}>
-            <span>Manager commission</span>
-            <strong>5% <small>of the 40% platform share</small></strong>
-            <p>Equivalent to 2% of gross appointment value.</p>
+          <div className={controls.coverageCard}>
+            <span>Flexible market access</span>
+            <strong>One manager <small>may oversee multiple states</small></strong>
+            <p>Access and compensation settings are configured independently for every assigned state.</p>
           </div>
         </header>
 
@@ -218,8 +247,8 @@ export function StateMarketManagersClient() {
               <article className={styles.managerCard} key={manager.userId}>
                 <div className={styles.identity}><span className={styles.avatar}>{initials(manager.fullName)}</span><div><strong>{manager.fullName}</strong><a href={`mailto:${manager.email}`}>{manager.email}</a><small>{manager.phone || "No phone added"}</small></div></div>
                 <div className={styles.stateGroup}><span>Assigned states</span><div>{manager.states.length ? manager.states.map((state) => <small key={state.code}>{state.code} · {state.name}</small>) : <small>None</small>}</div></div>
-                <div className={styles.managerMeta}><span className={`${styles.status} ${styles[manager.status]}`}>{manager.status}</span><strong>{money(manager.earnedCommission)} <small>earned</small></strong><span>{manager.completedAppointments} completed · {money(manager.pendingCommission)} payable</span><span>{manager.managerCommissionRate}% of platform share · {formatDate(manager.lastLoginAt)}</span></div>
-                <div className={styles.actions}><button type="button" onClick={() => openEdit(manager)} disabled={busy}>Edit</button>{manager.status !== "suspended" ? <button type="button" className={styles.danger} onClick={() => void suspend(manager)} disabled={busy}>Suspend</button> : null}</div>
+                <div className={styles.managerMeta}><span className={`${styles.status} ${styles[manager.status]}`}>{manager.status}</span><strong>{money(manager.earnedCommission)} <small>earned</small></strong><span>{manager.completedAppointments} completed · {money(manager.pendingCommission)} payable</span><span>Last sign in: {formatDate(manager.lastLoginAt)}</span></div>
+                <div className={styles.actions}>{manager.status === "active" ? <button type="button" className={controls.enterButton} onClick={() => void enterManager(manager)} disabled={busy}>View as manager</button> : null}<button type="button" onClick={() => openEdit(manager)} disabled={busy}>Edit</button>{manager.status !== "suspended" ? <button type="button" className={styles.danger} onClick={() => void suspend(manager)} disabled={busy}>Suspend</button> : null}</div>
               </article>
             ))}
           </div>
@@ -240,24 +269,34 @@ export function StateMarketManagersClient() {
                   <label><span>Full name</span><input required value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>
                   <label><span>Email address</span><input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} disabled={Boolean(editing)} /></label>
                   <label><span>Mobile number</span><input type="tel" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
-                  <label><span>Commission rate</span><div className={styles.rateInput}><input required min="0" max="100" step="0.01" type="number" value={form.managerCommissionRate} onChange={(event) => setForm({ ...form, managerCommissionRate: event.target.value })} /><b>% of platform share</b></div></label>
                   {editing ? <label><span>Account status</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as FormState["status"] })}><option value="invited">Invited</option><option value="active">Active</option></select></label> : null}
                 </div>
-                <div className={styles.statePicker}>
+                <div className={`${styles.statePicker} ${controls.statePicker}`}>
                   <div><span>State access</span><small>Select every state this manager will oversee.</small></div>
-                  <input value={stateSearch} onChange={(event) => setStateSearch(event.target.value)} placeholder="Search states" />
-                  <div className={styles.stateOptions}>
-                    {visibleStates.map((state) => {
-                      const selected = form.stateCodes.includes(state.code);
-                      const belongsToEditing = editing?.states.some((current) => current.code === state.code);
-                      const unavailable = assignedCodes.has(state.code) && !belongsToEditing;
-                      return <label key={state.code} className={`${selected ? styles.selectedState : ""} ${unavailable ? styles.unavailableState : ""}`}><input type="checkbox" checked={selected} disabled={unavailable} onChange={() => toggleState(state.code)} /><span><strong>{state.code}</strong>{state.name}</span>{unavailable ? <small>Assigned</small> : null}</label>;
+                  <button type="button" className={controls.stateDropdownTrigger} aria-expanded={stateDropdownOpen} onClick={() => setStateDropdownOpen((current) => !current)}>
+                    <span>{form.assignments.length ? `${form.assignments.length} ${form.assignments.length === 1 ? "state selected" : "states selected"}` : "Choose one or more states"}</span><b>{stateDropdownOpen ? "⌃" : "⌄"}</b>
+                  </button>
+                  {stateDropdownOpen ? <div className={controls.stateDropdown}>
+                    <input value={stateSearch} onChange={(event) => setStateSearch(event.target.value)} placeholder="Search states" autoFocus />
+                    <div className={styles.stateOptions}>
+                      {visibleStates.map((state) => {
+                        const selected = form.assignments.some((assignment) => assignment.stateCode === state.code);
+                        const belongsToEditing = editing?.states.some((current) => current.code === state.code);
+                        const unavailable = assignedCodes.has(state.code) && !belongsToEditing;
+                        return <label key={state.code} className={`${selected ? styles.selectedState : ""} ${unavailable ? styles.unavailableState : ""}`}><input type="checkbox" checked={selected} disabled={unavailable} onChange={() => toggleState(state.code)} /><span><strong>{state.code}</strong>{state.name}</span>{unavailable ? <small>Assigned</small> : null}</label>;
+                      })}
+                    </div>
+                  </div> : null}
+                  <div className={controls.assignmentList}>
+                    {form.assignments.map((assignment) => {
+                      const state = states.find((option) => option.code === assignment.stateCode);
+                      return <div className={controls.assignmentRow} key={assignment.stateCode}><div><strong>{assignment.stateCode}</strong><span>{state?.name || assignment.stateCode}</span></div><label><span>State commission</span><div className={styles.rateInput}><input required min="0" max="100" step="0.01" type="number" value={assignment.commissionRate} onChange={(event) => updateAssignmentRate(assignment.stateCode, event.target.value)} /><b>%</b></div></label><button type="button" aria-label={`Remove ${state?.name || assignment.stateCode}`} onClick={() => toggleState(assignment.stateCode)}>×</button></div>;
                     })}
                   </div>
                 </div>
-                <div className={styles.rateExplanation}><strong>How this is calculated</strong><span>Appointment × 40% platform share × {Number(form.managerCommissionRate || 0)}% manager rate = {(40 * Number(form.managerCommissionRate || 0) / 100).toFixed(2)}% of gross.</span></div>
+                <div className={styles.rateExplanation}><strong>Independent by state</strong><span>Each selected state keeps its own compensation setting. Changing one state never changes another manager or market.</span></div>
                 {error ? <div className={styles.error} role="alert">{error}</div> : null}
-                <footer><button type="button" className={styles.secondary} onClick={() => setEditorOpen(false)} disabled={busy}>Cancel</button><button type="submit" disabled={busy || !form.stateCodes.length}>{busy ? "Saving…" : editing ? "Save access" : "Create manager"}</button></footer>
+                <footer><button type="button" className={styles.secondary} onClick={() => setEditorOpen(false)} disabled={busy}>Cancel</button><button type="submit" disabled={busy || !form.assignments.length}>{busy ? "Saving…" : editing ? "Save access" : "Create manager"}</button></footer>
               </form>
             )}
           </section>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbPool } from "@/lib/db";
 import {
+  buildClearPartnerAdminDelegationCookie,
   buildPartnerAdminSessionCookie,
   getPartnerAdminSessionSecret,
   PARTNER_ADMIN_SESSION_TTL_SECONDS,
@@ -105,7 +106,7 @@ export async function POST(req: Request) {
     secret,
   });
 
-  return new NextResponse(
+  const response = new NextResponse(
     JSON.stringify({
       ok: true,
       user: { id: user.id, email: user.email, fullName: user.full_name || null },
@@ -116,8 +117,10 @@ export async function POST(req: Request) {
       headers: {
         "content-type": "application/json",
         "cache-control": "no-store",
-        "set-cookie": buildPartnerAdminSessionCookie({ token, maxAgeSeconds }),
       },
     },
   );
+  response.headers.append("set-cookie", buildPartnerAdminSessionCookie({ token, maxAgeSeconds }));
+  response.headers.append("set-cookie", buildClearPartnerAdminDelegationCookie());
+  return response;
 }

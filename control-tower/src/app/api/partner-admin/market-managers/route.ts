@@ -29,8 +29,7 @@ export async function POST(request: NextRequest) {
       fullName: String(body.fullName || ""),
       email: String(body.email || ""),
       phone: String(body.phone || ""),
-      stateCodes: body.stateCodes,
-      managerCommissionRate: Number(body.managerCommissionRate ?? 5),
+      assignments: body.assignments || body.stateCodes,
       actorUserId: auth.user.id,
       activationBaseUrl: `${origin}/partner-admin/activate`,
     });
