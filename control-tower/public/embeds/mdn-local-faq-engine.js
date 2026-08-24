@@ -227,6 +227,13 @@
       };
     }
 
+    var stateDomains = {
+      "alabama":"Alabama","alaska":"Alaska","arizona":"Arizona","arkansas":"Arkansas","california":"California","colorado":"Colorado","connecticut":"Connecticut","delaware":"Delaware","florida":"Florida","georgia":"Georgia","hawaii":"Hawaii","idaho":"Idaho","illinois":"Illinois","indiana":"Indiana","iowa":"Iowa","kansas":"Kansas","kentucky":"Kentucky","louisiana":"Louisiana","maine":"Maine","maryland":"Maryland","massachusetts":"Massachusetts","michigan":"Michigan","minnesota":"Minnesota","mississippi":"Mississippi","missouri":"Missouri","montana":"Montana","nebraska":"Nebraska","nevada":"Nevada","new-hampshire":"New Hampshire","new-jersey":"New Jersey","new-mexico":"New Mexico","new-york":"New York","north-carolina":"North Carolina","north-dakota":"North Dakota","ohio":"Ohio","oklahoma":"Oklahoma","oregon":"Oregon","pennsylvania":"Pennsylvania","rhode-island":"Rhode Island","south-carolina":"South Carolina","south-dakota":"South Dakota","tennessee":"Tennessee","texas":"Texas","utah":"Utah","vermont":"Vermont","virginia":"Virginia","washington":"Washington","west-virginia":"West Virginia","wisconsin":"Wisconsin","wyoming":"Wyoming","district-of-columbia":"District of Columbia","puerto-rico":"Puerto Rico"
+    };
+    if (stateDomains[subdomain]) {
+      return { type: "state", city: "", county: "", state: stateDomains[subdomain], source: "state-subdomain" };
+    }
+
     if (host === "mydripnurse.com" || host === "www.mydripnurse.com") {
       return { type: "nationwide", city: "", county: "", state: "", label: "the United States and Puerto Rico", source: "nationwide-root-domain" };
     }
@@ -243,13 +250,13 @@
     if (!location) return "your area";
     if (location.label) return location.label;
     if (location.city) return location.city + (location.state ? ", " + location.state : "");
-    if (location.county) return location.county + (location.state ? ", " + location.state : "");
+    if (location.county) return location.county.replace(/\s+(county|parish)$/i, "") + (norm(location.state) === "louisiana" ? " Parish" : " County") + (location.state ? ", " + location.state : "");
     return location.state || "your area";
   }
 
   function coverageLabel(location) {
     if (!location) return "your area";
-    if (location.county) return location.county + (location.state ? ", " + location.state : "");
+    if (location.type === "county" && location.county) return placeLabel(location);
     return placeLabel(location);
   }
 
