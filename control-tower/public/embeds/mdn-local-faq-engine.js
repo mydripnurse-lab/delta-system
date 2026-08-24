@@ -1,7 +1,22 @@
 (function (window, document) {
   "use strict";
 
-  var VERSION = "1.1.0";
+  var VERSION = "1.2.0";
+  var SERVICE_IMAGES = {
+    "hydration": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31919fe87a9994954d28.png",
+    "brain-storm": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b16b0e5e2bb7ffb13f6.png",
+    "alleviate": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eea0199fe87a9994383bdb.png",
+    "recovery-performance": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b4f05d4199001cea525.png",
+    "myers-cocktail": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31919fe87a9994954d26.png",
+    "myers-cocktail-glutathione-push": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb3191717d5dd4e1934c0d.png",
+    "get-lean-weight-loss": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb3191717d5dd4e1934c0e.png",
+    "hangover-jet-lag": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb342a0d66f2a665c9a731.png",
+    "the-glow-beauty-iv-drip": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31919fe87a9994954d27.png",
+    "immunity-defense-cold-flu": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69b38ce2bfc81fb94cdb5931.png",
+    "immunity-defense-cold-flu-glutathione": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/6a1a6fe85a3e6e89b6f1b119.png",
+    "nad-plus": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31910d66f2a665c92182.png",
+    "nad-plus-boost": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b7e05d4199001cead8a.png"
+  };
   var STYLE_ID = "mdn-local-faq-styles";
   var SCHEMA_ID = "mdn-local-faq-schema";
 
@@ -285,6 +300,39 @@
     ];
   }
 
+  function enhanceExistingServiceSchema(service) {
+    var image = service && SERVICE_IMAGES[service.id];
+    if (!image) return false;
+    var currentUrl = canonicalPageUrl();
+    var enhanced = false;
+    Array.prototype.forEach.call(document.querySelectorAll('script[type="application/ld+json"]'), function (script) {
+      var data;
+      try { data = JSON.parse(script.textContent); } catch (error) { return; }
+      if (!data || data["@type"] !== "OfferCatalog") return;
+      var changed = false;
+      function visit(node) {
+        if (!node || typeof node !== "object") return;
+        if (node["@type"] === "Service" && node.url) {
+          var nodeUrl = "";
+          try { nodeUrl = new URL(node.url, window.location.href).origin + new URL(node.url, window.location.href).pathname.replace(/\/$/, ""); } catch (error) {}
+          if (nodeUrl === currentUrl) {
+            node.image = image;
+            changed = true;
+            enhanced = true;
+          }
+        }
+        Object.keys(node).forEach(function (key) {
+          var value = node[key];
+          if (Array.isArray(value)) value.forEach(visit);
+          else if (value && typeof value === "object") visit(value);
+        });
+      }
+      visit(data);
+      if (changed) script.textContent = JSON.stringify(data);
+    });
+    return enhanced;
+  }
+
   function listPhrase(values) {
     if (!values.length) return "an eligible address";
     if (values.length === 1) return "an eligible " + values[0];
@@ -556,6 +604,7 @@
       if (config.schema) {
         injectSchema(faqs);
         injectBreadcrumbSchema(breadcrumbs);
+        root.setAttribute("data-mdn-service-schema", enhanceExistingServiceSchema(serviceResult.service) ? "enhanced" : "not-found");
       }
       root.setAttribute("data-mdn-status", "ready");
       var result = {
