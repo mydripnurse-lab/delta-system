@@ -1,7 +1,7 @@
 (function (window, document) {
   "use strict";
 
-  var VERSION = "1.0.0";
+  var VERSION = "1.1.0";
   var STYLE_ID = "mdn-local-faq-styles";
   var SCHEMA_ID = "mdn-local-faq-schema";
 
@@ -260,6 +260,31 @@
     return placeLabel(location);
   }
 
+  function canonicalPageUrl() {
+    var canonical = document.querySelector('link[rel="canonical"]');
+    var candidate = canonical && canonical.getAttribute("href");
+    try {
+      var parsed = new URL(candidate || window.location.href, window.location.href);
+      if (parsed.origin === window.location.origin) return parsed.origin + parsed.pathname.replace(/\/$/, "");
+    } catch (error) {}
+    return window.location.origin + window.location.pathname.replace(/\/$/, "");
+  }
+
+  function buildBreadcrumbs(service, location) {
+    if (!service || !location || window.location.pathname === "/") return [];
+    var isNad = service.id.indexOf("nad-plus") === 0;
+    var category = isNad ? "NAD+ IV Therapy" : "Mobile IV Therapy";
+    var categoryPath = isNad ? "/nad-plus-iv-therapy" : "/mobile-iv-therapy";
+    var homeName = location.type === "nationwide" ? "My Drip Nurse" : placeLabel(location);
+    var currentUrl = canonicalPageUrl();
+    if (!homeName || !service.name || currentUrl === window.location.origin + categoryPath) return [];
+    return [
+      { name: homeName, url: window.location.origin + "/" },
+      { name: category, url: window.location.origin + categoryPath },
+      { name: service.name, url: currentUrl, current: true }
+    ];
+  }
+
   function listPhrase(values) {
     if (!values.length) return "an eligible address";
     if (values.length === 1) return "an eligible " + values[0];
@@ -336,6 +361,14 @@
     style.textContent = [
       ".mdn-local-faq{--mdn-faq-ink:#172131;--mdn-faq-muted:#52636b;--mdn-faq-line:#cbdde8;--mdn-faq-soft:#ebf2f9;--mdn-faq-focus:#087f91;width:100%;max-width:1160px;margin:0 auto;padding:44px 16px 52px;box-sizing:border-box;color:var(--mdn-faq-ink);font-family:\"Lato\",sans-serif;isolation:isolate}",
       ".mdn-local-faq *{box-sizing:border-box}",
+      ".mdn-local-faq__breadcrumb{margin:0 0 18px;color:#60747b;font:600 12px/1.5 \"Lato\",sans-serif;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}",
+      ".mdn-local-faq__breadcrumb::-webkit-scrollbar{display:none}",
+      ".mdn-local-faq__breadcrumb ol{display:flex;align-items:center;justify-content:center;gap:0;width:max-content;min-width:100%;margin:0;padding:0;list-style:none;white-space:nowrap}",
+      ".mdn-local-faq__breadcrumb li{display:flex;align-items:center}",
+      ".mdn-local-faq__breadcrumb li+li:before{content:\"›\";margin:0 9px;color:#9aabb1;font-size:15px;font-weight:400}",
+      ".mdn-local-faq__breadcrumb a{color:inherit;text-decoration:none;text-underline-offset:3px}",
+      ".mdn-local-faq__breadcrumb a:hover{text-decoration:underline}",
+      ".mdn-local-faq__breadcrumb [aria-current=page]{color:#044c5c;font-weight:700}",
       ".mdn-local-faq__title{margin:0 0 28px;color:#044c5c;font:italic 700 26px/1.2 \"Nunito\",sans-serif;letter-spacing:-.02em;text-align:center}",
       ".mdn-local-faq__list{display:grid;gap:10px}",
       ".mdn-local-faq__item{overflow:hidden;border:1.5px solid var(--mdn-faq-line);border-radius:12px;background:linear-gradient(135deg,rgba(235,242,249,.72),rgba(255,255,255,.96));box-shadow:0 1px 0 rgba(18,74,84,.02)}",
@@ -347,7 +380,7 @@
       ".mdn-local-faq__panel{border-top:1px solid rgba(4,76,92,.12);background:rgba(235,242,249,.58)}",
       ".mdn-local-faq__panel[hidden]{display:none}",
       ".mdn-local-faq__answer{margin:0;padding:17px 18px 20px;color:var(--mdn-faq-muted);font:400 12px/1.65 \"Lato\",sans-serif}",
-      "@media(min-width:720px){.mdn-local-faq{padding:64px 24px 72px}.mdn-local-faq__title{margin-bottom:42px;font-size:32px}.mdn-local-faq__list{gap:12px}.mdn-local-faq__button{min-height:74px;padding:18px 22px;font-size:16px}.mdn-local-faq__answer{padding:20px 22px 23px;font-size:15px}}",
+      "@media(min-width:720px){.mdn-local-faq{padding:64px 24px 72px}.mdn-local-faq__breadcrumb{margin-bottom:22px;font-size:13px}.mdn-local-faq__title{margin-bottom:42px;font-size:32px}.mdn-local-faq__list{gap:12px}.mdn-local-faq__button{min-height:74px;padding:18px 22px;font-size:16px}.mdn-local-faq__answer{padding:20px 22px 23px;font-size:15px}}",
       "@media(prefers-reduced-motion:reduce){.mdn-local-faq__icon{transition:none}}"
     ].join("");
     document.head.appendChild(style);
@@ -364,10 +397,28 @@
     return svg;
   }
 
-  function render(root, faqs, config) {
+  function render(root, faqs, config, breadcrumbs) {
     root.textContent = "";
     root.className = (root.className ? root.className + " " : "") + "mdn-local-faq";
     root.setAttribute("data-mdn-mounted", VERSION);
+
+    if (breadcrumbs.length) {
+      var nav = document.createElement("nav");
+      var trail = document.createElement("ol");
+      nav.className = "mdn-local-faq__breadcrumb";
+      nav.setAttribute("aria-label", "Breadcrumb");
+      breadcrumbs.forEach(function (crumb) {
+        var item = document.createElement("li");
+        var content = document.createElement(crumb.current ? "span" : "a");
+        content.textContent = crumb.name;
+        if (crumb.current) content.setAttribute("aria-current", "page");
+        else content.href = crumb.url;
+        item.appendChild(content);
+        trail.appendChild(item);
+      });
+      nav.appendChild(trail);
+      root.appendChild(nav);
+    }
 
     var title = document.createElement("h2");
     title.className = "mdn-local-faq__title";
@@ -447,6 +498,23 @@
     document.head.appendChild(script);
   }
 
+  function injectBreadcrumbSchema(breadcrumbs) {
+    var existing = document.getElementById("mdn-local-breadcrumb-schema");
+    if (existing) existing.remove();
+    if (!breadcrumbs.length) return;
+    var script = document.createElement("script");
+    script.id = "mdn-local-breadcrumb-schema";
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: breadcrumbs.map(function (crumb, index) {
+        return { "@type": "ListItem", position: index + 1, name: crumb.name, item: crumb.url };
+      })
+    });
+    document.head.appendChild(script);
+  }
+
   function configFromRoot(root) {
     var contexts = str(root.getAttribute("data-appointment-contexts") || "home,hotel,office,vacation rental")
       .split(",").map(str).filter(Boolean).slice(0, 5);
@@ -483,8 +551,12 @@
         return null;
       }
       var faqs = buildFaqs(serviceResult.service, location, config);
-      render(root, faqs, config);
-      if (config.schema) injectSchema(faqs);
+      var breadcrumbs = buildBreadcrumbs(serviceResult.service, location);
+      render(root, faqs, config, breadcrumbs);
+      if (config.schema) {
+        injectSchema(faqs);
+        injectBreadcrumbSchema(breadcrumbs);
+      }
       root.setAttribute("data-mdn-status", "ready");
       var result = {
         version: VERSION,
