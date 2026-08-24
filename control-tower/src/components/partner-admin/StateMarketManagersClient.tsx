@@ -54,6 +54,22 @@ function money(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value || 0);
 }
 
+function normalizeStateOptions(value: unknown): StateOption[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((state) => {
+    if (Array.isArray(state) && state.length >= 2) {
+      return [{ code: String(state[0] || "").trim(), name: String(state[1] || "").trim() }];
+    }
+    if (state && typeof state === "object") {
+      const option = state as Partial<StateOption>;
+      const code = String(option.code || "").trim();
+      const name = String(option.name || "").trim();
+      return code && name ? [{ ...option, code, name } as StateOption] : [];
+    }
+    return [];
+  });
+}
+
 export function StateMarketManagersClient() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [states, setStates] = useState<StateOption[]>([]);
@@ -77,7 +93,7 @@ export function StateMarketManagersClient() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Could not load Market Managers.");
       setManagers(payload.managers || []);
-      setStates(payload.states || []);
+      setStates(normalizeStateOptions(payload.states));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Could not load Market Managers.");
     } finally {
@@ -98,6 +114,25 @@ export function StateMarketManagersClient() {
     const query = stateSearch.trim().toLowerCase();
     return states.filter((state) => !query || `${state.name} ${state.code}`.toLowerCase().includes(query));
   }, [states, stateSearch]);
+
+  useEffect(() => {
+    if (!editorOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || busy) return;
+      if (stateDropdownOpen) setStateDropdownOpen(false);
+      else setEditorOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [busy, editorOpen, stateDropdownOpen]);
 
   function openCreate() {
     setEditing(null);
@@ -256,36 +291,38 @@ export function StateMarketManagersClient() {
       </section>
 
       {editorOpen ? (
-        <div className={styles.backdrop} onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setEditorOpen(false); }}>
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="manager-editor-title">
+        <div className={`${styles.backdrop} ${controls.backdrop}`} onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setEditorOpen(false); }}>
+          <section className={`${styles.modal} ${controls.modal}`} role="dialog" aria-modal="true" aria-labelledby="manager-editor-title">
             <header><div><span className={styles.eyebrow}>{editing ? "Access settings" : "New state access"}</span><h2 id="manager-editor-title">{editing ? "Edit Market Manager" : "Add Market Manager"}</h2><p>One person may manage several states. Each state can belong to only one manager.</p></div><button type="button" className={styles.close} onClick={() => setEditorOpen(false)} disabled={busy}>×</button></header>
             {activationLink ? (
               <div className={styles.activation}>
                 <span className={styles.successIcon}>✓</span><h3>Manager created</h3><p>Send this secure link to the manager so they can set their password.</p><code>{activationLink}</code><button type="button" onClick={() => void copyActivationLink()}>{copied ? "Copied" : "Copy activation link"}</button><button type="button" className={styles.secondary} onClick={() => setEditorOpen(false)}>Done</button>
               </div>
             ) : (
-              <form onSubmit={submit}>
+              <form className={controls.modalForm} onSubmit={submit}>
                 <div className={styles.formGrid}>
-                  <label><span>Full name</span><input required value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>
+                  <label><span>Full name</span><input required autoFocus value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>
                   <label><span>Email address</span><input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} disabled={Boolean(editing)} /></label>
                   <label><span>Mobile number</span><input type="tel" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
                   {editing ? <label><span>Account status</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as FormState["status"] })}><option value="invited">Invited</option><option value="active">Active</option></select></label> : null}
                 </div>
                 <div className={`${styles.statePicker} ${controls.statePicker}`}>
                   <div><span>State access</span><small>Select every state this manager will oversee.</small></div>
-                  <button type="button" className={controls.stateDropdownTrigger} aria-expanded={stateDropdownOpen} onClick={() => setStateDropdownOpen((current) => !current)}>
+                  <button type="button" className={controls.stateDropdownTrigger} aria-expanded={stateDropdownOpen} aria-controls="manager-state-options" onClick={() => setStateDropdownOpen((current) => !current)}>
                     <span>{form.assignments.length ? `${form.assignments.length} ${form.assignments.length === 1 ? "state selected" : "states selected"}` : "Choose one or more states"}</span><b>{stateDropdownOpen ? "⌃" : "⌄"}</b>
                   </button>
-                  {stateDropdownOpen ? <div className={controls.stateDropdown}>
-                    <input value={stateSearch} onChange={(event) => setStateSearch(event.target.value)} placeholder="Search states" autoFocus />
-                    <div className={styles.stateOptions}>
+                  {stateDropdownOpen ? <div id="manager-state-options" className={controls.stateDropdown} aria-label="Available states">
+                    <input type="search" value={stateSearch} onChange={(event) => setStateSearch(event.target.value)} placeholder="Search states" />
+                    <div className={`${styles.stateOptions} ${controls.stateOptions}`}>
                       {visibleStates.map((state) => {
                         const selected = form.assignments.some((assignment) => assignment.stateCode === state.code);
                         const belongsToEditing = editing?.states.some((current) => current.code === state.code);
                         const unavailable = assignedCodes.has(state.code) && !belongsToEditing;
-                        return <label key={state.code} className={`${selected ? styles.selectedState : ""} ${unavailable ? styles.unavailableState : ""}`}><input type="checkbox" checked={selected} disabled={unavailable} onChange={() => toggleState(state.code)} /><span><strong>{state.code}</strong>{state.name}</span>{unavailable ? <small>Assigned</small> : null}</label>;
+                        return <label key={state.code} className={`${controls.stateOption} ${selected ? styles.selectedState : ""} ${unavailable ? styles.unavailableState : ""}`}><input type="checkbox" checked={selected} disabled={unavailable} onChange={() => toggleState(state.code)} /><span><strong>{state.code}</strong>{state.name}</span>{unavailable ? <small>Assigned</small> : null}</label>;
                       })}
+                      {!visibleStates.length ? <p className={controls.emptyStates}>No states match your search.</p> : null}
                     </div>
+                    <div className={controls.stateDropdownFooter}><span>{form.assignments.length} selected</span><button type="button" onClick={() => setStateDropdownOpen(false)}>Done</button></div>
                   </div> : null}
                   <div className={controls.assignmentList}>
                     {form.assignments.map((assignment) => {
