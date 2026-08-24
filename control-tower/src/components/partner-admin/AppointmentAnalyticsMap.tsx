@@ -15,7 +15,7 @@ type CoverageBoundaryFeature = {
 
 type CoverageBoundaryCollection = { type: "FeatureCollection"; features: CoverageBoundaryFeature[] };
 
-export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverageVisible, coverageGapsVisible }: { points: AppointmentGeoPoint[]; people: AppointmentMapPerson[]; coverageAreas: BusinessCoverageArea[]; coverageVisible: boolean; coverageGapsVisible: boolean }) {
+export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverageVisible, coverageGapsVisible, focusStateCodes }: { points: AppointmentGeoPoint[]; people: AppointmentMapPerson[]; coverageAreas: BusinessCoverageArea[]; coverageVisible: boolean; coverageGapsVisible: boolean; focusStateCodes: string[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "missing" | "error">("loading");
@@ -71,7 +71,7 @@ export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverag
   }, [token, styleUrl]);
 
   useEffect(() => {
-    if (!coverageGapsVisible || coverageBoundaries) return;
+    if ((!coverageGapsVisible && !focusStateCodes.length) || coverageBoundaries) return;
     const controller = new AbortController();
     setCoverageGapsState("loading");
     void fetch("/api/partner-admin/analytics/coverage-boundaries", { cache: "force-cache", signal: controller.signal })
@@ -86,19 +86,23 @@ export function AppointmentAnalyticsMap({ points, people, coverageAreas, coverag
         setCoverageGapsState("error");
       });
     return () => controller.abort();
-  }, [coverageBoundaries, coverageGapsVisible]);
+  }, [coverageBoundaries, coverageGapsVisible, focusStateCodes.length]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || state !== "ready") return;
     (map.getSource("appointments") as GeoJSONSource | undefined)?.setData(featureCollection(points));
     (map.getSource("business-coverage") as GeoJSONSource | undefined)?.setData(coverageFeatureCollection(coverageAreas));
-    const geographicPoints = [...points, ...coverageAreas];
+    const stateBoundaryPoints = focusStateCodes.length && coverageBoundaries
+      ? boundaryCoordinates(coverageBoundaries)
+      : [];
+    const geographicPoints = stateBoundaryPoints.length ? stateBoundaryPoints : [...points, ...coverageAreas];
     if (!geographicPoints.length) return;
     const longitudes = geographicPoints.map((point) => point.longitude);
     const latitudes = geographicPoints.map((point) => point.latitude);
-    map.fitBounds([[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]], { padding: 56, maxZoom: 8, duration: 650 });
-  }, [coverageAreas, points, state]);
+    const compact = (containerRef.current?.clientWidth || 0) < 640;
+    map.fitBounds([[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]], { padding: compact ? 28 : 56, maxZoom: 8, duration: 650 });
+  }, [coverageAreas, coverageBoundaries, focusStateCodes.length, points, state]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -195,6 +199,19 @@ function coverageFeatureCollection(areas: BusinessCoverageArea[]) {
 
 function emptyCoverageBoundaryCollection(): CoverageBoundaryCollection {
   return { type: "FeatureCollection", features: [] };
+}
+
+function boundaryCoordinates(boundaries: CoverageBoundaryCollection) {
+  return boundaries.features.flatMap((feature) => {
+    const polygons = feature.geometry.type === "Polygon"
+      ? [feature.geometry.coordinates as number[][][]]
+      : feature.geometry.coordinates as number[][][][];
+    return polygons.flatMap((polygon) => polygon.flatMap((ring) => ring.flatMap((coordinate) => {
+      const longitude = Number(coordinate[0]);
+      const latitude = Number(coordinate[1]);
+      return Number.isFinite(longitude) && Number.isFinite(latitude) ? [{ longitude, latitude }] : [];
+    })));
+  });
 }
 
 function coverageGapFeatureCollection(boundaries: CoverageBoundaryCollection, coveredAreas: BusinessCoverageArea[]): CoverageBoundaryCollection {
