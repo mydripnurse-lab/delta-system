@@ -12,8 +12,6 @@ type Manager = {
   fullName: string;
   email: string;
   phone: string;
-  password: string;
-  confirmPassword: string;
   status: "invited" | "active" | "suspended";
   managerCommissionRate: number;
   states: StateOption[];
@@ -31,6 +29,8 @@ type FormState = {
   fullName: string;
   email: string;
   phone: string;
+  password: string;
+  confirmPassword: string;
   assignments: Array<{ stateCode: string; commissionRate: string }>;
   status: "invited" | "active";
 };
