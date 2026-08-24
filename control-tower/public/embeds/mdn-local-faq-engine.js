@@ -228,7 +228,16 @@
     }
 
     var fallback = unresolved(fallbackLabel) ? "" : str(fallbackLabel);
-    return fallback ? { type: "label", city: "", county: "", state: "", label: fallback, source: "ghl-custom-value" } : null;
+    if (fallback) {
+      return { type: "label", city: "", county: "", state: "", label: fallback, source: "ghl-custom-value" };
+    }
+
+    var pageEvidence = norm(document.title + " " + headingText());
+    if ((host === "mydripnurse.com" || host === "www.mydripnurse.com") && pageEvidence.indexOf("united states") > -1) {
+      return { type: "country", city: "", county: "", state: "", label: "United States", source: "page-heading" };
+    }
+
+    return { type: "generic", city: "", county: "", state: "", label: "your area", source: "safe-generic-fallback" };
   }
 
   function placeLabel(location) {
