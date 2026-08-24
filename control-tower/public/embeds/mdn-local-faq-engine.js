@@ -232,9 +232,8 @@
       return { type: "label", city: "", county: "", state: "", label: fallback, source: "ghl-custom-value" };
     }
 
-    var pageEvidence = norm(document.title + " " + headingText());
-    if ((host === "mydripnurse.com" || host === "www.mydripnurse.com") && pageEvidence.indexOf("united states") > -1) {
-      return { type: "country", city: "", county: "", state: "", label: "United States", source: "page-heading" };
+    if (host === "mydripnurse.com" || host === "www.mydripnurse.com") {
+      return { type: "nationwide", city: "", county: "", state: "", label: "the United States and Puerto Rico", source: "nationwide-root-domain" };
     }
 
     return { type: "generic", city: "", county: "", state: "", label: "your area", source: "safe-generic-fallback" };
