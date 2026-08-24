@@ -21,8 +21,6 @@ export async function GET(request: NextRequest) {
       granularity: request.nextUrl.searchParams.get("granularity") || "week",
       stateCodes: auth.access.stateCodes,
     });
-    const platformShareRate = 40;
-    const managerRateOfPlatformShare = auth.access.managerCommissionRate;
     let ledgerFinancials: Awaited<ReturnType<typeof getStateMarketManagerCommissionSummary>> | null = null;
     let managerPerformance: Awaited<ReturnType<typeof listStateMarketManagers>> = [];
 
@@ -40,23 +38,34 @@ export async function GET(request: NextRequest) {
     const managerFinancials = auth.access.isOwner || !ledgerFinancials
       ? null
       : {
-          ...ledgerFinancials,
           completedAppointments: analytics.summary.completed,
           grossCompletedValue: analytics.summary.completedValue,
-          platformShareRate,
-          platformShareValue: analytics.summary.completedValue * (platformShareRate / 100),
-          managerRateOfPlatformShare,
-          effectiveGrossRate: platformShareRate * (managerRateOfPlatformShare / 100),
-          estimatedCommission:
-            analytics.summary.completedValue *
-            (platformShareRate / 100) *
-            (managerRateOfPlatformShare / 100),
+          grossAppointmentValue: ledgerFinancials.grossAppointmentValue,
+          earnedCommission: ledgerFinancials.earnedCommission,
+          paidCommission: ledgerFinancials.paidCommission,
+          pendingCommission: ledgerFinancials.pendingCommission,
         };
+    const viewerAnalytics = auth.access.isOwner ? analytics : {
+      ...analytics,
+      summary: {
+        ...analytics.summary,
+        intentPlatformRevenue: 0,
+        intentPartnerEarnings: 0,
+        lostPlatformRevenue: 0,
+        lostPartnerEarnings: 0,
+        partnerEarnings: 0,
+        platformRevenue: 0,
+        refundedRevenue: 0,
+        failedDepositValue: 0,
+        activePartnerValue: 0,
+        activePlatformValue: 0,
+      },
+    };
     return NextResponse.json(
       {
         ok: true,
         analytics: {
-          ...analytics,
+          ...viewerAnalytics,
           viewer: {
             role: auth.access.role,
             isOwner: auth.access.isOwner,
