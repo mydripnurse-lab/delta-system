@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from "pg";
 
 import { getDbPool } from "@/lib/db";
+import { hashPassword, validatePasswordStrength } from "@/lib/password";
 import { issueActivationToken } from "@/lib/staffInvite";
 import { normalizeStateCodes, stateNameForCode } from "@/lib/usStateOptions";
 
@@ -401,16 +402,21 @@ function isStateConflict(error: unknown) {
 
 export async function createStateMarketManager(input: {
   fullName: string; email: string; phone?: string; assignments: unknown;
-  actorUserId: string; activationBaseUrl: string;
+  password?: string; actorUserId: string; activationBaseUrl: string;
 }) {
   const fullName = s(input.fullName);
   const email = s(input.email).toLowerCase();
   const phone = s(input.phone);
+  const password = s(input.password);
   const assignments = normalizeAssignments(input.assignments);
   const stateCodes = assignments.map((assignment) => assignment.stateCode);
   if (!fullName || !email || !email.includes("@")) throw new Error("A valid name and email are required.");
   if (isPlatformOwnerEmail(email)) throw new Error("The platform owner cannot be converted into a Market Manager.");
   if (!stateCodes.length) throw new Error("Assign at least one state.");
+  const passwordError = password ? validatePasswordStrength(password) : "";
+  if (passwordError) throw new Error(passwordError);
+  const passwordHash = password ? await hashPassword(password) : null;
+  const accessStatus = passwordHash ? "active" : "invited";
 
   const pool = getDbPool();
   await ensureStateMarketManagerSchema(pool);
@@ -420,14 +426,21 @@ export async function createStateMarketManager(input: {
     let user = await client.query<{ id: string }>(`select id from app.users where lower(email) = lower($1) limit 1`, [email]);
     if (!user.rows[0]) {
       user = await client.query<{ id: string }>(
-        `insert into app.users (email, full_name, phone, is_active, account_status)
-         values ($1, $2, nullif($3, ''), true, 'invited') returning id`,
-        [email, fullName, phone],
+        `insert into app.users (email, full_name, phone, is_active, account_status, password_hash, password_updated_at)
+         values ($1, $2, nullif($3, ''), true, $4, $5, case when $5::text is null then null else now() end) returning id`,
+        [email, fullName, phone, accessStatus, passwordHash],
       );
     } else {
       await client.query(
-        `update app.users set full_name = $2, phone = nullif($3, ''), is_active = true where id = $1`,
-        [user.rows[0].id, fullName, phone],
+        `update app.users
+            set full_name = $2, phone = nullif($3, ''), is_active = true,
+                account_status = $4,
+                password_hash = coalesce($5, password_hash),
+                password_updated_at = case when $5::text is null then password_updated_at else now() end,
+                failed_login_attempts = case when $5::text is null then failed_login_attempts else 0 end,
+                locked_until = case when $5::text is null then locked_until else null end
+          where id = $1`,
+        [user.rows[0].id, fullName, phone, accessStatus, passwordHash],
       );
     }
     const userId = user.rows[0].id;
@@ -440,13 +453,13 @@ export async function createStateMarketManager(input: {
     }
     await client.query(
       `insert into app.admin_access_profiles (user_id, role, status, manager_commission_rate, created_by)
-       values ($1, 'state_market_manager', 'invited', $2, $3)
-       on conflict (user_id) do update set role = 'state_market_manager', status = 'invited',
+       values ($1, 'state_market_manager', $4, $2, $3)
+       on conflict (user_id) do update set role = 'state_market_manager', status = $4,
          manager_commission_rate = excluded.manager_commission_rate, updated_at = now()`,
-      [userId, assignments[0]?.commissionRate ?? 5, input.actorUserId],
+      [userId, assignments[0]?.commissionRate ?? 5, input.actorUserId, accessStatus],
     );
     await writeAssignments(client, userId, assignments, input.actorUserId);
-    const token = await issueActivationToken(client, {
+    const token = passwordHash ? "" : await issueActivationToken(client, {
       userId, context: "state_market_manager_invite",
       metadata: { role: "state_market_manager", stateCodes, email },
     });
@@ -457,7 +470,16 @@ export async function createStateMarketManager(input: {
     );
     await client.query("COMMIT");
     const base = input.activationBaseUrl.replace(/\/+$/, "");
-    return { userId, activationLink: `${base}?token=${encodeURIComponent(token)}` };
+    return {
+      userId,
+      activationLink: token ? `${base}?token=${encodeURIComponent(token)}` : "",
+      passwordConfigured: Boolean(passwordHash),
+      status: accessStatus,
+      fullName,
+      email,
+      phone,
+      assignments,
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     if (isStateConflict(error)) throw new Error("One of these states already has a Market Manager.");

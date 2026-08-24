@@ -12,6 +12,8 @@ type Manager = {
   fullName: string;
   email: string;
   phone: string;
+  password: string;
+  confirmPassword: string;
   status: "invited" | "active" | "suspended";
   managerCommissionRate: number;
   states: StateOption[];
@@ -37,6 +39,8 @@ const EMPTY_FORM: FormState = {
   fullName: "",
   email: "",
   phone: "",
+  password: "",
+  confirmPassword: "",
   assignments: [],
   status: "invited",
 };
@@ -83,6 +87,9 @@ export function StateMarketManagersClient() {
   const [editing, setEditing] = useState<Manager | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [activationLink, setActivationLink] = useState("");
+  const [creationComplete, setCreationComplete] = useState(false);
+  const [createdWithPassword, setCreatedWithPassword] = useState(false);
+  const [notificationNotice, setNotificationNotice] = useState("");
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
@@ -140,6 +147,9 @@ export function StateMarketManagersClient() {
     setStateSearch("");
     setStateDropdownOpen(false);
     setActivationLink("");
+    setCreationComplete(false);
+    setCreatedWithPassword(false);
+    setNotificationNotice("");
     setError("");
     setEditorOpen(true);
   }
@@ -150,6 +160,8 @@ export function StateMarketManagersClient() {
       fullName: manager.fullName,
       email: manager.email,
       phone: manager.phone,
+      password: "",
+      confirmPassword: "",
       assignments: manager.states.map((state) => ({ stateCode: state.code, commissionRate: String(state.commissionRate ?? manager.managerCommissionRate ?? 5) })),
       status: manager.status === "active" ? "active" : "invited",
     });
@@ -178,6 +190,10 @@ export function StateMarketManagersClient() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!editing && form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -192,8 +208,13 @@ export function StateMarketManagersClient() {
       });
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Could not save this Market Manager.");
-      if (payload.activationLink) {
-        setActivationLink(payload.activationLink);
+      if (!editing) {
+        setActivationLink(payload.activationLink || "");
+        setCreatedWithPassword(Boolean(payload.passwordConfigured));
+        setNotificationNotice(payload.notification?.sent
+          ? "GHL received the Market Manager welcome event."
+          : payload.notification?.reason || "The account was created, but the GHL notification was not sent.");
+        setCreationComplete(true);
       } else {
         setEditorOpen(false);
       }
@@ -294,9 +315,9 @@ export function StateMarketManagersClient() {
         <div className={`${styles.backdrop} ${controls.backdrop}`} onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setEditorOpen(false); }}>
           <section className={`${styles.modal} ${controls.modal}`} role="dialog" aria-modal="true" aria-labelledby="manager-editor-title">
             <header><div><span className={styles.eyebrow}>{editing ? "Access settings" : "New state access"}</span><h2 id="manager-editor-title">{editing ? "Edit Market Manager" : "Add Market Manager"}</h2><p>One person may manage several states. Each state can belong to only one manager.</p></div><button type="button" className={styles.close} onClick={() => setEditorOpen(false)} disabled={busy}>×</button></header>
-            {activationLink ? (
+            {creationComplete ? (
               <div className={styles.activation}>
-                <span className={styles.successIcon}>✓</span><h3>Manager created</h3><p>Send this secure link to the manager so they can set their password.</p><code>{activationLink}</code><button type="button" onClick={() => void copyActivationLink()}>{copied ? "Copied" : "Copy activation link"}</button><button type="button" className={styles.secondary} onClick={() => setEditorOpen(false)}>Done</button>
+                <span className={styles.successIcon}>✓</span><h3>Manager created</h3><p>{createdWithPassword ? "The account is active and ready to sign in." : "Send this secure link to the manager so they can set their password."}</p>{activationLink ? <><code>{activationLink}</code><button type="button" onClick={() => void copyActivationLink()}>{copied ? "Copied" : "Copy activation link"}</button></> : null}<p className={controls.notificationNotice}>{notificationNotice}</p><button type="button" className={styles.secondary} onClick={() => setEditorOpen(false)}>Done</button>
               </div>
             ) : (
               <form className={controls.modalForm} onSubmit={submit}>
@@ -304,6 +325,8 @@ export function StateMarketManagersClient() {
                   <label><span>Full name</span><input required autoFocus value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></label>
                   <label><span>Email address</span><input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} disabled={Boolean(editing)} /></label>
                   <label><span>Mobile number</span><input type="tel" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label>
+                  {!editing ? <label><span>Initial password <small>Optional</small></span><input type="password" minLength={10} autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /><small className={controls.fieldHint}>10+ characters with uppercase, lowercase and a number.</small></label> : null}
+                  {!editing ? <label><span>Confirm password</span><input type="password" minLength={10} autoComplete="new-password" value={form.confirmPassword} onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })} /></label> : null}
                   {editing ? <label><span>Account status</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as FormState["status"] })}><option value="invited">Invited</option><option value="active">Active</option></select></label> : null}
                 </div>
                 <div className={`${styles.statePicker} ${controls.statePicker}`}>

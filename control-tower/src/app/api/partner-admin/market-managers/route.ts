@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
+import { sendMarketManagerAccountReadyWebhook } from "@/lib/marketManagerNotifications";
 import { createStateMarketManager, listStateMarketManagers } from "@/lib/stateMarketManagers";
 import { US_STATE_OPTIONS } from "@/lib/usStateOptions";
 
@@ -29,11 +30,19 @@ export async function POST(request: NextRequest) {
       fullName: String(body.fullName || ""),
       email: String(body.email || ""),
       phone: String(body.phone || ""),
+      password: String(body.password || ""),
       assignments: body.assignments || body.stateCodes,
       actorUserId: auth.user.id,
       activationBaseUrl: `${origin}/partner-admin/activate`,
     });
-    return NextResponse.json({ ok: true, ...created }, { status: 201 });
+    const notification = await sendMarketManagerAccountReadyWebhook({
+      ...created,
+      loginUrl: `${origin}/login`,
+    }).catch((notificationError) => ({
+      sent: false,
+      reason: notificationError instanceof Error ? notificationError.message : "The Market Manager notification failed.",
+    }));
+    return NextResponse.json({ ok: true, ...created, notification }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Could not create Market Manager." }, { status: 400 });
   }

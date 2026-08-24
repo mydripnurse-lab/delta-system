@@ -9,7 +9,7 @@ Regla de trabajo: probar un solo ID a la vez. No avanzar hasta registrar evidenc
 | Código | Nombre exacto del workflow en GHL | `workflowRouter` | Uso |
 |---|---|---|---|
 | A01 | `MDN \| Partner \| Application Received` | `application_received` | Solicitud recibida y alerta Admin |
-| A02 | `MDN \| Partner \| Account-ready Welcome` | `account_ready` | Activación y bienvenida después de aprobar |
+| A02 | `MDN \| Partner \| Account-ready Welcome` | `account_ready` | Activación y bienvenida de Partner o Market Manager |
 | R02 | `MDN \| Router 02 \| Booking & Appointments` | `booking_appointments` | Leads, pagos y ciclo de citas |
 | R03 | `MDN \| Router 03 \| Care Rewards` | `care_rewards` | Invitaciones, progreso y Rewards |
 
@@ -23,7 +23,7 @@ Cada payload lleva el contrato de ruteo en propiedades planas. Los tres routers 
 |---|---|
 | `communicationEvent` | Rama exacta del router. |
 | `workflowRouter` | Confirma que el evento llegó a A01, A02, R02 o R03. |
-| `primaryRecipientRole` | `applicant`, `partner`, `customer`, `invitee`, `inviter` o `admin`. |
+| `primaryRecipientRole` | `applicant`, `partner`, `market_manager`, `customer`, `invitee`, `inviter` o `admin`. |
 | `primaryRecipientFirstName`, `primaryRecipientLastName`, `primaryRecipientEmail`, `primaryRecipientPhone` | Contacto actual que GHL debe buscar/crear y comunicar. |
 | `primaryRecipientReady` | Permite comunicación externa sólo cuando es `true`. |
 | `notifyApplicant`, `notifyPartner`, `notifyCustomer`, `notifyInvitee`, `notifyInviter` | Autoriza SMS/email al contacto actual. |
@@ -94,6 +94,16 @@ El State Operator debe ser usuario interno de GHL para compartir la matrícula a
 | P14 | Ocultar Website y/o Directorio | — | — | — | PENDING |
 
 ## Fase 3 — Cuenta Care y perfil del cliente
+
+### Fase 2B — Market Manager
+
+| ID | Prueba | Evento | Webhook/workflow | Comunicación GHL | Estado |
+|---|---|---|---|---|---|
+| MM01 | Crear Market Manager con contraseña inicial | `market_manager_account_ready` | A02 | Manager: [SMS](./sms-library.md#sms-market-manager-account-ready) + [Email](./emails/18-market-manager-account-ready.html); `passwordConfigured=true`; nunca incluir la contraseña | PENDING |
+| MM02 | Crear Market Manager sin contraseña inicial | `market_manager_account_ready` | A02 | Mismos canales con enlace privado de activación; `activationRequired=true` | PENDING |
+| MM03 | Safe Test del evento Market Manager | `market_manager_account_ready` | A02 | `test=true`; validar mappings sin SMS/email real ni crear cuenta | PENDING |
+| MM04 | Primer login y acceso por estados | — | — | Sólo módulos y datos de los estados asignados | PENDING |
+| MM05 | Repetir alta/reintentar webhook | Mismo `idempotencyKey` | A02 | Una matrícula y una bienvenida como máximo | PENDING |
 
 | ID | Prueba | Evento | Webhook/workflow | Comunicación GHL | Estado |
 |---|---|---|---|---|---|

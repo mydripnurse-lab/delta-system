@@ -47,6 +47,9 @@
 
 .modalForm { min-height: 0; }
 
+.fieldHint { color: #718285; font-size: 0.72rem; line-height: 1.4; }
+.notificationNotice { max-width: 520px; padding: 12px 14px; border-radius: 12px; background: #eef6f5; color: #45666b !important; font-size: 0.82rem; }
+
 .stateDropdownTrigger {
   display: flex;
   align-items: center;

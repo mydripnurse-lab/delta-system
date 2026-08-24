@@ -177,7 +177,7 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
   ]);
   const separatedCommunications: PartnerAdminCommunicationSummary[] = [
     { id: "application_received", category: "Partner onboarding", name: "Application received", workflowName: "MDN | Partner | Application Received", description: "Acknowledges the applicant and alerts the internal Admin team.", configured: applicationReceivedConfigured, endpoint: safeWebhookEndpoint(applicationReceivedUrl), webhookUrl: applicationReceivedUrl, events: [{ target: "applicant_received", label: "Application submitted", event: "partner_application_received" }] },
-    { id: "account_ready", category: "Partner onboarding", name: "Account-ready welcome", workflowName: "MDN | Partner | Account-ready Welcome", description: "Runs after approval and account provisioning with the activation link.", configured: Boolean(accountReadyUrl), endpoint: safeWebhookEndpoint(accountReadyUrl), webhookUrl: accountReadyUrl, events: [{ target: "account_ready", label: "Account ready", event: "partner_account_ready" }] },
+    { id: "account_ready", category: "Partner onboarding", name: "Account-ready welcome", workflowName: "MDN | Partner | Account-ready Welcome", description: "Runs after Partner approval or Market Manager provisioning.", configured: Boolean(accountReadyUrl), endpoint: safeWebhookEndpoint(accountReadyUrl), webhookUrl: accountReadyUrl, events: [{ target: "account_ready", label: "Partner account ready", event: "partner_account_ready" }, { target: "market_manager_account_ready", label: "Market Manager account ready", event: "market_manager_account_ready" }] },
     { id: "lead_capture", category: "Bookings", name: "Lead captured", workflowName: "MDN | Booking | Lead Captured", description: "Receives an unfinished booking lead and its coverage and availability context.", configured: Boolean(s(row.lead_capture_webhook_url)), endpoint: safeWebhookEndpoint(row.lead_capture_webhook_url), webhookUrl: s(row.lead_capture_webhook_url), events: [{ target: "lead_capture", label: "Lead captured", event: "booking.lead.created" }] },
     { id: "new_booking", category: "Bookings", name: "New booking", workflowName: "MDN | Booking | New Booking", description: "Receives a paid booking with the patient, assigned professional and additional patients.", configured: Boolean(s(row.new_booking_webhook_url)), endpoint: safeWebhookEndpoint(row.new_booking_webhook_url), webhookUrl: s(row.new_booking_webhook_url), events: [{ target: "new_booking", label: "New booking", event: "new_booking" }] },
     { id: "partner_rescheduled", category: "Appointment updates", name: "Professional rescheduled", workflowName: "MDN | Appointment | Rescheduled", description: "Notifies the applicable workflow when the professional changes the visit time.", configured: Boolean(s(row.partner_rescheduled_webhook_url)), endpoint: safeWebhookEndpoint(row.partner_rescheduled_webhook_url), webhookUrl: s(row.partner_rescheduled_webhook_url), events: [{ target: "partner_rescheduled", label: "Professional rescheduled", event: "partner_rescheduled" }] },
@@ -595,6 +595,7 @@ export async function savePartnerAdminCommunicationRouter(input: {
 
 export type PartnerAdminWebhookTarget =
   | "account_ready"
+  | "market_manager_account_ready"
   | "applicant_received"
   | "admin_notification"
   | "partner_notification"
@@ -617,6 +618,7 @@ export type PartnerAdminWebhookTarget =
 function webhookUrlForTarget(row: SettingsRow, target: PartnerAdminWebhookTarget) {
   const exact = {
     account_ready: row.webhook_url,
+    market_manager_account_ready: row.webhook_url,
     applicant_received: row.applicant_received_webhook_url,
     admin_notification: row.admin_notification_webhook_url,
     partner_notification: row.partner_notification_webhook_url,
@@ -656,7 +658,7 @@ export async function testPartnerAdminNotificationWebhook(input: {
     "appointment_completed",
     "appointment_refunded",
   ] as const;
-  if (input.target !== "appointment_created" && !(["account_ready", "applicant_received", "admin_notification", "partner_notification", "additional_patient_invitation", "lead_capture", "client_referral", "client_referral_registered", "client_referral_reward_earned", "account_security", ...lifecycleTargets] as string[]).includes(input.target)) {
+  if (input.target !== "appointment_created" && !(["account_ready", "market_manager_account_ready", "applicant_received", "admin_notification", "partner_notification", "additional_patient_invitation", "lead_capture", "client_referral", "client_referral_registered", "client_referral_reward_earned", "account_security", ...lifecycleTargets] as string[]).includes(input.target)) {
     throw new Error("Invalid webhook target.");
   }
 
@@ -874,6 +876,32 @@ export async function testPartnerAdminNotificationWebhook(input: {
           timezone: "America/New_York",
         },
         note: "Safe GHL mapping test only. No patient, appointment or Care account was created.",
+      }
+    : input.target === "market_manager_account_ready"
+    ? {
+        event: "market_manager_account_ready",
+        eventId: "market_manager_account_ready:safe-test-manager-id",
+        idempotencyKey: "market_manager_account_ready:safe-test-manager-id",
+        version: 1,
+        success: true,
+        test: true,
+        occurredAt: submittedAt,
+        accountReady: true,
+        passwordConfigured: true,
+        activationRequired: false,
+        firstName: "Test",
+        lastName: "Manager",
+        fullName: "Test Manager",
+        email: "test-manager@mydripnurse.com",
+        phone: "+15550100400",
+        managerUserId: "safe-test-manager-id",
+        loginUrl: "https://admin.mydripnurse.com/login",
+        actionUrl: "https://admin.mydripnurse.com/login",
+        welcomeLandingPageUrl: "https://admin.mydripnurse.com/login",
+        marketStates: ["FL", "GA"],
+        marketStateNames: "Florida, Georgia",
+        marketManager: { id: "safe-test-manager-id", firstName: "Test", lastName: "Manager", fullName: "Test Manager", email: "test-manager@mydripnurse.com", phone: "+15550100400", states: ["FL", "GA"] },
+        note: "Safe Market Manager mapping test only. No account or password was created.",
       }
     : input.target === "account_ready"
     ? {

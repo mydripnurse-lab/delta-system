@@ -21,6 +21,7 @@ Cada archivo es un documento HTML independiente y listo para pegar en el editor 
 | `15-admin-appointment-refunded.html` | `appointment_refunded` | Admin/Finanzas |
 | `16-state-operator-action-required.html` | Eventos con `stateOperatorNotificationRequired = true` | State Operator interno de GHL |
 | `17-additional-patient-invitation.html` | `customer.appointment.patient_invited` | Cada paciente adicional de una cita |
+| `18-market-manager-account-ready.html` | `market_manager_account_ready` | Market Manager |
 
 Antes de activar cada email:
 

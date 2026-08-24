@@ -7,6 +7,7 @@ export type GhlWorkflowRouter =
 export type GhlPrimaryAudience =
   | "applicant"
   | "partner"
+  | "market_manager"
   | "customer"
   | "admin"
   | "invitee"
@@ -40,6 +41,7 @@ type RoutingDecision = {
   primaryAudience: GhlPrimaryAudience;
   notifyApplicant?: boolean;
   notifyPartner?: boolean;
+  notifyMarketManager?: boolean;
   notifyCustomer?: boolean;
   notifyAdmin?: boolean;
   notifyInvitee?: boolean;
@@ -80,6 +82,13 @@ function eventRouting(event: string, context: RoutingContext): RoutingDecision {
         primaryAudience: "partner" as const,
         notifyPartner: true,
         stateOperatorNotificationReason: "new_partner_approved_in_state",
+      };
+    case "market_manager_account_ready":
+      return {
+        workflowRouter: "account_ready" as const,
+        primaryAudience: "market_manager" as const,
+        notifyMarketManager: true,
+        stateOperatorNotificationReason: "",
       };
     case "booking.lead.created":
       return {
@@ -213,6 +222,7 @@ export function ghlRoutingFieldsForEvent(eventValue: unknown, context: RoutingCo
   const externalAudiences = [
     decision.notifyApplicant ? "applicant" : "",
     decision.notifyPartner ? "partner" : "",
+    decision.notifyMarketManager ? "market_manager" : "",
     decision.notifyCustomer ? "customer" : "",
     decision.notifyInvitee ? "invitee" : "",
     decision.notifyInviter ? "inviter" : "",
@@ -238,6 +248,7 @@ export function ghlRoutingFieldsForEvent(eventValue: unknown, context: RoutingCo
     requiresSecondaryContactWorkflow: externalAudiences.length > 1,
     notifyApplicant: decision.notifyApplicant === true,
     notifyPartner: decision.notifyPartner === true,
+    notifyMarketManager: decision.notifyMarketManager === true,
     notifyCustomer: decision.notifyCustomer === true,
     notifyAdmin: decision.notifyAdmin === true,
     notifyInvitee: decision.notifyInvitee === true,
@@ -287,6 +298,7 @@ export function ghlRoutingFieldsForEvent(eventValue: unknown, context: RoutingCo
 function personFromPayload(payload: PayloadRecord, audience: GhlPrimaryAudience) {
   const applicant = record(payload.applicant);
   const partner = record(payload.partner);
+  const marketManager = record(payload.marketManager);
   const lead = record(payload.lead);
   const leadPrimaryPatient = record(lead.primaryPatient);
   const customer = record(payload.patient || payload.customer || leadPrimaryPatient);
@@ -294,6 +306,7 @@ function personFromPayload(payload: PayloadRecord, audience: GhlPrimaryAudience)
   const inviter = record(payload.inviter);
   const source = audience === "applicant" ? applicant
     : audience === "partner" ? partner
+      : audience === "market_manager" ? marketManager
       : audience === "customer" ? customer
         : audience === "invitee" ? invitee
           : audience === "inviter" ? inviter
@@ -302,29 +315,34 @@ function personFromPayload(payload: PayloadRecord, audience: GhlPrimaryAudience)
   const firstName = text(
     source.firstName ||
     (audience === "partner" ? payload.partnerFirstName : "") ||
+    (audience === "market_manager" ? payload.firstName : "") ||
     (audience === "customer" ? payload.patientFirstName : "") ||
     payload.firstName,
   );
   const lastName = text(
     source.lastName ||
     (audience === "partner" ? payload.partnerLastName : "") ||
+    (audience === "market_manager" ? payload.lastName : "") ||
     (audience === "customer" ? payload.patientLastName : "") ||
     payload.lastName,
   );
   const fullName = text(
     source.fullName ||
     (audience === "partner" ? payload.partnerFullName : "") ||
+    (audience === "market_manager" ? payload.fullName : "") ||
     payload.fullName,
   ) || `${firstName} ${lastName}`.trim();
   const email = text(
     source.email ||
     (audience === "partner" ? payload.partnerEmail : "") ||
+    (audience === "market_manager" ? payload.email : "") ||
     (audience === "customer" ? payload.patientEmail : "") ||
     payload.email,
   ).toLowerCase();
   const phone = text(
     source.phone || source.phoneNumber ||
     (audience === "partner" ? payload.partnerPhone : "") ||
+    (audience === "market_manager" ? payload.phone : "") ||
     (audience === "customer" ? payload.patientPhone : "") ||
     payload.phone || payload.phoneNumber,
   );

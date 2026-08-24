@@ -20,6 +20,17 @@ Destinatario: `{{inboundWebhookRequest.primaryRecipientPhone}}`
 My Drip Nurse: Hi {{inboundWebhookRequest.firstName}}, your Partner account is ready. Create your secure password and activate your account within {{inboundWebhookRequest.activationLinkExpiresInDays}} days: {{inboundWebhookRequest.welcomeLandingPageUrl}}
 ```
 
+<a id="sms-market-manager-account-ready"></a>
+## 2A. Market Manager account ready
+
+Destinatario: `{{inboundWebhookRequest.primaryRecipientPhone}}`
+
+```text
+My Drip Nurse: Hi {{inboundWebhookRequest.firstName}}, your Market Manager account for {{inboundWebhookRequest.marketStateNames}} is ready. Sign in securely: {{inboundWebhookRequest.actionUrl}}
+```
+
+Nunca incluyas la contraseña inicial en SMS, email, notas ni campos personalizados de GHL.
+
 <a id="sms-partner-new-appointment"></a>
 ## 3. New appointment offer
 
