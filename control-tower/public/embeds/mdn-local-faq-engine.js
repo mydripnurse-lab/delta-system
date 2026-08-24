@@ -227,13 +227,13 @@
       };
     }
 
+    if (host === "mydripnurse.com" || host === "www.mydripnurse.com") {
+      return { type: "nationwide", city: "", county: "", state: "", label: "the United States and Puerto Rico", source: "nationwide-root-domain" };
+    }
+
     var fallback = unresolved(fallbackLabel) ? "" : str(fallbackLabel);
     if (fallback) {
       return { type: "label", city: "", county: "", state: "", label: fallback, source: "ghl-custom-value" };
-    }
-
-    if (host === "mydripnurse.com" || host === "www.mydripnurse.com") {
-      return { type: "nationwide", city: "", county: "", state: "", label: "the United States and Puerto Rico", source: "nationwide-root-domain" };
     }
 
     return { type: "generic", city: "", county: "", state: "", label: "your area", source: "safe-generic-fallback" };
