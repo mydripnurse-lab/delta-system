@@ -1,7 +1,7 @@
 (function (window, document) {
   "use strict";
 
-  var VERSION = "1.3.0";
+  var VERSION = "1.4.0";
   var SERVICE_IMAGES = {
     "hydration": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31919fe87a9994954d28.png",
     "brain-storm": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b16b0e5e2bb7ffb13f6.png",
@@ -275,6 +275,21 @@
     return placeLabel(location);
   }
 
+  function entityId(fragment) {
+    return window.location.origin + "/#" + fragment;
+  }
+
+  function schemaAreaServed(location) {
+    if (!location || location.type === "nationwide") {
+      return [
+        { "@type": "Country", name: "United States" },
+        { "@type": "AdministrativeArea", name: "Puerto Rico" }
+      ];
+    }
+    if (location.type === "city") return { "@type": "City", name: placeLabel(location) };
+    return { "@type": "AdministrativeArea", name: placeLabel(location) };
+  }
+
   function canonicalPageUrl() {
     var canonical = document.querySelector('link[rel="canonical"]');
     var candidate = canonical && canonical.getAttribute("href");
@@ -300,7 +315,35 @@
     ];
   }
 
-  function isolateCurrentServiceSchema(service) {
+  function normalizeSupportingSchemas(location) {
+    Array.prototype.forEach.call(document.querySelectorAll('script[type="application/ld+json"]'), function (script) {
+      var data;
+      try { data = JSON.parse(script.textContent); } catch (error) { return; }
+      if (!data) return;
+      if (data["@type"] === "Dataset") {
+        script.remove();
+        return;
+      }
+      if (data["@type"] === "LocalBusiness") {
+        data["@id"] = entityId("localbusiness");
+        data.url = window.location.origin + "/";
+        data.areaServed = schemaAreaServed(location);
+        if (data.address && /united states|puerto rico/i.test(str(data.address.addressLocality)) && /united states|puerto rico/i.test(str(data.address.addressRegion))) delete data.address;
+        var digits = str(data.telephone).replace(/\D/g, "");
+        if (digits.length === 10) data.telephone = "+1" + digits;
+        else if (digits.length === 11 && digits.charAt(0) === "1") data.telephone = "+" + digits;
+        script.textContent = JSON.stringify(data);
+      }
+      if (data["@type"] === "WebSite") {
+        data["@id"] = entityId("website");
+        data.url = window.location.origin + "/";
+        data.publisher = { "@id": entityId("localbusiness") };
+        script.textContent = JSON.stringify(data);
+      }
+    });
+  }
+
+  function isolateCurrentServiceSchema(service, location) {
     var image = service && SERVICE_IMAGES[service.id];
     if (!image) return false;
     var currentUrl = canonicalPageUrl();
@@ -331,9 +374,23 @@
     var serviceNode = selectedOffer.itemOffered;
     serviceNode.image = image;
     if (!serviceNode["@id"]) serviceNode["@id"] = currentUrl + "#service";
+    serviceNode.areaServed = schemaAreaServed(location);
+    serviceNode.provider = { "@id": entityId("localbusiness") };
     var offerNode = {};
     Object.keys(selectedOffer).forEach(function (key) { offerNode[key] = selectedOffer[key]; });
     offerNode.itemOffered = { "@id": serviceNode["@id"] };
+    delete offerNode.availability;
+
+    var webPageNode = {
+      "@id": currentUrl + "#webpage",
+      "@type": "WebPage",
+      url: currentUrl,
+      name: service.name + " in " + placeLabel(location),
+      isPartOf: { "@id": entityId("website") },
+      mainEntity: { "@id": serviceNode["@id"] },
+      breadcrumb: { "@id": currentUrl + "#breadcrumb" },
+      publisher: { "@id": entityId("localbusiness") }
+    };
 
     sourceScripts.forEach(function (script) { script.remove(); });
     var existing = document.getElementById("mdn-local-service-schema");
@@ -343,10 +400,39 @@
     schema.type = "application/ld+json";
     schema.textContent = JSON.stringify({
       "@context": "https://schema.org",
-      "@graph": [serviceNode, offerNode]
+      "@graph": [webPageNode, serviceNode, offerNode]
     });
     document.head.appendChild(schema);
     return true;
+  }
+
+  function maintainCurrentServiceSchema(service, location, root) {
+    function clean() {
+      normalizeSupportingSchemas(location);
+      var local = document.getElementById("mdn-local-service-schema");
+      if (!local) isolateCurrentServiceSchema(service, location);
+      if (document.getElementById("mdn-local-service-schema")) {
+        Array.prototype.forEach.call(document.querySelectorAll('script[type="application/ld+json"]'), function (script) {
+          var data;
+          try { data = JSON.parse(script.textContent); } catch (error) { return; }
+          if (data && (data["@type"] === "OfferCatalog" || data["@type"] === "Dataset")) script.remove();
+        });
+        root.setAttribute("data-mdn-service-schema", "isolated");
+      } else {
+        root.setAttribute("data-mdn-service-schema", "waiting");
+      }
+    }
+    clean();
+    if (root._mdnSchemaObserver) root._mdnSchemaObserver.disconnect();
+    root._mdnSchemaObserver = new MutationObserver(function (mutations) {
+      var hasSchema = mutations.some(function (mutation) {
+        return Array.prototype.some.call(mutation.addedNodes || [], function (node) {
+          return node && node.nodeType === 1 && node.matches && node.matches('script[type="application/ld+json"]');
+        });
+      });
+      if (hasSchema) clean();
+    });
+    if (document.head) root._mdnSchemaObserver.observe(document.head, { childList: true });
   }
 
   function listPhrase(values) {
@@ -405,7 +491,7 @@
         answer: "Enter the complete appointment address when submitting the booking request. My Drip Nurse confirms whether the address is within the current service area before the appointment is finalized."
       },
       {
-        question: "How do I book a " + service.name + " appointment?",
+        question: "How do I book " + (/^[aeiou]/i.test(service.name) ? "an " : "a ") + service.name + " appointment?",
         answer: "Use the booking page to submit the requested service, preferred date, contact information, and appointment address. The care team then confirms coverage, scheduling availability, and any required clinical screening."
       },
       {
@@ -571,6 +657,7 @@
     script.type = "application/ld+json";
     script.textContent = JSON.stringify({
       "@context": "https://schema.org",
+      "@id": canonicalPageUrl() + "#breadcrumb",
       "@type": "BreadcrumbList",
       itemListElement: breadcrumbs.map(function (crumb, index) {
         return { "@type": "ListItem", position: index + 1, name: crumb.name, item: crumb.url };
@@ -620,7 +707,7 @@
       if (config.schema) {
         injectSchema(faqs);
         injectBreadcrumbSchema(breadcrumbs);
-        root.setAttribute("data-mdn-service-schema", isolateCurrentServiceSchema(serviceResult.service) ? "isolated" : "not-found");
+        maintainCurrentServiceSchema(serviceResult.service, location, root);
       }
       root.setAttribute("data-mdn-status", "ready");
       var result = {
