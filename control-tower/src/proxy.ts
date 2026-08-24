@@ -5,6 +5,7 @@ const SESSION_COOKIE_NAME = "ct_session";
 const PARTNER_ADMIN_SESSION_COOKIE_NAME = "mdn_partner_admin_session";
 const PUBLIC_POLICY_HOSTNAME = "policy.mydripnurse.com";
 const PARTNER_ADMIN_HOSTNAME = "admin.mydripnurse.com";
+const PARTNER_ADMIN_LOCAL_HOSTNAME = "admin.localhost";
 const PARTNER_ONBOARDING_HOSTNAME = "onboarding.mydripnurse.com";
 const PARTNER_WEBSITE_HOSTNAME = "partners.mydripnurse.com";
 const CLIENT_CARE_HOSTNAME = "care.mydripnurse.com";
@@ -31,7 +32,8 @@ function isPublicPolicyHost(req: NextRequest) {
 }
 
 function isPartnerAdminHost(req: NextRequest) {
-  return requestHostname(req) === PARTNER_ADMIN_HOSTNAME;
+  const hostname = requestHostname(req);
+  return hostname === PARTNER_ADMIN_HOSTNAME || hostname === PARTNER_ADMIN_LOCAL_HOSTNAME;
 }
 
 function isPartnerOnboardingHost(req: NextRequest) {
