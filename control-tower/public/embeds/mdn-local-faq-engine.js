@@ -1,7 +1,7 @@
 (function (window, document) {
   "use strict";
 
-  var VERSION = "1.2.0";
+  var VERSION = "1.3.0";
   var SERVICE_IMAGES = {
     "hydration": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31919fe87a9994954d28.png",
     "brain-storm": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b16b0e5e2bb7ffb13f6.png",
@@ -300,26 +300,22 @@
     ];
   }
 
-  function enhanceExistingServiceSchema(service) {
+  function isolateCurrentServiceSchema(service) {
     var image = service && SERVICE_IMAGES[service.id];
     if (!image) return false;
     var currentUrl = canonicalPageUrl();
-    var enhanced = false;
+    var selectedOffer = null;
+    var sourceScripts = [];
     Array.prototype.forEach.call(document.querySelectorAll('script[type="application/ld+json"]'), function (script) {
       var data;
       try { data = JSON.parse(script.textContent); } catch (error) { return; }
       if (!data || data["@type"] !== "OfferCatalog") return;
-      var changed = false;
       function visit(node) {
-        if (!node || typeof node !== "object") return;
-        if (node["@type"] === "Service" && node.url) {
+        if (!node || typeof node !== "object" || selectedOffer) return;
+        if (node["@type"] === "Offer" && node.itemOffered && node.itemOffered.url) {
           var nodeUrl = "";
-          try { nodeUrl = new URL(node.url, window.location.href).origin + new URL(node.url, window.location.href).pathname.replace(/\/$/, ""); } catch (error) {}
-          if (nodeUrl === currentUrl) {
-            node.image = image;
-            changed = true;
-            enhanced = true;
-          }
+          try { nodeUrl = new URL(node.itemOffered.url, window.location.href).origin + new URL(node.itemOffered.url, window.location.href).pathname.replace(/\/$/, ""); } catch (error) {}
+          if (nodeUrl === currentUrl) selectedOffer = node;
         }
         Object.keys(node).forEach(function (key) {
           var value = node[key];
@@ -328,9 +324,29 @@
         });
       }
       visit(data);
-      if (changed) script.textContent = JSON.stringify(data);
+      if (selectedOffer) sourceScripts.push(script);
     });
-    return enhanced;
+    if (!selectedOffer || !selectedOffer.itemOffered) return false;
+
+    var serviceNode = selectedOffer.itemOffered;
+    serviceNode.image = image;
+    if (!serviceNode["@id"]) serviceNode["@id"] = currentUrl + "#service";
+    var offerNode = {};
+    Object.keys(selectedOffer).forEach(function (key) { offerNode[key] = selectedOffer[key]; });
+    offerNode.itemOffered = { "@id": serviceNode["@id"] };
+
+    sourceScripts.forEach(function (script) { script.remove(); });
+    var existing = document.getElementById("mdn-local-service-schema");
+    if (existing) existing.remove();
+    var schema = document.createElement("script");
+    schema.id = "mdn-local-service-schema";
+    schema.type = "application/ld+json";
+    schema.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [serviceNode, offerNode]
+    });
+    document.head.appendChild(schema);
+    return true;
   }
 
   function listPhrase(values) {
@@ -604,7 +620,7 @@
       if (config.schema) {
         injectSchema(faqs);
         injectBreadcrumbSchema(breadcrumbs);
-        root.setAttribute("data-mdn-service-schema", enhanceExistingServiceSchema(serviceResult.service) ? "enhanced" : "not-found");
+        root.setAttribute("data-mdn-service-schema", isolateCurrentServiceSchema(serviceResult.service) ? "isolated" : "not-found");
       }
       root.setAttribute("data-mdn-status", "ready");
       var result = {
