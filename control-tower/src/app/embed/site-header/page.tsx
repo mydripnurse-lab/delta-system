@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "My Drip Nurse navigation",
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
 };
 
 function first(value: string | string[] | undefined) {
