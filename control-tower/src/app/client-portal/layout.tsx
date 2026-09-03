@@ -7,8 +7,9 @@ import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "My Care | My Drip Nurse",
-  description: "Your private My Drip Nurse care experience.",
-  robots: { index: false, follow: false },
+  description: "Your My Drip Nurse care portal for booking appointments, managing orders, shopping wellness products, discovering new services, and earning rewards.",
+  robots: { index: true, follow: true },
+  alternates: { canonical: "https://care.mydripnurse.com" },
 };
 
 export default async function ClientPortalLayout({ children }: { children: React.ReactNode }) {
