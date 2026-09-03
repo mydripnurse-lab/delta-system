@@ -15,7 +15,8 @@
     "db:seed:services": "node --env-file-if-exists=.env.local ./tools/seed-service-catalog.mjs",
     "db:seed:state-templates": "node ./tools/seed-state-templates-to-db.mjs",
     "db:backfill:dashboard-cache": "node ./tools/backfill-dashboard-cache.mjs",
-    "verify:partner-webhooks": "node ./tools/verify-partner-webhooks.mjs"
+    "verify:partner-webhooks": "node ./tools/verify-partner-webhooks.mjs",
+    "build:home-ghl-embed": "node ./tools/build-home-ghl-embed.mjs"
   },
   "dependencies": {
     "d3-geo": "^3.1.1",

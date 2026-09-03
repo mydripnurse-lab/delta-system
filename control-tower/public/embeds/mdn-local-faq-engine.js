@@ -1,7 +1,7 @@
 (function (window, document) {
   "use strict";
 
-  var VERSION = "1.4.0";
+  var VERSION = "1.5.0";
   var SERVICE_IMAGES = {
     "hydration": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69eb31919fe87a9994954d28.png",
     "brain-storm": "https://assets.cdn.filesafe.space/K8GcSVZWinRaQTMF6Sb8/media/69ee9b16b0e5e2bb7ffb13f6.png",
@@ -441,6 +441,57 @@
     return values.slice(0, -1).join(", ") + ", or " + values[values.length - 1];
   }
 
+  function stableHash(value) {
+    var hash = 2166136261;
+    var input = str(value);
+    for (var index = 0; index < input.length; index += 1) {
+      hash ^= input.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function stablePick(values, signature, offset) {
+    if (!values || !values.length) return null;
+    return values[(stableHash(signature) + (offset || 0)) % values.length];
+  }
+
+  function appointmentArticle(serviceName) {
+    return /^[aeiou]/i.test(serviceName) ? "an " : "a ";
+  }
+
+  function bookingUrl(service, config) {
+    var configured = str(config.bookingUrl);
+    if (configured && !unresolved(configured)) {
+      try { return new URL(configured, window.location.origin).href; } catch (_error) {}
+    }
+    return service && service.bookingPath
+      ? window.location.origin + normalizePath(service.bookingPath)
+      : "";
+  }
+
+  function pageSignature(service, location) {
+    return [
+      canonicalPageUrl(),
+      service.id,
+      location.type,
+      location.city,
+      location.county,
+      location.state,
+      norm(headingText()).slice(0, 240)
+    ].join("|");
+  }
+
+  function uniqueFaqs(faqs) {
+    var seen = {};
+    return faqs.filter(function (faq) {
+      var fingerprint = norm(faq.question).replace(/[^a-z0-9]+/g, " ").trim();
+      if (!fingerprint || !faq.answer || seen[fingerprint]) return false;
+      seen[fingerprint] = true;
+      return true;
+    });
+  }
+
   function specialFaq(service) {
     if (service.id.indexOf("immunity-defense") === 0) {
       return {
@@ -473,35 +524,115 @@
     var place = placeLabel(location);
     var coverage = coverageLabel(location);
     var contexts = config.contexts;
-    var faqs = [
+    var signature = pageSignature(service, location);
+    var destination = bookingUrl(service, config);
+    var introduction = stablePick([
       {
         question: "What is " + service.name + " mobile IV therapy?",
         answer: service.description
       },
       {
+        question: "What does a " + service.name + " appointment involve?",
+        answer: service.description
+      },
+      {
+        question: "How is " + service.name + " provided as a mobile service?",
+        answer: service.description
+      }
+    ], signature, 11);
+    var ingredients = stablePick([
+      {
         question: "What ingredients are included in " + service.name + "?",
         answer: "The listed formulation includes " + service.ingredients + ". Final ingredient selection, medication suitability when applicable, and eligibility are confirmed by a licensed medical professional before administration."
       },
       {
-        question: "Can I request " + service.name + " in " + place + "?",
-        answer: "Appointments may be requested for " + listPhrase(contexts) + " in " + place + ". Exact address coverage, scheduling availability, and eligibility are confirmed during the booking process."
+        question: "Which ingredients are listed for " + service.name + "?",
+        answer: service.name + " is listed with " + service.ingredients + ". A licensed medical professional reviews the formulation, individual suitability, and any medication-related considerations before administration."
       },
+      {
+        question: "Is the " + service.name + " formulation reviewed before the appointment?",
+        answer: "Yes. The listed formulation includes " + service.ingredients + ", but final ingredient suitability and eligibility are reviewed by a licensed medical professional before administration."
+      }
+    ], signature, 23);
+    var settingQuestions = {
+      city: [
+        "Can " + service.name + " be requested at a home, hotel, or office in " + place + "?",
+        "What appointment settings can be considered in " + place + "?",
+        "Can I request an on-location " + service.name + " appointment in " + place + "?"
+      ],
+      county: [
+        "What appointment settings can be considered in " + place + "?",
+        "Can I request an on-location appointment within " + place + "?",
+        "Where can a mobile appointment be requested in " + place + "?"
+      ],
+      state: [
+        "How are on-location " + service.name + " requests handled across " + place + "?",
+        "What appointment settings may be considered in " + place + "?",
+        "Can I request a mobile appointment within " + place + "?"
+      ],
+      nationwide: [
+        "What appointment settings may be considered across " + place + "?",
+        "Can " + service.name + " be requested as an on-location service?",
+        "Where can a mobile appointment be requested?"
+      ]
+    };
+    var locationType = settingQuestions[location.type] ? location.type : "nationwide";
+    var setting = {
+      question: stablePick(settingQuestions[locationType], signature, 37),
+      answer: "Appointments may be requested for " + listPhrase(contexts) + " in " + place + ". Exact address coverage, scheduling availability, and eligibility are confirmed before the appointment is finalized."
+    };
+    var coverageFaq = stablePick([
       {
         question: "How is service coverage confirmed for " + coverage + "?",
-        answer: "Enter the complete appointment address when submitting the booking request. My Drip Nurse confirms whether the address is within the current service area before the appointment is finalized."
+        answer: "Submit the complete appointment address during booking. My Drip Nurse verifies whether that address is within the current service area before the appointment is finalized."
       },
       {
-        question: "How do I book " + (/^[aeiou]/i.test(service.name) ? "an " : "a ") + service.name + " appointment?",
-        answer: "Use the booking page to submit the requested service, preferred date, contact information, and appointment address. The care team then confirms coverage, scheduling availability, and any required clinical screening."
+        question: "Does selecting " + coverage + " guarantee service at every address?",
+        answer: "No. Coverage can vary by exact address and current operating availability. The complete appointment address is reviewed before the request is confirmed."
       },
+      {
+        question: "When is address availability checked for " + coverage + "?",
+        answer: "Address availability is checked after the complete location is submitted with the appointment request. Confirmation is provided before the appointment is finalized."
+      }
+    ], signature, 41);
+    var bookingFaq = stablePick([
+      {
+        question: "How do I book " + appointmentArticle(service.name) + service.name + " appointment?",
+        answer: "Submit the requested service, preferred date, contact information, and complete appointment address. The care team then confirms coverage, scheduling availability, and any required clinical screening."
+      },
+      {
+        question: "What information is needed to request " + service.name + "?",
+        answer: "The request includes the selected service, contact information, preferred date, and complete appointment address. Coverage, scheduling availability, and any required clinical screening are confirmed afterward."
+      },
+      {
+        question: "What happens after I request " + service.name + "?",
+        answer: "After the request is submitted, the care team reviews the appointment address, scheduling availability, and required clinical information before confirming the next steps."
+      }
+    ], signature, 53);
+    if (destination) {
+      bookingFaq.link = {
+        href: destination,
+        label: "Check availability and request an appointment"
+      };
+    }
+    var eligibilityFaq = stablePick([
       {
         question: "How is eligibility for mobile IV therapy determined?",
         answer: "Eligibility is based on the information collected during booking and the clinical review completed by an appropriate licensed medical professional. A requested service may be adjusted or declined when it is not considered suitable."
+      },
+      {
+        question: "Who confirms whether " + service.name + " is appropriate?",
+        answer: "An appropriate licensed medical professional reviews the submitted health information, the requested formulation, and relevant clinical considerations before confirming eligibility."
+      },
+      {
+        question: "Is clinical screening required before mobile IV therapy?",
+        answer: "Yes. The appropriate clinical review is completed before administration. Eligibility depends on the submitted information and the judgment of a qualified licensed medical professional."
       }
-    ];
+    ], signature, 67);
+    var faqs = [introduction, ingredients, setting, coverageFaq, bookingFaq, eligibilityFaq];
     var special = specialFaq(service);
     if (special) faqs.push(special);
-    return faqs.slice(0, 7);
+    return uniqueFaqs(faqs).slice(0, 7);
   }
 
   function injectStyles() {
@@ -511,14 +642,6 @@
     style.textContent = [
       ".mdn-local-faq{--mdn-faq-ink:#172131;--mdn-faq-muted:#52636b;--mdn-faq-line:#cbdde8;--mdn-faq-soft:#ebf2f9;--mdn-faq-focus:#087f91;width:100%;max-width:1160px;margin:0 auto;padding:44px 16px 52px;box-sizing:border-box;color:var(--mdn-faq-ink);font-family:\"Lato\",sans-serif;isolation:isolate}",
       ".mdn-local-faq *{box-sizing:border-box}",
-      ".mdn-local-faq__breadcrumb{margin:0 0 18px;color:#60747b;font:600 12px/1.5 \"Lato\",sans-serif;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}",
-      ".mdn-local-faq__breadcrumb::-webkit-scrollbar{display:none}",
-      ".mdn-local-faq__breadcrumb ol{display:flex;align-items:center;justify-content:center;gap:0;width:max-content;min-width:100%;margin:0;padding:0;list-style:none;white-space:nowrap}",
-      ".mdn-local-faq__breadcrumb li{display:flex;align-items:center}",
-      ".mdn-local-faq__breadcrumb li+li:before{content:\"›\";margin:0 9px;color:#9aabb1;font-size:15px;font-weight:400}",
-      ".mdn-local-faq__breadcrumb a{color:inherit;text-decoration:none;text-underline-offset:3px}",
-      ".mdn-local-faq__breadcrumb a:hover{text-decoration:underline}",
-      ".mdn-local-faq__breadcrumb [aria-current=page]{color:#044c5c;font-weight:700}",
       ".mdn-local-faq__title{margin:0 0 28px;color:#044c5c;font:italic 700 26px/1.2 \"Nunito\",sans-serif;letter-spacing:-.02em;text-align:center}",
       ".mdn-local-faq__list{display:grid;gap:10px}",
       ".mdn-local-faq__item{overflow:hidden;border:1.5px solid var(--mdn-faq-line);border-radius:12px;background:linear-gradient(135deg,rgba(235,242,249,.72),rgba(255,255,255,.96));box-shadow:0 1px 0 rgba(18,74,84,.02)}",
@@ -530,7 +653,10 @@
       ".mdn-local-faq__panel{border-top:1px solid rgba(4,76,92,.12);background:rgba(235,242,249,.58)}",
       ".mdn-local-faq__panel[hidden]{display:none}",
       ".mdn-local-faq__answer{margin:0;padding:17px 18px 20px;color:var(--mdn-faq-muted);font:400 12px/1.65 \"Lato\",sans-serif}",
-      "@media(min-width:720px){.mdn-local-faq{padding:64px 24px 72px}.mdn-local-faq__breadcrumb{margin-bottom:22px;font-size:13px}.mdn-local-faq__title{margin-bottom:42px;font-size:32px}.mdn-local-faq__list{gap:12px}.mdn-local-faq__button{min-height:74px;padding:18px 22px;font-size:16px}.mdn-local-faq__answer{padding:20px 22px 23px;font-size:15px}}",
+      ".mdn-local-faq__booking-link{display:inline;font:700 12px/1.65 \"Lato\",sans-serif;color:#067f91;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}",
+      ".mdn-local-faq__booking-link:hover{color:#044c5c}",
+      ".mdn-local-faq__booking-link:focus-visible{outline:3px solid rgba(8,127,145,.22);outline-offset:3px;border-radius:3px}",
+      "@media(min-width:720px){.mdn-local-faq{padding:64px 24px 72px}.mdn-local-faq__title{margin-bottom:42px;font-size:32px}.mdn-local-faq__list{gap:12px}.mdn-local-faq__button{min-height:74px;padding:18px 22px;font-size:16px}.mdn-local-faq__answer{padding:20px 22px 23px;font-size:15px}.mdn-local-faq__booking-link{font-size:15px}}",
       "@media(prefers-reduced-motion:reduce){.mdn-local-faq__icon{transition:none}}"
     ].join("");
     document.head.appendChild(style);
@@ -547,28 +673,10 @@
     return svg;
   }
 
-  function render(root, faqs, config, breadcrumbs) {
+  function render(root, faqs, config) {
     root.textContent = "";
     root.className = (root.className ? root.className + " " : "") + "mdn-local-faq";
     root.setAttribute("data-mdn-mounted", VERSION);
-
-    if (breadcrumbs.length) {
-      var nav = document.createElement("nav");
-      var trail = document.createElement("ol");
-      nav.className = "mdn-local-faq__breadcrumb";
-      nav.setAttribute("aria-label", "Breadcrumb");
-      breadcrumbs.forEach(function (crumb) {
-        var item = document.createElement("li");
-        var content = document.createElement(crumb.current ? "span" : "a");
-        content.textContent = crumb.name;
-        if (crumb.current) content.setAttribute("aria-current", "page");
-        else content.href = crumb.url;
-        item.appendChild(content);
-        trail.appendChild(item);
-      });
-      nav.appendChild(trail);
-      root.appendChild(nav);
-    }
 
     var title = document.createElement("h2");
     title.className = "mdn-local-faq__title";
@@ -603,6 +711,21 @@
       panel.setAttribute("aria-labelledby", buttonId);
       answer.className = "mdn-local-faq__answer";
       answer.textContent = faq.answer;
+      if (faq.link && faq.link.href && faq.link.label) {
+        answer.appendChild(document.createTextNode(" "));
+        var bookingLink = document.createElement("a");
+        bookingLink.className = "mdn-local-faq__booking-link";
+        bookingLink.href = faq.link.href;
+        bookingLink.textContent = faq.link.label;
+        bookingLink.setAttribute("data-mdn-faq-booking-link", "true");
+        bookingLink.addEventListener("click", function () {
+          window.dispatchEvent(new CustomEvent("mdn:faq-booking-click", {
+            detail: { question: faq.question, href: faq.link.href, index: index }
+          }));
+        });
+        answer.appendChild(bookingLink);
+        answer.appendChild(document.createTextNode("."));
+      }
       panel.appendChild(answer);
 
       button.addEventListener("click", function () {
@@ -641,7 +764,10 @@
         return {
           "@type": "Question",
           name: faq.question,
-          acceptedAnswer: { "@type": "Answer", text: faq.answer }
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer + (faq.link ? " <a href=\"" + faq.link.href.replace(/\"/g, "&quot;") + "\">" + faq.link.label + "</a>." : "")
+          }
         };
       })
     });
@@ -674,6 +800,7 @@
       fallbackLocation: str(root.getAttribute("data-location-label")),
       title: str(root.getAttribute("data-title")) || "Frequently Asked Questions",
       contexts: contexts,
+      bookingUrl: str(root.getAttribute("data-booking-url")),
       schema: root.getAttribute("data-schema") !== "false",
       debug: root.getAttribute("data-debug") === "true" || /(?:\?|&)mdnFaqDebug=1(?:&|$)/.test(window.location.search)
     };
@@ -703,7 +830,7 @@
       }
       var faqs = buildFaqs(serviceResult.service, location, config);
       var breadcrumbs = buildBreadcrumbs(serviceResult.service, location);
-      render(root, faqs, config, breadcrumbs);
+      render(root, faqs, config);
       if (config.schema) {
         injectSchema(faqs);
         injectBreadcrumbSchema(breadcrumbs);
