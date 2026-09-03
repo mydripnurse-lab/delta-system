@@ -11,7 +11,8 @@ import styles from "./clientLogin.module.css";
 export const metadata: Metadata = {
   title: "Sign in | My Drip Nurse Care",
   description: "Secure access to your My Drip Nurse care experience.",
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
+  alternates: { canonical: "https://care.mydripnurse.com/login" },
 };
 
 export default async function ClientLoginPage() {
