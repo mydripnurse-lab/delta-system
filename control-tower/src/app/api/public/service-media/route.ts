@@ -18,10 +18,21 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-  logPublicRequestDiagnostic(request.headers, "/api/public/service-media");
+  const startedAt = Date.now();
   try {
     const services = await loadCurrentMyDripNurseServiceMedia();
-    return NextResponse.json({ services }, { headers: CORS_HEADERS });
+    const body = JSON.stringify({ services });
+    logPublicRequestDiagnostic(request.headers, "/api/public/service-media", {
+      responseBytes: new TextEncoder().encode(body).byteLength,
+      serviceCount: services.length,
+      databaseDurationMs: Date.now() - startedAt,
+    });
+    return new NextResponse(body, {
+      headers: {
+        ...CORS_HEADERS,
+        "Content-Type": "application/json; charset=utf-8",
+      },
+    });
   } catch (error) {
     console.error("public-service-media", error);
     return NextResponse.json(
