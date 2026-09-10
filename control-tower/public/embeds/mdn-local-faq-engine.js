@@ -265,7 +265,11 @@
     if (!location) return "your area";
     if (location.label) return location.label;
     if (location.city) return location.city + (location.state ? ", " + location.state : "");
-    if (location.county) return location.county.replace(/\s+(county|parish)$/i, "") + (norm(location.state) === "louisiana" ? " Parish" : " County") + (location.state ? ", " + location.state : "");
+    if (location.county) {
+      var county = location.county.replace(/,?\s+(county|parish) i, "");
+      if (norm(location.state) === "puerto rico") return county;
+      return county + (norm(location.state) === "louisiana" ? " Parish" : " County") + (location.state ? ", " + location.state : "");
+    }
     return location.state || "your area";
   }
 
