@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -30,19 +31,9 @@ function validFileName(input: string) {
   return /^[a-z0-9-]{1,140}\.html$/i.test(input);
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
-  const { tenantId, folder, fileName } = await ctx.params;
-  const t = s(tenantId);
-  const f = s(folder);
-  const n = s(fileName);
-
-  if (!t || !f || !n || !validTenantId(t) || !validFolder(f) || !validFileName(n)) {
-    return new Response("Not found", { status: 404 });
-  }
-
-  try {
+const getCachedEmbedHtml = unstable_cache(
+  async (tenantId: string, keyName: string) => {
     const pool = getDbPool();
-    const keyName = `${f}/${n}`;
     const q = await pool.query<{ key_value: string | null }>(
       `
         select key_value
@@ -55,9 +46,27 @@ export async function GET(_req: Request, ctx: Ctx) {
           and is_active = true
         limit 1
       `,
-      [t, PROVIDER, SCOPE, MODULE, keyName],
+      [tenantId, PROVIDER, SCOPE, MODULE, keyName],
     );
-    const html = s(q.rows[0]?.key_value);
+    return s(q.rows[0]?.key_value);
+  },
+  ["public-embed-html"],
+  { revalidate: 3600 },
+);
+
+export async function GET(_req: Request, ctx: Ctx) {
+  const { tenantId, folder, fileName } = await ctx.params;
+  const t = s(tenantId);
+  const f = s(folder);
+  const n = s(fileName);
+
+  if (!t || !f || !n || !validTenantId(t) || !validFolder(f) || !validFileName(n)) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  try {
+    const keyName = `${f}/${n}`;
+    const html = await getCachedEmbedHtml(t, keyName);
     if (!html) {
       return new Response("Not found", { status: 404 });
     }

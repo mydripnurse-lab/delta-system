@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -25,6 +26,25 @@ function validTenantId(input: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input);
 }
 
+const getCachedStatePayload = unstable_cache(
+  async (tenantId: string, stateSlug: string) => {
+    const pool = getDbPool();
+    const q = await pool.query<{ payload: Record<string, unknown> | null }>(
+      `
+        select payload
+        from app.organization_state_files
+        where organization_id = $1::uuid
+          and state_slug = $2
+        limit 1
+      `,
+      [tenantId, stateSlug],
+    );
+    return q.rows[0]?.payload ?? null;
+  },
+  ["public-embed-state"],
+  { revalidate: 3600 },
+);
+
 export async function GET(_req: Request, ctx: Ctx) {
   const { tenantId, stateSlug } = await ctx.params;
   const t = s(tenantId);
@@ -38,19 +58,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   }
 
   try {
-    const pool = getDbPool();
-    const q = await pool.query<{ payload: Record<string, unknown> | null }>(
-      `
-        select payload
-        from app.organization_state_files
-        where organization_id = $1::uuid
-          and state_slug = $2
-        limit 1
-      `,
-      [t, slug],
-    );
-
-    const payload = q.rows[0]?.payload || null;
+    const payload = await getCachedStatePayload(t, slug);
     if (!payload || typeof payload !== "object") {
       return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
         status: 404,

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getDbPool } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -29,6 +30,29 @@ function validTenantId(input: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input);
 }
 
+const getCachedEmbedIndex = unstable_cache(
+  async (tenantId: string, keyName: string) => {
+    const pool = getDbPool();
+    const q = await pool.query<{ key_value: string | null }>(
+      `
+        select key_value
+        from app.organization_custom_values
+        where organization_id = $1::uuid
+          and provider = $2
+          and scope = $3
+          and module = $4
+          and key_name = $5
+          and is_active = true
+        limit 1
+      `,
+      [tenantId, PROVIDER, SCOPE, MODULE, keyName],
+    );
+    return s(q.rows[0]?.key_value);
+  },
+  ["public-embed-index"],
+  { revalidate: 3600 },
+);
+
 export async function GET(_req: Request, ctx: Ctx) {
   const { tenantId, searchId } = await ctx.params;
   const t = s(tenantId);
@@ -47,23 +71,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   }
 
   try {
-    const pool = getDbPool();
-    const q = await pool.query<{ key_value: string | null }>(
-      `
-        select key_value
-        from app.organization_custom_values
-        where organization_id = $1::uuid
-          and provider = $2
-          and scope = $3
-          and module = $4
-          and key_name = $5
-          and is_active = true
-        limit 1
-      `,
-      [t, PROVIDER, SCOPE, MODULE, k],
-    );
-
-    const raw = s(q.rows[0]?.key_value);
+    const raw = await getCachedEmbedIndex(t, k);
     if (!raw) {
       return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
         status: 404,
