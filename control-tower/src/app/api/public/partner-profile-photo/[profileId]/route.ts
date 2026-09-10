@@ -31,7 +31,7 @@ export async function GET(_request: Request, { params }: Props) {
     status: 200,
     headers: {
       "Content-Type": row.profile_photo_content_type || "image/jpeg",
-      "Cache-Control": "public, max-age=300, stale-while-revalidate=3600",
+      "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
       "X-Content-Type-Options": "nosniff",
     },
   });

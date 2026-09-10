@@ -25,12 +25,16 @@ function validToken(input: string) {
   return /^[a-z0-9-]{1,120}$/i.test(input);
 }
 
+function validTenantId(input: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input);
+}
+
 export async function GET(_req: Request, ctx: Ctx) {
   const { tenantId, searchId } = await ctx.params;
   const t = s(tenantId);
   const k = normalizeToken(searchId);
 
-  if (!t || !k || !validToken(k)) {
+  if (!t || !k || !validTenantId(t) || !validToken(k)) {
     return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
       status: 404,
       headers: {
@@ -76,7 +80,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       status: 200,
       headers: {
         "content-type": "application/json; charset=utf-8",
-        "cache-control": "public, max-age=60, s-maxage=300",
+        "cache-control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
         "access-control-allow-origin": "*",
         "access-control-allow-methods": "GET, OPTIONS",
         "access-control-allow-headers": "Content-Type",

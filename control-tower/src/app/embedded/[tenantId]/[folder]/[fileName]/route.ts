@@ -22,6 +22,10 @@ function validFolder(input: string) {
   return /^[a-z0-9-]{1,120}$/i.test(input);
 }
 
+function validTenantId(input: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input);
+}
+
 function validFileName(input: string) {
   return /^[a-z0-9-]{1,140}\.html$/i.test(input);
 }
@@ -32,7 +36,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   const f = s(folder);
   const n = s(fileName);
 
-  if (!t || !f || !n || !validFolder(f) || !validFileName(n)) {
+  if (!t || !f || !n || !validTenantId(t) || !validFolder(f) || !validFileName(n)) {
     return new Response("Not found", { status: 404 });
   }
 
@@ -61,11 +65,10 @@ export async function GET(_req: Request, ctx: Ctx) {
       status: 200,
       headers: {
         "content-type": "text/html; charset=utf-8",
-        "cache-control": "public, max-age=60, s-maxage=300",
+        "cache-control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
       },
     });
   } catch {
     return new Response("Not found", { status: 404 });
   }
 }
-

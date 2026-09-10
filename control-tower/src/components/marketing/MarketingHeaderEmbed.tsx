@@ -121,7 +121,7 @@ export default function MarketingHeaderEmbed({
 
   useEffect(() => {
     let active = true;
-    fetch("/api/public/service-media", { cache: "no-store" })
+    fetch("/api/public/service-media", { cache: "force-cache" })
       .then((response) => {
         if (!response.ok) throw new Error("service-media");
         return response.json() as Promise<{ services?: Array<{ landingPath?: string; imageUrl?: string }> }>;

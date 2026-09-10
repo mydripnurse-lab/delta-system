@@ -21,12 +21,16 @@ function normalizeStateSlug(input: string) {
     .slice(0, 120);
 }
 
+function validTenantId(input: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input);
+}
+
 export async function GET(_req: Request, ctx: Ctx) {
   const { tenantId, stateSlug } = await ctx.params;
   const t = s(tenantId);
   const slug = normalizeStateSlug(stateSlug);
 
-  if (!t || !slug) {
+  if (!t || !slug || !validTenantId(t)) {
     return new Response(JSON.stringify({ ok: false, error: "Not found" }), {
       status: 404,
       headers: { "content-type": "application/json; charset=utf-8" },
@@ -58,7 +62,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       status: 200,
       headers: {
         "content-type": "application/json; charset=utf-8",
-        "cache-control": "public, max-age=60, s-maxage=300",
+        "cache-control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
       },
     });
   } catch {
