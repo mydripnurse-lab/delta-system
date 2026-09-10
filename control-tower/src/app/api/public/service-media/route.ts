@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { loadCurrentMyDripNurseServiceMedia } from "@/lib/myDripNurseServices";
@@ -13,6 +14,12 @@ const CORS_HEADERS = {
   "X-Robots-Tag": "noindex, nofollow, nosnippet, noarchive",
 };
 
+const getCachedServiceMedia = unstable_cache(
+  async () => loadCurrentMyDripNurseServiceMedia(),
+  ["public-service-media"],
+  { revalidate: 3600 },
+);
+
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
@@ -20,7 +27,7 @@ export async function OPTIONS() {
 export async function GET(request: Request) {
   const startedAt = Date.now();
   try {
-    const services = await loadCurrentMyDripNurseServiceMedia();
+    const services = await getCachedServiceMedia();
     const body = JSON.stringify({ services });
     logPublicRequestDiagnostic(request.headers, "/api/public/service-media", {
       responseBytes: new TextEncoder().encode(body).byteLength,
