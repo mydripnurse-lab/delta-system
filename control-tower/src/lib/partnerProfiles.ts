@@ -300,8 +300,16 @@ export async function updatePartnerPortalProfile(opts: {
             professional_credentials = nullif($5, ''),
             biography = $6,
             profile_photo_url = coalesce(nullif($7, ''), profile_photo_url),
-            profile_photo_data = coalesce(nullif($10, ''), profile_photo_data),
-            profile_photo_content_type = coalesce(nullif($11, ''), profile_photo_content_type),
+            profile_photo_data = case
+              when nullif($10, '') <> '' then $10
+              when nullif($7, '') <> '' then null
+              else profile_photo_data
+            end,
+            profile_photo_content_type = case
+              when nullif($11, '') <> '' then $11
+              when nullif($7, '') <> '' then null
+              else profile_photo_content_type
+            end,
             profile_photo_file_id = coalesce(nullif($8, ''), profile_photo_file_id),
             profile_photo_location_id = coalesce(nullif($9, ''), profile_photo_location_id),
             updated_at = now()

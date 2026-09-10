@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 
 import { getPartnerPortalSession } from "@/lib/partnerPortalAuth";
 import {
@@ -79,7 +80,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: "Biography must contain 120–700 characters." }, { status: 400 });
     }
 
-    let uploaded: { url: string; fileId: string; locationId: string; data: string; contentType: string } | undefined;
+    let uploaded: { url: string; fileId: string; locationId: string } | undefined;
     if (photo instanceof File && photo.size > 0) {
       if (!(photo.type === "image/jpeg" || photo.type === "image/png")) {
         return NextResponse.json({ ok: false, error: "Profile photo must be a JPG or PNG image." }, { status: 400 });
@@ -87,13 +88,20 @@ export async function PATCH(request: Request) {
       if (photo.size > 5 * 1024 * 1024) {
         return NextResponse.json({ ok: false, error: "Profile photo must be smaller than 5 MB." }, { status: 400 });
       }
-      const data = Buffer.from(await photo.arrayBuffer()).toString("base64");
+      const extension = photo.type === "image/png" ? "png" : "jpg";
+      const blob = await put(
+        `partner-profile-photos/${current.id}/profile.${extension}`,
+        Buffer.from(await photo.arrayBuffer()),
+        {
+          access: "public",
+          addRandomSuffix: true,
+          contentType: photo.type,
+        },
+      );
       uploaded = {
-        url: `/api/public/partner-profile-photo/${current.id}`,
-        fileId: "local-profile-photo",
+        url: blob.url,
+        fileId: blob.pathname,
         locationId: "",
-        data,
-        contentType: photo.type,
       };
     }
 
