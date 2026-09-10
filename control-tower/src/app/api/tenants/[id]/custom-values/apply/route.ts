@@ -31,11 +31,14 @@ function ensureHttps(domainOrUrl: unknown) {
   return `https://${v.replace(/^\/+/, "")}`;
 }
 
-function ensureCountySuffix(name: unknown) {
+function ensureCountySuffix(name: unknown, state: unknown) {
   const t = s(name);
   if (!t) return "";
   const low = t.toLowerCase();
   if (low.endsWith(" county") || low.endsWith(" parish")) return t;
+  const stateSlug = s(state).toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "");
+  if (stateSlug === "puerto-rico") return t;
+  if (stateSlug === "louisiana") return `${t} Parish`;
   return `${t} County`;
 }
 
@@ -182,7 +185,7 @@ async function getLegacyDynamicValuesForLoc(opts: {
   const stateName = cleanCell(obj["State"]);
   const countyRaw = cleanCell(obj["County"]);
   const cityRaw = cleanCell(obj["City"]);
-  const countyName = ensureCountySuffix(countyRaw);
+  const countyName = ensureCountySuffix(countyRaw, stateName);
   const countyDomain = cleanCell(obj["County Domain"] || obj["Domain"] || "");
   const cityDomain = cleanCell(obj["City Domain"] || "");
 
