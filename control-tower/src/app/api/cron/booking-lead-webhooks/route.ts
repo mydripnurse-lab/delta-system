@@ -21,6 +21,24 @@ function isAuthorized(request: Request) {
   return bearer === expected;
 }
 
+function logTransferDiagnostic(result: {
+  claimed: number;
+  sent: number;
+  retried: number;
+  failed: number;
+  notConfigured: number;
+  claimedPayloadBytes: number;
+  webhookResponseBytes: number;
+}) {
+  if (process.env.VERCEL_ENV !== "production") return;
+  console.log(JSON.stringify({
+    level: "info",
+    message: "cron_transfer_diagnostic",
+    route: "/api/cron/booking-lead-webhooks",
+    ...result,
+  }));
+}
+
 export async function GET(request: Request) {
   const startedAtMs = Date.now();
   const jobKey = "booking-lead-webhooks";
@@ -32,6 +50,7 @@ export async function GET(request: Request) {
   }
   try {
     const result = await processDueBookingLeadWebhooks(25);
+    logTransferDiagnostic(result);
     await heartbeatFinish({ jobKey, status: "ok", startedAtMs, result });
     return Response.json({ ok: true, ...result });
   } catch (error) {

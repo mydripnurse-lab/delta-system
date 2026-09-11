@@ -67,6 +67,14 @@ function text(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function serializedByteLength(value: unknown) {
+  try {
+    return new TextEncoder().encode(JSON.stringify(value)).byteLength;
+  } catch {
+    return 0;
+  }
+}
+
 function isUuid(value: unknown) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text(value));
 }
@@ -470,7 +478,17 @@ export async function processDueBookingLeadWebhooks(limit = 25) {
                 event.payload, event.retry_count`,
     [safeLimit],
   );
-  if (!claimed.rows.length) return { claimed: 0, sent: 0, retried: 0, failed: 0, notConfigured: 0 };
+  if (!claimed.rows.length) {
+    return {
+      claimed: 0,
+      sent: 0,
+      retried: 0,
+      failed: 0,
+      notConfigured: 0,
+      claimedPayloadBytes: 0,
+      webhookResponseBytes: 0,
+    };
+  }
 
   const organizationIds = [...new Set(claimed.rows.map((row) => row.organization_id))];
   const configs = await pool.query<{ organization_id: string; webhook_url: string | null }>(
@@ -482,7 +500,15 @@ export async function processDueBookingLeadWebhooks(limit = 25) {
   const webhookByOrganization = new Map<string, string>(
     configs.rows.map((row) => [row.organization_id, validWebhookUrl(row.webhook_url)] as const),
   );
-  const totals = { claimed: claimed.rows.length, sent: 0, retried: 0, failed: 0, notConfigured: 0 };
+  const totals = {
+    claimed: claimed.rows.length,
+    sent: 0,
+    retried: 0,
+    failed: 0,
+    notConfigured: 0,
+    claimedPayloadBytes: claimed.rows.reduce((sum, event) => sum + serializedByteLength(event.payload || {}), 0),
+    webhookResponseBytes: 0,
+  };
 
   for (const event of claimed.rows) {
     const webhookUrl = webhookByOrganization.get(event.organization_id) || "";
@@ -518,7 +544,9 @@ export async function processDueBookingLeadWebhooks(limit = 25) {
         signal: controller.signal,
         cache: "no-store",
       });
-      const responseText = (await response.text()).slice(0, 2000);
+      const fullResponseText = await response.text();
+      totals.webhookResponseBytes += serializedByteLength(fullResponseText);
+      const responseText = fullResponseText.slice(0, 2000);
       if (!response.ok) throw new Error(`Lead capture webhook returned HTTP ${response.status}.`);
       const updated = await pool.query(
         `update app.booking_lead_events
