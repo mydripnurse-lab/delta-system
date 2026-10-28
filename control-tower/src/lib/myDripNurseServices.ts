@@ -228,24 +228,25 @@ export const loadCurrentMyDripNurseServices = cache(async function loadCurrentMy
   });
 });
 
-export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<MyDripNurseServiceDefinition, "id" | "name" | "imageUrl" | "landingPath">>> {
+export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<MyDripNurseServiceWithPrice, "id" | "name" | "imageUrl" | "landingPath" | "price">>> {
   const catalogOrganizationId = await resolveCatalogOrganizationId("");
   if (!catalogOrganizationId) {
-    return MY_DRIP_NURSE_SERVICES.map(({ id, name, imageUrl, landingPath }) => ({ id, name, imageUrl, landingPath }));
+    return MY_DRIP_NURSE_SERVICES.map(({ id, name, imageUrl, landingPath }) => ({ id, name, imageUrl, landingPath, price: "" }));
   }
 
   const result = await getDbPool().query<{
     slug: string;
     name: string;
     image_url: string;
+    price: string;
   }>(
-    `select slug, name, image_url
+    `select slug, name, image_url, price::text
        from app.services
       where organization_id = $1
         and is_active = true`,
     [catalogOrganizationId],
   );
-  const catalog = new Map<string, { slug: string; name: string; image_url: string }>(
+  const catalog = new Map<string, { slug: string; name: string; image_url: string; price: string }>(
     result.rows.map((row) => [row.slug, row]),
   );
 
@@ -257,6 +258,7 @@ export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<M
       name: s(current.name) || name,
       imageUrl: s(current.image_url) || imageUrl,
       landingPath,
+      price: displayPrice(current.price),
     }];
   });
 }

@@ -16,7 +16,7 @@ const CORS_HEADERS = {
 
 const getCachedServiceMedia = unstable_cache(
   async () => loadCurrentMyDripNurseServiceMedia(),
-  ["public-service-media"],
+  ["public-service-media", "with-prices-v1"],
   { revalidate: 3600 },
 );
 
