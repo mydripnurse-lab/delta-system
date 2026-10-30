@@ -57,8 +57,15 @@ export function isPricingDescendant(parent: PricingRegion, child: PricingRegion)
 }
 /** Editing the draft is local; descendants inherit without creating duplicate prices. */
 export function applyRegionalPrice(rules: RegionalPrice[], region: PricingRegion, price: number, policy: DescendantPricePolicy = "preserve"): RegionalPrice[] {
-  return [...rules.filter(rule => rule.region.id !== region.id
-    && !(policy === "inherit" && isPricingDescendant(region, rule.region))), { region, price }];
+  return applyRegionalPrices(rules, [region], price, policy);
+}
+/** Selected locations share a single draft update and the existing service save. */
+export function applyRegionalPrices(rules: RegionalPrice[], regions: PricingRegion[], price: number, policy: DescendantPricePolicy = "preserve"): RegionalPrice[] {
+  const unique = new Map(regions.map(region => [region.id, region]));
+  const parents = [...unique.values()];
+  return [...rules.filter(rule => !unique.has(rule.region.id)
+    && !(policy === "inherit" && parents.some(parent => isPricingDescendant(parent, rule.region)))),
+  ...parents.map(region => ({ region, price }))];
 }
 export function resolveRegionalPrice(basePrice: number, rules: RegionalPrice[], location?: PricingLocation | null, partnerOverride?: number | null) {
   if (partnerOverride !== null && partnerOverride !== undefined && Number.isFinite(partnerOverride) && partnerOverride >= 0) {

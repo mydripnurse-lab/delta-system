@@ -98,6 +98,49 @@
 .regionEmpty { padding:22px; border:1px dashed #bcd3d8; border-radius:12px; color:#426871; font-size:13px; line-height:1.8; }
 .regionEmpty p { margin-bottom:0; }
 .regionalError { color:#a03b35; font-size:13px; line-height:1.7; }
+.visuallyHidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.locationPicker { min-width:0; margin:0; padding:0; border:1px solid #dce8eb; border-radius:14px; background:#fff; overflow:hidden; }
+.locationPicker legend { margin-left:16px; padding:0 7px; font-size:13px; font-weight:650; color:#285761; }
+.locationSearch { display:flex; align-items:center; gap:10px; margin:15px 16px 0; padding:0 13px; background:#f5f9fa; border:1px solid #e1eaec; border-radius:9px; color:#5b848d; }
+.locationSearch:focus-within { outline:2px solid #288f9b; outline-offset:2px; }
+.locationSearch input { width:100%; min-width:0; padding:13px 0; border:0; outline:0; background:transparent; font:inherit; font-size:13px; color:#284d55; }
+.locationSearch svg { flex-shrink:0; }
+.locationToolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 14px; padding:10px 16px 4px; color:#69858b; font-size:11px; }
+.locationToolbar strong { color:#08727f; font-weight:650; }
+.locationToolbar > div,.locationPagination > div { display:flex; flex-wrap:wrap; gap:16px; }
+.locationPicker button:disabled { opacity:.45; cursor:not-allowed; }
+.locationSelectedFilter { display:flex; align-items:center; gap:8px; padding:7px 16px 14px; color:#54747c; font-size:11px; cursor:pointer; }
+.locationPicker input[type="checkbox"] { width:17px; height:17px; flex-shrink:0; accent-color:#087b86; margin:0; cursor:pointer; }
+.locationPicker input[type="checkbox"]:focus-visible { outline:3px solid #279aa9; outline-offset:3px; }
+.locationRows { max-height:330px; overflow:auto; overscroll-behavior:contain; border-top:1px solid #e7eef0; }
+.locationRow { display:flex; align-items:center; gap:13px; padding:14px 18px; min-height:66px; cursor:pointer; border-bottom:1px solid #edf2f3; transition:background .15s; }
+.locationRow:last-child { border-bottom:0; }
+.locationRow:hover { background:#f5fafb; }
+.locationRow[data-selected] { background:#ecf7f7; box-shadow:inset 3px 0 #098a93; }
+.locationRow > span { display:grid; gap:5px; min-width:0; }
+.locationRow strong { color:#294e56; font-size:13px; font-weight:650; overflow-wrap:anywhere; }
+.locationRow small { color:#769197; font-size:11px; line-height:1.5; }
+.locationRowPrice { margin-left:auto; flex-shrink:0; text-align:right; color:#075564; font-size:14px; font-weight:650; font-variant-numeric:tabular-nums; }
+.locationRowPrice small { font-weight:400; }
+.locationNoResults { padding:25px 18px; color:#69858b; font-size:12px; line-height:1.7; text-align:center; }
+.locationPagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:9px 16px; border-top:1px solid #e7eef0; color:#69858b; font-size:11px; }
+.locationSelectionHint { margin:0; padding:0 16px 12px; color:#54747c; font-size:11px; line-height:1.7; }
+.countyFilter { border:1px solid #dfeaec; border-radius:10px; background:white; padding:0 14px 14px; }
+.countyFilter > summary { padding:14px 0 0; color:#285761; font-size:12px; cursor:pointer; }
+.countyFilter > summary span { margin-left:12px; color:#789398; font-size:11px; }
+.countyFilter[open] > summary { padding-bottom:18px; }
+.countyFilter .locationRows { max-height:210px; }
+.selectionReview { font-size:12px; color:#486d75; }
+.selectionReview summary { cursor:pointer; padding:4px 0; }
+.selectionReview ul { list-style:none; padding:0; max-height:210px; overflow:auto; }
+.selectionReview li { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:5px 0; border-bottom:1px solid #e4edef; }
+.selectionReview li span { overflow-wrap:anywhere; }
+.bulkPriceInput { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:20px; }
+.bulkPriceInput > div { display:grid; gap:8px; padding-top:20px; }
+.bulkPriceInput strong { font-size:13px; color:#075564; font-weight:650; }
+.bulkPriceInput > div > span { font-size:11px; line-height:1.7; color:#69858b; }
+@media(max-width:600px) { .bulkPriceInput { grid-template-columns:1fr; gap:10px; } .bulkPriceInput > div { padding-top:0; } .locationRow { gap:10px; padding:13px 12px; } .locationToolbar { align-items:flex-start; flex-direction:column; } }
+@media(prefers-reduced-motion:reduce) { .locationRow { transition:none; } }
 .inheritanceOptions { min-width:0; margin:0; padding:18px; border:1px solid #dfeaec; border-radius:12px; background:white; }
 .inheritanceOptions legend { padding:0 6px; color:#285761; font-size:13px; font-weight:650; }
 .inheritanceOptions > p { margin:0 0 12px; color:#66858c; font-size:12px; line-height:1.7; }
