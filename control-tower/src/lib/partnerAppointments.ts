@@ -474,6 +474,7 @@ export async function declinePartnerAppointment(opts: {
   let replacement: { id: string; name: string } | null = null;
   let payment: { paymentIntentId: string | null; amount: number; currency: string; status: string } | null = null;
   let replacementFound = false;
+  let declineContext: import("@/lib/appointmentCreatedWebhook").AppointmentDeclineContext;
   try {
     await client.query("begin");
     const locked = await client.query<{
@@ -491,7 +492,7 @@ export async function declinePartnerAppointment(opts: {
         where appointment.id = $1
           and appointment.partner_profile_id = $2::uuid
           and appointment.status in ('payment_pending', 'confirmed', 'partner_acknowledged')
-        for update`,
+        for update of appointment`,
       [opts.appointmentId, opts.profileId],
     );
     const appointment = locked.rows[0];
@@ -505,6 +506,34 @@ export async function declinePartnerAppointment(opts: {
           and assignment.status = 'active'
           and assignment.partner_profile_id <> $2::uuid
           and partner.website_status in ('ready', 'published')
+          and not exists (
+            select 1 from app.appointment_events declined
+             where declined.appointment_id = $8::uuid and declined.event_type = 'partner_declined'
+               and declined.actor_type = 'partner' and declined.actor_id = partner.id::text
+          )
+          and (
+            exists (
+              select 1 from app.partner_availability_rules r
+               where r.partner_profile_id = partner.id and r.is_active = true
+                 and (r.service_id is null or r.service_id = $1::uuid)
+                 and r.day_of_week = extract(dow from ($6::timestamptz at time zone r.timezone))::smallint
+                 and (r.effective_from is null or r.effective_from <= ($6::timestamptz at time zone r.timezone)::date)
+                 and (r.effective_until is null or r.effective_until >= ($6::timestamptz at time zone r.timezone)::date)
+                 and (($6::timestamptz at time zone r.timezone)::date + r.start_time) at time zone r.timezone <= $6::timestamptz
+                 and (($6::timestamptz at time zone r.timezone)::date + r.end_time) at time zone r.timezone >= $7::timestamptz
+            ) or exists (
+              select 1 from app.partner_availability_exceptions x
+               where x.partner_profile_id = partner.id and x.kind = 'available'
+                 and (x.service_id is null or x.service_id = $1::uuid)
+                 and x.starts_at <= $6::timestamptz and x.ends_at >= $7::timestamptz
+            )
+          )
+          and not exists (
+            select 1 from app.partner_availability_exceptions x
+             where x.partner_profile_id = partner.id and x.kind = 'unavailable'
+               and (x.service_id is null or x.service_id = $1::uuid)
+               and x.starts_at < $7::timestamptz and x.ends_at > $6::timestamptz
+          )
           and lower(trim(regexp_replace(area.state, '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace($3, '[^a-zA-Z0-9]+', ' ', 'g')))
           and lower(trim(regexp_replace(regexp_replace(area.county, '\\m(county|parish|borough|municipality|census area)\\M', '', 'gi'), '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace(regexp_replace($4, '\\m(county|parish|borough|municipality|census area)\\M', '', 'gi'), '[^a-zA-Z0-9]+', ' ', 'g')))
           and (nullif(trim(area.city), '') is null or lower(trim(regexp_replace(area.city, '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace($5, '[^a-zA-Z0-9]+', ' ', 'g'))))
@@ -519,15 +548,20 @@ export async function declinePartnerAppointment(opts: {
           )
         order by assignment.priority_weight desc, partner.id
         limit 1`,
-      [appointment.service_id, opts.profileId, appointment.state, appointment.county, appointment.city, appointment.starts_at, appointment.ends_at],
+      [appointment.service_id, opts.profileId, appointment.state, appointment.county, appointment.city, appointment.starts_at, appointment.ends_at, opts.appointmentId],
     );
     replacement = alternative.rows[0] ? { id: alternative.rows[0].id, name: alternative.rows[0].display_name } : null;
     replacementFound = Boolean(replacement);
-    await client.query(
+    const declinedEvent = await client.query<{ id: string }>(
       `insert into app.appointment_events (appointment_id, event_type, actor_type, actor_id, payload)
-       values ($1, 'partner_declined', 'partner', $2, $3::jsonb)`,
+       values ($1, 'partner_declined', 'partner', $2, $3::jsonb) returning id::text`,
       [opts.appointmentId, opts.profileId, JSON.stringify({ reason, replacementFound })],
     );
+    declineContext = {
+      eventId: declinedEvent.rows[0].id, declinedPartnerId: opts.profileId,
+      replacementPartnerId: replacement?.id || null, replacementPartnerName: replacement?.name || null,
+      reason, outcome: replacement ? "reassigned" : "cancelled",
+    };
     if (replacement) {
       await client.query(
         `update app.appointments
@@ -544,7 +578,8 @@ export async function declinePartnerAppointment(opts: {
     } else {
       await client.query(
         `update app.appointments
-            set status = 'partner_declined', partner_decline_reason = $2, declined_at = now(), updated_at = now()
+            set status = 'cancelled', partner_decline_reason = $2, declined_at = now(),
+                cancelled_at = now(), cancellation_reason = $2, hold_expires_at = null, updated_at = now()
           where id = $1`,
         [opts.appointmentId, reason],
       );
@@ -571,11 +606,11 @@ export async function declinePartnerAppointment(opts: {
   }
 
   if (replacement) {
-    void sendPartnerAppointmentNotification(opts.appointmentId, "reassigned");
-    void sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_declined").catch((error) => {
+    await sendPartnerAppointmentNotification(opts.appointmentId, "reassigned");
+    await sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_declined", undefined, declineContext).catch((error) => {
       console.error("Appointment-declined webhook failed", error);
     });
-    void sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_reassigned").catch((error) => {
+    await sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_reassigned", undefined, declineContext).catch((error) => {
       console.error("Appointment-reassigned webhook failed", error);
     });
     return { outcome: "reassigned" as const, replacementPartnerName: replacement.name, appointments: await listPartnerPortalAppointments(opts.profileId) };
@@ -583,7 +618,7 @@ export async function declinePartnerAppointment(opts: {
 
   if (!payment || payment.status !== "paid" || !payment.paymentIntentId || payment.amount <= 0) {
     await pool.query(
-      `update app.appointments set status = 'cancelled', partner_profile_id = null, updated_at = now() where id = $1 and status = 'partner_declined'`,
+      `update app.appointments set status = 'cancelled', partner_profile_id = null, updated_at = now() where id = $1 and status = 'cancelled'`,
       [opts.appointmentId],
     );
     await pool.query(
@@ -591,8 +626,8 @@ export async function declinePartnerAppointment(opts: {
        values ($1, 'deposit_refund_not_required', 'system', 'booking-engine', $2::jsonb)`,
       [opts.appointmentId, JSON.stringify({ reason: "No paid deposit was found." })],
     );
-    void sendPartnerAppointmentNotification(opts.appointmentId, "partner_declined");
-    void sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_declined").catch((error) => {
+    await sendPartnerAppointmentNotification(opts.appointmentId, "partner_declined");
+    await sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_declined", undefined, declineContext).catch((error) => {
       console.error("Appointment-declined webhook failed", error);
     });
     return { outcome: "cancelled" as const, replacementPartnerName: null, appointments: await listPartnerPortalAppointments(opts.profileId) };
@@ -618,7 +653,11 @@ export async function declinePartnerAppointment(opts: {
        values ($1, 'deposit_refund_failed', 'system', 'stripe', $2::jsonb)`,
       [opts.appointmentId, JSON.stringify({ error: error instanceof Error ? error.message : "Refund failed" })],
     );
-    throw new Error("The appointment was declined, but the automatic deposit refund needs Admin review.");
+    declineContext.outcome = "refund_review";
+    await sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_declined", undefined, declineContext).catch((notificationError) => {
+      console.error("Appointment-declined webhook failed", notificationError);
+    });
+    throw new Error("The appointment was cancelled, but the automatic deposit refund needs Admin review.");
   }
 
   const applied = await applyStripeRefundUpdate({
@@ -631,12 +670,14 @@ export async function declinePartnerAppointment(opts: {
     actorId: opts.profileId,
     actorType: "partner",
   });
-  void sendPartnerAppointmentNotification(opts.appointmentId, "partner_declined");
-  void sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_declined").catch((error) => {
+  declineContext.outcome = applied.fullyRefunded ? "refunded"
+    : applied.status === "failed" || applied.status === "canceled" || applied.status === "requires_action" ? "refund_review" : "refund_pending";
+  await sendPartnerAppointmentNotification(opts.appointmentId, "partner_declined");
+  await sendAppointmentLifecycleWebhook(opts.appointmentId, "appointment_declined", undefined, declineContext).catch((error) => {
     console.error("Appointment-declined webhook failed", error);
   });
   return {
-    outcome: applied.fullyRefunded ? "refunded" as const : "refund_pending" as const,
+    outcome: declineContext.outcome,
     replacementPartnerName: null,
     appointments: await listPartnerPortalAppointments(opts.profileId),
   };

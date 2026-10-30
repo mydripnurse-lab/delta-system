@@ -143,7 +143,7 @@ function withBmi(value: unknown, fallback: PersonFallback = {}) {
   return calculated == null ? patient : { ...patient, bmi: calculated };
 }
 
-async function loadAppointment(appointmentId: string) {
+async function loadAppointment(appointmentId: string, notificationPartnerId?: string) {
   await ensureBookingEngineSchema();
   const pool = getDbPool();
   const result = await pool.query<AppointmentRow>(
@@ -169,7 +169,7 @@ async function loadAppointment(appointmentId: string) {
               order by lower(area.state), lower(area.county), lower(coalesce(area.city, '')))
               from app.partner_service_assignments assignment
               join app.partner_coverage_areas area on area.assignment_id = assignment.id and area.status = 'active'
-              where assignment.partner_profile_id = a.partner_profile_id and assignment.service_id = a.service_id and assignment.status = 'active'), '[]'::jsonb) as partner_coverage,
+              where assignment.partner_profile_id = coalesce($2::uuid, a.partner_profile_id) and assignment.service_id = a.service_id and assignment.status = 'active'), '[]'::jsonb) as partner_coverage,
             cfg.new_booking_webhook_url, cfg.partner_confirmation_required_webhook_url, cfg.partner_rescheduled_webhook_url,
             cfg.appointment_accepted_webhook_url, cfg.appointment_declined_webhook_url, cfg.appointment_reassigned_webhook_url,
             cfg.appointment_completed_webhook_url, cfg.appointment_refunded_webhook_url,
@@ -177,11 +177,11 @@ async function loadAppointment(appointmentId: string) {
        from app.appointments a join app.organizations o on o.id = a.organization_id
        join app.booking_customers customer on customer.id = a.customer_id
        join app.services s on s.id = a.service_id join app.service_calendars c on c.id = a.service_calendar_id
-       left join app.partner_profiles partner on partner.id = a.partner_profile_id
+       left join app.partner_profiles partner on partner.id = coalesce($2::uuid, a.partner_profile_id)
        left join app.staff_applications partner_application on partner_application.id = partner.application_id
        left join app.appointment_payments payment on payment.appointment_id = a.id
        left join app.staff_form_configs cfg on cfg.organization_id = a.organization_id
-      where a.id = $1::uuid limit 1`, [appointmentId],
+      where a.id = $1::uuid limit 1`, [appointmentId, notificationPartnerId || null],
   );
   return { pool, row: result.rows[0] };
 }
@@ -196,8 +196,20 @@ export type AppointmentRescheduleContext = {
   timezone: string;
 };
 
-export async function sendAppointmentLifecycleWebhook(appointmentId: string, event: LifecycleEvent, reschedule?: AppointmentRescheduleContext) {
-  const { pool, row } = await loadAppointment(appointmentId);
+export type AppointmentDeclineContext = {
+  eventId: string;
+  declinedPartnerId: string;
+  replacementPartnerId: string | null;
+  replacementPartnerName: string | null;
+  reason: string;
+  outcome: "reassigned" | "cancelled" | "refunded" | "refund_pending" | "refund_review";
+};
+
+export async function sendAppointmentLifecycleWebhook(appointmentId: string, event: LifecycleEvent, reschedule?: AppointmentRescheduleContext, decline?: AppointmentDeclineContext) {
+  // Recipient follows the committed event, not a later assignment or cleared partner.
+  const notificationPartnerId = event === "appointment_declined" ? decline?.declinedPartnerId
+    : event === "appointment_reassigned" ? decline?.replacementPartnerId || undefined : undefined;
+  const { pool, row } = await loadAppointment(appointmentId, notificationPartnerId);
   if (!row) return { sent: false as const, reason: "appointment_not_found" as const };
   // Preserve the committed change even if another reschedule happens before delivery.
   if (event === "partner_rescheduled" && reschedule) {
@@ -265,7 +277,9 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
       : "";
   const deliveryType = event === "partner_rescheduled" && reschedule
     ? `appointment.${event}:${reschedule.eventId}`
-    : `appointment.${event}`;
+    : decline && (event === "appointment_declined" || event === "appointment_reassigned")
+      ? `appointment.${event}:${decline.eventId}`
+      : `appointment.${event}`;
   const payload = {
     event, eventType: event, version: 2, test: false,
     ...ghlRoutingFieldsForEvent(event, {
@@ -281,6 +295,24 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
       rescheduleEventId: reschedule.eventId,
       previousAppointmentDateTimeFormatted: appointmentTime(reschedule.previousStartsAt, reschedule.previousTimezone),
       previousAppointmentTimezone: reschedule.previousTimezone,
+    } : {}),
+    ...(decline ? {
+      declineEventId: decline.eventId,
+      declineReason: decline.reason,
+      declineOutcome: decline.outcome,
+      replacementFound: Boolean(decline.replacementPartnerId),
+      replacementPartnerId: decline.replacementPartnerId || "",
+      replacementPartnerName: decline.replacementPartnerName || "",
+      adminActionRequired: decline.outcome !== "reassigned",
+      customerUpdateTitle: decline.outcome === "reassigned" ? "We’re coordinating your care" : "An update about your appointment",
+      customerUpdateMessage: decline.outcome === "reassigned"
+        ? "Your original professional is unable to take this appointment. We have sent your request to another professional serving your area. We’ll notify you once they accept."
+        : "We were unable to find another available professional for your requested appointment. Your appointment has been cancelled. Please visit your Care Portal to review your booking or request a different time.",
+      customerPaymentMessage: decline.outcome === "refunded" ? "Your deposit refund has been processed. Your bank may take additional time to post it."
+        : decline.outcome === "refund_pending" ? "Your deposit refund is being processed."
+        : decline.outcome === "refund_review" ? "Our team is reviewing your deposit refund and will follow up with you."
+        : decline.outcome === "cancelled" ? "No paid deposit required a refund for this cancellation."
+        : "Your existing deposit remains associated with this booking.",
     } : {}),
     organization: { id: row.organization_id, name: row.organization_name, slug: "my-drip-nurse" },
     appointment: {
