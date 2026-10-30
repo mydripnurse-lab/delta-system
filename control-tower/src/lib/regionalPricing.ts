@@ -12,6 +12,7 @@ export type PricingRegion = {
 };
 export type RegionalPrice = { region: PricingRegion; price: number };
 export type PricingLocation = { state: string; county?: string; city?: string };
+export type DescendantPricePolicy = "preserve" | "inherit";
 export const REGIONAL_PRICING_TAG = "mdn-regional-pricing";
 export const SERVICE_PRICING_TAG = "mdn-service-pricing";
 const STATE_NAMES = "Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming|District of Columbia|Puerto Rico".split("|");
@@ -45,6 +46,19 @@ export function regionMatches(region: PricingRegion, location: PricingLocation) 
   }
   if (countyToken(region.county) !== countyToken(location.county || "")) return false;
   return region.level === "county" || cityMatches(region.city, location.city || "");
+}
+/** Strict descendants only: never remove siblings, ancestors or another state's rules. */
+export function isPricingDescendant(parent: PricingRegion, child: PricingRegion) {
+  const state = stateName(parent.state);
+  if (!state || state !== stateName(child.state) || parent.id === child.id) return false;
+  if (parent.level === "state") return child.level === "county" || child.level === "city";
+  return parent.level === "county" && child.level === "city"
+    && !!countyToken(parent.county) && countyToken(parent.county) === countyToken(child.county);
+}
+/** Editing the draft is local; descendants inherit without creating duplicate prices. */
+export function applyRegionalPrice(rules: RegionalPrice[], region: PricingRegion, price: number, policy: DescendantPricePolicy = "preserve"): RegionalPrice[] {
+  return [...rules.filter(rule => rule.region.id !== region.id
+    && !(policy === "inherit" && isPricingDescendant(region, rule.region))), { region, price }];
 }
 export function resolveRegionalPrice(basePrice: number, rules: RegionalPrice[], location?: PricingLocation | null, partnerOverride?: number | null) {
   if (partnerOverride !== null && partnerOverride !== undefined && Number.isFinite(partnerOverride) && partnerOverride >= 0) {

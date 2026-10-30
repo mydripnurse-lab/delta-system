@@ -16,6 +16,8 @@ Booking uses the existing server-side coordinate-to-Census geography lookup, not
 4. Choose the level/location, enter the price, click **Add regional price**, then **Save changes**. The API resolves region IDs against the saved catalog, rather than trusting client-supplied names or URLs. Up to 500 explicit exceptions per service; other regions inherit.
 5. **Use inherited price** removes an exception when saved. Sync preserves old location mappings as inactive, so an existing exception is not silently removed. Inactive exceptions must be reviewed/removed before saving a service.
 
+When editing a state/territory or county/parish price, **Keep existing exceptions** is selected by default. **Use this price for every location below** explicitly removes only that region's lower-level exceptions, so they inherit the parent price now and on future edits. The editor shows the affected count and an expandable list with current/proposed prices before applying to the draft. Changing the selected location or applying a price resets the choice to preserve. The existing **Save changes** action publishes the draft; changing this option alone never writes prices. State changes include counties/parishes and cities; county/parish changes include only their cities. Sibling regions and other states remain untouched. This operates on the already-loaded rules and uses the existing save request, with no extra database queries or duplicated per-location prices.
+
 Puerto Rico's legacy umbrella county row is treated as the territory. Municipalities from legacy city rows match the Census municipio. Louisiana uses parish labels. State and county scope distinguish identically named cities; exact city names take precedence over Census suffix aliases.
 
 ## Cost controls

@@ -98,4 +98,18 @@
 .regionEmpty { padding:22px; border:1px dashed #bcd3d8; border-radius:12px; color:#426871; font-size:13px; line-height:1.8; }
 .regionEmpty p { margin-bottom:0; }
 .regionalError { color:#a03b35; font-size:13px; line-height:1.7; }
+.inheritanceOptions { min-width:0; margin:0; padding:18px; border:1px solid #dfeaec; border-radius:12px; background:white; }
+.inheritanceOptions legend { padding:0 6px; color:#285761; font-size:13px; font-weight:650; }
+.inheritanceOptions > p { margin:0 0 12px; color:#66858c; font-size:12px; line-height:1.7; }
+.inheritanceOptions > p:last-child { margin-bottom:0; }
+.inheritanceChoice { display:flex; align-items:flex-start; gap:12px; padding:13px 0; color:#285761; cursor:pointer; }
+.inheritanceChoice input { flex-shrink:0; width:18px; height:18px; margin:2px 0 0; accent-color:#087b86; }
+.inheritanceChoice input:focus-visible { outline:3px solid #279aa9; outline-offset:3px; }
+.inheritanceChoice span { display:grid; gap:6px; }
+.inheritanceChoice strong { font-size:13px; font-weight:650; }
+.inheritanceChoice small { font-size:12px; color:#66858c; line-height:1.6; }
+.inheritanceDetails { border-top:1px solid #e8eef0; margin-top:6px; padding-top:14px; color:#285761; font-size:12px; }
+.inheritanceDetails summary { cursor:pointer; padding:6px 0; }
+.inheritanceDetails ul { list-style:none; padding:0; margin:12px 0 0; max-height:230px; overflow:auto; }
+.inheritanceDetails li { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding:9px 0; border-top:1px solid #edf1f2; line-height:1.6; }
 @media(max-width:600px) { .regionalHeading,.regionActions,.pricePreview { align-items:flex-start; flex-direction:column; } .regionComposer { padding:16px; } .regionalHeading .secondaryButton { width:100%; } }
