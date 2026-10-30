@@ -20,7 +20,7 @@ type AppointmentRow = {
   source_county: string; source_state: string; service_price: string | number;
   deposit_type: string; deposit_value: string | number; deposit_amount: string | number;
   currency: string; created_at: string; service_id: string; service_slug: string;
-  service_name: string; calendar_public_key: string; duration_minutes: number;
+  service_name: string; service_image_url: string | null; calendar_public_key: string; duration_minutes: number;
   customer_full_name: string; customer_email: string; customer_phone: string;
   customer_metadata: unknown; payment_status: string | null; payment_amount: string | number | null;
   payment_currency: string | null; paid_at: string | null; partner_id: string | null;
@@ -75,6 +75,15 @@ function validWebhookUrl(value: unknown) {
   try { const url = new URL(raw); return url.protocol === "https:" ? url.toString() : ""; } catch { return ""; }
 }
 function excerpt(value: string, max = 1000) { return value.slice(0, max); }
+
+function serviceImageUrl(value: unknown) {
+  const raw = text(value);
+  if (!raw) return "";
+  try {
+    const url = new URL(raw, "https://care.mydripnurse.com");
+    return url.protocol === "https:" ? url.toString() : "";
+  } catch { return ""; }
+}
 
 function bmi(patient: Record<string, unknown>) {
   const weight = amount(patient.weight ?? patient.weightLb ?? patient.weight_lbs);
@@ -144,7 +153,7 @@ async function loadAppointment(appointmentId: string) {
             a.source_url, a.source_city, a.source_county, a.source_state, a.service_price,
             a.deposit_type, a.deposit_value, a.deposit_amount, a.currency, a.created_at::text,
             a.metadata as appointment_metadata, s.id::text as service_id, s.slug as service_slug,
-            s.name as service_name, c.public_key as calendar_public_key, c.duration_minutes,
+            s.name as service_name, s.image_url as service_image_url, c.public_key as calendar_public_key, c.duration_minutes,
             customer.full_name as customer_full_name, customer.email as customer_email, customer.phone as customer_phone,
             customer.metadata as customer_metadata, payment.status as payment_status,
             payment.amount as payment_amount, payment.currency as payment_currency, payment.paid_at::text,
@@ -255,7 +264,7 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
       startsAt: iso(row.starts_at), endsAt: iso(row.ends_at), timezone: row.timezone,
       serviceAddress: { addressLine1: row.address_line_1, addressLine2: row.address_line_2, city: row.city, county: row.county, state: row.state, postalCode: row.postal_code, countryCode: row.country_code },
       source: { url: row.source_url, city: row.source_city, county: row.source_county, state: row.source_state },
-      service: { id: row.service_id, slug: row.service_slug, name: row.service_name, calendarPublicKey: row.calendar_public_key, price: servicePrice, currency: row.currency, durationMinutes: row.duration_minutes },
+      service: { id: row.service_id, slug: row.service_slug, name: row.service_name, imageUrl: serviceImageUrl(row.service_image_url), calendarPublicKey: row.calendar_public_key, price: servicePrice, currency: row.currency, durationMinutes: row.duration_minutes },
       payment: {
         status: row.payment_status || "pending",
         servicePrice,
@@ -314,6 +323,7 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     partner_email: partner?.email ?? "",
     partner_phone: partner?.phone_number ?? "",
     serviceName: row.service_name,
+    serviceImageUrl: serviceImageUrl(row.service_image_url),
     appointmentDateTimeFormatted,
     actionRequired,
     estimatedEarnings,
