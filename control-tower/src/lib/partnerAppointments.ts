@@ -359,6 +359,7 @@ export async function reschedulePartnerAppointment(opts: {
   const client = await pool.connect();
   let previousStartsAt = "";
   let previousEndsAt = "";
+  let rescheduleContext: import("@/lib/appointmentCreatedWebhook").AppointmentRescheduleContext | undefined;
   try {
     await client.query("begin");
     const locked = await client.query<{
@@ -419,9 +420,9 @@ export async function reschedulePartnerAppointment(opts: {
         where id = $1`,
       [opts.appointmentId, newStart, newEnd, timezone],
     );
-    await client.query(
+    const recordedChange = await client.query<{ id: string }>(
       `insert into app.appointment_events (appointment_id, event_type, actor_type, actor_id, payload)
-       values ($1, 'appointment_rescheduled', 'partner', $2, $3::jsonb)`,
+       values ($1, 'appointment_rescheduled', 'partner', $2, $3::jsonb) returning id::text`,
       [opts.appointmentId, opts.profileId, JSON.stringify({
         previousStartsAt: appointment.starts_at,
         previousEndsAt: appointment.ends_at,
@@ -431,6 +432,16 @@ export async function reschedulePartnerAppointment(opts: {
         reason: opts.reason?.trim() || null,
       })],
     );
+    if (!recordedChange.rows[0]?.id) throw new Error("Unable to record the appointment change.");
+    rescheduleContext = {
+      eventId: recordedChange.rows[0].id,
+      previousStartsAt: appointment.starts_at,
+      previousEndsAt: appointment.ends_at,
+      previousTimezone: appointment.timezone,
+      startsAt: new Date(newStart).toISOString(),
+      endsAt: newEnd,
+      timezone,
+    };
     await client.query("commit");
   } catch (error) {
     try { await client.query("rollback"); } catch {}
@@ -439,7 +450,7 @@ export async function reschedulePartnerAppointment(opts: {
     client.release();
   }
   void sendPartnerAppointmentNotification(opts.appointmentId, "rescheduled");
-  void sendAppointmentLifecycleWebhook(opts.appointmentId, "partner_rescheduled").catch((error) => {
+  void sendAppointmentLifecycleWebhook(opts.appointmentId, "partner_rescheduled", rescheduleContext).catch((error) => {
     console.error("Partner-rescheduled webhook failed", error);
   });
   void sendCustomerAppointmentNotification(opts.appointmentId, "rescheduled", {

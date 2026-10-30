@@ -186,9 +186,25 @@ async function loadAppointment(appointmentId: string) {
   return { pool, row: result.rows[0] };
 }
 
-export async function sendAppointmentLifecycleWebhook(appointmentId: string, event: LifecycleEvent) {
+export type AppointmentRescheduleContext = {
+  eventId: string;
+  previousStartsAt: string;
+  previousEndsAt: string;
+  previousTimezone: string;
+  startsAt: string;
+  endsAt: string;
+  timezone: string;
+};
+
+export async function sendAppointmentLifecycleWebhook(appointmentId: string, event: LifecycleEvent, reschedule?: AppointmentRescheduleContext) {
   const { pool, row } = await loadAppointment(appointmentId);
   if (!row) return { sent: false as const, reason: "appointment_not_found" as const };
+  // Preserve the committed change even if another reschedule happens before delivery.
+  if (event === "partner_rescheduled" && reschedule) {
+    row.starts_at = reschedule.startsAt;
+    row.ends_at = reschedule.endsAt;
+    row.timezone = reschedule.timezone;
+  }
   const config = eventConfig[event];
   const webhookUrl = validWebhookUrl(row[config.field]) || (config.fallback ? validWebhookUrl(row[config.fallback]) : "");
   if (!webhookUrl) return { sent: false as const, reason: "not_configured" as const };
@@ -247,6 +263,9 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     : event === "appointment_accepted" && platformFunded
       ? `My Drip Nurse: Your ${row.service_name} appointment is accepted. This visit is funded by My Drip Nurse. We pay ${currency(platformFundedPartnerAmount, earningsCurrency)} after completion; collect $0 from the patient.`
       : "";
+  const deliveryType = event === "partner_rescheduled" && reschedule
+    ? `appointment.${event}:${reschedule.eventId}`
+    : `appointment.${event}`;
   const payload = {
     event, eventType: event, version: 2, test: false,
     ...ghlRoutingFieldsForEvent(event, {
@@ -257,11 +276,19 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
       platformFunded,
       stateOperator: record(metadata.stateOperator || metadata.state_operator),
     }),
-    idempotencyKey: `appointment.${event}:${row.organization_id}:${row.id}`, occurredAt: new Date().toISOString(),
+    idempotencyKey: `${deliveryType}:${row.organization_id}:${row.id}`, occurredAt: new Date().toISOString(),
+    ...(event === "partner_rescheduled" && reschedule ? {
+      rescheduleEventId: reschedule.eventId,
+      previousAppointmentDateTimeFormatted: appointmentTime(reschedule.previousStartsAt, reschedule.previousTimezone),
+      previousAppointmentTimezone: reschedule.previousTimezone,
+    } : {}),
     organization: { id: row.organization_id, name: row.organization_name, slug: "my-drip-nurse" },
     appointment: {
       id: row.id, publicReference: row.public_reference, status: row.status, selectionMode: row.selection_mode,
       startsAt: iso(row.starts_at), endsAt: iso(row.ends_at), timezone: row.timezone,
+      ...(event === "partner_rescheduled" && reschedule ? {
+        rescheduledFrom: { startsAt: iso(reschedule.previousStartsAt), endsAt: iso(reschedule.previousEndsAt), timezone: reschedule.previousTimezone },
+      } : {}),
       serviceAddress: { addressLine1: row.address_line_1, addressLine2: row.address_line_2, city: row.city, county: row.county, state: row.state, postalCode: row.postal_code, countryCode: row.country_code },
       source: { url: row.source_url, city: row.source_city, county: row.source_county, state: row.source_state },
       service: { id: row.service_id, slug: row.service_slug, name: row.service_name, imageUrl: serviceImageUrl(row.service_image_url), calendarPublicKey: row.calendar_public_key, price: servicePrice, currency: row.currency, durationMinutes: row.duration_minutes },
@@ -378,7 +405,7 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
   const reserved = await pool.query<{ id: string }>(
     `insert into app.appointment_webhook_events (organization_id, appointment_id, event_type, idempotency_key, webhook_url, status)
      values ($1::uuid, $2::uuid, $3, $4, $5, 'pending') on conflict (organization_id, appointment_id, event_type) do nothing returning id`,
-    [row.organization_id, row.id, `appointment.${event}`, payload.idempotencyKey, webhookUrl],
+    [row.organization_id, row.id, deliveryType, payload.idempotencyKey, webhookUrl],
   );
   if (!reserved.rows[0]) return { sent: false as const, reason: "already_reserved" as const };
   const eventId = reserved.rows[0].id; const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 10_000);
