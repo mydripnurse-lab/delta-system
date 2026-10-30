@@ -178,10 +178,10 @@ function notificationCopy(event: PartnerPushEvent, serviceName: string, startsAt
   }
   if (event === "appointment_reassigned") {
     const earningLabel = typeof earnings === "number" ? new Intl.NumberFormat("en-US", { style: "currency", currency }).format(earnings) : "";
-    return { title: "New appointment · Action required", message: `${earningLabel ? `${earningLabel} + tips · ` : ""}${serviceName} on ${appointmentTime}. Accept or decline now.` };
+    return { title: "New appointment · Action required", message: `${earningLabel ? `${earningLabel} estimated service amount · ` : ""}${serviceName} on ${appointmentTime}. Review direct-collection or funded-reward instructions in your portal. Accept or decline.` };
   }
   const earningLabel = typeof earnings === "number" ? new Intl.NumberFormat("en-US", { style: "currency", currency }).format(earnings) : "";
-  return { title: "New appointment · Action required", message: `${earningLabel ? `${earningLabel} + tips · ` : ""}${serviceName} on ${appointmentTime}. Accept or decline now.` };
+  return { title: "New appointment · Action required", message: `${earningLabel ? `${earningLabel} estimated service amount · ` : ""}${serviceName} on ${appointmentTime}. Review direct-collection or funded-reward instructions in your portal. Accept or decline.` };
 }
 
 export async function createPartnerAppointmentPush(appointmentId: string, event: PartnerPushEvent) {

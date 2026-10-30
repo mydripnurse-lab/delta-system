@@ -284,12 +284,20 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     ? firstText(clientReward.platformFundingStatus, "owed_after_completion")
     : "not_applicable";
   const earningsCurrency = row.payment_currency || row.currency;
-  const earningsDisplay = `${currency(estimatedEarnings, earningsCurrency)} + tips`;
+  const earningsDisplay = `${currency(estimatedEarnings, earningsCurrency)} + voluntary tips`;
+  const collectionInstructions = event === "appointment_declined" || event === "appointment_refunded"
+    ? "This notice is not a request to collect payment or confirmation of a partner payout. Review the appointment status in your Partner Portal."
+    : platformFunded
+    ? `My Drip Nurse-funded reward: collect $0 from the patient for the covered service. My Drip Nurse pays ${currency(platformFundedPartnerAmount, earningsCurrency)} after completion.`
+    : `Collect ${currency(clientAmountDueAtVisit, earningsCurrency)} directly from the client after the booking deposit, plus any voluntary tip. My Drip Nurse does not collect or pay out this balance.`;
   const appointmentDateTimeFormatted = appointmentTime(row.starts_at, row.timezone);
   const appointmentOfferUrl = `https://partners.mydripnurse.com/partner-portal/appointments?appointment=${encodeURIComponent(row.id)}&offer=1`;
   const actionRequired = event === "new_booking" || event === "partner_confirmation_required" || event === "appointment_reassigned";
+  const collectionSms = platformFunded
+    ? "MDN-funded reward: collect $0 for the covered service."
+    : `Collect ${currency(clientAmountDueAtVisit, earningsCurrency)} directly from the client; tips are voluntary.`;
   const smsMessage = actionRequired
-    ? `My Drip Nurse: Hi ${partner?.firstName || "Partner"}, a new appointment is available. Earn ${earningsDisplay}. ${row.service_name} · ${appointmentDateTimeFormatted}. Review and accept or decline: ${appointmentOfferUrl}`
+    ? `My Drip Nurse: Hi ${partner?.firstName || "Partner"}, a new appointment is available. ${collectionSms} ${row.service_name} · ${appointmentDateTimeFormatted}. Review and accept or decline: ${appointmentOfferUrl}`
     : event === "appointment_accepted" && platformFunded
       ? `My Drip Nurse: Your ${row.service_name} appointment is accepted. This visit is funded by My Drip Nurse. We pay ${currency(platformFundedPartnerAmount, earningsCurrency)} after completion; collect $0 from the patient.`
       : "";
@@ -426,6 +434,7 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     appointmentOfferUrl,
     actionUrl: appointmentOfferUrl,
     smsMessage,
+    collectionInstructions,
     offer: {
       type: "appointment_offer",
       actionRequired,

@@ -127,11 +127,19 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
     : 0;
   const clientAmountDueAtVisit = platformFunded ? 0 : estimatedEarnings;
   const estimatedEarningsFormatted = money(estimatedEarnings, row.currency);
-  const earningsDisplay = `${estimatedEarningsFormatted} + tips`;
+  const earningsDisplay = `${estimatedEarningsFormatted} + voluntary tips`;
+  const collectionInstructions = event === "partner_declined"
+    ? "This notice is not a request to collect payment or confirmation of a partner payout. Review the appointment status in your Partner Portal."
+    : platformFunded
+    ? `My Drip Nurse-funded reward: collect $0 from the patient for the covered service. My Drip Nurse pays ${money(platformFundedPartnerAmount, row.currency)} after completion.`
+    : `Collect ${money(clientAmountDueAtVisit, row.currency)} directly from the client after the booking deposit, plus any voluntary tip. My Drip Nurse does not collect or pay out this balance.`;
   const actionRequired = event === "confirmed" || event === "reassigned";
   const appointmentOfferUrl = `https://partners.mydripnurse.com/partner-portal/appointments?appointment=${encodeURIComponent(appointmentId)}&offer=1`;
+  const collectionSms = platformFunded
+    ? "MDN-funded reward: collect $0 for the covered service."
+    : `Collect ${money(clientAmountDueAtVisit, row.currency)} directly from the client; tips are voluntary.`;
   const smsMessage = actionRequired
-    ? `My Drip Nurse: New appointment. Earn ${earningsDisplay}. ${row.service_name} · ${appointmentTime(row.starts_at, row.timezone)}. Accept or decline: ${appointmentOfferUrl}`
+    ? `My Drip Nurse: New appointment. ${collectionSms} ${row.service_name} · ${appointmentTime(row.starts_at, row.timezone)}. Accept or decline: ${appointmentOfferUrl}`
     : event === "partner_acknowledged" && platformFunded
       ? `My Drip Nurse: This accepted visit is funded by My Drip Nurse. We pay ${money(platformFundedPartnerAmount, row.currency)} after completion; collect $0 from the patient.`
       : "";
@@ -164,6 +172,7 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
         tipsEligible: true,
         tipsIncluded: false,
         earningsDisplay,
+        collectionInstructions,
         rewardBenefit: text(clientReward.benefit) || "none",
         platformFunded,
         platformFundedPartnerAmount,
