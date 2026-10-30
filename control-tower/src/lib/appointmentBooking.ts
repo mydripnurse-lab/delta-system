@@ -1,3 +1,4 @@
+import { readRegionalPrices, resolveRegionalPrice } from "@/lib/regionalPricing";
 import { randomBytes } from "node:crypto";
 
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
@@ -97,6 +98,7 @@ export async function createAppointmentCheckout(opts: {
   startsAt: string;
   timezone: string;
   requestedPartnerId?: string;
+  expectedPrice?: number;
   customer: BookingCustomerInput;
   address: BookingAddressInput;
   medicalScreening: MedicalScreeningInput;
@@ -270,6 +272,8 @@ export async function createAppointmentCheckout(opts: {
       buffer_before_minutes: number;
       buffer_after_minutes: number;
       price: string;
+      price_override: string | null;
+      regional_prices: unknown;
       deposit_type: "percentage" | "fixed";
       deposit_value: string;
       currency: string;
@@ -281,7 +285,7 @@ export async function createAppointmentCheckout(opts: {
         `select s.id as service_id, c.id as calendar_id, s.organization_id,
                 s.name as service_name, s.slug as service_slug, c.duration_minutes,
                 c.buffer_before_minutes, c.buffer_after_minutes,
-                coalesce(a.price_override, s.price)::text as price,
+                s.price::text as price, a.price_override::text, s.source_metadata->'regionalPrices' as regional_prices,
                 s.deposit_type, s.deposit_value::text, s.currency
            from app.service_calendars c
            join app.services s on s.id = c.service_id
@@ -293,6 +297,10 @@ export async function createAppointmentCheckout(opts: {
       );
       const candidateFacts = bookingFacts.rows[0];
       if (!candidateFacts) continue;
+      const candidatePrice = resolveRegionalPrice(Number(candidateFacts.price), readRegionalPrices(candidateFacts.regional_prices), {
+        state: availability.geography.stateName, county: availability.geography.countyName, city: availability.geography.placeName,
+      }, candidateFacts.price_override === null ? null : Number(candidateFacts.price_override)).price;
+      if (opts.expectedPrice !== undefined && Math.round(opts.expectedPrice * 100) !== Math.round(candidatePrice * 100)) continue;
       const candidateEndsAt = new Date(startsAt.getTime() + candidateFacts.duration_minutes * 60_000);
       const conflict = await client.query(
         `select 1
@@ -310,7 +318,7 @@ export async function createAppointmentCheckout(opts: {
       facts = candidateFacts;
       break;
     }
-    if (!partnerId || !facts) throw new Error("That appointment time is no longer available for the selected coverage area.");
+    if (!partnerId || !facts) throw new Error("That appointment time or price has changed. Search availability again before payment.");
     const directoryAttributionTime = Date.parse(opts.directoryAttribution?.attributedAt || "");
     const directoryAttributionAge = Date.now() - directoryAttributionTime;
     const directoryAttribution = opts.directoryAttribution?.partnerProfileId === partnerId
@@ -320,7 +328,16 @@ export async function createAppointmentCheckout(opts: {
       ? opts.directoryAttribution
       : undefined;
     const endsAt = new Date(startsAt.getTime() + facts.duration_minutes * 60_000);
-    const price = Number(facts.price);
+    const pricing = resolveRegionalPrice(Number(facts.price), readRegionalPrices(facts.regional_prices), {
+      state: availability.geography.stateName,
+      county: availability.geography.countyName,
+      city: availability.geography.placeName,
+    }, facts.price_override === null ? null : Number(facts.price_override));
+    const price = pricing.price;
+    if ((readRegionalPrices(facts.regional_prices).length > 0 && opts.expectedPrice === undefined)
+      || (opts.expectedPrice !== undefined && Math.round(opts.expectedPrice * 100) !== Math.round(price * 100))) {
+      throw new Error("The appointment price has changed. Search availability again to review the updated price before payment.");
+    }
     const depositValue = Number(facts.deposit_value);
     standardDepositCents = depositCents(price, facts.deposit_type, depositValue);
     partnerEarningsCents = Math.max(Math.round(price * 100) - standardDepositCents, 0);
@@ -406,6 +423,7 @@ export async function createAppointmentCheckout(opts: {
           selected: opts.medicalScreening.selected,
           completedAt: opts.medicalScreening.completedAt || new Date().toISOString(),
         },
+        pricing: { price, source: pricing.source, regionId: pricing.regionId, version: "regional-v1" },
         // Kept inside appointment metadata for Admin map accuracy. The
         // established GHL webhook payload intentionally remains unchanged.
         service_address_location: Number.isFinite(opts.address.longitude) && Number.isFinite(opts.address.latitude) ? {

@@ -100,6 +100,7 @@ const bookingSchema = z.object({
   timezone: z.string().trim().min(3).max(100),
   assignmentStrategy: z.enum(["balanced", "requested"]).optional().default("balanced"),
   requestedPartnerId: z.string().uuid().optional(),
+  expectedPrice: z.number().finite().min(0).max(1_000_000).optional(),
   customer: personSchema,
   attendees: z.array(personSchema).max(8).optional().default([]),
   address: z.object({

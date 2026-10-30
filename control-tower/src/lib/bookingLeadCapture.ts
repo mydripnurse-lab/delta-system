@@ -1,3 +1,4 @@
+import { readRegionalPrices, resolveRegionalPrice } from "@/lib/regionalPricing";
 import { createHash } from "node:crypto";
 
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
@@ -165,6 +166,7 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
     service_name: string;
     public_key: string;
     price: string;
+    regional_prices: unknown;
     currency: string;
     deposit_type: "percentage" | "fixed";
     deposit_value: string;
@@ -176,6 +178,7 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
             s.name as service_name,
             c.public_key,
             s.price::text,
+            s.source_metadata->'regionalPrices' as regional_prices,
             s.currency,
             s.deposit_type,
             s.deposit_value::text
@@ -318,7 +321,8 @@ export async function captureBookingLead(input: BookingLeadCaptureInput) {
       slug: row.service_slug,
       name: row.service_name,
       calendarPublicKey: row.public_key,
-      price: Number(row.price) || 0,
+      price: resolveRegionalPrice(Number(row.price) || 0, readRegionalPrices(row.regional_prices), input.address).price,
+      priceIsEstimate: true,
       currency: row.currency,
       depositType: row.deposit_type,
       depositValue: Number(row.deposit_value) || 0,

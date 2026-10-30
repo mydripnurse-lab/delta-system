@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { RegionalPricingEditor } from "./RegionalPricingEditor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import sharedStyles from "@/app/partner-admin/partnerAdmin.module.css";
@@ -168,7 +169,7 @@ export function PartnerServiceCatalogClient() {
       const response = await fetch("/api/partner-admin/services", {
         method: id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(id ? { serviceId: id, service } : service),
+        body: JSON.stringify(id ? { serviceId: id, service: { ...service, regionalPrices: service.regionalPrices?.map(rule => ({ regionId: rule.region.id, price: rule.price })) } } : { ...service, regionalPrices: service.regionalPrices?.map(rule => ({ regionId: rule.region.id, price: rule.price })) }),
       });
       if (redirectOnUnauthorized(response)) return;
       const payload = await response.json() as CatalogResponse;
@@ -286,10 +287,11 @@ export function PartnerServiceCatalogClient() {
                     <section hidden={section !== "Pricing"} className={styles.bulkForm}>
                       <div className={styles.bulkFormHeading}><div><span className={styles.eyebrow}>Revenue</span><h3>Price and deposit</h3></div><span>{draft.currency}</span></div>
                       <div className={styles.bulkFields}>
-                        <label className={styles.formField}><span>Service price</span><input className={styles.numberInput} type="number" min="0" step="0.01" value={draft.price} onChange={(event) => update("price", Number(event.target.value))} /></label>
+                        <label className={styles.formField}><span>Default price</span><input className={styles.numberInput} type="number" min="0" step="0.01" value={draft.price} onChange={(event) => update("price", Number(event.target.value))} /></label>
                         <label className={styles.formField}><span>Deposit type</span><select className={styles.select} value={draft.depositType} onChange={(event) => update("depositType", event.target.value as AdminService["depositType"])}><option value="percentage">Percentage</option><option value="fixed">Fixed amount</option></select></label>
                         <label className={styles.formField}><span>{draft.depositType === "percentage" ? "Deposit percentage" : "Deposit amount"}</span><input className={styles.numberInput} type="number" min="0" max={draft.depositType === "percentage" ? 100 : undefined} step={draft.depositType === "percentage" ? 1 : 0.01} value={draft.depositValue} onChange={(event) => update("depositValue", Number(event.target.value))} /></label>
                       </div>
+                      <RegionalPricingEditor key={draft.id || "new-service"} active={section === "Pricing"} rules={draft.regionalPrices || []} basePrice={draft.price} currency={draft.currency} onChange={rules => update("regionalPrices", rules)} />
                     </section>
 
                     <section hidden={section !== "Booking"} className={styles.bulkForm}>

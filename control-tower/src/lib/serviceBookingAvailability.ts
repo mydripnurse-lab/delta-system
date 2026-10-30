@@ -1,3 +1,4 @@
+import { readRegionalPrices, resolveRegionalPrice } from "@/lib/regionalPricing";
 import { getDbPool } from "@/lib/db";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { BOOKING_MINIMUM_NOTICE_MINUTES } from "@/lib/bookingPolicy";
@@ -17,6 +18,7 @@ export type BookingCoverageInput = {
 };
 
 export type BookingPartnerOption = {
+  price?: number;
   id: string;
   slug: string;
   displayName: string;
@@ -39,6 +41,7 @@ export type BookingAvailability = {
     durationMinutes: number;
     currency: string;
     price: number;
+    priceSource?: string;
     depositType: "percentage" | "fixed";
     depositValue: number;
     minimumNoticeMinutes: number;
@@ -99,6 +102,7 @@ type AvailabilityRow = {
   duration_minutes: number;
   currency: string;
   price: string;
+  regional_prices: unknown;
   deposit_type: "percentage" | "fixed";
   deposit_value: string;
   minimum_notice_minutes: number;
@@ -113,6 +117,7 @@ type AvailabilityRow = {
     businessName: string;
     profilePhotoUrl: string;
     loadScore: number;
+    priceOverride: number | null;
   }> | null;
 };
 
@@ -212,7 +217,7 @@ export async function loadBookingAvailability(opts: {
               c.buffer_before_minutes, c.buffer_after_minutes,
               c.minimum_notice_minutes, c.maximum_advance_days, c.daily_capacity,
               s.id as service_id, s.slug as service_slug, s.name as service_name,
-              s.price::text, s.currency, s.deposit_type, s.deposit_value::text
+              s.price::text, s.source_metadata->'regionalPrices' as regional_prices, s.currency, s.deposit_type, s.deposit_value::text
          from app.service_calendars c
          join app.services s on s.id = c.service_id
         where c.public_key = $1
@@ -220,7 +225,7 @@ export async function loadBookingAvailability(opts: {
           and s.is_active = true
         limit 1
      ), eligible as (
-       select distinct a.id as assignment_id, a.partner_profile_id, a.priority_weight,
+       select distinct a.id as assignment_id, a.partner_profile_id, a.priority_weight, a.price_override,
               p.slug as partner_slug, p.display_name,
               coalesce(p.business_name, '') as business_name,
               coalesce(p.profile_photo_url, '') as profile_photo_url
@@ -249,7 +254,7 @@ export async function loadBookingAvailability(opts: {
           and ($6::uuid is null or a.partner_profile_id = $6::uuid)
      ), recurring_slots as (
        select e.partner_profile_id, e.partner_slug, e.display_name,
-              e.business_name, e.profile_photo_url, e.priority_weight,
+              e.business_name, e.profile_photo_url, e.priority_weight, e.price_override,
               r.timezone, slot.starts_at,
               slot.starts_at + make_interval(mins => c.duration_minutes) as ends_at
          from calendar c
@@ -268,7 +273,7 @@ export async function loadBookingAvailability(opts: {
          ) as slot(starts_at)
      ), added_slots as (
        select e.partner_profile_id, e.partner_slug, e.display_name,
-              e.business_name, e.profile_photo_url, e.priority_weight,
+              e.business_name, e.profile_photo_url, e.priority_weight, e.price_override,
               coalesce(r.timezone, 'America/New_York') as timezone,
               x.starts_at, x.ends_at
          from calendar c
@@ -341,7 +346,7 @@ export async function loadBookingAvailability(opts: {
           )
      )
        select c.public_key, c.service_slug, c.service_name, c.duration_minutes,
-            c.currency, c.price, c.deposit_type, c.deposit_value,
+            c.currency, c.price, c.regional_prices, c.deposit_type, c.deposit_value,
             c.minimum_notice_minutes,
             (select count(*) from eligible)::int as eligible_count,
             coalesce(
@@ -355,7 +360,8 @@ export async function loadBookingAvailability(opts: {
                   'displayName', os.display_name,
                   'businessName', os.business_name,
                   'profilePhotoUrl', os.profile_photo_url,
-                  'loadScore', os.load_score
+                  'loadScore', os.load_score,
+                  'priceOverride', os.price_override
                 ) order by os.starts_at, os.load_score, os.display_name
               ) filter (where os.partner_profile_id is not null),
               '[]'::jsonb
@@ -363,13 +369,19 @@ export async function loadBookingAvailability(opts: {
        from calendar c
        left join open_slots os on true
       group by c.public_key, c.service_slug, c.service_name, c.duration_minutes,
-               c.currency, c.price, c.deposit_type, c.deposit_value,
+               c.currency, c.price, c.regional_prices, c.deposit_type, c.deposit_value,
                c.minimum_notice_minutes`,
     [opts.publicKey, opts.date, geography.countyGeoid, states, county, opts.requestedPartnerId || null],
   );
   const row = result.rows[0];
   if (!row) return null;
 
+  const regionalPrices = readRegionalPrices(row.regional_prices);
+  if (regionalPrices.some(rule => rule.region.level === "city") && (!Number.isFinite(opts.coverage.latitude) || !Number.isFinite(opts.coverage.longitude))) {
+    throw new Error("Please verify the complete appointment address to calculate the local price.");
+  }
+  const pricingLocation = { state: geography.stateName, county: geography.countyName, city: geography.placeName };
+  const regionalPrice = resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation).price;
   const grouped = new Map<string, BookingAvailabilitySlot>();
   for (const slot of row.slots || []) {
     const startsAt = new Date(slot.startsAt).toISOString();
@@ -378,6 +390,7 @@ export async function loadBookingAvailability(opts: {
     const current = grouped.get(key) || { startsAt, endsAt, timezone: slot.timezone, partners: [] };
     current.partners.push({
       id: slot.partnerId,
+      price: resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation, slot.priceOverride).price,
       slug: slot.partnerSlug,
       displayName: slot.displayName,
       businessName: slot.businessName,
@@ -393,7 +406,8 @@ export async function loadBookingAvailability(opts: {
       serviceName: row.service_name,
       durationMinutes: row.duration_minutes,
       currency: row.currency,
-      price: number(row.price),
+      price: regionalPrice,
+      priceSource: resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation).source,
       depositType: row.deposit_type,
       depositValue: number(row.deposit_value),
       minimumNoticeMinutes: Math.max(row.minimum_notice_minutes, BOOKING_MINIMUM_NOTICE_MINUTES),

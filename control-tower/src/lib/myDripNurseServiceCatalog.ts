@@ -1,3 +1,4 @@
+import { readRegionalPrices, type RegionalPrice } from "@/lib/regionalPricing";
 import { getDbPool } from "@/lib/db";
 import {
   MY_DRIP_NURSE_SERVICES,
@@ -22,6 +23,7 @@ export type AdminService = {
   benefits: string[];
   medicalDisclaimer: string;
   price: number;
+  regionalPrices?: RegionalPrice[];
   currency: string;
   depositType: ServiceDepositType;
   depositValue: number;
@@ -61,6 +63,7 @@ type ServiceRow = {
   benefits: string[] | null;
   medical_disclaimer: string;
   price: string;
+  regional_prices: unknown;
   currency: string;
   deposit_type: ServiceDepositType;
   deposit_value: string;
@@ -288,7 +291,7 @@ const SHEET_SERVICE_DATA: Record<string, { row: number; surveyPath: string }> = 
 const SERVICE_SELECT = `
   select s.id, s.slug, s.name, s.short_description, s.full_description,
          s.ingredients, s.benefits, s.medical_disclaimer,
-         s.price::text, s.currency, s.deposit_type, s.deposit_value::text,
+         s.price::text, s.source_metadata->'regionalPrices' as regional_prices, s.currency, s.deposit_type, s.deposit_value::text,
          s.image_url, s.image_alt, s.image_title,
          s.landing_page_url, s.survey_cta_url,
          s.editorial_status, s.is_active, s.updated_at::text,
@@ -321,6 +324,7 @@ function mapService(row: ServiceRow): AdminService {
     benefits: Array.isArray(row.benefits) ? row.benefits : [],
     medicalDisclaimer: row.medical_disclaimer,
     price: number(row.price),
+    regionalPrices: readRegionalPrices(row.regional_prices),
     currency: row.currency,
     depositType: row.deposit_type,
     depositValue: number(row.deposit_value),
@@ -347,7 +351,7 @@ function mapService(row: ServiceRow): AdminService {
   };
 }
 
-async function getMyDripNurseOrganizationId() {
+export async function getMyDripNurseOrganizationId() {
   const result = await getDbPool().query<{ id: string }>(
     `select id
        from app.organizations
@@ -476,13 +480,13 @@ export async function createAdminService(input: AdminServiceInput) {
          ingredients, benefits, medical_disclaimer,
          price, currency, deposit_type, deposit_value,
          image_url, image_alt, image_title,
-         landing_page_url, survey_cta_url, editorial_status, is_active
+         landing_page_url, survey_cta_url, editorial_status, is_active, source_metadata
        ) values (
          $1, $2, $3, $4, $5,
          $6::text[], $7::text[], $8,
          $9, $10, $11, $12,
          $13, $14, $15,
-         $16, $17, $18, $19
+         $16, $17, $18, $19, $20::jsonb
        ) returning id`,
       [
         organizationId, input.slug, input.name, input.shortDescription, input.fullDescription,
@@ -490,6 +494,7 @@ export async function createAdminService(input: AdminServiceInput) {
         input.price, input.currency, input.depositType, input.depositValue,
         input.imageUrl, input.imageAlt, input.imageTitle,
         input.landingPageUrl, input.surveyCtaUrl, input.editorialStatus, input.isActive,
+        JSON.stringify({ regionalPrices: input.regionalPrices || [] }),
       ],
     );
     const serviceId = service.rows[0]?.id;
@@ -543,6 +548,7 @@ export async function updateAdminService(serviceId: string, input: AdminServiceI
               survey_cta_url = $18,
               editorial_status = $19,
               is_active = $20,
+              source_metadata = case when $21::jsonb is null then source_metadata else jsonb_set(source_metadata, '{regionalPrices}', $21::jsonb) end,
               updated_at = now(),
               published_at = case
                 when $19 = 'published' and published_at is null then now()
@@ -558,6 +564,7 @@ export async function updateAdminService(serviceId: string, input: AdminServiceI
         input.imageUrl, input.imageAlt, input.imageTitle,
         input.landingPageUrl, input.surveyCtaUrl,
         input.editorialStatus, input.isActive,
+        input.regionalPrices === undefined ? null : JSON.stringify(input.regionalPrices),
       ],
     );
     if (!updated.rows[0]) throw new Error("Service not found.");

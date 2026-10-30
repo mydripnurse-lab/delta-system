@@ -1,3 +1,6 @@
+import { revalidateTag } from "next/cache";
+import { SERVICE_PRICING_TAG } from "@/lib/regionalPricing";
+import { validateRegionalPrices } from "@/lib/regionalPricingCatalog";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -28,6 +31,7 @@ const serviceInputSchema = z.object({
   benefits: z.array(z.string().trim().min(1).max(280)).max(30),
   medicalDisclaimer: z.string().trim().max(3000),
   price: z.number().finite().min(0).max(1_000_000),
+  regionalPrices: z.array(z.object({ regionId: z.string().min(1).max(300), price: z.number().finite().min(0).max(1_000_000).multipleOf(0.01) })).max(500).optional(),
   currency: z.string().trim().regex(/^[A-Z]{3}$/),
   depositType: z.enum(["percentage", "fixed"]),
   depositValue: z.number().finite().min(0).max(1_000_000),
@@ -83,8 +87,10 @@ export async function POST(req: NextRequest) {
   const auth = await requirePartnerAdmin(req, { module: "services", ownerOnly: true });
   if ("response" in auth) return auth.response;
   try {
-    const input = serviceInputSchema.parse(await req.json()) as AdminServiceInput;
+    const parsed = serviceInputSchema.parse(await req.json());
+    const input: AdminServiceInput = { ...parsed, imageUrl: parsed.imageUrl || "", calendar: { ...parsed.calendar, dailyCapacity: parsed.calendar.dailyCapacity ?? null }, regionalPrices: parsed.regionalPrices === undefined ? undefined : await validateRegionalPrices(parsed.regionalPrices) };
     const serviceId = await createAdminService(input);
+    revalidateTag(SERVICE_PRICING_TAG, { expire: 0 });
     return NextResponse.json(
       { ok: true, serviceId, services: await listAdminServices() },
       { status: 201, headers: { "cache-control": "no-store" } },
@@ -100,8 +106,10 @@ export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
     const serviceId = z.string().uuid().parse(body?.serviceId);
-    const input = serviceInputSchema.parse(body?.service) as AdminServiceInput;
+    const parsed = serviceInputSchema.parse(body?.service);
+    const input: AdminServiceInput = { ...parsed, imageUrl: parsed.imageUrl || "", calendar: { ...parsed.calendar, dailyCapacity: parsed.calendar.dailyCapacity ?? null }, regionalPrices: parsed.regionalPrices === undefined ? undefined : await validateRegionalPrices(parsed.regionalPrices) };
     await updateAdminService(serviceId, input);
+    revalidateTag(SERVICE_PRICING_TAG, { expire: 0 });
     return NextResponse.json(
       { ok: true, services: await listAdminServices() },
       { headers: { "cache-control": "no-store" } },

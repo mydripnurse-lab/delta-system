@@ -1,3 +1,4 @@
+import { readRegionalPrices, type RegionalPrice } from "@/lib/regionalPricing";
 import { cache } from "react";
 
 import { getDbPool } from "@/lib/db";
@@ -228,7 +229,7 @@ export const loadCurrentMyDripNurseServices = cache(async function loadCurrentMy
   });
 });
 
-export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<MyDripNurseServiceWithPrice, "id" | "name" | "imageUrl" | "landingPath" | "price">>> {
+export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<MyDripNurseServiceWithPrice, "id" | "name" | "imageUrl" | "landingPath" | "price"> & { basePrice?: number; currency?: string; regionalPrices?: RegionalPrice[] }>> {
   const catalogOrganizationId = await resolveCatalogOrganizationId("");
   if (!catalogOrganizationId) {
     return MY_DRIP_NURSE_SERVICES.map(({ id, name, imageUrl, landingPath }) => ({ id, name, imageUrl, landingPath, price: "" }));
@@ -239,14 +240,16 @@ export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<M
     name: string;
     image_url: string;
     price: string;
+    currency: string;
+    regional_prices: unknown;
   }>(
-    `select slug, name, image_url, price::text
+    `select slug, name, image_url, price::text, currency, source_metadata->'regionalPrices' as regional_prices
        from app.services
       where organization_id = $1
         and is_active = true`,
     [catalogOrganizationId],
   );
-  const catalog = new Map<string, { slug: string; name: string; image_url: string; price: string }>(
+  const catalog = new Map<string, { slug: string; name: string; image_url: string; price: string; currency: string; regional_prices: unknown }>(
     result.rows.map((row) => [row.slug, row]),
   );
 
@@ -259,6 +262,9 @@ export async function loadCurrentMyDripNurseServiceMedia(): Promise<Array<Pick<M
       imageUrl: s(current.image_url) || imageUrl,
       landingPath,
       price: displayPrice(current.price),
+      basePrice: Number(current.price),
+      currency: current.currency,
+      regionalPrices: readRegionalPrices(current.regional_prices),
     }];
   });
 }
