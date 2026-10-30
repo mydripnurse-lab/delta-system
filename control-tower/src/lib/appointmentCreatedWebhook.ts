@@ -205,12 +205,30 @@ export type AppointmentDeclineContext = {
   outcome: "reassigned" | "cancelled" | "refunded" | "refund_pending" | "refund_review";
 };
 
-export async function sendAppointmentLifecycleWebhook(appointmentId: string, event: LifecycleEvent, reschedule?: AppointmentRescheduleContext, decline?: AppointmentDeclineContext) {
+export type AppointmentRefundContext = {
+  refundId: string;
+  status: "succeeded";
+  totalRefundedAmount: number;
+  currency: string;
+  partnerProfileId: string | null;
+};
+
+export async function sendAppointmentLifecycleWebhook(appointmentId: string, event: LifecycleEvent, reschedule?: AppointmentRescheduleContext, decline?: AppointmentDeclineContext, refund?: AppointmentRefundContext) {
+  // A refund notification requires confirmed processor totals, never the service price.
+  if (event === "appointment_refunded" && (!refund || refund.status !== "succeeded"
+    || !refund.refundId || !Number.isFinite(refund.totalRefundedAmount) || refund.totalRefundedAmount <= 0
+    || !/^[A-Z]{3}$/.test(refund.currency))) {
+    return { sent: false as const, reason: "refund_not_confirmed" as const };
+  }
   // Recipient follows the committed event, not a later assignment or cleared partner.
   const notificationPartnerId = event === "appointment_declined" ? decline?.declinedPartnerId
-    : event === "appointment_reassigned" ? decline?.replacementPartnerId || undefined : undefined;
+    : event === "appointment_reassigned" ? decline?.replacementPartnerId || undefined
+    : event === "appointment_refunded" ? refund?.partnerProfileId || undefined : undefined;
   const { pool, row } = await loadAppointment(appointmentId, notificationPartnerId);
   if (!row) return { sent: false as const, reason: "appointment_not_found" as const };
+  if (event === "appointment_refunded" && row.payment_status !== "refunded") {
+    return { sent: false as const, reason: "refund_not_confirmed" as const };
+  }
   // Preserve the committed change even if another reschedule happens before delivery.
   if (event === "partner_rescheduled" && reschedule) {
     row.starts_at = reschedule.startsAt;
@@ -291,6 +309,13 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
       stateOperator: record(metadata.stateOperator || metadata.state_operator),
     }),
     idempotencyKey: `${deliveryType}:${row.organization_id}:${row.id}`, occurredAt: new Date().toISOString(),
+    ...(event === "appointment_refunded" && refund ? {
+      refundStatus: refund.status,
+      refundAmount: refund.totalRefundedAmount,
+      refundCurrency: refund.currency,
+      refundAmountFormatted: currency(refund.totalRefundedAmount, refund.currency),
+      refund: { id: refund.refundId, status: refund.status, totalRefundedAmount: refund.totalRefundedAmount, currency: refund.currency },
+    } : {}),
     ...(event === "partner_rescheduled" && reschedule ? {
       rescheduleEventId: reschedule.eventId,
       previousAppointmentDateTimeFormatted: appointmentTime(reschedule.previousStartsAt, reschedule.previousTimezone),

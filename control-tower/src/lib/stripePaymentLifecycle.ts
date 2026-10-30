@@ -284,6 +284,8 @@ export async function applyStripeRefundUpdate(opts: {
   let appointmentId = "";
   let fullyRefunded = false;
   let becameFullyRefunded = false;
+  let refundedTotal = 0;
+  let notificationPartnerId: string | null = null;
   try {
     await client.query("begin");
     const locked = await client.query<{
@@ -293,9 +295,11 @@ export async function applyStripeRefundUpdate(opts: {
       currency: string;
       payment_status: string;
       appointment_status: string;
+      partner_profile_id: string | null;
     }>(
       `select payment.id::text as payment_id, payment.appointment_id::text, payment.amount::text,
-              payment.currency, payment.status as payment_status, appointment.status as appointment_status
+              payment.currency, payment.status as payment_status, appointment.status as appointment_status,
+              appointment.partner_profile_id::text
          from app.appointment_payments payment
          join app.appointments appointment on appointment.id = payment.appointment_id
         where payment.payment_intent_id = $1
@@ -307,6 +311,7 @@ export async function applyStripeRefundUpdate(opts: {
     if (!row) throw new Error("Stripe refund does not match an appointment payment.");
     if (row.currency.toUpperCase() !== currency) throw new Error("Stripe refund currency does not match the appointment payment.");
     appointmentId = row.appointment_id;
+    notificationPartnerId = row.partner_profile_id;
 
     await client.query(
       `insert into app.appointment_refunds (
@@ -333,6 +338,7 @@ export async function applyStripeRefundUpdate(opts: {
       [row.payment_id],
     );
     const refundedCents = money(totals.rows[0]?.refunded);
+    refundedTotal = centsToAmount(refundedCents);
     const paidCents = money(row.amount);
     const pendingCount = Number(totals.rows[0]?.pending_count || 0);
     const nextPaymentStatus = refundedCents >= paidCents
@@ -384,7 +390,13 @@ export async function applyStripeRefundUpdate(opts: {
 
   if (becameFullyRefunded) {
     await runNotificationTasks([
-      sendAppointmentLifecycleWebhook(appointmentId, "appointment_refunded"),
+      sendAppointmentLifecycleWebhook(appointmentId, "appointment_refunded", undefined, undefined, {
+        refundId: opts.stripeRefundId,
+        status: "succeeded",
+        totalRefundedAmount: refundedTotal,
+        currency,
+        partnerProfileId: notificationPartnerId,
+      }),
       sendAppointmentRefundNotification({
         appointmentId,
         refundId: opts.stripeRefundId,
