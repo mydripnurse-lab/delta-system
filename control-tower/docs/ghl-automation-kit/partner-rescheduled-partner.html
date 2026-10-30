@@ -1,68 +1,82 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Your appointment has been rescheduled | My Drip Nurse</title>
-</head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Your appointment has been rescheduled | My Drip Nurse</title>
+<!-- outlook-fixes-applied --></head>
+
 <body style="margin:0;background:#f3f7f8;font-family:Arial,Helvetica,sans-serif;color:#173d42">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-<tr>
-<td align="center" style="padding:28px 12px">
-<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px">
-<tr>
-<td align="center" style="padding:10px 24px 28px">
-<img src="https://care.mydripnurse.com/mdn-logo.png" alt="My Drip Nurse" width="220" style="display:block;max-width:100%;height:auto;margin:auto">
-</td>
-</tr>
-<tr>
-<td style="padding:36px 28px;background:#edf5fb;border:1px solid #d2e2e7;border-radius:24px 24px 0 0">
-<p style="font-size:11px;letter-spacing:2px;font-weight:bold;color:#078596">MY DRIP NURSE · PROFESSIONAL APPOINTMENT UPDATE</p>
-<h1 style="font-size:40px;line-height:1.15;margin:22px 0;color:#173d42">Your visit,<br>
-<span style="font-family:Georgia,serif;font-style:italic;font-weight:normal;color:#044c5c">rescheduled.</span>
-</h1>
-<p style="font-size:16px;line-height:1.7">Hi {{inboundWebhookRequest.partnerFirstName}},</p>
-<p style="font-size:16px;line-height:1.7;color:#526d73">Your schedule change for <strong>{{inboundWebhookRequest.serviceName}}</strong> has been saved. Please review the updated visit details below.</p>
-</td>
-</tr>
-<tr>
-<td style="padding:30px 28px;background:white;border:1px solid #d2e2e7;border-top:0">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#ebf2f9;border-radius:20px">
-<tr>
-<td align="center" style="padding:24px">
-<img src="{{inboundWebhookRequest.serviceImageUrl}}" alt="{{inboundWebhookRequest.serviceName}}" width="220" style="display:block;width:220px;max-width:100%;height:auto;margin:0 auto">
-<h2 style="font-size:24px;color:#044c5c">{{inboundWebhookRequest.serviceName}}</h2>
-</td>
-</tr>
-</table>
-<p style="margin:28px 0 6px;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#667d80">PREVIOUS APPOINTMENT TIME</p>
-<p style="font-size:16px;line-height:1.6;color:#667d80;margin:0">{{inboundWebhookRequest.previousAppointmentDateTimeFormatted}}</p>
-<p style="margin:24px 0 6px;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#078596">NEW APPOINTMENT TIME</p>
-<p style="font-size:20px;line-height:1.6;font-weight:bold;margin:0">{{inboundWebhookRequest.appointmentDateTimeFormatted}}</p>
-<p style="font-size:13px;color:#667d80;line-height:1.6">Booking reference · {{inboundWebhookRequest.appointment.publicReference}}</p>
-<h2 style="font-family:Georgia,serif;font-weight:normal;font-size:28px;color:#044c5c;margin-top:30px">Your care, connected.</h2>
-<p style="font-size:15px;line-height:1.7;color:#526d73">Review your updated visit in your Partner Portal. Contact My Drip Nurse if you need help with this appointment.</p>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-<tr>
-<td align="center" bgcolor="#078596" style="border-radius:30px">
-<a href="https://partners.mydripnurse.com/partner-portal/appointments" style="display:block;padding:18px;color:white;font-size:16px;font-weight:bold;text-decoration:none">View updated appointment →</a>
-</td>
-</tr>
-</table>
-<p style="font-size:15px;line-height:1.7;color:#526d73;margin-top:24px">
-<strong>Estimated earnings after the deposit</strong>
-<br>{{inboundWebhookRequest.earningsDisplay}}</p>
-</td>
-</tr>
-<tr>
-<td style="padding:24px 28px;background:#f8fbfc;border:1px solid #d2e2e7;border-top:0;border-radius:0 0 24px 24px;font-size:15px;color:#526d73">Thank you for choosing <strong>My Drip Nurse</strong>.</td>
-</tr>
-<tr>
-<td align="center" style="padding:24px;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#044c5c">MOBILE WELLNESS, WHERE YOU ARE</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+      <td align="center" style="padding:28px 12px">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px">
+          <tr>
+            <td align="center" style="padding:10px 24px 28px"><img src="https://care.mydripnurse.com/mdn-logo.png" alt="My Drip Nurse" width="220" style="display:block;max-width:100%;height:auto;margin:auto">
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:36px 28px;background:#edf5fb;border:1px solid #d2e2e7;border-radius:24px 24px 0 0">
+              <p style="font-size:11px;letter-spacing:2px;font-weight:bold;color:#078596">MY DRIP NURSE · PROFESSIONAL
+                APPOINTMENT UPDATE</p>
+              <h1 style="font-size:40px;line-height:1.15;margin:22px 0;color:#173d42">Your
+                visit,<br><span style="font-family:Georgia,serif;font-style:italic;font-weight:normal;color:#044c5c">rescheduled.</span>
+              </h1>
+              <p style="font-size:16px;line-height:1.7">Hi {{inboundWebhookRequest.partnerFirstName}},</p>
+              <p style="font-size:16px;line-height:1.7;color:#526d73">Your schedule change for
+                <strong>{{inboundWebhookRequest.serviceName}}</strong> has been saved. Please review the updated visit
+                details below.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px 28px;background:white;border:1px solid #d2e2e7;border-top:0">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+                style="background:#ebf2f9;border-radius:20px">
+                <tr>
+                  <td align="center" style="padding:24px"><img src="{{inboundWebhookRequest.serviceImageUrl}}" alt="{{inboundWebhookRequest.serviceName}}" width="220" style="display:block;width:220px;max-width:100%;height:auto;margin:0 auto">
+                    <h2 style="font-size:24px;color:#044c5c">{{inboundWebhookRequest.serviceName}}</h2>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:28px 0 6px;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#667d80">PREVIOUS
+                APPOINTMENT TIME</p>
+              <p style="font-size:16px;line-height:1.6;color:#667d80;margin:0">
+                {{inboundWebhookRequest.previousAppointmentDateTimeFormatted}}</p>
+              <p style="margin:24px 0 6px;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#078596">NEW
+                APPOINTMENT TIME</p>
+              <p style="font-size:20px;line-height:1.6;font-weight:bold;margin:0">
+                {{inboundWebhookRequest.appointmentDateTimeFormatted}}</p>
+              <p style="font-size:13px;color:#667d80;line-height:1.6">Booking reference ·
+                {{inboundWebhookRequest.appointment.publicReference}}</p>
+              <h2 style="font-family:Georgia,serif;font-weight:normal;font-size:28px;color:#044c5c;margin-top:30px">Your
+                care, connected.</h2>
+              <p style="font-size:15px;line-height:1.7;color:#526d73">Review your updated visit in your Partner Portal.
+                Contact My Drip Nurse if you need help with this appointment.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" bgcolor="#078596" style="border-radius:30px">
+                    <a href="https://partners.mydripnurse.com/partner-portal/appointments" style="display:block;padding:18px;color:white;font-size:16px;font-weight:bold;text-decoration:none; mso-style-textfill-fill-color: white;"><!--[if mso]><font color="white"><![endif]-->View updated appointment →<!--[if mso]></font><![endif]--></a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:15px;line-height:1.7;color:#526d73;margin-top:24px">
+                <strong>Service balance after the booking deposit</strong><br>{{inboundWebhookRequest.earningsDisplay}}</p><p style="font-size:13px;line-height:1.7;color:#526d73">For standard bookings, you collect the remaining service balance directly from the client after the booking deposit, plus any voluntary tip. My Drip Nurse does not collect or pay out this balance. For a My Drip Nurse-funded reward visit, collect $0 from the patient for the covered service and follow the funding instructions in your Partner Portal.</p>
+            </td>
+          </tr>
+          <tr>
+            <td
+              style="padding:24px 28px;background:#f8fbfc;border:1px solid #d2e2e7;border-top:0;border-radius:0 0 24px 24px;font-size:15px;color:#526d73">
+              Thank you for choosing <strong>My Drip Nurse</strong>.</td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#044c5c">
+              MOBILE WELLNESS, WHERE YOU ARE</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
+
 </html>

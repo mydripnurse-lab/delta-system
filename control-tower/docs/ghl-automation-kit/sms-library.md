@@ -45,7 +45,7 @@ Opción recomendada: usa directamente el mensaje preparado por el sistema.
 Equivalente editable:
 
 ```text
-My Drip Nurse: Hi {{inboundWebhookRequest.partnerFirstName}}, a new appointment is available. Earn {{inboundWebhookRequest.earningsDisplay}}. {{inboundWebhookRequest.serviceName}} · {{inboundWebhookRequest.appointmentDateTimeFormatted}}. Review and accept or decline: {{inboundWebhookRequest.appointmentOfferUrl}}
+My Drip Nurse: Hi {{inboundWebhookRequest.partnerFirstName}}, a new appointment is available. {{inboundWebhookRequest.collectionInstructions}} {{inboundWebhookRequest.serviceName}} · {{inboundWebhookRequest.appointmentDateTimeFormatted}}. Review and accept or decline: {{inboundWebhookRequest.appointmentOfferUrl}}
 ```
 
 <a id="sms-customer-appointment-confirmed"></a>
