@@ -161,7 +161,7 @@ Destinatario: `{{inboundWebhookRequest.primaryRecipientPhone}}` (normalizado des
 Texto:
 
 ```text
-My Drip Nurse: Great news—{{inboundWebhookRequest.invitee.fullName}} joined Care through your invitation. You now have {{inboundWebhookRequest.registeredCount}} of {{inboundWebhookRequest.goal}} verified registrations.
+My Drip Nurse: A friend completed a verified Care registration. Your Share Care progress: {{inboundWebhookRequest.registeredCount}}/{{inboundWebhookRequest.goal}}. View: https://care.mydripnurse.com/rewards/invitations
 ```
 
 <a id="sms-client-referral-reward-earned"></a>
@@ -170,7 +170,7 @@ My Drip Nurse: Great news—{{inboundWebhookRequest.invitee.fullName}} joined Ca
 Destinatario: `{{inboundWebhookRequest.primaryRecipientPhone}}`.
 
 ```text
-My Drip Nurse: You unlocked your Share Care reward. Your one-time booking discount will be applied automatically to your next eligible appointment. Book: https://care.mydripnurse.com/book
+My Drip Nurse: Your Share Care reward is ready: one eligible booking deposit waived. Service balance still applies. View: https://care.mydripnurse.com/rewards/invitations
 ```
 
 ## Alertas internas opcionales
