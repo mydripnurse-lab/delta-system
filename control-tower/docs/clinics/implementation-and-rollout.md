@@ -1,6 +1,6 @@
 # Clinic partners — implementation and rollout
 
-Status: implemented locally behind `CLINIC_PARTNERS_ENABLED=true`. Not migrated, deployed, or activated in production. No real clinics, patients, payments, emails, or SMS were created during verification.
+Status: implemented locally behind `CLINIC_PARTNERS_ENABLED=true`. Migration 048 applied to production; application code not yet deployed and clinic entry points not activated. No real clinics, patients, payments, emails, or SMS were created during verification.
 
 ## Rules implemented
 
@@ -55,4 +55,6 @@ This does not constitute a live Stripe, GHL, Blob upload, or production DNS veri
 
 ## Production migration status
 
-Migration 048 was attempted with the pre-existing local production connection after explicit authorization. Neon rejected authentication (28P01) before any migration statement ran. The other existing local production configuration contains the same stale password. No production schema, appointment or payment was changed. Use a valid, narrowly scoped connection before retrying; do not download all production secrets.
+Migration `048_clinic_partners.sql` was applied successfully to the production Neon database on 2026-10-30 (America/New_York). The initial pre-existing local connection was rejected (28P01) before executing DDL. After explicit user authorization, only Vercel's production `DATABASE_URL` was retrieved into process memory, used for the migration, and neither displayed nor written to disk. No other secret was retrieved.
+
+The migration and schema-history insert ran in one transaction with a 5-second lock timeout and 30-second statement timeout. Postconditions verified the clinics table, memberships table, and appointments.clinic_id column before commit. No existing appointment or payment records were changed. The clinic feature remains disabled pending application deployment and end-to-end communication/checkout validation.
