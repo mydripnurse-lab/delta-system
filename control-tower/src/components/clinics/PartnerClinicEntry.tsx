@@ -26,11 +26,13 @@ export function PartnerClinicEntry({ profileId }: { profileId: string }) {
         try { localStorage.setItem(key, 'dismissed'); } catch { /* The permanent workspace link remains available. */ }
         window.dispatchEvent(new Event(changed));
     }
+    if (hidden || dismissed) return null;
     return <aside className={styles.entry} aria-label="Clinic workspace">
-        <nav className={styles.navigation}><Link prefetch={false} href="/portal/clinics">My clinics →</Link><Link prefetch={false} href="/clinics/register">Register my clinic</Link></nav>
-        {!hidden && !dismissed ? <section className={styles.banner} aria-labelledby="clinic-introduction-title">
-            <div><span className={styles.eyebrow}>Grow your practice</span><h2 id="clinic-introduction-title">Your clinic. Your team. One account.</h2><p>Already a partner and own a clinic? Register it from this account, invite your nurses, and manage your clinic’s website. Keep your professional profile, appointments and referral history.</p><Link prefetch={false} className={styles.action} href="/clinics/register">Register my clinic <span aria-hidden="true">→</span></Link><small>Review the own-team affiliate policy before registering. My Drip Nurse approval required.</small></div>
-            <button type="button" onClick={dismiss} aria-label="Dismiss clinic introduction">×</button>
-        </section> : null}
+        <span><strong>Own a clinic?</strong> <span className={styles.bannerCopy}>Bring your team to My Drip Nurse.</span></span>
+        <nav className={styles.navigation} aria-label="Clinic shortcuts">
+            <Link prefetch={false} href="/portal/clinics">My clinics</Link>
+            <Link prefetch={false} href="/clinics/register">Get started <span aria-hidden="true">→</span></Link>
+        </nav>
+        <button type="button" onClick={dismiss} aria-label="Dismiss clinic introduction">×</button>
     </aside>;
 }

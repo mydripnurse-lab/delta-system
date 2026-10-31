@@ -1,4 +1,3 @@
-import { PartnerClinicEntry } from "@/components/clinics/PartnerClinicEntry";
 import { clinicsEnabled } from "@/lib/clinicAuth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -18,5 +17,5 @@ export async function renderPartnerPortal(screen: PartnerPortalScreen) {
   const profile = await getPartnerProfileForPortal(session.profile_id);
   if (!profile) redirect(process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/partner-login" : "/partner-login");
   const clinicsAvailable = clinicsEnabled();
-  return <>{clinicsAvailable ? <PartnerClinicEntry profileId={session.profile_id} /> : null}<PartnerPortalClient initialProfile={profile} screen={screen} clinicsAvailable={clinicsAvailable} /></>;
+  return <PartnerPortalClient initialProfile={profile} screen={screen} clinicsAvailable={clinicsAvailable} />;
 }
