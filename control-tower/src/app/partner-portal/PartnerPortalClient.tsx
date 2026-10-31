@@ -1874,9 +1874,9 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
                     </div>
                     <div className={styles.offerLayout}>
                       <div className={styles.offerEarnings}>
-                        <span>Estimated earnings</span>
-                        <strong>{money(selectedAppointment.partnerEarnings, selectedAppointment.currency)} <small>+ tips</small></strong>
-                        <p>After the booking deposit. Any tip from the patient is added on top.</p>
+                        <span>{selectedAppointment.clinicCollects ? "Clinic collection" : "Estimated earnings"}</span>
+                        <strong>{money(selectedAppointment.clinicCollects ? selectedAppointment.amountDueAtVisit : selectedAppointment.partnerEarnings, selectedAppointment.currency)} <small>+ tips</small></strong>
+                        <p>{selectedAppointment.clinicCollects ? `${selectedAppointment.clinicName || "Your clinic"} collects the balance and voluntary tips directly from the client. Follow your clinic’s instructions; this is not a nurse payout.` : "After the booking deposit. Any tip from the patient is added on top."}</p>
                       </div>
                       <div className={styles.offerFacts}>
                         <div><span>Service</span><strong>{selectedAppointment.serviceName}</strong></div>
@@ -1900,7 +1900,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
                     <p className={styles.offerPrivacy}>Your location is used only to estimate this drive and is not saved with the appointment.</p>
                     <div className={styles.offerActions}>
                       <button type="button" className={styles.offerDeclineButton} onClick={() => { const appointment = selectedAppointment; setSelectedAppointment(null); setDeclineTarget(appointment); setDeclineReason(""); }}>Decline</button>
-                      <button type="button" className={styles.offerAcceptButton} onClick={() => { const appointmentId = selectedAppointment.id; setSelectedAppointment(null); void advanceAppointment(appointmentId, "acknowledge"); }}><span><small>Accept and earn</small>{money(selectedAppointment.partnerEarnings, selectedAppointment.currency)} + tips</span><b aria-hidden="true">→</b></button>
+                      <button type="button" className={styles.offerAcceptButton} onClick={() => { const appointmentId = selectedAppointment.id; setSelectedAppointment(null); void advanceAppointment(appointmentId, "acknowledge"); }}><span><small>{selectedAppointment.clinicCollects ? "Accept clinic appointment" : "Accept and earn"}</small>{money(selectedAppointment.clinicCollects ? selectedAppointment.amountDueAtVisit : selectedAppointment.partnerEarnings, selectedAppointment.currency)} + tips</span><b aria-hidden="true">→</b></button>
                     </div>
                   </> : <>
                   <div className={`${styles.detailHeader} ${styles.confirmedAppointmentHeader}`}>
@@ -1937,7 +1937,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
                     <div data-tour-id={selectedAppointment.id === "tour-demo-appointment" ? "appointments-demo-collection" : undefined}>
                       <small>{selectedAppointment.platformFundedReward && ["partner_acknowledged", "in_progress", "completed"].includes(selectedAppointment.status) ? "Payment source" : "Collection"}</small>
                       <strong>{selectedAppointment.platformFundedReward && ["partner_acknowledged", "in_progress", "completed"].includes(selectedAppointment.status) ? "My Drip Nurse" : money(selectedAppointment.amountDueAtVisit, selectedAppointment.currency)}</strong>
-                      <span>{selectedAppointment.platformFundedReward && ["partner_acknowledged", "in_progress", "completed"].includes(selectedAppointment.status) ? `${money(selectedAppointment.platformFundedAmount, selectedAppointment.currency)} after completion · collect $0 from patient` : "Amount to collect at the appointment"}</span>
+                      <span>{selectedAppointment.platformFundedReward && ["partner_acknowledged", "in_progress", "completed"].includes(selectedAppointment.status) ? `${money(selectedAppointment.platformFundedAmount, selectedAppointment.currency)} after completion · collect $0 from patient` : selectedAppointment.clinicCollects ? "Collected by your clinic, including voluntary tips. Follow its instructions." : "Amount to collect at the appointment"}</span>
                     </div>
                   </div>
                   <div className={styles.detailDecisionActions} data-tour-id={selectedAppointment.id === "tour-demo-appointment" ? "appointments-demo-decisions" : undefined}>

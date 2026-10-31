@@ -39,7 +39,12 @@ export default async function BookingCalendarPage({
   ]);
   const embedded = query.embed === "1";
   const requestedReturnTo = Array.isArray(query.returnTo) ? query.returnTo[0] : query.returnTo;
-  const bookingReturnTo = `https://care.mydripnurse.com/booking/${encodeURIComponent(publicKey)}`;
+  const bookingReturnUrl = new URL(`https://care.mydripnurse.com/booking/${encodeURIComponent(publicKey)}`);
+  if (typeof query.clinicId === 'string') {
+    bookingReturnUrl.searchParams.set('clinicId', query.clinicId);
+    if (typeof query.partnerId === 'string') bookingReturnUrl.searchParams.set('partnerId', query.partnerId);
+  }
+  const bookingReturnTo = bookingReturnUrl.toString();
   const returnTo = embedded ? safeClientReturnUrl(requestedReturnTo) || bookingReturnTo : bookingReturnTo;
   return (
     <BookingIdentityPanel
@@ -51,6 +56,9 @@ export default async function BookingCalendarPage({
       <BookingCalendarClient
         embedMode={embedded}
         publicKey={publicKey}
+        clinicId={typeof query.clinicId === "string" ? query.clinicId : ""}
+        partnerId={typeof query.clinicId === "string" && typeof query.partnerId === "string" ? query.partnerId : ""}
+        partnerView={typeof query.clinicId === "string" && typeof query.partnerId === "string"}
         serviceName={calendarSummary?.serviceName || ""}
         serviceImageUrl={calendarSummary?.serviceImageUrl || ""}
         serviceImageAlt={calendarSummary?.serviceImageAlt || ""}

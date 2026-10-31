@@ -1,3 +1,4 @@
+import { appointmentCommunicationRoles } from "@/lib/appointmentCommunicationRoles";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { ensureStaffSchema } from "@/lib/publicStaffProvisioning";
 import { getDbPool } from "@/lib/db";
@@ -127,16 +128,20 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
     : 0;
   const clientAmountDueAtVisit = platformFunded ? 0 : estimatedEarnings;
   const estimatedEarningsFormatted = money(estimatedEarnings, row.currency);
-  const earningsDisplay = `${estimatedEarningsFormatted} + voluntary tips`;
+  const clinic = metadata.clinic && typeof metadata.clinic === "object" ? metadata.clinic as Record<string,unknown> : {};
+  const clinicCollects = clinic.balanceCollector === "clinic" && !platformFunded;
+  const earningsDisplay = clinicCollects ? `Clinic balance: ${estimatedEarningsFormatted} + voluntary tips` : `${estimatedEarningsFormatted} + voluntary tips`;
   const collectionInstructions = event === "partner_declined"
     ? "This notice is not a request to collect payment or confirmation of a partner payout. Review the appointment status in your Partner Portal."
     : platformFunded
     ? `My Drip Nurse-funded reward: collect $0 from the patient for the covered service. My Drip Nurse pays ${money(platformFundedPartnerAmount, row.currency)} after completion.`
+    : clinicCollects ? `Your clinic collects ${money(clientAmountDueAtVisit, row.currency)} and voluntary tips directly from the client. This is the clinic balance, not a nurse payout. Follow its collection instructions.`
     : `Collect ${money(clientAmountDueAtVisit, row.currency)} directly from the client after the booking deposit, plus any voluntary tip. My Drip Nurse does not collect or pay out this balance.`;
   const actionRequired = event === "confirmed" || event === "reassigned";
   const appointmentOfferUrl = `https://partners.mydripnurse.com/partner-portal/appointments?appointment=${encodeURIComponent(appointmentId)}&offer=1`;
   const collectionSms = platformFunded
     ? "MDN-funded reward: collect $0 for the covered service."
+    : clinicCollects ? `Your clinic collects ${money(clientAmountDueAtVisit, row.currency)} and voluntary tips. Follow its collection instructions.`
     : `Collect ${money(clientAmountDueAtVisit, row.currency)} directly from the client; tips are voluntary.`;
   const smsMessage = actionRequired
     ? `My Drip Nurse: New appointment. ${collectionSms} ${row.service_name} · ${appointmentTime(row.starts_at, row.timezone)}. Accept or decline: ${appointmentOfferUrl}`
@@ -173,6 +178,9 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
         tipsIncluded: false,
         earningsDisplay,
         collectionInstructions,
+        clinic,
+        balanceCollector: clinicCollects ? "clinic" : "professional",
+    ...appointmentCommunicationRoles({ clinicId: clinic.id, clinicName: clinic.name, platformFunded, balance: clientAmountDueAtVisit }),
         rewardBenefit: text(clientReward.benefit) || "none",
         platformFunded,
         platformFundedPartnerAmount,

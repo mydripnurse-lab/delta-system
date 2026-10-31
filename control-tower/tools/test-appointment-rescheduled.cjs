@@ -18,6 +18,7 @@ const pool = { query: async (sql, values) => {
 }};
 const moduleMock = {exports:{}};
 const context = { module:moduleMock, exports:moduleMock.exports, URL, AbortController, setTimeout, clearTimeout, console, require(name) {
+ if(name.endsWith('appointmentCommunicationRoles')) return require('./load-communication-roles.cjs');
  if(name.endsWith('bookingEngineSchema')) return {ensureBookingEngineSchema:async()=>{}};
  if(name.endsWith('/db')) return {getDbPool:()=>pool};
  if(name.endsWith('ghlRoutingEnvelope')) return {ghlRoutingFieldsForEvent:()=>({}),ghlRoutingFieldsForPayload:()=>({})};

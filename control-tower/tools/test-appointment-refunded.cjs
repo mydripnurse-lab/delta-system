@@ -14,7 +14,7 @@ function load(file, deps) {
   if(sql.startsWith('insert into app.appointment_webhook_events')){if(reserved.has(v[2]))return {rows:[]};reserved.add(v[2]);return {rows:[{id:'delivery'}]};}
   return {rows:[]};
  }};
- const send=load('appointmentCreatedWebhook',{require:n=>n.endsWith('bookingEngineSchema')?{ensureBookingEngineSchema:async()=>{}}:n.endsWith('/db')?{getDbPool:()=>pool}:{ghlRoutingFieldsForEvent:()=>({}),ghlRoutingFieldsForPayload:()=>({})},fetch:async(url,o)=>{requests.push(JSON.parse(o.body));return {ok:true,status:200,text:async()=>''}}}).sendAppointmentLifecycleWebhook;
+ const send=load('appointmentCreatedWebhook',{require:n=>n.endsWith('appointmentCommunicationRoles')?require('./load-communication-roles.cjs'):n.endsWith('bookingEngineSchema')?{ensureBookingEngineSchema:async()=>{}}:n.endsWith('/db')?{getDbPool:()=>pool}:{ghlRoutingFieldsForEvent:()=>({}),ghlRoutingFieldsForPayload:()=>({})},fetch:async(url,o)=>{requests.push(JSON.parse(o.body));return {ok:true,status:200,text:async()=>''}}}).sendAppointmentLifecycleWebhook;
  const ctx={refundId:'re_test',status:'succeeded',totalRefundedAmount:88,currency:'USD',partnerProfileId:'original'};
  assert.equal((await send('appt','appointment_refunded')).reason,'refund_not_confirmed');assert.equal(queries.length,0);
  for(const status of ['pending','failed','requires_action','canceled'])assert.equal((await send('appt','appointment_refunded',undefined,undefined,{...ctx,status})).reason,'refund_not_confirmed');

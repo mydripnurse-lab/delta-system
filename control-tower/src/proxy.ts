@@ -174,6 +174,11 @@ export function proxy(req: NextRequest) {
 
   if (isPartnerWebsiteHost(req)) {
     const partnerUrl = req.nextUrl.clone();
+    if (pathname === "/clinics" || pathname.startsWith("/clinics/") || pathname === "/clinic-portal" || pathname.startsWith("/api/")) return NextResponse.next();
+    if (pathname === "/portal/clinics") {
+      partnerUrl.pathname = "/clinic-portal";
+      return NextResponse.rewrite(partnerUrl);
+    }
     if (pathname === "/activate") {
       partnerUrl.pathname = "/partner-activate";
       return NextResponse.rewrite(partnerUrl);
@@ -339,6 +344,7 @@ export function proxy(req: NextRequest) {
       pathname === "/" ||
       pathname === "/applications" || pathname.startsWith("/applications/") ||
       pathname === "/partners" || pathname.startsWith("/partners/") ||
+      pathname === "/clinics" || pathname.startsWith("/clinics/") ||
       pathname === "/appointments" || pathname.startsWith("/appointments/") ||
       pathname === "/refunds" || pathname.startsWith("/refunds/") ||
       pathname === "/contacts" || pathname.startsWith("/contacts/") ||
@@ -405,6 +411,8 @@ export const config = {
     "/robots.txt",
     "/dashboard/:path*",
     "/projects/:path*",
+    "/clinics/:path*",
+    "/clinic-portal",
     "/partner-admin/:path*",
     "/partner-portal/:path*",
     "/applications/:path*",

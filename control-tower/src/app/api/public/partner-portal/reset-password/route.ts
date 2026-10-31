@@ -1,3 +1,6 @@
+import { consumeClinicRequestBudget } from "@/lib/clinicRequestBudget";
+import { clinicsEnabled } from "@/lib/clinicFeature";
+import { CLINIC_COOKIE,clinicCookieOptions,resetClinicAccountPassword } from "@/lib/clinicAuth";
 import { NextResponse } from "next/server";
 
 import {
@@ -19,6 +22,7 @@ export async function POST(request: Request) {
   if (!isTrustedAccountPasswordRequest(request, "partner")) {
     return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
   }
+  if(clinicsEnabled() && !consumeClinicRequestBudget(request,"clinic-password-reset-consume",20)) return NextResponse.json({ok:false,error:"Too many attempts. Please try again later."},{status:429});
   const body = (await request.json().catch(() => null)) as { token?: string; password?: string } | null;
   const token = String(body?.token || "").trim();
   const password = String(body?.password || "").trim();
@@ -50,6 +54,16 @@ export async function POST(request: Request) {
       [hashAccountPasswordResetToken(token)],
     );
     const row = result.rows[0] || null;
+    if(!row && clinicsEnabled()) {
+      const clinicAccountId=await resetClinicAccountPassword(client,hashAccountPasswordResetToken(token),await hashPassword(password));
+      if(clinicAccountId) {
+        await client.query("commit");
+        const response=NextResponse.json({ok:true,next:"/login"});
+        response.cookies.set(CLINIC_COOKIE,"",{...clinicCookieOptions(),maxAge:0});
+        response.cookies.set(PARTNER_PORTAL_COOKIE,"",{...partnerPortalCookieOptions(),maxAge:0});
+        return response;
+      }
+    }
     if (!row) {
       await client.query("rollback");
       return NextResponse.json(

@@ -24,6 +24,7 @@ const querySchema = z.object({
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
   partnerId: z.string().uuid().optional(),
+  clinicId: z.string().uuid().optional(),
   medicalScreening: z.literal("clear"),
 }).superRefine((value, context) => {
   if ((value.latitude === undefined) !== (value.longitude === undefined)) {
@@ -58,6 +59,7 @@ export async function GET(
       latitude: url.searchParams.get("latitude") || undefined,
       longitude: url.searchParams.get("longitude") || undefined,
       partnerId: url.searchParams.get("partnerId") || undefined,
+      clinicId: url.searchParams.get("clinicId") || undefined,
       medicalScreening: url.searchParams.get("medicalScreening"),
     });
     const availability = await loadBookingAvailability({
@@ -65,6 +67,7 @@ export async function GET(
       date: query.date,
       coverage: query,
       requestedPartnerId: query.partnerId,
+      clinicId: query.clinicId,
     });
     if (!availability) {
       return NextResponse.json(

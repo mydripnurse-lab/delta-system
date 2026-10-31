@@ -1,3 +1,4 @@
+import { clinicsEnabled } from "@/lib/clinicFeature";
 import { NextResponse } from "next/server";
 
 import { getDbPool } from "@/lib/db";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const auth = await requirePartnerAdmin(req);
   if ("response" in auth) return auth.response;
-  return NextResponse.json({ ok: true, user: auth.user, access: { ...auth.access, delegated: Boolean(auth.delegation) } }, { headers: { "cache-control": "no-store" } });
+  return NextResponse.json({ ok: true, clinicsEnabled:clinicsEnabled(), user: auth.user, access: { ...auth.access, delegated: Boolean(auth.delegation) } }, { headers: { "cache-control": "no-store" } });
 }
 
 function text(value: unknown) {

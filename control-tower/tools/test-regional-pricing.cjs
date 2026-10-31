@@ -208,7 +208,9 @@ function cacheHarness() {
     if (sql.includes('insert into app.appointments (')) return { rows: [{ id: 'appointment' }] };
     return { rows: [] };
   };
+  let clinicQuote = { id: 'clinic-test', name: 'Fixture Clinic', price: 239, source: 'Clinic · City', regionId: orlando.id, partnerIds: ['partner'] };
   const checkout = load('src/lib/appointmentBooking.ts', {
+    '@/lib/clinicBooking': { clinicBookingContext: async () => clinicQuote },
     '@/lib/db': { getDbPool: () => ({ query, connect: async () => ({ query, release() {} }) }) },
     '@/lib/bookingEngineSchema': { ensureBookingEngineSchema: async () => {} },
     '@/lib/serviceBookingAvailability': { loadBookingAvailability: async () => ({ calendar: { serviceName: 'Test IV', currency: 'USD' }, geography: { stateName: 'Florida', countyName: 'Orange County', placeName: 'Orlando city', stateFips: '12', countyFips: '095', countyGeoid: '12095', placeGeoid: '1253000', source: 'census_coordinates' }, coverageAvailable: true, slots: [{ startsAt, partners: [{ id: 'partner' }] }] }) },
@@ -231,6 +233,38 @@ function cacheHarness() {
   assert.equal(charged, 0, 'Stale quotes must never start a charge');
   assert(calls.some(call => call.sql === 'rollback'));
   assert(!calls.some(call => call.sql.includes('insert into app.appointments (')));
+
+  // Clinic-specific price wins over the independent partner's override.
+  calls.length = 0; charged = 0;
+  facts = { ...facts, price_override: '180' };
+  const clinicInput = { ...input, clinicId: clinicQuote.id, expectedPrice: 239 };
+  await checkout.createAppointmentCheckout(clinicInput);
+  assert.equal(charged, 9560, 'Clinic deposit uses 40% of the clinic address quote');
+  assert.equal(calls.find(call => call.sql.includes('insert into app.appointments (')).args[27], 239);
+  const clinicMetadata = JSON.parse(calls.find(call => call.sql.includes('metadata = metadata') && call.sql.includes('update app.appointments')).args[1]);
+  assert.equal(clinicMetadata.clinic.balanceCollector, 'clinic');
+  assert.equal(clinicMetadata.clinic.id, clinicQuote.id);
+  assert(calls.some(call => call.sql.includes('set clinic_id=$2')));
+  calls.length = 0; charged = 0;
+  clinicQuote = { ...clinicQuote, price: 249 };
+  await assert.rejects(() => checkout.createAppointmentCheckout(clinicInput), /price has changed/);
+  assert.equal(charged, 0);
+  assert(!calls.some(call => call.sql.includes('insert into app.appointments (')));
+  clinicQuote = { ...clinicQuote, price: 239, partnerIds: [] };
+  await assert.rejects(() => checkout.createAppointmentCheckout(clinicInput), /no longer available/);
+  assert.equal(charged, 0, 'Removed clinic membership cannot start payment');
+  clinicQuote = { ...clinicQuote, partnerIds: ['partner'] };
+  await assert.rejects(() => checkout.createAppointmentCheckout({ ...clinicInput, expectedPrice: undefined }), /Review the clinic price/);
+  const { appointmentCommunicationRoles } = load('src/lib/appointmentCommunicationRoles.ts');
+  const roleFields = appointmentCommunicationRoles({clinicId:'clinic-test',clinicName:'Fixture',platformFunded:false,balance:143.4});
+  assert.equal(roleFields.professionalRecipientRole,'clinic_nurse');
+  assert.equal(roleFields.collectionResponsibleRole,'clinic');
+  assert.equal(roleFields.nurseEarningsAmount,null);
+  assert.equal(roleFields.clinicBalanceAmount,143.4);
+  assert.equal(roleFields.clinicCollectionStatus,'not_verified');
+  const rewardFields = appointmentCommunicationRoles({clinicId:'clinic-test',platformFunded:true,balance:0});
+  assert.equal(rewardFields.collectionResponsibleRole,'my_drip_nurse');
+  assert.equal(rewardFields.clinicBalanceAmount,0);
 
   console.log('Regional pricing: hierarchy, address normalization, partner override, zero price, PR/LA, host safety, Sheet filters, failed sync preservation, validation and cache checks passed. No network, payments or production writes.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

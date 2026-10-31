@@ -1,3 +1,4 @@
+import { clinicBookingContext } from "@/lib/clinicBooking";
 import { readRegionalPrices, resolveRegionalPrice } from "@/lib/regionalPricing";
 import { randomBytes } from "node:crypto";
 
@@ -98,6 +99,7 @@ export async function createAppointmentCheckout(opts: {
   startsAt: string;
   timezone: string;
   requestedPartnerId?: string;
+  clinicId?: string;
   expectedPrice?: number;
   customer: BookingCustomerInput;
   address: BookingAddressInput;
@@ -131,6 +133,7 @@ export async function createAppointmentCheckout(opts: {
     date: opts.date,
     coverage: opts.address,
     requestedPartnerId: opts.requestedPartnerId,
+    clinicId: opts.clinicId,
   });
   if (!availability) throw new Error("Calendar not found or not active.");
   if (!availability.coverageAvailable) {
@@ -173,6 +176,8 @@ export async function createAppointmentCheckout(opts: {
   const attributionJourney = await attributionSessionSummary(opts.attribution?.sessionId || "").catch(() => null);
   try {
     await client.query("begin");
+    const clinic = opts.clinicId ? await clinicBookingContext(opts.clinicId, opts.publicKey, {state:availability.geography.stateName,county:availability.geography.countyName,city:availability.geography.placeName}, client) : null;
+    if (clinic && opts.expectedPrice === undefined) throw new Error("Review the clinic price before continuing to payment.");
     const email = opts.customer.email.toLowerCase();
     const phone = normalizedPhone(opts.customer.phone);
     const existingCustomer = await client.query<{ id: string }>(
@@ -227,8 +232,11 @@ export async function createAppointmentCheckout(opts: {
         genderIdentity: opts.customer.genderIdentity || "",
       })],
     );
-    const partnerIds = slot.partners.map((partner) => partner.id);
+    const partnerIds = slot.partners.map((partner) => partner.id).filter(id => !clinic || clinic.partnerIds.includes(id));
     if (!partnerIds.length) throw new Error("That appointment time is no longer available.");
+    // One nurse identity across services and clinics. Lock in stable order so
+    // concurrent checkouts cannot both observe the same nurse as available.
+    await client.query(`select id from app.partner_profiles where id=any($1::uuid[]) order by id for update`, [partnerIds]);
 
     // Serialize every automatic assignment for this calendar. The lock keeps
     // simultaneous bookings from reading the same load and repeatedly choosing
@@ -297,7 +305,7 @@ export async function createAppointmentCheckout(opts: {
       );
       const candidateFacts = bookingFacts.rows[0];
       if (!candidateFacts) continue;
-      const candidatePrice = resolveRegionalPrice(Number(candidateFacts.price), readRegionalPrices(candidateFacts.regional_prices), {
+      const candidatePrice = clinic?.price ?? resolveRegionalPrice(Number(candidateFacts.price), readRegionalPrices(candidateFacts.regional_prices), {
         state: availability.geography.stateName, county: availability.geography.countyName, city: availability.geography.placeName,
       }, candidateFacts.price_override === null ? null : Number(candidateFacts.price_override)).price;
       if (opts.expectedPrice !== undefined && Math.round(opts.expectedPrice * 100) !== Math.round(candidatePrice * 100)) continue;
@@ -328,7 +336,7 @@ export async function createAppointmentCheckout(opts: {
       ? opts.directoryAttribution
       : undefined;
     const endsAt = new Date(startsAt.getTime() + facts.duration_minutes * 60_000);
-    const pricing = resolveRegionalPrice(Number(facts.price), readRegionalPrices(facts.regional_prices), {
+    const pricing = clinic ?? resolveRegionalPrice(Number(facts.price), readRegionalPrices(facts.regional_prices), {
       state: availability.geography.stateName,
       county: availability.geography.countyName,
       city: availability.geography.placeName,
@@ -390,12 +398,14 @@ export async function createAppointmentCheckout(opts: {
     );
     appointmentId = appointment.rows[0]?.id || "";
     if (!appointmentId) throw new Error("The appointment could not be reserved.");
+    if (clinic) await client.query(`update app.appointments set clinic_id=$2 where id=$1`, [appointmentId, clinic.id]);
     await client.query(
       `update app.appointments
           set metadata = metadata || $2::jsonb,
               updated_at = now()
         where id = $1`,
       [appointmentId, JSON.stringify({
+        ...(clinic ? {clinic:{id:clinic.id,name:clinic.name,balanceCollector:"clinic",priceSource:clinic.source}} : {}),
         primary_patient: {
           firstName: text(opts.customer.firstName) || text(opts.customer.fullName).split(/\s+/)[0] || "",
           lastName: text(opts.customer.lastName) || text(opts.customer.fullName).split(/\s+/).slice(1).join(" "),

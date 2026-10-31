@@ -1,3 +1,4 @@
+import { clinicsEnabled } from "@/lib/clinicAuth";
 import type { Metadata } from "next";
 
 import MarketingHeaderEmbed from "@/components/marketing/MarketingHeaderEmbed";
@@ -187,6 +188,7 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
           nativeNavigation
         />
 
+        {clinicsEnabled() ? <nav style={{padding:"16px 24px",textAlign:"right"}}><a href="/clinics">Find a clinic →</a></nav> : null}
         <PartnerDirectoryClient partners={partners} preview={preview} />
       </main>
     </PartnerExperience>

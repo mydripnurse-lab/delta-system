@@ -1,3 +1,4 @@
+import { appointmentCommunicationRoles } from "@/lib/appointmentCommunicationRoles";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { getDbPool } from "@/lib/db";
 import { ghlRoutingFieldsForEvent, ghlRoutingFieldsForPayload } from "@/lib/ghlRoutingEnvelope";
@@ -284,17 +285,21 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     ? firstText(clientReward.platformFundingStatus, "owed_after_completion")
     : "not_applicable";
   const earningsCurrency = row.payment_currency || row.currency;
-  const earningsDisplay = `${currency(estimatedEarnings, earningsCurrency)} + voluntary tips`;
+  const clinic = record(metadata.clinic);
+  const clinicCollects = clinic.balanceCollector === "clinic" && !platformFunded;
+  const earningsDisplay = clinicCollects ? `Clinic balance: ${currency(clientAmountDueAtVisit, earningsCurrency)} + voluntary tips` : `${currency(estimatedEarnings, earningsCurrency)} + voluntary tips`;
   const collectionInstructions = event === "appointment_declined" || event === "appointment_refunded"
     ? "This notice is not a request to collect payment or confirmation of a partner payout. Review the appointment status in your Partner Portal."
     : platformFunded
     ? `My Drip Nurse-funded reward: collect $0 from the patient for the covered service. My Drip Nurse pays ${currency(platformFundedPartnerAmount, earningsCurrency)} after completion.`
+    : clinicCollects ? `${text(clinic.name) || "The clinic"} collects ${currency(clientAmountDueAtVisit, earningsCurrency)} and voluntary tips directly from the client. This is the clinic balance, not a nurse payout. Follow your clinic’s collection instructions.`
     : `Collect ${currency(clientAmountDueAtVisit, earningsCurrency)} directly from the client after the booking deposit, plus any voluntary tip. My Drip Nurse does not collect or pay out this balance.`;
   const appointmentDateTimeFormatted = appointmentTime(row.starts_at, row.timezone);
   const appointmentOfferUrl = `https://partners.mydripnurse.com/partner-portal/appointments?appointment=${encodeURIComponent(row.id)}&offer=1`;
   const actionRequired = event === "new_booking" || event === "partner_confirmation_required" || event === "appointment_reassigned";
   const collectionSms = platformFunded
     ? "MDN-funded reward: collect $0 for the covered service."
+    : clinicCollects ? `Your clinic collects the remaining ${currency(clientAmountDueAtVisit, earningsCurrency)} and voluntary tips. Follow its collection instructions.`
     : `Collect ${currency(clientAmountDueAtVisit, earningsCurrency)} directly from the client; tips are voluntary.`;
   const smsMessage = actionRequired
     ? `My Drip Nurse: Hi ${partner?.firstName || "Partner"}, a new appointment is available. ${collectionSms} ${row.service_name} · ${appointmentDateTimeFormatted}. Review and accept or decline: ${appointmentOfferUrl}`
@@ -435,6 +440,9 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     actionUrl: appointmentOfferUrl,
     smsMessage,
     collectionInstructions,
+    clinic: Object.keys(clinic).length ? clinic : null,
+    balanceCollector: clinicCollects ? "clinic" : "professional",
+    ...appointmentCommunicationRoles({ clinicId: clinic.id, clinicName: clinic.name, platformFunded, balance: clientAmountDueAtVisit }),
     offer: {
       type: "appointment_offer",
       actionRequired,

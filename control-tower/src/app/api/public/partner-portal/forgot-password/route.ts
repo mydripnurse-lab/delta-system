@@ -1,3 +1,5 @@
+import { clinicsEnabled } from "@/lib/clinicFeature";
+import { consumeClinicRequestBudget } from "@/lib/clinicRequestBudget";
 import { NextResponse } from "next/server";
 
 import { issueAccountPasswordResetToken, isTrustedAccountPasswordRequest } from "@/lib/accountPasswordReset";
@@ -16,6 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Password email delivery is temporarily unavailable." }, { status: 503 });
   }
 
+  if(clinicsEnabled() && !consumeClinicRequestBudget(request,"clinic-password-reset",5,3_600_000)) return NextResponse.json({ok:true,message:GENERIC_MESSAGE});
   const body = (await request.json().catch(() => null)) as { email?: string } | null;
   const email = String(body?.email || "").trim().toLowerCase();
   if (!email || !email.includes("@")) {
@@ -36,7 +39,11 @@ export async function POST(request: Request) {
       limit 1`,
     [email],
   );
-  const profile = result.rows[0] || null;
+  let profile = result.rows[0] || null;
+  if(!profile && clinicsEnabled()) {
+    const clinic = await getDbPool().query<{id:string;email:string;display_name:string}>("select id,email,full_name as display_name from app.clinic_accounts where email=$1 and is_active limit 1",[email]);
+    profile=clinic.rows[0]||null;
+  }
   if (profile) {
     try {
       const token = await issueAccountPasswordResetToken("partner", profile.id);

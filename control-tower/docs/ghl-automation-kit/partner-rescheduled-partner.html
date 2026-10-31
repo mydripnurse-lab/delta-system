@@ -61,7 +61,7 @@
                 </tr>
               </table>
               <p style="font-size:15px;line-height:1.7;color:#526d73;margin-top:24px">
-                <strong>Service balance after the booking deposit</strong><br>{{inboundWebhookRequest.earningsDisplay}}</p><p style="font-size:13px;line-height:1.7;color:#526d73">For standard bookings, you collect the remaining service balance directly from the client after the booking deposit, plus any voluntary tip. My Drip Nurse does not collect or pay out this balance. For a My Drip Nurse-funded reward visit, collect $0 from the patient for the covered service and follow the funding instructions in your Partner Portal.</p>
+                <strong>Service balance after the booking deposit</strong><br>{{inboundWebhookRequest.earningsDisplay}}</p><p style="font-size:13px;line-height:1.7;color:#526d73">{{inboundWebhookRequest.collectionInstructions}}</p>
             </td>
           </tr>
           <tr>

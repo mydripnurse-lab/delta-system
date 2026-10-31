@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { clinicsEnabled,getClinicIdentity } from "@/lib/clinicAuth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -30,6 +31,7 @@ export default async function PartnerLoginPage({
     redirect("https://partners.mydripnurse.com/partner-login");
   }
   const session = await getPartnerPortalSession();
+  if (!session && clinicsEnabled() && await getClinicIdentity()) redirect("/portal/clinics");
   if (session) redirect(returnTo || (process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/portal" : "/partner-portal"));
   return (
     <PartnerExperience>
@@ -43,6 +45,7 @@ export default async function PartnerLoginPage({
             <Link href={applicationHref} className={applicationMode ? styles.authTabActive : ""} aria-current={applicationMode ? "page" : undefined}>
               Become a Partner
             </Link>
+            {clinicsEnabled() ? <Link href="/clinics/register">Register your clinic</Link> : null}
           </nav>
 
           {applicationMode ? (

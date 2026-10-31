@@ -5,8 +5,8 @@ import { RegionalLocationPicker } from "./RegionalLocationPicker";
 import styles from "./serviceCatalog.module.css";
 
 type Snapshot = { syncedAt: string; regions: PricingRegion[]; warnings: string[] };
-export function RegionalPricingEditor({ active, rules, basePrice, currency, onChange }: {
-  active: boolean; rules: RegionalPrice[]; basePrice: number; currency: string; onChange: (rules: RegionalPrice[]) => void;
+export function RegionalPricingEditor({ active, rules, basePrice, currency, onChange, clinicMode = false }: {
+  clinicMode?: boolean; active: boolean; rules: RegionalPrice[]; basePrice: number; currency: string; onChange: (rules: RegionalPrice[]) => void;
 }) {
   const [snapshot, setSnapshot] = useState<Snapshot>({ syncedAt: "", regions: [], warnings: [] });
   const [loading, setLoading] = useState(false);
@@ -77,7 +77,7 @@ export function RegionalPricingEditor({ active, rules, basePrice, currency, onCh
   return <div className={styles.regionalPricing}>
     <div className={styles.regionalHeading}><div><span className={styles.eyebrow}>Location exceptions</span><h3>Regional pricing</h3><p>One default price. A different price only where you choose.</p></div><button type="button" className={styles.secondaryButton} disabled={loading} onClick={() => void load(true)}>{loading ? "Loading locations…" : "Sync locations"}</button></div>
     <div className={styles.pricingHierarchy}><span>City / municipality</span><span aria-hidden="true">→</span><span>County / parish</span><span aria-hidden="true">→</span><span>State / territory</span><span aria-hidden="true">→</span><strong>Default</strong></div>
-    <p className={styles.helperText}>An existing professional-specific price takes priority at booking. Tips are separate and collected by the professional.</p>
+    <p className={styles.helperText}>{clinicMode ? "Clinic prices apply only to clinic bookings. The clinic collects the remaining balance and voluntary tips." : "An existing professional-specific price takes priority at booking. Tips are separate and collected by the professional."}</p>
     {error ? <p role="alert" className={styles.regionalError}>{error} <button type="button" className={styles.backButton} onClick={() => void load()}>Retry</button></p> : null}
     {!snapshot.syncedAt ? <div className={styles.regionEmpty}><strong>Connect your active locations</strong><p>Sync the project’s location catalog with its configured Google Sheet to enable regional prices. Your default price continues to apply.</p></div> : <p className={styles.helperText}>{snapshot.regions.filter(region => region.active !== false).length.toLocaleString()} active locations · Last synced {new Date(snapshot.syncedAt).toLocaleString("en-US")}.</p>}
     {snapshot.warnings.map(warning => <p className={styles.helperText} key={warning}>{warning}</p>)}

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ClinicPriceEditor } from "@/components/clinics/ClinicPriceEditor";
 import { RegionalPricingEditor } from "./RegionalPricingEditor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -85,7 +86,7 @@ function previewableImage(url: string) {
   return /^https:\/\/(?:assets\.cdn\.filesafe\.space|storage\.googleapis\.com)\//i.test(url);
 }
 
-export function PartnerServiceCatalogClient() {
+export function PartnerServiceCatalogClient({clinicsEnabled=false}:{clinicsEnabled?:boolean}={}) {
   const [services, setServices] = useState<AdminService[]>([]);
   const [section, setSection] = useState<Section>("Details");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -292,6 +293,7 @@ export function PartnerServiceCatalogClient() {
                         <label className={styles.formField}><span>{draft.depositType === "percentage" ? "Deposit percentage" : "Deposit amount"}</span><input className={styles.numberInput} type="number" min="0" max={draft.depositType === "percentage" ? 100 : undefined} step={draft.depositType === "percentage" ? 1 : 0.01} value={draft.depositValue} onChange={(event) => update("depositValue", Number(event.target.value))} /></label>
                       </div>
                       <RegionalPricingEditor key={draft.id || "new-service"} active={section === "Pricing"} rules={draft.regionalPrices || []} basePrice={draft.price} currency={draft.currency} onChange={rules => update("regionalPrices", rules)} />
+                      {clinicsEnabled && draft.id ? <ClinicPriceEditor key={draft.id} serviceId={draft.id} basePrice={draft.price} general={draft.regionalPrices || []} currency={draft.currency} /> : null}
                     </section>
 
                     <section hidden={section !== "Booking"} className={styles.bulkForm}>

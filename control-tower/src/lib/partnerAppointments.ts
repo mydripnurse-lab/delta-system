@@ -1,3 +1,4 @@
+import { clinicReassignmentPartners } from "@/lib/clinicBooking";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { getDbPool } from "@/lib/db";
 import { sendPartnerAppointmentNotification, type NotificationEvent } from "@/lib/partnerAppointmentNotifications";
@@ -31,6 +32,8 @@ export type PartnerPortalAppointment = {
   postalCode: string;
   amountDueAtVisit: number;
   partnerEarnings: number;
+  clinicCollects?: boolean;
+  clinicName?: string;
   platformFundedReward: boolean;
   platformFundedAmount: number;
   currency: string;
@@ -74,7 +77,7 @@ export async function listPartnerPortalAppointments(profileId: string): Promise<
     full_name: string;
     email: string;
     phone: string;
-    metadata: { primary_patient?: { dateOfBirth?: string; weight?: string; height?: string }; additional_patients?: Array<{ fullName?: string; email?: string; phone?: string; dateOfBirth?: string }> } | null;
+    metadata: { clinic?: {name?:string;balanceCollector?:string}; primary_patient?: { dateOfBirth?: string; weight?: string; height?: string }; additional_patients?: Array<{ fullName?: string; email?: string; phone?: string; dateOfBirth?: string }> } | null;
     address_line_1: string;
     address_line_2: string;
     county: string;
@@ -150,7 +153,9 @@ export async function listPartnerPortalAppointments(profileId: string): Promise<
     state: row.state,
     postalCode: row.postal_code,
     amountDueAtVisit: Number(row.amount_due_at_visit || 0),
-    partnerEarnings: Number(row.partner_earnings || 0),
+    partnerEarnings: row.metadata?.clinic?.balanceCollector === 'clinic' && !row.platform_funded_reward ? 0 : Number(row.partner_earnings || 0),
+    clinicCollects: row.metadata?.clinic?.balanceCollector === 'clinic' && !row.platform_funded_reward,
+    clinicName: row.metadata?.clinic?.name || '',
     platformFundedReward: row.platform_funded_reward,
     platformFundedAmount: Number(row.platform_funded_amount || 0),
     currency: row.currency,
@@ -312,7 +317,7 @@ export async function getPartnerPortalDashboard(profileId: string): Promise<Part
             and declined.actor_type = 'partner' and declined.actor_id = $1
             and declined.event_type = 'partner_declined'
        ))::text as declined_count,
-       coalesce(sum(greatest(appointment.service_price - appointment.deposit_amount, 0)) filter (where appointment.status = 'completed'), 0)::text as completed_revenue,
+       coalesce(sum(greatest(appointment.service_price - appointment.deposit_amount, 0)) filter (where appointment.status = 'completed' and (coalesce(appointment.metadata #>> '{clinic,balanceCollector}', '') <> 'clinic' or coalesce((appointment.metadata #>> '{client_reward,platformFunded}')::boolean,false))), 0)::text as completed_revenue,
        max(appointment.currency) as currency
        from app.appointments appointment
       where appointment.partner_profile_id = $1::uuid
@@ -479,11 +484,12 @@ export async function declinePartnerAppointment(opts: {
     await client.query("begin");
     const locked = await client.query<{
       id: string; organization_id: string; service_id: string; partner_profile_id: string;
-      state: string; county: string; city: string; starts_at: string; ends_at: string;
+      state: string; county: string; city: string; starts_at: string; ends_at: string; clinic_id: string | null;
       payment_intent_id: string | null; payment_amount: string | null; payment_currency: string | null; payment_status: string | null;
     }>(
       `select appointment.id, appointment.organization_id, appointment.service_id, appointment.partner_profile_id,
               appointment.state, appointment.county, appointment.city,
+              to_jsonb(appointment)->>'clinic_id' as clinic_id,
               appointment.starts_at, appointment.ends_at,
               payment.payment_intent_id, payment.amount::text as payment_amount,
               payment.currency as payment_currency, payment.status as payment_status
@@ -497,15 +503,19 @@ export async function declinePartnerAppointment(opts: {
     );
     const appointment = locked.rows[0];
     if (!appointment) throw new Error("This appointment is no longer available to accept or decline.");
+    const clinic = appointment.clinic_id ? {partnerIds:await clinicReassignmentPartners(appointment.clinic_id, appointment.service_id, {state:appointment.state,county:appointment.county,city:appointment.city}, client)} : null;
+    // Share the booking lock across calendars and clinic memberships before checking conflicts.
+    await client.query(`select p.id from app.partner_profiles p join app.partner_service_assignments a on a.partner_profile_id=p.id where a.service_id=$1 and a.status='active' order by p.id for update of p`, [appointment.service_id]);
     const alternative = await client.query<{ id: string; display_name: string }>(
       `select distinct partner.id, partner.display_name, assignment.priority_weight
          from app.partner_service_assignments assignment
          join app.partner_profiles partner on partner.id = assignment.partner_profile_id
-         join app.partner_coverage_areas area on area.assignment_id = assignment.id and area.status = 'active'
+         left join app.partner_coverage_areas area on area.assignment_id = assignment.id and area.status = 'active'
         where assignment.service_id = $1
           and assignment.status = 'active'
           and assignment.partner_profile_id <> $2::uuid
-          and partner.website_status in ('ready', 'published')
+          ${clinic ? `and partner.id=any($9::uuid[])` : `and coalesce(to_jsonb(partner)->>'clinic_managed','false') <> 'true'`}
+          ${clinic ? '' : `and partner.website_status in ('ready', 'published')`}
           and not exists (
             select 1 from app.appointment_events declined
              where declined.appointment_id = $8::uuid and declined.event_type = 'partner_declined'
@@ -534,9 +544,9 @@ export async function declinePartnerAppointment(opts: {
                and (x.service_id is null or x.service_id = $1::uuid)
                and x.starts_at < $7::timestamptz and x.ends_at > $6::timestamptz
           )
-          and lower(trim(regexp_replace(area.state, '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace($3, '[^a-zA-Z0-9]+', ' ', 'g')))
+          ${clinic ? 'and $3::text is not null and $4::text is not null and $5::text is not null' : `and lower(trim(regexp_replace(area.state, '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace($3, '[^a-zA-Z0-9]+', ' ', 'g')))
           and lower(trim(regexp_replace(regexp_replace(area.county, '\\m(county|parish|borough|municipality|census area)\\M', '', 'gi'), '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace(regexp_replace($4, '\\m(county|parish|borough|municipality|census area)\\M', '', 'gi'), '[^a-zA-Z0-9]+', ' ', 'g')))
-          and (nullif(trim(area.city), '') is null or lower(trim(regexp_replace(area.city, '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace($5, '[^a-zA-Z0-9]+', ' ', 'g'))))
+          and (nullif(trim(area.city), '') is null or lower(trim(regexp_replace(area.city, '[^a-zA-Z0-9]+', ' ', 'g'))) = lower(trim(regexp_replace($5, '[^a-zA-Z0-9]+', ' ', 'g'))))`}
           and not exists (
             select 1
               from app.appointments booked
@@ -548,7 +558,7 @@ export async function declinePartnerAppointment(opts: {
           )
         order by assignment.priority_weight desc, partner.id
         limit 1`,
-      [appointment.service_id, opts.profileId, appointment.state, appointment.county, appointment.city, appointment.starts_at, appointment.ends_at, opts.appointmentId],
+      [appointment.service_id, opts.profileId, appointment.state, appointment.county, appointment.city, appointment.starts_at, appointment.ends_at, opts.appointmentId, ...(clinic ? [clinic.partnerIds] : [])],
     );
     replacement = alternative.rows[0] ? { id: alternative.rows[0].id, name: alternative.rows[0].display_name } : null;
     replacementFound = Boolean(replacement);

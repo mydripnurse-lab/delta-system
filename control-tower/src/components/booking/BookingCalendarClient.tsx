@@ -411,7 +411,7 @@ function PhoneField({
   );
 }
 
-export function BookingCalendarClient({ publicKey, partnerId = "", partnerView = false, embedMode = false, initialProfile, onMacroStepChange, serviceName = "", serviceImageUrl = "", serviceImageAlt = "" }: { publicKey: string; partnerId?: string; partnerView?: boolean; embedMode?: boolean; initialProfile?: BookingInitialProfile; onMacroStepChange?: (step: 2 | 3) => void; serviceName?: string; serviceImageUrl?: string; serviceImageAlt?: string }) {
+export function BookingCalendarClient({ publicKey, partnerId = "", partnerView = false, embedMode = false, initialProfile, onMacroStepChange, serviceName = "", serviceImageUrl = "", serviceImageAlt = "", clinicId = "" }: { clinicId?: string; publicKey: string; partnerId?: string; partnerView?: boolean; embedMode?: boolean; initialProfile?: BookingInitialProfile; onMacroStepChange?: (step: 2 | 3) => void; serviceName?: string; serviceImageUrl?: string; serviceImageAlt?: string }) {
   const initialPhone = initialProfile?.phone || "";
   const initialPhoneCountry = getPhoneCountry(initialPhone);
   const [contact, setContact] = useState<Contact>(() => ({
@@ -875,6 +875,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
         medicalScreening: "clear",
       });
       if (partnerId) query.set("partnerId", partnerId);
+      if (clinicId) query.set("clinicId", clinicId);
       const response = await fetch(`/api/public/booking/calendars/${encodeURIComponent(publicKey)}/availability?${query}`, { cache: "no-store" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Availability could not be loaded.");
@@ -896,7 +897,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
       setGeocoding(false);
       setLoading(false);
     }
-  }, [address, canSearch, captureLead, date, geocodeAddress, partnerId, publicKey, saveAddressToCareProfile, screeningIsClear, sourceContext]);
+  }, [address, canSearch, captureLead, clinicId, date, geocodeAddress, partnerId, publicKey, saveAddressToCareProfile, screeningIsClear, sourceContext]);
 
   useEffect(() => {
     if (!selectedSlot || !sourceContext.sessionId) return;
@@ -974,6 +975,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           date,
           startsAt: selectedSlot.startsAt,
           expectedPrice: quotedPrice,
+          clinicId: clinicId || undefined,
           timezone: selectedSlot.timezone,
           assignmentStrategy: partnerView ? "requested" : "balanced",
           requestedPartnerId: partnerView ? partnerId || undefined : undefined,
@@ -1031,7 +1033,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     } finally {
       setSubmitting(false);
     }
-  }, [quotedPrice, additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, partnerView, publicKey, screeningIsClear, screeningSelected, selectedSlot, sourceContext]);
+  }, [clinicId, quotedPrice, additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, partnerView, publicKey, screeningIsClear, screeningSelected, selectedSlot, sourceContext]);
 
   const submitDemand = useCallback(async () => {
     if (!contactIsComplete) {
@@ -1388,7 +1390,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
               <div className={styles.depositNote}><strong>Service total</strong><span>{money(quotedPrice, availability?.calendar.currency || "USD")}</span></div>
               <small className={styles.security}>Price for the verified service address in {[availability?.geography.placeName, availability?.geography.countyName, availability?.geography.stateName].filter(Boolean).join(", ")}. {quotedPrice !== availability?.calendar.price ? "A professional-specific price applies." : ""}</small>
               <div className={styles.depositNote}><strong>Appointment deposit</strong><span>{money(quotedDeposit, availability?.calendar.currency || "USD")}</span></div>
-              <div className={styles.depositNote}><strong>Pay your professional at the visit</strong><span>{money(Math.max(0, quotedPrice - quotedDeposit), availability?.calendar.currency || "USD")} + optional tip</span></div>
+              <div className={styles.depositNote}><strong>{clinicId ? "Pay the clinic at the visit" : "Pay your professional at the visit"}</strong><span>{money(Math.max(0, quotedPrice - quotedDeposit), availability?.calendar.currency || "USD")} + optional tip</span></div>
               <button className={styles.primaryButton} type="button" disabled={submitting} onClick={() => void submit()}>{submitting ? "Reserving your appointment…" : "Continue to secure payment"}</button>
               <small className={styles.security}>Your appointment is confirmed only after Stripe verifies the deposit.</small>
             </section>

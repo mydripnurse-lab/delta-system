@@ -1,3 +1,4 @@
+import { clinicBookingContext } from "@/lib/clinicBooking";
 import { readRegionalPrices, resolveRegionalPrice } from "@/lib/regionalPricing";
 import { getDbPool } from "@/lib/db";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
@@ -185,6 +186,7 @@ export async function loadBookingAvailability(opts: {
   date: string;
   coverage: BookingCoverageInput;
   requestedPartnerId?: string;
+  clinicId?: string;
 }): Promise<BookingAvailability | null> {
   await ensureBookingEngineSchema();
   const pool = getDbPool();
@@ -209,6 +211,8 @@ export async function loadBookingAvailability(opts: {
        and payment.status in ('pending', 'processing')
   `);
   const geography = await resolveBookingGeography(opts.coverage);
+  const clinic = opts.clinicId ? await clinicBookingContext(opts.clinicId, opts.publicKey, {state:geography.stateName,county:geography.countyName,city:geography.placeName}) : null;
+  if (clinic && (!Number.isFinite(opts.coverage.latitude) || !Number.isFinite(opts.coverage.longitude))) throw new Error("Verify the service address before booking with a clinic.");
   const states = stateCandidates(geography.stateName);
   const county = normalizeLocation(geography.countyName);
   const result = await pool.query<AvailabilityRow>(
@@ -234,7 +238,7 @@ export async function loadBookingAvailability(opts: {
            on a.service_id = c.service_id and a.status = 'active'
          join app.partner_profiles p
            on p.id = a.partner_profile_id
-        where exists (
+        where ($7::uuid[] is not null or exists (
             select 1
               from app.partner_coverage_areas area
              where area.assignment_id = a.id
@@ -251,6 +255,9 @@ export async function loadBookingAvailability(opts: {
                  )
                )
           )
+          )
+          and ($7::uuid[] is null or a.partner_profile_id = any($7::uuid[]))
+          and ($7::uuid[] is not null or coalesce(to_jsonb(p)->>'clinic_managed','false') <> 'true')
           and ($6::uuid is null or a.partner_profile_id = $6::uuid)
      ), recurring_slots as (
        select e.partner_profile_id, e.partner_slug, e.display_name,
@@ -371,7 +378,7 @@ export async function loadBookingAvailability(opts: {
       group by c.public_key, c.service_slug, c.service_name, c.duration_minutes,
                c.currency, c.price, c.regional_prices, c.deposit_type, c.deposit_value,
                c.minimum_notice_minutes`,
-    [opts.publicKey, opts.date, geography.countyGeoid, states, county, opts.requestedPartnerId || null],
+    [opts.publicKey, opts.date, geography.countyGeoid, states, county, opts.requestedPartnerId || null, clinic?.partnerIds ?? null],
   );
   const row = result.rows[0];
   if (!row) return null;
@@ -381,7 +388,7 @@ export async function loadBookingAvailability(opts: {
     throw new Error("Please verify the complete appointment address to calculate the local price.");
   }
   const pricingLocation = { state: geography.stateName, county: geography.countyName, city: geography.placeName };
-  const regionalPrice = resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation).price;
+  const regionalPrice = clinic?.price ?? resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation).price;
   const grouped = new Map<string, BookingAvailabilitySlot>();
   for (const slot of row.slots || []) {
     const startsAt = new Date(slot.startsAt).toISOString();
@@ -390,7 +397,7 @@ export async function loadBookingAvailability(opts: {
     const current = grouped.get(key) || { startsAt, endsAt, timezone: slot.timezone, partners: [] };
     current.partners.push({
       id: slot.partnerId,
-      price: resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation, slot.priceOverride).price,
+      price: clinic?.price ?? resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation, slot.priceOverride).price,
       slug: slot.partnerSlug,
       displayName: slot.displayName,
       businessName: slot.businessName,
@@ -407,7 +414,7 @@ export async function loadBookingAvailability(opts: {
       durationMinutes: row.duration_minutes,
       currency: row.currency,
       price: regionalPrice,
-      priceSource: resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation).source,
+      priceSource: clinic?.source ?? resolveRegionalPrice(number(row.price), regionalPrices, pricingLocation).source,
       depositType: row.deposit_type,
       depositValue: number(row.deposit_value),
       minimumNoticeMinutes: Math.max(row.minimum_notice_minutes, BOOKING_MINIMUM_NOTICE_MINUTES),

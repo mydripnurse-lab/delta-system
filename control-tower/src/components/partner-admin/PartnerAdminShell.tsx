@@ -26,6 +26,7 @@ type AdminAccess = {
 
 const NAV_ITEMS = [
   { href: "/", labelKey: "nav.applications", icon: "inbox", module: "applications" },
+  { href: "/clinics", labelKey: "nav.clinics", icon: "users", module: "partners", ownerOnly: true },
   { href: "/partners", labelKey: "nav.partners", icon: "users", module: "partners" },
   { href: "/appointments", labelKey: "nav.appointments", icon: "appointments", module: "appointments" },
   { href: "/refunds", labelKey: "nav.refunds", icon: "refunds", module: "refunds" },
@@ -136,6 +137,7 @@ export function PartnerAdminShell({
     || pathname.startsWith("/automations");
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [showClinics,setShowClinics]=useState(false);
   const [access, setAccess] = useState<AdminAccess | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -153,6 +155,7 @@ export function PartnerAdminShell({
         if (active && payload?.user) {
           setUser(payload.user);
           setAccess(payload.access || null);
+          setShowClinics(payload.clinicsEnabled===true);
           setProfileName(payload.user.fullName || "");
           setProfileAvatar(payload.user.avatarUrl || "");
         }
@@ -179,11 +182,12 @@ export function PartnerAdminShell({
 
   const userLabel = useMemo(() => user?.fullName || user?.email?.split("@")[0] || "Administrator", [user]);
   const visibleNavItems = useMemo(() => NAV_ITEMS.filter((item) => {
+    if(item.href==="/clinics" && !showClinics) return false;
     if (!access) return true;
     if (access.isOwner) return true;
     if ("ownerOnly" in item && item.ownerOnly) return false;
     return access.modules.includes(item.module);
-  }), [access]);
+  }), [access,showClinics]);
 
   async function selectAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
