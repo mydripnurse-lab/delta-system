@@ -107,3 +107,14 @@
   .loginTopbar { width: 100%; max-width: 400px; margin: 0 auto; }
 }
 @media (prefers-reduced-motion: reduce) { .loginLayout *, .authTabs a { animation: none; transition: none; } }
+
+.roleSelector { min-width: 0; margin: 0; padding: 0; border: 0; }
+.roleSelector legend { margin-bottom: 10px; padding: 0; color: #526d70; font-size: 12px; font-weight: 600; }
+.roleOptions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 1px solid #dce7e7; border-radius: 12px; background: #f2f7f7; }
+.roleOptions label { position: relative; min-width: 0; cursor: pointer; }
+.roleOptions input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.roleOptions span { display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; color: #526d70; font-size: 13px; font-weight: 600; text-align: center; }
+.roleOptions input:checked + span { background: #075866; color: #fff; box-shadow: 0 2px 5px #083b4014; }
+.roleOptions input:focus-visible + span { outline: 2px solid #1596a5; outline-offset: 3px; }
+.roleSelector:disabled { opacity: .65; }
+.roleSelector:disabled label { cursor: wait; }

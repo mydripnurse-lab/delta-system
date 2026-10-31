@@ -19,20 +19,22 @@ export const metadata = {
 export default async function PartnerLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ returnTo?: string; mode?: string }>;
+  searchParams: Promise<{ returnTo?: string; mode?: string; role?: string }>;
 }) {
-  const { returnTo: requestedReturnTo, mode } = await searchParams;
+  const { returnTo: requestedReturnTo, mode, role: requestedRole } = await searchParams;
   const returnTo = requestedReturnTo === "/" ? "/" : "";
+  const role = clinicsEnabled() && requestedRole === "clinic" ? "clinic" : "nurse";
   const applicationMode = mode === "apply";
   const returnQuery = returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : "";
   const loginHref = `/partner-login?mode=login${returnQuery}`;
   const applicationHref = `/partner-login?mode=apply${returnQuery}`;
   const host = (await headers()).get("host")?.split(":")[0].toLowerCase();
   if (process.env.NODE_ENV === "production" && host !== "partners.mydripnurse.com") {
-    redirect("https://partners.mydripnurse.com/partner-login");
+    redirect(`https://partners.mydripnurse.com/partner-login?mode=${applicationMode ? "apply" : "login"}&role=${role}${returnQuery}`);
   }
   const session = await getPartnerPortalSession();
   if (!session && clinicsEnabled() && await getClinicIdentity()) redirect("/portal/clinics");
+  if (session && role === "clinic") redirect("/portal/clinics");
   if (session) redirect(returnTo || (process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/portal" : "/partner-portal"));
   if (!applicationMode) return (
     <PartnerExperience className={styles.loginExperience}>
@@ -45,7 +47,7 @@ export default async function PartnerLoginPage({
           <div className={styles.brandContent}>
             <span className={styles.brandEyebrow}>THE PARTNER WORKSPACE</span>
             <h2>Your practice.<br />Your people.<br /><em>One place.</em></h2>
-            <p>A dedicated space for the professionals and clinics bringing personalized care closer to home.</p>
+            <p>A dedicated space for the nurses and clinics bringing personalized care closer to home.</p>
             <div className={styles.brandDetails}><span>Appointments</span><span>Availability</span><span>Your team</span></div>
           </div>
           <div className={styles.brandFooter}><span className={styles.brandMark} aria-hidden="true">✦</span> Connected by care. Powered by My Drip Nurse.</div>
@@ -55,11 +57,11 @@ export default async function PartnerLoginPage({
           <div id="sign-in" className={styles.loginContent} tabIndex={-1}>
             <div className={styles.loginSymbol} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg></div>
             <h1 id="sign-in-title">Welcome back.</h1>
-            <p className={styles.loginIntro}>Your next chapter of care starts here.<br />Sign in to your partner or clinic workspace.</p>
-            <PartnerLoginForm returnTo={returnTo} />
+            <p className={styles.loginIntro}>Your next chapter of care starts here.<br />Choose your nurse or clinic workspace.</p>
+            <PartnerLoginForm returnTo={returnTo} clinicsAvailable={clinicsEnabled()} initialRole={role} />
             <div className={styles.joinOptions}>
               <p>New to My Drip Nurse?</p>
-              <Link href={applicationHref}><span>Join as a professional</span><span aria-hidden="true">↗</span></Link>
+              <Link href={applicationHref}><span>Join as a nurse</span><span aria-hidden="true">↗</span></Link>
               {clinicsEnabled() ? <Link href="/clinics/register"><span>Register your clinic</span><span aria-hidden="true">↗</span></Link> : null}
             </div>
           </div>

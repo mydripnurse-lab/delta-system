@@ -4,7 +4,8 @@ import { FormEvent, useRef, useState } from "react";
 
 import styles from "./partnerLogin.module.css";
 
-export function PartnerLoginForm({ returnTo = "" }: { returnTo?: string }) {
+export function PartnerLoginForm({ returnTo = "", clinicsAvailable = false, initialRole = "nurse" }: { returnTo?: string; clinicsAvailable?: boolean; initialRole?: "nurse" | "clinic" }) {
+  const [role, setRole] = useState<"nurse" | "clinic">(clinicsAvailable ? initialRole : "nurse");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +22,7 @@ export function PartnerLoginForm({ returnTo = "" }: { returnTo?: string }) {
       const response = await fetch("/api/public/partner-portal/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.get("email"), password: form.get("password"), returnTo }),
+        body: JSON.stringify({ email: form.get("email"), password: form.get("password"), returnTo, role }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Unable to sign in.");
@@ -35,6 +36,19 @@ export function PartnerLoginForm({ returnTo = "" }: { returnTo?: string }) {
 
   return (
     <form className={styles.form} onSubmit={submit} aria-busy={busy}>
+      {clinicsAvailable ? (
+        <fieldset className={styles.roleSelector} disabled={busy}>
+          <legend>Choose your workspace</legend>
+          <div className={styles.roleOptions}>
+            {(["nurse", "clinic"] as const).map(option => (
+              <label key={option}>
+                <input type="radio" name="workspace" value={option} checked={role === option} onChange={() => { setRole(option); setError(""); }} />
+                <span>Login as {option === "nurse" ? "Nurse" : "Clinic"}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       <div className={styles.field}>
         <label htmlFor="partner-email">Email address</label>
         <input id="partner-email" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" required readOnly={busy} />
@@ -49,7 +63,7 @@ export function PartnerLoginForm({ returnTo = "" }: { returnTo?: string }) {
         </div>
       </div>
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
-      <button className={styles.primary} disabled={busy} type="submit"><span>{busy ? "Signing in…" : "Sign in"}</span>{busy ? <span className={styles.spinner} aria-hidden="true"/> : <span aria-hidden="true">→</span>}</button>
+      <button className={styles.primary} disabled={busy} type="submit"><span>{busy ? "Signing in…" : role === "clinic" ? "Sign in as Clinic" : "Sign in as Nurse"}</span>{busy ? <span className={styles.spinner} aria-hidden="true"/> : <span aria-hidden="true">→</span>}</button>
     </form>
   );
 }
