@@ -43,8 +43,8 @@
 .brandPanel { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 700px; padding: clamp(32px, 4.5vw, 76px); border-radius: 22px; background: #073e47; color: #fff; }
 .brandPanel::before { content: ''; position: absolute; z-index: -1; width: 680px; height: 680px; right: -390px; top: 18%; border: 1px solid #9ce1d52b; border-radius: 50%; box-shadow: 0 0 0 65px #91d5cc07, 0 0 0 66px #9ce1d518, 0 0 0 133px #91d5cc05, 0 0 0 134px #9ce1d510; }
 .brandPanel::after { content: ''; position: absolute; z-index: -2; inset: 0; background: radial-gradient(ellipse at 100% 100%, #148b8255, transparent 65%); }
-.brandLogo { width: fit-content; display: inline-flex; padding: 13px 18px; background: #fff; border-radius: 12px; }
-.brandLogo img { display: block; width: 167px; height: auto; }
+.brandLogo { width: fit-content; display: inline-flex; padding: 0; background: transparent; }
+.brandLogo img { display: block; width: 167px; height: auto; filter: brightness(0) invert(1); }
 .brandContent { padding: 80px 0; max-width: 490px; }
 .brandEyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #a0d5cf; }
 .brandContent h2 { margin: 26px 0; color: #fff; font-family: var(--partner-sans); font-size: clamp(42px, 4.7vw, 72px); line-height: 1.07; font-weight: 500; letter-spacing: -.055em; }
@@ -100,7 +100,7 @@
   .loginLayout { display: flex; flex-direction: column; padding: 0; gap: 0; min-height: 100svh; }
   .brandPanel { min-height: 0; padding: 22px 24px; border-radius: 0; background: #fff; border-bottom: 1px solid #e3ebe8; }
   .brandPanel::before, .brandPanel::after, .brandContent, .brandFooter { display: none; }
-  .brandLogo { padding: 0; border-radius: 0; } .brandLogo img { width: 155px; }
+  .brandLogo { padding: 0; border-radius: 0; } .brandLogo img { width: 155px; filter: none; }
   .loginPanel { flex: 1; padding: 18px 24px 24px; }
   .loginContent { padding: 36px 0; } .loginSymbol { margin-bottom: 20px; }
   .loginFooter { width: 100%; max-width: 400px; margin: 0 auto; font-size: 10px; }
