@@ -35,7 +35,7 @@ type Workspace = {
     }[];
 };
 const tabs = ['Overview', 'Team', 'Appointments', 'Services', 'Coverage', 'Website', 'Affiliates'] as const;
-export function ClinicPortal() {
+export function ClinicPortal({ bookingsEnabled = false }: { bookingsEnabled?: boolean }) {
     const [clinics, setClinics] = useState<(Clinic & {
         role: string;
     })[]>([]), [data, setData] = useState<Workspace | null>(null), [tab, setTab] = useState<typeof tabs[number]>('Overview'), [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [editing, setEditing] = useState<ClinicMember | null>(null), [invitation, setInvitation] = useState(''), [identity, setIdentity] = useState<{
@@ -87,6 +87,7 @@ export function ClinicPortal() {
     const save = () => clinic && action({ action: 'save', ...clinic, coverageIds: clinic.coverage.map(r => r.id) });
     return <main className={styles.shell} style={theme}><header className={styles.head}><div className={styles.identity}>{clinic?.logoUrl ? <Image unoptimized width={120} height={120} className={styles.logo} src={clinic.logoUrl} alt={clinic.name}/> : null}<div><span className={styles.eyebrow}>My Drip Nurse · Clinic partners</span><h1>{clinic?.name || 'Your clinic workspace'}</h1></div></div><div className={styles.actions}>{clinic ? <button className={styles.secondary} onClick={() => { setData(null); setEditing(null); void load(); }}>← All clinics</button> : null}{identity?.partnerId ? <a className={styles.secondary} href="/portal">My practice</a> : null}<Link className={styles.secondary} href="/clinics/register">Register a clinic</Link><button className={styles.secondary} onClick={async () => { const r = await fetch("/api/public/partner-portal/logout", { method: "POST" }); if (r.ok)
         window.location.assign("/login"); }}>Sign out</button></div></header>
+ {!bookingsEnabled ? <p className={styles.notice} role="status">Your clinic workspace is open for setup. Online clinic bookings will open after My Drip Nurse verifies appointment notifications.</p> : null}
  {error ? <p role="alert" className={styles.error}>{error}</p> : null}{notice ? <p role="status" className={styles.notice}>{notice}</p> : null}{busy ? <p role="status">Working…</p> : null}
  {!clinic ? <section className={styles.card}><h2>Your memberships</h2>{clinics.length ? clinics.map(c => <div className={styles.row} key={c.id}><div><strong>{c.name}</strong><p className={styles.muted}>{c.role} · {c.status}</p></div>{c.role === 'nurse' ? <a className={styles.secondary} href="/portal">Open my appointments</a> : <button className={styles.primary} disabled={busy} onClick={() => { setTab('Overview'); void load(c.id); }}>Open clinic →</button>}</div>) : <p className={styles.empty}>No clinics yet. Register your clinic or accept an invitation from its owner.</p>}</section> : <>
  <nav className={styles.tabs} aria-label="Clinic sections">{tabs.filter(t => t !== 'Affiliates' || data.role === 'owner').map(t => <button key={t} aria-pressed={t === tab} onClick={() => { setTab(t); setEditing(null); }}>{t}</button>)}</nav>

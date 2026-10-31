@@ -37,6 +37,7 @@ const region=(level,state,county='',city='')=>({id:pricing.regionId(level,{state
 const fl=region('state','Florida'),orange=region('county','Florida','Orange'),orlando=region('city','Florida','Orange','Orlando'),ca=region('county','California','Orange');
 mocks['@/lib/regionalPricingCatalog']={loadSelectablePricingRegions:async()=>({regions:[fl,orange,orlando,ca],syncedAt:'',warnings:[]})};
 process.env.CLINIC_PARTNERS_ENABLED='true';
+process.env.CLINIC_BOOKINGS_ENABLED='true';
 const policy=load('src/lib/clinicPolicy.ts'),clinics=load('src/lib/clinics.ts'),booking=load('src/lib/clinicBooking.ts');
 async function main(){
  const {consumeClinicRequestBudget}=load('src/lib/clinicRequestBudget.ts');
@@ -121,6 +122,11 @@ async function main(){
  process.env.CLINIC_PARTNERS_ENABLED='false';
  assert.equal(await profiles.getPublicPartnerProfile(nurseRow.profileSlug),null,'Rollout switch also gates clinic-only sites');
  process.env.CLINIC_PARTNERS_ENABLED='true';
+ process.env.CLINIC_BOOKINGS_ENABLED='false';
+ const gatedReads=queryCount;
+ await assert.rejects(()=>booking.clinicBookingContext(id,'fixture-calendar',orlando),/not open yet/);
+ assert.equal(queryCount,gatedReads,'Closed clinic checkout does not query the database');
+ process.env.CLINIC_BOOKINGS_ENABLED='true';
  const quote=await booking.clinicBookingContext(id,'fixture-calendar',orlando);
  assert.equal(quote.price,239);assert.deepEqual(quote.partnerIds,[member.partner_profile_id]);
  assert.equal((await booking.clinicBookingContext(id,'fixture-calendar',orange)).price,229);

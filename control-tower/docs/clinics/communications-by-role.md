@@ -34,6 +34,12 @@ Keep all workflows inside **Portal Notifications**. Naming convention: **MDN | R
 - Use the real service image from `serviceImageUrl`, with centered image layout. Do not use illustrative/sample product images.
 - Rewards funded by MDN retain the existing collect-$0 instructions.
 
+## Portal rollout
+
+`CLINIC_PARTNERS_ENABLED=true` opens registration, clinic administration, the workspace, and partner profile/banner entry points. `CLINIC_BOOKINGS_ENABLED=false` keeps clinic checkout closed at the server and hides clinic booking links until the role workflows above are verified. Independent partner bookings are unchanged.
+
+Migration `049_clinic_affiliates.sql` was applied and verified in production on 2026-10-31 using the individually authorized database connection. No appointments or payments were modified.
+
 ## Activation checklist
 
 1. Open the My Drip Nurse subaccount and inventory the existing published workflows by role.

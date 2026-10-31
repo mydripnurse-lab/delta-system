@@ -2,11 +2,11 @@ import 'server-only';
 import type { PoolClient } from 'pg';
 import { unstable_cache } from 'next/cache';
 import { getDbPool } from '@/lib/db';
-import { requireClinicsEnabled } from '@/lib/clinicFeature';
+import { requireClinicBookingsEnabled } from '@/lib/clinicFeature';
 import { CLINIC_CACHE_TAG, clinicNurseCovers, resolveClinicPrice } from '@/lib/clinicPolicy';
 import { SERVICE_PRICING_TAG, readRegionalPrices, type PricingLocation, type PricingRegion } from '@/lib/regionalPricing';
 export async function clinicBookingContext(clinicId: string, publicKey: string, location: PricingLocation, client?: PoolClient) {
-    requireClinicsEnabled();
+    requireClinicBookingsEnabled();
     const db = client || getDbPool();
     const { rows } = await db.query<{
         id: string;
