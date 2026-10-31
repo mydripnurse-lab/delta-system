@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import type { ClinicPortalBrand } from "@/lib/clinicPortalBrand";
 import { PortalIcon } from "@/components/portal/PortalIcon";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
@@ -21,7 +23,7 @@ import AppointmentOfferMap, { type AppointmentMapRoute } from "./AppointmentOffe
 import PartnerOnboardingTour, { type PartnerTourPhase } from "./PartnerOnboardingTour";
 
 export type PartnerPortalScreen = "overview" | "appointments" | "availability" | "profile" | "website" | "directory" | "services" | "affiliates" | "support" | "rewards" | "products";
-type Props = { initialProfile: PartnerPortalProfile; screen?: PartnerPortalScreen; clinicsAvailable?: boolean };
+type Props = { initialProfile: PartnerPortalProfile; screen?: PartnerPortalScreen; clinicsAvailable?: boolean; clinicBrand?: ClinicPortalBrand | null };
 type AvailabilityDay = { dayOfWeek: number; enabled: boolean; startTime: string; endTime: string };
 type CalendarViewMode = "month" | "week" | "list";
 type BlockRange = { date: string; startTime: string; endTime: string };
@@ -424,7 +426,7 @@ function pushApplicationServerKey(value: string) {
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
-export default function PartnerPortalClient({ initialProfile, screen = "overview", clinicsAvailable = false }: Props) {
+export default function PartnerPortalClient({ initialProfile, screen = "overview", clinicsAvailable = false, clinicBrand = null }: Props) {
   const { locale, t } = usePortalLocale();
   const [profile, setProfile] = useState(initialProfile);
   const [displayName, setDisplayName] = useState(initialProfile.displayName);
@@ -1570,11 +1572,11 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
     : PROFESSIONAL_ROLE_OPTIONS;
 
   return (
-    <PartnerExperience className={styles.experience}>
+    <PartnerExperience branding={clinicBrand || undefined} className={`${styles.experience} ${clinicBrand ? styles.clinicBranded : ""}`}>
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
-          <Link href="/partner-portal" className={styles.brand} aria-label="My Drip Nurse Partner Portal">
-            <span className={styles.brandMark} aria-hidden="true" />
+          <Link href="/partner-portal" className={styles.brand} aria-label={clinicBrand ? `${clinicBrand.name} nurse portal` : "My Drip Nurse Partner Portal"}>
+            {clinicBrand?.logoUrl ? <Image className={styles.clinicLogo} unoptimized src={clinicBrand.logoUrl} alt={clinicBrand.name} width={180} height={60} /> : clinicBrand ? <span className={styles.clinicWordmark}>{clinicBrand.name}</span> : <span className={styles.brandMark} aria-hidden="true" />}
           </Link>
           <nav className={styles.navigation} aria-label="Partner Portal">
             <Link href="/partner-portal" className={screen === "overview" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="home" /></span>{t("nav.overview")}</Link>
@@ -1596,12 +1598,12 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
         </aside>
 
         <main className={styles.main}>
-          {clinicsAvailable ? <PartnerClinicEntry profileId={initialProfile.id} /> : null}
+          {clinicsAvailable && !clinicBrand ? <PartnerClinicEntry profileId={initialProfile.id} /> : null}
           <header className={styles.topbar}>
-            <Link href="/partner-portal" className={styles.mobileTopbarBrand} aria-label="My Drip Nurse Partner Portal">
-              <span className={styles.brandMark} aria-hidden="true" />
+            <Link href="/partner-portal" className={styles.mobileTopbarBrand} aria-label={clinicBrand ? `${clinicBrand.name} nurse portal` : "My Drip Nurse Partner Portal"}>
+              {clinicBrand?.logoUrl ? <Image className={styles.clinicLogo} unoptimized src={clinicBrand.logoUrl} alt={clinicBrand.name} width={180} height={60} /> : clinicBrand ? <span className={styles.clinicWordmark}>{clinicBrand.name}</span> : <span className={styles.brandMark} aria-hidden="true" />}
             </Link>
-            <div><small>{t("partner.workspace")}</small><strong>{profile.businessName || profile.displayName}</strong></div>
+            <div><small>{clinicBrand ? "Nurse workspace" : t("partner.workspace")}</small><strong>{profile.businessName || profile.displayName}</strong></div>
             <div className={styles.topbarActions} ref={topbarActionsRef}>
               <div className={styles.notificationWrap}>
                 <button

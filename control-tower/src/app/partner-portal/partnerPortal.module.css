@@ -1005,3 +1005,25 @@
   .offerActions { grid-template-columns: 78px minmax(0, 1fr); padding-inline: 12px; }
   .offerAcceptButton b { width: 30px; height: 30px; }
 }
+/* Clinic nurses keep the complete partner workspace with inherited visual branding. */
+.clinicBranded .sidebar{background:var(--partner-teal);color:var(--partner-button-ink)}
+.clinicBranded .brand,.clinicBranded .navigation a,.clinicBranded .sidebarHelp strong,.clinicBranded .sidebarHelp a,.clinicBranded .sidebarHelp p{color:var(--partner-button-ink)}
+.clinicBranded .sidebarHelp{border-color:color-mix(in srgb,var(--partner-button-ink) 20%,transparent);background:color-mix(in srgb,var(--partner-button-ink) 6%,transparent)}
+.clinicBranded .navigation a small{color:inherit;background:color-mix(in srgb,var(--partner-button-ink) 12%,transparent)}
+.clinicBranded .navigation a:hover,.clinicBranded .navigation .active{background:var(--partner-ice);color:var(--partner-accent-ink)}
+.clinicLogo{width:auto;max-width:180px;height:auto;max-height:60px;object-fit:contain}
+.clinicWordmark{font-size:17px;font-weight:800;overflow-wrap:anywhere}
+.clinicBranded .account>span,.clinicBranded .installHelpDone,.clinicBranded .directoryCustomRange button,.clinicBranded .mobileDayDetailsHeader>span,.clinicBranded .blockedDaysAdd button,.clinicBranded .blockedDaysSave button,.clinicBranded .offerRouteIcon,.clinicBranded .offerAcceptButton,.clinicBranded .blockDialogConfirm,.clinicBranded .detailAcceptButton,.clinicBranded .formActions button,.clinicBranded .websiteRowActions>a,.clinicBranded .partnerCatalogOffer,.clinicBranded .supportReply button,.clinicBranded .affiliatePartnerIdentity>span,.clinicBranded .mobileDrawerProfile>span,.clinicBranded .mobileMoreSheet nav a.mobileDrawerActive>span{background:var(--partner-teal);color:var(--partner-button-ink);border-color:var(--partner-teal)}
+.clinicBranded .offerAcceptButton small{color:inherit}
+.clinicBranded .calendarViewSwitcher button.calendarViewActive,.clinicBranded .weekCalendarHeader>button.weekDayActive{background:var(--partner-ice);color:var(--partner-accent-ink);border-color:var(--partner-teal);box-shadow:none}
+.clinicBranded .calendarCellSelected{border-color:var(--partner-teal);background:color-mix(in srgb,var(--partner-ice) 20%,white)}
+.clinicBranded .calendarEvent{background:var(--partner-ice);color:var(--partner-accent-ink);border-color:var(--partner-teal)}
+.clinicBranded .mobileMoreSheet nav a.mobileDrawerActive{background:var(--partner-ice);color:var(--partner-accent-ink)}
+.clinicBranded .mobileMoreSheet nav a.mobileDrawerActive b,.clinicBranded .mobileMoreSheet nav a.mobileDrawerActive small{color:inherit}
+.clinicBranded .calendarAppointmentDot{background:var(--partner-teal)}
+.clinicBranded .directoryPromotionCard,.clinicBranded .comingPanel,.clinicBranded .affiliateHero{background:var(--partner-teal);color:var(--partner-button-ink);border-color:var(--partner-teal)}
+.clinicBranded .affiliateHero h2,.clinicBranded .affiliateHero p,.clinicBranded .directoryPromotionCard strong,.clinicBranded .directoryPromotionCard p,.clinicBranded .comingPanel h1,.clinicBranded .comingPanel p{color:inherit}
+.clinicBranded .partnerCatalogMedia{background:color-mix(in srgb,var(--partner-ice) 60%,white)}
+.clinicBranded input[type=checkbox],.clinicBranded input[type=radio]{accent-color:var(--partner-teal)}
+.clinicBranded :focus-visible{outline-color:var(--partner-teal)}
+@media(max-width:700px){.clinicBranded .mobileTopbarBrand{color:#17353a}.clinicLogo{max-width:140px;max-height:40px}}

@@ -1,3 +1,4 @@
+import { getClinicPortalBrand } from "@/lib/clinicPortalBrand";
 import { clinicsEnabled } from "@/lib/clinicAuth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -14,8 +15,8 @@ export async function renderPartnerPortal(screen: PartnerPortalScreen) {
   }
   const session = await getPartnerPortalSession();
   if (!session) redirect(process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/partner-login" : "/partner-login");
-  const profile = await getPartnerProfileForPortal(session.profile_id);
+  const [profile, clinicBrand] = await Promise.all([getPartnerProfileForPortal(session.profile_id), getClinicPortalBrand(session.profile_id)]);
   if (!profile) redirect(process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/partner-login" : "/partner-login");
   const clinicsAvailable = clinicsEnabled();
-  return <PartnerPortalClient initialProfile={profile} screen={screen} clinicsAvailable={clinicsAvailable} />;
+  return <PartnerPortalClient initialProfile={profile} screen={screen} clinicsAvailable={clinicsAvailable} clinicBrand={clinicBrand} />;
 }
