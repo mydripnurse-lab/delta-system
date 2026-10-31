@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getClinicIdentity, requireClinicsEnabled, requireClinicOrigin } from '@/lib/clinicAuth';
 import { registerClinic, listClinics, clinicWorkspace, saveClinic, inviteClinicMember, acceptClinicInvite, updateClinicMember } from '@/lib/clinics';
-import { loadPricingRegions } from '@/lib/regionalPricingCatalog';
+import { loadSelectablePricingRegions } from '@/lib/regionalPricingCatalog';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 const json = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } });
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
         if (id)
             return json({ ok: true, ...await clinicWorkspace(z.string().uuid().parse(id)) });
         if (url.searchParams.get('regions') === '1')
-            return json({ ok: true, ...await loadPricingRegions() });
+            return json({ ok: true, ...await loadSelectablePricingRegions(url.searchParams.get("state") || "") });
         return json({ ok: true, clinics: await listClinics(identity.email), identity });
     }
     catch {

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import {
@@ -14,6 +15,7 @@ export const loadPartnerServicePage = cache(async function loadPartnerServicePag
 ) {
   const profile = await getPartnerProfileForPublicPage(partnerSlug, preview);
   if (!profile) return null;
+  if (profile.clinicManaged && !preview) redirect(`/${profile.slug}/services`);
   const [services, cities] = await Promise.all([
     loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id),
     loadPartnerCities(profile.organizationId, profile.serviceAreas),

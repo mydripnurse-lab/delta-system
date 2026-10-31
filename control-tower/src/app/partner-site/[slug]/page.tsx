@@ -34,7 +34,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) return { title: "Mobile IV care | My Drip Nurse" };
-  const coverageCounties = await loadPartnerCoverageCounties(profile.serviceAreas);
+  const coverageCounties = profile.clinicManaged ? [] : await loadPartnerCoverageCounties(profile.serviceAreas);
   const cities = coverageCounties.flatMap((county) => county.communities);
   const localSummary = cities.slice(0, 4).map((city) => city.name).join(", ");
   return buildPartnerMetadata({
@@ -56,7 +56,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
-  const coverageCounties = await loadPartnerCoverageCounties(profile.serviceAreas);
+  const coverageCounties = profile.clinicManaged ? [] : await loadPartnerCoverageCounties(profile.serviceAreas);
   const reviewData = preview
     ? { summary: { averageRating: 0, reviewCount: 0 }, reviews: [] }
     : await getPublicPartnerReviews(profile.id);
@@ -67,7 +67,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   const featuredCities = cities.slice(0, 4).map((city) => city.name);
   const serviceAreaLabel = featuredCities.length
     ? new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(featuredCities)
-    : "your local area";
+    : profile.clinicManaged ? profile.serviceAreas.map(area => area.city || area.county || area.state).filter(Boolean).join(", ") || "your local area" : "your local area";
   const structuredData = buildPartnerStructuredData(profile, cities);
   const faqItems: PartnerFaqItem[] = [
     {
@@ -123,7 +123,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
         <section className={styles.hero}>
           <div className={styles.shell}>
             <div className={styles.heroCopy}>
-              <span className={styles.eyebrow}>Verified My Drip Nurse care</span>
+              <span className={styles.eyebrow}>{profile.clinicManaged ? "Clinic-authorized care professional" : "Verified My Drip Nurse care"}</span>
               <h1>Personalized IV care with <em>{profile.displayName}</em>.</h1>
               <p>
                 Mobile IV therapy delivered with a thoughtful, patient-first approach throughout {serviceAreaLabel}.

@@ -72,7 +72,7 @@ export default async function PartnerLoginPage({
             <section className={styles.card}>
               <span className={styles.eyebrow}>My Drip Nurse Partner Portal</span>
               <h1>Welcome back.</h1>
-              <p>Use the same email and password included for your LeadConnector account. One credential now opens both systems.</p>
+              <p>Sign in with your My Drip Nurse partner or clinic account to manage your team, availability and appointments.</p>
               <PartnerLoginForm returnTo={returnTo} />
               <div className={styles.notice}>
                 <strong>Not a Partner yet?</strong>

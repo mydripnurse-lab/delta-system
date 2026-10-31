@@ -7,7 +7,7 @@ import { getMyDripNurseOrganizationId } from '@/lib/myDripNurseServiceCatalog';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { getClinicIdentity, hashClinicToken, requireClinicManager, requireClinicsEnabled } from '@/lib/clinicAuth';
 import { CLINIC_CACHE_TAG, type ClinicRole, type ClinicStatus } from '@/lib/clinicPolicy';
-import { loadPricingRegions } from '@/lib/regionalPricingCatalog';
+import { loadSelectablePricingRegions } from '@/lib/regionalPricingCatalog';
 import type { PricingRegion } from '@/lib/regionalPricing';
 export type Clinic = {
     id: string;
@@ -32,12 +32,14 @@ export type ClinicMember = {
     name: string;
     coverage: PricingRegion[];
     acceptedAt: string | null;
+    profileSlug: string | null;
+    publicationReady: boolean;
 };
 const columns = `c.id,c.slug,c.name,c.status,c.description,c.logo_url as "logoUrl",c.primary_color as "primaryColor",c.accent_color as "accentColor",c.contact_email as "contactEmail",c.contact_phone as "contactPhone",c.coverage,c.published`;
 const basic = z.object({ name: z.string().trim().min(2).max(120), slug: z.string().trim().min(3).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).refine(value => !['register', 'invite'].includes(value), 'Choose a different website address.'), contactEmail: z.string().trim().email().max(254), contactPhone: z.string().trim().max(40), description: z.string().trim().max(4000) });
 export const clinicInput = basic.extend({ logoUrl: z.union([z.literal(''), z.string().url().max(2000).refine(v => v.startsWith('https://'))]), primaryColor: z.string().regex(/^#[a-f0-9]{6}$/i), accentColor: z.string().regex(/^#[a-f0-9]{6}$/i), coverageIds: z.array(z.string().max(300)).max(500), published: z.boolean() });
 export async function coverageFromIds(ids: string[]) {
-    const snapshot = await loadPricingRegions();
+    const snapshot = await loadSelectablePricingRegions();
     const index = new Map(snapshot.regions.filter(r => r.active !== false).map(r => [r.id, r]));
     return [...new Set(ids)].map(id => { const region = index.get(id); if (!region)
         throw new Error('Select active locations from the coverage catalog.'); return region; });
@@ -66,7 +68,7 @@ export async function registerClinic(raw: unknown) {
         const { rows } = await client.query<{
             id: string;
         }>(`insert into app.clinics(organization_id,slug,name,contact_email,contact_phone,description) values($1,$2,$3,$4,$5,$6) returning id`, [organization, input.slug, input.name, input.contactEmail, input.contactPhone, input.description]);
-        await client.query(`insert into app.clinic_memberships(clinic_id,email,role,status,accepted_at,authorized_at,authorized_by) values($1,$2,'owner','active',now(),now(),$2)`, [rows[0].id, email]);
+        await client.query(`insert into app.clinic_memberships(clinic_id,email,partner_profile_id,role,status,accepted_at,authorized_at,authorized_by) values($1,$2,$3,'owner','active',now(),now(),$2)`, [rows[0].id, email, identity?.partnerId || null]);
         await client.query(`insert into app.clinic_audit(clinic_id,actor,action) values($1,$2,'clinic_registered')`, [rows[0].id, email]);
         await client.query('commit');
         return rows[0].id;
@@ -87,15 +89,15 @@ export async function listClinics(email?: string, offset = 0) {
     return rows;
 }
 export async function clinicWorkspace(id: string) {
-    await requireClinicManager(id);
+    const actor = await requireClinicManager(id);
     const pool = getDbPool();
     const [clinic, members, appointments, services] = await Promise.all([
         pool.query<Clinic>(`select ${columns} from app.clinics c where c.id=$1`, [id]),
-        pool.query<ClinicMember>(`select m.id,m.email,m.role,m.status,m.partner_profile_id as "partnerId",coalesce(p.display_name,m.email) as name,m.coverage,m.accepted_at::text as "acceptedAt" from app.clinic_memberships m left join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 order by m.created_at desc limit 100`, [id]),
+        pool.query<ClinicMember>(`select m.id,m.email,m.role,m.status,m.partner_profile_id as "partnerId",coalesce(p.display_name,m.email) as name,m.coverage,m.accepted_at::text as "acceptedAt",p.slug as "profileSlug",coalesce(p.profile_consent_at is not null and p.website_status='published' and m.status='active',false) as "publicationReady" from app.clinic_memberships m left join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 order by m.created_at desc limit 100`, [id]),
         pool.query(`select a.id,a.public_reference as reference,a.status,a.starts_at::text as "startsAt",a.service_price::text as price,a.deposit_amount::text as deposit,a.currency,coalesce(customer.full_name,'') as "customerName",coalesce(customer.email,'') as "customerEmail",coalesce(customer.phone,'') as "customerPhone",coalesce(p.display_name,'') as "nurseName",a.metadata->'client_reward'->>'platformFunded' as "platformFunded" from app.appointments a left join app.booking_customers customer on customer.id=a.customer_id left join app.partner_profiles p on p.id=a.partner_profile_id where a.clinic_id=$1 order by a.starts_at desc limit 50`, [id]),
         pool.query(`select s.id,s.name,s.price::text as "defaultPrice",s.currency,p.price::text as "clinicPrice",p.regional_prices as "regionalPrices" from app.clinic_service_prices p join app.services s on s.id=p.service_id where p.clinic_id=$1 and p.enabled and s.is_active order by s.name limit 100`, [id]),
     ]);
-    return { clinic: clinic.rows[0], members: members.rows, appointments: appointments.rows, services: services.rows };
+    return { clinic: clinic.rows[0], role: actor.role, members: members.rows, appointments: appointments.rows, services: services.rows };
 }
 export async function saveClinic(id: string, raw: unknown) {
     const actor = await requireClinicManager(id);
@@ -163,15 +165,17 @@ export async function acceptClinicInvite(raw: unknown) {
                 throw new Error('Contact My Drip Nurse to enable a professional profile on this clinic-owner account.');
             const app = await client.query<{
                 id: string;
-            }>(`insert into app.staff_applications(organization_id,email,status,first_name,last_name,professional_credentials,phone,request_payload) values($1,$2,'clinic_review',$3,$4,$5,$6,'{"source":"clinic_invitation"}') returning id`, [invite.organization_id, email, input.fullName.split(' ')[0], input.fullName.split(' ').slice(1).join(' '), input.credentials, input.phone]);
+            }>(`insert into app.staff_applications(organization_id,email,status,first_name,last_name,professional_credentials,phone,request_payload) values($1,$2,'under_review',$3,$4,$5,$6,'{"source":"clinic_invitation"}') returning id`, [invite.organization_id, email, input.fullName.split(' ')[0], input.fullName.split(' ').slice(1).join(' '), input.credentials, input.phone]);
             const profile = await client.query<{
                 id: string;
-            }>(`insert into app.partner_profiles(organization_id,application_id,ghl_user_id,email,slug,display_name,professional_credentials,website_status,directory_status,portal_password_hash,clinic_managed,profile_consent_at) values($1,$2,'',$3,$4,$5,$6,'hidden','hidden',$7,true,case when $8 then now() else null end) returning id`, [invite.organization_id, app.rows[0].id, email, `nurse-${randomBytes(8).toString('hex')}`, input.fullName, input.credentials, passwordHash, input.publicProfileConsent]);
+            }>(`insert into app.partner_profiles(organization_id,application_id,ghl_user_id,email,slug,display_name,professional_credentials,website_status,directory_status,portal_password_hash,clinic_managed,profile_consent_at) values($1,$2,'',$3,$4,$5,$6,'hidden','hidden',$7,true,case when $8 then now() else null end) returning id`, [invite.organization_id, app.rows[0].id, email, `${input.fullName.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'nurse'}-${randomBytes(4).toString('hex')}`, input.fullName, input.credentials, passwordHash, input.publicProfileConsent]);
             partnerId = profile.rows[0].id;
         }
         else if (!identity) {
             await client.query(`insert into app.clinic_accounts(email,full_name,password_hash) values($1,$2,$3)`, [email, input.fullName, passwordHash]);
         }
+        if (partnerId && input.publicProfileConsent)
+            await client.query('update app.partner_profiles set profile_consent_at=coalesce(profile_consent_at,now()) where id=$1', [partnerId]);
         await client.query(`update app.clinic_memberships set partner_profile_id=$2,status='pending',accepted_at=now(),invite_hash=null,invite_expires_at=null,updated_at=now() where id=$1`, [invite.id, partnerId]);
         await client.query(`insert into app.clinic_audit(clinic_id,actor,action,subject_id) values($1,$2,'invitation_accepted',$3)`, [invite.clinic_id, email, invite.id]);
         await client.query('commit');
@@ -211,6 +215,8 @@ export async function updateClinicMember(clinicId: string, raw: unknown) {
         await client.query(`update app.clinic_memberships set status=$3,coverage=$4::jsonb,authorized_by=$5,authorized_at=now(),updated_at=now() where id=$1 and clinic_id=$2`, [input.id, clinicId, input.status, JSON.stringify(coverage), actor.email]);
         if (input.status === 'active' && member.partner_profile_id)
             await client.query(`insert into app.partner_service_assignments(organization_id,partner_profile_id,service_id,status,activated_at) select c.organization_id,$2,p.service_id,'active',now() from app.clinic_service_prices p join app.clinics c on c.id=p.clinic_id where p.clinic_id=$1 and p.enabled on conflict(partner_profile_id,service_id) do nothing`, [clinicId, member.partner_profile_id]);
+        if (input.status === 'active' && member.role === 'nurse' && member.partner_profile_id)
+            await client.query(`update app.partner_profiles set website_status='published',directory_status='published',updated_at=now() where id=$1 and clinic_managed and profile_consent_at is not null`, [member.partner_profile_id]);
         await client.query(`insert into app.clinic_audit(clinic_id,actor,action,subject_id) values($1,$2,$3,$4)`, [clinicId, actor.email, `member_${input.status}`, input.id]);
         await client.query('commit');
         invalidateClinics();

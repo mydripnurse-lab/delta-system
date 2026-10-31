@@ -1,4 +1,6 @@
 import { cache } from "react";
+import { clinicsEnabled } from '@/lib/clinicFeature';
+import { enrichClinicProfiles } from '@/lib/clinicPublicProfiles';
 
 import { getDbPool } from "@/lib/db";
 import { ensureStaffSchema } from "@/lib/publicStaffProvisioning";
@@ -45,6 +47,8 @@ export type PublicPartnerProfile = {
   websiteStatus: "draft" | "ready" | "published" | "hidden";
   directoryStatus: "published" | "hidden";
   affiliateCode: string;
+  clinicManaged?: boolean;
+  clinics?: { id: string; slug: string; name: string }[];
 };
 
 export const TEMPLATE_PREVIEW_PROFILE: PublicPartnerProfile = {
@@ -124,6 +128,7 @@ type ProfileRow = {
   ghl_photo_sync_status?: PartnerPortalProfile["ghlPhotoSyncStatus"];
   ghl_photo_sync_error?: string | null;
   affiliate_code?: string | null;
+  clinic_managed?: boolean;
   referred_applications?: number | string | null;
   portal_tour_completed_at?: string | null;
   portal_tour_required?: boolean | null;
@@ -152,6 +157,7 @@ function mapProfile(row: ProfileRow): PublicPartnerProfile {
     websiteStatus: row.website_status,
     directoryStatus: row.directory_status || "hidden",
     affiliateCode: s(row.affiliate_code) || row.slug,
+    clinicManaged: row.clinic_managed === true,
   };
 }
 
@@ -160,9 +166,18 @@ const PUBLIC_PROFILE_SELECT = `
          professional_credentials, biography, profile_photo_url,
          primary_location_id, group_calendar_id, group_calendar_url,
          services, service_areas, website_status, directory_status
-         , affiliate_code
+         , affiliate_code, clinic_managed
     from app.partner_profiles
 `;
+
+// Clinic-only profiles are never exposed without an active, approved affiliation.
+// Independent profiles retain their existing publication rules.
+const CLINIC_PUBLIC_ELIGIBILITY = `and (not clinic_managed or ($CLINIC_ENABLED and profile_consent_at is not null and exists (
+  select 1 from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
+  where m.partner_profile_id=app.partner_profiles.id and m.role='nurse' and m.status='active'
+  and m.accepted_at is not null and m.authorized_at is not null and c.status='approved' and c.published
+)))`;
+const clinicEligibility = () => CLINIC_PUBLIC_ELIGIBILITY.replace('$CLINIC_ENABLED', clinicsEnabled() ? 'true' : 'false');
 
 export const getPublicPartnerProfile = cache(async function getPublicPartnerProfile(slugRaw: string) {
   await ensureStaffSchema();
@@ -170,11 +185,11 @@ export const getPublicPartnerProfile = cache(async function getPublicPartnerProf
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
   const result = await getDbPool().query<ProfileRow>(
     `${PUBLIC_PROFILE_SELECT}
-      where slug = $1 and website_status = 'published'
+      where slug = $1 and website_status = 'published' ${clinicEligibility()}
       limit 1`,
     [slug],
   );
-  return result.rows[0] ? mapProfile(result.rows[0]) : null;
+  return result.rows[0] ? (await enrichClinicProfiles([mapProfile(result.rows[0])]))[0] : null;
 });
 
 export async function getPartnerProfileForPublicPage(slugRaw: string, previewApplicationId?: string) {
@@ -204,24 +219,24 @@ export async function listPublicPartnerProfiles(limit = 100) {
   await ensureStaffSchema();
   const result = await getDbPool().query<ProfileRow>(
     `${PUBLIC_PROFILE_SELECT}
-      where directory_status = 'published'
+      where directory_status = 'published' ${clinicEligibility()}
       order by display_name asc
       limit $1`,
     [Math.max(1, Math.min(250, limit))],
   );
-  return result.rows.map(mapProfile);
+  return enrichClinicProfiles(result.rows.map(mapProfile));
 }
 
 export async function listPublishedPartnerWebsites(limit = 100) {
   await ensureStaffSchema();
   const result = await getDbPool().query<ProfileRow>(
     `${PUBLIC_PROFILE_SELECT}
-      where website_status = 'published'
+      where website_status = 'published' ${clinicEligibility()}
       order by display_name asc
       limit $1`,
     [Math.max(1, Math.min(250, limit))],
   );
-  return result.rows.map(mapProfile);
+  return enrichClinicProfiles(result.rows.map(mapProfile));
 }
 
 export async function getPartnerProfileForPortal(profileIdRaw: string): Promise<PartnerPortalProfile | null> {

@@ -2417,7 +2417,11 @@ export async function submitStaffApplication(opts: {
   const submissionKey = s(opts.input.submissionKey) || null;
   const referralCode = s(opts.input.referralCode).toLowerCase();
   let referredByProfileId: string | null = null;
-  if (referralCode) {
+  let clinicReferralId: string | null = null;
+  if (referralCode.startsWith('clinic:')) {
+    const { resolveClinicReferral } = await import('@/lib/clinicAffiliate');
+    clinicReferralId = await resolveClinicReferral(referralCode, opts.config.tenantId, safePayload.email);
+  } else if (referralCode) {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(referralCode)) {
       throw new Error("Invalid Partner referral code");
     }
@@ -2447,7 +2451,7 @@ export async function submitStaffApplication(opts: {
     [
       opts.config.tenantId,
       safePayload.email,
-      JSON.stringify(safePayload),
+      JSON.stringify({ ...safePayload, ...(clinicReferralId ? { clinicReferralId } : {}) }),
       opts.input.firstName,
       opts.input.lastName,
       opts.input.phone,

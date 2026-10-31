@@ -1,3 +1,5 @@
+import Link from "next/link";
+import clinicStyles from "@/components/clinics/clinic.module.css";
 import MarketingHeaderEmbed, {
   type MarketingHeaderMenuLink,
   type MarketingHeaderNavLink,
@@ -14,6 +16,7 @@ type PartnerPublicHeaderProfile = {
   profilePhotoUrl: string;
   organizationId: string;
   services: PartnerService[];
+  clinicManaged?: boolean;
 };
 
 export default async function PartnerPublicHeader({
@@ -23,6 +26,12 @@ export default async function PartnerPublicHeader({
   profile: PartnerPublicHeaderProfile;
   preview?: string;
 }) {
+  if (profile.clinicManaged && !preview) return <header className={`${clinicStyles.shell} ${clinicStyles.publicHeader}`}>
+    <nav className={clinicStyles.head} aria-label="Professional website navigation">
+      <Link href={`/${profile.slug}`}><span className={clinicStyles.eyebrow}>My Drip Nurse</span><strong>{profile.displayName}</strong></Link>
+      <div className={clinicStyles.actions}><Link className={clinicStyles.secondary} href={`/${profile.slug}/services`}>Services & booking</Link>
+        <Link className={clinicStyles.secondary} href="/clinics">Find a clinic</Link><Link className={clinicStyles.secondary} href="/login">Partner sign in</Link></div>
+    </nav></header>;
   const [clientAccount, partnerSession, services] = await Promise.all([
     getAuthenticatedClient(),
     getPartnerPortalSession(),

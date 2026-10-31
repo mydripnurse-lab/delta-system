@@ -20,6 +20,7 @@ const mocks = {
  'next/headers':{cookies:async()=>({get:()=>undefined})},
  'next/cache':{unstable_cache:(fn,keys)=>async(...args)=>{const k=JSON.stringify([keys,args]);if(!memo.has(k))memo.set(k,await fn(...args));return memo.get(k);},revalidateTag:()=>memo.clear()},
  '@/lib/db':{getDbPool:()=>pool},
+ '@/lib/publicStaffProvisioning':{ensureStaffSchema:async()=>{}},
  '@/lib/partnerPortalAuth':{getPartnerPortalSession:async()=>identity?{email:identity.email,display_name:identity.name||'Fixture',profile_id:identity.partnerId||''}:null},
  '@/lib/myDripNurseServiceCatalog':{getMyDripNurseOrganizationId:async()=>org},
 };
@@ -34,7 +35,7 @@ function load(relative) {
 const pricing=load('src/lib/regionalPricing.ts');
 const region=(level,state,county='',city='')=>({id:pricing.regionId(level,{state,county,city}),level,state,county,city,label:[city,county,state].filter(Boolean).join(', '),urls:[]});
 const fl=region('state','Florida'),orange=region('county','Florida','Orange'),orlando=region('city','Florida','Orange','Orlando'),ca=region('county','California','Orange');
-mocks['@/lib/regionalPricingCatalog']={loadPricingRegions:async()=>({regions:[fl,orange,orlando,ca],syncedAt:'',warnings:[]})};
+mocks['@/lib/regionalPricingCatalog']={loadSelectablePricingRegions:async()=>({regions:[fl,orange,orlando,ca],syncedAt:'',warnings:[]})};
 process.env.CLINIC_PARTNERS_ENABLED='true';
 const policy=load('src/lib/clinicPolicy.ts'),clinics=load('src/lib/clinics.ts'),booking=load('src/lib/clinicBooking.ts');
 async function main(){
@@ -59,6 +60,7 @@ async function main(){
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
  // Migration must be repeatable, including indexes and additive columns.
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
+ await pool.query("alter table app.staff_applications add constraint fixture_application_status check (status in ('under_review','submitted','completed'))");
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
  await pool.query("insert into app.service_calendars(service_id,public_key,status) values($1,'fixture-calendar','active')",[service]);
@@ -88,7 +90,31 @@ async function main(){
  assert.deepEqual((await booking.clinicBookingContext(id,'fixture-calendar',orlando)).partnerIds,[]);
  identity={email:input.email};
  await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id]});
- assert.equal((await clinics.clinicWorkspace(id)).members.filter(m=>m.role==='nurse').length,1);
+ const workspace = await clinics.clinicWorkspace(id);
+ assert.equal(workspace.members.filter(m=>m.role==='nurse').length,1);
+ const nurseRow=workspace.members.find(m=>m.role==='nurse');
+ assert.equal(nurseRow.publicationReady,true,'Clinic authorization publishes the consented professional');
+ assert.match(nurseRow.profileSlug,/^fixture-nurse-/);
+ const profiles=load('src/lib/partnerProfiles.ts');
+ let publicNurse=await profiles.getPublicPartnerProfile(nurseRow.profileSlug);
+ assert.equal(publicNurse.id,member.partner_profile_id);
+ assert.equal(publicNurse.clinicManaged,true);
+ assert.equal(publicNurse.clinics[0].id,id);
+ assert.deepEqual(publicNurse.serviceAreas.map(a=>a.city),['Orlando']);
+ assert.equal((await profiles.listPublicPartnerProfiles()).length,1);
+ const reads=queryCount;
+ await profiles.getPublicPartnerProfile(nurseRow.profileSlug);
+ assert.equal(queryCount-reads,1,'Affiliations stay cached; no extra Neon call for each profile render');
+ await clinics.updateClinicMember(id,{id:member.id,status:'suspended',coverageIds:[orlando.id]});
+ assert.equal(await profiles.getPublicPartnerProfile(nurseRow.profileSlug),null,'Suspended clinic nurses cannot remain publicly bookable');
+ assert.equal((await profiles.listPublicPartnerProfiles()).length,0);
+ await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id]});
+ await query('update app.partner_profiles set profile_consent_at=null where id=$1',[member.partner_profile_id]);
+ assert.equal(await profiles.getPublicPartnerProfile(nurseRow.profileSlug),null,'Consent is required');
+ await query('update app.partner_profiles set profile_consent_at=now() where id=$1',[member.partner_profile_id]);
+ process.env.CLINIC_PARTNERS_ENABLED='false';
+ assert.equal(await profiles.getPublicPartnerProfile(nurseRow.profileSlug),null,'Rollout switch also gates clinic-only sites');
+ process.env.CLINIC_PARTNERS_ENABLED='true';
  const quote=await booking.clinicBookingContext(id,'fixture-calendar',orlando);
  assert.equal(quote.price,239);assert.deepEqual(quote.partnerIds,[member.partner_profile_id]);
  assert.equal((await booking.clinicBookingContext(id,'fixture-calendar',orange)).price,229);
@@ -111,6 +137,7 @@ async function main(){
  const team=await booking.publicClinicTeam(id);assert.equal(team.length,1);
  await query("update app.clinics set status='suspended' where id=$1",[id]);
  await assert.rejects(()=>booking.clinicBookingContext(id,'fixture-calendar',orlando),/not accepting/);
+ assert.equal(await profiles.getPublicPartnerProfile(nurseRow.profileSlug),null,'Suspended clinics cannot leave clinic-only profiles exposed');
  const client=await pool.connect();try {await client.query('begin');assert.deepEqual(await booking.clinicReassignmentPartners(id,service,orlando,client),[]);await client.query('rollback');}finally{client.release();}
  assert.equal(policy.resolveClinicPrice(219,[{region:fl,price:225}],{price:null,regionalPrices:[]},orlando).price,225);
  assert.equal(policy.resolveClinicPrice(219,[{region:orlando,price:300}],{price:229,regionalPrices:[{region:fl,price:235},{region:orange,price:240},{region:orlando,price:245}]},orlando).price,245);
@@ -149,6 +176,84 @@ async function main(){
   assert.equal((await query('select count(*)::int as n from app.clinic_sessions where account_id=$1',[account])).rows[0].n,0);
   await resetClient.query('begin');assert.equal(await auth.resetClinicAccountPassword(resetClient,'local-reset-fixture','replayed'),null);await resetClient.query('rollback');
  }finally{resetClient.release();}
- console.log('PASS: additive migration, approval gates, cross-clinic access, invitation ownership/replay, nurse identity reuse, authorization, coverage, clinic pricing, cache reuse, suspended-clinic booking and reassignment. Local synthetic data only.');
+ // Existing professionals can add a clinic without losing their identity or records.
+ identity={email:'nurse@example.invalid',partnerId:member.partner_profile_id};
+ const beforeProfile=(await query('select * from app.partner_profiles where id=$1',[member.partner_profile_id])).rows[0];
+ const beforeAppointments=(await query('select count(*)::int as n from app.appointments where partner_profile_id=$1',[member.partner_profile_id])).rows[0].n;
+ const owned=await clinics.registerClinic({...input,name:'Nurse Owned Clinic',slug:'nurse-owned-clinic',email:'ignored@example.invalid'});
+ assert.equal((await query("select partner_profile_id from app.clinic_memberships where clinic_id=$1 and role='owner'",[owned])).rows[0].partner_profile_id,member.partner_profile_id);
+ assert.deepEqual((await query('select * from app.partner_profiles where id=$1',[member.partner_profile_id])).rows[0],beforeProfile);
+ assert.equal((await query('select count(*)::int as n from app.appointments where partner_profile_id=$1',[member.partner_profile_id])).rows[0].n,beforeAppointments);
+ assert.equal((await query('select count(*)::int as n from app.clinic_accounts where email=$1',[identity.email])).rows[0].n,0,'Do not create another login for an existing nurse');
+
+ // Clinic affiliate accounting: new external partners only, no real payouts.
+ await query(`alter table app.staff_applications add column referred_by_profile_id uuid;
+ alter table app.appointments add column organization_id uuid;
+ create table app.staff_form_configs(organization_id uuid primary key,affiliate_commission_rate numeric);
+ create table app.partner_affiliate_commissions(appointment_id uuid primary key);
+ create table app.appointment_payments(appointment_id uuid primary key,status text);`);
+ await query(fs.readFileSync(path.join(root,'db/migrations/049_clinic_affiliates.sql'),'utf8'));
+ await query(fs.readFileSync(path.join(root,'db/migrations/049_clinic_affiliates.sql'),'utf8'));
+ await query("update app.clinics set status='approved' where id=$1",[id]);
+ await query('insert into app.staff_form_configs values($1,2)',[org]);
+ const affiliates=load('src/lib/clinicAffiliate.ts');
+ const externalEmail='external@example.invalid';
+ assert.equal(await affiliates.resolveClinicReferral('clinic:fixture-clinic',org,externalEmail),id);
+ assert.equal(await affiliates.resolveClinicReferral('clinic:fixture-clinic',org,'nurse@example.invalid'),null,'Team nurses cannot be referred');
+ assert.equal(await affiliates.resolveClinicReferral('clinic:fixture-clinic',org,input.email),null,'Owner cannot self-refer');
+ assert.equal(await affiliates.resolveClinicReferral('clinic:fixture-clinic','20000000-0000-4000-8000-000000000001',externalEmail),null,'Tenant isolation');
+ await assert.rejects(()=>affiliates.resolveClinicReferral('clinic:../bad',org,externalEmail),/Invalid/);
+ const externalApp=(await query("insert into app.staff_applications(organization_id,email,status,request_payload) values($1,$2,'completed',$3) returning id",[org,externalEmail,JSON.stringify({clinicReferralId:id})])).rows[0].id;
+ const external=(await query("insert into app.partner_profiles(organization_id,application_id,ghl_user_id,email,slug,display_name,website_status) values($1,$2,'',$3,'external-fixture','External Partner','published') returning id",[org,externalApp,externalEmail])).rows[0].id;
+ assert.equal(await affiliates.resolveClinicReferral('clinic:fixture-clinic',org,externalEmail),null,'Existing attribution cannot be overwritten');
+ async function appointment(patch={}) {
+  return (await query("insert into app.appointments(organization_id,partner_profile_id,service_id,service_price,currency,status,public_reference,metadata,clinic_id) values($1,$2,$3,$4,'USD',$5,'SYNTHETIC-REF',$6,$7) returning id",[org,external,service,patch.price??229,patch.status||'confirmed',JSON.stringify(patch.metadata||{}),patch.clinicId||null])).rows[0].id;
+ }
+ const referralAppointment=await appointment();
+ assert(await affiliates.recordClinicAffiliateCommission(referralAppointment));
+ assert.equal(await affiliates.recordClinicAffiliateCommission(referralAppointment),null,'Repeated payment events cannot duplicate commission');
+ assert.equal((await query('select amount::text from app.clinic_affiliate_commissions where appointment_id=$1',[referralAppointment])).rows[0].amount,'4.58');
+ const simultaneous=await appointment();
+ assert.equal((await Promise.all([affiliates.recordClinicAffiliateCommission(simultaneous),affiliates.recordClinicAffiliateCommission(simultaneous)])).filter(Boolean).length,1);
+ const ownClinic=await appointment({clinicId:id});
+ assert.equal(await affiliates.recordClinicAffiliateCommission(ownClinic),null,'Own-clinic visits are not external referrals');
+ const unpaid=await appointment({status:'payment_pending'});
+ assert.equal(await affiliates.recordClinicAffiliateCommission(unpaid),null);
+ const rewardVisit=await appointment({metadata:{client_reward:{platformFunded:true}}});
+ assert.equal(await affiliates.recordClinicAffiliateCommission(rewardVisit),null,'Do not pay referral commission for a platform-funded reward');
+ await query("insert into app.clinic_memberships(clinic_id,email,partner_profile_id,role,status) values($1,$2,$3,'nurse','pending')",[id,externalEmail,external]);
+ const teamVisit=await appointment();
+ assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null,'Pending or active own team cannot generate commission');
+ await query("update app.clinic_memberships set status='removed' where clinic_id=$1 and email=$2",[id,externalEmail]);
+ await query('update app.staff_applications set referred_by_profile_id=$2 where id=$1',[externalApp,member.partner_profile_id]);
+ assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null,'Original partner referrer always retains attribution');
+ await query('update app.staff_applications set referred_by_profile_id=null where id=$1',[externalApp]);
+ await query('insert into app.partner_affiliate_commissions values($1)',[teamVisit]);
+ assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null,'Do not duplicate an existing legacy commission');
+ await query('update app.clinics set affiliate_commission_rate=0 where id=$1',[id]);
+ const zeroVisit=await appointment();
+ await affiliates.recordClinicAffiliateCommission(zeroVisit);
+ assert.equal((await query('select amount::text from app.clinic_affiliate_commissions where appointment_id=$1',[zeroVisit])).rows[0].amount,'0.00','Zero percent must not fall back to 2%');
+ await query("update app.appointments set status='cancelled' where id=$1",[simultaneous]);
+ identity={email:input.email};memo.clear();
+ let dashboard=await affiliates.getClinicAffiliateDashboard(id);
+ assert.equal(dashboard.metrics[0].earned,'4.58');
+ assert.equal(dashboard.commissions.find(c=>c.reference==='SYNTHETIC-REF'&&c.status==='void').status,'void');
+ assert.equal(dashboard.partners.length,1);
+ const readBudget=queryCount;
+ await affiliates.getClinicAffiliateDashboard(id);
+ assert.equal(queryCount-readBudget,1,'Repeat dashboard only checks access; financial data stays cached');
+ await query("insert into app.appointment_payments values($1,'partially_refunded')",[referralAppointment]);memo.clear();
+ dashboard=await affiliates.getClinicAffiliateDashboard(id);
+ assert.equal(dashboard.metrics[0].pending,'0.00','Refunded visits must not inflate pending earnings');
+ identity={email:'nurse@example.invalid',partnerId:member.partner_profile_id};
+ await assert.rejects(()=>affiliates.getClinicAffiliateDashboard(id),/denied/);
+ await query("insert into app.clinic_memberships(clinic_id,email,role,status) values($1,'manager@example.invalid','manager','active')",[id]);
+ identity={email:'manager@example.invalid'};
+ await assert.rejects(()=>affiliates.getClinicAffiliateDashboard(id),/Only the clinic owner/);
+ process.env.CLINIC_PARTNERS_ENABLED='false';
+ const offReads=queryCount;assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null);assert.equal(queryCount,offReads,'Disabled clinic rollout adds no DB requests');
+ process.env.CLINIC_PARTNERS_ENABLED='true';
+ console.log('PASS: clinic lifecycle, existing nurse-to-owner identity preservation, external referrals, own-team/self exclusion, idempotent commissions, legacy attribution, refunds, owner-only access and shared-cache checks. Local synthetic data only; no payments or production writes.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>pool.end());

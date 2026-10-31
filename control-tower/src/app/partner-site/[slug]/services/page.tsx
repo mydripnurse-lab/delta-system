@@ -1,3 +1,4 @@
+import { ClinicNurseServices } from '@/components/clinics/ClinicNurseServices';
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -46,6 +47,12 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
+  if (profile.clinicManaged && !preview) return <PartnerExperience><main className={styles.page}>
+    <PartnerPublicHeader profile={profile} />
+    <section className={styles.servicesHero}><div className={styles.shell}><span className={styles.eyebrow}>Care with {profile.displayName}</span>
+      <h1>Your clinic. <em>Your care team.</em></h1><p>Choose your clinic below. Its services, regional prices and collection instructions apply to your visit.</p>
+    </div></section><div className={styles.shell}><ClinicNurseServices profile={profile}/></div><PartnerFooter/>
+  </main></PartnerExperience>;
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
   const [services, cities] = await Promise.all([

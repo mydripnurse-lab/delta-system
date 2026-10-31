@@ -1,5 +1,6 @@
 import { getDbPool } from "@/lib/db";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
+import { clinicsEnabled } from "@/lib/clinicFeature";
 
 const DEFAULT_COMMISSION_RATE = 2;
 
@@ -81,7 +82,11 @@ export async function recordPartnerAffiliateCommission(appointmentId: string) {
     [appointmentId],
   );
   const row = result.rows[0];
-  if (!row) return null;
+  if (!row) {
+    if (!clinicsEnabled()) return null;
+    const { recordClinicAffiliateCommission } = await import('@/lib/clinicAffiliate');
+    return recordClinicAffiliateCommission(appointmentId);
+  }
   const rate = Math.min(100, Math.max(0, number(row.override_rate || row.global_rate || DEFAULT_COMMISSION_RATE)));
   const amount = round(number(row.service_price) * rate / 100);
   const inserted = await pool.query(
