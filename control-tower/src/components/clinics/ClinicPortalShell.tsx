@@ -41,7 +41,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onAllClin
                 {clinic ? <strong>{title}</strong> : null}
             </div>
             <nav className={styles.navigation} aria-label="Clinic portal">
-                {sections.filter(([name]) => name !== 'Affiliates' || owner).map(([name, icon]) => <button key={name} type="button" disabled={busy || (!clinic && name !== 'Overview' && name !== 'Support')} aria-current={section === name ? 'page' : undefined} onClick={() => select(name)}>
+                {sections.filter(([name]) => name !== 'Affiliates' || owner).map(([name, icon]) => <button key={name} type="button" disabled={busy || (!clinic && name !== 'Overview' && name !== 'Support' && name !== 'Affiliates')} aria-current={section === name ? 'page' : undefined} onClick={() => select(name)}>
                     <PortalIcon name={icon} /><span>{name === 'Profile' ? 'Clinic profile' : name === 'Website' ? 'Clinic website' : name === 'Team' ? 'My team' : name}</span>
                     {name === 'Products' || name === 'Rewards' ? <small>Coming soon</small> : null}
                 </button>)}
@@ -67,7 +67,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onAllClin
                 </details>
             </header>
             <main className={styles.content} id="clinic-content">
-                <div className={styles.pageHeading}><div><span>YOUR CLINIC</span><h1>{clinic ? section === 'Profile' ? 'Clinic profile' : section === 'Website' ? 'Clinic website' : section : section === 'Support' ? 'Support' : 'Your clinics'}</h1></div>{clinic ? <span className={styles.status}>{clinic.status}</span> : <Link prefetch={false} href="/clinics/register">Register a clinic <span aria-hidden="true">→</span></Link>}</div>
+                <div className={styles.pageHeading}><div><span>YOUR CLINIC</span><h1>{clinic ? section === 'Profile' ? 'Clinic profile' : section === 'Website' ? 'Clinic website' : section : section === 'Support' ? 'Support' : section === 'Affiliates' ? 'Affiliates' : 'Your clinics'}</h1></div>{clinic ? <span className={styles.status}>{clinic.status}</span> : <Link prefetch={false} href="/clinics/register">Register a clinic <span aria-hidden="true">→</span></Link>}</div>
                 {children}
             </main>
         </div>

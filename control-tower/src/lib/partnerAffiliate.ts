@@ -78,7 +78,8 @@ export async function recordPartnerAffiliateCommission(appointmentId: string) {
        left join app.staff_form_configs config on config.organization_id = a.organization_id
       where a.id = $1::uuid
         and a.status in ('confirmed', 'partner_acknowledged', 'in_progress', 'completed')
-        ${clinicsEnabled() ? `and not exists (
+        ${clinicsEnabled() ? `and not exists (select 1 from app.clinics booked where booked.id=a.clinic_id and booked.referred_by_clinic_id is not null)
+        and not exists (
           select 1 from app.clinic_memberships owner_member
           join app.clinics own_clinic on own_clinic.id=owner_member.clinic_id
           join app.clinic_memberships team_member on team_member.clinic_id=owner_member.clinic_id

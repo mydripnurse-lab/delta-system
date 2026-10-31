@@ -50,7 +50,7 @@ async function main(){
  create table app.staff_applications(id uuid primary key default gen_random_uuid(),organization_id uuid references app.organizations(id),email text,status text,first_name text,last_name text,professional_credentials text,phone text,request_payload jsonb);
  create table app.services(id uuid primary key,organization_id uuid references app.organizations(id),slug text,name text,price numeric,currency text default 'USD',source_metadata jsonb default '{}',is_active boolean default true,image_url text,short_description text);
  create table app.service_calendars(id uuid primary key default gen_random_uuid(),service_id uuid references app.services(id),public_key text,status text);
- create table app.appointments(id uuid primary key default gen_random_uuid(),public_reference text,status text,starts_at timestamptz,partner_profile_id uuid,service_price numeric,deposit_amount numeric,customer_id uuid,currency text default 'USD',metadata jsonb default '{}');
+ create table app.appointments(id uuid primary key default gen_random_uuid(),public_reference text,status text,starts_at timestamptz,partner_profile_id uuid,service_price numeric,deposit_amount numeric,customer_id uuid,service_id uuid,currency text default 'USD',metadata jsonb default '{}');
  create table app.booking_customers(id uuid primary key,full_name text,email text,phone text);`);
  const foundation=fs.readFileSync(path.join(root,'db/migrations/042_mdn_booking_foundation.sql'),'utf8');
  for(const name of ['partner_profiles','partner_service_assignments']){
@@ -61,6 +61,7 @@ async function main(){
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
  // Migration must be repeatable, including indexes and additive columns.
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
+ for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
  await pool.query("alter table app.staff_applications add constraint fixture_application_status check (status in ('under_review','submitted','completed'))");
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
@@ -186,7 +187,7 @@ async function main(){
  alter table app.services add column image_alt text;`);
  const customer='10000000-0000-4000-8000-000000000003';
  await query("insert into app.booking_customers values($1,'Fixture Patient','patient@example.invalid','+15555550124')",[customer]);
- await query("alter table app.appointments add column service_id uuid");
+ await query("alter table app.appointments add column if not exists service_id uuid");
  await query("update app.appointments set status='completed',service_id=$1,customer_id=$2,service_price=219,deposit_amount=88,metadata=$3",[service,customer,JSON.stringify({clinic:{name:'Fixture Clinic',balanceCollector:'clinic'}})]);
  const appointments=load('src/lib/partnerAppointments.ts');
  assert.equal((await appointments.getPartnerPortalDashboard(member.partner_profile_id)).completedRevenue,0);
@@ -240,7 +241,9 @@ async function main(){
  const external=(await query("insert into app.partner_profiles(organization_id,application_id,ghl_user_id,email,slug,display_name,website_status) values($1,$2,'',$3,'external-fixture','External Partner','published') returning id",[org,externalApp,externalEmail])).rows[0].id;
  assert.equal(await affiliates.resolveClinicReferral('clinic:fixture-clinic',org,externalEmail),null,'Existing attribution cannot be overwritten');
  async function appointment(patch={}) {
-  return (await query("insert into app.appointments(organization_id,partner_profile_id,service_id,service_price,currency,status,public_reference,metadata,clinic_id) values($1,$2,$3,$4,'USD',$5,'SYNTHETIC-REF',$6,$7) returning id",[org,external,service,patch.price??229,patch.status||'confirmed',JSON.stringify(patch.metadata||{}),patch.clinicId||null])).rows[0].id;
+  const appointmentId = (await query("insert into app.appointments(organization_id,partner_profile_id,service_id,service_price,currency,status,public_reference,metadata,clinic_id) values($1,$2,$3,$4,'USD',$5,'SYNTHETIC-REF',$6,$7) returning id",[org,external,service,patch.price??229,patch.status||'confirmed',JSON.stringify(patch.metadata||{}),patch.clinicId||null])).rows[0].id;
+  if (patch.paid !== false) await query("insert into app.appointment_payments values($1,'paid')",[appointmentId]);
+  return appointmentId;
  }
  const referralAppointment=await appointment();
  assert(await affiliates.recordClinicAffiliateCommission(referralAppointment));
@@ -276,7 +279,7 @@ async function main(){
  const readBudget=queryCount;
  await affiliates.getClinicAffiliateDashboard(id);
  assert.equal(queryCount-readBudget,1,'Repeat dashboard only checks access; financial data stays cached');
- await query("insert into app.appointment_payments values($1,'partially_refunded')",[referralAppointment]);memo.clear();
+ await query("update app.appointment_payments set status='partially_refunded' where appointment_id=$1",[referralAppointment]);memo.clear();
  dashboard=await affiliates.getClinicAffiliateDashboard(id);
  assert.equal(dashboard.metrics[0].pending,'0.00','Refunded visits must not inflate pending earnings');
  identity={email:'nurse@example.invalid',partnerId:member.partner_profile_id};
@@ -287,7 +290,7 @@ async function main(){
  // A nurse becoming a clinic owner must not keep earning personal affiliate
  // commissions from accepted members of their own team. Existing ledger stays intact.
  await query(`alter table app.partner_profiles add column if not exists affiliate_commission_rate numeric;
- alter table app.partner_affiliate_commissions add column id uuid default gen_random_uuid(), add column referrer_profile_id uuid, add column referred_profile_id uuid, add column service_id uuid, add column amount numeric, add column rate numeric, add column currency text, add column status text, add column metadata jsonb;`);
+ alter table app.partner_affiliate_commissions add column id uuid default gen_random_uuid(), add column referrer_profile_id uuid, add column referred_profile_id uuid, add column if not exists service_id uuid, add column amount numeric, add column rate numeric, add column currency text, add column status text, add column metadata jsonb;`);
  await query('update app.staff_applications set referred_by_profile_id=$2 where id=$1',[externalApp,member.partner_profile_id]);
  const legacy=load('src/lib/partnerAffiliate.ts');
  const historical=await appointment();
@@ -304,6 +307,51 @@ async function main(){
  assert.equal((await query('select referred_by_profile_id from app.staff_applications where id=$1',[externalApp])).rows[0].referred_by_profile_id,member.partner_profile_id,'Preserve attribution and history');
  await query("update app.clinic_memberships set status='removed' where clinic_id=$1 and email=$2",[owned,externalEmail]);
  assert(await legacy.recordPartnerAffiliateCommission(await appointment()),'External referral may earn again after leaving own team');
+
+ // Clinic-to-clinic registration, attribution and commission accounting.
+ identity=null;
+ await query("update app.clinics set affiliate_commission_rate=3,published=true,status='approved' where id=$1",[id]);
+ const clinicInput={...input,name:'External Clinic',slug:'external-clinic',email:'external-clinic@example.invalid',referralCode:'clinic:fixture-clinic',clinicReferralId:'forged'};
+ const referredClinic=await clinics.registerClinic(clinicInput);
+ assert.equal((await query('select referred_by_clinic_id from app.clinics where id=$1',[referredClinic])).rows[0].referred_by_clinic_id,id,'Server resolves the referral slug, never a supplied ID');
+ await assert.rejects(()=>clinics.registerClinic({...clinicInput,slug:'duplicate-clinic'}),/already exists/);
+ identity={email:clinicInput.email};
+ const secondClinic=await clinics.registerClinic({...clinicInput,slug:'existing-owner-second'});
+ assert.equal((await query('select referred_by_clinic_id from app.clinics where id=$1',[secondClinic])).rows[0].referred_by_clinic_id,null,'Existing identities cannot acquire new attribution');
+ identity=null;
+ const unapproved=await appointment({clinicId:referredClinic});
+ assert.equal(await affiliates.recordClinicAffiliateCommission(unapproved),null,'Pending clinic cannot generate commissions');
+ await query("update app.clinics set status='approved' where id=$1",[referredClinic]);
+ const clinicVisit=await appointment({clinicId:referredClinic,price:300});
+ await query('update app.partner_profiles set clinic_managed=true where id=$1',[external]);
+ assert(await legacy.recordPartnerAffiliateCommission(clinicVisit),'Clinic booking attributes to referring clinic even when the performing nurse has a personal referral');
+ const clinicCommission=(await query('select * from app.clinic_affiliate_commissions where appointment_id=$1',[clinicVisit])).rows[0];
+ assert.equal(clinicCommission.amount,'9.00');
+ assert.equal(clinicCommission.referred_clinic_id,referredClinic);
+ assert.equal(clinicCommission.referred_profile_id,null);
+ assert.equal((await query('select count(*)::int n from app.partner_affiliate_commissions where appointment_id=$1',[clinicVisit])).rows[0].n,0,'No duplicate legacy commission');
+ assert.equal(await legacy.recordPartnerAffiliateCommission(clinicVisit),null,'Payment retry remains idempotent');
+ assert.equal(await affiliates.recordClinicAffiliateCommission(await appointment({clinicId:referredClinic,paid:false})),null,'No commission without a paid deposit');
+ assert.equal(await affiliates.recordClinicAffiliateCommission(await appointment({clinicId:referredClinic,metadata:{client_reward:{platformFunded:true}}})),null);
+ await query("insert into app.clinic_memberships(clinic_id,email,role,status,accepted_at) values($1,$2,'owner','active',now())",[referredClinic,input.email]);
+ assert.equal(await affiliates.recordClinicAffiliateCommission(await appointment({clinicId:referredClinic})),null,'Shared ownership is not an external referral');
+ await query("update app.clinic_memberships set status='removed' where clinic_id=$1 and email=$2",[referredClinic,input.email]);
+ await query("update app.clinic_memberships set status='pending' where clinic_id=$1 and email=$2",[id,externalEmail]);
+ assert.equal(await affiliates.recordClinicAffiliateCommission(await appointment({clinicId:referredClinic})),null,'Nurses in the source clinic team cannot generate commission through another clinic');
+ await query("update app.clinic_memberships set status='removed' where clinic_id=$1 and email=$2",[id,externalEmail]);
+ identity={email:input.email};memo.clear();
+ dashboard=await affiliates.getClinicAffiliateDashboard(id);
+ assert(dashboard.partners.some(p=>p.id===referredClinic&&p.kind==='clinic'));
+ assert.equal(dashboard.commissions.find(c=>c.id===clinicCommission.id).partnerName,'External Clinic');
+ await query("update app.appointment_payments set status='refunded' where appointment_id=$1",[clinicVisit]);memo.clear();
+ dashboard=await affiliates.getClinicAffiliateDashboard(id);
+ assert.equal(dashboard.commissions.find(c=>c.id===clinicCommission.id).status,'void');
+ const beforeRepeat=queryCount;
+ await affiliates.getClinicAffiliateDashboard(id);
+ assert.equal(queryCount-beforeRepeat,1,'Clinic referrals preserve the shared earnings cache');
+ assert.equal(await affiliates.resolveNewClinicReferral(pool,'clinic:fixture-clinic',org,input.email),null,'Self referral rejected');
+ assert.equal(await affiliates.resolveNewClinicReferral(pool,'clinic:fixture-clinic','20000000-0000-4000-8000-000000000001','new@example.invalid'),null,'Cross-organization attribution rejected');
+ await assert.rejects(()=>affiliates.resolveNewClinicReferral(pool,'invalid',org,'new@example.invalid'),/Invalid/);
  process.env.CLINIC_PARTNERS_ENABLED='false';
  const offReads=queryCount;assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null);assert.equal(queryCount,offReads,'Disabled clinic rollout adds no DB requests');
  process.env.CLINIC_PARTNERS_ENABLED='true';
