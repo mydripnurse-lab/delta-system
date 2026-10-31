@@ -1,0 +1,146 @@
+.header{background:#fff;border-bottom:1px solid #e2ecec;position:relative;z-index:20}
+.headerInner{max-width:1320px;padding:25px 40px;margin:auto;display:flex;align-items:center;gap:36px}
+.logo{display:grid;gap:8px;text-decoration:none}
+.logo img{width:174px;height:auto}
+.logo span{font-size:8px;letter-spacing:.23em;color:#547579;text-align:center;font-weight:700}
+.desktopNav{display:flex;margin-left:auto;gap:30px}
+.header a{color:#16454d;text-decoration:none;font-size:13px;font-weight:700}
+.desktopNav a[aria-current]{color:#078596}
+.signIn{border:1px solid #ccdddd;border-radius:50px;padding:13px 22px;display:flex;gap:24px}
+.mobileMenu{display:none}
+.skip{position:absolute;left:10px;top:-100px;background:white;padding:15px}
+.skip:focus{top:10px}
+.header a:focus-visible,.landing a:focus-visible,.landing summary:focus-visible,.directoryBar a:focus-visible{outline:3px solid #078596;outline-offset:5px}
+.landing{color:#123f47;background:#fff}
+.hero{max-width:1320px;padding:66px 40px 64px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.eyebrow{font-size:10px;letter-spacing:.18em;font-weight:800;color:#078596;display:inline-flex;align-items:center;gap:10px}
+.eyebrow i{width:7px;height:7px;background:#079e8b;border-radius:50%}
+.hero h1{font-size:clamp(50px,5.6vw,82px);font-weight:500;line-height:1.04;letter-spacing:-.055em;margin:27px 0}
+.landing em{font-family:var(--partner-serif);font-weight:400;color:#075c68;letter-spacing:-.035em}
+.heroCopy>p{font-size:16px;line-height:1.8;color:#5a757b;max-width:450px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+.primary,.secondary{border-radius:50px;min-height:52px;display:inline-flex;align-items:center;justify-content:center;gap:20px;padding:16px 24px;font-size:13px;font-weight:750;text-decoration:none}
+.primary{background:#075c68;color:#fff}
+.secondary{background:#fff;color:#075c68;border:1px solid #b9d3d7}
+.heroNote{display:flex;gap:10px;color:#6c8489;font-size:11px;margin-top:28px}
+.heroNote span{color:#078596}
+.heroVisual{position:relative;min-height:550px;height:100%;border-radius:120px 24px 24px 24px;overflow:hidden;background:#eaf5fa}
+.heroVisual>img{position:absolute;width:100%;height:100%;object-fit:cover;object-position:46% center}
+.photoTop{position:absolute;top:28px;right:24px;padding:10px 15px;border:1px solid #ffffff50;border-radius:30px;background:#ffffffdd;font-size:9px;font-weight:750;letter-spacing:.13em}
+.photoCard{position:absolute;left:24px;right:24px;bottom:24px;background:#fffffff0;backdrop-filter:blur(8px);border:1px solid white;border-radius:18px;display:flex;gap:18px;align-items:center;padding:23px}
+.photoCard strong{font-size:19px;line-height:1.4;letter-spacing:-.03em}
+.photoCard div>span{display:block;font-size:10px;margin-top:8px;color:#607d81}
+.photoIcon{border-radius:50%;background:#d9f2ec;display:grid;place-items:center;min-width:46px;height:46px;font-size:23px}
+.valueStrip{background:#eef6f5;display:flex;justify-content:center;gap:60px;flex-wrap:wrap;padding:24px;font-size:12px;color:#4f7075}
+.valueStrip span:before{content:'✦';margin-right:12px;color:#078596}
+.section,.workspace,.faqSection{max-width:1320px;margin:auto;padding:90px 40px;scroll-margin-top:30px}
+.sectionHeading{margin-bottom:36px}
+.landing h2{font-size:clamp(34px,3.6vw,52px);font-weight:500;line-height:1.15;letter-spacing:-.045em;margin:18px 0}
+.sectionHeading>p{color:#688086;font-size:15px}
+.joinGrid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.joinCard{border:1px solid #d4e5e8;border-radius:24px;padding:42px;background:#f2f8fa}
+.cardIndex{font-size:10px;letter-spacing:.15em;color:#538087;font-weight:750}
+.joinCard h3{font-size:32px;letter-spacing:-.04em;line-height:1.2;font-weight:500;margin:28px 0 18px}
+.joinCard p{font-size:15px;line-height:1.8;color:#5f7a80;max-width:420px}
+.joinCard ul{list-style:none;padding:0;margin:28px 0 36px;display:grid;gap:15px;font-size:13px}
+.joinCard li:before{content:'✓';margin-right:12px;color:#078596}
+.joinCard>a{display:flex;justify-content:space-between;color:#075c68;font-size:14px;font-weight:750;border-top:1px solid #cbdfe3;padding-top:25px;text-decoration:none}
+.clinicCard{background:#0b4c57;color:#fff;border-color:#0b4c57}
+.clinicCard .cardIndex,.clinicCard p{color:#b6d7da}
+.clinicCard li:before{color:#a5e5d6}
+.clinicCard>a{color:#fff;border-color:#ffffff26}
+.workspace{display:grid;grid-template-columns:1fr 1fr;gap:100px;padding-top:35px;padding-bottom:90px}
+.workspace>div>p{font-size:15px;line-height:1.9;color:#5f7a80;max-width:440px}
+.textLink{display:inline-block;color:#075c68;text-decoration:none;font-weight:700;font-size:13px;margin-top:16px}
+.featureList article{display:flex;gap:24px;padding:22px 0;border-bottom:1px solid #dce7e6}
+.featureList article>span{font-size:12px;color:#078596;padding-top:6px}
+.featureList h3{font-weight:600;font-size:21px;letter-spacing:-.025em;margin:0 0 10px}
+.featureList p{font-size:14px;line-height:1.8;color:#637d81;margin:0}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:35px;margin-top:42px}
+.steps article{border-top:1px solid #c8dddf;padding-top:24px}
+.steps article>span{font-size:12px;color:#078596}
+.steps h3{font-size:20px;font-weight:550;letter-spacing:-.025em;margin:28px 0 12px}
+.steps p{font-size:14px;color:#637d81;line-height:1.8}
+.finePrint{font-size:11px;color:#71898d;line-height:1.8;max-width:800px;margin:28px 0 0}
+.faqSection{display:grid;grid-template-columns:.8fr 1.2fr;gap:70px;background:#f7faf9;border-radius:26px;padding:60px 50px;margin:0 auto 80px;max-width:1240px}
+.faqs details{border-bottom:1px solid #d5e5e4;padding:21px 0}
+.faqs summary{list-style:none;cursor:pointer;font-weight:600;font-size:14px;display:flex;justify-content:space-between;gap:20px;line-height:1.6}
+.faqs summary::-webkit-details-marker{display:none}
+.faqs summary span{font-size:20px;color:#078596}
+.faqs details[open] summary span{transform:rotate(45deg)}
+.faqs p{font-size:14px;color:#637d81;line-height:1.8}
+.finalCta{text-align:center;padding:75px 24px 85px;background:#eaf5fa}
+.finalCta .actions{justify-content:center}
+.finalCta .textLink{margin-top:28px}
+.footer{background:#073e49;color:white;padding:48px max(40px,calc((100vw - 1240px)/2));display:grid;grid-template-columns:1fr 1fr;gap:35px}
+.footer img{width:170px;height:auto;filter:brightness(0) invert(1)}
+.footer p{font-size:14px;line-height:1.7;color:#bed5d9}
+.footer nav{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-content:center}
+.footer a{color:#e1f0f0;text-decoration:none;font-size:12px}
+.footer small{font-size:10px;color:#94b9be}
+.directoryBar{max-width:1320px;margin:auto;padding:30px 40px 0;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.directoryBar>span{font-size:10px;letter-spacing:.15em;color:#67838a;font-weight:750}
+.directoryBar nav{display:flex;border:1px solid #d0e3e4;background:#f4f9f9;border-radius:50px;padding:5px;gap:4px}
+.directoryBar a{min-width:110px;text-align:center;padding:12px 20px;border-radius:50px;font-size:13px;font-weight:700;text-decoration:none;color:#526e74}
+.directoryBar a[aria-current]{background:#075c68;color:white}
+.clinicDirectory{max-width:1240px;margin:0 auto;padding:48px 40px 90px;min-height:60vh}
+.clinicDirectory h1{font-size:clamp(34px,4vw,52px);font-family:var(--partner-serif);font-weight:400;margin:0 0 18px}
+.clinicDirectory>p{color:#637d81;line-height:1.8}
+.clinicGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:40px}
+.listing{padding:30px;border-radius:22px;border:1px solid #d7e5e6;display:flex;flex-direction:column;align-items:flex-start}
+.listing img{width:76px;height:76px;object-fit:contain}
+.listingFallback{width:76px;height:76px;border-radius:18px;background:#eaf5fa;display:grid;place-items:center;font-family:var(--partner-serif);font-size:32px}
+.listing h2{font-family:var(--partner-serif);font-size:27px;font-weight:400;margin-bottom:8px}
+.listing p{font-size:13px;line-height:1.8;color:#637d81}
+.listing small{display:block;font-size:11px;line-height:1.8;color:#637d81;margin:12px 0 24px}
+.listing a{margin-top:auto;color:#075c68;font-size:13px;font-weight:750;text-decoration:none}
+.empty{padding:55px 30px;background:#f2f8fa;border:1px solid #d7e5e6;border-radius:22px;margin-top:35px;text-align:center}
+.empty h2{font-family:var(--partner-serif);font-weight:400;font-size:28px}
+.empty p{font-size:14px;color:#637d81;line-height:1.8}
+.pagination{display:flex;gap:30px;margin-top:25px}
+.pagination a{color:#075c68;font-size:13px}
+
+@media(max-width:1000px){.hero{gap:30px;padding-top:40px}
+.heroVisual{min-height:510px}
+.valueStrip{gap:25px}
+.workspace{gap:50px}
+.faqSection{margin-left:24px;margin-right:24px}
+.clinicGrid{grid-template-columns:repeat(2,1fr)}
+}
+
+@media(max-width:800px){.headerInner{padding:20px 22px;gap:14px}
+.desktopNav{display:none}
+.signIn{margin-left:auto}
+.mobileMenu{display:block}
+.mobileMenu summary{font-size:12px;cursor:pointer;list-style:none}
+.mobileMenu nav{position:absolute;left:20px;right:20px;top:85px;background:#fff;border:1px solid #dce7e6;border-radius:18px;padding:24px;display:grid;gap:22px;box-shadow:0 20px 35px #073e4912}
+.hero{grid-template-columns:1fr;padding:40px 24px;gap:35px}
+.hero h1{font-size:62px}
+.heroVisual{min-height:430px;border-radius:80px 24px 24px 24px}
+.heroCopy>p{max-width:600px}
+.valueStrip{display:grid;grid-template-columns:1fr 1fr;gap:20px;font-size:10px}
+.section,.workspace{padding:60px 24px}
+.joinGrid,.workspace,.faqSection{grid-template-columns:1fr;gap:24px}
+.joinCard{padding:30px}
+.steps{grid-template-columns:1fr;gap:18px}
+.steps h3{margin-top:16px}
+.faqSection{padding:35px 24px;margin-bottom:45px}
+.footer{padding:40px 24px;grid-template-columns:1fr}
+.footer nav{max-width:420px}
+.directoryBar{padding:25px 24px 0;flex-wrap:wrap}
+.clinicDirectory{padding:40px 24px}
+.clinicGrid{grid-template-columns:1fr}
+}
+
+@media(max-width:420px){.logo img{width:130px}
+.logo span{font-size:7px}
+.signIn{padding:10px 14px;gap:10px}
+.hero h1{font-size:53px}
+.actions{flex-direction:column;align-items:stretch}
+.heroVisual{min-height:370px}
+.photoCard{left:15px;right:15px;bottom:15px;padding:18px}
+.photoCard strong{font-size:17px}
+.heroNote{font-size:10px}
+.valueStrip{gap:14px;font-size:9px}
+}
+

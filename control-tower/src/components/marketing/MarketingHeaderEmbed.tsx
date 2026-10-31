@@ -101,7 +101,7 @@ export default function MarketingHeaderEmbed({
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, "")}`;
   const href = (path: string) => `${resolvedWebsiteUrl}${path}`;
   const menuHref = (path: string) => /^https?:\/\//i.test(path) ? path : href(path);
-  const directoryReturnTo = "https://partners.mydripnurse.com/";
+  const directoryReturnTo = "https://partners.mydripnurse.com/directory";
   const clientReturnTo = showPartnerPortal ? directoryReturnTo : resolvedWebsiteUrl;
   const clientLoginHref = `https://care.mydripnurse.com/login?returnTo=${encodeURIComponent(clientReturnTo)}`;
   const partnerLoginHref = "https://partners.mydripnurse.com/partner-login?returnTo=%2F";
@@ -254,7 +254,7 @@ export default function MarketingHeaderEmbed({
           {ivMenuLinks.length ? <div>{menuButton("iv", "IV Therapy")}{openMenu === "iv" ? menuLinks(ivMenuLinks, true) : null}</div> : null}
           {nadMenuLinks.length ? <div>{menuButton("nad", "NAD+")}{openMenu === "nad" ? menuLinks(nadMenuLinks) : null}</div> : null}
           {showWeightLoss ? <div>{menuButton("weight", "Weight Loss")}{openMenu === "weight" ? menuLinks(WEIGHT_LINKS) : null}</div> : null}
-          {showDirectory ? <a href="https://partners.mydripnurse.com" target="_top">Directory</a> : null}
+          {showDirectory ? <a href="https://partners.mydripnurse.com/directory" target="_top">Directory</a> : null}
           {showContact ? <a href={href("/contact-us")} target="_top">Contact</a> : null}
           {additionalNavLinks.map(([label, path]) => <a key={path} href={menuHref(path)} target="_top">{label}</a>)}
         </nav>
@@ -302,7 +302,7 @@ export default function MarketingHeaderEmbed({
           {ivMenuLinks.length ? mobileAccordion("iv", "IV Therapy", ivMenuLinks) : null}
           {nadMenuLinks.length ? mobileAccordion("nad", "NAD+", nadMenuLinks) : null}
           {showWeightLoss ? mobileAccordion("weight", "Weight Loss", WEIGHT_LINKS) : null}
-          {showDirectory ? <a href="https://partners.mydripnurse.com" target="_top">Directory<span>→</span></a> : null}
+          {showDirectory ? <a href="https://partners.mydripnurse.com/directory" target="_top">Directory<span>→</span></a> : null}
           {showContact ? <a href={href("/contact-us")} target="_top">Contact<span>→</span></a> : null}
           {additionalNavLinks.map(([label, path]) => <a key={path} href={menuHref(path)} target="_top">{label}<span>→</span></a>)}
           {account ? <a href="https://care.mydripnurse.com" target="_top">Client Portal<span>→</span></a> : <a href={clientLoginHref} target="_top">Client login<span>→</span></a>}

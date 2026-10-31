@@ -65,7 +65,7 @@ export default async function PartnerLoginPage({
               {clinicsEnabled() ? <Link href="/clinics/register"><span>Register your clinic</span><span aria-hidden="true">↗</span></Link> : null}
             </div>
           </div>
-          <footer className={styles.loginFooter}><span>My Drip Nurse · Partner network</span><Link href="/">Explore the directory <span aria-hidden="true">↗</span></Link></footer>
+          <footer className={styles.loginFooter}><span>My Drip Nurse · Partner network</span><Link href="/directory">Explore the directory <span aria-hidden="true">↗</span></Link></footer>
         </section>
       </main>
     </PartnerExperience>

@@ -1,19 +1,16 @@
-import Image from "next/image";
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { publicClinics } from '@/lib/clinics';
-import { clinicsEnabled } from '@/lib/clinicAuth';
-import styles from '@/components/clinics/clinic.module.css';
-export const metadata = { title: 'Find a clinic | My Drip Nurse' };
-export default async function Page({ searchParams }: {
-    searchParams: Promise<{
-        page?: string;
-    }>;
-}) {
-    if (!clinicsEnabled())
-        notFound();
-    const query = await searchParams;
-    const page = Math.max(0, Math.min(1000, parseInt(query.page || '0') || 0));
-    const clinics = await publicClinics('', page * 24);
-    return <main className={styles.shell}><header className={styles.head}><div><span className={styles.eyebrow}>My Drip Nurse network</span><h1>Find your clinic.</h1><p>Meet the clinics and care teams serving your community.</p></div><div className={styles.actions}><Link href="/">Find a professional</Link><Link href="/login" className={styles.secondary}>Partner sign in</Link></div></header><div className={styles.grid}>{clinics.map(c => <article className={styles.card} key={c.id}>{c.logoUrl ? <Image unoptimized width={120} height={120} className={styles.logo} src={c.logoUrl} alt={c.name}/> : null}<h2>{c.name}</h2><p>{c.description.slice(0, 200)}</p><p>{c.coverage.slice(0, 3).map(r => r.label).join(' · ')}</p><Link className={styles.primary} href={`/clinics/${c.slug}`}>Meet the clinic →</Link></article>)}</div>{!clinics.length ? <p className={styles.empty}>Clinic listings are being prepared.</p> : null}<div className={styles.actions}>{page > 0 ? <Link href={`/clinics?page=${page - 1}`}>Previous</Link> : null}{clinics.length === 24 ? <Link href={`/clinics?page=${page + 1}`}>Next</Link> : null}</div></main>;
+import { clinicsEnabled } from '@/lib/clinicFeature';
+import { PartnerExperience } from '@/components/partner/PartnerBrand';
+import { NetworkHeader, NetworkFooter, DirectoryNavigation } from '@/components/partner-network/NetworkNavigation';
+import styles from '@/components/partner-network/network.module.css';
+export const metadata = { title: 'Clinic Directory | My Drip Nurse', description: 'Explore approved, published clinics and their care teams in the My Drip Nurse network.', alternates: { canonical: 'https://partners.mydripnurse.com/directory/clinics' } };
+export default async function Page({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  if (!clinicsEnabled()) notFound();
+  const query = await searchParams;
+  const page = Math.max(0, Math.min(1000, parseInt(query.page || '0') || 0));
+  const clinics = await publicClinics('', page * 24);
+  return <PartnerExperience><NetworkHeader directory/><main id="main-content"><DirectoryNavigation active="clinics"/><section className={styles.clinicDirectory}><h1>Care teams. Connected to you.</h1><p>Explore clinics in our network, their service areas and the nurses behind their care.</p><div className={styles.clinicGrid}>{clinics.map(c => <article className={styles.listing} key={c.id}>{c.logoUrl ? <Image unoptimized width={120} height={120} src={c.logoUrl} alt={`${c.name} logo`}/> : <span className={styles.listingFallback} aria-hidden="true">{c.name.slice(0,1)}</span>}<h2>{c.name}</h2><p>{c.description.slice(0,200)}</p><small>{c.coverage.slice(0,3).map(r => r.label).join(' · ')}</small><Link prefetch={false} href={`/clinics/${c.slug}`}>Meet the clinic <span aria-hidden="true">↗</span></Link></article>)}</div>{!clinics.length ? <div className={styles.empty}><h2>{page ? 'You’ve reached the end of the listings.' : 'Our clinic network is taking shape.'}</h2><p>{page ? 'Return to the previous page to keep exploring.' : 'Approved clinics will appear here once their websites are published. You can explore our nurse directory in the meantime.'}</p><Link prefetch={false} className={styles.secondary} href="/directory">Explore nurses →</Link></div> : null}<nav className={styles.pagination} aria-label="Clinic directory pages">{page > 0 ? <Link prefetch={false} href={`/directory/clinics?page=${page-1}`}>← Previous</Link> : null}{clinics.length === 24 ? <Link prefetch={false} href={`/directory/clinics?page=${page+1}`}>Next →</Link> : null}</nav></section></main><NetworkFooter/></PartnerExperience>;
 }

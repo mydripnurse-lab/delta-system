@@ -1,3 +1,4 @@
+import { clinicsEnabled } from "@/lib/clinicFeature";
 import { definitionForCalendar, partnerServiceSlug } from "@/lib/myDripNurseServices";
 import { listPublishedPartnerWebsites } from "@/lib/partnerProfiles";
 import { PARTNER_SITE_ORIGIN, partnerPublicUrl } from "@/lib/partnerSeo";
@@ -34,6 +35,8 @@ export async function GET() {
       priority: "1.0",
       changeFrequency: "daily",
     }),
+    urlEntry({ loc: `${PARTNER_SITE_ORIGIN}/directory`, priority: "0.9", changeFrequency: "daily" }),
+    ...(clinicsEnabled() ? [urlEntry({ loc: `${PARTNER_SITE_ORIGIN}/directory/clinics`, priority: "0.8", changeFrequency: "daily" })] : []),
     ...profiles.flatMap((profile) => {
       const seen = new Set<string>();
       const serviceEntries = profile.services.flatMap((service) => {

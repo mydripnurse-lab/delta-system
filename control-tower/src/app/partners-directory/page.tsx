@@ -1,11 +1,9 @@
-import { clinicsEnabled } from "@/lib/clinicAuth";
+import { clinicsEnabled } from "@/lib/clinicFeature";
 import type { Metadata } from "next";
 
-import MarketingHeaderEmbed from "@/components/marketing/MarketingHeaderEmbed";
+import { NetworkHeader, NetworkFooter, DirectoryNavigation } from "@/components/partner-network/NetworkNavigation";
 import { PartnerExperience } from "@/components/partner/PartnerBrand";
-import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 import { enrichDirectoryProfiles } from "@/lib/partnerDirectory";
-import { getPartnerPortalSession } from "@/lib/partnerPortalAuth";
 import { listPublicPartnerProfiles, type PublicPartnerProfile } from "@/lib/partnerProfiles";
 import { PARTNER_SITE_ORIGIN, serializeStructuredData } from "@/lib/partnerSeo";
 import { getPartnerReviewSummaries } from "@/lib/partnerReviews";
@@ -24,12 +22,12 @@ export const metadata: Metadata = {
     "mobile IV therapy Partner directory",
     "local IV hydration providers",
   ],
-  alternates: { canonical: PARTNER_SITE_ORIGIN },
+  alternates: { canonical: `${PARTNER_SITE_ORIGIN}/directory` },
   robots: { index: true, follow: true },
   openGraph: {
     type: "website",
     siteName: "My Drip Nurse Partner Directory",
-    url: PARTNER_SITE_ORIGIN,
+    url: `${PARTNER_SITE_ORIGIN}/directory`,
     title: "Find Mobile IV Therapy Near You | My Drip Nurse",
     description: "Explore verified local mobile IV therapy Partners, service areas and booking options.",
   },
@@ -120,13 +118,6 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
     ...partner,
     reviewSummary: reviewSummaries.get(partner.id) || { averageRating: 0, reviewCount: 0 },
   }));
-  const [clientAccount, partnerSession] = await Promise.all([
-    getAuthenticatedClient(),
-    getPartnerPortalSession(),
-  ]);
-  const signedInPartner = partnerSession
-    ? partners.find((partner) => partner.id === partnerSession.profile_id) || null
-    : null;
   const directoryJsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -140,7 +131,7 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
       {
         "@type": "WebSite",
         "@id": `${PARTNER_SITE_ORIGIN}/#website`,
-        name: "My Drip Nurse Partner Directory",
+        name: "My Drip Nurse Partner Network",
         url: PARTNER_SITE_ORIGIN,
         publisher: { "@id": `${PARTNER_SITE_ORIGIN}/#organization` },
       },
@@ -161,36 +152,12 @@ export default async function PartnersDirectoryPage({ searchParams }: Props) {
   return (
     <PartnerExperience>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(directoryJsonLd) }} />
-      <main className={styles.page}>
-        <MarketingHeaderEmbed
-          account={clientAccount ? {
-            fullName: clientAccount.fullName,
-            email: clientAccount.email,
-            photoUrl: clientAccount.profilePhotoUrl,
-            photoUpdatedAt: clientAccount.profilePhotoUpdatedAt,
-          } : null}
-          partnerAccount={partnerSession ? {
-            fullName: signedInPartner?.displayName || partnerSession.display_name,
-            email: partnerSession.email,
-            photoUrl: signedInPartner?.profilePhotoUrl || "",
-            photoUpdatedAt: "",
-            profileHref: signedInPartner?.slug ? `https://partners.mydripnurse.com/${signedInPartner.slug}` : undefined,
-          } : null}
-          location="your area"
-          phone="1 (833) 381-0071"
-          websiteUrl="https://mydripnurse.com"
-          bannerText="Licensed Nurses · Same-Day Appointments · Verified Mobile IV Care"
-          preferPreviousMdnOrigin
-          showPartnerPortal
-          showDirectory={false}
-          showWeightLoss={false}
-          showContact={false}
-          nativeNavigation
-        />
-
-        {clinicsEnabled() ? <nav style={{padding:"16px 24px",textAlign:"right"}}><a href="/clinics">Find a clinic →</a></nav> : null}
+      <NetworkHeader directory/>
+      <main id="main-content" className={styles.page}>
+        <DirectoryNavigation active="nurses" clinicsAvailable={clinicsEnabled()} />
         <PartnerDirectoryClient partners={partners} preview={preview} />
       </main>
+      <NetworkFooter/>
     </PartnerExperience>
   );
 }

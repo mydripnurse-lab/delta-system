@@ -174,7 +174,12 @@ export function proxy(req: NextRequest) {
 
   if (isPartnerWebsiteHost(req)) {
     const partnerUrl = req.nextUrl.clone();
-    if (pathname === "/clinics" || pathname.startsWith("/clinics/") || pathname === "/clinic-portal" || pathname.startsWith("/api/")) return NextResponse.next();
+    if (pathname === "/clinics" || pathname === "/partners-directory") {
+      partnerUrl.pathname = pathname === "/clinics" ? "/directory/clinics" : "/directory";
+      return NextResponse.redirect(partnerUrl, 308);
+    }
+    if (pathname === "/directory" || pathname === "/directory/clinics" || pathname === "/partner-network") return NextResponse.next();
+    if (pathname.startsWith("/clinics/") || pathname === "/clinic-portal" || pathname.startsWith("/api/")) return NextResponse.next();
     if (pathname === "/portal/clinics") {
       partnerUrl.pathname = "/clinic-portal";
       return NextResponse.rewrite(partnerUrl);
@@ -192,7 +197,7 @@ export function proxy(req: NextRequest) {
       return NextResponse.rewrite(partnerUrl);
     }
     if (pathname === "/") {
-      partnerUrl.pathname = "/partners-directory";
+      partnerUrl.pathname = "/partner-network";
       return NextResponse.rewrite(partnerUrl);
     }
     if (pathname === "/login") {
@@ -424,6 +429,7 @@ export const config = {
     "/analytic/:path*",
     "/analytics/:path*",
     "/directory-analytics/:path*",
+    "/directory/:path*",
     "/market-management/:path*",
     "/services/:path*",
     "/calendars/:path*",

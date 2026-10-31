@@ -201,8 +201,8 @@ export async function getPartnerDirectoryMetrics(profileId: string, startDateRaw
 }
 
 export async function getPartnerDirectoryRankingSignals(profileIds: string[]): Promise<Map<string, { availabilityConfigured: boolean; acceptanceRate: number; completedAppointments: number; organicScore: number }>> {
-  await ensureBookingEngineSchema();
   if (!profileIds.length) return new Map<string, { availabilityConfigured: boolean; acceptanceRate: number; completedAppointments: number; organicScore: number }>();
+  await ensureBookingEngineSchema();
   const result = await getDbPool().query<{
     profile_id: string;
     availability_configured: boolean;

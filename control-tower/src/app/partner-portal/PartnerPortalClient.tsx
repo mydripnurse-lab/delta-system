@@ -2100,7 +2100,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
             {screen === "directory" ? <section className={`${styles.panel} ${styles.directoryDashboard}`} id="directory">
               <div className={styles.directoryHero}>
                 <div><span>Your public presence</span><h2>Directory performance</h2><p>See how patients discover your profile and move toward booking with you. These results belong only to your Partner profile.</p></div>
-                <div className={styles.directoryHeroActions}><a href="https://partners.mydripnurse.com" target="_blank" rel="noreferrer">Open directory ↗</a><a href={websiteUrl} target="_blank" rel="noreferrer">View my profile ↗</a></div>
+                <div className={styles.directoryHeroActions}><a href="https://partners.mydripnurse.com/directory" target="_blank" rel="noreferrer">Open directory ↗</a><a href={websiteUrl} target="_blank" rel="noreferrer">View my profile ↗</a></div>
               </div>
               {directoryLoading && !directoryDashboard ? <p className={styles.schedulePlaceholder}>Loading your directory results…</p> : null}
               {directoryError ? <p className={styles.error}>{directoryError}</p> : null}
