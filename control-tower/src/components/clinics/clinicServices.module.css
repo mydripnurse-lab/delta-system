@@ -3,9 +3,9 @@
 .heading>span{font-size:.85rem;white-space:nowrap;font-weight:800}
 .catalog{--service-tint:color-mix(in srgb,var(--clinic-primary,#084f5e) 40%,white);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:1.5rem}
 .service{border:1px solid #dce6e3;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-width:0;background:white;box-shadow:0 9px 24px #14373a0a}
-/* Take the image out of the grid's intrinsic sizing so it stays inside its media frame. */
+/* Match the nurse catalog's large product crop while keeping it inside the media frame. */
 .visual{position:relative;isolation:isolate;overflow:hidden;background:var(--service-tint);height:160px;flex:none;display:grid;place-items:center}
-.visual .image{display:block;width:100%;height:100%;min-width:0;min-height:0;object-fit:contain;object-position:center;padding:12px;box-sizing:border-box}
+.visual .image{display:block;width:100%;height:100%;min-width:0;min-height:0;object-fit:cover;object-position:center top;padding:0;box-sizing:border-box}
 .placeholder{font:42px var(--partner-serif,Georgia,serif);color:#17353a}
 .description{padding:17px;display:flex;flex:1;flex-direction:column;gap:12px;min-width:0}
 .description h3{margin:0;color:#17353a;font:400 23px/1.2 var(--partner-serif,Georgia,serif);overflow-wrap:anywhere}
