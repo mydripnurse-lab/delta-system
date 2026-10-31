@@ -27,9 +27,9 @@ export function PartnerClinicEntry({ profileId }: { profileId: string }) {
         window.dispatchEvent(new Event(changed));
     }
     return <aside className={styles.entry} aria-label="Clinic workspace">
-        <nav className={styles.navigation}><Link href="/portal/clinics">My clinics →</Link><Link href="/clinics/register">Register my clinic</Link></nav>
+        <nav className={styles.navigation}><Link prefetch={false} href="/portal/clinics">My clinics →</Link><Link prefetch={false} href="/clinics/register">Register my clinic</Link></nav>
         {!hidden && !dismissed ? <section className={styles.banner} aria-labelledby="clinic-introduction-title">
-            <div><span className={styles.eyebrow}>Grow your practice</span><h2 id="clinic-introduction-title">Your clinic. Your team. One account.</h2><p>Already a partner and own a clinic? Register it from this account, invite your nurses, and manage your clinic’s website. Keep your professional profile, appointments and referral history.</p><Link className={styles.action} href="/clinics/register">Register my clinic <span aria-hidden="true">→</span></Link><small>My Drip Nurse approval required. Your professional account stays active.</small></div>
+            <div><span className={styles.eyebrow}>Grow your practice</span><h2 id="clinic-introduction-title">Your clinic. Your team. One account.</h2><p>Already a partner and own a clinic? Register it from this account, invite your nurses, and manage your clinic’s website. Keep your professional profile, appointments and referral history.</p><Link prefetch={false} className={styles.action} href="/clinics/register">Register my clinic <span aria-hidden="true">→</span></Link><small>Review the own-team affiliate policy before registering. My Drip Nurse approval required.</small></div>
             <button type="button" onClick={dismiss} aria-label="Dismiss clinic introduction">×</button>
         </section> : null}
     </aside>;

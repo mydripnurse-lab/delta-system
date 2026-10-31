@@ -1,0 +1,2 @@
+export const CLINIC_AFFILIATE_POLICY_VERSION = 'external-only-v1';
+export const CLINIC_AFFILIATE_POLICY_TEXT = 'Nurses who join your own clinic team will not generate new affiliate commissions for you or your clinic while they belong to your team, even if you originally referred them. Previously earned commissions remain on record. Eligible referrals outside your own team can continue to earn commissions.';

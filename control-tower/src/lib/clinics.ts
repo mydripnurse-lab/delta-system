@@ -9,6 +9,7 @@ import { getClinicIdentity, hashClinicToken, requireClinicManager, requireClinic
 import { CLINIC_CACHE_TAG, type ClinicRole, type ClinicStatus } from '@/lib/clinicPolicy';
 import { loadSelectablePricingRegions } from '@/lib/regionalPricingCatalog';
 import type { PricingRegion } from '@/lib/regionalPricing';
+import { CLINIC_AFFILIATE_POLICY_VERSION } from '@/lib/clinicAffiliatePolicy';
 export type Clinic = {
     id: string;
     slug: string;
@@ -47,7 +48,7 @@ export async function coverageFromIds(ids: string[]) {
 export function invalidateClinics() { revalidateTag(CLINIC_CACHE_TAG, { expire: 0 }); }
 export async function registerClinic(raw: unknown) {
     requireClinicsEnabled();
-    const input = basic.extend({ fullName: z.string().trim().min(2).max(120), email: z.string().trim().email().max(254), password: z.string().max(200).optional() }).parse(raw);
+    const input = basic.extend({ fullName: z.string().trim().min(2).max(120), email: z.string().trim().email().max(254), password: z.string().max(200).optional(), affiliatePolicyAccepted: z.literal(true, { error: 'Accept the clinic affiliate policy before continuing.' }), affiliatePolicyVersion: z.literal(CLINIC_AFFILIATE_POLICY_VERSION) }).parse(raw);
     const identity = await getClinicIdentity();
     const email = identity?.email || input.email.toLowerCase();
     const organization = await getMyDripNurseOrganizationId();
@@ -70,6 +71,7 @@ export async function registerClinic(raw: unknown) {
         }>(`insert into app.clinics(organization_id,slug,name,contact_email,contact_phone,description) values($1,$2,$3,$4,$5,$6) returning id`, [organization, input.slug, input.name, input.contactEmail, input.contactPhone, input.description]);
         await client.query(`insert into app.clinic_memberships(clinic_id,email,partner_profile_id,role,status,accepted_at,authorized_at,authorized_by) values($1,$2,$3,'owner','active',now(),now(),$2)`, [rows[0].id, email, identity?.partnerId || null]);
         await client.query(`insert into app.clinic_audit(clinic_id,actor,action) values($1,$2,'clinic_registered')`, [rows[0].id, email]);
+        await client.query(`insert into app.clinic_audit(clinic_id,actor,action,subject_id) values($1,$2,'affiliate_policy_accepted',$3)`, [rows[0].id, email, CLINIC_AFFILIATE_POLICY_VERSION]);
         await client.query('commit');
         return rows[0].id;
     }

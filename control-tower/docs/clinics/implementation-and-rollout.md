@@ -62,7 +62,7 @@ The migration and schema-history insert ran in one transaction with a 5-second l
 ## Existing partners and external clinic referrals
 
 - A signed-in nurse can register a clinic from the same account. The owner membership links the existing profile; registration does not replace its website, availability, appointments or personal referral attribution. MDN approval remains required.
-- The partner portal has permanent clinic links and a dismissible introduction banner. The banner expires 30 days after first viewing in that browser; dismissal is browser-local and does not write to Neon.
+- The partner portal has permanent clinic links, a Clinic workspace option inside Profile, and a dismissible introduction banner. The banner expires 30 days after first viewing in that browser; dismissal is browser-local and does not write to Neon.
 - Team invitations and external referral links are separate. A clinic earns only for new independent professionals referred through its external link, never for its own team or its own clinic bookings. Existing accounts/applications retain their original attribution.
 - The server validates `clinic:<slug>` attribution. Client-supplied clinic IDs are ignored. Commission insertion follows the existing confirmed-payment event, is idempotent per appointment, excludes platform-funded rewards and preserves the legacy partner referral path.
 - Clinic affiliate rates inherit the existing organization rate unless an admin-managed database override exists; zero remains zero. There is no new rate editor or automatic payout integration in this change.
@@ -70,3 +70,11 @@ The migration and schema-history insert ran in one transaction with a 5-second l
 - Cancelled/refunded visits are excluded from pending earnings. Already-paid ledger entries remain visible for manual reconciliation; no real payouts, reversals or refunds are initiated.
 - Local PostgreSQL tests cover migration repeatability, existing nurse-to-owner identity preservation, tenant/role isolation, self/team exclusion, preserved attribution, concurrent/repeated commission events, refunds, cache reuse and feature-off behavior. `tools/test-clinic-referral-submission.cjs` additionally exercises the actual application submission code with mocked dependencies and network disabled. Local Chrome checks verified the owner dashboard, prefilled registration and persistent banner dismissal.
 - Migration 049 has **not** been applied to production. These additions are not live and require the rollout checks above. No production database, payment or messaging action was performed for this extension.
+
+## Nurse-to-clinic affiliate policy acceptance
+
+Registration requires an unchecked, mandatory acceptance of `external-only-v1`. The server validates both the acceptance boolean and version before any account or clinic write. Registration and the versioned `affiliate_policy_accepted` audit record (actor and timestamp) commit together. Decline returns to Profile without submitting or changing the account.
+
+Personal and clinic referrals exclude future commissions from the owner's own accepted nursing team, including prior personal referrals. An unaccepted invitation alone does not suppress legacy personal earnings. Removed team members can qualify again as external referrals. Attribution and existing commission records are not deleted or reassigned. The exclusion is enforced in the existing personal commission eligibility query; it adds no page-read query or polling. Team management repeats the policy notice.
+
+Verification: isolated PostgreSQL covers rejected/missing/stale acceptance, transactional audit recording, personal referral eligibility before invitation and acceptance, exclusion after joining, preserved historical earnings and restored external eligibility after removal. TypeScript and scoped lint pass (the large portal component retains existing image warnings). The warning and unchecked consent were also inspected in a local browser. No real account, clinic, payment or email was created. This change is not deployed.

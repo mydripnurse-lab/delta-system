@@ -6,3 +6,5 @@
 
 .publicHeader{min-height:0;padding-bottom:0}.publicHeader .head{margin-bottom:20px}.publicHeader .eyebrow{display:block;margin-bottom:5px}
 .applicationFrame{width:100%;min-height:1500px;border:1px solid #dce7ea;border-radius:24px;background:white}.affiliateMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:24px 0}.affiliateMetrics>div{padding:20px;border:1px solid #dce7ea;border-radius:16px;background:#f8fbfc}.affiliateMetrics small{display:block;color:#58747b}.affiliateMetrics strong{display:block;margin-top:12px;font:28px Georgia,serif}@media(max-width:700px){.affiliateMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.policyConsent{display:flex;gap:12px;align-items:flex-start;line-height:1.6;font-weight:600}.policyConsent input{width:20px;height:20px;flex:none;margin-top:3px;accent-color:var(--clinic-primary,#084f5e)}

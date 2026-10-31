@@ -78,6 +78,17 @@ export async function recordPartnerAffiliateCommission(appointmentId: string) {
        left join app.staff_form_configs config on config.organization_id = a.organization_id
       where a.id = $1::uuid
         and a.status in ('confirmed', 'partner_acknowledged', 'in_progress', 'completed')
+        ${clinicsEnabled() ? `and not exists (
+          select 1 from app.clinic_memberships owner_member
+          join app.clinics own_clinic on own_clinic.id=owner_member.clinic_id
+          join app.clinic_memberships team_member on team_member.clinic_id=owner_member.clinic_id
+          where own_clinic.organization_id=a.organization_id
+            and owner_member.role='owner' and owner_member.status='active'
+            and (owner_member.partner_profile_id=referrer.id or owner_member.email=lower(referrer.email))
+            and team_member.role='nurse' and team_member.status <> 'removed'
+            and team_member.accepted_at is not null
+            and (team_member.partner_profile_id=referred.id or team_member.email=lower(referred.email))
+        )` : ''}
       limit 1`,
     [appointmentId],
   );

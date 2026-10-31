@@ -9,6 +9,7 @@ import { ComingSoonFeature } from "@/components/portal/ComingSoonFeature";
 import { PortalLanguageSelector } from "@/components/portal/PortalLanguageSelector";
 import { usePortalLocale } from "@/components/portal/PortalLocaleProvider";
 import type { PartnerPortalProfile } from "@/lib/partnerProfiles";
+import { PartnerClinicProfileOption } from "@/components/clinics/PartnerClinicProfileOption";
 import type { PartnerPortalAppointment, PartnerPortalDashboard } from "@/lib/partnerAppointments";
 import type { PartnerPortalNotification } from "@/lib/partnerPortalNotifications";
 import type { SupportTicket } from "@/lib/partnerSupport";
@@ -18,7 +19,7 @@ import AppointmentOfferMap, { type AppointmentMapRoute } from "./AppointmentOffe
 import PartnerOnboardingTour, { type PartnerTourPhase } from "./PartnerOnboardingTour";
 
 export type PartnerPortalScreen = "overview" | "appointments" | "availability" | "profile" | "website" | "directory" | "services" | "affiliates" | "support" | "rewards" | "products";
-type Props = { initialProfile: PartnerPortalProfile; screen?: PartnerPortalScreen };
+type Props = { initialProfile: PartnerPortalProfile; screen?: PartnerPortalScreen; clinicsAvailable?: boolean };
 type AvailabilityDay = { dayOfWeek: number; enabled: boolean; startTime: string; endTime: string };
 type CalendarViewMode = "month" | "week" | "list";
 type BlockRange = { date: string; startTime: string; endTime: string };
@@ -435,7 +436,7 @@ function pushApplicationServerKey(value: string) {
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
-export default function PartnerPortalClient({ initialProfile, screen = "overview" }: Props) {
+export default function PartnerPortalClient({ initialProfile, screen = "overview", clinicsAvailable = false }: Props) {
   const { locale, t } = usePortalLocale();
   const [profile, setProfile] = useState(initialProfile);
   const [displayName, setDisplayName] = useState(initialProfile.displayName);
@@ -2044,6 +2045,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
                 <div><span>Account &amp; profile</span><h2>Your professional profile</h2><p>Keep your personal, business, and professional details accurate in one place.</p></div>
                 <div className={styles.profileStatus}><span aria-hidden="true">✓</span><div><strong>Partner profile</strong><small>{profile.websiteStatus === "published" ? "Active and visible" : "Active in your workspace"}</small></div></div>
               </div>
+              {clinicsAvailable ? <PartnerClinicProfileOption /> : null}
               <form onSubmit={saveProfile} className={styles.form}>
                 <div className={styles.profileIdentity} data-tour-id="profile-photo-upload">
                   <div className={styles.photoFrame}>{preview ? <img src={preview} alt="Partner profile preview" title={`${displayName} Partner profile preview`} /> : <span>{initials(displayName)}</span>}</div>

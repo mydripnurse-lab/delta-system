@@ -17,5 +17,6 @@ export async function renderPartnerPortal(screen: PartnerPortalScreen) {
   if (!session) redirect(process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/partner-login" : "/partner-login");
   const profile = await getPartnerProfileForPortal(session.profile_id);
   if (!profile) redirect(process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/partner-login" : "/partner-login");
-  return <>{clinicsEnabled() ? <PartnerClinicEntry profileId={session.profile_id} /> : null}<PartnerPortalClient initialProfile={profile} screen={screen} /></>;
+  const clinicsAvailable = clinicsEnabled();
+  return <>{clinicsAvailable ? <PartnerClinicEntry profileId={session.profile_id} /> : null}<PartnerPortalClient initialProfile={profile} screen={screen} clinicsAvailable={clinicsAvailable} /></>;
 }

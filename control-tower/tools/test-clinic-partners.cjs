@@ -64,8 +64,14 @@ async function main(){
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
  await pool.query("insert into app.service_calendars(service_id,public_key,status) values($1,'fixture-calendar','active')",[service]);
- const input={name:'Fixture Clinic',slug:'fixture-clinic',fullName:'Fixture Owner',email:'owner@example.invalid',password:'FixtureOnly2026!',contactEmail:'clinic@example.invalid',contactPhone:'',description:'Local fixture clinic'};
+ const input={affiliatePolicyAccepted:true,affiliatePolicyVersion:'external-only-v1',name:'Fixture Clinic',slug:'fixture-clinic',fullName:'Fixture Owner',email:'owner@example.invalid',password:'FixtureOnly2026!',contactEmail:'clinic@example.invalid',contactPhone:'',description:'Local fixture clinic'};
+ const beforeDecline=(await query('select count(*)::int n from app.clinic_accounts')).rows[0].n;
+ await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyAccepted:false}),/Accept the clinic affiliate policy/);
+ await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyAccepted:undefined}),/Accept the clinic affiliate policy/);
+ await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyVersion:'old-version'}));
+ assert.equal((await query('select count(*)::int n from app.clinic_accounts')).rows[0].n,beforeDecline,'Declining or missing policy cannot create an account');
  const id=await clinics.registerClinic(input);
+ assert.equal((await query("select count(*)::int n from app.clinic_audit where clinic_id=$1 and action='affiliate_policy_accepted' and subject_id='external-only-v1'",[id])).rows[0].n,1,'Store versioned acceptance in the registration transaction');
  assert.equal((await query('select status from app.clinics where id=$1',[id])).rows[0].status,'pending');
  await assert.rejects(()=>clinics.registerClinic({...input,slug:'duplicate-account'}),/already exists/);
  identity={email:input.email};
@@ -251,9 +257,29 @@ async function main(){
  await query("insert into app.clinic_memberships(clinic_id,email,role,status) values($1,'manager@example.invalid','manager','active')",[id]);
  identity={email:'manager@example.invalid'};
  await assert.rejects(()=>affiliates.getClinicAffiliateDashboard(id),/Only the clinic owner/);
+ // A nurse becoming a clinic owner must not keep earning personal affiliate
+ // commissions from accepted members of their own team. Existing ledger stays intact.
+ await query(`alter table app.partner_profiles add column if not exists affiliate_commission_rate numeric;
+ alter table app.partner_affiliate_commissions add column id uuid default gen_random_uuid(), add column referrer_profile_id uuid, add column referred_profile_id uuid, add column service_id uuid, add column amount numeric, add column rate numeric, add column currency text, add column status text, add column metadata jsonb;`);
+ await query('update app.staff_applications set referred_by_profile_id=$2 where id=$1',[externalApp,member.partner_profile_id]);
+ const legacy=load('src/lib/partnerAffiliate.ts');
+ const historical=await appointment();
+ assert(await legacy.recordPartnerAffiliateCommission(historical),'External referral earns before joining owner team');
+ const historicalRow=(await query('select * from app.partner_affiliate_commissions where appointment_id=$1',[historical])).rows[0];
+ await query("insert into app.clinic_memberships(clinic_id,email,partner_profile_id,role,status) values($1,$2,$3,'nurse','invited')",[owned,externalEmail,external]);
+ const notAccepted=await appointment();
+ assert(await legacy.recordPartnerAffiliateCommission(notAccepted),'An unaccepted invitation alone must not remove earnings');
+ await query("update app.clinic_memberships set status='pending',accepted_at=now() where clinic_id=$1 and email=$2",[owned,externalEmail]);
+ const ownTeamVisit=await appointment();
+ assert.equal(await legacy.recordPartnerAffiliateCommission(ownTeamVisit),null,'Old personal referral cannot bypass own-team exclusion');
+ assert.equal((await query('select count(*)::int n from app.partner_affiliate_commissions where appointment_id=$1',[ownTeamVisit])).rows[0].n,0);
+ assert.deepEqual((await query('select * from app.partner_affiliate_commissions where appointment_id=$1',[historical])).rows[0],historicalRow,'Already earned commissions are unchanged');
+ assert.equal((await query('select referred_by_profile_id from app.staff_applications where id=$1',[externalApp])).rows[0].referred_by_profile_id,member.partner_profile_id,'Preserve attribution and history');
+ await query("update app.clinic_memberships set status='removed' where clinic_id=$1 and email=$2",[owned,externalEmail]);
+ assert(await legacy.recordPartnerAffiliateCommission(await appointment()),'External referral may earn again after leaving own team');
  process.env.CLINIC_PARTNERS_ENABLED='false';
  const offReads=queryCount;assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null);assert.equal(queryCount,offReads,'Disabled clinic rollout adds no DB requests');
  process.env.CLINIC_PARTNERS_ENABLED='true';
- console.log('PASS: clinic lifecycle, existing nurse-to-owner identity preservation, external referrals, own-team/self exclusion, idempotent commissions, legacy attribution, refunds, owner-only access and shared-cache checks. Local synthetic data only; no payments or production writes.');
+ console.log('PASS: clinic lifecycle, required versioned policy acceptance, existing nurse-to-owner identity preservation, personal own-team commission exclusion, preserved historical earnings, external referrals, own-team/self exclusion, idempotent commissions, legacy attribution, refunds, owner-only access and shared-cache checks. Local synthetic data only; no payments or production writes.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>pool.end());
