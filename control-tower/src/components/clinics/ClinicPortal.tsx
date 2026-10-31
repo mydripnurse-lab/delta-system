@@ -1,5 +1,4 @@
 'use client';
-import Image from "next/image";
 import { useState, type CSSProperties } from 'react';
 import type { Clinic, ClinicMember } from '@/lib/clinics';
 import { brandTextColor } from '@/lib/clinicPolicy';
@@ -9,6 +8,9 @@ import { ClinicDashboard } from './ClinicDashboard';
 import { ClinicAffiliates } from './ClinicAffiliates';
 import { CLINIC_AFFILIATE_POLICY_TEXT } from '@/lib/clinicAffiliatePolicy';
 import styles from './clinic.module.css';
+import branding from './clinicBranding.module.css';
+import { ClinicWhiteLabel } from './ClinicWhiteLabel';
+import { ClinicAccountPhoto } from './ClinicAccountPhoto';
 type Workspace = {
     role: 'owner' | 'manager';
     clinic: Clinic;
@@ -36,7 +38,7 @@ type Workspace = {
     }[];
 };
 type ListedClinic = Clinic & { role?: string };
-type ClinicIdentity = { partnerId: string; name: string };
+type ClinicIdentity = { partnerId: string; name: string; photoUrl?: string };
 export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialIdentity, initialWorkspace }: {
     bookingsEnabled?: boolean;
     initialWorkspace: Workspace;
@@ -86,13 +88,14 @@ export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialI
         setBusy(false);
     } }
     const [affiliateClinicId, setAffiliateClinicId] = useState('');
+    const [profileTab, setProfileTab] = useState('details');
     const ownedClinics = clinics.filter(c => c.role === 'owner');
     const affiliateClinic = ownedClinics.find(c => c.id === affiliateClinicId) || (ownedClinics.length === 1 ? ownedClinics[0] : undefined);
     const clinic = data?.clinic;
     const theme = clinic ? { '--clinic-primary': clinic.primaryColor, '--clinic-accent': clinic.accentColor, '--clinic-ink': brandTextColor(clinic.primaryColor), '--clinic-accent-ink': brandTextColor(clinic.accentColor) } as CSSProperties : undefined;
     function update(patch: Partial<Clinic>) { setData(old => old ? { ...old, clinic: { ...old.clinic, ...patch } } : old); }
     const save = () => clinic && action({ action: 'save', ...clinic, coverageIds: clinic.coverage.map(r => r.id) });
-    return <ClinicPortalShell clinic={clinic} theme={theme} section={tab} owner={data ? data.role === 'owner' : ownedClinics.length > 0} hasPractice={!!identity?.partnerId} accountName={identity?.name} busy={busy}
+    return <ClinicPortalShell clinic={clinic} theme={theme} section={tab} owner={data ? data.role === 'owner' : ownedClinics.length > 0} hasPractice={!!identity?.partnerId} accountName={identity?.name} accountPhotoUrl={identity?.photoUrl} busy={busy}
         onSection={next => { setTab(next); setEditing(null); }}
 
         onSignOut={() => { void fetch('/api/public/partner-portal/logout', { method: 'POST' }).then(r => { if (r.ok) window.location.assign('/login'); else setError('Unable to sign out. Please try again.'); }).catch(() => setError('Unable to sign out. Please try again.')); }}>
@@ -117,26 +120,10 @@ export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialI
  {tab === 'Services' ? <section className={styles.card}><h2>Services & pricing</h2><p>My Drip Nurse manages the services and regional prices for your clinic. Final prices are determined by the service address.</p>{data.services.map(s => <div key={s.id} className={styles.row}><strong>{s.name}</strong><span>{s.clinicPrice === null ? 'Uses My Drip Nurse regional pricing' : `Clinic default: $${Number(s.clinicPrice).toFixed(2)}`}</span></div>)}{!data.services.length ? <p className={styles.empty}>My Drip Nurse has not enabled any services for this clinic yet.</p> : null}</section> : null}
  {tab === 'Coverage' ? <section className={styles.card}><h2>Where your team provides care</h2><ClinicCoverage value={clinic.coverage} onChange={coverage => update({ coverage })}/><button className={styles.primary} disabled={busy} onClick={() => void save()}>Save coverage</button></section> : null}
 
- {tab === 'Profile' ? <section className={styles.card}><h2>Your clinic details</h2><p>Your clinic email and phone are private and used only for internal coordination. Client inquiries and appointment requests go through My Drip Nurse.</p><label className={styles.field}>Clinic name<input value={clinic.name} onChange={e => update({ name: e.target.value })}/></label><label className={styles.field}>About the clinic<textarea value={clinic.description} onChange={e => update({ description: e.target.value })}/><span className={styles.muted}>Public introduction. Do not include direct contact details or external booking links.</span></label><div className={styles.grid}><label className={styles.field}>Private contact email<input type="email" value={clinic.contactEmail} onChange={e => update({ contactEmail: e.target.value })}/></label><label className={styles.field}>Private phone<input value={clinic.contactPhone} onChange={e => update({ contactPhone: e.target.value })}/></label></div><button disabled={busy} className={styles.primary} onClick={() => void save()}>Save clinic profile</button></section> : null}
+ {tab === 'Profile' ? <><nav className={branding.profileTabs} aria-label="Profile sections">{[['details', 'Clinic details'], ['branding', 'White Label'], ['account', 'My profile']].map(([value, label]) => <button type="button" key={value} aria-pressed={profileTab === value} disabled={busy} onClick={() => setProfileTab(value)}>{label}</button>)}</nav>{profileTab === 'branding' ? <ClinicWhiteLabel key={clinic.id} clinic={clinic} busy={busy} onSave={brand => action({ action: 'branding', ...brand })}/> : null}{profileTab === 'account' ? <ClinicAccountPhoto name={identity.name} photoUrl={identity.photoUrl || ''} onSaved={photoUrl => setIdentity(current => ({ ...current, photoUrl }))}/> : null}</> : null}
+ {tab === 'Profile' && profileTab === 'details' ? <section className={styles.card}><h2>Your clinic details</h2><p>Your clinic email and phone are private and used only for internal coordination. Client inquiries and appointment requests go through My Drip Nurse.</p><label className={styles.field}>Clinic name<input value={clinic.name} onChange={e => update({ name: e.target.value })}/></label><label className={styles.field}>About the clinic<textarea value={clinic.description} onChange={e => update({ description: e.target.value })}/><span className={styles.muted}>Public introduction. Do not include direct contact details or external booking links.</span></label><div className={styles.grid}><label className={styles.field}>Private contact email<input type="email" value={clinic.contactEmail} onChange={e => update({ contactEmail: e.target.value })}/></label><label className={styles.field}>Private phone<input value={clinic.contactPhone} onChange={e => update({ contactPhone: e.target.value })}/></label></div><button disabled={busy} className={styles.primary} onClick={() => void save()}>Save clinic profile</button></section> : null}
  {tab === 'Directory' && clinic.status === 'approved' ? <ClinicDashboard key={clinic.id} clinic={clinic} directory/> : null}
  {tab === 'Rewards' || tab === 'Products' ? <section className={styles.card}><span className={styles.badge}>Coming soon</span><h2>{tab === 'Rewards' ? 'More possibilities for your clinic' : 'Products for your practice'}</h2><p>{tab === 'Rewards' ? 'Clinic rewards are not available yet. Your existing affiliate program remains available to the clinic owner.' : 'Clinic product ordering is not available yet. Your service catalog stays in Services.'}</p></section> : null}
- {tab === 'Website' ? <section className={styles.card}><h2>Your brand, throughout your portal</h2><p>Your logo and colors personalize your clinic workspace and public website. Changes appear in the preview as you edit; save when ready.</p><div className={styles.grid}><div><label className={styles.field}>Logo URL<input type="url" value={clinic.logoUrl} onChange={e => update({ logoUrl: e.target.value })}/></label><label className={styles.field}>Upload logo<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={async (e) => { const file = e.target.files?.[0]; if (!file)
-            return; setBusy(true); try {
-            const form = new FormData();
-            form.set('clinicId', clinic.id);
-            form.set('file', file);
-            const r = await fetch('/api/clinics/logo', { method: 'POST', body: form });
-            const p = await r.json();
-            if (!r.ok)
-                throw new Error(p.error);
-            update({ logoUrl: p.url });
-            setNotice('Logo uploaded. Save your website to publish.');
-        }
-        catch (e) {
-            setError(e instanceof Error ? e.message : 'Upload failed.');
-        }
-        finally {
-            setBusy(false);
-        } }}/></label><div className={styles.grid}><label className={styles.field}>Primary color<input type="color" value={clinic.primaryColor} onChange={e => update({ primaryColor: e.target.value })}/></label><label className={styles.field}>Accent color<input type="color" value={clinic.accentColor} onChange={e => update({ accentColor: e.target.value })}/></label></div><label><input type="checkbox" checked={clinic.published} disabled={clinic.status !== 'approved'} onChange={e => update({ published: e.target.checked })}/> Publish website and directory listing</label></div><div className={styles.preview}><span className={styles.eyebrow}>Brand preview</span><div className={styles.hero}>{clinic.logoUrl ? <Image unoptimized width={120} height={120} className={styles.logo} src={clinic.logoUrl} alt="Clinic logo preview"/> : null}<h1>{clinic.name}</h1><p>{clinic.description || 'Your clinic’s introduction appears here.'}</p><span className={styles.primary}>Explore services →</span></div><p className={styles.small}>Powered by My Drip Nurse</p></div></div><div className={styles.actions}><button disabled={busy} className={styles.primary} onClick={() => void save()}>Save website</button>{clinic.published ? <a className={styles.secondary} href={`/clinics/${clinic.slug}`} target="_blank" rel="noreferrer">View website ↗</a> : null}</div></section> : null}
+ {tab === 'Website' ? <section className={styles.card}><h2>Your clinic website</h2><p>Your clinic website uses the logo and colors saved in your profile’s White Label tab.</p><div className={styles.actions}><button className={styles.secondary} onClick={() => { setProfileTab('branding'); setTab('Profile'); }}>Edit White Label →</button>{clinic.published && clinic.status === 'approved' ? <a className={styles.secondary} href={`/clinics/${clinic.slug}`} target="_blank" rel="noreferrer">View website ↗</a> : null}</div><p><label><input type="checkbox" checked={clinic.published} disabled={clinic.status !== 'approved' || busy} onChange={e => update({ published: e.target.checked })}/> Publish website and directory listing</label></p><button disabled={busy} className={styles.primary} onClick={() => void save()}>Save website</button></section> : null}
  </> : null}</div></ClinicPortalShell>;
 }

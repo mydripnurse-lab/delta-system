@@ -18,6 +18,7 @@ type PortalSessionRow = {
   slug: string;
   display_name: string;
   expires_at: string;
+  clinic_avatar_url?: string;
 };
 
 function tokenHash(token: string) {
@@ -139,7 +140,7 @@ export async function readPartnerPortalSession(rawToken: string) {
         and s.expires_at > now()
       returning s.id as session_id, p.id as profile_id, p.application_id,
                 p.organization_id, p.ghl_user_id, p.email, p.slug,
-                p.display_name, s.expires_at::text`,
+                p.display_name, coalesce(nullif(p.clinic_avatar_url, ''), p.profile_photo_url, '') as clinic_avatar_url, s.expires_at::text`,
     [tokenHash(token)],
   );
   return result.rows[0] || null;

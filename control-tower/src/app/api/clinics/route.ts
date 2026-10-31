@@ -2,7 +2,7 @@ import { consumeClinicRequestBudget } from "@/lib/clinicRequestBudget";
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getClinicIdentity, requireClinicsEnabled, requireClinicOrigin } from '@/lib/clinicAuth';
-import { registerClinic, listClinics, clinicWorkspace, saveClinic, inviteClinicMember, acceptClinicInvite, updateClinicMember } from '@/lib/clinics';
+import { registerClinic, saveClinicBranding, listClinics, clinicWorkspace, saveClinic, inviteClinicMember, acceptClinicInvite, updateClinicMember } from '@/lib/clinics';
 import { loadSelectablePricingRegions } from '@/lib/regionalPricingCatalog';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,7 +44,9 @@ export async function POST(request: Request) {
             return json({ ok: true });
         }
         const id = z.string().uuid().parse(body.clinicId);
-        if (body.action === 'save')
+        if (body.action === 'branding')
+            await saveClinicBranding(id, body);
+        else if (body.action === 'save')
             await saveClinic(id, body);
         else if (body.action === 'invite')
             return json({ ok: true, inviteUrl: await inviteClinicMember(id, body) });

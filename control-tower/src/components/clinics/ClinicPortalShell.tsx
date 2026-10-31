@@ -25,18 +25,21 @@ type Props = {
     owner: boolean;
     hasPractice: boolean;
     accountName?: string;
+    accountPhotoUrl?: string;
     busy: boolean;
     children: ReactNode;
 };
 
-export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut, owner, hasPractice, accountName, busy, children }: Props) {
+export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut, owner, hasPractice, accountName, accountPhotoUrl, busy, children }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [failedPhoto, setFailedPhoto] = useState('');
+    const [failedLogo, setFailedLogo] = useState('');
     const title = clinic?.name || 'Clinic workspace';
     function select(next: ClinicSection) { onSection(next); setMenuOpen(false); }
     return <PartnerExperience><div className={styles.layout} style={theme}>
         <aside id="clinic-navigation" className={`${styles.sidebar} ${menuOpen ? styles.open : ''}`}>
             <div className={styles.brand}>
-                {clinic?.logoUrl ? <Image unoptimized width={160} height={64} src={clinic.logoUrl} alt={title} /> : clinic ? <span className={styles.monogram}>{title.slice(0, 2).toUpperCase()}</span> : <Image width={160} height={34} src="/mdn-logo.png" alt="My Drip Nurse" className={styles.defaultLogo} />}
+                {clinic?.logoUrl && failedLogo !== clinic.logoUrl ? <Image unoptimized width={160} height={64} src={clinic.logoUrl} alt={title} onError={() => setFailedLogo(clinic.logoUrl)} /> : clinic ? <span className={styles.monogram}>{title.slice(0, 2).toUpperCase()}</span> : <Image width={160} height={34} src="/mdn-logo.png" alt="My Drip Nurse" className={styles.defaultLogo} />}
                 {clinic ? <strong>{title}</strong> : null}
             </div>
             <nav className={styles.navigation} aria-label="Clinic portal">
@@ -55,7 +58,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut
                 <button type="button" className={styles.menuToggle} aria-controls="clinic-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? 'Close menu' : 'Menu'} <span aria-hidden="true">☰</span></button>
                 <div className={styles.workspace}><small>Clinic workspace</small><strong>{title}</strong></div>
                 <details className={styles.account}>
-                    <summary><span className={styles.avatar}>{(accountName || title).slice(0, 1).toUpperCase()}</span><span><strong>{accountName || 'Your account'}</strong><small>{clinic ? owner ? 'Clinic owner' : 'Clinic manager' : 'Clinic partner'}</small></span><span aria-hidden="true">⌄</span></summary>
+                    <summary><span className={styles.avatar}>{accountPhotoUrl && failedPhoto !== accountPhotoUrl ? <Image unoptimized src={accountPhotoUrl} alt="" width={40} height={40} onError={() => setFailedPhoto(accountPhotoUrl)} /> : (accountName || title).slice(0, 1).toUpperCase()}</span><span><strong>{accountName || 'Your account'}</strong><small>{clinic ? owner ? 'Clinic owner' : 'Clinic manager' : 'Clinic partner'}</small></span><span aria-hidden="true">⌄</span></summary>
                     <div className={styles.accountMenu}>
                         {clinic ? <button type="button" onClick={() => select('Profile')}>Clinic profile</button> : null}
                         <Link prefetch={false} href="/clinics/register">Register a clinic</Link>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { brandTextColor } from '@/lib/clinicPolicy';
 import { notFound } from 'next/navigation';
 import { publicClinics } from '@/lib/clinics';
 import { clinicsEnabled } from '@/lib/clinicFeature';
@@ -13,7 +14,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     if (!clinic) notFound();
     const clinicReferral = type === 'clinic';
     const code = encodeURIComponent(`clinic:${clinic.slug}`);
-    return <main className={styles.shell} style={{ '--clinic-accent': clinic.accentColor } as CSSProperties}>
+    return <main className={styles.shell} style={{ '--clinic-primary': clinic.primaryColor, '--clinic-ink': brandTextColor(clinic.primaryColor), '--clinic-accent': clinic.accentColor, '--clinic-accent-ink': brandTextColor(clinic.accentColor) } as CSSProperties}>
         <Link href={`/clinics/${clinic.slug}`}>← {clinic.name}</Link>
         <section className={styles.hero}>
             <span className={styles.eyebrow}>My Drip Nurse · External referral</span>

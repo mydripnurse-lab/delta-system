@@ -24,14 +24,15 @@ export const getClinicIdentity = cache(async () => {
         return null;
     const partner = await getPartnerPortalSession();
     if (partner)
-        return { email: partner.email.toLowerCase(), name: partner.display_name, partnerId: partner.profile_id };
+        return { email: partner.email.toLowerCase(), name: partner.display_name, partnerId: partner.profile_id, photoUrl: partner.clinic_avatar_url || '' };
     const token = (await cookies()).get(CLINIC_COOKIE)?.value;
     if (!token || token.length < 32)
         return null;
     const { rows } = await getDbPool().query<{
         email: string;
         name: string;
-    }>(`select a.email, a.full_name as name from app.clinic_sessions s join app.clinic_accounts a on a.id=s.account_id where s.token_hash=$1 and s.expires_at>now() and a.is_active=true`, [hashClinicToken(token)]);
+        photoUrl: string;
+    }>(`select a.email, a.full_name as name, coalesce(a.profile_photo_url, '') as "photoUrl" from app.clinic_sessions s join app.clinic_accounts a on a.id=s.account_id where s.token_hash=$1 and s.expires_at>now() and a.is_active=true`, [hashClinicToken(token)]);
     return rows[0] ? { ...rows[0], partnerId: '' } : null;
 });
 export async function loginClinicAccount(email: string, password: string) {

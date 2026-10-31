@@ -248,3 +248,11 @@ export const publicClinics = unstable_cache(async (slug: string = '', offset = 0
     const { rows } = await getDbPool().query<PublicClinic>(`select ${publicColumns} from app.clinics c where c.status='approved' and c.published=true and ($1='' or c.slug=$1) order by c.name,c.id limit 24 offset $2`, [slug, offset]);
     return rows;
 }, ['clinics-public-v2-private-contacts'], { revalidate: 300, tags: [CLINIC_CACHE_TAG] });
+
+// A branding save cannot overwrite profile details, coverage, publication or pricing.
+export async function saveClinicBranding(id: string, raw: unknown) {
+    await requireClinicManager(id);
+    const input = clinicInput.pick({ logoUrl: true, primaryColor: true, accentColor: true }).parse(raw);
+    await getDbPool().query(`update app.clinics set logo_url=$2,primary_color=$3,accent_color=$4,updated_at=now() where id=$1`, [id, input.logoUrl, input.primaryColor, input.accentColor]);
+    invalidateClinics();
+}

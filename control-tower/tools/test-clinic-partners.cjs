@@ -61,7 +61,7 @@ async function main(){
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
  // Migration must be repeatable, including indexes and additive columns.
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
- for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
+ for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql','051_clinic_account_photos.sql','051_clinic_account_photos.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
  await pool.query("alter table app.staff_applications add constraint fixture_application_status check (status in ('under_review','submitted','completed'))");
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
@@ -94,6 +94,17 @@ async function main(){
  await assert.rejects(()=>clinics.saveClinic(id,save),/approve/);
  await query("update app.clinics set status='approved' where id=$1",[id]);
  await clinics.saveClinic(id,save);
+ const beforeBranding=(await query('select * from app.clinics where id=$1',[id])).rows[0];
+ await clinics.saveClinicBranding(id,{logoUrl:'https://example.invalid/clinic.webp',primaryColor:'#faf5ed',accentColor:'#173e44',name:'MUST NOT CHANGE',published:false,coverageIds:[]});
+ const afterBranding=(await query('select * from app.clinics where id=$1',[id])).rows[0];
+ assert.equal(afterBranding.primary_color,'#faf5ed');
+ assert.equal(afterBranding.accent_color,'#173e44');
+ for(const field of ['name','slug','contact_email','contact_phone','coverage','published','status']) assert.deepEqual(afterBranding[field],beforeBranding[field],`Branding preserves ${field}`);
+ await assert.rejects(()=>clinics.saveClinicBranding(id,{logoUrl:'javascript:alert(1)',primaryColor:'#fff',accentColor:'red'}));
+ identity={email:'intruder@example.invalid'};
+ await assert.rejects(()=>clinics.saveClinicBranding(id,{logoUrl:'',primaryColor:'#000000',accentColor:'#ffffff'}),/denied/);
+ identity={email:input.email};
+
  const publicReadStart = queryCount;
  const publicListing = (await clinics.publicClinics(input.slug))[0];
  assert(publicListing);
