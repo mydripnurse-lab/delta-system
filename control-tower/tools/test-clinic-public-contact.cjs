@@ -9,10 +9,12 @@ const clinic = { id: 'fixture', slug: 'fixture-clinic', name: 'Fixture Clinic', 
 const services = [{ id: 'service', name: 'Fixture IV', price: 219, clinicPrice: null, regionalPrices: [], clinicRegions: [], publicKey: 'fixture-calendar', currency: 'USD', imageUrl: '', description: '' }];
 let bookings = true;
 const mocks = {
- 'next/link': ({ children, ...props }) => React.createElement('a', props, children),
+ 'next/link': ({ children, prefetch, ...props }) => React.createElement('a', props, children),
  'next/image': ({ unoptimized, ...props }) => React.createElement('img', props),
- 'next/navigation': { notFound: () => { throw new Error('not found'); } },
+ 'next/navigation': { redirect: url => { throw Object.assign(new Error('redirect'),{url}); }, notFound: () => { throw new Error('not found'); } },
  '@/lib/clinicFeature': { clinicsEnabled: () => true, clinicBookingsEnabled: () => bookings },
+ '@/components/partner/PartnerBrand': { PartnerExperience: ({children}) => children },
+ '@/components/partner-network/NetworkNavigation': { NetworkHeader: () => null, DirectoryNavigation: () => null, NetworkFooter: () => null },
  '@/lib/clinicAuth': { clinicsEnabled: () => true },
  '@/lib/clinics': { publicClinics: async () => [clinic] },
  '@/lib/clinicBooking': { publicClinicServices: async () => services, publicClinicTeam: async () => [] },

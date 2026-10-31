@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { clinicsEnabled } from '@/lib/clinicFeature';
 import styles from './network.module.css';
 
 export function NetworkHeader({ directory = false }: { directory?: boolean }) {
@@ -8,7 +9,7 @@ export function NetworkHeader({ directory = false }: { directory?: boolean }) {
     <div className={styles.headerInner}>
       <Link prefetch={false} href="/" aria-label="My Drip Nurse Partners home" className={styles.logo}><Image src="/mdn-logo.png" alt="My Drip Nurse" width={240} height={51} priority/></Link>
       <nav aria-label="Partner network" className={styles.desktopNav}><Link prefetch={false} href="/#join">Join the network</Link><Link prefetch={false} href="/#how-it-works">How it works</Link><Link prefetch={false} href="/directory" aria-current={directory ? 'page' : undefined}>Directory</Link></nav>
-      <Link prefetch={false} className={styles.signIn} href="/login">Log in <span aria-hidden="true">↗</span></Link>
+      <details className={styles.loginMenu}><summary className={styles.signIn}>Log in <span aria-hidden="true">⌄</span></summary><nav aria-label="Login options"><Link prefetch={false} href="/login?role=nurse">Login as Nurse</Link>{clinicsEnabled() ? <Link prefetch={false} href="/login?role=clinic">Login as Clinic</Link> : null}</nav></details>
       <details className={styles.mobileMenu}><summary>Menu <span aria-hidden="true">☰</span></summary><nav aria-label="Mobile partner network"><Link prefetch={false} href="/#join">Join the network</Link><Link prefetch={false} href="/#how-it-works">How it works</Link><Link prefetch={false} href="/directory">Directory</Link></nav></details>
     </div>
   </header>;

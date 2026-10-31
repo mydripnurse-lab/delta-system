@@ -144,3 +144,5 @@
 .valueStrip{gap:14px;font-size:9px}
 }
 
+
+.loginMenu{position:relative;flex-shrink:0}.loginMenu summary{cursor:pointer;list-style:none;color:#16454d;font-size:13px;font-weight:700}.loginMenu summary::-webkit-details-marker{display:none}.loginMenu summary:focus-visible{outline:3px solid #078596;outline-offset:4px}.loginMenu nav{position:absolute;right:0;top:calc(100% + 10px);min-width:205px;padding:8px;background:#fff;border:1px solid #d5e5e4;border-radius:16px;box-shadow:0 12px 32px #073e4914;display:grid;gap:4px;z-index:30}.loginMenu nav a{padding:13px 14px;border-radius:10px}.loginMenu nav a:hover{background:#eef6f5}

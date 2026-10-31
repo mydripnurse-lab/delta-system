@@ -21,6 +21,8 @@ export function buildPricingGeography(): PricingRegion[] {
             for (const city of rawCities) add('city', state, county, city);
         }
     }
+    // DC is a city-level operating area, without a county subdivision.
+    add('city', 'District of Columbia', '', 'Washington');
     return [...regions.values()];
 }
 export const PRICING_GEOGRAPHY = buildPricingGeography();

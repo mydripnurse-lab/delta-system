@@ -1,4 +1,5 @@
 import 'server-only';
+import { clinicRegistrationCoverage } from '@/lib/clinicRegistrationLocation';
 import { randomBytes } from 'node:crypto';
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { z } from 'zod';
@@ -50,7 +51,8 @@ export async function coverageFromIds(ids: string[]) {
 export function invalidateClinics() { revalidateTag(CLINIC_CACHE_TAG, { expire: 0 }); }
 export async function registerClinic(raw: unknown) {
     requireClinicsEnabled();
-    const input = basic.extend({ fullName: z.string().trim().min(2).max(120), email: z.string().trim().email().max(254), password: z.string().max(200).optional(), referralCode: z.string().max(87).optional(), affiliatePolicyAccepted: z.literal(true, { error: 'Accept the clinic affiliate policy before continuing.' }), affiliatePolicyVersion: z.literal(CLINIC_AFFILIATE_POLICY_VERSION) }).parse(raw);
+    const input = basic.extend({ description: z.string().trim().min(20, 'Tell us about your clinic in at least 20 characters.').max(4000), contactPhone: z.string().trim().min(7, 'Enter a private clinic phone number.').max(40), locationId: z.string().min(1, 'Choose the city where your clinic operates.').max(300), coverageIds: z.array(z.string().max(300)).max(500).default([]), fullName: z.string().trim().min(2).max(120), email: z.string().trim().email().max(254), password: z.string().max(200).optional(), referralCode: z.string().max(87).optional(), affiliatePolicyAccepted: z.literal(true, { error: 'Accept the clinic affiliate policy before continuing.' }), affiliatePolicyVersion: z.literal(CLINIC_AFFILIATE_POLICY_VERSION) }).parse(raw);
+    const coverage = clinicRegistrationCoverage(input.locationId, input.coverageIds);
     const identity = await getClinicIdentity();
     const email = identity?.email || input.email.toLowerCase();
     const organization = await getMyDripNurseOrganizationId();
@@ -72,7 +74,7 @@ export async function registerClinic(raw: unknown) {
         }
         const { rows } = await client.query<{
             id: string;
-        }>(`insert into app.clinics(organization_id,slug,name,contact_email,contact_phone,description,referred_by_clinic_id) values($1,$2,$3,$4,$5,$6,$7) returning id`, [organization, input.slug, input.name, input.contactEmail, input.contactPhone, input.description, referrer]);
+        }>(`insert into app.clinics(organization_id,slug,name,contact_email,contact_phone,description,referred_by_clinic_id,coverage,status,published) values($1,$2,$3,$4,$5,$6,$7,$8::jsonb,'pending',false) returning id`, [organization, input.slug, input.name, input.contactEmail, input.contactPhone, input.description, referrer, JSON.stringify(coverage)]);
         await client.query(`insert into app.clinic_memberships(clinic_id,email,partner_profile_id,role,status,accepted_at,authorized_at,authorized_by) values($1,$2,$3,'owner','active',now(),now(),$2)`, [rows[0].id, email, identity?.partnerId || null]);
         await client.query(`insert into app.clinic_audit(clinic_id,actor,action) values($1,$2,'clinic_registered')`, [rows[0].id, email]);
         await client.query(`insert into app.clinic_audit(clinic_id,actor,action,subject_id) values($1,$2,'affiliate_policy_accepted',$3)`, [rows[0].id, email, CLINIC_AFFILIATE_POLICY_VERSION]);

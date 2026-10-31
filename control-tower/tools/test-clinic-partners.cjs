@@ -29,7 +29,7 @@ function load(relative) {
  if(modules.has(relative))return modules.get(relative).exports;
  const module={exports:{}};modules.set(relative,module);
  const code=ts.transpileModule(fs.readFileSync(path.join(root,relative),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
- new Function('require','module','exports',code)(name=>name in mocks?mocks[name]:name.startsWith('@/')?load(`src/${name.slice(2)}.ts`):require(name),module,module.exports);
+ new Function('require','module','exports',code)(name=>name in mocks?mocks[name]:name.startsWith('@/')?(name.endsWith('.json')?JSON.parse(fs.readFileSync(path.join(root,'src',name.slice(2)),'utf8')):load(`src/${name.slice(2)}.ts`)):require(name),module,module.exports);
  return module.exports;
 }
 const pricing=load('src/lib/regionalPricing.ts');
@@ -66,7 +66,7 @@ async function main(){
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
  await pool.query("insert into app.service_calendars(service_id,public_key,status) values($1,'fixture-calendar','active')",[service]);
- const input={affiliatePolicyAccepted:true,affiliatePolicyVersion:'external-only-v1',name:'Fixture Clinic',slug:'fixture-clinic',fullName:'Fixture Owner',email:'owner@example.invalid',password:'FixtureOnly2026!',contactEmail:'clinic@example.invalid',contactPhone:'+15555550999',description:'Local fixture clinic'};
+ const input={affiliatePolicyAccepted:true,affiliatePolicyVersion:'external-only-v1',name:'Fixture Clinic',slug:'fixture-clinic',fullName:'Fixture Owner',email:'owner@example.invalid',password:'FixtureOnly2026!',contactEmail:'clinic@example.invalid',contactPhone:'+15555550999',description:'Local fixture clinic for registration testing',locationId:orlando.id,coverageIds:[orange.id]};
  const beforeDecline=(await query('select count(*)::int n from app.clinic_accounts')).rows[0].n;
  await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyAccepted:false}),/Accept the clinic affiliate policy/);
  await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyAccepted:undefined}),/Accept the clinic affiliate policy/);
@@ -74,6 +74,10 @@ async function main(){
  assert.equal((await query('select count(*)::int n from app.clinic_accounts')).rows[0].n,beforeDecline,'Declining or missing policy cannot create an account');
  assert.deepEqual(await clinics.listClinics(input.email), [], 'No workspace before completed registration');
  const id=await clinics.registerClinic(input);
+ const savedApplication=(await query('select coverage,status,published from app.clinics where id=$1',[id])).rows[0];
+ assert.deepEqual(savedApplication.coverage.map(r=>r.id),[orlando.id,orange.id]);
+ assert.equal(savedApplication.status,'pending');
+ assert.equal(savedApplication.published,false);
  assert.equal((await clinics.listClinics(input.email)).length, 1, 'Accepted owner can configure pending clinic');
  await query('update app.clinic_memberships set accepted_at=null where clinic_id=$1',[id]);
  assert.deepEqual(await clinics.listClinics(input.email), [], 'Unaccepted membership cannot list workspace');

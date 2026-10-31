@@ -1,4 +1,5 @@
 'use client';
+import { ClinicApplication } from './ClinicApplication';
 import { useEffect, useState } from 'react';
 import styles from './clinic.module.css';
 import { CLINIC_AFFILIATE_POLICY_TEXT, CLINIC_AFFILIATE_POLICY_VERSION } from '@/lib/clinicAffiliatePolicy';
@@ -9,6 +10,10 @@ export function ClinicRegistration({ invite = false, signedIn = false, accountNa
     accountEmail?: string;
     referralCode?: string;
 }) {
+    if (!invite) return <ClinicApplication signedIn={signedIn} accountName={accountName} accountEmail={accountEmail} referralCode={referralCode}/>;
+    return <ClinicInvitation invite={invite} signedIn={signedIn} accountName={accountName} accountEmail={accountEmail} referralCode={referralCode}/>;
+}
+function ClinicInvitation({ invite, signedIn, accountName, accountEmail, referralCode }: { invite: boolean; signedIn: boolean; accountName: string; accountEmail: string; referralCode: string }) {
     const [token, setToken] = useState(''), [error, setError] = useState(''), [done, setDone] = useState(false), [busy, setBusy] = useState(false);
     useEffect(() => { if (invite)
         setToken(window.location.hash.slice(1)); }, [invite]);

@@ -13,7 +13,12 @@ const mocks = {
  '@/lib/clinics': { listClinics: async () => { listCalls++; return clinics; }, clinicWorkspace: async id => ({ clinic: clinics.find(c => c.id === id), role: 'owner', members: [], appointments: [], services: [] }) },
  '@/components/clinics/ClinicPortal': { ClinicPortal: () => null },
  '@/lib/clinicRequestBudget': {}, '@/lib/regionalPricingCatalog': {},
- './clinic.module.css': {},
+ './clinic.module.css': {}, './clinicApplication.module.css': {},
+ 'next/image': { __esModule: true, default: props => require('react').createElement('img', {src:props.src, alt:props.alt}) },
+ 'next/link': { __esModule: true, default: props => require('react').createElement('a', props) },
+ '@/components/partner/PartnerBrand': { PartnerExperience: props => props.children },
+ './ClinicCoverage': { ClinicCoverage: () => null },
+ '@/lib/regionalPricing': { PRICING_STATES: ['Florida', 'Puerto Rico'] },
  '@/lib/clinicAffiliatePolicy': { CLINIC_AFFILIATE_POLICY_TEXT: 'Policy', CLINIC_AFFILIATE_POLICY_VERSION: 'test' },
 };
 function load(file) {
@@ -46,11 +51,14 @@ function load(file) {
  response = await api.GET(new Request('https://example.invalid/api/clinics'));
  assert.equal(response.status, 200);
  const { renderToStaticMarkup } = require('react-dom/server');
+ mocks['./ClinicApplication'] = load('components/clinics/ClinicApplication.tsx');
  const { ClinicRegistration } = load('components/clinics/ClinicRegistration.tsx');
  const html = renderToStaticMarkup(require('react').createElement(ClinicRegistration, { signedIn: true }));
  assert.match(html, /href="\/portal">← Back to my portal/);
  assert(!html.includes('href="/portal/clinics"'), 'Incomplete registration must not link to the clinic workspace');
- assert.match(html, /<input[^>]*required=""[^>]*name="affiliatePolicyAccepted"/);
+ assert.match(html, /STEP 1 OF 4/);
+ assert.match(html, /Tell us about your clinic/);
+ assert.match(html, /My Drip Nurse approval is required/);
  enabled = false;
  await assert.rejects(page, /not found/);
  console.log('PASS: no clinic access before accepted membership; return goes to nurse portal; registered owner can prepare pending clinic; initial list reused; no DB/network.');
