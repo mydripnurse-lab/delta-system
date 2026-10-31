@@ -6,12 +6,16 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const profiles = await listPublicPartnerProfiles(250);
   const body = [
-    "# My Drip Nurse Partner Directory",
+    "# My Drip Nurse Partner Network",
     "",
-    "> Official directory of published My Drip Nurse mobile IV therapy Partners and their public service areas.",
+    "> My Drip Nurse helps independent nurses and clinics gain visibility, attract traffic and connect with appointment opportunities through its presence across the United States and Puerto Rico. Applications require review; acceptance does not guarantee appointments or income.",
     "",
     "## Primary pages",
-    `- [Partner directory](${PARTNER_SITE_ORIGIN})`,
+    `- [Join the nurse and clinic network](${PARTNER_SITE_ORIGIN})`,
+    `- [How to join](${PARTNER_SITE_ORIGIN}/#how-it-works)`,
+    `- [Network FAQs](${PARTNER_SITE_ORIGIN}/#faq)`,
+    `- [Nurse directory and map](${PARTNER_SITE_ORIGIN}/directory)`,
+    `- [Clinic directory](${PARTNER_SITE_ORIGIN}/directory/clinics)`,
     `- [XML sitemap](${PARTNER_SITE_ORIGIN}/sitemap.xml)`,
     "- [Main My Drip Nurse website](https://mydripnurse.com)",
     "",
