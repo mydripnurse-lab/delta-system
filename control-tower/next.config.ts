@@ -110,6 +110,13 @@ const RUN_JOB_RUNTIME_PACKAGES = [
 const nextConfig = {
   images: {
     remotePatterns: [
+      // Portal photo uploads use immutable, randomly suffixed Blob URLs.
+      // Keep the optimizer/cache enabled while allowing this upload path only.
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/partner-profile-photos/**",
+      },
       {
         protocol: "https",
         hostname: "assets.cdn.filesafe.space",

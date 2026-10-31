@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { unstable_cache } from 'next/cache';
 import { getDbPool } from '@/lib/db';
 import { requireClinicBookingsEnabled } from '@/lib/clinicFeature';
-import { CLINIC_CACHE_TAG, clinicNurseCovers, resolveClinicPrice } from '@/lib/clinicPolicy';
+import { CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG, clinicNurseCovers, resolveClinicPrice } from '@/lib/clinicPolicy';
 import { SERVICE_PRICING_TAG, readRegionalPrices, type PricingLocation, type PricingRegion } from '@/lib/regionalPricing';
 export async function clinicBookingContext(clinicId: string, publicKey: string, location: PricingLocation, client?: PoolClient) {
     requireClinicBookingsEnabled();
@@ -56,7 +56,7 @@ export const publicClinicTeam = unstable_cache(async (id: string) => {
         coverage: PricingRegion[];
     }>(`select p.id,p.slug,p.display_name as name,coalesce(p.profile_photo_url,'') as photo,coalesce(p.professional_credentials,'') as credentials,coalesce(p.biography,'') as biography,m.coverage from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id and c.status='approved' and c.published join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 and m.status='active' and m.role='nurse' and p.profile_consent_at is not null order by p.display_name limit 100`, [id]);
     return rows;
-}, ['public-clinic-team-v1'], { revalidate: 300, tags: [CLINIC_CACHE_TAG] });
+}, ['public-clinic-team-v2'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG] });
 // Existing appointments may be declined even if the clinic stops taking new bookings.
 // An unavailable clinic returns no replacements, never independent professionals.
 export async function clinicReassignmentPartners(clinicId: string, serviceId: string, location: PricingLocation, client: PoolClient) {

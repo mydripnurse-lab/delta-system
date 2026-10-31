@@ -1,3 +1,4 @@
+export const CLINIC_TEAM_CACHE_TAG = "clinic-public-team";
 import { readRegionalPrices, regionMatches, resolveRegionalPrice, type PricingLocation, type PricingRegion, type RegionalPrice } from '@/lib/regionalPricing';
 export const CLINIC_CACHE_TAG = 'mdn-clinics';
 export type ClinicRole = 'owner' | 'manager' | 'nurse';

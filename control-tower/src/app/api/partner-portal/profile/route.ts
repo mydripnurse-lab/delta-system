@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { CLINIC_TEAM_CACHE_TAG } from "@/lib/clinicPolicy";
 import { put } from "@vercel/blob";
 
 import { getPartnerPortalSession } from "@/lib/partnerPortalAuth";
@@ -116,6 +118,9 @@ export async function PATCH(request: Request) {
     });
     if (!updated) return NextResponse.json({ ok: false, error: "Partner profile not found." }, { status: 404 });
 
+    // Clinic team cards share a cached photo URL. Refresh only after a saved
+    // upload; the image itself keeps its immutable Blob/CDN cache.
+    if (uploaded) revalidateTag(CLINIC_TEAM_CACHE_TAG, { expire: 0 });
     const profile = await getPartnerProfileForPortal(current.id);
     if (!profile) return NextResponse.json({ ok: false, error: "Partner profile not found." }, { status: 404 });
     // Return only the editable profile fields. The complete portal profile can include
