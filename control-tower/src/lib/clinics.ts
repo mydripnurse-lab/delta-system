@@ -87,7 +87,7 @@ export async function listClinics(email?: string, offset = 0) {
     requireClinicsEnabled();
     const { rows } = await getDbPool().query<Clinic & {
         role?: ClinicRole;
-    }>(`select ${columns}${email ? ',m.role' : ''} from app.clinics c ${email ? `join app.clinic_memberships m on m.clinic_id=c.id and m.email=$1 and m.status in ('active','pending')` : ''} order by c.name,c.id limit 50 offset $${email ? 2 : 1}`, email ? [email, offset] : [offset]);
+    }>(`select ${columns}${email ? ',m.role' : ''} from app.clinics c ${email ? `join app.clinic_memberships m on m.clinic_id=c.id and m.email=$1 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') and c.status <> 'suspended'` : ''} order by c.name,c.id limit 50 offset $${email ? 2 : 1}`, email ? [email, offset] : [offset]);
     return rows;
 }
 export async function clinicWorkspace(id: string) {

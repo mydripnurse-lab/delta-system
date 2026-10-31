@@ -30,7 +30,6 @@ export function PartnerClinicEntry({ profileId }: { profileId: string }) {
     return <aside className={styles.entry} aria-label="Clinic workspace">
         <span><strong>Own a clinic?</strong> <span className={styles.bannerCopy}>Bring your team to My Drip Nurse.</span></span>
         <nav className={styles.navigation} aria-label="Clinic shortcuts">
-            <Link prefetch={false} href="/portal/clinics">My clinics</Link>
             <Link prefetch={false} href="/clinics/register">Get started <span aria-hidden="true">→</span></Link>
         </nav>
         <button type="button" onClick={dismiss} aria-label="Dismiss clinic introduction">×</button>

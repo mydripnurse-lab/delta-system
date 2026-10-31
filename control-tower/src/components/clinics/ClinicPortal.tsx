@@ -1,6 +1,6 @@
 'use client';
 import Image from "next/image";
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { Clinic, ClinicMember } from '@/lib/clinics';
 import { brandTextColor } from '@/lib/clinicPolicy';
 import { ClinicPortalShell, type ClinicSection } from './ClinicPortalShell';
@@ -34,18 +34,21 @@ type Workspace = {
         currency: string;
     }[];
 };
-export function ClinicPortal({ bookingsEnabled = false }: { bookingsEnabled?: boolean }) {
-    const [clinics, setClinics] = useState<(Clinic & {
-        role: string;
-    })[]>([]), [data, setData] = useState<Workspace | null>(null), [tab, setTab] = useState<ClinicSection>('Overview'), [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [editing, setEditing] = useState<ClinicMember | null>(null), [invitation, setInvitation] = useState(''), [identity, setIdentity] = useState<{
-        partnerId: string;
-        name: string;
-    } | null>(null);
+type ListedClinic = Clinic & { role?: string };
+type ClinicIdentity = { partnerId: string; name: string };
+export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialIdentity }: {
+    bookingsEnabled?: boolean;
+    initialClinics: ListedClinic[];
+    initialIdentity: ClinicIdentity;
+}) {
+    const [clinics, setClinics] = useState<ListedClinic[]>(initialClinics), [data, setData] = useState<Workspace | null>(null), [tab, setTab] = useState<ClinicSection>('Overview'), [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [editing, setEditing] = useState<ClinicMember | null>(null), [invitation, setInvitation] = useState(''), [identity, setIdentity] = useState<ClinicIdentity>(initialIdentity);
     async function load(id?: string) { setBusy(true); setError(''); try {
         const r = await fetch(`/api/clinics${id ? `?id=${id}` : ''}`);
         const p = await r.json();
-        if (!r.ok)
+        if (!r.ok) {
+            if (p.redirectTo) window.location.replace(p.redirectTo);
             throw new Error(p.error);
+        }
         if (id)
             setData(p);
         else {
@@ -59,7 +62,6 @@ export function ClinicPortal({ bookingsEnabled = false }: { bookingsEnabled?: bo
     finally {
         setBusy(false);
     } }
-    useEffect(() => { void load(); }, []);
     async function action(body: Record<string, unknown>) { setBusy(true); setError(''); setNotice(''); try {
         const r = await fetch('/api/clinics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, clinicId: data?.clinic.id }) });
         const p = await r.json();

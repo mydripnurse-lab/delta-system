@@ -54,7 +54,7 @@ export async function requireClinicManager(clinicId: string) {
     const { rows } = await getDbPool().query<{
         role: 'owner' | 'manager';
         status: string;
-    }>(`select m.role,c.status from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id where m.clinic_id=$1 and m.email=$2 and m.status='active' and m.role in ('owner','manager') and c.status <> 'suspended' limit 1`, [clinicId, identity.email]);
+    }>(`select m.role,c.status from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id where m.clinic_id=$1 and m.email=$2 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') and c.status <> 'suspended' limit 1`, [clinicId, identity.email]);
     if (!rows[0])
         throw new Error('Clinic access denied.');
     return { ...identity, ...rows[0] };

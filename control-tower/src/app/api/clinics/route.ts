@@ -16,9 +16,12 @@ export async function GET(request: Request) {
         const url = new URL(request.url), id = url.searchParams.get('id');
         if (id)
             return json({ ok: true, ...await clinicWorkspace(z.string().uuid().parse(id)) });
+        const clinics = await listClinics(identity.email);
+        if (!clinics.length)
+            return json({ error: 'Complete your clinic registration before opening the clinic workspace.', redirectTo: identity.partnerId ? '/portal' : '/clinics/register' }, 403);
         if (url.searchParams.get('regions') === '1')
             return json({ ok: true, ...await loadSelectablePricingRegions(url.searchParams.get("state") || "") });
-        return json({ ok: true, clinics: await listClinics(identity.email), identity });
+        return json({ ok: true, clinics, identity });
     }
     catch {
         return json({ error: 'Unable to access this clinic workspace.' }, 403);

@@ -71,7 +71,15 @@ async function main(){
  await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyAccepted:undefined}),/Accept the clinic affiliate policy/);
  await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyVersion:'old-version'}));
  assert.equal((await query('select count(*)::int n from app.clinic_accounts')).rows[0].n,beforeDecline,'Declining or missing policy cannot create an account');
+ assert.deepEqual(await clinics.listClinics(input.email), [], 'No workspace before completed registration');
  const id=await clinics.registerClinic(input);
+ assert.equal((await clinics.listClinics(input.email)).length, 1, 'Accepted owner can configure pending clinic');
+ await query('update app.clinic_memberships set accepted_at=null where clinic_id=$1',[id]);
+ assert.deepEqual(await clinics.listClinics(input.email), [], 'Unaccepted membership cannot list workspace');
+ identity={email:input.email};
+ await assert.rejects(()=>clinics.clinicWorkspace(id), /denied/);
+ identity=null;
+ await query('update app.clinic_memberships set accepted_at=now() where clinic_id=$1',[id]);
  assert.equal((await query("select count(*)::int n from app.clinic_audit where clinic_id=$1 and action='affiliate_policy_accepted' and subject_id='external-only-v1'",[id])).rows[0].n,1,'Store versioned acceptance in the registration transaction');
  assert.equal((await query('select status from app.clinics where id=$1',[id])).rows[0].status,'pending');
  await assert.rejects(()=>clinics.registerClinic({...input,slug:'duplicate-account'}),/already exists/);
@@ -94,6 +102,7 @@ async function main(){
  await assert.rejects(()=>clinics.acceptClinicInvite({token,fullName:'Fixture Nurse',email:'nurse@example.invalid',password:input.password}),/expired/);
  const member=(await query('select * from app.clinic_memberships where clinic_id=$1 and role=\'nurse\'',[id])).rows[0];
  assert.equal(member.status,'pending');
+ assert.deepEqual(await clinics.listClinics('nurse@example.invalid'), [], 'Team nurses use their nurse portal');
  assert.deepEqual((await booking.clinicBookingContext(id,'fixture-calendar',orlando)).partnerIds,[]);
  identity={email:input.email};
  await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id]});
@@ -260,7 +269,7 @@ async function main(){
  assert.equal(dashboard.metrics[0].pending,'0.00','Refunded visits must not inflate pending earnings');
  identity={email:'nurse@example.invalid',partnerId:member.partner_profile_id};
  await assert.rejects(()=>affiliates.getClinicAffiliateDashboard(id),/denied/);
- await query("insert into app.clinic_memberships(clinic_id,email,role,status) values($1,'manager@example.invalid','manager','active')",[id]);
+ await query("insert into app.clinic_memberships(clinic_id,email,role,status,accepted_at) values($1,'manager@example.invalid','manager','active',now())",[id]);
  identity={email:'manager@example.invalid'};
  await assert.rejects(()=>affiliates.getClinicAffiliateDashboard(id),/Only the clinic owner/);
  // A nurse becoming a clinic owner must not keep earning personal affiliate
