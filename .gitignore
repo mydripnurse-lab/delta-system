@@ -76,6 +76,7 @@ resources/config/google-cloud.json
 !resources/config/campaign-factory.config.json
 !resources/config/campaign-landing-map.json
 !control-tower/vercel.json
+!control-tower/src/data/pricing-geography.json
 
 /data/secrets/
 /data/gsc/

@@ -12,6 +12,7 @@ function load(relative, mocks = {}) {
   new Function('require', 'module', 'exports', code)(name => {
     if (name in mocks) return mocks[name];
     if (name === 'server-only') return {};
+    if (name.startsWith('@/') && name.endsWith('.json')) return require(path.join(root, 'src', name.slice(2)));
     if (name.startsWith('@/')) return load(`src/${name.slice(2)}.ts`, mocks);
     return require(name);
   }, module, module.exports);
@@ -144,6 +145,21 @@ function cacheHarness() {
   await catalog.loadPricingRegions(); await catalog.loadPricingRegions();
   assert.equal(reads, readCount, 'Repeated reads must hit the shared cache, not Neon');
   assert.equal((await catalog.validateRegionalPrices([{ regionId: orlando.id, price: 249 }]))[0].region.urls[0], orlando.urls[0]);
+  const statesOnly = await catalog.loadSelectablePricingRegions('');
+  assert.equal(statesOnly.regions.length, 52, 'All 50 states, DC and PR remain selectable without active pages');
+  assert(statesOnly.regions.every(r => r.level === 'state'));
+  const californiaChoices = await catalog.loadSelectablePricingRegions('CA');
+  assert(californiaChoices.regions.some(r => r.id === orangeCa.id), 'Counties without published pages remain selectable');
+  const anaheim = californiaChoices.regions.find(r => r.city === 'Anaheim' && r.county === 'Orange');
+  assert(anaheim, 'Real cities must not depend on page activation');
+  assert(californiaChoices.regions.every(r => r.level === 'state' || r.state === 'California'));
+  const californiaRule = await catalog.validateRegionalPrices([{ regionId: anaheim.id, price: 289 }]);
+  assert.deepEqual(californiaRule[0].region.urls, [], 'Template domains must never become public links');
+  assert.equal(resolve({ state: 'CA', county: 'Orange County', city: 'Anaheim city' }, californiaRule).price, 289);
+  const puertoRicoChoices = await catalog.loadSelectablePricingRegions('PR');
+  assert.equal(puertoRicoChoices.regions.filter(r => r.level === 'city').length, 78);
+  assert(!puertoRicoChoices.regions.some(r => r.level === 'county'), 'PR must not introduce a fictitious Puerto Rico County');
+  assert.equal(reads, readCount, 'Geographic searches and validation reuse the existing cached page snapshot');
   await assert.rejects(() => catalog.validateRegionalPrices([{ regionId: 'made-up', price: 1 }]));
   await assert.rejects(() => catalog.validateRegionalPrices([{ regionId: orlando.id, price: 1 }, { regionId: orlando.id, price: 2 }]));
   countyTab = { ...countyTab, headerMap: new Map() };

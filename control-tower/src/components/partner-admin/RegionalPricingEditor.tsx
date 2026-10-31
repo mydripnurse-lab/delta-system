@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { applyRegionalPrices, isPricingDescendant, resolveRegionalPrice, type DescendantPricePolicy, type PricingRegion, type RegionalPrice, type PricingLevel } from "@/lib/regionalPricing";
+import { PRICING_STATES, regionId, applyRegionalPrices, isPricingDescendant, resolveRegionalPrice, type DescendantPricePolicy, type PricingRegion, type RegionalPrice, type PricingLevel } from "@/lib/regionalPricing";
 import { RegionalLocationPicker } from "./RegionalLocationPicker";
 import styles from "./serviceCatalog.module.css";
 
@@ -8,7 +8,7 @@ type Snapshot = { syncedAt: string; regions: PricingRegion[]; warnings: string[]
 export function RegionalPricingEditor({ active, rules, basePrice, currency, onChange, clinicMode = false }: {
   clinicMode?: boolean; active: boolean; rules: RegionalPrice[]; basePrice: number; currency: string; onChange: (rules: RegionalPrice[]) => void;
 }) {
-  const [snapshot, setSnapshot] = useState<Snapshot>({ syncedAt: "", regions: [], warnings: [] });
+  const [snapshot, setSnapshot] = useState<Snapshot>({ syncedAt: "", regions: PRICING_STATES.map(state => ({ id: regionId("state", { state }), level: "state", state, county: "", city: "", label: state, urls: [] })), warnings: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [level, setLevel] = useState<PricingLevel>("state");
@@ -19,24 +19,27 @@ export function RegionalPricingEditor({ active, rules, basePrice, currency, onCh
   const [amount, setAmount] = useState("");
   const [descendantPolicy, setDescendantPolicy] = useState<DescendantPricePolicy>("preserve");
   const [draftNotice, setDraftNotice] = useState("");
-  const loaded = useRef(false);
+  const loaded = useRef(new Set<string>());
   const editingRef = useRef<HTMLInputElement>(null);
   const money = (price: number) => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(price);
-  async function load(sync = false) {
+  async function load(sync = false, selectedState = state) {
     setLoading(true); setError("");
     try {
-      const response = await fetch("/api/partner-admin/services/regions", { method: sync ? "POST" : "GET", cache: "no-store" });
+      const response = await fetch(`/api/partner-admin/services/regions?state=${encodeURIComponent(selectedState)}`, { method: sync ? "POST" : "GET", cache: "no-store" });
       const data = await response.json();
       if (!response.ok || !data.ok) throw new Error(data.error || "Could not load locations.");
-      setSnapshot(data);
+      setSnapshot(previous => ({ ...data, regions: [...new Map<string, PricingRegion>([...previous.regions, ...data.regions].map((r: PricingRegion) => [r.id, r])).values()] }));
+      loaded.current.add(selectedState);
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Could not load locations."); }
     finally { setLoading(false); }
   }
   useEffect(() => {
-    if (active && !loaded.current) { loaded.current = true; void load(); }
-  }, [active]);
+    if (active && !loaded.current.has(state)) { void load(false, state); }
+    // Each state loads once; selections and filtering then remain local.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, state]);
   const states = useMemo(() => [...new Set(snapshot.regions.filter(region => region.active !== false).map(region => region.state))].sort(), [snapshot.regions]);
-  const regionIndex = useMemo(() => new Map(snapshot.regions.map(region => [region.id, region])), [snapshot.regions]);
+  const regionIndex = useMemo(() => new Map([...rules.map(rule => rule.region), ...snapshot.regions].map(region => [region.id, region])), [snapshot.regions, rules]);
   const counties = useMemo(() => [...new Set(snapshot.regions.filter(region => region.active !== false && region.level === "city" && region.state === state && region.county).map(region => region.county))].sort().map(county => ({ id: county, label: county })), [snapshot.regions, state]);
   const options = useMemo(() => snapshot.regions.filter(region => region.active !== false && region.level === level && region.state === state && (level !== "city" || !countyFilters.length || countyFilters.includes(region.county))).sort((a, b) => a.label.localeCompare(b.label)).map(region => ({ id: region.id, label: region.city || region.county || region.label, detail: region.level === "city" ? [region.county, region.state].filter(Boolean).join(" · ") : region.state })), [snapshot.regions, level, state, countyFilters]);
   const selectedRegions = useMemo(() => selectedIds.map(id => regionIndex.get(id)).filter((region): region is PricingRegion => !!region && region.active !== false && region.level === level && region.state === state), [selectedIds, regionIndex, level, state]);
@@ -59,6 +62,7 @@ export function RegionalPricingEditor({ active, rules, basePrice, currency, onCh
     setAmount(rule ? String(rule.price) : "");
   }
   function changeScope(nextLevel: PricingLevel, nextState: string) {
+    if (nextState === "Puerto Rico" && nextLevel === "county") nextLevel = "city";
     setLevel(nextLevel); setState(nextState); setCountyFilters([]);
     choose(nextLevel === "state" ? snapshot.regions.find(region => region.active !== false && region.level === "state" && region.state === nextState)?.id || "" : "");
   }
@@ -73,29 +77,29 @@ export function RegionalPricingEditor({ active, rules, basePrice, currency, onCh
     setDraftNotice(`${selected ? selected.label : `${selectedRegions.length} locations`}: ${money(Number(amount))} added to the draft. ${descendants.length ? `${descendants.length} lower-level exception${descendants.length === 1 ? "" : "s"} ${descendantPolicy === "inherit" ? "removed so those locations inherit this price" : "kept unchanged"}. ` : ""}Save changes to publish.`);
     setDescendantPolicy("preserve");
   }
-  const activeIds = new Set(snapshot.regions.filter(region => region.active !== false).map(region => region.id));
+  const activeIds = new Set([...snapshot.regions.map(region => region.id), ...rules.map(rule => rule.region.id)]);
   return <div className={styles.regionalPricing}>
-    <div className={styles.regionalHeading}><div><span className={styles.eyebrow}>Location exceptions</span><h3>Regional pricing</h3><p>One default price. A different price only where you choose.</p></div><button type="button" className={styles.secondaryButton} disabled={loading} onClick={() => void load(true)}>{loading ? "Loading locations…" : "Sync locations"}</button></div>
+    <div className={styles.regionalHeading}><div><span className={styles.eyebrow}>Location exceptions</span><h3>Regional pricing</h3><p>One default price. A different price only where you choose.</p></div><button type="button" className={styles.secondaryButton} disabled={loading} onClick={() => void load(true)}>{loading ? "Loading locations…" : "Refresh page links"}</button></div>
     <div className={styles.pricingHierarchy}><span>City / municipality</span><span aria-hidden="true">→</span><span>County / parish</span><span aria-hidden="true">→</span><span>State / territory</span><span aria-hidden="true">→</span><strong>Default</strong></div>
     <p className={styles.helperText}>{clinicMode ? "Clinic prices apply only to clinic bookings. The clinic collects the remaining balance and voluntary tips." : "An existing professional-specific price takes priority at booking. Tips are separate and collected by the professional."}</p>
     {error ? <p role="alert" className={styles.regionalError}>{error} <button type="button" className={styles.backButton} onClick={() => void load()}>Retry</button></p> : null}
-    {!snapshot.syncedAt ? <div className={styles.regionEmpty}><strong>Connect your active locations</strong><p>Sync the project’s location catalog with its configured Google Sheet to enable regional prices. Your default price continues to apply.</p></div> : <p className={styles.helperText}>{snapshot.regions.filter(region => region.active !== false).length.toLocaleString()} active locations · Last synced {new Date(snapshot.syncedAt).toLocaleString("en-US")}.</p>}
+    <p className={styles.helperText}>All 50 states, Washington, DC and Puerto Rico are available. Geographic prices apply to verified service addresses and to linked public pages. Page publication does not limit the locations you can price.</p>
     {snapshot.warnings.map(warning => <p className={styles.helperText} key={warning}>{warning}</p>)}
     {snapshot.regions.length > 0 ? <div className={styles.regionComposer}>
       <div className={styles.serviceFieldGrid}>
-        <label className={styles.formField}><span>Region level</span><select className={styles.select} value={level} disabled={loading} onChange={event => changeScope(event.target.value as PricingLevel, state)}><option value="state">State / territory</option><option value="county">County / parish</option><option value="city">City / municipality</option></select></label>
+        <label className={styles.formField}><span>Region level</span><select className={styles.select} value={level} disabled={loading} onChange={event => changeScope(event.target.value as PricingLevel, state)}><option value="state">State / territory</option>{state !== "Puerto Rico" ? <option value="county">County / parish</option> : null}<option value="city">City / municipality</option></select></label>
         <label className={styles.formField}><span>State / territory</span><select className={styles.select} value={state} disabled={loading} onChange={event => changeScope(level, event.target.value)}><option value="">Choose a state</option>{states.map(name => <option key={name}>{name}</option>)}</select></label>
       </div>
       {level !== "state" && state ? <>
         {level === "city" && counties.length ? <details className={styles.countyFilter} key={`filters-${state}`}><summary>Filter by {state === "Louisiana" ? "parish" : "county"}<span>{countyFilters.length ? `${countyFilters.length} selected` : "All included"}</span></summary><RegionalLocationPicker key={`counties-${state}`} title={state === "Louisiana" ? "Parish filters" : "County filters"} options={counties} selectedIds={countyFilters} onChange={setCountyFilters} emptyText="No county filters available." disabled={loading} /></details> : null}
-        <RegionalLocationPicker key={`${state}-${level}-${countyFilters.join("|")}-${pickerRevision}`} title={areaTitle} options={options} selectedIds={selectedIds} onChange={changeSelection} emptyText="No active locations in this scope. Try another level or state." disabled={loading} getPrice={id => money(resolveRegionalPrice(basePrice, rules, regionIndex.get(id)).price)} />
+        <RegionalLocationPicker key={`${state}-${level}-${countyFilters.join("|")}-${pickerRevision}`} title={areaTitle} options={options} selectedIds={selectedIds} onChange={changeSelection} emptyText="No locations in this scope. Try another level or state." disabled={loading} getPrice={id => money(resolveRegionalPrice(basePrice, rules, regionIndex.get(id)).price)} />
         {selectedRegions.length ? <details className={styles.selectionReview}><summary>Review {selectedRegions.length} selected {selectedRegions.length === 1 ? "location" : "locations"}</summary><ul>{selectedRegions.map(region => <li key={region.id}><span>{region.label}</span><button type="button" className={styles.backButton} onClick={() => changeSelection(selectedIds.filter(id => id !== region.id))} aria-label={`Remove ${region.label} from selection`}>Remove</button></li>)}</ul></details> : null}
-      </> : !state ? <p className={styles.helperText}>Choose a state or territory to see its active locations.</p> : null}
+      </> : !state ? <p className={styles.helperText}>Choose a state or territory to browse its counties and cities.</p> : null}
       <div className={styles.bulkPriceInput}>
         <label className={styles.formField}><span>Regional price ({currency})</span><input ref={editingRef} className={styles.numberInput} type="number" min="0" max="1000000" step="0.01" value={amount} placeholder={inherited ? String(inherited.price) : "0.00"} onChange={event => { setAmount(event.target.value); setDraftNotice(""); }} /></label>
         <div role="status"><strong>{selectedRegions.length ? `${selectedRegions.length} ${selectedRegions.length === 1 ? "location" : "locations"} selected` : "Select your locations"}</strong><span>{validAmount && selectedRegions.length ? `${money(Number(amount))} per visit at each selected location` : "One price, applied together when you save."}</span></div>
       </div>
-      {selected && effective && inherited ? <div className={styles.pricePreview} aria-live="polite"><div><span>Current price for this location</span><strong>{money(effective.price)}</strong><small>{effective.source} · Without this exception: {money(inherited.price)} from {inherited.source}</small></div>{selected.urls[0] ? <a href={selected.urls[0]} target="_blank" rel="noreferrer">View location ↗</a> : <small>No state landing URL confirmed.</small>}</div> : null}
+      {selected && effective && inherited ? <div className={styles.pricePreview} aria-live="polite"><div><span>Current price for this location</span><strong>{money(effective.price)}</strong><small>{effective.source} · Without this exception: {money(inherited.price)} from {inherited.source}</small></div>{selected.urls[0] ? <a href={selected.urls[0]} target="_blank" rel="noreferrer">View location ↗</a> : <small>No published page linked. This price still applies to matching service addresses.</small>}</div> : null}
       {selectedRegions.length > 0 && level !== "city" ? <fieldset className={styles.inheritanceOptions}>
         <legend>Prices within {selected ? selected.label : `${selectedRegions.length} selected locations`}</legend>
         <p>Locations without their own exception inherit this price automatically, including cities within counties, parishes and municipalities.</p>

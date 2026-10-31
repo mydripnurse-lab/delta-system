@@ -104,8 +104,8 @@ export async function syncPricingRegions(): Promise<RegionSnapshot> {
     regions: [...regions.values()].sort((a, b) => a.label.localeCompare(b.label)),
     warnings: [skipped ? `${skipped} inactive or incomplete rows excluded.` : "", missingUrl ? `${missingUrl} rows without an unambiguous domain excluded.` : ""].filter(Boolean),
   };
-  // Retain known hosts for already-published pages, but do not offer inactive
-  // locations for new pricing rules. A sync must never silently change prices.
+  // Retain known hosts for already-published pages. Publication status is
+  // separate from geographic eligibility; a sync must never change prices.
   const previous = await loadPricingRegions();
   const currentIds = new Set(snapshot.regions.map(region => region.id));
   snapshot.regions.push(...previous.regions.filter(region => !currentIds.has(region.id)).map(region => ({ ...region, active: false })));
@@ -120,14 +120,33 @@ export async function syncPricingRegions(): Promise<RegionSnapshot> {
   return snapshot;
 }
 
+/** Geographic selections are independent of which marketing pages are active. */
+let selectable: { source: RegionSnapshot; regions: PricingRegion[] } | undefined;
+export async function loadSelectablePricingRegions(selectedState?: string): Promise<RegionSnapshot> {
+  const snapshot = await loadPricingRegions();
+  if (selectable?.source !== snapshot) {
+    // Only admin/coverage selectors load the full geographic catalog. Public
+    // visitor requests continue to read the small, cached host snapshot.
+    const { PRICING_GEOGRAPHY } = await import("@/lib/pricingGeography");
+    const all = new Map(PRICING_GEOGRAPHY.map(region => [region.id, region]));
+    for (const page of snapshot.regions) {
+      // Preserve existing page IDs and links, including legacy municipality names.
+      all.set(page.id, { ...(all.get(page.id) || page), urls: page.urls, active: true });
+    }
+    selectable = { source: snapshot, regions: [...all.values()] };
+  }
+  const state = selectedState ? stateName(selectedState) : '';
+  return { ...snapshot, warnings: snapshot.warnings.map(w => `Page links: ${w}`), regions: selectable.regions.filter(r => selectedState === undefined || r.level === 'state' || r.state === state) };
+}
+
 export async function validateRegionalPrices(input: Array<{ regionId: string; price: number }>): Promise<RegionalPrice[]> {
   if (!input.length) return [];
-  const snapshot = await loadPricingRegions();
+  const snapshot = await loadSelectablePricingRegions();
   const byId = new Map(snapshot.regions.map(region => [region.id, region]));
   const seen = new Set<string>();
   return input.map(rule => {
     const region = byId.get(rule.regionId);
-    if (!region || region.active === false) throw new Error("A selected region is no longer active. Sync locations and review regional prices.");
+    if (!region || region.active === false) throw new Error("A selected location was not found in the geographic catalog. Review the selected state and region.");
     if (seen.has(region.id)) throw new Error("Each region can have only one price per service.");
     seen.add(region.id);
     return { region, price: Math.round(rule.price * 100) / 100 };
