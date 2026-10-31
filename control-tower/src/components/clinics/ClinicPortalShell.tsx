@@ -55,7 +55,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut
         <div className={styles.main}>
             <header className={styles.topbar}>
                 <button type="button" className={styles.menuToggle} aria-controls="clinic-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? 'Close menu' : 'Menu'} <span aria-hidden="true">☰</span></button>
-                <div className={styles.workspace}><small>Clinic workspace</small><strong>{title}</strong></div>
+                <div className={styles.workspace}><small>Clinic workspace</small></div>
                 <details className={styles.account}>
                     <summary><span className={styles.avatar}>{accountPhotoUrl && failedPhoto !== accountPhotoUrl ? <Image unoptimized src={accountPhotoUrl} alt="" width={40} height={40} onError={() => setFailedPhoto(accountPhotoUrl)} /> : (accountName || title).slice(0, 1).toUpperCase()}</span><span><strong>{accountName || 'Your account'}</strong><small>{clinic ? owner ? 'Clinic owner' : 'Clinic manager' : 'Clinic partner'}</small></span><span aria-hidden="true">⌄</span></summary>
                     <div className={styles.accountMenu}>
