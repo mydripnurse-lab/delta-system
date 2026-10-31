@@ -50,5 +50,32 @@
     if (clean(config.image)) { upsertMeta('meta[property="og:image"]', { property: "og:image", content: clean(config.image) }); upsertMeta('meta[name="twitter:image"]', { name: "twitter:image", content: clean(config.image) }); }
     setCanonical(canonical); setJsonLd(config, canonical);
   }
+  // Older GHL snapshots contain absolute national links. Keep only their
+  // marketing header navigation on the current site; portal/assets stay central.
+  function localizeHeaderLinks(root) {
+    var current = window.location;
+    if (!/^https?:$/.test(current.protocol)) return;
+    if (/^(care|partners|admin|onboarding|policy)\.mydripnurse\.com$/i.test(current.hostname)) return;
+    if (/(^|\.)(leadconnectorhq\.com|msgsndr\.com|vercel\.app)$/i.test(current.hostname) || current.hostname === "app.devasks.com") return;
+    var links = root.querySelectorAll('[data-mdn-ghl-header] a[href]');
+    for (var i = 0; i < links.length; i += 1) {
+      var raw = links[i].getAttribute("href") || "";
+      if (!/^(https?:)?\/\//i.test(raw)) continue;
+      try {
+        var destination = new URL(raw, current.href);
+        if (!/^(www\.)?mydripnurse\.com$/i.test(destination.hostname) || !/^https?:$/.test(destination.protocol)) continue;
+        links[i].setAttribute("href", current.origin + destination.pathname + destination.search + destination.hash);
+      } catch (_error) { /* Leave invalid or non-web links unchanged. */ }
+    }
+  }
+  localizeHeaderLinks(document);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { localizeHeaderLinks(document); }, { once: true });
+  window.addEventListener("pageshow", function () { localizeHeaderLinks(document); });
+  // GHL may mount or restore a header after initial rendering. Capture before
+  // native navigation, including keyboard clicks; no polling or network calls.
+  document.addEventListener("click", function (event) {
+    var target = event.target;
+    if (target && target.closest && target.closest('[data-mdn-ghl-header] a[href]')) localizeHeaderLinks(document);
+  }, true);
   window.MDNSeoHead = { apply: apply };
 })(window, document);
