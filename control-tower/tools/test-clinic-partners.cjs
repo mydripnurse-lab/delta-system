@@ -65,7 +65,7 @@ async function main(){
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
  await pool.query("insert into app.service_calendars(service_id,public_key,status) values($1,'fixture-calendar','active')",[service]);
- const input={affiliatePolicyAccepted:true,affiliatePolicyVersion:'external-only-v1',name:'Fixture Clinic',slug:'fixture-clinic',fullName:'Fixture Owner',email:'owner@example.invalid',password:'FixtureOnly2026!',contactEmail:'clinic@example.invalid',contactPhone:'',description:'Local fixture clinic'};
+ const input={affiliatePolicyAccepted:true,affiliatePolicyVersion:'external-only-v1',name:'Fixture Clinic',slug:'fixture-clinic',fullName:'Fixture Owner',email:'owner@example.invalid',password:'FixtureOnly2026!',contactEmail:'clinic@example.invalid',contactPhone:'+15555550999',description:'Local fixture clinic'};
  const beforeDecline=(await query('select count(*)::int n from app.clinic_accounts')).rows[0].n;
  await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyAccepted:false}),/Accept the clinic affiliate policy/);
  await assert.rejects(()=>clinics.registerClinic({...input,affiliatePolicyAccepted:undefined}),/Accept the clinic affiliate policy/);
@@ -89,6 +89,18 @@ async function main(){
  await assert.rejects(()=>clinics.saveClinic(id,save),/approve/);
  await query("update app.clinics set status='approved' where id=$1",[id]);
  await clinics.saveClinic(id,save);
+ const publicReadStart = queryCount;
+ const publicListing = (await clinics.publicClinics(input.slug))[0];
+ assert(publicListing);
+ assert(!Object.hasOwn(publicListing, 'contactEmail'));
+ assert(!Object.hasOwn(publicListing, 'contactPhone'));
+ assert(!JSON.stringify(publicListing).includes(input.contactEmail));
+ assert(!JSON.stringify(publicListing).includes(input.contactPhone));
+ await clinics.publicClinics(input.slug);
+ assert.equal(queryCount-publicReadStart, 1, 'Public clinic contact protection preserves shared caching');
+ const privateListing = (await clinics.listClinics(input.email))[0];
+ assert.equal(privateListing.contactEmail, input.contactEmail);
+ assert.equal(privateListing.contactPhone, input.contactPhone);
  identity={email:'intruder@example.invalid'};
  await assert.rejects(()=>clinics.clinicWorkspace(id),/denied/);
  await assert.rejects(()=>clinics.inviteClinicMember(id,{email:'nurse@example.invalid',role:'nurse'}),/denied/);

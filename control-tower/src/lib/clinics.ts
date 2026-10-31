@@ -24,6 +24,7 @@ export type Clinic = {
     coverage: PricingRegion[];
     published: boolean;
 };
+export type PublicClinic = Omit<Clinic, 'contactEmail' | 'contactPhone'>;
 export type ClinicMember = {
     id: string;
     email: string;
@@ -231,7 +232,9 @@ export async function updateClinicMember(clinicId: string, raw: unknown) {
         client.release();
     }
 }
+// Public reads deliberately exclude private clinic contact details at the SQL boundary.
+const publicColumns = `c.id,c.slug,c.name,c.status,c.description,c.logo_url as "logoUrl",c.primary_color as "primaryColor",c.accent_color as "accentColor",c.coverage,c.published`;
 export const publicClinics = unstable_cache(async (slug: string = '', offset = 0) => {
-    const { rows } = await getDbPool().query<Clinic>(`select ${columns} from app.clinics c where c.status='approved' and c.published=true and ($1='' or c.slug=$1) order by c.name,c.id limit 24 offset $2`, [slug, offset]);
+    const { rows } = await getDbPool().query<PublicClinic>(`select ${publicColumns} from app.clinics c where c.status='approved' and c.published=true and ($1='' or c.slug=$1) order by c.name,c.id limit 24 offset $2`, [slug, offset]);
     return rows;
-}, ['clinics-public-v1'], { revalidate: 300, tags: [CLINIC_CACHE_TAG] });
+}, ['clinics-public-v2-private-contacts'], { revalidate: 300, tags: [CLINIC_CACHE_TAG] });
