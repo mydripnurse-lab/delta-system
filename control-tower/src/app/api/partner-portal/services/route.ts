@@ -1,3 +1,5 @@
+import { revalidateTag } from "next/cache";
+import { CLINIC_TEAM_CACHE_TAG } from "@/lib/clinicPolicy";
 import { NextResponse } from "next/server";
 
 import { getPartnerPortalSession } from "@/lib/partnerPortalAuth";
@@ -39,6 +41,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: "A valid service and availability status are required." }, { status: 400 });
     }
     const matrix = await setPartnerPortalService({ applicationId: session.application_id, serviceKey, status });
+    revalidateTag(CLINIC_TEAM_CACHE_TAG, { expire: 0 });
     return NextResponse.json({ ok: true, services: await listPartnerPortalServices(session.application_id), matrix });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Unable to update service." }, { status: 400 });

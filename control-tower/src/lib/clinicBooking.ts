@@ -24,12 +24,12 @@ export async function clinicBookingContext(clinicId: string, publicKey: string, 
     const members = await db.query<{
         partner_profile_id: string;
         coverage: PricingRegion[];
-    }>(`select m.partner_profile_id,m.coverage from app.clinic_memberships m where m.clinic_id=$1 and m.role='nurse' and m.status='active' and m.partner_profile_id is not null and m.accepted_at is not null and m.authorized_at is not null ${client ? 'for share of m' : ''}`, [clinicId]);
+    }>(`select m.partner_profile_id,m.coverage from app.clinic_memberships m where m.clinic_id=$1 and m.role='nurse' and m.status='active' and m.partner_profile_id is not null and m.accepted_at is not null and m.authorized_at is not null and (m.service_ids is null or $2::uuid=any(m.service_ids)) ${client ? 'for share of m' : ''}`, [clinicId, clinic.service_id]);
     const partnerIds = members.rows.filter(m => clinicNurseCovers(clinic.coverage, m.coverage, location)).map(m => m.partner_profile_id);
     const price = resolveClinicPrice(Number(clinic.general_price), readRegionalPrices(clinic.general_regions), { price: clinic.price === null ? null : Number(clinic.price), regionalPrices: readRegionalPrices(clinic.regional_prices) }, location);
     return { id: clinic.id, name: clinic.name, partnerIds, ...price };
 }
-export const publicClinicServices = unstable_cache(async (id: string) => {
+export const publicClinicServices = unstable_cache(async (id: string, nurseId?: string) => {
     const { rows } = await getDbPool().query<{
         id: string;
         slug: string;
@@ -44,9 +44,12 @@ export const publicClinicServices = unstable_cache(async (id: string) => {
         clinicRegions: unknown;
         publicKey: string;
         currency: string;
-    }>(`select s.id,s.slug,s.name,p.availability_status as "availabilityStatus",s.image_url as "imageUrl",s.short_description as description,s.ingredients,s.price::float8 as price,s.currency,p.price::float8 as "clinicPrice",p.regional_prices as "clinicRegions",s.source_metadata->'regionalPrices' as "regionalPrices",cal.public_key as "publicKey" from app.clinic_service_prices p join app.clinics c on c.id=p.clinic_id and c.status='approved' and c.published join app.services s on s.id=p.service_id and s.organization_id=c.organization_id and s.is_active join app.service_calendars cal on cal.service_id=s.id and cal.status='active' where p.clinic_id=$1 and p.enabled and p.availability_status <> 'paused' order by s.name limit 100`, [id]);
+    }>(`select s.id,s.slug,s.name,case when p.availability_status='out_of_stock' or ($2::uuid is not null and exists(select 1 from app.partner_service_assignments a where a.partner_profile_id=$2 and a.service_id=s.id and a.status='out_of_stock')) then 'out_of_stock' else 'active' end as "availabilityStatus",s.image_url as "imageUrl",s.short_description as description,s.ingredients,s.price::float8 as price,s.currency,p.price::float8 as "clinicPrice",p.regional_prices as "clinicRegions",s.source_metadata->'regionalPrices' as "regionalPrices",cal.public_key as "publicKey" from app.clinic_service_prices p join app.clinics c on c.id=p.clinic_id and c.status='approved' and c.published join app.services s on s.id=p.service_id and s.organization_id=c.organization_id and s.is_active join app.service_calendars cal on cal.service_id=s.id and cal.status='active' where p.clinic_id=$1 and p.enabled and p.availability_status <> 'paused' and ($2::uuid is null or exists(
+          select 1 from app.clinic_memberships m join app.partner_service_assignments a on a.partner_profile_id=m.partner_profile_id and a.service_id=s.id and a.status in ('active','out_of_stock')
+          where m.clinic_id=c.id and m.partner_profile_id=$2 and m.role='nurse' and m.status='active' and m.accepted_at is not null and m.authorized_at is not null
+          and (m.service_ids is null or s.id=any(m.service_ids)))) order by s.name limit 100`, [id, nurseId || null]);
     return rows;
-}, ['public-clinic-services-v3-availability'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
+}, ['public-clinic-services-v4-nurse-selection'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG, SERVICE_PRICING_TAG] });
 export const publicClinicTeam = unstable_cache(async (id: string) => {
     const { rows } = await getDbPool().query<{
         id: string;
@@ -55,10 +58,14 @@ export const publicClinicTeam = unstable_cache(async (id: string) => {
         photo: string;
         credentials: string;
         biography: string;
+        serviceIds: string[];
         coverage: PricingRegion[];
-    }>(`select p.id,p.slug,p.display_name as name,coalesce(p.profile_photo_url,'') as photo,coalesce(p.professional_credentials,'') as credentials,coalesce(p.biography,'') as biography,m.coverage from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id and c.status='approved' and c.published join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 and m.status='active' and m.role='nurse' and m.accepted_at is not null and m.authorized_at is not null and p.profile_consent_at is not null and p.website_status='published' and p.directory_status='published' order by p.display_name limit 100`, [id]);
+    }>(`select p.id,p.slug,p.display_name as name,coalesce(p.profile_photo_url,'') as photo,coalesce(p.professional_credentials,'') as credentials,coalesce(p.biography,'') as biography,m.coverage,array(select prices.service_id from app.clinic_service_prices prices
+          join app.services s on s.id=prices.service_id and s.organization_id=c.organization_id and s.is_active
+          join app.partner_service_assignments a on a.partner_profile_id=p.id and a.service_id=s.id and a.status in ('active','out_of_stock')
+          where prices.clinic_id=c.id and prices.enabled and prices.availability_status<>'paused' and (m.service_ids is null or s.id=any(m.service_ids))) as "serviceIds" from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id and c.status='approved' and c.published join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 and m.status='active' and m.role='nurse' and m.accepted_at is not null and m.authorized_at is not null and p.profile_consent_at is not null and p.website_status='published' and p.directory_status='published' order by p.display_name limit 100`, [id]);
     return rows;
-}, ['public-clinic-team-v3-authorized'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG] });
+}, ['public-clinic-team-v4-service-selection'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG] });
 // Existing appointments may be declined even if the clinic stops taking new bookings.
 // An unavailable clinic returns no replacements, never independent professionals.
 export async function clinicReassignmentPartners(clinicId: string, serviceId: string, location: PricingLocation, client: PoolClient) {
@@ -66,7 +73,7 @@ export async function clinicReassignmentPartners(clinicId: string, serviceId: st
         clinic_coverage: PricingRegion[];
         coverage: PricingRegion[];
         partner_profile_id: string;
-    }>(`select c.coverage as clinic_coverage,m.coverage,m.partner_profile_id from app.clinics c join app.clinic_service_prices p on p.clinic_id=c.id and p.service_id=$2 and p.enabled and p.availability_status='active' join app.clinic_memberships m on m.clinic_id=c.id and m.status='active' and m.role='nurse' where c.id=$1 and c.status='approved' and m.partner_profile_id is not null and m.accepted_at is not null and m.authorized_at is not null for share of c,p,m`, [clinicId, serviceId]);
+    }>(`select c.coverage as clinic_coverage,m.coverage,m.partner_profile_id from app.clinics c join app.clinic_service_prices p on p.clinic_id=c.id and p.service_id=$2 and p.enabled and p.availability_status='active' join app.clinic_memberships m on m.clinic_id=c.id and m.status='active' and m.role='nurse' where c.id=$1 and c.status='approved' and m.partner_profile_id is not null and m.accepted_at is not null and m.authorized_at is not null and (m.service_ids is null or $2::uuid=any(m.service_ids)) for share of c,p,m`, [clinicId, serviceId]);
     return rows.filter(r => clinicNurseCovers(r.clinic_coverage, r.coverage, location)).map(r => r.partner_profile_id);
 }
 
@@ -84,4 +91,4 @@ export const publicClinicSitemapEntries = unstable_cache(async () => {
         and s.is_active and exists(select 1 from app.service_calendars cal where cal.service_id=s.id and cal.status='active')
       group by c.id,c.slug order by c.slug`);
     return rows;
-}, ['public-clinic-sitemap-v2-availability'], { revalidate: 3600, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
+}, ['public-clinic-sitemap-v2-availability'], { revalidate: 3600, tags: [CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG, SERVICE_PRICING_TAG] });

@@ -48,7 +48,7 @@ async function main(){
  await pool.query('drop schema if exists app cascade; create schema app;');
  await pool.query(`create table app.organizations(id uuid primary key);create table app.users(id uuid primary key);
  create table app.staff_applications(id uuid primary key default gen_random_uuid(),organization_id uuid references app.organizations(id),email text,status text,first_name text,last_name text,professional_credentials text,phone text,request_payload jsonb);
- create table app.services(id uuid primary key,organization_id uuid references app.organizations(id),slug text,name text,price numeric,currency text default 'USD',source_metadata jsonb default '{}',is_active boolean default true,image_url text,short_description text,ingredients jsonb default '[]');
+ create table app.services(id uuid primary key,organization_id uuid references app.organizations(id),slug text,name text,price numeric,currency text default 'USD',deposit_type text default 'percentage',deposit_value numeric default 40,source_metadata jsonb default '{}',is_active boolean default true,image_url text,short_description text,ingredients jsonb default '[]');
  create table app.service_calendars(id uuid primary key default gen_random_uuid(),service_id uuid references app.services(id),public_key text,status text);
  create table app.appointments(id uuid primary key default gen_random_uuid(),public_reference text,status text,starts_at timestamptz,partner_profile_id uuid,service_price numeric,deposit_amount numeric,customer_id uuid,service_id uuid,currency text default 'USD',metadata jsonb default '{}');
  create table app.booking_customers(id uuid primary key,full_name text,email text,phone text);`);
@@ -57,11 +57,12 @@ async function main(){
  const start=foundation.indexOf(`create table if not exists app.${name} (`),end=foundation.indexOf('\n);',start)+4;
  await pool.query(foundation.slice(start,end));
  }
+ await pool.query("alter table app.partner_service_assignments drop constraint partner_service_assignments_status_check; alter table app.partner_service_assignments add constraint partner_service_assignments_status_check check(status in ('active','paused','out_of_stock','revoked'));");
  await pool.query("alter table app.partner_profiles add column directory_status text default 'hidden';");
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
  // Migration must be repeatable, including indexes and additive columns.
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
- for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql','051_clinic_account_photos.sql','051_clinic_account_photos.sql','053_clinic_services.sql','053_clinic_services.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
+ for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql','051_clinic_account_photos.sql','051_clinic_account_photos.sql','053_clinic_services.sql','053_clinic_services.sql','056_clinic_nurse_services.sql','056_clinic_nurse_services.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
  await pool.query("alter table app.staff_applications add constraint fixture_application_status check (status in ('under_review','submitted','completed'))");
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
@@ -218,6 +219,48 @@ async function main(){
  assert.ok(inbox.some(r=>r.source==='partner'&&r.name==='Nurse fixture suggestion'),'Nurse suggestions remain in the same inbox');
 
  await assert.rejects(()=>clinicServices.changeClinicService(id,{...idea,name:'x'},true));
+ // Regional prices remain admin-owned; selection is membership scoped and never rewrites them.
+ const secondService='10000000-0000-4000-8000-000000000003';
+ await query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'brain-storm','Brain Storm',199)",[secondService,org]);
+ await query("insert into app.service_calendars(service_id,public_key,status) values($1,'fixture-second','active')",[secondService]);
+ clinics.invalidateClinics();
+ const unconfigured=(await clinics.clinicWorkspace(id)).services.find(s=>s.id===secondService);
+ assert.equal(unconfigured.configured,false,'All admin services appear without requiring a clinic price override');
+ assert.equal(unconfigured.canOffer,true);
+ assert.equal(unconfigured.availabilityStatus,'paused','New catalog entries are opt-in, never silently offered');
+ await clinicServices.changeClinicService(id,{serviceId:secondService,status:'active',price:1,regionalPrices:[]});
+ assert.equal((await query('select price from app.clinic_service_prices where clinic_id=$1 and service_id=$2',[id,secondService])).rows[0].price,null,'Offering inherits admin pricing');
+ assert.equal((await booking.publicClinicServices(id,member.partner_profile_id)).length,2,'Legacy memberships retain their previously inherited all-services behavior');
+ await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id],serviceIds:[service]});
+ assert.deepEqual((await booking.publicClinicServices(id,member.partner_profile_id)).map(s=>s.id),[service]);
+ assert.equal((await booking.publicClinicServices(id)).length,2,'Clinic catalog is independent from each nurse selection');
+ assert.deepEqual((await booking.clinicBookingContext(id,'fixture-second',orlando)).partnerIds,[],'Unassigned nurse cannot book the service');
+ assert.deepEqual((await booking.publicClinicTeam(id))[0].serviceIds,[service],'Service landing page team is filtered');
+ assert.deepEqual((await profiles.getPublicPartnerProfile(nurseRow.profileSlug)).services.map(s=>s.name),['Alleviate'],'Directory and nurse website metadata use assigned services');
+ const assignmentReads=queryCount; await booking.publicClinicServices(id,member.partner_profile_id);await booking.publicClinicTeam(id);
+ assert.equal(queryCount,assignmentReads,'Repeated nurse catalog/team reads use cache');
+ await assert.rejects(()=>clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id],serviceIds:['10000000-0000-4000-8000-000000000099']}),/Choose services/);
+ await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id],serviceIds:[]});
+ assert.deepEqual(await booking.publicClinicServices(id,member.partner_profile_id),[],'Explicit empty selection is not all services');
+ assert.deepEqual((await booking.clinicBookingContext(id,'fixture-calendar',orlando)).partnerIds,[]);
+ assert.equal((await query('select count(*)::int n from app.partner_service_assignments where partner_profile_id=$1',[member.partner_profile_id])).rows[0].n,2,'Removing clinic selections preserves independent assignments');
+ await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id],serviceIds:[service]});
+ await query("update app.partner_service_assignments set status='out_of_stock' where partner_profile_id=$1 and service_id=$2",[member.partner_profile_id,service]);clinics.invalidateClinics();
+ assert.equal((await booking.publicClinicServices(id,member.partner_profile_id))[0].availabilityStatus,'out_of_stock','Nurse stock is reflected on nurse landing');
+ await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id],serviceIds:[service]});
+ assert.equal((await booking.publicClinicServices(id,member.partner_profile_id))[0].availabilityStatus,'out_of_stock','Clinic edit cannot silently restock nurse');
+ await query("update app.partner_service_assignments set status='active' where partner_profile_id=$1 and service_id=$2",[member.partner_profile_id,service]);clinics.invalidateClinics();
+ const scopedInvite=await clinics.inviteClinicMember(id,{email:'selected-services@example.invalid',role:'nurse',serviceIds:[service]});
+ assert.deepEqual((await query('select service_ids from app.clinic_memberships where clinic_id=$1 and email=$2',[id,'selected-services@example.invalid'])).rows[0].service_ids,[service]);
+ await assert.rejects(()=>clinics.inviteClinicMember(id2,{email:'wrong-clinic@example.invalid',role:'nurse',serviceIds:[secondService]}),/Choose services/);
+ identity=null;
+ await clinics.acceptClinicInvite({token:new URL(scopedInvite).hash.slice(1),fullName:'Selected Nurse',email:'selected-services@example.invalid',password:input.password,credentials:'RN',phone:'+15555550124',publicProfileConsent:true});
+ const selectedMember=(await query('select id,service_ids from app.clinic_memberships where clinic_id=$1 and email=$2',[id,'selected-services@example.invalid'])).rows[0];
+ assert.deepEqual(selectedMember.service_ids,[service],'Accepting invitation retains clinic service selection');
+ identity={email:input.email};
+ await clinics.updateClinicMember(id,{id:selectedMember.id,status:'removed',coverageIds:[],serviceIds:[service]});
+ await clinicServices.changeClinicService(id,{serviceId:secondService,status:'paused'});
+ assert.deepEqual((await query('select price,regional_prices,enabled from app.clinic_service_prices where clinic_id=$1 and service_id=$2',[id,service])).rows[0],servicesBefore,'Selection and stock never change stored prices');
  await assert.rejects(()=>clinicServices.changeClinicService(id,{serviceId:service,status:'invalid'}));
  await query('update app.clinic_service_prices set enabled=false where clinic_id=$1',[id]);
  await assert.rejects(()=>clinicServices.changeClinicService(id,{serviceId:service,status:'active'}),/enable/);

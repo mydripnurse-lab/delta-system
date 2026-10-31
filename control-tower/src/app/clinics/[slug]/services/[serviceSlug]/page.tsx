@@ -19,7 +19,7 @@ const load = cache(async (slug: string, serviceSlug: string) => {
     if (!clinic) return null;
     const [services, team] = await Promise.all([publicClinicServices(clinic.id), publicClinicTeam(clinic.id)]);
     const service = services.find(s => s.slug === serviceSlug);
-    return service ? { clinic, service, team } : null;
+    return service ? { clinic, service, team: team.filter(n => n.serviceIds.includes(service.id)) } : null;
 });
 export async function generateMetadata({ params }: Props) {
     const { slug, serviceSlug } = await params, data = await load(slug, serviceSlug);
@@ -32,6 +32,8 @@ export default async function Page({ params, searchParams }: Props) {
     const { clinic, service, team } = data, requested = (await searchParams).nurse;
     const nurse = requested ? team.find(n => n.id === requested) : undefined;
     if (requested && !nurse) notFound();
+    const nurseService = nurse ? (await publicClinicServices(clinic.id, nurse.id)).find(s => s.id === service.id) : undefined;
+    if (nurse && !nurseService) notFound();
     const coverage = nurse ? [...new Map([
         ...nurse.coverage.filter(r => clinicCovers(clinic.coverage, r)),
         ...clinic.coverage.filter(r => clinicCovers(nurse.coverage, r)),
@@ -50,7 +52,7 @@ export default async function Page({ params, searchParams }: Props) {
     ] }) }} />
         <section className={styles.hero}><div><Link className={styles.back} href={`${site.home}/services`}>← All services</Link><h1>{service.name}</h1><p>{service.description}</p>{nurse ? <p>Requested professional: {nurse.name}</p> : null}<div className={styles.heroActions}><a className={styles.action} href="#booking">View pricing & availability →</a></div></div><div className={styles.visual}>{service.imageUrl ? <Image unoptimized priority src={service.imageUrl} alt={service.name} width={500} height={500}/> : null}</div></section>
         <section className={styles.section}><span className={styles.eyebrow}>Your experience</span><h2>Personal attention, wherever you are.</h2><div className={styles.facts}><article><h3>Service details</h3><p>{service.ingredients?.length ? service.ingredients.join(' · ') : service.description}</p></article><article><h3>Professional review</h3><p>Eligibility, ingredients and treatment suitability are reviewed by an appropriately qualified professional before administration.</p></article><article><h3>Care, connected</h3><p>Use your Care portal for appointment details and updates. This service is not emergency care.</p></article></div></section>
-        <section className={styles.section} id="booking"><ClinicPublicServices clinicId={clinic.id} partnerId={nurse?.id} services={[service]} coverage={coverage} bookingsEnabled={clinicBookingsEnabled()}/></section>
+        <section className={styles.section} id="booking"><ClinicPublicServices clinicId={clinic.id} partnerId={nurse?.id} services={[nurseService || service]} coverage={coverage} bookingsEnabled={clinicBookingsEnabled()}/></section>
         <ClinicTeam team={nurse ? [nurse] : team}/><PartnerFaq title="Before your visit" items={faq}/>
     </main></ClinicPublicWebsite>;
 }

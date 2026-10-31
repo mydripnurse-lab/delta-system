@@ -45,6 +45,11 @@ const migration=name=>fs.readFileSync(path.join(root,'db/migrations',name),'utf8
  assert.equal((await ops.clinicReassignmentCandidates(clinic,a,'Nurse 01')).items.length,0,'Unavailable exceptions override availability');
  await db.query("delete from app.partner_availability_exceptions where partner_profile_id=$1 and kind='unavailable'",[nurses[1]]);
  let candidate=await ops.clinicReassignmentCandidates(clinic,a,'Nurse 01');assert.equal(candidate.items[0].id,nurses[1]);
+ await db.query("update app.clinic_memberships set service_ids='{}' where clinic_id=$1 and partner_profile_id=$2",[clinic,nurses[1]]);
+ assert.equal((await ops.clinicReassignmentCandidates(clinic,a,'Nurse 01')).items.length,0,'Clinic service selection excludes otherwise available nurses');
+ await assert.rejects(()=>ops.reassignClinicAppointment(clinic,{appointmentId:a,nurseId:nurses[1],version:snap.version,reason:'Unassigned service'}),/eligible/);
+ await db.query('update app.clinic_memberships set service_ids=$3::uuid[] where clinic_id=$1 and partner_profile_id=$2',[clinic,nurses[1],[service]]);
+
  await db.query("update app.clinic_memberships set status='suspended' where clinic_id=$1 and partner_profile_id=$2",[clinic,nurses[1]]);await assert.rejects(()=>ops.reassignClinicAppointment(clinic,{appointmentId:a,nurseId:nurses[1],version:snap.version,reason:'Staff change'}),/eligible/);await db.query("update app.clinic_memberships set status='active' where clinic_id=$1 and partner_profile_id=$2",[clinic,nurses[1]]);
  const conflict=await visit(nurses[1],start,other);await assert.rejects(()=>ops.reassignClinicAppointment(clinic,{appointmentId:a,nurseId:nurses[1],version:snap.version,reason:'Staff change'}),/eligible/);await db.query("update app.appointments set status='cancelled' where id=$1",[conflict]);
  await db.query("update app.clinic_memberships set coverage='[]' where clinic_id=$1 and partner_profile_id=$2",[clinic,nurses[1]]);assert.equal((await ops.clinicReassignmentCandidates(clinic,a,'Nurse 01')).items.length,0);await db.query('update app.clinic_memberships set coverage=$3 where clinic_id=$1 and partner_profile_id=$2',[clinic,nurses[1],JSON.stringify(fl)]);

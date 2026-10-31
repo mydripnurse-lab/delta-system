@@ -1,3 +1,5 @@
+import { revalidateTag } from "next/cache";
+import { CLINIC_TEAM_CACHE_TAG } from "@/lib/clinicPolicy";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requirePartnerAdmin } from "@/lib/partnerAdminAuth";
@@ -62,6 +64,7 @@ export async function PATCH(req: NextRequest, context: Context) {
       serviceKey: normalizedName,
       active: body.active,
     });
+    revalidateTag(CLINIC_TEAM_CACHE_TAG, { expire: 0 });
     return NextResponse.json({ ok: true, result: { selected: body.active, appliedToGhl: false, matrix } });
   } catch (error) {
     return NextResponse.json({ ok: false, error: message(error) }, { status: 400 });

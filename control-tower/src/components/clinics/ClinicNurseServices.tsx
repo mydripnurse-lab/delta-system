@@ -10,7 +10,7 @@ import styles from './clinic.module.css';
 export async function ClinicNurseServices({ profile }: { profile: PublicPartnerProfile }) {
     const sections = await Promise.all((profile.clinics || []).map(async affiliation => {
         const [clinics, services, team] = await Promise.all([
-            publicClinics(affiliation.slug), publicClinicServices(affiliation.id), publicClinicTeam(affiliation.id),
+            publicClinics(affiliation.slug), publicClinicServices(affiliation.id, profile.id), publicClinicTeam(affiliation.id),
         ]);
         const clinic = clinics[0], nurse = team.find(member => member.id === profile.id);
         if (!clinic || !nurse) return null;

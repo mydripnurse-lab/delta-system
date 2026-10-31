@@ -73,7 +73,7 @@ async function candidates(db: Pick<PoolClient,'query'>, clinicId: string, visit:
       from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
       join app.partner_profiles p on p.id=m.partner_profile_id and p.organization_id=c.organization_id
       join app.clinic_service_prices prices on prices.clinic_id=c.id and prices.service_id=$2 and prices.enabled and prices.availability_status='active'
-      where m.clinic_id=$1 and c.status='approved' and m.role='nurse' and m.status='active' and m.accepted_at is not null and m.authorized_at is not null
+      where m.clinic_id=$1 and c.status='approved' and m.role='nurse' and m.status='active' and m.accepted_at is not null and m.authorized_at is not null and (m.service_ids is null or $2::uuid=any(m.service_ids))
       and p.id<>$6 and ($7::uuid is null or p.id=$7) and ($8::uuid is null or p.id>$8) and strpos(lower(p.display_name),lower($9))>0
       and ${available} order by p.id limit 51`, [clinicId,visit.service_id,visit.starts_at,visit.ends_at,visit.id,visit.partner_profile_id,target || null,cursor || null,search]);
     return { items: rows.slice(0,50).filter(r=>clinicNurseCovers(r.clinicCoverage,r.coverage,visit)).map(r=>({id:r.id,name:r.name})), next: rows.length>50 ? rows[49].id : null };

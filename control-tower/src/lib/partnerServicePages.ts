@@ -20,7 +20,7 @@ export const loadPartnerServicePage = cache(async function loadPartnerServicePag
   if ((profile.clinicManaged || profile.clinicBrand) && !preview) {
     const clinic = profile.clinicBrand;
     if (!clinic) redirect(`/${profile.slug}/services`);
-    const services = await publicClinicServices(clinic.id);
+    const services = await publicClinicServices(clinic.id, profile.id);
     const definition = definitionForServiceSlug(serviceSlug);
     const service = services.find(s => s.slug === serviceSlug || s.slug === definition?.id);
     if (!service) return null;
