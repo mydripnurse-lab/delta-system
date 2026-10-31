@@ -21,7 +21,7 @@ function deliveryStart() {
     return new Date(value).toISOString();
 }
 type Contact = { name: string; email: string; phone: string };
-type EventPayload = { message?: Partial<ClinicMessageData>; nurse?: Contact; client?: Contact };
+type EventPayload = { message?: Partial<ClinicMessageData>; nurse?: Contact; client?: Contact; actionUrls?: Partial<Record<ClinicCommunicationRole,string>> };
 export async function queueClinicAppointment(input: { clinicId: string; key: string; event: string; message: Partial<ClinicMessageData>; nurse?: Contact; client?: Contact }) {
     await getDbPool().query(`insert into app.clinic_communication_events(clinic_id,event_key,event_type,payload) values($1,$2,$3,$4::jsonb) on conflict(event_key) do nothing`, [input.clinicId, input.key, input.event, JSON.stringify({ message: input.message, nurse: input.nurse, client: input.client })]);
     return deliverClinicCommunications(input.clinicId, input.key);
@@ -46,6 +46,7 @@ export async function deliverClinicCommunications(clinicId: string, key = '') {
         where e.clinic_id=$1 and ($2='' or e.event_key=$2) and e.created_at>now()-interval '7 days'
         and e.created_at >= $4::timestamptz
         and e.dispatched_at is null
+        and coalesce(e.payload->>'externalDeliveryPending','false') <> 'true'
         and ($2<>'' or exists (
           select 1 from jsonb_array_elements_text($3::jsonb->e.event_type) expected(role)
           left join app.clinic_communication_deliveries delivery on delivery.event_id=e.id and delivery.role=expected.role
@@ -78,7 +79,7 @@ export async function deliverClinicCommunications(clinicId: string, key = '') {
                 if (state.rows[0]?.status !== 'sent') { incomplete = true; pending++; }
                 continue;
             }
-            const content = clinicCommunicationContent({ ...event.payload.message, memberName: event.member_name || undefined, event: event.event_type, role, clinicName: event.name });
+            const content = clinicCommunicationContent({ ...event.payload.message, ...(event.payload.actionUrls?.[role] ? {actionUrl:event.payload.actionUrls[role]} : {}), memberName: event.member_name || undefined, event: event.event_type, role, clinicName: event.name });
             const payload = { ...content, event: event.event_type, recipientRole: role, recipientName: target.name, recipientEmail: target.email, recipientPhone: target.phone, email: target.email, phone: target.phone, name: target.name, clinicName: event.name, idempotencyKey: `${event.event_key}:${role}`, test: false, notifyInternal: role === 'clinic', notificationChannels: ['email','sms'] };
             try {
                 const response = await fetch(clinicWebhookUrl(endpoint), { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-mdn-idempotency-key': payload.idempotencyKey }, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), cache: 'no-store', redirect: 'error' });

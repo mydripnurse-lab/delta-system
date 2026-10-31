@@ -9,3 +9,5 @@
 @media(max-width:700px){.layout{display:block}.sidebar{display:none;position:fixed;top:76px;left:0;bottom:0;width:min(290px,90vw);height:calc(100dvh - 76px);z-index:20;box-shadow:20px 0 60px #17353a33}.sidebar.open{display:flex}.menuToggle{display:flex;gap:10px;align-items:center;border:1px solid #dce7e6;background:#fff;color:#17353a;border-radius:10px;padding:10px;font:700 12px var(--partner-sans)}.topbar{min-height:76px;padding:12px 16px}.workspace{display:none}.account summary>span:nth-child(2){max-width:140px;overflow-wrap:anywhere}.content{padding:28px 16px 60px}.pageHeading{align-items:flex-start;flex-wrap:wrap}.pageHeading h1{font-size:34px}}
 
 .avatar{overflow:hidden;flex-shrink:0}.avatar img{width:100%;height:100%;object-fit:cover}
+
+.headerActions{display:flex;align-items:center;gap:16px;min-width:0}@media(max-width:700px){.headerActions{gap:12px}.account summary>span:nth-child(2){max-width:100px}}

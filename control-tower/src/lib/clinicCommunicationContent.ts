@@ -1,8 +1,10 @@
 export const CLINIC_COMMUNICATION_ROLES = ['clinic', 'clinic_nurse', 'clinic_client'] as const;
 export type ClinicCommunicationRole = typeof CLINIC_COMMUNICATION_ROLES[number];
-export const clinicCommunicationEvents = ['clinic_registered','clinic_approved','clinic_suspended','clinic_pending','clinic_published','clinic_unpublished','invitation_accepted','member_active','member_suspended','member_removed','new_booking','partner_confirmation_required','partner_rescheduled','appointment_accepted','appointment_declined','appointment_reassigned','appointment_completed','appointment_refunded'] as const;
+export const clinicCommunicationEvents = ['clinic_registered','clinic_approved','clinic_suspended','clinic_pending','clinic_published','clinic_unpublished','invitation_accepted','member_active','member_suspended','member_removed','new_booking','partner_confirmation_required','partner_rescheduled','appointment_accepted','appointment_declined','appointment_reassigned','appointment_completed','appointment_refunded','clinic_assignment_offered','clinic_assignment_removed'] as const;
 export function clinicRolesForEvent(event: string): ClinicCommunicationRole[] {
  if (!(clinicCommunicationEvents as readonly string[]).includes(event)) return [];
+ if (event === 'clinic_assignment_offered') return ['clinic', 'clinic_nurse'];
+ if (event === 'clinic_assignment_removed') return ['clinic_nurse'];
  if (event.startsWith('clinic_')) return ['clinic'];
  if (event.startsWith('member_') || event === 'invitation_accepted') return ['clinic', 'clinic_nurse'];
  if (event === 'partner_confirmation_required') return ['clinic_nurse'];
@@ -10,6 +12,7 @@ export function clinicRolesForEvent(event: string): ClinicCommunicationRole[] {
  return [...CLINIC_COMMUNICATION_ROLES];
 }
 const titles: Record<string, string> = {
+ clinic_assignment_offered: 'New clinic appointment assignment', clinic_assignment_removed: 'Your clinic reassigned an appointment',
  clinic_registered: 'We received your clinic application', clinic_approved: 'Your clinic has been approved', clinic_pending: 'Your clinic is under review', clinic_suspended: 'Your clinic access has changed', clinic_published: 'Your clinic website is now live', clinic_unpublished: 'Your clinic website is no longer published', invitation_accepted: 'A team invitation has been accepted', member_active: 'Your clinic team membership is active', member_suspended: 'Your clinic team membership is suspended', member_removed: 'Your clinic team membership has ended', new_booking: 'New appointment request', partner_confirmation_required: 'Appointment response needed', partner_rescheduled: 'Appointment rescheduled', appointment_accepted: 'Appointment confirmed', appointment_declined: 'Appointment assignment update', appointment_reassigned: 'New appointment assignment', appointment_completed: 'Appointment completed', appointment_refunded: 'Deposit refund confirmed',
 };
 function escape(value: unknown) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!)); }
@@ -17,11 +20,12 @@ function https(value: unknown) { try { const u = new URL(String(value)); return 
 export type ClinicMessageData = { event: string; role: ClinicCommunicationRole; clinicName: string; memberName?: string; serviceName?: string; serviceImageUrl?: string; dateTime?: string; balance?: string; collectionInstructions?: string; reference?: string; outcome?: string; refundAmount?: string; platformFunded?: boolean; actionUrl?: string };
 export function clinicCommunicationContent(data: ClinicMessageData) {
  const appointment = !data.event.startsWith('clinic_') && !data.event.startsWith('member_') && data.event !== 'invitation_accepted';
- const offer = ['new_booking','partner_confirmation_required','appointment_reassigned'].includes(data.event);
+ const offer = ['new_booking','partner_confirmation_required','appointment_reassigned','clinic_assignment_offered'].includes(data.event);
  const subject = data.role === 'clinic_client' && data.event === 'new_booking' ? 'Your reservation is received — we’re arranging your care' : titles[data.event] || 'Your My Drip Nurse update';
  const actionUrl = https(data.actionUrl) || (data.role === 'clinic_client' ? 'https://care.mydripnurse.com/appointments' : data.role === 'clinic_nurse' ? 'https://partners.mydripnurse.com/partner-portal/appointments' : 'https://partners.mydripnurse.com/portal/clinics');
  const actionLabel = data.role === 'clinic_client' ? 'Open My Care' : data.role === 'clinic_nurse' && offer ? 'Accept or decline in your portal' : data.role === 'clinic' ? 'Open clinic workspace' : 'Open your portal';
- let message = data.event === 'clinic_registered' ? 'Thank you for applying. My Drip Nurse will review your clinic before activation. Your website and directory listing remain private until our team publishes them.'
+ let message = data.event === 'clinic_assignment_removed' ? 'Your clinic reassigned this appointment. You are no longer assigned to the visit. Check your portal for your current schedule.'
+ : data.event === 'clinic_registered' ? 'Thank you for applying. My Drip Nurse will review your clinic before activation. Your website and directory listing remain private until our team publishes them.'
  : data.event === 'clinic_approved' ? 'Your clinic application is approved. You can prepare your team, coverage and branding in your clinic workspace. My Drip Nurse manages publication of your website and directory listing.'
  : data.event === 'clinic_published' ? 'Your clinic website and directory listing are published. Authorized team members with publication consent can appear with your clinic.'
  : data.event === 'clinic_pending' ? 'My Drip Nurse is reviewing your clinic. Your website and directory listing remain private while the review is pending. You can follow your application in your clinic workspace.'

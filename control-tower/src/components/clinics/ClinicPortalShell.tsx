@@ -7,6 +7,7 @@ import { PartnerExperience } from '@/components/partner/PartnerBrand';
 import { PortalIcon, type PortalIconName } from '@/components/portal/PortalIcon';
 import type { Clinic } from '@/lib/clinics';
 import styles from './clinicPortalShell.module.css';
+import { ClinicNotifications } from './ClinicNotifications';
 
 const sections = [
     ['Overview', 'home'], ['Appointments', 'calendar'], ['Profile', 'user'],
@@ -27,10 +28,12 @@ type Props = {
     accountName?: string;
     accountPhotoUrl?: string;
     busy: boolean;
+    onAppointment: (id: string) => void;
+    notificationRevision?: number;
     children: ReactNode;
 };
 
-export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut, owner, hasPractice, accountName, accountPhotoUrl, busy, children }: Props) {
+export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut, owner, hasPractice, accountName, accountPhotoUrl, busy, onAppointment, notificationRevision, children }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [failedPhoto, setFailedPhoto] = useState('');
     const [failedLogo, setFailedLogo] = useState('');
@@ -56,6 +59,8 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut
             <header className={styles.topbar}>
                 <button type="button" className={styles.menuToggle} aria-controls="clinic-navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? 'Close menu' : 'Menu'} <span aria-hidden="true">☰</span></button>
                 <div className={styles.workspace}><small>Clinic workspace</small></div>
+                <div className={styles.headerActions}>
+                {clinic?.status === 'approved' ? <ClinicNotifications key={clinic.id} clinicId={clinic.id} onAppointment={onAppointment} revision={notificationRevision} /> : null}
                 <details className={styles.account}>
                     <summary><span className={styles.avatar}>{accountPhotoUrl && failedPhoto !== accountPhotoUrl ? <Image unoptimized src={accountPhotoUrl} alt="" width={40} height={40} onError={() => setFailedPhoto(accountPhotoUrl)} /> : (accountName || title).slice(0, 1).toUpperCase()}</span><span><strong>{accountName || 'Your account'}</strong><small>{clinic ? owner ? 'Clinic owner' : 'Clinic manager' : 'Clinic partner'}</small></span><span aria-hidden="true">⌄</span></summary>
                     <div className={styles.accountMenu}>
@@ -64,7 +69,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut
                         {hasPractice ? <Link prefetch={false} href="/portal/profile">My professional profile</Link> : null}
                         <button type="button" onClick={onSignOut}>Sign out</button>
                     </div>
-                </details>
+                </details></div>
             </header>
             <main className={styles.content} id="clinic-content">
                 <div className={styles.pageHeading}><div><span>YOUR CLINIC</span><h1>{clinic ? section === 'Profile' ? 'Clinic profile' : section === 'Website' ? 'Clinic website' : section : section === 'Support' ? 'Support' : section === 'Affiliates' ? 'Affiliates' : 'Your clinics'}</h1></div>{clinic ? <span className={styles.status}>{clinic.status}</span> : <Link prefetch={false} href="/clinics/register">Register a clinic <span aria-hidden="true">→</span></Link>}</div>

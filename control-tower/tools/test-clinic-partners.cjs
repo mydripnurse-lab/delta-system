@@ -460,7 +460,7 @@ async function main(){
  await query('drop table app.partner_directory_daily_metrics');memo.clear();
  assert.equal((await performance.getClinicDashboard(reportingClinic,30)).directoryAvailable,false,'Missing telemetry is unavailable, not invented traffic');
  const readyWorkspace=await clinics.clinicWorkspace(reportingClinic);
- assert(readyWorkspace.appointments.length>0);
+ assert.equal(readyWorkspace.appointments.length,0,'Workspace avoids loading patient records until the calendar is opened');
  const workspaceBudget=queryCount;await clinics.clinicWorkspace(reportingClinic);assert.equal(queryCount-workspaceBudget,1,'Workspace records also cached behind fresh authorization');
  await query("update app.clinics set status='pending' where id=$1",[reportingClinic]);
  const pendingWorkspace=await clinics.clinicWorkspace(reportingClinic);

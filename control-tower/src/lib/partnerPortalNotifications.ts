@@ -47,6 +47,9 @@ export async function listPartnerPortalNotifications(profileId: string, limit = 
       where appointment.partner_profile_id = $1::uuid
         and appointment.status in ('payment_pending', 'confirmed')
         and event.event_type in ('appointment_confirmed', 'slot_held', 'partner_reassigned')
+        and not exists (select 1 from app.partner_portal_notifications existing
+          where existing.appointment_id=appointment.id and existing.partner_profile_id=appointment.partner_profile_id
+            and existing.event_type in ('appointment_confirmation','appointment_reassigned') and existing.created_at >= event.created_at)
      order by appointment.id, event.created_at desc
      on conflict (partner_profile_id, event_key) do nothing`,
     [profileId],
@@ -59,7 +62,7 @@ export async function listPartnerPortalNotifications(profileId: string, limit = 
         and notification.appointment_id = appointment.id
         and notification.read_at is null
         and (
-          (notification.event_type in ('appointment_confirmation', 'appointment_reassigned') and appointment.status not in ('payment_pending', 'confirmed'))
+          (notification.event_type in ('appointment_confirmation', 'appointment_reassigned') and (appointment.status not in ('payment_pending', 'confirmed') or appointment.partner_profile_id is distinct from notification.partner_profile_id))
           or (notification.event_type = 'start_reminder' and appointment.status <> 'partner_acknowledged')
           or (notification.event_type = 'complete_reminder' and appointment.status <> 'in_progress')
         )`,
@@ -84,7 +87,7 @@ export async function listPartnerPortalNotifications(profileId: string, limit = 
             appointment.id::text as appointment_id, appointment.public_reference,
             service.name as service_name, appointment.starts_at::text, appointment.status
        from app.partner_portal_notifications notification
-       left join app.appointments appointment on appointment.id = notification.appointment_id
+       left join app.appointments appointment on appointment.id = notification.appointment_id and appointment.partner_profile_id=notification.partner_profile_id
        left join app.services service on service.id = appointment.service_id
       where notification.partner_profile_id = $1::uuid
       order by notification.created_at desc

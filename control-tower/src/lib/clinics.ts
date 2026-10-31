@@ -103,11 +103,11 @@ const cachedClinicWorkspace = unstable_cache(async (id: string, approved: boolea
     const [clinic, members, appointments, services] = await Promise.all([
         pool.query<Clinic>(`select ${columns} from app.clinics c where c.id=$1`, [id]),
         approved ? pool.query<ClinicMember>(`select m.id,m.email,m.role,m.status,m.partner_profile_id as "partnerId",coalesce(p.display_name,m.email) as name,m.coverage,m.accepted_at::text as "acceptedAt",p.slug as "profileSlug",coalesce(p.profile_consent_at is not null and p.website_status='published' and m.status='active',false) as "publicationReady" from app.clinic_memberships m left join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 order by m.created_at desc limit 100`, [id]) : Promise.resolve({ rows: [] }),
-        approved ? pool.query(`select a.id,a.public_reference as reference,a.status,a.starts_at::text as "startsAt",a.service_price::text as price,a.deposit_amount::text as deposit,a.currency,coalesce(customer.full_name,'') as "customerName",coalesce(customer.email,'') as "customerEmail",coalesce(customer.phone,'') as "customerPhone",coalesce(p.display_name,'') as "nurseName",a.metadata->'client_reward'->>'platformFunded' as "platformFunded" from app.appointments a left join app.booking_customers customer on customer.id=a.customer_id left join app.partner_profiles p on p.id=a.partner_profile_id where a.clinic_id=$1 order by a.starts_at desc limit 50`, [id]) : Promise.resolve({ rows: [] }),
+        Promise.resolve({ rows: [] }), // Appointment details are loaded on demand by the paged calendar.
         approved ? pool.query(`select s.id,s.name,s.image_url as "imageUrl",s.short_description as description,s.ingredients,p.availability_status as "availabilityStatus",s.price::text as "defaultPrice",s.currency,p.price::text as "clinicPrice",p.regional_prices as "regionalPrices" from app.clinic_service_prices p join app.services s on s.id=p.service_id where p.clinic_id=$1 and p.enabled and s.is_active order by s.name limit 100`, [id]) : Promise.resolve({ rows: [] }),
     ]);
     return { clinic: clinic.rows[0], members: members.rows, appointments: appointments.rows, services: services.rows };
-}, ['clinic-workspace-v3-services'], { revalidate: 60, tags: [CLINIC_CACHE_TAG] });
+}, ['clinic-workspace-v4-calendar'], { revalidate: 60, tags: [CLINIC_CACHE_TAG] });
 export async function clinicWorkspace(id: string) {
     const actor = await requireClinicManager(id);
     const workspace = await cachedClinicWorkspace(id, actor.status === 'approved');
