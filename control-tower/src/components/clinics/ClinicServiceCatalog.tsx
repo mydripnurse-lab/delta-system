@@ -50,14 +50,14 @@ export function ClinicServiceCatalog({ clinicId, services, onRefresh }: {
             const money = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: s.currency }).format(value);
             const offered = s.canOffer && s.configured && s.availabilityStatus !== 'paused';
             return <article key={s.id} className={catalog.service}>
-                <div className={catalog.visual}>{s.imageUrl ? <Image unoptimized width={480} height={300} className={catalog.image} src={s.imageUrl} alt={s.name} /> : <div className={catalog.placeholder} aria-hidden="true">✦</div>}
-                    <span className={catalog.status}>{!s.canOffer ? 'Unavailable' : !offered ? 'Not offered' : s.availabilityStatus === 'out_of_stock' ? 'Out of stock' : 'Offered'}</span></div>
+                <div className={catalog.visual}>{s.imageUrl ? <Image unoptimized fill className={catalog.image} src={s.imageUrl} alt={s.name} /> : <div className={catalog.placeholder} aria-hidden="true">✦</div>}
+                    <span className={catalog.status} data-status={!offered ? 'paused' : s.availabilityStatus}>{!s.canOffer ? 'Unavailable' : !offered ? 'Not offered' : s.availabilityStatus === 'out_of_stock' ? 'Out of stock' : 'Offered'}</span></div>
                 <div className={catalog.description}><h3>{s.name}</h3><p>{s.description}</p>
                     {s.ingredients?.length ? <div className={catalog.ingredients}>{s.ingredients.map((ingredient, i) => <span key={i}>{ingredient}</span>)}</div> : null}
                     <div className={catalog.prices}><div><small>Service price</small><strong>{money(price)}</strong></div><div><small>Booking deposit</small><strong>{money(deposit)}</strong></div></div>
                     <div className={catalog.balance}><small>Your clinic collects after deposit</small><strong>{money(Math.max(0, price - deposit))} <small>+ voluntary tip</small></strong></div>
                     <p className={catalog.help}>Default pricing shown. Regional prices apply at the service address. My Drip Nurse manages prices; your clinic collects the remaining balance directly.</p>
-                    <div className={catalog.actions}>{!s.canOffer ? <small>Contact My Drip Nurse to enable this service.</small> : !offered ? <button disabled={busy} className={styles.primary} onClick={() => change(s.id, 'active')}>Offer service</button> : <><button disabled={busy} className={styles.secondary} onClick={() => change(s.id, 'paused')}>Pause service</button><button disabled={busy} className={styles.secondary} onClick={() => change(s.id, s.availabilityStatus === 'out_of_stock' ? 'active' : 'out_of_stock')}>{s.availabilityStatus === 'out_of_stock' ? 'Back in stock' : 'Out of stock'}</button></>}</div>
+                    <div className={catalog.actions}>{!s.canOffer ? <small>Contact My Drip Nurse to enable this service.</small> : !offered ? <button disabled={busy} className={catalog.primaryAction} onClick={() => change(s.id, 'active')}>Offer service</button> : <><button disabled={busy} className={catalog.secondaryAction} onClick={() => change(s.id, 'paused')}>Pause service</button><button disabled={busy} className={s.availabilityStatus === 'out_of_stock' ? catalog.primaryAction : catalog.stockAction} onClick={() => change(s.id, s.availabilityStatus === 'out_of_stock' ? 'active' : 'out_of_stock')}>{s.availabilityStatus === 'out_of_stock' ? 'Back in stock' : 'Out of stock'}</button></>}</div>
                 </div>
             </article>;
         })}</div>
