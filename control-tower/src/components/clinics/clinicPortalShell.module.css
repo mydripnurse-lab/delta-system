@@ -11,3 +11,14 @@
 .avatar{overflow:hidden;flex-shrink:0}.avatar img{width:100%;height:100%;object-fit:cover}
 
 .headerActions{display:flex;align-items:center;gap:16px;min-width:0}@media(max-width:700px){.headerActions{gap:12px}.account summary>span:nth-child(2){max-width:100px}}
+
+@media(max-width:700px){
+ .layout{width:100%;min-width:0}.topbar{padding:10px 16px;min-height:68px;gap:12px}
+ .menuToggle{min-height:44px;padding:10px 12px}.headerActions{gap:10px;margin-left:auto;flex-shrink:0}
+ .account summary{min-height:44px;padding:3px;gap:0;border-radius:13px}
+ .account summary>span:nth-child(2),.account summary>span:last-child{display:none}
+ .accountMenu{max-width:calc(100vw - 32px)}.accountMenu a,.accountMenu button{min-height:44px;font-size:14px}
+ .sidebar{top:68px;height:calc(100dvh - 68px);padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+ .navigation button{min-height:48px;font-size:14px}.content{padding:24px 16px calc(40px + env(safe-area-inset-bottom,0px))}
+ .pageHeading{gap:12px;margin-bottom:20px}.pageHeading h1{font-size:32px;overflow-wrap:anywhere}
+}

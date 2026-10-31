@@ -62,7 +62,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut
                 <div className={styles.headerActions}>
                 {clinic?.status === 'approved' ? <ClinicNotifications key={clinic.id} clinicId={clinic.id} onAppointment={onAppointment} revision={notificationRevision} /> : null}
                 <details className={styles.account}>
-                    <summary><span className={styles.avatar}>{accountPhotoUrl && failedPhoto !== accountPhotoUrl ? <Image unoptimized src={accountPhotoUrl} alt="" width={40} height={40} onError={() => setFailedPhoto(accountPhotoUrl)} /> : (accountName || title).slice(0, 1).toUpperCase()}</span><span><strong>{accountName || 'Your account'}</strong><small>{clinic ? owner ? 'Clinic owner' : 'Clinic manager' : 'Clinic partner'}</small></span><span aria-hidden="true">⌄</span></summary>
+                    <summary aria-label={`Account menu for ${accountName || "your clinic account"}`}><span className={styles.avatar}>{accountPhotoUrl && failedPhoto !== accountPhotoUrl ? <Image unoptimized src={accountPhotoUrl} alt="" width={40} height={40} onError={() => setFailedPhoto(accountPhotoUrl)} /> : (accountName || title).slice(0, 1).toUpperCase()}</span><span><strong>{accountName || 'Your account'}</strong><small>{clinic ? owner ? 'Clinic owner' : 'Clinic manager' : 'Clinic partner'}</small></span><span aria-hidden="true">⌄</span></summary>
                     <div className={styles.accountMenu}>
                         {clinic ? <button type="button" onClick={() => select('Profile')}>Clinic profile</button> : null}
                         <Link prefetch={false} href="/clinics/register">Register a clinic</Link>

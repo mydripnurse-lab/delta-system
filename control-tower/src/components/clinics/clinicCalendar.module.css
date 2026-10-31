@@ -13,3 +13,21 @@
 @media(max-width:1200px){.calendarWorkspace{grid-template-columns:minmax(0,1fr) 205px;gap:14px}.weekdays,.monthGrid{min-width:742px}.staffPanel{padding:12px}}
 @media(max-width:850px){.calendarWorkspace{grid-template-columns:minmax(0,1fr)}.staffPanel{position:static;grid-row:1}.staffRows{max-height:190px;grid-template-columns:repeat(2,minmax(0,1fr))}.staffControls{max-width:260px}.staffPanel header{margin-bottom:10px}.staffSearch{max-width:360px}}
 @media(max-width:420px){.staffRows{grid-template-columns:1fr}}
+
+.mobileDay{display:none!important}
+@media(max-width:700px){
+ .inbox>summary>span{display:none}.inbox>summary{padding:11px;min-height:44px}
+ .inboxPanel{position:fixed;top:80px;right:16px;max-height:calc(100dvh - 100px)}
+ .calendar button,.calendar select,.calendar input:not([type=checkbox]),.inbox button{min-height:44px}
+ .calendar input:not([type=checkbox]),.calendar select,.calendar textarea{font-size:16px;min-width:0}
+ .staffCheck{min-height:44px}.staffRows{overscroll-behavior-y:contain}
+ .filters>*{max-width:100%;min-width:0}.dateInput{flex-basis:100%}
+ .monthGrid,.weekdays{min-width:0;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+ .weekdays{font-size:9px;text-align:center;padding-inline:0}
+ .monthDay,.blankDay{min-height:58px;padding:0;border-radius:9px}
+ .monthDay>header,.monthDay>.compact,.monthDay>.moreVisits{display:none}
+ .calendar .mobileDay{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;height:100%;min-height:58px;padding:5px 1px;border:0;background:transparent;font-size:12px}
+ .mobileDay small{font-size:9px;font-weight:400}.calendar .mobileDay:disabled{opacity:1;cursor:default;color:#718781}
+ .monthScroll{overflow:visible}.calendar{padding:12px}.viewTabs button{font-size:11px;min-width:0;flex:1;padding:8px 2px}
+ .dialog{padding:18px;max-height:calc(100dvh - 24px)}
+}
