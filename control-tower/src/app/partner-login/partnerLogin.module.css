@@ -1,35 +1,12 @@
 .main { min-height: 68vh; padding: 86px 20px; background: linear-gradient(145deg, #edf7f5, #f8f6f1); display: grid; place-items: center; }
 .applicationMain { place-items: start center; }
 .authShell { display: grid; width: min(1120px, 100%); gap: 20px; }
-.authTabs { display: grid; grid-template-columns: 1fr 1fr; width: min(430px, 100%); margin: 0 auto; padding: 5px; border: 1px solid #d5e4e1; border-radius: 999px; background: rgba(255,255,255,.78); box-shadow: 0 12px 35px rgba(17,66,72,.08); }
+.authTabs { display: grid; grid-template-columns: repeat(3, auto); width: min(530px, 100%); margin: 0 auto; padding: 5px; border: 1px solid #d5e4e1; border-radius: 999px; background: rgba(255,255,255,.78); box-shadow: 0 12px 35px rgba(17,66,72,.08); }
 .authTabs a { display: grid; min-height: 44px; place-items: center; padding: 0 18px; border-radius: 999px; color: #5b7370; font-size: 12px; font-weight: 850; text-decoration: none; transition: color .18s ease, background .18s ease, box-shadow .18s ease; }
 .authTabs a:hover { color: #075c68; }
 .authTabs a:focus-visible { outline: 3px solid rgba(7,133,150,.2); outline-offset: 2px; }
 .authTabs .authTabActive { color: #fff; background: #075c68; box-shadow: 0 8px 22px rgba(7,92,104,.2); }
-.card { width: min(560px, 100%); padding: clamp(32px, 6vw, 58px); border: 1px solid #d8e6e3; border-radius: 28px; background: #fff; box-shadow: 0 24px 70px rgba(17,66,72,.12); text-align: center; }
-.eyebrow { color: #078596; font-size: 10px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
-.card h1 { margin: 18px 0 12px; font-family: var(--partner-serif); font-size: 48px; font-weight: 400; }
-.card > p { margin: 0; color: #617875; line-height: 1.7; }
-.notice { margin: 26px 0; padding: 17px; border-radius: 15px; background: #eff7f5; text-align: left; }
-.notice strong, .notice span { display: block; }
-.notice strong { margin-bottom: 6px; font-size: 13px; }
-.notice span { color: #657a77; font-size: 12px; line-height: 1.55; }
-.notice .noticeLink { display: inline-flex; margin-top: 12px; align-items: center; gap: 7px; color: #075c68; font-size: 12px; font-weight: 900; text-decoration: none; }
-.notice .noticeLink span { color: inherit; }
-.notice .noticeLink:hover { text-decoration: underline; text-underline-offset: 3px; }
-.primary, .secondary { display: flex; min-height: 48px; align-items: center; justify-content: center; border-radius: 999px; font-size: 13px; font-weight: 850; text-decoration: none; }
-.primary { color: #fff; background: #075c68; }
-.secondary { margin-top: 9px; color: #075c68; }
-.form { display: grid; gap: 14px; margin-top: 28px; text-align: left; }
-.form label { display: grid; gap: 7px; color: #244c50; font-size: 12px; font-weight: 800; }
-.form input { min-height: 48px; border: 1px solid #cddedb; border-radius: 13px; padding: 0 14px; background: #fbfdfc; color: #173b3e; font: inherit; font-size: 15px; }
-.form input:focus { outline: 3px solid rgba(7,133,150,.14); border-color: #078596; }
-.forgot { width: fit-content; margin: -4px 0 1px auto; color: #075c68; font-size: 12px; font-weight: 850; text-decoration: none; }
-.forgot:hover { text-decoration: underline; text-underline-offset: 3px; }
-.forgot:focus-visible { border-radius: 4px; outline: 3px solid rgba(7,133,150,.18); outline-offset: 3px; }
-.form button { border: 0; cursor: pointer; }
-.form button:disabled { cursor: wait; opacity: .68; }
-.error { margin: 0; color: #a62e2e; font-size: 12px; font-weight: 750; }
+.eyebrow { color: #078596; font-size: 10px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
 .applicationCard { width: 100%; padding: clamp(25px, 4vw, 48px); border: 1px solid #d8e6e3; border-radius: 30px; background: rgba(255,255,255,.92); box-shadow: 0 24px 70px rgba(17,66,72,.12); }
 .applicationHeading { max-width: 720px; margin: 0 auto 32px; text-align: center; }
 .applicationHeading h1 { margin: 15px 0 13px; color: #173d40; font-family: var(--partner-serif); font-size: clamp(38px, 5vw, 58px); font-weight: 400; letter-spacing: -.04em; line-height: 1.04; }
@@ -47,7 +24,6 @@
   .authShell { gap: 16px; }
   .authTabs { position: sticky; top: 10px; z-index: 3; width: 100%; }
   .authTabs a { min-height: 42px; padding: 0 10px; font-size: 11px; }
-  .card { border-radius: 22px; }
   .applicationCard { padding: 20px 10px 24px; border-radius: 22px; }
   .applicationHeading { padding: 0 10px; margin-bottom: 24px; }
   .applicationHeading h1 { font-size: clamp(36px, 11vw, 48px); }
@@ -60,3 +36,74 @@
 @media (max-width: 430px) {
   .applicationFrame { height: 1040px; }
 }
+
+/* The login has its own shell, leaving onboarding and other portals untouched. */
+.loginExperience { background: #fbfcfb; }
+.loginLayout { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); min-height: 100svh; padding: 18px; gap: 18px; }
+.brandPanel { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 700px; padding: clamp(32px, 4.5vw, 76px); border-radius: 22px; background: #073e47; color: #fff; }
+.brandPanel::before { content: ''; position: absolute; z-index: -1; width: 680px; height: 680px; right: -390px; top: 18%; border: 1px solid #9ce1d52b; border-radius: 50%; box-shadow: 0 0 0 65px #91d5cc07, 0 0 0 66px #9ce1d518, 0 0 0 133px #91d5cc05, 0 0 0 134px #9ce1d510; }
+.brandPanel::after { content: ''; position: absolute; z-index: -2; inset: 0; background: radial-gradient(ellipse at 100% 100%, #148b8255, transparent 65%); }
+.brandLogo { width: fit-content; display: inline-flex; padding: 13px 18px; background: #fff; border-radius: 12px; }
+.brandLogo img { display: block; width: 167px; height: auto; }
+.brandContent { padding: 80px 0; max-width: 490px; }
+.brandEyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em; color: #a0d5cf; }
+.brandContent h2 { margin: 26px 0; color: #fff; font-family: var(--partner-sans); font-size: clamp(42px, 4.7vw, 72px); line-height: 1.07; font-weight: 500; letter-spacing: -.055em; }
+.brandContent h2 em { font-family: var(--partner-serif); font-weight: 400; color: #b6e7db; letter-spacing: -.035em; }
+.brandContent > p { max-width: 350px; color: #bdd3d3; font-size: 15px; line-height: 1.8; margin: 0; }
+.brandDetails { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 36px; color: #c9dfdc; font-size: 11px; }
+.brandDetails span { display: flex; align-items: center; gap: 8px; }
+.brandDetails span::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #81d4bf; }
+.brandFooter { display: flex; align-items: center; gap: 10px; color: #aec9cb; font-size: 11px; line-height: 1.5; }
+.brandMark { font-size: 22px; color: #9edbd1; }
+.loginPanel { min-width: 0; display: flex; flex-direction: column; padding: 22px clamp(24px, 4.8vw, 80px) 12px; }
+.loginTopbar, .loginFooter { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.loginTopbar { font-size: 12px; min-height: 34px; }
+.loginTopbar > span { color: #577175; letter-spacing: .13em; font-size: 10px; font-weight: 700; }
+.loginTopbar a, .loginFooter a { text-decoration: none; color: #365d63; }
+.loginTopbar a:hover, .loginFooter a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.loginTopbar a span, .loginFooter a span { margin-left: 8px; }
+.loginContent { width: 100%; max-width: 400px; margin: auto; padding: 56px 0; }
+.loginSymbol { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid #dbe7e4; background: #f0f6f4; border-radius: 14px; color: #075c68; margin-bottom: 24px; }
+.loginSymbol svg { width: 23px; height: 23px; }
+.loginContent h1 { margin: 0 0 14px; font-family: var(--partner-sans); font-size: clamp(30px, 3vw, 40px); line-height: 1.15; letter-spacing: -.045em; font-weight: 600; color: #173b40; }
+.loginIntro { color: #667d80; font-size: 14px; line-height: 1.8; margin: 0; }
+.form { display: grid; gap: 22px; margin-top: 32px; text-align: left; }
+.field { display: grid; gap: 9px; }
+.field label { color: #294d52; font-size: 12px; font-weight: 600; }
+.fieldHeading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.field input { width: 100%; min-width: 0; height: 52px; border: 1px solid #d7e1df; border-radius: 10px; padding: 0 15px; background: #fff; color: #173b3e; font: inherit; font-size: 16px; transition: border-color .15s, box-shadow .15s; }
+.field input::placeholder { color: #81918f; font-size: 14px; }
+.field input:hover { border-color: #a6bfba; }
+.field input:focus { outline: 0; border-color: #078596; box-shadow: 0 0 0 3px #07859618; }
+.passwordField { position: relative; }
+.passwordField input { padding-right: 52px; }
+.passwordToggle { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; display: grid; place-items: center; background: transparent; color: #647d7e; border: 0; border-radius: 8px; cursor: pointer; }
+.passwordToggle:hover { background: #edf5f3; color: #075c68; }
+.forgot { color: #075c68; font-size: 11px; font-weight: 600; text-decoration: none; }
+.forgot:hover { text-decoration: underline; text-underline-offset: 3px; }
+.primary { display: flex; width: 100%; min-height: 52px; align-items: center; justify-content: center; gap: 16px; border: 0; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600; color: #fff; background: #075c68; cursor: pointer; transition: background .15s, box-shadow .15s; }
+.primary:hover:not(:disabled) { background: #064b56; box-shadow: 0 5px 16px #075c6818; }
+.primary:disabled { cursor: wait; opacity: .7; }
+.error { padding: 12px 14px; border: 1px solid #ebcccc; border-radius: 10px; margin: 0; background: #fff6f5; color: #963a36; font-size: 13px; line-height: 1.5; }
+.joinOptions { margin-top: 30px; border-top: 1px solid #e2e9e7; padding-top: 22px; }
+.joinOptions p { margin: 0 0 8px; color: #6b8183; font-size: 12px; }
+.joinOptions a { display: flex; justify-content: space-between; align-items: center; gap: 16px; min-height: 40px; font-size: 13px; font-weight: 600; color: #31575d; text-decoration: none; border-radius: 5px; }
+.joinOptions a:hover { color: #078596; }
+.loginFooter { color: #6b8082; font-size: 10px; padding-top: 12px; }
+.loginLayout a:focus-visible, .loginLayout button:focus-visible { outline: 3px solid #27a0a3; outline-offset: 4px; }
+.skipLink { position: fixed; z-index: 20; top: 10px; left: 10px; transform: translateY(-160%); padding: 12px 20px; background: #fff; color: #075c68; border-radius: 8px; }
+.skipLink:focus { transform: translateY(0); }
+.spinner { width: 15px; height: 15px; border: 2px solid #ffffff55; border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 1000px) { .brandPanel { padding: 36px; } .loginPanel { padding-left: 28px; padding-right: 28px; } .brandDetails { gap: 10px 14px; } }
+@media (max-width: 760px) {
+  .loginLayout { display: flex; flex-direction: column; padding: 0; gap: 0; min-height: 100svh; }
+  .brandPanel { min-height: 0; padding: 22px 24px; border-radius: 0; background: #fff; border-bottom: 1px solid #e3ebe8; }
+  .brandPanel::before, .brandPanel::after, .brandContent, .brandFooter { display: none; }
+  .brandLogo { padding: 0; border-radius: 0; } .brandLogo img { width: 155px; }
+  .loginPanel { flex: 1; padding: 18px 24px 24px; }
+  .loginContent { padding: 36px 0; } .loginSymbol { margin-bottom: 20px; }
+  .loginFooter { width: 100%; max-width: 400px; margin: 0 auto; font-size: 10px; }
+  .loginTopbar { width: 100%; max-width: 400px; margin: 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) { .loginLayout *, .authTabs a { animation: none; transition: none; } }
