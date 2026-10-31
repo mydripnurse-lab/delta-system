@@ -61,7 +61,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
   const bookingReturnUrl = `https://partners.mydripnurse.com/${profile.slug}/services/${serviceSlug}/book`;
 
   return (
-    <PartnerExperience>
+    <PartnerExperience branding={profile.clinicBrand}>
       <main className={styles.page}>
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · Booking pages remain hidden from search engines</div> : null}
         <PartnerPublicHeader profile={profile} preview={preview} />

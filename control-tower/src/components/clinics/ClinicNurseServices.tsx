@@ -20,7 +20,7 @@ export async function ClinicNurseServices({ profile }: { profile: PublicPartnerP
         ].map(r => [r.id, r])).values()];
         return <section key={clinic.id} className={styles.card}>
             <h2>{clinic.name}</h2><Link href={`/clinics/${clinic.slug}`}>About this clinic →</Link>
-            <ClinicPublicServices bookingsEnabled={clinicBookingsEnabled()} clinicId={clinic.id} partnerId={profile.id} coverage={coverage} services={services}/>
+            <ClinicPublicServices bookingsEnabled={clinicBookingsEnabled()} clinicId={clinic.id} clinicSlug={clinic.slug} partnerId={profile.id} coverage={coverage} services={services}/>
         </section>;
     }));
     return <>{sections}{!sections.some(Boolean) ? <p className={styles.empty}>No clinic is accepting bookings through this profile right now.</p> : null}</>;

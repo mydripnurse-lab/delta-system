@@ -116,3 +116,9 @@
 .serviceBookCtaOutOfStock p{max-width:620px;margin:16px auto 0;color:var(--partner-copy);font-size:15px;line-height:1.65}
 .calendarOutOfStock{border-color:#e3bbb8;background:#fff8f7}
 @media(max-width:620px){.outOfStockBadge{top:10px;right:10px}.outOfStockAction{width:100%}.outOfStockNotice{text-align:center}}
+
+/* White-label contrast stays scoped to the public professional experience. */
+.primaryAction,.serviceFacts article>span{color:var(--partner-button-ink,#fff)}
+.hero,.servicesHero,.serviceDetailHero,.localServiceSection,.bookingPageHero{color:var(--partner-accent-ink,var(--partner-ink))}
+.heroCopy>p,.servicesHero p,.serviceDetailCopy>p{color:inherit}
+.eyebrow{color:var(--partner-accent-ink,#087368)}

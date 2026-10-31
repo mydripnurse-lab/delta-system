@@ -1,3 +1,4 @@
+import { publicClinicSitemapEntries } from '@/lib/clinicBooking';
 import { clinicsEnabled } from "@/lib/clinicFeature";
 import { definitionForCalendar, partnerServiceSlug } from "@/lib/myDripNurseServices";
 import { listPublishedPartnerWebsites } from "@/lib/partnerProfiles";
@@ -28,7 +29,7 @@ function urlEntry(opts: {
 }
 
 export async function GET() {
-  const profiles = await listPublishedPartnerWebsites(250);
+  const [profiles, clinics] = await Promise.all([listPublishedPartnerWebsites(250), clinicsEnabled() ? publicClinicSitemapEntries() : Promise.resolve([])]);
   const entries = [
     urlEntry({
       loc: PARTNER_SITE_ORIGIN,
@@ -37,9 +38,14 @@ export async function GET() {
     }),
     urlEntry({ loc: `${PARTNER_SITE_ORIGIN}/directory`, priority: "0.9", changeFrequency: "daily" }),
     ...(clinicsEnabled() ? [urlEntry({ loc: `${PARTNER_SITE_ORIGIN}/directory/clinics`, priority: "0.8", changeFrequency: "daily" })] : []),
+    ...clinics.flatMap(clinic => [
+      urlEntry({loc: `${PARTNER_SITE_ORIGIN}/clinics/${clinic.slug}`, priority: '0.8', changeFrequency: 'weekly'}),
+      urlEntry({loc: `${PARTNER_SITE_ORIGIN}/clinics/${clinic.slug}/services`, priority: '0.75', changeFrequency: 'weekly'}),
+      ...clinic.services.map(slug => urlEntry({loc: `${PARTNER_SITE_ORIGIN}/clinics/${clinic.slug}/services/${slug}`, priority: '0.75', changeFrequency: 'weekly'})),
+    ]),
     ...profiles.flatMap((profile) => {
       const seen = new Set<string>();
-      const serviceEntries = profile.services.flatMap((service) => {
+      const serviceEntries = (profile.clinicManaged || profile.clinicBrand ? [] : profile.services).flatMap((service) => {
         if (["inactive", "disabled", "removed"].includes(String(service.status || "").toLowerCase())) return [];
         const definition = definitionForCalendar(service.name);
         if (!definition) return [];

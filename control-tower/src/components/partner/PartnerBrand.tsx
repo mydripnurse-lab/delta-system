@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { brandTextColor } from "@/lib/clinicPolicy";
+import type { CSSProperties, ReactNode } from "react";
 import styles from "./partnerBrand.module.css";
 
 const MDN_LOGO = "/mdn-logo.png";
@@ -8,6 +9,7 @@ const MDN_LOGO = "/mdn-logo.png";
 type PartnerExperienceProps = {
   children: ReactNode;
   className?: string;
+  branding?: { primaryColor: string; accentColor: string };
 };
 
 type PartnerNavItem = {
@@ -21,8 +23,8 @@ type PartnerHeaderProps = {
   loginItems?: Array<PartnerNavItem & { note?: string }>;
 };
 
-export function PartnerExperience({ children, className = "" }: PartnerExperienceProps) {
-  return <div className={`${styles.experience} ${className}`.trim()}>{children}</div>;
+export function PartnerExperience({ children, className = "", branding }: PartnerExperienceProps) {
+  return <div style={branding ? { "--partner-teal": branding.primaryColor, "--partner-ice": branding.accentColor, "--partner-mint": branding.accentColor, "--partner-button-ink": brandTextColor(branding.primaryColor), "--partner-accent-ink": brandTextColor(branding.accentColor), "--partner-footer-bg": branding.primaryColor, "--partner-footer-ink": brandTextColor(branding.primaryColor), "--partner-footer-logo-filter": brandTextColor(branding.primaryColor) === "#ffffff" ? "brightness(0) invert(1)" : "brightness(0)" } as CSSProperties : undefined} className={`${styles.experience} ${className}`.trim()}>{children}</div>;
 }
 
 export function PartnerHeader({ navItems = [], action, loginItems = [] }: PartnerHeaderProps) {

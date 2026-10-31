@@ -1,3 +1,4 @@
+import { clinicCommunicationsEnabled, queueClinicAppointment } from "@/lib/clinicCommunications";
 import { appointmentCommunicationRoles } from "@/lib/appointmentCommunicationRoles";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { getDbPool } from "@/lib/db";
@@ -14,6 +15,7 @@ type LifecycleEvent =
   | "appointment_refunded";
 
 type AppointmentRow = {
+  clinic_id: string | null;
   id: string; organization_id: string; organization_name: string; public_reference: string;
   status: string; selection_mode: string; starts_at: string; ends_at: string; timezone: string;
   address_line_1: string; address_line_2: string; city: string; county: string; state: string;
@@ -148,7 +150,7 @@ async function loadAppointment(appointmentId: string, notificationPartnerId?: st
   await ensureBookingEngineSchema();
   const pool = getDbPool();
   const result = await pool.query<AppointmentRow>(
-    `select a.id::text, a.organization_id::text, o.name as organization_name, a.public_reference,
+    `select a.clinic_id::text, a.id::text, a.organization_id::text, o.name as organization_name, a.public_reference,
             a.status, a.selection_mode, a.starts_at::text, a.ends_at::text, a.timezone,
             a.address_line_1, a.address_line_2, a.city, a.county, a.state, a.postal_code, a.country_code,
             a.source_url, a.source_city, a.source_county, a.source_state, a.service_price,
@@ -238,7 +240,8 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
   }
   const config = eventConfig[event];
   const webhookUrl = validWebhookUrl(row[config.field]) || (config.fallback ? validWebhookUrl(row[config.fallback]) : "");
-  if (!webhookUrl) return { sent: false as const, reason: "not_configured" as const };
+  const clinicRouting = !!row.clinic_id && clinicCommunicationsEnabled();
+  if (!webhookUrl && !clinicRouting) return { sent: false as const, reason: "not_configured" as const };
 
   const metadata = record(row.appointment_metadata);
   const directoryAttribution = record(metadata.directory_attribution);
@@ -285,7 +288,7 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     ? firstText(clientReward.platformFundingStatus, "owed_after_completion")
     : "not_applicable";
   const earningsCurrency = row.payment_currency || row.currency;
-  const clinic = record(metadata.clinic);
+  const clinic: Record<string, unknown> = { ...record(metadata.clinic), ...(row.clinic_id ? { id: row.clinic_id, balanceCollector: "clinic" } : {}) };
   const clinicCollects = clinic.balanceCollector === "clinic" && !platformFunded;
   const earningsDisplay = clinicCollects ? `Clinic balance: ${currency(clientAmountDueAtVisit, earningsCurrency)} + voluntary tips` : `${currency(estimatedEarnings, earningsCurrency)} + voluntary tips`;
   const collectionInstructions = event === "appointment_declined" || event === "appointment_refunded"
@@ -475,6 +478,14 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
     platformFunded,
     stateOperator: record(metadata.stateOperator || metadata.state_operator),
   }));
+
+  if (clinicRouting && row.clinic_id) {
+    return queueClinicAppointment({ clinicId: row.clinic_id, key: payload.idempotencyKey, event,
+      message: { serviceName: row.service_name, serviceImageUrl: serviceImageUrl(row.service_image_url), dateTime: appointmentDateTimeFormatted, reference: row.public_reference, balance: currency(clientAmountDueAtVisit, earningsCurrency), platformFunded, collectionInstructions, outcome: decline?.outcome, refundAmount: refund ? currency(refund.totalRefundedAmount, refund.currency) : undefined },
+      nurse: partner ? { name: partner.fullName, email: partner.email, phone: partner.phone } : undefined,
+      client: { name: row.customer_full_name, email: row.customer_email, phone: row.customer_phone },
+    });
+  }
 
   const reserved = await pool.query<{ id: string }>(
     `insert into app.appointment_webhook_events (organization_id, appointment_id, event_type, idempotency_key, webhook_url, status)

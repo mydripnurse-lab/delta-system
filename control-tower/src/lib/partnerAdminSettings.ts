@@ -1,3 +1,5 @@
+import { clinicWebhookUrl, testClinicCommunication, clinicCommunicationsEnabled } from "@/lib/clinicCommunications";
+import { CLINIC_COMMUNICATION_ROLES, clinicCommunicationEvents, clinicRolesForEvent, type ClinicCommunicationRole } from "@/lib/clinicCommunicationContent";
 import { getDbPool } from "@/lib/db";
 import { ensureStaffSchema } from "@/lib/publicStaffProvisioning";
 import { ghlRoutingFieldsForPayload } from "@/lib/ghlRoutingEnvelope";
@@ -32,6 +34,7 @@ function validatedUrl(value: unknown, label: string, options?: { required?: bool
 }
 
 type SettingsRow = {
+  clinic_communication_routes?: Partial<Record<ClinicCommunicationRole, string>>;
   organization_id: string;
   organization_name: string;
   form_key: string;
@@ -67,6 +70,7 @@ export type PartnerAdminWebhookSummary = {
 };
 
 export type PartnerAdminCommunicationRouter =
+  | ClinicCommunicationRole
   | "application_received"
   | "account_ready"
   | "lead_capture"
@@ -89,8 +93,9 @@ export type PartnerAdminCommunicationEvent = {
 };
 
 export type PartnerAdminCommunicationSummary = {
+  enabled?: boolean;
   id: PartnerAdminCommunicationRouter;
-  category: "Partner onboarding" | "Bookings" | "Appointment updates" | "Care rewards" | "Account security";
+  category: "Clinics" | "Clinic nurses" | "Clinic clients" | "Partner onboarding" | "Bookings" | "Appointment updates" | "Care rewards" | "Account security";
   name: string;
   workflowName: string;
   description: string;
@@ -192,6 +197,12 @@ function safeSettings(row: SettingsRow): PartnerAdminNotificationSettings {
     { id: "account_security", category: "Account security", name: "Phone verification", workflowName: "MDN | Care | Account Security SMS", description: "Sends Care phone-verification codes through a dedicated GHL workflow.", configured: Boolean(accountSecurityUrl), endpoint: safeWebhookEndpoint(accountSecurityUrl), webhookUrl: accountSecurityUrl, events: [{ target: "account_security", label: "Phone verification code", event: "account_security_challenge_requested" }] },
   ];
 
+  for (const role of CLINIC_COMMUNICATION_ROLES) {
+    const endpoint = row.clinic_communication_routes?.[role] || '';
+    const label = role === 'clinic' ? 'Clinic' : role === 'clinic_nurse' ? 'Clinic Nurse' : 'Clinic Client';
+    separatedCommunications.push({ id: role, category: role === 'clinic' ? 'Clinics' : role === 'clinic_nurse' ? 'Clinic nurses' : 'Clinic clients', name: `${label} notifications`, workflowName: `MDN | ${label} | Lifecycle`, description: role === 'clinic' ? 'Clinic application, approval, publication, team and appointment updates. The clinic collects the remaining balance and tips.' : role === 'clinic_nurse' ? 'Team authorization and appointment offers. Nurses accept or decline in their own portal; the clinic handles collection.' : 'Reservation, confirmation, reschedule, cancellation, completion and confirmed refund updates sent to the client’s own contact.', configured: !!endpoint, enabled: clinicCommunicationsEnabled(), endpoint: safeWebhookEndpoint(endpoint), webhookUrl: endpoint, events: clinicCommunicationEvents.filter(event => clinicRolesForEvent(event).includes(role)).map(event => ({ target: role, label: event, event })) });
+  }
+
   return {
     tenantId: row.organization_id,
     tenantName: row.organization_name,
@@ -283,6 +294,7 @@ const SETTINGS_SELECT = `
          c.client_referral_registered_webhook_url,
          c.client_referral_reward_earned_webhook_url,
          c.account_security_webhook_url,
+         to_jsonb(c)->'clinic_communication_routes' as clinic_communication_routes,
          c.admin_base_url,
          c.affiliate_commission_rate,
          c.updated_at::text
@@ -539,6 +551,14 @@ export async function savePartnerAdminCommunicationRouter(input: {
   await ensureStaffSchema();
   const tenantId = s(input.tenantId);
   if (!tenantId) throw new Error("Tenant ID is required.");
+  if ((CLINIC_COMMUNICATION_ROLES as readonly string[]).includes(input.router)) {
+    const endpoint = input.clear ? '' : clinicWebhookUrl(input.webhookUrl);
+    if (!input.clear && !endpoint) throw new Error('GHL inbound webhook is required.');
+    await getDbPool().query(`update app.staff_form_configs set clinic_communication_routes=jsonb_set(clinic_communication_routes,array[$2::text],to_jsonb($3::text)),updated_at=now() where organization_id=$1`, [tenantId,input.router,endpoint]);
+    const query = await getDbPool().query<SettingsRow>(`${SETTINGS_SELECT} where c.organization_id=$1 limit 1`, [tenantId]);
+    if (!query.rows[0]) throw new Error('Communication workspace not found.');
+    return safeSettings(query.rows[0]);
+  }
   const routerColumns: Partial<Record<PartnerAdminCommunicationRouter, keyof SettingsRow>> = {
     account_ready: "webhook_url",
     lead_capture: "lead_capture_webhook_url",
@@ -594,6 +614,7 @@ export async function savePartnerAdminCommunicationRouter(input: {
 }
 
 export type PartnerAdminWebhookTarget =
+  | ClinicCommunicationRole
   | "account_ready"
   | "market_manager_account_ready"
   | "applicant_received"
@@ -617,6 +638,9 @@ export type PartnerAdminWebhookTarget =
 
 function webhookUrlForTarget(row: SettingsRow, target: PartnerAdminWebhookTarget) {
   const exact = {
+    clinic: row.clinic_communication_routes?.clinic || null,
+    clinic_nurse: row.clinic_communication_routes?.clinic_nurse || null,
+    clinic_client: row.clinic_communication_routes?.clinic_client || null,
     account_ready: row.webhook_url,
     market_manager_account_ready: row.webhook_url,
     applicant_received: row.applicant_received_webhook_url,
@@ -645,6 +669,7 @@ export async function testPartnerAdminNotificationWebhook(input: {
   tenantId: string;
   target: PartnerAdminWebhookTarget;
 }) {
+  if ((CLINIC_COMMUNICATION_ROLES as readonly string[]).includes(input.target)) return testClinicCommunication(s(input.tenantId), input.target as ClinicCommunicationRole);
   await ensureStaffSchema();
   const tenantId = s(input.tenantId);
   if (!tenantId) throw new Error("Tenant ID is required.");

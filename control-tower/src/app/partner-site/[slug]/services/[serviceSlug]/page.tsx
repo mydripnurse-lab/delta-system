@@ -126,7 +126,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
   };
 
   return (
-    <PartnerExperience>
+    <PartnerExperience branding={profile.clinicBrand}>
       <main className={styles.page}>
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · This page is not published yet</div> : null}

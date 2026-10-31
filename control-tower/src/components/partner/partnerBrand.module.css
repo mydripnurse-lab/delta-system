@@ -191,8 +191,8 @@
 
 .footer {
   padding: 44px 0;
-  color: #c3dddf;
-  background: #0c4e59;
+  color: var(--partner-footer-ink, #c3dddf);
+  background: var(--partner-footer-bg, #0c4e59);
 }
 
 .footer .shell {
@@ -205,7 +205,7 @@
 .footerLogo {
   display: block;
   width: 138px;
-  filter: brightness(0) invert(1);
+  filter: var(--partner-footer-logo-filter, brightness(0) invert(1));
 }
 
 .footer p {
@@ -221,7 +221,7 @@
 }
 
 .footerContact span {
-  color: #8fc0c4;
+  color: var(--partner-footer-ink, #8fc0c4);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -229,7 +229,7 @@
 }
 
 .footerContact a {
-  color: #fff;
+  color: var(--partner-footer-ink, #fff);
   font-weight: 800;
   text-decoration: none;
 }

@@ -349,10 +349,10 @@ export function PartnerServiceCatalogClient({clinicsEnabled=false}:{clinicsEnabl
         </section>}
 
         {!draft && <details className={styles.suggestions}>
-          <summary>Partner suggestions <span>{suggestions.filter((item) => item.status === "pending").length} pending</span></summary>
+          <summary>Partner & clinic suggestions <span>{suggestions.filter((item) => item.status === "pending").length} pending</span></summary>
         <section className={styles.partnerSuggestionsPanel} aria-labelledby="partner-suggestions-title">
           <div className={styles.partnerSuggestionsHeader}>
-            <div><span className={styles.eyebrow}>Partner feedback</span><h2 id="partner-suggestions-title">Suggested services & recipes</h2><p>Ideas submitted from Partner Portals for the My Drip Nurse team to review.</p></div>
+            <div><span className={styles.eyebrow}>Network feedback</span><h2 id="partner-suggestions-title">Suggested services & recipes</h2><p>Ideas submitted from nurse and clinic portals for the My Drip Nurse team to review.</p></div>
             <strong>{suggestions.filter((suggestion) => suggestion.status === "pending").length} pending</strong>
           </div>
           {suggestions.length ? <div className={styles.partnerSuggestionsList}>{suggestions.map((suggestion) => <article className={styles.partnerSuggestionCard} key={suggestion.id}>
@@ -360,7 +360,7 @@ export function PartnerServiceCatalogClient({clinicsEnabled=false}:{clinicsEnabl
             <h3>{suggestion.name}</h3>
             <p>{suggestion.details || "No additional details provided."}</p>
             {suggestion.ingredients.length ? <div className={styles.partnerSuggestionIngredients}>{suggestion.ingredients.map((ingredient) => <span key={ingredient}>{ingredient}</span>)}</div> : null}
-            <small>Submitted by {suggestion.partnerName} · {suggestion.partnerEmail} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(suggestion.createdAt))}</small>
+            <small>{suggestion.source === 'clinic' ? 'Clinic' : 'Nurse'} · Submitted by {suggestion.partnerName} · {suggestion.partnerEmail} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(suggestion.createdAt))}</small>
           </article>)}</div> : <div className={styles.loading}>No service suggestions yet.</div>}
         </section>
         </details>}

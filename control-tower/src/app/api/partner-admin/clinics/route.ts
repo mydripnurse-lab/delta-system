@@ -1,3 +1,4 @@
+import { scheduleClinicCommunications } from '@/lib/clinicCommunications';
 import type { PoolClient } from 'pg';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -37,14 +38,23 @@ export async function POST(request: Request) {
         requireClinicOrigin(request);
         const body = await request.json();
         const id = z.string().uuid().parse(body.clinicId);
-        if (!['status', 'price'].includes(body.action))
+        if (!['status', 'price', 'publication'].includes(body.action))
             return json({ error: 'Unknown action.' }, 400);
         client = await getDbPool().connect();
         await client.query('begin');
+        const { rows: existing } = await client.query<{ status: string; published: boolean }>('select status,published from app.clinics where id=$1 for update', [id]);
+        if (!existing[0]) throw new Error('Clinic not found.');
         if (body.action === 'status') {
             const status = z.enum(['approved', 'suspended', 'pending']).parse(body.status);
             await client.query(`update app.clinics set status=$2,approved_by=$3,approved_at=case when $2='approved' then now() else approved_at end,published=case when $2='approved' then published else false end,updated_at=now() where id=$1`, [id, status, auth.user.id]);
-            await client.query(`insert into app.clinic_audit(clinic_id,actor,action) values($1,$2,$3)`, [id, auth.user.id, `clinic_${status}`]);
+            if (existing[0].status !== status) await client.query(`insert into app.clinic_audit(clinic_id,actor,action) values($1,$2,$3)`, [id, auth.user.id, `clinic_${status}`]);
+        }
+        else if (body.action === 'publication') {
+            const published = z.boolean().parse(body.published);
+            const result = await client.query(`update app.clinics set published=$2,updated_at=now() where id=$1
+                and (not $2 or (status='approved' and description<>'' and jsonb_array_length(coverage)>0)) returning id`, [id, published]);
+            if (!result.rowCount) throw new Error('Approve the clinic and complete its description and coverage before publication.');
+            if (existing[0].published !== published) await client.query(`insert into app.clinic_audit(clinic_id,actor,action) values($1,$2,$3)`, [id, auth.user.id, published ? 'clinic_published' : 'clinic_unpublished']);
         }
         else if (body.action === 'price') {
             const input = z.object({ serviceId: z.string().uuid(), enabled: z.boolean(), price: z.number().finite().min(0).max(1000000).multipleOf(.01).nullable(), regionalPrices: z.array(z.object({ regionId: z.string().max(300), price: z.number().finite().min(0).max(1000000).multipleOf(.01) })).max(500) }).parse(body);
@@ -60,12 +70,14 @@ export async function POST(request: Request) {
             return json({ error: 'Unknown action.' }, 400);
         await client.query('commit');
         invalidateClinics();
+        scheduleClinicCommunications(id);
         return json({ ok: true });
     }
     catch (error) {
         if (client)
             await client.query('rollback');
-        return json({ error: error instanceof z.ZodError ? error.issues[0]?.message : 'Unable to save clinic settings.' }, 400);
+        const safeMessages = ['Clinic not found.', 'Approve the clinic and complete its description and coverage before publication.', 'Service not found in this organization.'];
+        return json({ error: error instanceof z.ZodError ? error.issues[0]?.message : error instanceof Error && safeMessages.includes(error.message) ? error.message : 'Unable to save clinic settings.' }, 400);
     }
     finally {
         client?.release();

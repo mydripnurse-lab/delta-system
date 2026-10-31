@@ -102,7 +102,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   };
 
   return (
-    <PartnerExperience>
+    <PartnerExperience branding={profile.clinicBrand}>
       <main className={styles.page}>
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? (

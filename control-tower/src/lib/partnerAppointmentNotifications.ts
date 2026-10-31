@@ -1,3 +1,4 @@
+import { clinicCommunicationsEnabled } from "@/lib/clinicCommunications";
 import { appointmentCommunicationRoles } from "@/lib/appointmentCommunicationRoles";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { ensureStaffSchema } from "@/lib/publicStaffProvisioning";
@@ -56,6 +57,7 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
   try {
     result = await getDbPool().query<{
     webhook_url: string | null;
+    clinic_id: string | null;
     reference: string;
     status: string;
     starts_at: string;
@@ -78,7 +80,7 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
 	    customer_phone: string;
 	    metadata: unknown;
   }>(
-    `select config.partner_notification_webhook_url as webhook_url,
+    `select appointment.clinic_id::text, config.partner_notification_webhook_url as webhook_url,
             appointment.public_reference as reference, appointment.status,
             appointment.starts_at::text, appointment.ends_at::text, appointment.timezone,
             appointment.address_line_1, appointment.address_line_2,
@@ -111,6 +113,7 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
     return { sent: false, reason: error instanceof Error ? error.message : "query_failed" };
   }
   const row = result.rows[0];
+  if (row?.clinic_id && clinicCommunicationsEnabled() && event !== 'visit_started') return { sent: false, reason: "clinic_role_workflows" as const };
   const webhookUrl = text(row?.webhook_url);
 	  if (!row || !webhookUrl) return { sent: false, reason: "not_configured" as const };
 	  const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)

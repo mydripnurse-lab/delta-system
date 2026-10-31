@@ -1,3 +1,4 @@
+import { changeClinicService } from '@/lib/clinicServices';
 import { consumeClinicRequestBudget } from "@/lib/clinicRequestBudget";
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -44,7 +45,10 @@ export async function POST(request: Request) {
             return json({ ok: true });
         }
         const id = z.string().uuid().parse(body.clinicId);
-        if (body.action === 'branding')
+        if (body.action === 'service' || body.action === 'suggest_service') {
+            if (body.action === 'suggest_service' && !consumeClinicRequestBudget(request, 'clinic-suggestion', 10)) return json({ error: 'Please wait before sending another suggestion.' }, 429);
+            await changeClinicService(id, body, body.action === 'suggest_service');
+        } else if (body.action === 'branding')
             await saveClinicBranding(id, body);
         else if (body.action === 'save')
             await saveClinic(id, body);

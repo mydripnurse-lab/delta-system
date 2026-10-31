@@ -114,16 +114,16 @@ export function PartnerAdminCommunicationsModal({
                         <i aria-hidden="true" />
                       </div>
                     ) : null}
-                    <article className={`${styles.communicationCard} ${communication.configured ? styles.communicationCardActive : ""}`}>
+                    <article className={`${styles.communicationCard} ${communication.configured && communication.enabled !== false ? styles.communicationCardActive : ""}`}>
                       <div className={styles.communicationCardTop}>
                         <span className={styles.communicationIndex}>{String(index + 1).padStart(2, "0")}</span>
                         <div className={styles.communicationIdentity}>
                           <span>{communication.workflowName}</span>
                           <h3>{communication.name}</h3>
                         </div>
-                        <span className={`${styles.routerStatus} ${communication.configured ? styles.routerStatusActive : styles.routerStatusInactive}`}>
+                        <span className={`${styles.routerStatus} ${communication.configured && communication.enabled !== false ? styles.routerStatusActive : styles.routerStatusInactive}`}>
                           <i aria-hidden="true" />
-                          {communication.configured ? "Active" : "Inactive"}
+                          {communication.configured ? communication.enabled === false ? "Testing only" : "Active" : "Inactive"}
                         </span>
                       </div>
 
@@ -135,8 +135,8 @@ export function PartnerAdminCommunicationsModal({
                       </div>
 
                       <div className={styles.communicationEventLine}>
-                        <span>Payload event</span>
-                        <code>{selectedEvent.event}</code>
+                        <span>Payload event{communication.events.length > 1 ? "s" : ""}</span>
+                        <div>{communication.events.map(item => <div key={item.event}><code>{item.event}</code></div>)}</div>
                       </div>
 
                       {isEditing ? (

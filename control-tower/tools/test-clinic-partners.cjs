@@ -16,7 +16,7 @@ const org='10000000-0000-4000-8000-000000000001';
 const service='10000000-0000-4000-8000-000000000002';
 const memo = new Map();
 const mocks = {
- 'server-only':{}, 'react':{cache:fn=>fn},
+ 'server-only':{}, 'next/server':{after:()=>{}}, 'react':{cache:fn=>fn},
  'next/headers':{cookies:async()=>({get:()=>undefined})},
  'next/cache':{unstable_cache:(fn,keys)=>async(...args)=>{const k=JSON.stringify([keys,args]);if(!memo.has(k))memo.set(k,await fn(...args));return memo.get(k);},revalidateTag:()=>memo.clear()},
  '@/lib/db':{getDbPool:()=>pool},
@@ -48,7 +48,7 @@ async function main(){
  await pool.query('drop schema if exists app cascade; create schema app;');
  await pool.query(`create table app.organizations(id uuid primary key);create table app.users(id uuid primary key);
  create table app.staff_applications(id uuid primary key default gen_random_uuid(),organization_id uuid references app.organizations(id),email text,status text,first_name text,last_name text,professional_credentials text,phone text,request_payload jsonb);
- create table app.services(id uuid primary key,organization_id uuid references app.organizations(id),slug text,name text,price numeric,currency text default 'USD',source_metadata jsonb default '{}',is_active boolean default true,image_url text,short_description text);
+ create table app.services(id uuid primary key,organization_id uuid references app.organizations(id),slug text,name text,price numeric,currency text default 'USD',source_metadata jsonb default '{}',is_active boolean default true,image_url text,short_description text,ingredients jsonb default '[]');
  create table app.service_calendars(id uuid primary key default gen_random_uuid(),service_id uuid references app.services(id),public_key text,status text);
  create table app.appointments(id uuid primary key default gen_random_uuid(),public_reference text,status text,starts_at timestamptz,partner_profile_id uuid,service_price numeric,deposit_amount numeric,customer_id uuid,service_id uuid,currency text default 'USD',metadata jsonb default '{}');
  create table app.booking_customers(id uuid primary key,full_name text,email text,phone text);`);
@@ -61,7 +61,7 @@ async function main(){
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
  // Migration must be repeatable, including indexes and additive columns.
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
- for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql','051_clinic_account_photos.sql','051_clinic_account_photos.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
+ for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql','051_clinic_account_photos.sql','051_clinic_account_photos.sql','053_clinic_services.sql','053_clinic_services.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
  await pool.query("alter table app.staff_applications add constraint fixture_application_status check (status in ('under_review','submitted','completed'))");
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
@@ -91,9 +91,14 @@ async function main(){
  identity={email:input.email};
  await assert.rejects(()=>clinics.inviteClinicMember(id,{email:'nurse@example.invalid',role:'nurse'}),/approved/);
  const save={...input,logoUrl:'',primaryColor:'#084f5e',accentColor:'#e9f3f7',coverageIds:[orange.id],published:true};
- await assert.rejects(()=>clinics.saveClinic(id,save),/approve/);
+ await clinics.saveClinic(id,save);
+ assert.equal((await query('select published from app.clinics where id=$1',[id])).rows[0].published,false,'Managers cannot publish a pending clinic');
+ assert.deepEqual(await clinics.publicClinics(input.slug),[],'Pending clinic has no public website');
  await query("update app.clinics set status='approved' where id=$1",[id]);
  await clinics.saveClinic(id,save);
+ assert.equal((await query('select published from app.clinics where id=$1',[id])).rows[0].published,false,'Managers cannot publish even after approval');
+ assert.deepEqual(await clinics.publicClinics(input.slug),[],'Approval alone does not publish a clinic website');
+ await query('update app.clinics set published=true where id=$1',[id]);
  const beforeBranding=(await query('select * from app.clinics where id=$1',[id])).rows[0];
  await clinics.saveClinicBranding(id,{logoUrl:'https://example.invalid/clinic.webp',primaryColor:'#faf5ed',accentColor:'#173e44',name:'MUST NOT CHANGE',published:false,coverageIds:[]});
  const afterBranding=(await query('select * from app.clinics where id=$1',[id])).rows[0];
@@ -144,6 +149,9 @@ async function main(){
  assert.equal(publicNurse.id,member.partner_profile_id);
  assert.equal(publicNurse.clinicManaged,true);
  assert.equal(publicNurse.clinics[0].id,id);
+ assert.equal(publicNurse.clinicBrand.logoUrl,afterBranding.logo_url,'Team website inherits the clinic logo');
+ assert.equal(publicNurse.clinicBrand.primaryColor,afterBranding.primary_color,'Team website inherits the clinic primary color');
+ assert.equal(publicNurse.clinicBrand.accentColor,afterBranding.accent_color,'Team website inherits the clinic accent color');
  assert.deepEqual(publicNurse.serviceAreas.map(a=>a.city),['Orlando']);
  assert.equal((await profiles.listPublicPartnerProfiles()).length,1);
  const reads=queryCount;
@@ -184,6 +192,45 @@ async function main(){
  await booking.publicClinicServices(id);await booking.publicClinicServices(id);
  assert.equal(queryCount,1,'Public cache should reuse the catalog');
  const team=await booking.publicClinicTeam(id);assert.equal(team.length,1);
+ const clinicServices=load('src/lib/clinicServices.ts');
+ const servicesBefore=(await query('select price,regional_prices,enabled from app.clinic_service_prices where clinic_id=$1 and service_id=$2',[id,service])).rows[0];
+ assert.equal((await booking.publicClinicServices(id))[0].availabilityStatus,'active');
+ await clinicServices.changeClinicService(id,{serviceId:service,status:'out_of_stock',price:1});
+ assert.equal((await booking.publicClinicServices(id))[0].availabilityStatus,'out_of_stock','Mutation invalidates a warmed public cache');
+ await assert.rejects(()=>booking.clinicBookingContext(id,'fixture-calendar',orlando),/not accepting/);
+ await clinicServices.changeClinicService(id,{serviceId:service,status:'paused'});
+ assert.deepEqual(await booking.publicClinicServices(id),[],'Paused service is hidden');
+ assert.deepEqual((await booking.publicClinicSitemapEntries()).find(c=>c.slug===input.slug).services,[],'Paused service is excluded from sitemap');
+ await clinicServices.changeClinicService(id,{serviceId:service,status:'active'});
+ assert.equal((await booking.clinicBookingContext(id,'fixture-calendar',orlando)).price,239);
+ assert.deepEqual((await query('select price,regional_prices,enabled from app.clinic_service_prices where clinic_id=$1 and service_id=$2',[id,service])).rows[0],servicesBefore,'Clinic cannot change prices or admin enablement');
+ assert.equal((await query('select status from app.appointments where clinic_id=$1',[id])).rows[0].status,'confirmed','Existing appointment unchanged');
+ const idea={type:'recipe',name:'Fixture suggestion',ingredients:['Vitamin C'],details:'For admin review only'};
+ await clinicServices.changeClinicService(id,idea,true);
+ assert.equal((await query('select submitted_by from app.clinic_service_suggestions where clinic_id=$1',[id])).rows[0].submitted_by,input.email,'Clinic-only owner may suggest without a nurse profile');
+ const catalogSource=fs.readFileSync(path.join(root,'src/lib/myDripNurseServiceCatalog.ts'),'utf8');
+ const suggestionTable=catalogSource.slice(catalogSource.indexOf('create table if not exists app.partner_service_suggestions ('),catalogSource.indexOf('create index if not exists partner_service_suggestions_status_idx'));
+ await query(suggestionTable);
+ await query("insert into app.partner_service_suggestions(organization_id,partner_profile_id,name) values($1,$2,'Nurse fixture suggestion')",[org,member.partner_profile_id]);
+ const adminQuery=catalogSource.match(/`select suggestion.id,[\s\S]*?limit 200`/)[0].slice(1,-1);
+ const inbox=(await query(adminQuery)).rows;
+ assert.ok(inbox.some(r=>r.source==='clinic'&&r.name===idea.name&&r.display_name===input.name),'Admin inbox identifies clinic suggestion');
+ assert.ok(inbox.some(r=>r.source==='partner'&&r.name==='Nurse fixture suggestion'),'Nurse suggestions remain in the same inbox');
+
+ await assert.rejects(()=>clinicServices.changeClinicService(id,{...idea,name:'x'},true));
+ await assert.rejects(()=>clinicServices.changeClinicService(id,{serviceId:service,status:'invalid'}));
+ await query('update app.clinic_service_prices set enabled=false where clinic_id=$1',[id]);
+ await assert.rejects(()=>clinicServices.changeClinicService(id,{serviceId:service,status:'active'}),/enable/);
+ await query('update app.clinic_service_prices set enabled=true where clinic_id=$1',[id]);
+ identity={email:'intruder@example.invalid'};
+ await assert.rejects(()=>clinicServices.changeClinicService(id,idea,true),/denied/);
+ identity={email:'nurse@example.invalid',partnerId:member.partner_profile_id};
+ await assert.rejects(()=>clinicServices.changeClinicService(id,{serviceId:service,status:'paused'}),/denied/);
+ identity={email:input.email};
+ await query("update app.clinics set status='pending' where id=$1",[id]);
+ await assert.rejects(()=>clinicServices.changeClinicService(id,idea,true),/approved/);
+ await query("update app.clinics set status='approved' where id=$1",[id]);
+
  await query("update app.clinics set status='suspended' where id=$1",[id]);
  await assert.rejects(()=>booking.clinicBookingContext(id,'fixture-calendar',orlando),/not accepting/);
  assert.equal(await profiles.getPublicPartnerProfile(nurseRow.profileSlug),null,'Suspended clinics cannot leave clinic-only profiles exposed');
@@ -422,6 +469,6 @@ async function main(){
  process.env.CLINIC_PARTNERS_ENABLED='false';
  const offReads=queryCount;assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null);assert.equal(queryCount,offReads,'Disabled clinic rollout adds no DB requests');
  process.env.CLINIC_PARTNERS_ENABLED='true';
- console.log('PASS: clinic lifecycle, required versioned policy acceptance, existing nurse-to-owner identity preservation, personal own-team commission exclusion, preserved historical earnings, external referrals, own-team/self exclusion, idempotent commissions, legacy attribution, refunds, owner-only access and shared-cache checks. Clinic dashboards: isolated totals, currencies, refunds, funded rewards, team decisions, review gating and cache passed. Local synthetic data only; no payments or production writes.');
+ console.log('PASS: clinic lifecycle, required versioned policy acceptance, existing nurse-to-owner identity preservation, personal own-team commission exclusion, preserved historical earnings, external referrals, own-team/self exclusion, idempotent commissions, legacy attribution, refunds, owner-only access and shared-cache checks. Clinic dashboards: isolated totals, currencies, refunds, funded rewards, team decisions, review gating and cache passed. Clinic services: availability, booking guards, prices, suggestions and admin attribution passed. Local synthetic data only; no payments or production writes.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>pool.end());

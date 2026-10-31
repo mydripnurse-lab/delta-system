@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deploymentSurface } from "@/lib/deployment-surface";
+import { clinicDomainsEnabled, isClinicDomainCandidate } from "@/lib/clinicDomainPolicy";
+import { clinicDomainPath } from "@/lib/clinicDomainRouting";
 
 const SESSION_COOKIE_NAME = "ct_session";
 const PARTNER_ADMIN_SESSION_COOKIE_NAME = "mdn_partner_admin_session";
@@ -61,6 +63,19 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const hostname = requestHostname(req);
   const surface = deploymentSurface();
+
+  // Internal destinations are never directly browsable. Domain ownership is
+  // resolved by the cached server route, not by a database call in middleware.
+  if (pathname.startsWith('/clinic-domain/')) return new NextResponse('Not found', { status: 404 });
+  if (isClinicDomainCandidate(hostname)) {
+    if (!clinicDomainsEnabled() || surface === 'telahagocrecer') return new NextResponse('Not found', { status: 404 });
+    const kind = clinicDomainPath(pathname);
+    if (!['GET', 'HEAD'].includes(req.method) || kind === 'deny') return new NextResponse('Not found', { status: 404 });
+    if (kind === 'asset') return NextResponse.next();
+    const target = req.nextUrl.clone();
+    target.pathname = `/clinic-domain/${hostname}${pathname === '/' ? '' : pathname}`;
+    return NextResponse.rewrite(target);
+  }
 
   // During the staged Vercel split, the current project remains `combined`.
   // Once domains are attached to their independent projects, these guards
@@ -391,6 +406,11 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
+    // Host-scoped catch-all blocks private/API paths on external clinic domains
+    // without adding middleware invocations to existing My Drip Nurse APIs.
+    { source: '/:path*', has: [{ type: 'host', value: '(?!.*(?:^|\\.)(?:mydripnurse\\.com|telahagocrecer\\.com|vercel\\.app|vercel\\.com|localhost)(?::[0-9]+)?$)[a-z0-9.-]+' }] },
+    '/clinic-domain/:path*',
+    '/clinic-login/:path*',
     "/",
     "/login",
     "/activate",

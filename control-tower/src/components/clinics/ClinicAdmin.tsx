@@ -72,6 +72,17 @@ export function ClinicAdmin() {
         } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to update clinic.'); }
         finally { setBusy(false); }
     }
+    async function changePublication(clinic: Clinic) {
+        setBusy(true); setError(''); setNotice('');
+        try {
+            const response = await fetch('/api/partner-admin/clinics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'publication', clinicId: clinic.id, published: !clinic.published }) });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Complete approval, description and coverage before publishing.');
+            setClinics(current => current.map(item => item.id === clinic.id ? { ...item, published: !clinic.published } : item));
+            setNotice(clinic.published ? 'Website and directory listing unpublished.' : 'Website and directory listing published.');
+        } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to update publication.'); }
+        finally { setBusy(false); }
+    }
     function back() { returnId.current = selectedId; setSelectedId(null); setError(''); setNotice(''); }
     function changePage(next: number) { setLoading(true); setPage(next); setNotice(''); }
     const query = search.trim().toLowerCase();
@@ -91,7 +102,7 @@ export function ClinicAdmin() {
                     <section className={layout.section}><h3>Operating areas <span>{selected.coverage.length}</span></h3>{selected.coverage.length ? <ul className={layout.coverage}>{selected.coverage.map(area => <li key={area.id}>{area.label}</li>)}</ul> : <p>No operating areas provided.</p>}</section>
                 </div><aside className={layout.aside}>
                     <section className={layout.section}><h3>Private contact details</h3><p>For internal coordination. These details are not displayed on the clinic website.</p><dl className={layout.facts}><dt>Email</dt><dd>{selected.contactEmail || 'Not provided'}</dd><dt>Phone</dt><dd>{selected.contactPhone || 'Not provided'}</dd></dl></section>
-                    <section className={layout.section}><h3>Website</h3><Website clinic={selected} /></section>
+                    <section className={layout.section}><h3>Website</h3><Website clinic={selected} /><button className={styles.secondaryButton} disabled={busy || selected.status !== 'approved'} onClick={() => void changePublication(selected)}>{selected.published ? 'Unpublish website & directory' : 'Publish website & directory'}</button></section>
                     <section className={layout.section}><h3>Review & access</h3><p>My Drip Nurse approves the clinic. Each clinic authorizes its own team.</p><div className={layout.actions}><button className={selected.status === 'approved' ? styles.dangerButton : styles.button} disabled={busy} onClick={() => void changeStatus(selected, selected.status === 'approved' ? 'suspended' : 'approved')}>{busy ? 'Saving…' : selected.status === 'approved' ? 'Suspend clinic' : selected.status === 'suspended' ? 'Reactivate clinic' : 'Approve clinic'}</button><a className={styles.secondaryButton} href={servicesUrl}>Configure service prices →</a></div></section>
                 </aside></div>
             </section> : <section className={styles.panel} aria-busy={loading}>

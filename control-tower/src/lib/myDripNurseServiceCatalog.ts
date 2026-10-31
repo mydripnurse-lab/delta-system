@@ -241,6 +241,7 @@ export type PartnerServiceSuggestion = {
   ingredients: string[];
   details: string;
   status: "pending" | "reviewing" | "approved" | "declined";
+  source: "partner" | "clinic";
   partnerName: string;
   partnerEmail: string;
   createdAt: string;
@@ -250,13 +251,17 @@ export async function listPartnerServiceSuggestions(): Promise<PartnerServiceSug
   await ensureServiceCatalogSchema();
   const result = await getDbPool().query<{
     id: string; suggestion_type: PartnerServiceSuggestion["type"]; name: string; ingredients: string[] | null;
-    details: string; status: PartnerServiceSuggestion["status"]; display_name: string; email: string; created_at: string;
+    details: string; status: PartnerServiceSuggestion["status"]; display_name: string; email: string; created_at: string; source: "partner" | "clinic";
   }>(
     `select suggestion.id, suggestion.suggestion_type, suggestion.name, suggestion.ingredients,
-            suggestion.details, suggestion.status, profile.display_name, profile.email, suggestion.created_at::text
+            suggestion.details, suggestion.status, profile.display_name, profile.email, suggestion.created_at::text, 'partner' as source
        from app.partner_service_suggestions suggestion
        join app.partner_profiles profile on profile.id = suggestion.partner_profile_id
-      order by suggestion.created_at desc
+      union all
+      select suggestion.id,suggestion.suggestion_type,suggestion.name,suggestion.ingredients,
+             suggestion.details,suggestion.status,clinic.name,suggestion.submitted_by,suggestion.created_at::text,'clinic' as source
+      from app.clinic_service_suggestions suggestion join app.clinics clinic on clinic.id=suggestion.clinic_id
+      order by created_at desc
       limit 200`,
   );
   return result.rows.map((row) => ({
@@ -266,6 +271,7 @@ export async function listPartnerServiceSuggestions(): Promise<PartnerServiceSug
     ingredients: row.ingredients || [],
     details: row.details,
     status: row.status,
+    source: row.source,
     partnerName: row.display_name,
     partnerEmail: row.email,
     createdAt: row.created_at,

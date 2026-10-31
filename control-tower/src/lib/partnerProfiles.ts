@@ -47,6 +47,7 @@ export type PublicPartnerProfile = {
   websiteStatus: "draft" | "ready" | "published" | "hidden";
   directoryStatus: "published" | "hidden";
   affiliateCode: string;
+  clinicBrand?: { id: string; slug: string; name: string; logoUrl: string; primaryColor: string; accentColor: string };
   clinicManaged?: boolean;
   clinics?: { id: string; slug: string; name: string }[];
 };

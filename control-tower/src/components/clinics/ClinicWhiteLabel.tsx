@@ -5,6 +5,7 @@ import { useState, type CSSProperties } from 'react';
 import type { Clinic } from '@/lib/clinics';
 import { brandTextColor } from '@/lib/clinicPolicy';
 import styles from './clinicBranding.module.css';
+import { ClinicBrandedDomain } from './ClinicBrandedDomain';
 
 type Brand = Pick<Clinic, 'logoUrl' | 'primaryColor' | 'accentColor'>;
 const presets = [
@@ -38,7 +39,7 @@ export function ClinicWhiteLabel({ clinic, busy, onSave }: { clinic: Clinic; bus
         } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to upload logo.'); }
         finally { setUploading(false); }
     }
-    return <section className={styles.card} style={theme} aria-label="White Label settings">
+    return <><section className={styles.card} style={theme} aria-label="White Label settings">
         <header className={styles.heading}><div><span className={styles.eyebrow}>Your brand</span><h2>Make it yours.</h2><p>One identity for your clinic portal and website. Your personal photo stays separate.</p></div><span className={styles.tag}>{dirty ? 'Unsaved changes' : 'Saved branding'}</span></header>
         <div className={styles.grid}><div className={styles.settings}>
             <section className={styles.group}><h3>Clinic logo</h3><p>Recommended: 640 × 240 px. Transparent PNG or WebP works best. JPG is also supported. Maximum 2 MB.</p><div className={styles.upload}><div className={styles.logoBox}>{logo}</div><label className={styles.fileButton}>{uploading ? 'Uploading…' : 'Upload logo'}<input aria-label="Upload clinic logo" type="file" accept="image/png,image/jpeg,image/webp" disabled={busy || uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ''; }} /></label>{brand.logoUrl ? <button type="button" className={styles.textButton} disabled={busy || uploading} onClick={() => setBrand(current => ({ ...current, logoUrl: '' }))}>Remove logo</button> : null}</div><details className={styles.advanced}><summary>Use an existing image URL</summary><label>HTTPS logo URL<input type="url" value={brand.logoUrl} disabled={busy || uploading} onChange={event => { setError(''); setBrand(current => ({ ...current, logoUrl: event.target.value })); }} /></label></details>{!validLogo(brand.logoUrl) ? <p role="alert" className={styles.error}>Enter a valid HTTPS image URL.</p> : null}</section>
@@ -47,5 +48,5 @@ export function ClinicWhiteLabel({ clinic, busy, onSave }: { clinic: Clinic; bus
             {preview === 'portal' ? <div className={styles.portalPreview}><div className={styles.previewSidebar}><div className={styles.previewLogo}>{logo}</div><span className={styles.selected}>Overview</span><span>Appointments</span><span>My team</span><span>Clinic profile</span><small>Powered by My Drip Nurse</small></div><div className={styles.previewMain}><span className={styles.miniHeader}>Clinic workspace <i aria-hidden="true">○</i></span><h3>Welcome back.</h3><p>Your team, at a glance.</p><div className={styles.skeleton} /><div className={styles.skeleton} /><span className={styles.previewButton}>View appointments →</span></div></div> : <div className={styles.websitePreview}><header>{logo}</header><div className={styles.websiteHero}><span>Mobile wellness</span><h3>{clinic.name}</h3><p>Personalized care, wherever you are.</p><span className={styles.previewButton}>Explore services →</span></div><p className={styles.powered}>Powered by My Drip Nurse</p></div>}
         </div><p className={styles.previewNote}>Preview only. Save to update your portal and the branding used by your website. Public pages follow the existing cache refresh.</p></aside></div>
         {error ? <p className={styles.error} role="alert">{error}</p> : null}<footer className={styles.footer}><p>{dirty ? 'Your changes are ready to review.' : 'Your branding is up to date.'}</p><div><button type="button" className={styles.secondary} disabled={!dirty || busy || uploading} onClick={() => { setBrand({ logoUrl: clinic.logoUrl, primaryColor: clinic.primaryColor, accentColor: clinic.accentColor }); setError(''); }}>Discard changes</button><button type="button" className={styles.primary} disabled={!dirty || busy || uploading || !validLogo(brand.logoUrl)} onClick={() => void onSave(brand)}>{busy ? 'Saving…' : 'Save branding'}</button></div></footer>
-    </section>;
+    </section><ClinicBrandedDomain clinicId={clinic.id} approved={clinic.status === 'approved'}/></>;
 }

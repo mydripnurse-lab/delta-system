@@ -47,7 +47,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
-  if (profile.clinicManaged && !preview) return <PartnerExperience><main className={styles.page}>
+  if ((profile.clinicManaged || profile.clinicBrand) && !preview) return <PartnerExperience branding={profile.clinicBrand}><main className={styles.page}>
     <PartnerPublicHeader profile={profile} />
     <section className={styles.servicesHero}><div className={styles.shell}><span className={styles.eyebrow}>Care with {profile.displayName}</span>
       <h1>Your clinic. <em>Your care team.</em></h1><p>Choose your clinic below. Its services, regional prices and collection instructions apply to your visit.</p>
@@ -116,7 +116,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
   };
 
   return (
-    <PartnerExperience>
+    <PartnerExperience branding={profile.clinicBrand}>
       <main className={styles.page}>
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? (

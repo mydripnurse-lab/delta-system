@@ -1,3 +1,5 @@
+import Image from "next/image";
+import type { PublicPartnerProfile } from "@/lib/partnerProfiles";
 import Link from "next/link";
 import clinicStyles from "@/components/clinics/clinic.module.css";
 import MarketingHeaderEmbed, {
@@ -17,6 +19,7 @@ type PartnerPublicHeaderProfile = {
   organizationId: string;
   services: PartnerService[];
   clinicManaged?: boolean;
+  clinicBrand?: PublicPartnerProfile['clinicBrand'];
 };
 
 export default async function PartnerPublicHeader({
@@ -26,11 +29,11 @@ export default async function PartnerPublicHeader({
   profile: PartnerPublicHeaderProfile;
   preview?: string;
 }) {
-  if (profile.clinicManaged && !preview) return <header className={`${clinicStyles.shell} ${clinicStyles.publicHeader}`}>
+  if ((profile.clinicManaged || profile.clinicBrand) && !preview) return <header className={`${clinicStyles.shell} ${clinicStyles.publicHeader}`}>
     <nav className={clinicStyles.head} aria-label="Professional website navigation">
-      <Link href={`/${profile.slug}`}><span className={clinicStyles.eyebrow}>My Drip Nurse</span><strong>{profile.displayName}</strong></Link>
+      <Link href={`/${profile.slug}`}><span className={clinicStyles.eyebrow}>{profile.clinicBrand?.logoUrl ? <Image src={profile.clinicBrand.logoUrl} alt={profile.clinicBrand.name} width={180} height={64} unoptimized style={{ objectFit: "contain", maxHeight: 64 }} /> : profile.clinicBrand?.name || "My Drip Nurse"}</span><strong>{profile.displayName}</strong></Link>
       <div className={clinicStyles.actions}><Link className={clinicStyles.secondary} href={`/${profile.slug}/services`}>Services & booking</Link>
-        <Link className={clinicStyles.secondary} href="/clinics">Find a clinic</Link><Link className={clinicStyles.secondary} href="/login">Partner sign in</Link></div>
+        <Link className={clinicStyles.secondary} href={profile.clinicBrand ? `/clinics/${profile.clinicBrand.slug}` : "/clinics"}>{profile.clinicBrand ? "Our clinic" : "Find a clinic"}</Link><Link className={clinicStyles.secondary} href="/login">Partner sign in</Link></div>
     </nav></header>;
   const [clientAccount, partnerSession, services] = await Promise.all([
     getAuthenticatedClient(),

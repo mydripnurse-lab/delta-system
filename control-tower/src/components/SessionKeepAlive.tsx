@@ -16,6 +16,11 @@ export default function SessionKeepAlive() {
         // the Control Tower or Partner Admin refresh endpoints.
         if (
           hostname === "care.mydripnurse.com" ||
+          document.querySelector("[data-mdn-clinic-website]") !== null ||
+          window.location.pathname.startsWith("/clinic-login/") ||
+          // Public clinic pages do not use Control Tower sessions.
+          window.location.pathname === "/clinics" ||
+          window.location.pathname.startsWith("/clinics/") ||
           window.location.pathname.startsWith("/client-") ||
           window.location.pathname.startsWith("/client-portal")
         ) return;
