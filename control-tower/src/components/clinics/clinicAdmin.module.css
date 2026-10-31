@@ -1,0 +1,36 @@
+.panelTitle, .detailHeading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.filters { display: flex; flex-direction: row; align-items: center; flex-wrap: wrap; }
+.filters input { flex: 1 1 260px; }
+.filters select { flex: 0 1 180px; }
+.table { min-width: 800px; }
+.avatar { overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: contain; }
+.back { margin-bottom: 20px; }
+.detailHeading h2:focus-visible { outline: 2px solid #098b99; outline-offset: 5px; }
+.detailGrid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); }
+.section { padding: 26px; }
+.section + .section { border-top: 1px solid #efede8; }
+.section h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; color: #17353a; font-size: 13px; font-weight: 700; }
+.section h3 span { padding: 3px 8px; border-radius: 6px; background: #eaf4f3; color: #087368; font-size: 11px; }
+.section p { margin: 0 0 16px; color: #6f7e80; font-size: 12px; line-height: 1.75; }
+.description { white-space: pre-line; overflow-wrap: anywhere; }
+.aside { background: #fbfcfb; border-left: 1px solid #efede8; }
+.facts { margin: 0; }
+.facts dt { margin-top: 15px; color: #849191; font-size: 10px; }
+.facts dd { margin: 5px 0 0; color: #17353a; font-size: 12px; overflow-wrap: anywhere; }
+.coverage { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; max-height: 380px; overflow-y: auto; }
+.coverage li { padding: 8px 11px; border: 1px solid #e0eae7; border-radius: 8px; color: #426166; background: #f8fbfa; font-size: 11px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions a { text-align: center; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; border-top: 1px solid #efede8; }
+.pagination > div { display: flex; gap: 8px; }
+.message { display: flex; align-items: center; gap: 16px; margin: 0 0 16px; padding: 14px 20px; border-radius: 12px; background: #fff; font-size: 13px; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 720px) {
+  .panelTitle, .detailHeading { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .detailGrid { grid-template-columns: 1fr; }
+  .aside { border-left: 0; border-top: 1px solid #efede8; }
+  .section { padding: 22px 20px; }
+  .pagination { padding: 16px; flex-wrap: wrap; }
+  .filters select { flex: 1 1 180px; }
+}
