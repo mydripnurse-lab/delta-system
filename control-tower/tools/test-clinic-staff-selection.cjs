@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
+const mod={exports:{}};new Function('exports',ts.transpileModule(fs.readFileSync(path.join(__dirname,'../src/lib/clinicStaffSelection.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(mod.exports);
+const {assignStaffColors,toggleStaff,staffSelected}=mod.exports;
+let selection={mode:'all',ids:[]};selection=toggleStaff(selection,'nurse-a');assert(!staffSelected(selection,'nurse-a'));assert(staffSelected(selection,'not-loaded-yet'));selection=toggleStaff(selection,'nurse-a');assert.equal(selection.mode,'all');
+selection={mode:'include',ids:[]};assert(!staffSelected(selection,'nurse-a'));selection=toggleStaff(selection,'nurse-a');selection=toggleStaff(selection,'nurse-b');assert(staffSelected(selection,'nurse-a'));assert(staffSelected(selection,'nurse-b'));assert(!staffSelected(selection,'other'));selection=toggleStaff(selection,'nurse-a');assert.deepEqual(selection.ids,['nurse-b']);
+const ids=Array.from({length:1500},(_,i)=>`10000000-0000-4000-8000-${i.toString().padStart(12,'0')}`);
+const first=assignStaffColors({},ids.slice(0,50));const full=assignStaffColors(first,ids);assert.equal(new Set(Object.values(full)).size,1500,'No duplicate colors for a large roster');
+for(const id of ids.slice(0,50))assert.equal(full[id],first[id],'Pagination preserves assigned colors');
+assert.deepEqual(assignStaffColors(JSON.parse(JSON.stringify(full)),ids.slice().reverse()),full,'Reload and ordering preserve colors');
+const repaired=assignStaffColors({[ids[0]]:'#2563eb',[ids[1]]:'#2563eb',[ids[2]]:'invalid'},ids.slice(0,3));assert.equal(new Set(Object.values(repaired)).size,3);
+console.log('PASS: all/include/exclude selections, unloaded staff, 1,500 distinct colors, persistent preferences and collision repair.');

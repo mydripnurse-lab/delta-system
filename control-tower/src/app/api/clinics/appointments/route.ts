@@ -6,8 +6,9 @@ import { consumeClinicRequestBudget } from '@/lib/clinicRequestBudget';
 export const dynamic='force-dynamic';
 const headers={'Cache-Control':'private, no-store'};
 const uuid=z.string().uuid();
+const nurseList=z.string().max(7500).transform(value=>value?value.split(','):[]).pipe(z.array(uuid).max(200));
 const querySchema=z.object({clinicId:uuid,mode:z.enum(['calendar','staff','visit','candidates']).default('calendar'),
-    id:uuid.optional(),search:z.string().max(100).default(''),cursor:uuid.optional(),nurseId:uuid.optional(),
+    id:uuid.optional(),search:z.string().max(100).default(''),cursor:uuid.optional(),nurseId:uuid.optional(),nurseIds:nurseList.optional(),staffMode:z.enum(['all','include','exclude']).default('all'),includeUnassigned:z.enum(['0','1']).transform(v=>v==='1').optional(),
     from:z.iso.datetime({offset:true}).optional(),to:z.iso.datetime({offset:true}).optional(),
     cursorTime:z.iso.datetime({offset:true}).optional(),cursorId:uuid.optional(),
     status:z.enum(['payment_pending','confirmed','partner_acknowledged','in_progress','completed','cancelled','refunded','failed']).optional()});

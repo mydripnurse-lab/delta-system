@@ -24,13 +24,15 @@ export type ClinicCalendarVisit = {
     version: string; nurseId: string | null; nurseName: string; serviceName: string; customerName: string;
     price: string; deposit: string; currency: string; platformFunded: boolean;
 };
-export async function clinicCalendar(clinicId: string, input: { from: string; to: string; nurseId?: string; status?: string; cursorTime?: string; cursorId?: string }) {
+export async function clinicCalendar(clinicId: string, input: { from: string; to: string; nurseId?: string; nurseIds?: string[]; staffMode?: 'all'|'include'|'exclude'; includeUnassigned?: boolean; status?: string; cursorTime?: string; cursorId?: string }) {
     await requireClinicOperations(clinicId);
     const { rows } = await getDbPool().query<ClinicCalendarVisit>(`select ${projection} from app.appointments a ${joins}
       where a.clinic_id=$1 and a.starts_at >= $2::timestamptz and a.starts_at < $3::timestamptz
       and ($4::uuid is null or a.partner_profile_id=$4) and ($5::text is null or a.status=$5)
       and ($6::timestamptz is null or (a.starts_at,a.id)>($6::timestamptz,$7::uuid))
-      order by a.starts_at,a.id limit 101`, [clinicId,input.from,input.to,input.nurseId || null,input.status || null,input.cursorTime || null,input.cursorId || null]);
+      and ($8::text='all' or (a.partner_profile_id is null and $10::boolean)
+        or (a.partner_profile_id is not null and (($8='include' and a.partner_profile_id=any($9::uuid[])) or ($8='exclude' and not(a.partner_profile_id=any($9::uuid[]))))))
+      order by a.starts_at,a.id limit 101`, [clinicId,input.from,input.to,input.nurseId || null,input.status || null,input.cursorTime || null,input.cursorId || null,input.staffMode||'all',input.nurseIds||[],input.includeUnassigned??input.staffMode!=='include']);
     const items = rows.slice(0,100), last = items.at(-1);
     return { items, next: rows.length > 100 && last ? { time: last.startsAt, id: last.id } : null };
 }

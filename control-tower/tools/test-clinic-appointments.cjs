@@ -77,7 +77,19 @@ const migration=name=>fs.readFileSync(path.join(root,'db/migrations',name),'utf8
  // Paginate tied starts without dropping or duplicating visits.
  for(let i=0;i<105;i++)await visit(nurses[5],new Date(+start+86400000),clinic,'completed');
  const range={from:new Date(+start-86400000).toISOString(),to:new Date(+start+3*86400000).toISOString()};const page=await ops.clinicCalendar(clinic,range);assert.equal(page.items.length,100);assert(page.next);const page2=await ops.clinicCalendar(clinic,{...range,cursorTime:new Date(page.next.time).toISOString(),cursorId:page.next.id});assert.equal(new Set([...page.items,...page2.items].map(x=>x.id)).size,108);assert(page.items.every(x=>x.id!==foreign));
+ const multi=await ops.clinicCalendar(clinic,{...range,staffMode:'include',nurseIds:[nurses[1],nurses[5]]});
+ assert(multi.items.length===100&&multi.next,'Multi-staff filters retain pagination');
+ assert(multi.items.every(v=>[nurses[1],nurses[5]].includes(v.nurseId)));
+ const multiTail=await ops.clinicCalendar(clinic,{...range,staffMode:'include',nurseIds:[nurses[1],nurses[5]],cursorTime:new Date(multi.next.time).toISOString(),cursorId:multi.next.id});
+ assert.equal(new Set([...multi.items,...multiTail.items].map(v=>v.id)).size,106);
+ const excluded=await ops.clinicCalendar(clinic,{...range,staffMode:'exclude',nurseIds:[nurses[5]]});
+ assert(excluded.items.every(v=>v.nurseId!==nurses[5]));
+ assert.equal((await ops.clinicCalendar(clinic,{...range,staffMode:'include',nurseIds:[]})).items.length,0,'Clear selects nobody, not everybody');
+ const unassigned=await visit(null,start,clinic,'confirmed');
+ assert((await ops.clinicCalendar(clinic,{...range,staffMode:'include',nurseIds:[],includeUnassigned:true})).items.some(v=>v.id===unassigned));
+ assert(!(await ops.clinicCalendar(clinic,{...range,staffMode:'exclude',nurseIds:[],includeUnassigned:false})).items.some(v=>v.id===unassigned));
  const route=load('src/app/api/clinics/appointments/route.ts');const base='http://localhost/api/clinics/appointments';
+ assert.equal((await route.GET(new Request(`${base}?clinicId=${clinic}&nurseIds=invalid`))).status,400);
  assert.equal((await route.GET(new Request(`${base}?clinicId=${clinic}&from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z`))).status,400);
  assert.equal((await route.POST(new Request(base,{method:'POST',headers:{origin:'https://evil.invalid','content-type':'application/json'},body:JSON.stringify({clinicId:clinic,appointmentId:a,nurseId:nurses[1],version:snap.version,reason:'Invalid origin'})}))).status,403);
  console.log('PASS: clinic/staff isolation, approval gating, paged large roster and calendar, private read state, coverage/availability/conflict checks, stale requests, concurrent assignment, unchanged payments/prices, internal alerts, held role-separated webhooks, date limits and CSRF. No external requests.');
