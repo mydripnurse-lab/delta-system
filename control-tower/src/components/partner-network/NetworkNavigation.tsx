@@ -6,7 +6,7 @@ export function NetworkHeader({ directory = false }: { directory?: boolean }) {
   return <header className={styles.header}>
     <a className={styles.skip} href="#main-content">Skip to content</a>
     <div className={styles.headerInner}>
-      <Link prefetch={false} href="/" aria-label="My Drip Nurse Partners home" className={styles.logo}><Image src="/mdn-logo.png" alt="My Drip Nurse" width={240} height={51} priority/><span>PARTNER NETWORK</span></Link>
+      <Link prefetch={false} href="/" aria-label="My Drip Nurse Partners home" className={styles.logo}><Image src="/mdn-logo.png" alt="My Drip Nurse" width={240} height={51} priority/></Link>
       <nav aria-label="Partner network" className={styles.desktopNav}><Link prefetch={false} href="/#join">Join the network</Link><Link prefetch={false} href="/#how-it-works">How it works</Link><Link prefetch={false} href="/directory" aria-current={directory ? 'page' : undefined}>Directory</Link></nav>
       <Link prefetch={false} className={styles.signIn} href="/login">Log in <span aria-hidden="true">↗</span></Link>
       <details className={styles.mobileMenu}><summary>Menu <span aria-hidden="true">☰</span></summary><nav aria-label="Mobile partner network"><Link prefetch={false} href="/#join">Join the network</Link><Link prefetch={false} href="/#how-it-works">How it works</Link><Link prefetch={false} href="/directory">Directory</Link></nav></details>
