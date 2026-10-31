@@ -14,3 +14,10 @@
 .referralCard{min-width:0;padding:24px;border:1px solid #dce7ea;border-radius:18px;background:#fff}.referralCard h4{margin:0 0 10px;font-size:20px}.referralCard p{font-size:14px;line-height:1.6}.referralCard input{font-size:13px}.referralCard button{margin-top:12px}
 
 .hero{color:var(--clinic-accent-ink,#173e44)}.hero p,.hero .eyebrow{color:inherit}
+
+/* Save confirmations float above the page without moving fields or taking focus. */
+.saveToast{position:fixed;z-index:100;top:calc(96px + env(safe-area-inset-top,0px));right:24px;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);padding:12px 16px;border:1px solid #dce7e5;border-radius:14px;background:#fff;color:#173e44;box-shadow:0 8px 28px #173e4414;font-size:13px;font-weight:700;pointer-events:none;animation:saveToastEnter .18s ease-out}
+.saveToastIcon{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;background:var(--clinic-primary,#084f5e);color:var(--clinic-ink,#fff);font-size:13px}
+@keyframes saveToastEnter{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:700px){.saveToast{right:16px}}
+@media(prefers-reduced-motion:reduce){.saveToast{animation:none}}
