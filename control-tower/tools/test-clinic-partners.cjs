@@ -242,7 +242,7 @@ async function main(){
  assert.equal(await affiliates.resolveClinicReferral('clinic:fixture-clinic',org,externalEmail),null,'Existing attribution cannot be overwritten');
  async function appointment(patch={}) {
   const appointmentId = (await query("insert into app.appointments(organization_id,partner_profile_id,service_id,service_price,currency,status,public_reference,metadata,clinic_id) values($1,$2,$3,$4,'USD',$5,'SYNTHETIC-REF',$6,$7) returning id",[org,external,service,patch.price??229,patch.status||'confirmed',JSON.stringify(patch.metadata||{}),patch.clinicId||null])).rows[0].id;
-  if (patch.paid !== false) await query("insert into app.appointment_payments values($1,'paid')",[appointmentId]);
+  if (patch.paid !== false) await query("insert into app.appointment_payments(appointment_id,status) values($1,'paid')",[appointmentId]);
   return appointmentId;
  }
  const referralAppointment=await appointment();
@@ -352,9 +352,61 @@ async function main(){
  assert.equal(await affiliates.resolveNewClinicReferral(pool,'clinic:fixture-clinic',org,input.email),null,'Self referral rejected');
  assert.equal(await affiliates.resolveNewClinicReferral(pool,'clinic:fixture-clinic','20000000-0000-4000-8000-000000000001','new@example.invalid'),null,'Cross-organization attribution rejected');
  await assert.rejects(()=>affiliates.resolveNewClinicReferral(pool,'invalid',org,'new@example.invalid'),/Invalid/);
+ // Dashboard: clinic isolation, aggregate totals, payment semantics, reassigned decisions, cached authorization.
+ await query(`alter table app.appointment_payments add column amount numeric default 0, add column refunded_amount numeric default 0;
+ alter table app.appointment_events add column created_at timestamptz default now();
+ create table app.partner_availability_rules(partner_profile_id uuid,is_active boolean);
+ create table app.partner_directory_daily_metrics(partner_profile_id uuid,metric_date date,impressions bigint,profile_clicks bigint,booking_clicks bigint);`);
+ identity={email:input.email};
+ const reportingClinic=await clinics.registerClinic({...input,slug:'reporting-clinic'});
+ const performance=load('src/lib/clinicDashboard.ts');
+ await assert.rejects(()=>performance.getClinicDashboard(reportingClinic),/approval/);
+ await query("update app.clinics set status='approved',published=true where id=$1",[reportingClinic]);
+ await query("insert into app.clinic_memberships(clinic_id,email,partner_profile_id,role,status,accepted_at) values($1,$2,$3,'nurse','active',now()-interval '10 days')",[reportingClinic,externalEmail,external]);
+ await query('insert into app.partner_availability_rules values($1,true)',[external]);
+ await query("insert into app.partner_directory_daily_metrics values($1,current_date,10,4,2),($1,current_date-20,999,999,999)",[external]);
+ async function reportVisit(status,price,deposit,payStatus,amount,refund=0,offset=-1,currency='USD',reward=false,clinicId=reportingClinic) {
+  const a=await appointment({clinicId,status,price,paid:false,metadata:reward?{client_reward:{platformFunded:true}}:{}});
+  await query("update app.appointments set starts_at=now()+make_interval(days=>$2),deposit_amount=$3,currency=$4 where id=$1",[a,offset,deposit,currency]);
+  await query('insert into app.appointment_payments(appointment_id,status,amount,refunded_amount) values($1,$2,$3,$4)',[a,payStatus,amount,refund]);
+  return a;
+ }
+ const completed=await reportVisit('completed',200,80,'paid',80);
+ await reportVisit('completed',100,40,'paid',40,0,-1,'EUR');
+ await reportVisit('confirmed',300,120,'paid',120,0,1);
+ await reportVisit('cancelled',200,80,'refunded',80,80);
+ await reportVisit('completed',200,80,'pending',0);
+ await reportVisit('completed',200,80,'paid',80,0,-1,'USD',true);
+ await reportVisit('completed',9999,999,'paid',999,0,-1,'USD',false,id); // another clinic, excluded
+ await reportVisit('completed',9999,999,'paid',999,0,-100); // outside 30 day range
+ await query("insert into app.appointment_events(appointment_id,event_type,actor_type,actor_id,created_at) values($1,'partner_acknowledged','partner',$2,now()),($1,'partner_acknowledged','partner',$2,now()),($1,'partner_declined','partner',$3,now())",[completed,external,member.partner_profile_id]);
+ memo.clear();
+ const report=await performance.getClinicDashboard(reportingClinic,30);
+ const usd=report.metrics.find(m=>m.overall&&m.currency==='USD');
+ assert.equal(usd.appointments,4);assert.equal(usd.completed,3);assert.equal(usd.cancelled,1);assert.equal(usd.upcoming,1);
+ assert.equal(Number(usd.completedBalance),120,'Unpaid visits and funded rewards are not clinic collections');
+ assert.equal(Number(usd.pipelineBalance),180);assert.equal(Number(usd.deposits),160);assert.equal(Number(usd.refunds),80);
+ assert.equal(report.metrics.find(m=>m.overall&&m.currency==='EUR').completedBalance,'60');
+ assert.equal(report.decisions.accepted,1,'Deduplicate repeated acceptance events');assert.equal(report.decisions.declined,1,'Keep previous nurse decisions after reassignment');
+ assert.equal(report.team[0].impressions,10,'Exclude traffic before clinic membership');assert(report.team[0].availability);
+ const dashboardBudget=queryCount;await performance.getClinicDashboard(reportingClinic,30);assert.equal(queryCount-dashboardBudget,1,'Only reauthorize on cached dashboard reads');
+ identity={email:externalEmail,partnerId:external};await assert.rejects(()=>performance.getClinicDashboard(reportingClinic,30),/denied/);
+ identity={email:input.email};await query("update app.clinics set status='pending' where id=$1",[reportingClinic]);
+ await assert.rejects(()=>performance.getClinicDashboard(reportingClinic,30),/approval/,'Cached report never bypasses fresh approval');
+ await query("update app.clinics set status='approved' where id=$1",[reportingClinic]);
+ await assert.rejects(()=>performance.getClinicDashboard(reportingClinic,999),/period/);
+ await query('drop table app.partner_directory_daily_metrics');memo.clear();
+ assert.equal((await performance.getClinicDashboard(reportingClinic,30)).directoryAvailable,false,'Missing telemetry is unavailable, not invented traffic');
+ const readyWorkspace=await clinics.clinicWorkspace(reportingClinic);
+ assert(readyWorkspace.appointments.length>0);
+ const workspaceBudget=queryCount;await clinics.clinicWorkspace(reportingClinic);assert.equal(queryCount-workspaceBudget,1,'Workspace records also cached behind fresh authorization');
+ await query("update app.clinics set status='pending' where id=$1",[reportingClinic]);
+ const pendingWorkspace=await clinics.clinicWorkspace(reportingClinic);
+ assert.equal(pendingWorkspace.clinic.status,'pending');assert.equal(pendingWorkspace.appointments.length,0);assert.equal(pendingWorkspace.members.length,0);
+ await query("update app.clinics set status='approved' where id=$1",[reportingClinic]);
  process.env.CLINIC_PARTNERS_ENABLED='false';
  const offReads=queryCount;assert.equal(await affiliates.recordClinicAffiliateCommission(teamVisit),null);assert.equal(queryCount,offReads,'Disabled clinic rollout adds no DB requests');
  process.env.CLINIC_PARTNERS_ENABLED='true';
- console.log('PASS: clinic lifecycle, required versioned policy acceptance, existing nurse-to-owner identity preservation, personal own-team commission exclusion, preserved historical earnings, external referrals, own-team/self exclusion, idempotent commissions, legacy attribution, refunds, owner-only access and shared-cache checks. Local synthetic data only; no payments or production writes.');
+ console.log('PASS: clinic lifecycle, required versioned policy acceptance, existing nurse-to-owner identity preservation, personal own-team commission exclusion, preserved historical earnings, external referrals, own-team/self exclusion, idempotent commissions, legacy attribution, refunds, owner-only access and shared-cache checks. Clinic dashboards: isolated totals, currencies, refunds, funded rewards, team decisions, review gating and cache passed. Local synthetic data only; no payments or production writes.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>pool.end());

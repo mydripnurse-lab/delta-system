@@ -21,7 +21,6 @@ type Props = {
     theme?: CSSProperties;
     section: ClinicSection;
     onSection: (section: ClinicSection) => void;
-    onAllClinics: () => void;
     onSignOut: () => void;
     owner: boolean;
     hasPractice: boolean;
@@ -30,7 +29,7 @@ type Props = {
     children: ReactNode;
 };
 
-export function ClinicPortalShell({ clinic, theme, section, onSection, onAllClinics, onSignOut, owner, hasPractice, accountName, busy, children }: Props) {
+export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut, owner, hasPractice, accountName, busy, children }: Props) {
     const [menuOpen, setMenuOpen] = useState(false);
     const title = clinic?.name || 'Clinic workspace';
     function select(next: ClinicSection) { onSection(next); setMenuOpen(false); }
@@ -41,13 +40,12 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onAllClin
                 {clinic ? <strong>{title}</strong> : null}
             </div>
             <nav className={styles.navigation} aria-label="Clinic portal">
-                {sections.filter(([name]) => name !== 'Affiliates' || owner).map(([name, icon]) => <button key={name} type="button" disabled={busy || (!clinic && name !== 'Overview' && name !== 'Support' && name !== 'Affiliates')} aria-current={section === name ? 'page' : undefined} onClick={() => select(name)}>
+                {sections.filter(([name]) => name !== 'Affiliates' || owner).map(([name, icon]) => <button key={name} type="button" disabled={busy || (!clinic && name !== 'Overview' && name !== 'Support' && name !== 'Affiliates') || (clinic?.status !== 'approved' && ['Appointments', 'Directory', 'Services', 'Team'].includes(name))} aria-current={section === name ? 'page' : undefined} onClick={() => select(name)}>
                     <PortalIcon name={icon} /><span>{name === 'Profile' ? 'Clinic profile' : name === 'Website' ? 'Clinic website' : name === 'Team' ? 'My team' : name}</span>
                     {name === 'Products' || name === 'Rewards' ? <small>Coming soon</small> : null}
                 </button>)}
             </nav>
             <div className={styles.sidebarFooter}>
-                {clinic ? <button disabled={busy} type="button" onClick={() => { onAllClinics(); setMenuOpen(false); }}>Switch clinic <span aria-hidden="true">↗</span></button> : null}
                 {hasPractice ? <Link prefetch={false} href="/portal">My nurse portal <span aria-hidden="true">↗</span></Link> : null}
                 <span>Powered by My Drip Nurse</span>
             </div>

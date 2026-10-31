@@ -94,16 +94,21 @@ export async function listClinics(email?: string, offset = 0) {
     }>(`select ${columns}${email ? ',m.role' : ''} from app.clinics c ${email ? `join app.clinic_memberships m on m.clinic_id=c.id and m.email=$1 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') and c.status <> 'suspended'` : ''} order by c.name,c.id limit 50 offset $${email ? 2 : 1}`, email ? [email, offset] : [offset]);
     return rows;
 }
-export async function clinicWorkspace(id: string) {
-    const actor = await requireClinicManager(id);
+const cachedClinicWorkspace = unstable_cache(async (id: string, approved: boolean) => {
     const pool = getDbPool();
     const [clinic, members, appointments, services] = await Promise.all([
         pool.query<Clinic>(`select ${columns} from app.clinics c where c.id=$1`, [id]),
-        pool.query<ClinicMember>(`select m.id,m.email,m.role,m.status,m.partner_profile_id as "partnerId",coalesce(p.display_name,m.email) as name,m.coverage,m.accepted_at::text as "acceptedAt",p.slug as "profileSlug",coalesce(p.profile_consent_at is not null and p.website_status='published' and m.status='active',false) as "publicationReady" from app.clinic_memberships m left join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 order by m.created_at desc limit 100`, [id]),
-        pool.query(`select a.id,a.public_reference as reference,a.status,a.starts_at::text as "startsAt",a.service_price::text as price,a.deposit_amount::text as deposit,a.currency,coalesce(customer.full_name,'') as "customerName",coalesce(customer.email,'') as "customerEmail",coalesce(customer.phone,'') as "customerPhone",coalesce(p.display_name,'') as "nurseName",a.metadata->'client_reward'->>'platformFunded' as "platformFunded" from app.appointments a left join app.booking_customers customer on customer.id=a.customer_id left join app.partner_profiles p on p.id=a.partner_profile_id where a.clinic_id=$1 order by a.starts_at desc limit 50`, [id]),
-        pool.query(`select s.id,s.name,s.price::text as "defaultPrice",s.currency,p.price::text as "clinicPrice",p.regional_prices as "regionalPrices" from app.clinic_service_prices p join app.services s on s.id=p.service_id where p.clinic_id=$1 and p.enabled and s.is_active order by s.name limit 100`, [id]),
+        approved ? pool.query<ClinicMember>(`select m.id,m.email,m.role,m.status,m.partner_profile_id as "partnerId",coalesce(p.display_name,m.email) as name,m.coverage,m.accepted_at::text as "acceptedAt",p.slug as "profileSlug",coalesce(p.profile_consent_at is not null and p.website_status='published' and m.status='active',false) as "publicationReady" from app.clinic_memberships m left join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 order by m.created_at desc limit 100`, [id]) : Promise.resolve({ rows: [] }),
+        approved ? pool.query(`select a.id,a.public_reference as reference,a.status,a.starts_at::text as "startsAt",a.service_price::text as price,a.deposit_amount::text as deposit,a.currency,coalesce(customer.full_name,'') as "customerName",coalesce(customer.email,'') as "customerEmail",coalesce(customer.phone,'') as "customerPhone",coalesce(p.display_name,'') as "nurseName",a.metadata->'client_reward'->>'platformFunded' as "platformFunded" from app.appointments a left join app.booking_customers customer on customer.id=a.customer_id left join app.partner_profiles p on p.id=a.partner_profile_id where a.clinic_id=$1 order by a.starts_at desc limit 50`, [id]) : Promise.resolve({ rows: [] }),
+        approved ? pool.query(`select s.id,s.name,s.price::text as "defaultPrice",s.currency,p.price::text as "clinicPrice",p.regional_prices as "regionalPrices" from app.clinic_service_prices p join app.services s on s.id=p.service_id where p.clinic_id=$1 and p.enabled and s.is_active order by s.name limit 100`, [id]) : Promise.resolve({ rows: [] }),
     ]);
-    return { clinic: clinic.rows[0], role: actor.role, members: members.rows, appointments: appointments.rows, services: services.rows };
+    return { clinic: clinic.rows[0], members: members.rows, appointments: appointments.rows, services: services.rows };
+}, ['clinic-workspace-v2'], { revalidate: 60, tags: [CLINIC_CACHE_TAG] });
+export async function clinicWorkspace(id: string) {
+    const actor = await requireClinicManager(id);
+    const workspace = await cachedClinicWorkspace(id, actor.status === 'approved');
+    // Approval status comes from the fresh authorization check, never a cached grant.
+    return { ...workspace, role: actor.role, clinic: { ...workspace.clinic, status: actor.status as ClinicStatus } };
 }
 export async function saveClinic(id: string, raw: unknown) {
     const actor = await requireClinicManager(id);

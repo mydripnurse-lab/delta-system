@@ -10,7 +10,7 @@ const mocks = {
  'next/navigation': { redirect, notFound: () => { throw new Error('not found'); } },
  '@/lib/clinicFeature': { clinicBookingsEnabled: () => false },
  '@/lib/clinicAuth': { clinicsEnabled: () => enabled, requireClinicsEnabled: () => {}, getClinicIdentity: async () => identity },
- '@/lib/clinics': { listClinics: async () => { listCalls++; return clinics; } },
+ '@/lib/clinics': { listClinics: async () => { listCalls++; return clinics; }, clinicWorkspace: async id => ({ clinic: clinics.find(c => c.id === id), role: 'owner', members: [], appointments: [], services: [] }) },
  '@/components/clinics/ClinicPortal': { ClinicPortal: () => null },
  '@/lib/clinicRequestBudget': {}, '@/lib/regionalPricingCatalog': {},
  './clinic.module.css': {},
@@ -42,6 +42,7 @@ function load(file) {
  assert.equal(listCalls, 1);
  assert.deepEqual(rendered.props.initialClinics, clinics);
  assert.deepEqual(rendered.props.initialIdentity, identity);
+ assert.equal(rendered.props.initialWorkspace.clinic.id, 'fixture-clinic', 'Login opens clinic directly without Open clinic interstitial');
  response = await api.GET(new Request('https://example.invalid/api/clinics'));
  assert.equal(response.status, 200);
  const { renderToStaticMarkup } = require('react-dom/server');
