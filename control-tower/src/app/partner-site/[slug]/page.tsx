@@ -1,3 +1,4 @@
+import { providerCoverage, coverageSummary, publishedServiceNames } from "@/lib/providerSeo";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,14 +35,14 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) return { title: "Mobile IV care | My Drip Nurse" };
-  const coverageCounties = profile.clinicManaged ? [] : await loadPartnerCoverageCounties(profile.serviceAreas);
+  const coverageCounties = (profile.clinicManaged || profile.clinicBrand) ? [] : await loadPartnerCoverageCounties(profile.serviceAreas);
   const cities = coverageCounties.flatMap((county) => county.communities);
-  const localSummary = cities.slice(0, 4).map((city) => city.name).join(", ");
+  const localSummary = coverageSummary(profile.serviceAreas);
   return buildPartnerMetadata({
     profile,
-    title: `${profile.displayName} | My Drip Nurse`,
+    title: `${profile.displayName}${profile.professionalCredentials ? `, ${profile.professionalCredentials}` : ""} | Mobile IV care${localSummary ? ` in ${localSummary}` : ""}`,
     description: localSummary
-      ? `Book mobile IV therapy with ${profile.displayName}, serving ${localSummary} and surrounding communities.`
+      ? `Meet ${profile.displayName}${profile.publicTitle ? `, ${profile.publicTitle}` : ""}. Explore services and mobile IV appointments in ${localSummary}.`
       : profile.biography || `Meet ${profile.displayName}, a trusted My Drip Nurse care professional.`,
     keywords: cities.slice(0, 8).flatMap((city) => [
       `mobile IV therapy ${city.name}`,
@@ -56,7 +57,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   const { preview = "" } = await searchParams;
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
-  const coverageCounties = profile.clinicManaged ? [] : await loadPartnerCoverageCounties(profile.serviceAreas);
+  const coverageCounties = (profile.clinicManaged || profile.clinicBrand) ? [] : await loadPartnerCoverageCounties(profile.serviceAreas);
   const reviewData = preview
     ? { summary: { averageRating: 0, reviewCount: 0 }, reviews: [] }
     : await getPublicPartnerReviews(profile.id);
@@ -64,15 +65,14 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
 
-  const featuredCities = cities.slice(0, 4).map((city) => city.name);
-  const serviceAreaLabel = featuredCities.length
-    ? new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(featuredCities)
-    : profile.clinicManaged ? profile.serviceAreas.map(area => area.city || area.county || area.state).filter(Boolean).join(", ") || "your local area" : "your local area";
-  const structuredData = buildPartnerStructuredData(profile, cities);
+  const coverage = providerCoverage(profile.serviceAreas);
+  const offeredNames = publishedServiceNames(profile.services);
+  const serviceAreaLabel = coverageSummary(profile.serviceAreas, 4) || "the service areas confirmed during booking";
+  const structuredData = buildPartnerStructuredData(profile);
   const faqItems: PartnerFaqItem[] = [
     {
       question: `Where does ${profile.displayName} provide mobile IV therapy?`,
-      answer: `${profile.displayName} currently serves ${serviceAreaLabel}${cities.length > featuredCities.length ? " and surrounding communities" : ""}. Appointment availability can vary and is confirmed during online booking.`,
+      answer: `${profile.displayName} currently serves ${serviceAreaLabel}${coverage.length > 4 ? "; see the complete coverage below" : ""}. Appointment availability can vary and is confirmed during online booking.`,
     },
     {
       question: "How do I book an appointment?",
@@ -80,7 +80,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
     },
     {
       question: "Which mobile IV services are available?",
-      answer: "The Services page lists the currently available My Drip Nurse treatments. Final availability depends on the service calendar, location, and appointment eligibility.",
+      answer: offeredNames.length ? `${profile.displayName} lists ${offeredNames.join(", ")}. Check the service page for stock status, pricing and availability at your address.` : "No services are currently listed for this profile. Check the Services page for updates.",
     },
     {
       question: "Will I see the price before booking?",
@@ -243,13 +243,18 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           </section>
         ) : null}
 
+        {profile.clinicManaged || profile.clinicBrand ? <section className={styles.localServiceSection} aria-labelledby="clinic-nurse-coverage">
+          <div className={styles.shell}><h2 id="clinic-nurse-coverage">Where {profile.displayName} provides care</h2>
+            <p>These are this professional’s listed service areas within their clinic’s coverage. Your address, selected service and availability determine whether a visit can be booked.</p>
+            <div className={styles.cityGrid}>{coverage.map(area => <span key={area.label}>{area.label}</span>)}</div>
+          </div></section> : null}
         <PartnerVerifiedReviews summary={reviewData.summary} reviews={reviewData.reviews} />
 
         <section className={styles.servicesCta}>
           <div className={styles.shell}>
             <span className={styles.eyebrow}>Mobile IV therapy</span>
             <h2>Find the service that fits how you want to feel.</h2>
-            <p>Review available treatments, transparent pricing, and real-time appointment availability.</p>
+            <p>{offeredNames.length ? `${profile.displayName} offers ${offeredNames.join(", ")}.` : "Services will appear here when available."} Review current stock status, prices and appointment times before booking.</p>
             <Link href={partnerHref("/services")} className={styles.primaryAction}>
               View services and book <span aria-hidden="true">→</span>
             </Link>

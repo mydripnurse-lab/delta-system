@@ -1,3 +1,4 @@
+import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
 import { ClinicNurseServices } from '@/components/clinics/ClinicNurseServices';
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -14,8 +15,7 @@ import { PartnerTestimonials } from "@/components/partner/PartnerTestimonials";
 import { PartnerDirectoryAttribution } from "@/components/partner/PartnerDirectoryAttribution";
 import { loadPartnerCalendarServices, partnerServiceSlug } from "@/lib/myDripNurseServices";
 import { getPartnerProfileForPublicPage } from "@/lib/partnerProfiles";
-import { loadPartnerCities } from "@/lib/partnerServiceAreas";
-import { buildPartnerMetadata, partnerPublicUrl, serializeStructuredData } from "@/lib/partnerSeo";
+import { buildPartnerMetadata, buildPartnerStructuredData, partnerPublicUrl, serializeStructuredData } from "@/lib/partnerSeo";
 
 import styles from "../partnerSite.module.css";
 
@@ -31,8 +31,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   return buildPartnerMetadata({
     profile,
     pathname: "services",
-    title: `IV Therapy Services with ${profile.displayName} | My Drip Nurse`,
-    description: `Explore mobile IV therapy services and book an appointment with ${profile.displayName}.`,
+    title: `IV Therapy Services | ${profile.displayName}${coverageSummary(profile.serviceAreas) ? ` · ${coverageSummary(profile.serviceAreas)}` : ""}`,
+    description: `Explore mobile IV therapy services with ${profile.displayName}${coverageSummary(profile.serviceAreas) ? ` in ${coverageSummary(profile.serviceAreas)}` : ""}. Review ingredients, local pricing and appointment availability.`,
     keywords: [
       "mobile IV therapy services",
       "IV therapy services near me",
@@ -48,17 +48,20 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
   if ((profile.clinicManaged || profile.clinicBrand) && !preview) return <PartnerExperience branding={profile.clinicBrand}><main className={styles.page}>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ "@context": "https://schema.org", "@graph": [
+      ...buildPartnerStructuredData(profile)["@graph"].filter(entity => entity["@type"] !== "ProfilePage"),
+      { "@type": "CollectionPage", url: partnerPublicUrl(profile.slug, "services"), name: `Services with ${profile.displayName}`, about: { "@id": `${partnerPublicUrl(profile.slug)}#partner` } },
+    ] }) }}/>
     <PartnerPublicHeader profile={profile} />
     <section className={styles.servicesHero}><div className={styles.shell}><span className={styles.eyebrow}>Care with {profile.displayName}</span>
-      <h1>Your clinic. <em>Your care team.</em></h1><p>Choose your clinic below. Its services, regional prices and collection instructions apply to your visit.</p>
+      <h1>Services with <em>{profile.displayName}.</em></h1><p>Choose your clinic below. Its services, regional prices and collection instructions apply to your visit.</p>
+      {profile.publicTitle ? <p>{profile.publicTitle}{profile.professionalCredentials ? ` · ${profile.professionalCredentials}` : ""}</p> : null}
+      <div className={styles.cityGrid}>{providerCoverage(profile.serviceAreas).map(area => <span key={area.label}>{area.label}</span>)}</div>
     </div></section><div className={styles.shell}><ClinicNurseServices profile={profile}/></div><PartnerFooter/>
   </main></PartnerExperience>;
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
-  const [services, cities] = await Promise.all([
-    loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id),
-    loadPartnerCities(profile.organizationId, profile.serviceAreas),
-  ]);
+  const services = await loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -74,8 +77,8 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           description: service.description,
           image: service.imageUrl,
           url: partnerPublicUrl(profile.slug, `services/${partnerServiceSlug(service)}`),
-          provider: { "@type": "Person", name: profile.displayName },
-          areaServed: cities.map((city) => ({ "@type": "City", name: city.name })),
+          provider: { "@type": "Person", "@id": `${partnerPublicUrl(profile.slug)}#partner`, name: profile.displayName, url: partnerPublicUrl(profile.slug), jobTitle: profile.publicTitle || undefined, honorificSuffix: profile.professionalCredentials || undefined },
+          areaServed: providerCoverage(profile.serviceAreas).map(area => area.schema),
           offers: numericPrice
             ? { "@type": "Offer", price: numericPrice, priceCurrency: "USD", availability: service.availabilityStatus === "out_of_stock" ? "https://schema.org/OutOfStock" : "https://schema.org/InStock" }
             : undefined,
@@ -138,7 +141,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           <div className={styles.shell}>
             <span className={styles.eyebrow}>Services with {profile.displayName}</span>
             <h1>Mobile IV therapy, <em>selected around how you feel.</em></h1>
-            <p>Explore available services, then choose the appointment time that works best for you.</p>
+            <p>Explore services with {profile.displayName}{coverageSummary(profile.serviceAreas) ? ` in ${coverageSummary(profile.serviceAreas)}` : ""}, then check availability for your address.</p>
           </div>
         </section>
 
@@ -185,6 +188,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           </div>
         </section>
 
+        <section className={styles.localServiceSection}><div className={styles.shell}><h2>Service areas</h2><div className={styles.cityGrid}>{providerCoverage(profile.serviceAreas).map(area => <span key={area.label}>{area.label}</span>)}</div></div></section>
         <PartnerTestimonials />
 
         <PartnerFaq

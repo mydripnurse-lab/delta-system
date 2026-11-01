@@ -8,8 +8,8 @@ import type { publicClinicServices } from '@/lib/clinicBooking';
 import styles from './clinicWebsite.module.css';
 import { clinicServiceGroups } from '@/lib/clinicServiceNavigation';
 
-export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverage, services, partnerId, bookingsEnabled = false }: {
-    clinicId: string; clinicSlug?: string; clinicHome?: string; bookingsEnabled?: boolean; partnerId?: string;
+export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverage, services, partnerId, nurseServiceLinks, bookingsEnabled = false }: {
+    clinicId: string; clinicSlug?: string; clinicHome?: string; nurseServiceLinks?: Record<string, string>; bookingsEnabled?: boolean; partnerId?: string;
     coverage: PricingRegion[]; services: Awaited<ReturnType<typeof publicClinicServices>>;
 }) {
     const [region, setRegion] = useState('');
@@ -29,7 +29,7 @@ export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverag
                 <div className={styles.serviceVisual}>{s.imageUrl ? <Image unoptimized width={400} height={400} loading="lazy" src={s.imageUrl} alt={s.name}/> : <span aria-hidden="true">✦</span>}</div>
                 <div className={styles.serviceBody}><h3>{s.name}</h3><p>{s.description}</p>
                     <p className={styles.price}>{!location && variable ? 'Local pricing' : new Intl.NumberFormat('en-US', { style: 'currency', currency: s.currency }).format(quote.price)}<small>{!location && variable ? 'Choose your service area to see the price.' : 'Per visit · Final price confirmed by address'}</small></p>
-                    <div className={styles.serviceActions}>{clinicSlug ? <Link className={styles.textLink} href={`${clinicHome || `/clinics/${clinicSlug}`}/services/${encodeURIComponent(s.slug)}${partnerId ? `?nurse=${encodeURIComponent(partnerId)}` : ''}`}>Explore service →</Link> : null}
+                    <div className={styles.serviceActions}>{clinicSlug ? <Link className={styles.textLink} href={nurseServiceLinks?.[s.id] || `${clinicHome || `/clinics/${clinicSlug}`}/services/${encodeURIComponent(s.slug)}${partnerId ? `?nurse=${encodeURIComponent(partnerId)}` : ''}`}>Explore service →</Link> : null}
                         {s.availabilityStatus === 'out_of_stock' ? <span className={styles.stock}>Temporarily out of stock. Booking is unavailable.</span> : bookingsEnabled ? <a className={styles.action} href={`https://care.mydripnurse.com/booking/${encodeURIComponent(s.publicKey)}?clinicId=${encodeURIComponent(clinicId)}${partnerId ? `&partnerId=${encodeURIComponent(partnerId)}` : ''}`}>Check availability →</a> : <span className={styles.stock}>Online booking coming soon.</span>}
                     </div>
                 </div>

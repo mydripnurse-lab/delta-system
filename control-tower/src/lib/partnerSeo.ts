@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { providerCoverage, publishedServiceNames } from "@/lib/providerSeo";
 
 import type { PublicPartnerProfile } from "@/lib/partnerProfiles";
-import type { PartnerCity } from "@/lib/partnerServiceAreas";
 
 export const PARTNER_SITE_ORIGIN = "https://partners.mydripnurse.com";
 
@@ -61,40 +61,28 @@ export function buildPartnerMetadata(opts: {
   };
 }
 
-export function buildPartnerStructuredData(profile: PublicPartnerProfile, cities: PartnerCity[] = []) {
+export function buildPartnerStructuredData(profile: PublicPartnerProfile) {
   const url = partnerPublicUrl(profile.slug);
-  const serviceAreas = cities.length
-    ? cities.map((city) => ({
-        "@type": "City",
-        name: city.name,
-        containedInPlace: { "@type": "State", name: city.state },
-      }))
-    : profile.serviceAreas.map((area) => ({
-        "@type": "AdministrativeArea",
-        name: `${area.county}, ${area.state}`,
-      }));
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${url}#partner`,
-    name: profile.displayName,
-    url,
+  const services = publishedServiceNames(profile.services);
+  const person = {
+    "@type": "Person", "@id": `${url}#partner`, name: profile.displayName, url,
     image: profile.profilePhotoUrl || undefined,
-    jobTitle: profile.publicTitle || "My Drip Nurse Partner",
+    jobTitle: profile.publicTitle || undefined,
     description: profile.biography || undefined,
     honorificSuffix: profile.professionalCredentials || undefined,
-    worksFor: {
-      "@type": "Organization",
-      name: profile.businessName || "My Drip Nurse",
-      parentOrganization: {
-        "@type": "Organization",
-        name: "My Drip Nurse",
-        url: "https://mydripnurse.com",
-      },
-    },
-    areaServed: serviceAreas,
-    knowsAbout: profile.services.map((service) => service.name),
+    knowsAbout: services,
+  };
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      person,
+      { "@type": "ProfilePage", "@id": `${url}#webpage`, url, name: profile.displayName, mainEntity: { "@id": person["@id"] } },
+      ...services.map((name, index) => ({
+        "@type": "Service", "@id": `${url}#offered-service-${index + 1}`, name,
+        url: partnerPublicUrl(profile.slug, "services"), provider: { "@id": person["@id"] },
+        areaServed: providerCoverage(profile.serviceAreas).map(area => area.schema),
+      })),
+    ],
   };
 }
 

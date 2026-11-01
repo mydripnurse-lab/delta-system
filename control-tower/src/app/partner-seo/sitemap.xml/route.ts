@@ -45,8 +45,10 @@ export async function GET() {
     ]),
     ...profiles.flatMap((profile) => {
       const seen = new Set<string>();
-      const serviceEntries = (profile.clinicManaged || profile.clinicBrand ? [] : profile.services).flatMap((service) => {
-        if (["inactive", "disabled", "removed"].includes(String(service.status || "").toLowerCase())) return [];
+      // Primary-clinic services are already included in the cached affiliation
+      // record; no per-nurse database reads are needed for discovery.
+      const serviceEntries = (profile.clinicBrand ? profile.clinicBrand.services || [] : profile.clinicManaged ? [] : profile.services).flatMap((service) => {
+        if (!["active", "out_of_stock"].includes(String(service.status || "").toLowerCase())) return [];
         const definition = definitionForCalendar(service.name);
         if (!definition) return [];
         const serviceSlug = partnerServiceSlug(definition);

@@ -1,3 +1,6 @@
+import { loadClinicNurseServicePage } from "@/lib/clinicNurseServicePage";
+import { ClinicNurseServicePage } from "@/components/clinics/ClinicNurseServicePage";
+import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -30,14 +33,22 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
+  const clinicData = await loadClinicNurseServicePage(slug, serviceSlug, preview);
+  if (clinicData) {
+    const area = coverageSummary(clinicData.coverage);
+    return buildPartnerMetadata({ profile: clinicData.profile, pathname: `services/${clinicData.slug}`,
+      title: `${clinicData.service.name} | ${clinicData.profile.displayName}${area ? ` · ${area}` : ''}`,
+      description: `${clinicData.service.name} with ${clinicData.profile.displayName}, through ${clinicData.clinic.name}${area ? ` in ${area}` : ''}. ${clinicData.service.description}`,
+    });
+  }
   const data = await loadPartnerServicePage(slug, serviceSlug, preview);
   if (!data) return { title: "IV Therapy Service | My Drip Nurse" };
-  const citySummary = data.cities.slice(0, 3).map((city) => city.name).join(", ");
+  const citySummary = coverageSummary(data.profile.serviceAreas);
   return buildPartnerMetadata({
     profile: data.profile,
     pathname: `services/${serviceSlug}`,
-    title: `${data.service.name} Mobile IV Therapy with ${data.profile.displayName}`,
-    description: `${data.service.description} Review ingredients, pricing and appointment information${citySummary ? ` for ${citySummary} and nearby communities` : ""}.`,
+    title: `${data.service.name} | ${data.profile.displayName}${citySummary ? ` · ${citySummary}` : ""}`,
+    description: `${data.service.description} Review ingredients, pricing and appointment information${citySummary ? ` for ${citySummary}` : ""}.`,
     keywords: [
       `${data.service.name} mobile IV therapy`,
       `${data.service.name} IV therapy near me`,
@@ -50,17 +61,17 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function PartnerServiceLandingPage({ params, searchParams }: Props) {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
+  const clinicData = await loadClinicNurseServicePage(slug, serviceSlug, preview);
+  if (clinicData) return <ClinicNurseServicePage data={clinicData}/>;
   const data = await loadPartnerServicePage(slug, serviceSlug, preview);
   if (!data) notFound();
-  const { profile, service, cities } = data;
+  const { profile, service } = data;
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
   const landingUrl = partnerPublicUrl(profile.slug, `services/${serviceSlug}`);
   const outOfStock = service.availabilityStatus === "out_of_stock";
   const numericPrice = service.price.replace(/[^0-9.]/g, "");
-  const cityLabel = cities.length
-    ? new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(cities.slice(0, 3).map((city) => city.name))
-    : "the local service area";
+  const cityLabel = coverageSummary(profile.serviceAreas, 4) || "the service areas confirmed during booking";
   const faqItems: PartnerFaqItem[] = [
     {
       question: `What is included in the ${service.name} service?`,
@@ -74,7 +85,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
     },
     {
       question: `Where can I book ${service.name}?`,
-      answer: `${profile.displayName} offers appointment coverage in ${cityLabel}${cities.length > 3 ? " and surrounding communities" : ""}, subject to calendar availability.`,
+      answer: `${profile.displayName} offers appointment coverage in ${cityLabel}, subject to calendar availability.`,
     },
     {
       question: "How is appointment eligibility determined?",
@@ -99,9 +110,12 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
           "@type": "Person",
           name: profile.displayName,
           image: profile.profilePhotoUrl || undefined,
-          worksFor: { "@type": "Organization", name: profile.businessName || "My Drip Nurse" },
+          "@id": `${partnerPublicUrl(profile.slug)}#partner`,
+          url: partnerPublicUrl(profile.slug),
+          jobTitle: profile.publicTitle || undefined,
+          honorificSuffix: profile.professionalCredentials || undefined,
         },
-        areaServed: cities.map((city) => ({ "@type": "City", name: city.name })),
+        areaServed: providerCoverage(profile.serviceAreas).map(area => area.schema),
         offers: numericPrice
           ? { "@type": "Offer", price: numericPrice, priceCurrency: "USD", availability: outOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock" }
           : undefined,
@@ -138,7 +152,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
             <div className={styles.serviceDetailCopy}>
               <span className={styles.eyebrow}>Mobile IV therapy with {profile.displayName}</span>
               <h1>{service.name}<br /><em>delivered to you.</em></h1>
-              <p>{service.description} Appointments are provided by your local care professional and scheduled through a secure service-specific calendar.</p>
+              <p>{service.description} Appointments are provided by {profile.displayName}{profile.professionalCredentials ? ` (${profile.professionalCredentials})` : ""} in {cityLabel}, subject to eligibility and availability.</p>
               <div className={`${styles.serviceBookingCard} ${outOfStock ? styles.serviceBookingCardOutOfStock : ""}`} id="availability-status">
                 <div className={styles.servicePriceDisplay}>
                   <span>Current service price</span>
@@ -179,13 +193,13 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
           </div>
         </section>
 
-        {cities.length ? (
+        {profile.serviceAreas.length ? (
           <section className={styles.localServiceSection}>
             <div className={styles.shell}>
               <span className={styles.eyebrow}>Local appointment coverage</span>
               <h2>Book {service.name} in your community.</h2>
               <p>Live appointment times depend on the service calendar and current availability.</p>
-              <div className={styles.cityGrid}>{cities.map((city) => <span key={`${city.name}-${city.state}`}>{city.name}</span>)}</div>
+              <div className={styles.cityGrid}>{providerCoverage(profile.serviceAreas).map(area => <span key={area.label}>{area.label}</span>)}</div>
             </div>
           </section>
         ) : null}
