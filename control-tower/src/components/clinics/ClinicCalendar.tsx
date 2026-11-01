@@ -7,7 +7,7 @@ import type { ClinicCalendarVisit } from '@/lib/clinicAppointments';
 import styles from './clinicCalendar.module.css';
 import { calendarDayKey as dayKey, shiftCalendarDay as shift, calendarRange, calendarMonthCells, moveCalendar, type ClinicCalendarView } from '@/lib/clinicCalendarView';
 type Staff={id:string;name:string};
-type Visit=ClinicCalendarVisit & {address:string;customerEmail:string;customerPhone:string};
+type Visit=ClinicCalendarVisit & {address:string;customerEmail:string;customerPhone:string;canRespond?:boolean};
 type Cursor={time:string;id:string};
 const statuses:Record<string,string>={payment_pending:'Deposit pending',confirmed:'Awaiting acceptance',partner_acknowledged:'Accepted',in_progress:'In progress',completed:'Completed',cancelled:'Cancelled',refunded:'Refunded',failed:'Failed'};
 async function get<T>(params:Record<string,string>,signal?:AbortSignal):Promise<T>{const r=await fetch(`/api/clinics/appointments?${new URLSearchParams(params)}`,{signal});const b=await r.json();if(!r.ok)throw new Error(b.error||'Unable to load appointments.');return b.data;}
@@ -27,9 +27,10 @@ function StaffPicker({clinicId,value,onChange,appointmentId}:{clinicId:string;va
     {!items.length&&!busy&&!error?<p className={styles.muted}>{next?'No matching coverage on this page. Continue to the next staff page.':'No matching nurses available.'}</p>:null}
     {busy?<p role="status">Loading staff…</p>:null}{next?<button type="button" disabled={busy} onClick={()=>void load(next)}>Load more nurses</button>:null}</div>:null}</div>;
 }
-export function ClinicCalendar({clinicId,focusAppointment,onChange}:{clinicId:string;focusAppointment?:{id:string;request:number};onChange:()=>void}) {
-    const [anchor,setAnchor]=useState(()=>new Date()),[view,setView]=useState<ClinicCalendarView>('month'),[dayFilter,setDayFilter]=useState(''),[staffSelection,setStaffSelection]=useState<StaffSelection>({mode:'all',ids:[]}),[status,setStatus]=useState(''),[visits,setVisits]=useState<ClinicCalendarVisit[]>([]),[next,setNext]=useState<Cursor|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+export function ClinicCalendar({clinicId,focusAppointment,myNurseId,onChange}:{clinicId:string;myNurseId?:string;focusAppointment?:{id:string;request:number};onChange:()=>void}) {
+    const [anchor,setAnchor]=useState(()=>new Date()),[view,setView]=useState<ClinicCalendarView>('month'),[dayFilter,setDayFilter]=useState(''),[staffSelection,setStaffSelection]=useState<StaffSelection>(myNurseId?{mode:'include',ids:[myNurseId]}:{mode:'all',ids:[]}),[status,setStatus]=useState(''),[visits,setVisits]=useState<ClinicCalendarVisit[]>([]),[next,setNext]=useState<Cursor|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
     const [selected,setSelected]=useState<Visit|null>(null),[detailBusy,setDetailBusy]=useState(false),[detailError,setDetailError]=useState(''),[target,setTarget]=useState<Staff|null>(null),[reason,setReason]=useState(''),[saving,setSaving]=useState(false),[confirm,setConfirm]=useState(false);
+    const [nurseAction,setNurseAction]=useState<'acknowledge'|'decline'|'start'|'complete'|null>(null);
     const dialog=useRef<HTMLDialogElement>(null),controller=useRef<AbortController|null>(null),detailController=useRef<AbortController|null>(null);
     const [staffColors,setStaffColors]=useState<Record<string,string>>({});
     const [colorsReady,setColorsReady]=useState(false);
@@ -44,7 +45,7 @@ export function ClinicCalendar({clinicId,focusAppointment,onChange}:{clinicId:st
         catch(e){if(!abort.signal.aborted)setError(e instanceof Error?e.message:'Unable to load calendar.');}finally{if(!abort.signal.aborted)setBusy(false);}
     },[clinicId,from,to,staffKey,status]);
     useEffect(()=>{setVisits([]);setNext(null);setDayFilter('');setBusy(true);const timer=setTimeout(()=>void load(),200);return()=>{clearTimeout(timer);controller.current?.abort();};},[load]);
-    const openVisit=useCallback(async(id:string)=>{detailController.current?.abort();const abort=new AbortController();detailController.current=abort;setSelected(null);setDetailBusy(true);setDetailError('');setTarget(null);setReason('');setConfirm(false);dialog.current?.showModal();
+    const openVisit=useCallback(async(id:string)=>{detailController.current?.abort();const abort=new AbortController();detailController.current=abort;setSelected(null);setDetailBusy(true);setDetailError('');setTarget(null);setReason('');setConfirm(false);setNurseAction(null);dialog.current?.showModal();
         try{const data=await get<Visit>({clinicId,mode:'visit',id},abort.signal);setSelected(data);}catch(e){if(!abort.signal.aborted)setDetailError(e instanceof Error?e.message:'Unable to open appointment.');}finally{if(!abort.signal.aborted)setDetailBusy(false);}
     },[clinicId]);
     useEffect(()=>{if(focusAppointment)void openVisit(focusAppointment.id);return()=>detailController.current?.abort();},[focusAppointment,openVisit]);
@@ -53,6 +54,14 @@ export function ClinicCalendar({clinicId,focusAppointment,onChange}:{clinicId:st
         try{const r=await fetch('/api/clinics/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clinicId,appointmentId:selected.id,nurseId:target.id,version:selected.version,reason})});const b=await r.json();if(!r.ok)throw new Error(b.error||'Unable to reassign.');
             dialog.current?.close();setSelected(null);setNotice(`Appointment offered to ${b.data.nurseName}. They must accept or decline in their nurse portal.`);onChange();await load();}
         catch(e){setDetailError(e instanceof Error?e.message:'Unable to reassign. Refresh this appointment before retrying.');setConfirm(false);}finally{setSaving(false);}
+    }
+    async function respond() {
+        if(!selected||!nurseAction)return;setSaving(true);setDetailError('');
+        try {
+            const r=await fetch('/api/clinics/appointments',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({clinicId,appointmentId:selected.id,action:nurseAction,reason})});
+            const b=await r.json();if(!r.ok)throw new Error(b.error||'Unable to update appointment.');
+            dialog.current?.close();setSelected(null);setNurseAction(null);setNotice(b.message||'Appointment updated.');onChange();await load();
+        }catch(e){setDetailError(e instanceof Error?e.message:'Unable to update appointment.');}finally{setSaving(false);}
     }
     const byDay=useMemo(()=>{
         const map=new Map<string,ClinicCalendarVisit[]>();
@@ -84,6 +93,15 @@ export function ClinicCalendar({clinicId,focusAppointment,onChange}:{clinicId:st
         {detailBusy?<p role="status">Loading appointment…</p>:null}{detailError?<p role="alert" className={styles.error}>{detailError}</p>:null}
         {selected?<><span className={styles.eyebrow}>{selected.reference} · {statuses[selected.status]}</span><h3>{selected.serviceName}</h3><dl className={styles.visitFacts}><div><dt>Client</dt><dd>{selected.customerName}</dd></div><div><dt>Assigned nurse</dt><dd>{selected.nurseName}</dd></div><div><dt>Date and time</dt><dd>{new Date(selected.startsAt).toLocaleString('en-US',{timeZone:selected.timezone})} ({selected.timezone})</dd></div><div><dt>Address</dt><dd>{selected.address}</dd></div></dl><details className={styles.contact}><summary>Client contact details</summary><p>{selected.customerEmail}<br/>{selected.customerPhone}</p></details>
         <div className={styles.balance}><strong>{new Intl.NumberFormat('en-US',{style:'currency',currency:selected.currency}).format(Number(selected.price))}</strong><span>Service total · Deposit {new Intl.NumberFormat('en-US',{style:'currency',currency:selected.currency}).format(Number(selected.deposit))}</span><p>{selected.platformFunded?'MDN-funded reward: collect $0 for the covered service.':['confirmed','partner_acknowledged','in_progress','completed'].includes(selected.status)?`The clinic collects ${new Intl.NumberFormat('en-US',{style:'currency',currency:selected.currency}).format(Math.max(0,Number(selected.price)-Number(selected.deposit)))} directly from the client, plus any voluntary tip.`:'No collection requested for this status.'}</p></div>
+        {selected.canRespond?<section className={styles.reassign}><h3>Your assigned visit</h3><p className={styles.muted}>Respond as the nurse assigned to this appointment.</p>
+        {nurseAction?<div className={styles.confirm}><p>{nurseAction==='decline'?'Declining searches for another available nurse in your clinic. If none is available, the appointment is cancelled and the existing deposit refund policy applies. You can use Reassign below to choose a replacement yourself.':nurseAction==='complete'?'Confirm that you have completed this visit.':nurseAction==='start'?'Confirm that you are starting this visit.':'Accept this appointment as the assigned nurse?'}</p>
+        {nurseAction==='decline'||nurseAction==='start'?<label>{nurseAction==='decline'?'Reason for declining':'Reason (required if starting more than one hour early)'}<textarea value={reason} maxLength={1000} onChange={e=>setReason(e.target.value)} /></label>:null}
+        <button type="button" className={styles.primary} disabled={saving||(nurseAction==='decline'&&reason.trim().length<3)} onClick={()=>void respond()}>{saving?'Updating…':'Confirm'}</button><button type="button" disabled={saving} onClick={()=>setNurseAction(null)}>Go back</button></div>:<div className={styles.filters}>
+        {selected.status==='confirmed'?<button className={styles.primary} onClick={()=>setNurseAction('acknowledge')}>Accept appointment</button>:null}
+        {['confirmed','partner_acknowledged'].includes(selected.status)?<button onClick={()=>{setReason('');setNurseAction('decline');}}>Decline appointment</button>:null}
+        {selected.status==='partner_acknowledged'?<button className={styles.primary} onClick={()=>{setReason('');setNurseAction('start');}}>Start visit</button>:null}
+        {selected.status==='in_progress'?<button className={styles.primary} onClick={()=>setNurseAction('complete')}>Complete visit</button>:null}
+        </div>}</section>:null}
         {['confirmed','partner_acknowledged'].includes(selected.status)&&Date.parse(selected.startsAt)>Date.now()?<section className={styles.reassign}><h3>Reassign to a nurse</h3><p className={styles.muted}>The new nurse must accept this appointment. The price and deposit stay the same.</p><StaffPicker key={selected.id} clinicId={clinicId} appointmentId={selected.id} value={target} onChange={value=>{setTarget(value);setConfirm(false);}}/><label>Reason<textarea value={reason} maxLength={500} onChange={e=>{setReason(e.target.value);setConfirm(false);}} placeholder="Explain the staffing change" /></label>
         {confirm?<div className={styles.confirm}><p>Remove this visit from <strong>{selected.nurseName}</strong> and offer it to <strong>{target?.name}</strong>? Both nurses and your clinic will receive an internal notification.</p><button type="button" className={styles.primary} disabled={saving} onClick={()=>void reassign()}>{saving?'Reassigning…':'Confirm reassignment'}</button><button type="button" disabled={saving} onClick={()=>setConfirm(false)}>Keep current nurse</button></div>:<button type="button" className={styles.primary} disabled={!target||reason.trim().length<3||saving} onClick={()=>setConfirm(true)}>Review reassignment →</button>}</section>:<p className={styles.muted}>Reassignment is available only before an upcoming visit starts.</p>}
         </>:null}</dialog>

@@ -4,7 +4,10 @@ const url=new URL(process.env.CLINIC_TEST_DATABASE_URL||'postgresql://axel@127.0
 if(url.hostname!=='127.0.0.1'||url.pathname!=='/mdn_clinic_test')throw Error('Local isolated database required');
 const db=new Pool({connectionString:url.toString(),max:6}),root=path.join(__dirname,'..'),modules=new Map();
 let email='owner@example.invalid';
+// Lifecycle sends are covered independently; this suite never calls external services.
+const lifecycleCalls=[];
 const mocks={'server-only':{},'next/server':{NextResponse:Response,after:()=>{}},'react':{cache:f=>f},'next/headers':{cookies:async()=>({get:()=>undefined})},'@/lib/db':{getDbPool:()=>db},'@/lib/bookingEngineSchema':{ensureBookingEngineSchema:async()=>{}},'@/lib/partnerPortalAuth':{getPartnerPortalSession:async()=>email?{email,display_name:'Fixture owner',profile_id:''}:null}};
+mocks['@/lib/partnerAppointments']={advancePartnerAppointment:async input=>{lifecycleCalls.push(input);return [];},declinePartnerAppointment:async input=>{lifecycleCalls.push(input);return {outcome:'reassigned'};}};
 function load(relative){if(modules.has(relative))return modules.get(relative).exports;const m={exports:{}};modules.set(relative,m);
  new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,relative),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText)(n=>n in mocks?mocks[n]:n.startsWith('@/')?load('src/'+n.slice(2)+'.ts'):require(n),m,m.exports);return m.exports;}
 process.env.CLINIC_PARTNERS_ENABLED='true';process.env.CLINIC_COMMUNICATIONS_ENABLED='false';

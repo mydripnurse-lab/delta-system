@@ -60,8 +60,8 @@ async function getPartnerBlockedRanges(profileId: string, timezone: string) {
   return result.rows.map((row) => ({ date: row.date, startTime: row.start_time, endTime: row.end_time }));
 }
 
-export async function getPartnerWeeklyAvailability(profileId: string): Promise<PartnerWeeklyAvailability> {
-  await ensureBookingEngineSchema();
+export async function getPartnerWeeklyAvailability(profileId: string, schemaReady = false): Promise<PartnerWeeklyAvailability> {
+  if (!schemaReady) await ensureBookingEngineSchema();
   const result = await getDbPool().query<AvailabilityRuleRow>(
     `select day_of_week, start_time::text, end_time::text, timezone
        from app.partner_availability_rules
@@ -90,13 +90,15 @@ export async function getPartnerWeeklyAvailability(profileId: string): Promise<P
 }
 
 export async function savePartnerWeeklyAvailability(opts: {
+  // Clinic routes require the booking migrations; avoid runtime DDL there.
+  schemaReady?: boolean;
   profileId: string;
   timezone: string;
   days: WeeklyAvailabilityDay[];
   blockedDates?: string[];
   blockedRanges?: PartnerAvailabilityBlock[];
 }) {
-  await ensureBookingEngineSchema();
+  if (!opts.schemaReady) await ensureBookingEngineSchema();
   const pool = getDbPool();
   const client = await pool.connect();
   try {
@@ -170,7 +172,7 @@ export async function savePartnerWeeklyAvailability(opts: {
   } finally {
     client.release();
   }
-  return getPartnerWeeklyAvailability(opts.profileId);
+  return getPartnerWeeklyAvailability(opts.profileId, opts.schemaReady);
 }
 
 async function profileIdForApplication(applicationId: string) {

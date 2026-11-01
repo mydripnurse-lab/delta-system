@@ -1,3 +1,4 @@
+import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import { cache } from "react";
 import { clinicsEnabled } from '@/lib/clinicFeature';
 import { enrichClinicProfiles } from '@/lib/clinicPublicProfiles';
@@ -175,7 +176,7 @@ const PUBLIC_PROFILE_SELECT = `
 // Independent profiles retain their existing publication rules.
 const CLINIC_PUBLIC_ELIGIBILITY = `and (not clinic_managed or ($CLINIC_ENABLED and profile_consent_at is not null and exists (
   select 1 from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
-  where m.partner_profile_id=app.partner_profiles.id and m.role='nurse' and m.status='active'
+  where m.partner_profile_id=app.partner_profiles.id and ${CLINIC_CARE_MEMBER_SQL} and m.status='active'
   and m.accepted_at is not null and m.authorized_at is not null and c.status='approved' and c.published
 )))`;
 const clinicEligibility = () => CLINIC_PUBLIC_ELIGIBILITY.replace('$CLINIC_ENABLED', clinicsEnabled() ? 'true' : 'false');

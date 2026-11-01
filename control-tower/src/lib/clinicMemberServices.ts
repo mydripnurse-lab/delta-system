@@ -1,3 +1,4 @@
+import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import type { PoolClient } from 'pg';
 
@@ -19,7 +20,7 @@ export async function ensureClinicMemberServices(db: PoolClient, clinicId: strin
       from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
       join app.clinic_service_prices p on p.clinic_id=c.id and p.enabled and p.availability_status<>'paused'
       join app.services s on s.id=p.service_id and s.organization_id=c.organization_id and s.is_active
-      where c.id=$1 and m.role='nurse' and m.status='active' and m.accepted_at is not null and m.authorized_at is not null
+      where c.id=$1 and ${CLINIC_CARE_MEMBER_SQL} and m.status='active' and m.accepted_at is not null and m.authorized_at is not null
       and m.partner_profile_id is not null and ($2::uuid is null or m.partner_profile_id=$2)
       and (m.service_ids is null or p.service_id=any(m.service_ids))
       on conflict(partner_profile_id,service_id) do nothing`, [clinicId, partnerId || null]);

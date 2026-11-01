@@ -1,3 +1,4 @@
+import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
@@ -37,10 +38,11 @@ export async function clinicCalendar(clinicId: string, input: { from: string; to
     return { items, next: rows.length > 100 && last ? { time: last.startsAt, id: last.id } : null };
 }
 export async function clinicVisit(clinicId: string, id: string) {
-    await requireClinicOperations(clinicId);
-    const { rows } = await getDbPool().query<ClinicCalendarVisit & { address: string; customerEmail: string; customerPhone: string }>(`select ${projection},
+    const actor=await requireClinicOperations(clinicId);
+    const { rows } = await getDbPool().query<ClinicCalendarVisit & { address: string; customerEmail: string; customerPhone: string; canRespond: boolean }>(`select ${projection},
+      ($3::text='owner' and lower(p.email)=$4 and exists(select 1 from app.clinic_memberships m where m.clinic_id=a.clinic_id and m.partner_profile_id=p.id and m.email=$4 and m.role='owner' and m.status='active' and coalesce(to_jsonb(m)->>'owner_practice_enabled','false')='true')) as "canRespond",
       concat_ws(', ',a.address_line_1,nullif(a.address_line_2,''),a.city,a.state,a.postal_code) as address,
-      c.email as "customerEmail",c.phone as "customerPhone" from app.appointments a ${joins} where a.clinic_id=$1 and a.id=$2`, [clinicId,id]);
+      c.email as "customerEmail",c.phone as "customerPhone" from app.appointments a ${joins} where a.clinic_id=$1 and a.id=$2`, [clinicId,id,actor.role,actor.email]);
     if (!rows[0]) throw new ClinicAppointmentError('Appointment not found in this clinic.',404);
     return rows[0];
 }
@@ -48,7 +50,7 @@ export async function clinicVisit(clinicId: string, id: string) {
 export async function clinicCalendarStaff(clinicId: string, search: string, cursor?: string) {
     await requireClinicOperations(clinicId);
     const { rows } = await getDbPool().query<{ id: string; name: string }>(`select p.id,p.display_name as name from app.partner_profiles p
-      where (exists(select 1 from app.clinic_memberships m where m.clinic_id=$1 and m.partner_profile_id=p.id and m.role='nurse')
+      where (exists(select 1 from app.clinic_memberships m where m.clinic_id=$1 and m.partner_profile_id=p.id and ${CLINIC_CARE_MEMBER_SQL})
       or exists(select 1 from app.appointments a where a.clinic_id=$1 and a.partner_profile_id=p.id))
       and strpos(lower(p.display_name),lower($2))>0 and ($3::uuid is null or p.id>$3)
       order by p.id limit 51`, [clinicId,search,cursor || null]);
@@ -75,7 +77,7 @@ async function candidates(db: Pick<PoolClient,'query'>, clinicId: string, visit:
       from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
       join app.partner_profiles p on p.id=m.partner_profile_id and p.organization_id=c.organization_id
       join app.clinic_service_prices prices on prices.clinic_id=c.id and prices.service_id=$2 and prices.enabled and prices.availability_status='active'
-      where m.clinic_id=$1 and c.status='approved' and m.role='nurse' and m.status='active' and m.accepted_at is not null and m.authorized_at is not null and (m.service_ids is null or $2::uuid=any(m.service_ids))
+      where m.clinic_id=$1 and c.status='approved' and ${CLINIC_CARE_MEMBER_SQL} and m.status='active' and m.accepted_at is not null and m.authorized_at is not null and (m.service_ids is null or $2::uuid=any(m.service_ids))
       and p.id<>$6 and ($7::uuid is null or p.id=$7) and ($8::uuid is null or p.id>$8) and strpos(lower(p.display_name),lower($9))>0
       and ${available} order by p.id limit 51`, [clinicId,visit.service_id,visit.starts_at,visit.ends_at,visit.id,visit.partner_profile_id,target || null,cursor || null,search]);
     return { items: rows.slice(0,50).filter(r=>clinicNurseCovers(r.clinicCoverage,r.coverage,visit)).map(r=>({id:r.id,name:r.name})), next: rows.length>50 ? rows[49].id : null };
@@ -106,7 +108,7 @@ export async function reassignClinicAppointment(clinicId: string, input: { appoi
         const visit=await readVisit(db,clinicId,input.appointmentId,true);
         if (visit.version!==input.version) throw new ClinicAppointmentError('This appointment changed. Refresh it before reassigning.');
         if (visit.partner_profile_id===input.nurseId) throw new ClinicAppointmentError('Choose a different nurse.');
-        await db.query(`select m.id from app.clinic_memberships m where m.clinic_id=$1 and m.partner_profile_id=$2 and m.role='nurse' for share`,[clinicId,input.nurseId]);
+        await db.query(`select m.id from app.clinic_memberships m where m.clinic_id=$1 and m.partner_profile_id=$2 and ${CLINIC_CARE_MEMBER_SQL} for share`,[clinicId,input.nurseId]);
         await db.query(`select service_id from app.clinic_service_prices where clinic_id=$1 and service_id=$2 for share`,[clinicId,visit.service_id]);
         // Same profile lock used by booking/rescheduling: prevents overlapping appointments across clinics.
         await db.query('select id from app.partner_profiles where id=$1 for update',[input.nurseId]);

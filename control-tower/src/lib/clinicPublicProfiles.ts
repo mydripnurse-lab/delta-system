@@ -1,3 +1,4 @@
+import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { clinicsEnabled } from '@/lib/clinicFeature';
 import { unstable_cache } from 'next/cache';
@@ -20,7 +21,7 @@ const affiliations = unstable_cache(async (ids: string[]) => {
           join app.partner_service_assignments a on a.partner_profile_id=m.partner_profile_id and a.service_id=s.id and a.status in ('active','out_of_stock')
           where prices.clinic_id=c.id and prices.enabled and prices.availability_status<>'paused' and (m.service_ids is null or s.id=any(m.service_ids))),'[]'::jsonb) as services
         from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
-        where m.partner_profile_id=any($1::uuid[]) and m.role='nurse' and m.status='active'
+        where m.partner_profile_id=any($1::uuid[]) and ${CLINIC_CARE_MEMBER_SQL} and m.status='active'
         and m.accepted_at is not null and m.authorized_at is not null and c.status='approved' and c.published
         order by c.name,c.id limit 1000`, [ids]);
     return rows;

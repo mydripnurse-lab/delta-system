@@ -1,3 +1,4 @@
+import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getDbPool } from '@/lib/db';
@@ -49,7 +50,7 @@ const cachedDashboard = unstable_cache(async (clinicId: string, days: number) =>
             exists(select 1 from app.partner_availability_rules r where r.partner_profile_id=p.id and r.is_active) as availability
           from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
             join app.partner_profiles p on p.id=m.partner_profile_id
-          where m.clinic_id=$1 and m.role='nurse' and m.status <> 'removed'
+          where m.clinic_id=$1 and ${CLINIC_CARE_MEMBER_SQL} and m.status <> 'removed'
           order by p.display_name,p.id limit 201`, [clinicId]),
         // Attribute each decision to its actor, even if the visit was later reassigned.
         pool.query<{ id: string; accepted: number; declined: number }>(`
@@ -69,7 +70,7 @@ const cachedDashboard = unstable_cache(async (clinicId: string, days: number) =>
           select m.partner_profile_id as id,sum(d.impressions)::float8 as impressions,
             sum(d.profile_clicks)::float8 as "profileClicks",sum(d.booking_clicks)::float8 as "bookingClicks"
           from app.clinic_memberships m join app.partner_directory_daily_metrics d on d.partner_profile_id=m.partner_profile_id
-          where m.clinic_id=$1 and m.role='nurse' and m.status <> 'removed' and m.accepted_at is not null
+          where m.clinic_id=$1 and ${CLINIC_CARE_MEMBER_SQL} and m.status <> 'removed' and m.accepted_at is not null
             and d.metric_date >= greatest((now()-make_interval(days=>$2))::date,m.accepted_at::date)
             and d.metric_date <= current_date group by m.partner_profile_id`, [clinicId, days]);
         traffic = result.rows;

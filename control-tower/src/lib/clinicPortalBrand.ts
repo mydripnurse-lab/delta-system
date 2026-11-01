@@ -1,3 +1,4 @@
+import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { getDbPool } from '@/lib/db';
@@ -11,7 +12,7 @@ const readBrand = unstable_cache(async (profileId: string): Promise<ClinicPortal
     const {rows}=await getDbPool().query<ClinicPortalBrand>(`select c.id,c.name,c.logo_url as "logoUrl",c.primary_color as "primaryColor",c.accent_color as "accentColor"
         from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
         join app.partner_profiles p on p.id=m.partner_profile_id and p.organization_id=c.organization_id
-        where m.partner_profile_id=$1 and m.role='nurse' and m.status='active'
+        where m.partner_profile_id=$1 and ${CLINIC_CARE_MEMBER_SQL} and m.status='active'
           and m.accepted_at is not null and m.authorized_at is not null and c.status='approved'
         order by c.name,c.id limit 1`,[profileId]);
     return rows[0]||null;

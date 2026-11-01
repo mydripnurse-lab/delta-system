@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireClinicsEnabled, requireClinicOrigin } from '@/lib/clinicAuth';
 import { clinicCalendar, clinicCalendarStaff, clinicVisit, clinicReassignmentCandidates, reassignClinicAppointment, ClinicAppointmentError } from '@/lib/clinicAppointments';
 import { consumeClinicRequestBudget } from '@/lib/clinicRequestBudget';
+import { advancePartnerAppointment, declinePartnerAppointment } from '@/lib/partnerAppointments';
 export const dynamic='force-dynamic';
 const headers={'Cache-Control':'private, no-store'};
 const uuid=z.string().uuid();
@@ -39,4 +40,23 @@ export async function POST(request:Request) {
         const body=z.object({clinicId:uuid,appointmentId:uuid,nurseId:uuid,version:z.string().min(10).max(50),reason:z.string().trim().min(3).max(500)}).strict().parse(await request.json());
         return NextResponse.json({data:await reassignClinicAppointment(body.clinicId,body)},{headers});
     } catch(error) {return failure(error);}
+}
+
+// Owner responds only as the nurse actually assigned to this clinic visit.
+// The existing nurse lifecycle locks the assignment again before mutating it.
+export async function PATCH(request:Request) {
+    if (!consumeClinicRequestBudget(request,'clinic-operations-write',30,60000)) return NextResponse.json({error:'Please wait a moment and try again.'},{status:429,headers});
+    try {
+        requireClinicsEnabled();requireClinicOrigin(request);
+        const body=z.object({clinicId:uuid,appointmentId:uuid,action:z.enum(['acknowledge','decline','start','complete']),reason:z.string().trim().max(1000).default('')}).strict().parse(await request.json());
+        const visit=await clinicVisit(body.clinicId,body.appointmentId);
+        if(!visit.canRespond||!visit.nurseId) throw new ClinicAppointmentError('You can only respond to your own assigned nursing visits.',403);
+        if(body.action==='decline'){
+            if(body.reason.length<3) throw new ClinicAppointmentError('Enter a reason for declining.',400);
+            const result=await declinePartnerAppointment({profileId:visit.nurseId,appointmentId:visit.id,reason:body.reason});
+            return NextResponse.json({ok:true,message:result.outcome==='reassigned'?'The appointment was offered to another available nurse.':'No replacement was available. The appointment was cancelled; review its payment status.'},{headers});
+        }
+        await advancePartnerAppointment({profileId:visit.nurseId,appointmentId:visit.id,action:body.action,earlyStartReason:body.reason});
+        return NextResponse.json({ok:true,message:'Appointment updated.'},{headers});
+    } catch(error){return failure(error);}
 }
