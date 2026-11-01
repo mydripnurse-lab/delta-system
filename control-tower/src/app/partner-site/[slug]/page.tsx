@@ -1,3 +1,4 @@
+import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { providerCoverage, coverageSummary, publishedServiceNames } from "@/lib/providerSeo";
 import type { Metadata } from "next";
@@ -62,7 +63,6 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   const reviewData = preview
     ? { summary: { averageRating: 0, reviewCount: 0 }, reviews: [] }
     : await getPublicPartnerReviews(profile.id);
-  const cities = coverageCounties.flatMap((county) => county.communities);
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
 
@@ -183,72 +183,19 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           </div>
         </section>
 
-        {coverageCounties.length ? (
-          <section className={styles.cityCoverage} aria-labelledby="partner-city-coverage">
-            <div className={styles.shell}>
-              <div className={styles.cityCoverageHeading}>
-                <span className={styles.eyebrow}>Areas we serve</span>
-                <h2 id="partner-city-coverage">County-wide care, close to home.</h2>
-                <p>
-                  Every verified address inside a listed county or Puerto Rico municipio is eligible for coverage.
-                  Live appointment times still depend on the selected service and care professional availability.
-                </p>
-              </div>
-              <div className={styles.countyCoverageList} aria-label="Counties and communities served">
-                {coverageCounties.map((county, index) => (
-                  <details
-                    className={styles.countyCoverageCard}
-                    key={county.countyGeoid}
-                    open={coverageCounties.length === 1 || index === 0}
-                  >
-                    <summary className={styles.countyCoverageSummary}>
-                      <span>
-                        <strong>{county.county}</strong>
-                        <small>{county.state}</small>
-                      </span>
-                      <b>
-                        {county.communities.length
-                          ? `${county.communities.length} ${county.communities.length === 1 ? "location" : "locations"}`
-                          : "County-wide coverage"}
-                      </b>
-                      <i aria-hidden="true">⌄</i>
-                    </summary>
-                    <div className={styles.communityPanel}>
-                      {county.communities.length ? (
-                        <div className={styles.communityMeta}>
-                          <strong>Cities and communities served</strong>
-                          <small>
-                            {county.communities.length} verified {county.communities.length === 1 ? "location" : "locations"}
-                            {county.communities.length > 8 ? " · Scroll to explore" : ""}
-                          </small>
-                        </div>
-                      ) : null}
-                      <div
-                        className={styles.communityGrid}
-                        tabIndex={county.communities.length > 8 ? 0 : undefined}
-                        aria-label={county.communities.length > 8 ? `Scrollable list of cities and communities in ${county.county}` : undefined}
-                      >
-                        {county.communities.length ? county.communities.map((community) => (
-                          <span key={`${county.countyGeoid}-${community.geoid || community.name}`}>
-                            {community.name}
-                          </span>
-                        )) : (
-                          <p>All verified addresses in this county are evaluated during booking.</p>
-                        )}
-                      </div>
-                    </div>
-                  </details>
-                ))}
-              </div>
+        {coverage.length ? <section className={styles.cityCoverage} aria-labelledby="partner-city-coverage">
+          <div className={styles.shell}>
+            <div className={styles.cityCoverageHeading}>
+              <span className={styles.eyebrow}>Areas we serve</span>
+              <h2 id="partner-city-coverage">Where {profile.displayName} provides care</h2>
+              <p>Find your city or region below, then check appointment availability for your address.</p>
             </div>
-          </section>
-        ) : null}
-
-        {profile.clinicManaged || profile.clinicBrand ? <section className={styles.localServiceSection} aria-labelledby="clinic-nurse-coverage">
-          <div className={styles.shell}><h2 id="clinic-nurse-coverage">Where {profile.displayName} provides care</h2>
-            <p>These are this professional’s listed service areas within their clinic’s coverage. Your address, selected service and availability determine whether a visit can be booked.</p>
-            <div className={styles.cityGrid}>{coverage.map(area => <span key={area.label}>{area.label}</span>)}</div>
-          </div></section> : null}
+            <ClinicCoverageSearch areas={[
+              ...coverage.map(area => area.label),
+              ...coverageCounties.flatMap(county => county.communities.map(community => `${community.name}, ${county.county}, ${county.state}`)),
+            ]}/>
+          </div>
+        </section> : null}
         <PartnerVerifiedReviews summary={reviewData.summary} reviews={reviewData.reviews} />
 
         <section className={styles.servicesCta}>

@@ -1,3 +1,4 @@
+import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { pricingCoverage, publicPriceSummary, publicPriceOffer } from "@/lib/publicServicePricing";
 import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
@@ -17,7 +18,7 @@ import { PartnerTestimonials } from "@/components/partner/PartnerTestimonials";
 import { PartnerDirectoryAttribution } from "@/components/partner/PartnerDirectoryAttribution";
 import { loadPartnerCalendarServices, partnerServiceSlug } from "@/lib/myDripNurseServices";
 import { getPartnerProfileForPublicPage } from "@/lib/partnerProfiles";
-import { buildPartnerMetadata, buildPartnerStructuredData, partnerPublicUrl, serializeStructuredData } from "@/lib/partnerSeo";
+import { buildPartnerMetadata, partnerPublicUrl, serializeStructuredData } from "@/lib/partnerSeo";
 
 import styles from "../partnerSite.module.css";
 
@@ -181,7 +182,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           </div>
         </section>
 
-        <section className={styles.localServiceSection}><div className={styles.shell}><h2>Service areas</h2><div className={styles.cityGrid}>{providerCoverage(profile.serviceAreas).map(area => <span key={area.label}>{area.label}</span>)}</div></div></section>
+        <section className={styles.localServiceSection}><div className={styles.shell}><h2>Service areas</h2><ClinicCoverageSearch areas={providerCoverage(profile.serviceAreas).map(area => area.label)}/></div></section>
         <PartnerTestimonials />
 
         <PartnerFaq

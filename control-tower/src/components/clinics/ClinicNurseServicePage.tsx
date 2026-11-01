@@ -1,3 +1,4 @@
+import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import Image from 'next/image';
 import { ClinicPricingProvider, ClinicServicePrice } from './ClinicServicePrice';
 import { publicPriceOffer, publicPriceSummary } from '@/lib/publicServicePricing';
@@ -45,7 +46,7 @@ export function ClinicNurseServicePage({ data }: { data: NonNullable<Awaited<Ret
             <ClinicPublicServices clinicId={clinic.id} partnerId={profile.id} coverage={coverage} services={[service]} bookingsEnabled={clinicBookingsEnabled()}/>
             {service.ingredients?.length ? <><h2>Service ingredients</h2><p>{service.ingredients.join(' · ')}</p></> : null}
         </div></section>
-        <section className={styles.localServiceSection}><div className={styles.shell}><h2>Where {profile.displayName} provides care</h2><div className={styles.cityGrid}>{providerCoverage(coverage).map(area => <span key={area.label}>{area.label}</span>)}</div></div></section>
+        <section className={styles.localServiceSection}><div className={styles.shell}><h2>Where {profile.displayName} provides care</h2><ClinicCoverageSearch areas={providerCoverage(coverage).map(area => area.label)}/></div></section>
         <PartnerFaq title={`Questions about ${service.name}`} items={faq}/><PartnerFooter/>
     </main></ClinicPricingProvider></PartnerExperience>;
 }

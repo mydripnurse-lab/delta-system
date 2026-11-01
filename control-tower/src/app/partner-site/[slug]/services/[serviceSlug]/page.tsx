@@ -1,3 +1,4 @@
+import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { partnerServiceSlug } from "@/lib/myDripNurseServices";
 import { ClinicServicePrice } from "@/components/clinics/ClinicServicePrice";
@@ -187,7 +188,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
               <span className={styles.eyebrow}>Local appointment coverage</span>
               <h2>Book {service.name} in your community.</h2>
               <p>Live appointment times depend on the service calendar and current availability.</p>
-              <div className={styles.cityGrid}>{providerCoverage(profile.serviceAreas).map(area => <span key={area.label}>{area.label}</span>)}</div>
+              <ClinicCoverageSearch areas={providerCoverage(profile.serviceAreas).map(area => area.label)}/>
             </div>
           </section>
         ) : null}

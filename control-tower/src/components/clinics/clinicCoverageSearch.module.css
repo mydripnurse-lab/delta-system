@@ -1,4 +1,4 @@
-.panel{--coverage-brand:var(--clinic-primary,var(--partner-teal,#084f5e));background:color-mix(in srgb,var(--coverage-brand) 3%,white);border:1px solid #dce7e9;border-radius:28px;padding:32px;margin-top:32px}
+.panel{text-align:left;--coverage-brand:var(--clinic-primary,var(--partner-teal,#084f5e));background:color-mix(in srgb,var(--coverage-brand) 3%,white);border:1px solid #dce7e9;border-radius:28px;padding:32px;margin-top:32px}
 .label{display:block;font-size:15px;font-weight:700;margin-bottom:12px;color:#173b40}
 .search{display:flex;align-items:center;gap:12px;background:white;border:1px solid #d1e0e4;border-radius:16px;padding:0 16px;min-height:56px}
 .search:focus-within{outline:2px solid var(--coverage-brand);outline-offset:3px}
