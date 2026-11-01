@@ -21,3 +21,5 @@
 .careServices a{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:13px;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#cadbde}
 .careCopy>.action{min-height:48px;width:100%;font-size:14px}
 @media(min-width:761px){.careSections{padding:48px 32px}.careSection{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:clamp(32px,5vw,72px);padding:40px 0}.careSection+.careSection{margin-top:40px;padding-top:80px}.careSection:nth-child(even) .careImage{order:2}.careImage img{aspect-ratio:4/5}.careCopy>.action{width:auto}}
+
+@media(min-width:761px){.homeHero{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:clamp(32px,3.4vw,48px)}}
