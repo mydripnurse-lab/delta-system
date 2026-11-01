@@ -15,7 +15,7 @@ export async function ClinicPublicWebsite({ clinic, children, services }: { clin
     const brand = clinicWebsiteBrand(clinic);
     return <PartnerExperience branding={brand}><div data-mdn-clinic-website className={styles.site} style={{ '--clinic-primary': brand.primaryColor, '--clinic-accent': brand.accentColor, '--clinic-ink': brand.ink, '--clinic-accent-ink': brand.accentInk } as CSSProperties}>
         <a href="#clinic-content" className={styles.skip}>Skip to content</a>
-        <div className={styles.topline}>Local care. A connected team. <span>Powered by My Drip Nurse.</span></div>
+        <div className={styles.topline}>Licensed Nurses · Same-Day Appointments · Verified Mobile IV Care</div>
         <ClinicPublicHeader name={clinic.name} slug={clinic.slug} logoUrl={clinic.logoUrl} home={home} services={catalog.map(({ id, slug, name, imageUrl }) => ({ id, slug, name, imageUrl }))}/>
         {children}<PartnerFooter />
     </div></PartnerExperience>;
