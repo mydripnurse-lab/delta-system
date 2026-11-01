@@ -84,6 +84,6 @@ export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverag
             <div className={catalog.pageNumbers}>{Array.from({ length: pageCount }, (_, i) => i + 1).map(number => <button type="button" key={number} aria-label={`Service page ${number}`} aria-current={page === number ? 'page' : undefined} onClick={() => changePage(number)}>{number}</button>)}</div>
             <button type="button" aria-label="Next service page" disabled={page === pageCount} onClick={() => changePage(page + 1)}><span className={catalog.direction}>Next</span><span aria-hidden="true">→</span></button>
         </nav> : null}
-        {!services.length ? <p className={styles.empty}>Services are being prepared. <a className={styles.textLink} href="mailto:info@mydripnurse.com">Contact My Drip Nurse</a> for information.</p> : <p className={styles.note}>The clinic collects the remaining balance and any voluntary tip directly. Eligible My Drip Nurse-funded rewards have separate terms. Treatment suitability is reviewed by a qualified healthcare professional.</p>}
+        {!services.length ? <p className={styles.empty}>Services are being prepared. <a className={styles.textLink} href="mailto:info@mydripnurse.com">Contact My Drip Nurse</a> for information.</p> : null}
     </div>;
 }
