@@ -1,9 +1,10 @@
+import { nurseLocationContext, nurseIdentity } from "@/lib/partnerPublicContent";
 import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { partnerServiceSlug } from "@/lib/myDripNurseServices";
 import { ClinicServicePrice } from "@/components/clinics/ClinicServicePrice";
 import { pricingCoverage, publicPriceSummary, publicPriceOffer } from "@/lib/publicServicePricing";
-import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
+import { providerCoverage } from "@/lib/providerSeo";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,12 +39,12 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const { preview = "" } = await searchParams;
   const data = await loadPartnerServicePage(slug, serviceSlug, preview);
   if (!data) return { title: "IV Therapy Service | My Drip Nurse" };
-  const citySummary = coverageSummary(data.profile.serviceAreas);
+  const citySummary = nurseLocationContext(data.profile.serviceAreas);
   return buildPartnerMetadata({
     profile: data.profile,
     pathname: `services/${partnerServiceSlug(data.service)}`,
     title: `${data.service.name} | ${data.profile.displayName}${citySummary ? ` · ${citySummary}` : ""}`,
-    description: `${data.service.description} Review ingredients, pricing and appointment information${citySummary ? ` for ${citySummary}` : ""}.`,
+    description: `Book ${data.service.name} with ${nurseIdentity(data.profile)}${citySummary ? ` in ${citySummary}` : ""}. Review ingredients, prices and available times for your visit.`,
     keywords: [
       `${data.service.name} mobile IV therapy`,
       `${data.service.name} IV therapy near me`,
@@ -66,7 +67,6 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
   const outOfStock = service.availabilityStatus === "out_of_stock";
   const coverage = pricingCoverage(profile.serviceAreas);
   const priceLabel = service.pricing ? publicPriceSummary(service.pricing, coverage).label : service.price;
-  const cityLabel = coverageSummary(profile.serviceAreas, 4) || "the service areas confirmed during booking";
   const faqItems: PartnerFaqItem[] = [
     {
       question: `What is included in the ${service.name} service?`,
@@ -79,8 +79,8 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
         : "Current pricing and any applicable deposit are displayed during the secure booking process.",
     },
     {
-      question: `Where can I book ${service.name}?`,
-      answer: `${profile.displayName} offers appointment coverage in ${cityLabel}, subject to calendar availability.`,
+      question: `How do I book ${service.name} with ${profile.displayName}?`,
+      answer: `Select Book ${service.name} and enter your visit address. Review the available times, price and deposit before submitting your reservation. Follow appointment updates in My Care.`,
     },
     {
       question: "How is appointment eligibility determined?",
@@ -143,9 +143,9 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
         <section className={styles.serviceDetailHero}>
           <div className={styles.shell}>
             <div className={styles.serviceDetailCopy}>
-              <span className={styles.eyebrow}>Mobile IV therapy with {profile.displayName}</span>
+              <span className={styles.eyebrow}>Mobile IV therapy with {nurseIdentity(profile)}</span>
               <h1>{service.name}<br /><em>delivered to you.</em></h1>
-              <p>{service.description} Appointments are provided by {profile.displayName}{profile.professionalCredentials ? ` (${profile.professionalCredentials})` : ""} in {cityLabel}, subject to eligibility and availability.</p>
+              <p>{service.description} Request a visit with {profile.displayName}{profile.clinicBrand?.name ? ` through ${profile.clinicBrand.name}` : ""}, with suitability reviewed before treatment.</p>
               <div className={`${styles.serviceBookingCard} ${outOfStock ? styles.serviceBookingCardOutOfStock : ""}`} id="availability-status">
                 {service.pricing ? <ClinicServicePrice service={service.pricing} coverage={coverage}/> : <div className={styles.servicePriceDisplay}><span>Per visit</span><strong>{priceLabel || "Available at booking"}</strong></div>}
                 {outOfStock ? <span className={styles.outOfStockAction}>Out of Stock</span> : <Link href={partnerHref(`/services/${canonicalSlug}/book`)} className={styles.primaryAction}>
@@ -164,8 +164,8 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
           <div className={styles.shell}>
             <div>
               <span className={styles.eyebrow}>Treatment overview</span>
-              <h2>A clear, professional booking experience.</h2>
-              <p>Review the service details, check availability, and choose from the current appointment availability for {profile.displayName}.</p>
+              <h2>Your {service.name} visit, made simple.</h2>
+              <p>Explore the listed ingredients and plan a visit with {nurseIdentity(profile)}. Your appointment details and updates stay together in My Care.</p>
             </div>
             <div className={styles.serviceFacts}>
               <article><span>01</span><h3>Service-specific availability</h3><p>Choose an available time for your visit at home, at your hotel or at work.</p></article>
@@ -205,7 +205,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
           <div className={styles.shell}>
             <span className={styles.eyebrow}>{outOfStock ? "Temporarily unavailable" : "Ready to view availability?"}</span>
             <h2>{outOfStock ? `${service.name} is currently out of stock.` : `Book ${service.name} with ${profile.displayName}.`}</h2>
-            {outOfStock ? <p>Booking will reopen automatically when this Partner marks the service back in stock.</p> : <Link href={partnerHref(`/services/${canonicalSlug}/book`)} className={styles.primaryAction}>Open secure booking <span aria-hidden="true">→</span></Link>}
+            {outOfStock ? <p>Choose another available service or check back for new appointment times.</p> : <Link href={partnerHref(`/services/${canonicalSlug}/book`)} className={styles.primaryAction}>Open secure booking <span aria-hidden="true">→</span></Link>}
           </div>
         </section>
         <PartnerFooter branding={profile.clinicBrand} />

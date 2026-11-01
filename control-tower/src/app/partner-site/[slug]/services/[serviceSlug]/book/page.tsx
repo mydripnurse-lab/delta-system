@@ -47,18 +47,9 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
     getAuthenticatedClient(),
   ]);
   if (!data) notFound();
-  const { profile, service, cities } = data;
+  const { profile, service } = data;
   const bookingsOpen = !profile.clinicBrand || clinicBookingsEnabled();
   const outOfStock = service.availabilityStatus === "out_of_stock";
-  const coverageCities = cities.slice(0, 3).map((city) => city.name);
-  const coverageLabel = coverageCities.length
-    ? coverageCities.length === 1
-      ? coverageCities[0]
-      : coverageCities.length === 2
-        ? `${coverageCities[0]} and ${coverageCities[1]}`
-        : `${coverageCities[0]}, ${coverageCities[1]}, and ${coverageCities[2]}`
-    : "the listed service area";
-  const coverageMore = Math.max(0, cities.length - coverageCities.length);
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
   const bookingReturnUrl = `https://partners.mydripnurse.com/${profile.slug}/services/${serviceSlug}/book`;
@@ -75,9 +66,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
               <span className={styles.eyebrow}>Secure service booking</span>
               <h1>Book {service.name}<br /><em>with {profile.displayName}.</em></h1>
               <p>
-                Live availability for {profile.displayName}. Current coverage includes {coverageLabel}
-                {coverageMore ? ` and ${coverageMore} more area${coverageMore === 1 ? "" : "s"}` : ""}.
-                Enter your visit address to confirm coverage, pricing and available times.
+                Enter your visit address, choose an available time and review your total and deposit before payment. Follow your reservation and acceptance updates in My Care.
               </p>
               <div className={styles.bookingSummary}>
                 <span>Service</span><strong>{service.name}</strong>
@@ -95,7 +84,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
             {outOfStock ? (
               <div className={`${styles.calendarPending} ${styles.calendarOutOfStock}`}>
                 <strong>{service.name} is currently out of stock.</strong>
-                <p>This Partner is temporarily unable to accept appointments for this service. Review the service page or check again after inventory has been restored.</p>
+                <p>This service is temporarily unavailable. Explore another service or check back for new appointment times.</p>
               </div>
             ) : bookingsOpen && service.calendarId && !service.calendarId.startsWith("preview-") ? (
               <div className={styles.calendarFrame}>

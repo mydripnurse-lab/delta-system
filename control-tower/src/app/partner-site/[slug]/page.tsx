@@ -1,6 +1,7 @@
+import { nurseLocationContext, nurseIdentity, nurseCareIntroduction } from "@/lib/partnerPublicContent";
 import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
-import { providerCoverage, coverageSummary, publishedServiceNames } from "@/lib/providerSeo";
+import { providerCoverage, publishedServiceNames } from "@/lib/providerSeo";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,13 +40,11 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   if (!profile) return { title: "Mobile IV care | My Drip Nurse" };
   const coverageCounties = (profile.clinicManaged || profile.clinicBrand) ? [] : await loadPartnerCoverageCounties(profile.serviceAreas);
   const cities = coverageCounties.flatMap((county) => county.communities);
-  const localSummary = coverageSummary(profile.serviceAreas);
+  const localSummary = nurseLocationContext(profile.serviceAreas);
   return buildPartnerMetadata({
     profile,
     title: `${profile.displayName}${profile.professionalCredentials ? `, ${profile.professionalCredentials}` : ""} | Mobile IV care${localSummary ? ` in ${localSummary}` : ""}`,
-    description: localSummary
-      ? `Meet ${profile.displayName}${profile.publicTitle ? `, ${profile.publicTitle}` : ""}. Explore services and mobile IV appointments in ${localSummary}.`
-      : profile.biography || `Meet ${profile.displayName}, a trusted My Drip Nurse care professional.`,
+    description: `Book mobile IV care with ${nurseIdentity(profile)}${localSummary ? ` in ${localSummary}` : ""}. Compare services, prices and available appointment times.`,
     keywords: cities.slice(0, 8).flatMap((city) => [
       `mobile IV therapy ${city.name}`,
       `IV hydration ${city.name}`,
@@ -68,12 +67,12 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
 
   const coverage = providerCoverage(profile.serviceAreas);
   const offeredNames = publishedServiceNames(profile.services);
-  const serviceAreaLabel = coverageSummary(profile.serviceAreas, 4) || "the service areas confirmed during booking";
+  const serviceAreaLabel = nurseLocationContext(profile.serviceAreas);
   const structuredData = buildPartnerStructuredData(profile);
   const faqItems: PartnerFaqItem[] = [
     {
       question: `Where does ${profile.displayName} provide mobile IV therapy?`,
-      answer: `${profile.displayName} currently serves ${serviceAreaLabel}${coverage.length > 4 ? "; see the complete coverage below" : ""}. Appointment availability can vary and is confirmed during online booking.`,
+      answer: "Use the service-area search on this page to find your city or region. Enter your visit address during booking to confirm coverage and available times.",
     },
     {
       question: "How do I book an appointment?",
@@ -124,14 +123,14 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
         <section className={styles.hero}>
           <div className={styles.shell}>
             <div className={styles.heroCopy}>
-              <span className={styles.eyebrow}>{profile.clinicManaged ? "Clinic-authorized care professional" : "Verified My Drip Nurse care"}</span>
+              <span className={styles.eyebrow}>{profile.publicTitle || "Mobile IV care"}{profile.professionalCredentials ? ` · ${profile.professionalCredentials}` : ""}</span>
               <h1>Personalized IV care with <em>{profile.displayName}</em>.</h1>
               <p>
-                Mobile IV therapy delivered with a thoughtful, patient-first approach throughout {serviceAreaLabel}.
+                {nurseCareIntroduction(profile)}
               </p>
               <div className={styles.actions}>
                 <Link href={partnerHref("/services")} className={styles.primaryAction}>
-                  Explore services <span aria-hidden="true">→</span>
+                  View services & availability <span aria-hidden="true">→</span>
                 </Link>
                 <a href="#meet-your-partner" className={styles.secondaryAction}>Meet your care professional</a>
               </div>
@@ -154,7 +153,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
               <div className={styles.profileCardCopy}>
                 <strong>{profile.displayName}</strong>
                 {profile.businessName ? <b>{profile.businessName}</b> : null}
-                <span>{profile.publicTitle || "My Drip Nurse care"}</span>
+                <span>{profile.publicTitle || profile.clinicBrand?.name || "Mobile IV care"}</span>
                 {profile.professionalCredentials ? <small>{profile.professionalCredentials}</small> : null}
               </div>
             </div>
@@ -174,10 +173,11 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           <div className={styles.shell}>
             <div>
               <span className={styles.eyebrow}>Meet your local care professional</span>
-              <h2>Care that feels personal, professional, and close to home.</h2>
+              <h2>Meet {profile.displayName}.</h2>
             </div>
             <div className={styles.aboutCopy}>
-              <p>{profile.biography}</p>
+              {profile.biography.trim() ? <p>{profile.biography}</p> : <p>{nurseIdentity(profile)}{profile.clinicBrand?.name ? ` is part of the care team at ${profile.clinicBrand.name}` : " provides mobile IV care"}. Review the services below and choose an appointment that fits your schedule.</p>}
+              {serviceAreaLabel ? <p>Mobile appointments in {serviceAreaLabel}. Check your address when booking.</p> : null}
               {profile.businessName ? <strong>{profile.businessName}</strong> : null}
             </div>
           </div>
@@ -202,7 +202,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           <div className={styles.shell}>
             <span className={styles.eyebrow}>Mobile IV therapy</span>
             <h2>Find the service that fits how you want to feel.</h2>
-            <p>{offeredNames.length ? `${profile.displayName} offers ${offeredNames.join(", ")}.` : "Services will appear here when available."} Review current stock status, prices and appointment times before booking.</p>
+            <p>{offeredNames.length ? "Compare ingredients and prices, then check appointment times for your visit. Your address confirms the total and deposit before payment." : "No services are currently available to book. Please check back for updates."}</p>
             <Link href={partnerHref("/services")} className={styles.primaryAction}>
               View services and book <span aria-hidden="true">→</span>
             </Link>

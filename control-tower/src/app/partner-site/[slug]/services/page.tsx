@@ -1,7 +1,8 @@
+import { nurseLocationContext, nurseCareIntroduction } from "@/lib/partnerPublicContent";
 import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { pricingCoverage, publicPriceSummary, publicPriceOffer } from "@/lib/publicServicePricing";
-import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
+import { providerCoverage } from "@/lib/providerSeo";
 import { loadClinicNurseCatalog } from "@/lib/clinicNurseCatalog";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -34,8 +35,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   return buildPartnerMetadata({
     profile,
     pathname: "services",
-    title: `IV Therapy Services | ${profile.displayName}${coverageSummary(profile.serviceAreas) ? ` · ${coverageSummary(profile.serviceAreas)}` : ""}`,
-    description: `Explore mobile IV therapy services with ${profile.displayName}${coverageSummary(profile.serviceAreas) ? ` in ${coverageSummary(profile.serviceAreas)}` : ""}. Review ingredients, local pricing and appointment availability.`,
+    title: `IV Therapy Services | ${profile.displayName}${nurseLocationContext(profile.serviceAreas) ? ` · ${nurseLocationContext(profile.serviceAreas)}` : ""}`,
+    description: `Explore mobile IV therapy services with ${profile.displayName}${nurseLocationContext(profile.serviceAreas) ? ` in ${nurseLocationContext(profile.serviceAreas)}` : ""}. Review ingredients, local pricing and appointment availability.`,
     keywords: [
       "mobile IV therapy services",
       "IV therapy services near me",
@@ -134,8 +135,8 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
         <section className={styles.servicesHero}>
           <div className={styles.shell}>
             <span className={styles.eyebrow}>Services with {profile.displayName}</span>
-            <h1>Mobile IV therapy, <em>selected around how you feel.</em></h1>
-            <p>Explore services with {profile.displayName}{coverageSummary(profile.serviceAreas) ? ` in ${coverageSummary(profile.serviceAreas)}` : ""}, then check availability for your address.</p>
+            <h1>Mobile IV therapy.<br /><em>Plan your visit.</em></h1>
+            <p>{nurseCareIntroduction(profile)}</p>
           </div>
         </section>
 

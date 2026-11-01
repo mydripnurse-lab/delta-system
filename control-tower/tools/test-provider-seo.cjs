@@ -18,6 +18,18 @@ const mocks = {
 function load(file){if(modules.has(file))return modules.get(file);const m={exports:{}};const code=ts.transpileModule(fs.readFileSync(path.join(root,file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;new Function('require','module','exports',code)(n=>n in mocks?mocks[n]:n.startsWith('@/')?load(n.slice(2)+'.ts'):require(n),m,m.exports);modules.set(file,m.exports);return m.exports;}
 (async()=>{
  const seo=load('lib/providerSeo.ts'),partner=load('lib/partnerSeo.ts');
+ const copy=load('lib/partnerPublicContent.ts');
+ assert.equal(copy.nurseLocationContext([]),'');
+ assert.equal(copy.nurseLocationContext([{state:'Puerto Rico',county:''}]),'Puerto Rico');
+ assert.equal(copy.nurseLocationContext([...profile.serviceAreas,...profile.serviceAreas]),'New Orleans, Orleans Parish, Louisiana');
+ assert.equal(copy.nurseLocationContext([{state:'Florida',county:'Orange'},{state:'Florida',county:'Brevard'}]),'selected areas of Florida');
+ assert.equal(copy.nurseLocationContext([{state:'Florida',county:'Orange'},{state:'Georgia',county:'Fulton'}]),'selected areas of Florida and Georgia');
+ assert.equal(copy.nurseIdentity({...profile,professionalCredentials:''}),'Alex Rivera');
+ assert(!copy.nurseCareIntroduction(profile).includes('undefined'));
+ const clinicProfile={...profile,clinicBrand:{...profile.clinicBrand,name:'Clinic One'}};
+ assert(copy.nurseCareIntroduction(clinicProfile).includes("Alex Rivera (RN), part of Clinic One's care team"));
+ assert.equal(partner.buildPartnerStructuredData(clinicProfile)['@graph'][0].affiliation.name,'Clinic One');
+ assert.equal(partner.buildPartnerStructuredData({...profile,clinicBrand:undefined})['@graph'][0].affiliation,undefined);
  assert.deepEqual(seo.publishedServiceNames(profile.services),['Alleviate','NAD+']);
  const regions=seo.providerCoverage([...profile.serviceAreas,...profile.serviceAreas]);
  assert.equal(regions.length,1);assert.equal(regions[0].label,'New Orleans, Orleans Parish, Louisiana');

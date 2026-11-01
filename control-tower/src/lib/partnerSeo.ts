@@ -70,6 +70,7 @@ export function buildPartnerStructuredData(profile: PublicPartnerProfile) {
     jobTitle: profile.publicTitle || undefined,
     description: profile.biography || undefined,
     honorificSuffix: profile.professionalCredentials || undefined,
+    affiliation: profile.clinicBrand?.name ? { "@type": "Organization", name: profile.clinicBrand.name } : undefined,
     knowsAbout: services,
   };
   return {
