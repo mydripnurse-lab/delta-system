@@ -1,5 +1,6 @@
 import { publicWebsiteAccounts } from "@/lib/publicWebsiteAccounts";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
+import { publicClinicServices } from "@/lib/clinicBooking";
 import type { PublicPartnerProfile } from "@/lib/partnerProfiles";
 import MarketingHeaderEmbed, {
   type MarketingHeaderMenuLink,
@@ -28,7 +29,15 @@ export default async function PartnerPublicHeader({
 }) {
   const [accounts, services] = await Promise.all([
     publicWebsiteAccounts(),
-    loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id),
+    // Reuse the nurse-filtered public clinic cache, including its assignment invalidation.
+    // Clinic-only profiles must never fall back to the independent partner catalog.
+    profile.clinicBrand && !preview
+      ? publicClinicServices(profile.clinicBrand.id, profile.id).then(rows => rows.map(service => ({
+          id: service.slug, name: service.name, imageUrl: service.imageUrl, landingPath: `/${service.slug}`,
+        })))
+      : profile.clinicManaged && !preview
+        ? Promise.resolve([])
+        : loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id),
   ]);
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const serviceLink = (service: (typeof services)[number]): MarketingHeaderMenuLink => [
