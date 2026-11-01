@@ -8,7 +8,8 @@ import { publicClinics } from '@/lib/clinics';
 import { clinicsEnabled, clinicBookingsEnabled } from '@/lib/clinicFeature';
 import { publicClinicServices, publicClinicTeam } from '@/lib/clinicBooking';
 import { ClinicPublicServices } from '@/components/clinics/ClinicPublicServices';
-import { ClinicPublicWebsite, ClinicTeam, ClinicCoverageSection, ClinicVisitSteps } from '@/components/clinics/ClinicPublicWebsite';
+import { ClinicPublicWebsite, ClinicTeam, ClinicCoverageSection } from '@/components/clinics/ClinicPublicWebsite';
+import { ClinicVisitSteps } from '@/components/clinics/ClinicVisitSteps';
 import { ClinicNetworkReviews } from '@/components/clinics/ClinicNetworkReviews';
 import { clinicServiceGroups } from '@/lib/clinicServiceNavigation';
 import { PartnerFaq } from '@/components/partner/PartnerFaq';
@@ -63,6 +64,7 @@ export default async function Page({ params }: Props) {
             { '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) },
         ] }) }} />
         <section className={`${styles.hero} ${styles.homeHero}`}><div><span className={styles.eyebrow}>{clinic.name} · Mobile wellness</span><h1>Mobile wellness care<br /><em>with {clinic.name}.</em></h1><p>{clinic.description || 'Connect with our clinic’s professionals for mobile wellness care in your community.'}</p>{area ? <p>Serving {area}. Explore all service areas below.</p> : null}<div className={styles.heroActions}><Link className={styles.action} href={`${site.home}/services`}>Explore services <span aria-hidden="true">→</span></Link><a className={styles.textLink} href="#team">Meet your care team</a></div></div><figure className={styles.heroPhoto}><Image unoptimized src={clinic.websiteSettings?.heroImageUrl || DEFAULT_CLINIC_HERO} className={!clinic.websiteSettings?.heroImageUrl ? styles.defaultHeroImage : undefined} alt={clinic.websiteSettings?.heroImageUrl ? `${clinic.name} mobile wellness care` : "A nurse providing mobile IV care to a client in the comfort of her home"} width={1200} height={800} priority/></figure></section>
+        <ClinicVisitSteps/>
         <div className={styles.trust} aria-label="Your care experience"><span>Clinic-authorized professionals</span><span>Care at your location</span><span>Clear pricing before payment</span><span>Connected through My Care</span></div>
         {groups.length ? <div className={styles.careSections}>
             {groups.map(group => {
@@ -82,7 +84,7 @@ export default async function Page({ params }: Props) {
             })}
         </div> : null}
         <section className={styles.section} id="services"><ClinicPublicServices clinicSlug={clinic.slug} clinicHome={site.home} bookingsEnabled={clinicBookingsEnabled()} clinicId={clinic.id} coverage={clinic.coverage} services={services}/></section>
-        <ClinicCoverageSection clinic={clinic}/><ClinicTeam team={team}/><ClinicVisitSteps/>
+        <ClinicCoverageSection clinic={clinic}/><ClinicTeam team={team}/>
         <ClinicNetworkReviews/>
         <PartnerFaq title="Your visit, explained" items={faq}/>
         <section className={styles.section}><div className={styles.recruit}><div><span className={styles.eyebrow}>Grow with our network</span><h2>Your expertise. More connections.</h2><p>Are you a nurse or clinic owner? Join My Drip Nurse through {clinic.name} and build your presence in our USA &amp; Puerto Rico network.</p></div><Link className={styles.action} href={`${site.home}/become-a-partner`}>Become a Partner →</Link></div><div className={styles.closing}><h2>Your care starts with a connection.</h2><p>Explore your options with this clinic, or visit My Care to follow an existing appointment.</p><Link className={styles.action} href={`${site.home}/services`}>Find your service →</Link></div></section>
