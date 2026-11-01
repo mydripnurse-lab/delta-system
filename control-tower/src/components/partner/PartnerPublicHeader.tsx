@@ -55,8 +55,6 @@ export default async function PartnerPublicHeader({
     `https://partners.mydripnurse.com/${profile.slug}/become-a-partner${previewQuery}`,
   ]];
 
-  if (profile.clinicBrand) additionalNavLinks.unshift(["Our clinic", `https://partners.mydripnurse.com/clinics/${profile.clinicBrand.slug}`]);
-
   return (
     <MarketingHeaderEmbed
       {...accounts}
@@ -65,7 +63,9 @@ export default async function PartnerPublicHeader({
       refreshServiceMedia={false}
       location="your area"
       phone="321-989-6446"
-      websiteUrl={`https://partners.mydripnurse.com/${profile.slug}${previewQuery}`}
+      websiteUrl={profile.clinicBrand
+        ? `https://partners.mydripnurse.com/clinics/${profile.clinicBrand.slug}`
+        : `https://partners.mydripnurse.com/${profile.slug}${previewQuery}`}
       bannerText="Licensed Nurses · Same-Day Appointments · Verified Mobile IV Care"
       showPartnerPortal
       showDirectory={false}
