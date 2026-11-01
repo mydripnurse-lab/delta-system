@@ -3,8 +3,7 @@ import Image from 'next/image';
 import { useEffect, useId, useRef, useState } from 'react';
 import catalog from './clinicPublicCatalog.module.css';
 import Link from 'next/link';
-import { usePriceRegion } from './ClinicServicePrice';
-import { publicPriceChoices, publicPriceSummary } from '@/lib/publicServicePricing';
+import { publicPriceSummary } from '@/lib/publicServicePricing';
 import { type PricingRegion } from '@/lib/regionalPricing';
 import type { publicClinicServices } from '@/lib/clinicBooking';
 import styles from './clinicWebsite.module.css';
@@ -14,7 +13,6 @@ export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverag
     clinicId: string; clinicSlug?: string; clinicHome?: string; nurseServiceLinks?: Record<string, string>; bookingsEnabled?: boolean; partnerId?: string;
     coverage: PricingRegion[]; services: Awaited<ReturnType<typeof publicClinicServices>>;
 }) {
-    const { region, setRegion } = usePriceRegion();
     const groups = clinicServiceGroups<(typeof services)[number]>(services);
     const [selection, setSelection] = useState({ category: 'all', page: 1 });
     const resultsId = useId();
@@ -45,11 +43,8 @@ export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverag
             if (heading && heading.getBoundingClientRect().top < 0) heading.scrollIntoView({ block: 'start' });
         });
     }
-    const choices = [...new Map<string, PricingRegion>(services.flatMap(s => publicPriceChoices(s, coverage)).map(r => [r.id, r] as [string, PricingRegion])).values()].sort((a, b) => a.label.localeCompare(b.label));
-    const location = choices.find(r => r.id === region);
     return <div>
         <div className={styles.catalogHeading}><div><span className={styles.eyebrow}>Designed around your visit</span><h2>{clinicSlug ? 'Find your care.' : 'Your service. Your area.'}</h2><p>Explore available services and local pricing. Your final price and deposit are confirmed using your service address before payment.</p></div>
-            {choices.length ? <label className={styles.regionLabel}>Your service area<select aria-label="Your service area" value={region} onChange={e => setRegion(e.target.value)}><option value="">Choose your area</option>{choices.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label> : null}
         </div>
         {services.length > 1 ? <>
             <nav className={catalog.filters} aria-label="Service categories">
@@ -68,7 +63,7 @@ export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverag
         </> : null}
         <div id={resultsId} className={`${styles.services} ${services.length === 1 ? styles.singleService : ''}`}>{visible.map(s => {
             const category = groups.find(item => item.services.some(service => service.id === s.id));
-            const quote = publicPriceSummary(s, coverage, location);
+            const quote = publicPriceSummary(s, coverage);
             return <article className={styles.serviceCard} key={s.id}>
                 <div className={styles.serviceVisual}>{s.imageUrl ? <Image unoptimized width={400} height={400} loading="lazy" src={s.imageUrl} alt={s.name}/> : <span aria-hidden="true">✦</span>}</div>
                 <div className={styles.serviceBody}>{services.length > 1 ? <span className={catalog.categoryLabel}>{category?.label}</span> : null}<h3>{s.name}</h3><p>{s.description}</p>

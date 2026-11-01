@@ -23,7 +23,7 @@ export function ClinicNurseServicePage({ data }: { data: NonNullable<Awaited<Ret
     const faq = [
         { question: `Who provides ${service.name}?`, answer: `${profile.displayName}${profile.professionalCredentials ? ` (${profile.professionalCredentials})` : ''} offers this service through ${clinic.name}. ${profile.publicTitle || ''} Treatment suitability is reviewed before care.` },
         { question: `Where can I book with ${profile.displayName}?`, answer: area ? `Listed coverage includes ${area}. See all service areas on this page. Your address, service and the professional’s availability are checked during booking.` : 'Contact My Drip Nurse to confirm service coverage.' },
-        { question: 'How are price and payment confirmed?', answer: `${publicPriceSummary(service, coverage).label} per visit. Choose your area to see local pricing. The final price and deposit are confirmed using your service address before payment. The clinic collects the remaining balance and any voluntary tip directly; eligible My Drip Nurse-funded rewards have separate terms.` },
+        { question: 'How are price and payment confirmed?', answer: `${publicPriceSummary(service, coverage).label} per visit. The final price and deposit are confirmed using your service address before payment. The clinic collects the remaining balance and any voluntary tip directly; eligible My Drip Nurse-funded rewards have separate terms.` },
     ];
     const schema = { '@context': 'https://schema.org', '@graph': [
         { '@type': 'Person', '@id': `${home}#partner`, name: profile.displayName, url: home, image: profile.profilePhotoUrl || undefined, jobTitle: profile.publicTitle || undefined, honorificSuffix: profile.professionalCredentials || undefined },
