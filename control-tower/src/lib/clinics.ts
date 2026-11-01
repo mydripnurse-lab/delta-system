@@ -291,7 +291,7 @@ export async function saveClinicBranding(id: string, raw: unknown) {
 // This action cannot change portal branding, prices, coverage or publication status.
 export async function saveClinicWebsite(id: string, raw: unknown) {
     await requireClinicManager(id);
-    const color = z.string().regex(/^#[a-f0-9]{6}$/i);
+    const color = z.union([z.literal(''), z.string().regex(/^#[a-f0-9]{6}$/i)]).optional();
     const input = z.object({
         heroImageUrl: z.union([z.literal(''), z.string().url().max(2000).refine(value => {
             const url = new URL(value);
