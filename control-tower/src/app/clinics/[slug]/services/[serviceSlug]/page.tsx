@@ -59,7 +59,7 @@ export default async function Page({ params, searchParams }: Props) {
         { question: 'Who collects the remaining balance?', answer: 'The clinic collects the remaining balance and any voluntary tip directly. Eligible My Drip Nurse-funded rewards have separate terms.' },
         { question: 'Is my visit confirmed immediately?', answer: 'Your request is sent to an eligible professional for acceptance. Track the appointment in your secure Care portal.' },
     ];
-    return <ClinicPublicWebsite clinic={clinic} services={data.services}><ClinicPricingProvider><main id="clinic-content" className={layout.page}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ '@context': 'https://schema.org', '@graph': [
+    return <ClinicPublicWebsite clinic={clinic} team={team} services={data.services}><ClinicPricingProvider><main id="clinic-content" className={layout.page}><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ '@context': 'https://schema.org', '@graph': [
         { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: clinic.name, item: site.canonicalHome }, { '@type': 'ListItem', position: 2, name: 'Services', item: `${site.canonicalHome}/services` }, { '@type': 'ListItem', position: 3, name: service.name, item: url }] },
         clinicEntity(clinic, site.canonicalHome),
         ...clinicServiceEntities([service], site.canonicalHome, coverage).map(entity => ({ ...entity, offers: publicPriceOffer(nurseService || service, coverage, url, (nurseService || service).availabilityStatus === "out_of_stock") })),
