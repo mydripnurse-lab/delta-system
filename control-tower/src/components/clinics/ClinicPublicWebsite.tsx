@@ -9,6 +9,7 @@ import { clinicSiteAddress } from '@/lib/clinicDomains';
 import { PARTNER_ORIGIN } from '@/lib/clinicDomainPolicy';
 import styles from './clinicWebsite.module.css';
 import { ClinicPublicHeader } from './ClinicPublicHeader';
+import { ClinicCoverageSearch } from './ClinicCoverageSearch';
 
 export async function ClinicPublicWebsite({ clinic, children, services, absoluteNavigation = false }: { clinic: PublicClinic; children: ReactNode; absoluteNavigation?: boolean; services?: Awaited<ReturnType<typeof publicClinicServices>> }) {
     const [site, catalog] = await Promise.all([clinicSiteAddress(clinic), services ?? publicClinicServices(clinic.id)]);
@@ -27,7 +28,6 @@ export function ClinicTeam({ team }: { team: Awaited<ReturnType<typeof publicCli
         <div><small>{nurse.credentials || 'Care professional'}</small><h3>{nurse.name}</h3>{nurse.publicTitle ? <p>{nurse.publicTitle}</p> : null}<p>{nurse.coverage.slice(0, 3).map(r => r.label).join(' · ')}</p><strong>Meet your professional <span aria-hidden="true">→</span></strong></div>
     </Link>)}</div></section>;
 }
-export async function ClinicCoverageSection({ clinic }: { clinic: PublicClinic }) {
-    const { home } = await clinicSiteAddress(clinic);
-    return <section className={`${styles.section} ${styles.coverage}`} id="coverage"><div><span className={styles.eyebrow}>Closer to you</span><h2>Care in your community.</h2><p>Explore the clinic’s service areas. Your exact address, professional availability and eligibility are checked during booking.</p><Link className={styles.textLink} href={`${home}/services`}>Find your service →</Link></div><div className={styles.regions}>{clinic.coverage.slice(0, 18).map(r => <span key={r.id}>{r.label}</span>)}{clinic.coverage.length > 18 ? <details><summary>View all {clinic.coverage.length} service areas</summary><div className={styles.regions}>{clinic.coverage.slice(18).map(r => <span key={r.id}>{r.label}</span>)}</div></details> : null}{!clinic.coverage.length ? <p>Contact My Drip Nurse to check service coverage.</p> : null}</div></section>;
+export function ClinicCoverageSection({ clinic }: { clinic: PublicClinic }) {
+    return <section className={styles.section} id="coverage"><div><span className={styles.eyebrow}>Closer to you</span><h2>Care in your community.</h2><p>Find the areas served by {clinic.name}. Your address and your nurse’s availability are confirmed when you book.</p></div><ClinicCoverageSearch areas={clinic.coverage.map(area => area.label)}/></section>;
 }

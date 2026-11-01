@@ -1,0 +1,21 @@
+.panel{--coverage-brand:var(--clinic-primary,var(--partner-teal,#084f5e));background:color-mix(in srgb,var(--coverage-brand) 3%,white);border:1px solid #dce7e9;border-radius:28px;padding:32px;margin-top:32px}
+.label{display:block;font-size:15px;font-weight:700;margin-bottom:12px;color:#173b40}
+.search{display:flex;align-items:center;gap:12px;background:white;border:1px solid #d1e0e4;border-radius:16px;padding:0 16px;min-height:56px}
+.search:focus-within{outline:2px solid var(--coverage-brand);outline-offset:3px}
+.search>svg{width:20px;height:20px;flex:none;color:var(--coverage-brand)}
+.search input{font:inherit;font-size:16px;color:#173b40;border:0!important;outline:none!important;background:transparent;box-shadow:none!important;min-width:0;width:100%;padding:16px 0;margin:0}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none}
+.search input::placeholder{color:#60777d;opacity:1}
+.search button{flex:none;width:44px;height:44px;border:0;border-radius:10px;background:transparent;color:#173b40;font-size:24px;cursor:pointer}
+.count{font-size:13px!important;line-height:1.6!important;color:#60777d;margin:18px 0!important}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));list-style:none;padding:0;margin:0;gap:12px}
+.grid li{display:flex;align-items:center;gap:12px;background:white;border:1px solid #dce7e9;border-radius:16px;padding:20px;min-height:76px;font-size:15px;font-weight:600;line-height:1.5;color:#173b40;overflow-wrap:anywhere}
+.grid svg{width:20px;height:20px;flex:none;color:var(--coverage-brand)}
+.pagination{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #dce7e9;margin-top:24px;padding-top:24px;font-size:14px;color:#526c73}
+.pagination button{display:grid;place-items:center;border:1px solid #d1e0e4;border-radius:50%;height:48px;width:48px;background:white;color:var(--coverage-brand);font-size:24px;cursor:pointer}
+.pagination button:disabled{opacity:.35;cursor:default}
+.pagination button:focus-visible,.search button:focus-visible{outline:2px solid var(--coverage-brand);outline-offset:3px}
+.empty{padding:24px 0;margin:0;font-size:15px!important;color:#60777d}
+@media(hover:hover){.pagination button:not(:disabled):hover,.search button:hover{background:color-mix(in srgb,var(--coverage-brand) 9%,white)}}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.panel{padding:20px 16px;border-radius:20px;margin-top:24px}.grid{grid-template-columns:1fr;gap:10px}.grid li{padding:16px;min-height:64px}.search{padding:0 12px;gap:8px}.pagination{margin-top:20px;padding-top:20px}}
