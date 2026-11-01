@@ -11,6 +11,9 @@
 .careSections{max-width:1240px;margin:auto;padding:48px 24px}
 .careSection{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;padding:32px 0;scroll-margin-top:24px}
 .careSection+.careSection{border-top:1px solid #dae6e8;margin-top:16px;padding-top:48px}
+/* Preserve transparent product artwork without tinting or artificial shadows. */
+.site .productArtwork,.site .serviceVisual{background:transparent;border:0;box-shadow:none}
+.site .productArtwork img,.site .serviceVisual img{background:transparent;filter:none;mix-blend-mode:normal;opacity:1;object-fit:contain;object-position:center}
 .careImage{min-width:0;overflow:hidden;border-radius:24px;background:var(--clinic-accent,#edf5f5)}
 .careImage img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover}
 .careCopy{min-width:0;overflow-wrap:anywhere}

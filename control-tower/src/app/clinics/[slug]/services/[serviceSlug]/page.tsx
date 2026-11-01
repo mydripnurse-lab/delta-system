@@ -77,7 +77,7 @@ export default async function Page({ params, searchParams }: Props) {
                         {canBook ? <a className={layout.primaryAction} href={bookingUrl}>Book {service.name} <span aria-hidden="true">→</span></a> : <span className={styles.stock}>{outOfStock ? 'Temporarily out of stock' : 'Online booking coming soon'}</span>}
                     </div>
                 </div>
-                <div className={layout.serviceDetailVisual}>{service.imageUrl ? <Image unoptimized priority src={service.imageUrl} alt={`${service.name} with ${clinic.name}`} width={900} height={760} sizes="(max-width: 900px) 100vw, 45vw"/> : null}</div>
+                <div className={`${layout.serviceDetailVisual} ${styles.productArtwork}`}>{service.imageUrl ? <Image unoptimized priority src={service.imageUrl} alt={`${service.name} with ${clinic.name}`} width={900} height={760} sizes="(max-width: 900px) 100vw, 45vw"/> : null}</div>
             </div>
         </section>
         <section className={layout.serviceOverview}>
