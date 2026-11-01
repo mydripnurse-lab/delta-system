@@ -7,7 +7,7 @@ import { clinicsEnabled, clinicBookingsEnabled } from '@/lib/clinicFeature';
 import { publicClinicServices, publicClinicTeam } from '@/lib/clinicBooking';
 import { ClinicPublicServices } from '@/components/clinics/ClinicPublicServices';
 import { ClinicPublicWebsite, ClinicTeam, ClinicCoverageSection, ClinicVisitSteps } from '@/components/clinics/ClinicPublicWebsite';
-import { PartnerTestimonials } from '@/components/partner/PartnerTestimonials';
+import { ClinicNetworkReviews } from '@/components/clinics/ClinicNetworkReviews';
 import { clinicServiceGroups } from '@/lib/clinicServiceNavigation';
 import { PartnerFaq } from '@/components/partner/PartnerFaq';
 import { serializeStructuredData } from '@/lib/partnerSeo';
@@ -43,7 +43,7 @@ export default async function Page({ params }: Props) {
         <section className={styles.section} aria-labelledby="clinic-care-options"><div className={styles.sectionHeading}><div><span className={styles.eyebrow}>Wellness, with a personal touch</span><h2 id="clinic-care-options">Find your kind of care.</h2></div><p>Explore the services offered by {clinic.name}, with professional guidance at every step.</p></div><div className={styles.categories}>{groups.map(group => <Link key={group.id} className={styles.category} href={`${site.home}/services#${group.id}`}><span className={styles.categoryImage}>{group.services[0].imageUrl ? <Image unoptimized src={group.services[0].imageUrl} alt="" width={220} height={220}/> : null}</span><h3>{group.label}</h3><p>{group.description}</p><strong>Explore {group.label} <span aria-hidden="true">→</span></strong></Link>)}</div></section>
         <section className={styles.section} id="services"><ClinicPublicServices clinicSlug={clinic.slug} clinicHome={site.home} bookingsEnabled={clinicBookingsEnabled()} clinicId={clinic.id} coverage={clinic.coverage} services={services}/></section>
         <ClinicCoverageSection clinic={clinic}/><ClinicTeam team={team}/><ClinicVisitSteps/>
-        <div className={styles.networkReviews}><PartnerTestimonials networkLabel/></div>
+        <ClinicNetworkReviews/>
         <PartnerFaq title="Your visit, explained" items={faq}/>
         <section className={styles.section}><div className={styles.recruit}><div><span className={styles.eyebrow}>Grow with our network</span><h2>Your expertise. More connections.</h2><p>Are you a nurse or clinic owner? Join My Drip Nurse through {clinic.name} and build your presence in our USA &amp; Puerto Rico network.</p></div><Link className={styles.action} href={`${site.home}/become-a-partner`}>Become a Partner →</Link></div><div className={styles.closing}><h2>Your care starts with a connection.</h2><p>Explore your options with this clinic, or visit My Care to follow an existing appointment.</p><Link className={styles.action} href={`${site.home}/services`}>Find your service →</Link></div></section>
     </main></ClinicPublicWebsite>;

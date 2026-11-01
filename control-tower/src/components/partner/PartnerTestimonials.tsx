@@ -19,7 +19,7 @@ declare global {
 
 const BONJORO_FRAME_ID = "p-38b7a548-411d-46d8-a89c-6f207a22a7b8";
 
-export function PartnerTestimonials({ lazy = false, networkLabel = false }: { lazy?: boolean; networkLabel?: boolean } = {}) {
+export function PartnerTestimonials() {
   const frameRef = useRef<ResizableIframe>(null);
   const [frameVersion, setFrameVersion] = useState(0);
 
@@ -84,14 +84,13 @@ export function PartnerTestimonials({ lazy = false, networkLabel = false }: { la
     <section className={styles.section} aria-labelledby="partner-testimonials-title">
       <div className={styles.shell}>
         <div className={styles.heading}>
-          <span>{networkLabel ? "Across the My Drip Nurse network" : "Patient experiences"}</span>
+          <span>Patient experiences</span>
           <h2 id="partner-testimonials-title">Real stories. Thoughtful care.</h2>
-          <p>{networkLabel ? "Experiences shared with My Drip Nurse. These testimonials describe our network, not this individual clinic." : "Hear directly from people who have experienced the My Drip Nurse approach."}</p>
+          <p>Hear directly from people who have experienced the My Drip Nurse approach.</p>
         </div>
         <div className={styles.embedShell}>
           <iframe
             key={frameVersion}
-            loading={lazy ? "lazy" : "eager"}
             ref={frameRef}
             id={BONJORO_FRAME_ID}
             src="https://www.bonjoro.com/pe/38b7a548-411d-46d8-a89c-6f207a22a7b8"
