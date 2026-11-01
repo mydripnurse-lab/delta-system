@@ -14,13 +14,12 @@ export function usePriceRegion() {
     return shared || { region, setRegion };
 }
 export function ClinicServicePrice({ service, coverage }: { service: PublicPrice; coverage: PricingRegion[] }) {
-    const { region, setRegion } = usePriceRegion();
+    const { region } = usePriceRegion();
     const choices = publicPriceChoices(service, coverage);
     const selected = choices.find(r => r.id === region);
     const price = publicPriceSummary(service, coverage, selected);
     return <div className={styles.heroPrice}>
         <span>Per visit</span><strong aria-live="polite">{price.label}</strong>
         <small>{price.variable ? 'Price varies by service area' : 'Service price'} · Your address confirms the total and deposit before payment.</small>
-        {choices.length > 1 || price.variable ? <label>Your service area<select aria-label="Your service area" value={region} onChange={e => setRegion(e.target.value)}><option value="">All service areas</option>{choices.map(r => <option value={r.id} key={r.id}>{r.label}</option>)}</select></label> : null}
     </div>;
 }
