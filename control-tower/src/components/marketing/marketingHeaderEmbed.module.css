@@ -13,3 +13,30 @@
 @media(max-width:1100px){.bar{width:min(100% - 26px,1440px);gap:18px}.desktopNav{gap:15px}.desktopNav>a,.menuButton{font-size:12px}.phone{padding:0 14px}.phone span{display:none}.accountButton>span,.accountButton>svg{display:none}}
 @media(max-width:820px){.root{min-height:72px;background:linear-gradient(to bottom,#fff 0 72px,transparent 72px)}.locationBanner{display:none}.bar{width:calc(100% - 22px);min-height:72px;grid-template-columns:auto 1fr;gap:12px}.logo img{width:150px}.desktopNav,.phone,.login,.accountButton{display:none}.actions{justify-self:end}.mobileToggle{display:block}.root[data-open-menu]{padding-bottom:0}.mobileDrawer{display:grid;padding:8px 13px 18px;border-top:1px solid #e1ecea;background:#fff;box-shadow:0 20px 35px rgba(27,61,65,.14)}.mobileDrawer nav{display:grid}.mobileSection{border-bottom:1px solid #e3edeb}.mobileSectionButton,.mobileDrawer nav>a{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 7px;border:0;color:var(--ink);background:transparent;font-size:14px;font-weight:850;text-align:left;text-decoration:none;cursor:pointer}.mobileSectionButton svg{width:11px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .18s ease}.mobileSectionButton[aria-expanded="true"] svg{transform:rotate(180deg)}.mobileDrawer .dropdown{position:static;width:100%;padding:2px 0 10px;border:0;border-radius:0;box-shadow:none;transform:none}.mobileDrawer .dropdown a{min-height:48px;padding:7px 8px;background:#f8fbfa}.mobileDrawer .wideDropdown{grid-template-columns:1fr}.mobileDrawer .serviceLink{min-height:58px!important;grid-template-columns:42px minmax(0,1fr) 16px;gap:10px!important}.mobileDrawer .serviceThumb{width:42px;height:42px;border-radius:12px}.mobileDrawer .serviceThumb img{padding:3px}.mobileDrawer .serviceLink>b{font-size:12px}.mobileIdentity{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;gap:10px;margin-top:12px;padding:8px;border:1px solid #c9dde6;border-radius:17px;background:#ebf2f9}.mobileIdentity>span{min-width:0;display:grid;gap:2px}.mobileIdentity b,.mobileIdentity small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mobileIdentity b{font-size:13px}.mobileIdentity small{color:var(--muted);font-size:10px}.mobilePhone{min-height:48px;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:12px;border-radius:999px;color:#fff;background:var(--teal);font-size:14px;font-weight:900;text-decoration:none}}
 @media(max-width:390px){.logo img{width:140px}.accountButton{min-height:44px}.avatar{width:36px;height:36px;flex-basis:36px}}
+
+/* Clinic and affiliated nurse sites share the same navigation, with their own brand. */
+.root[data-clinic-brand="true"]{background:#fff}
+.root[data-clinic-brand="true"] .locationBanner{background:var(--header-primary);color:var(--header-primary-ink)}
+.root[data-clinic-brand="true"] .logo{text-decoration:none;color:var(--ink);max-width:200px}
+.root[data-clinic-brand="true"] .logo img{width:auto;max-width:190px;height:44px;object-fit:contain}
+.root[data-clinic-brand="true"] .logo strong{font-size:22px;overflow-wrap:anywhere}
+.root[data-clinic-brand="true"] .accountButton,.root[data-clinic-brand="true"] .mobileIdentity,.root[data-clinic-brand="true"] .serviceThumb{background:var(--header-accent);color:var(--header-accent-ink)}
+.root[data-clinic-brand="true"] .accountButton small,.root[data-clinic-brand="true"] .mobileIdentity small{color:inherit;opacity:.75}
+.root[data-clinic-brand="true"] .avatar{background:var(--header-primary);color:var(--header-primary-ink)}
+.root[data-clinic-brand="true"] .bar{min-height:76px}
+.root[data-clinic-brand="true"] .desktopNav{gap:clamp(12px,1.5vw,22px)}
+.root button:focus-visible,.root a:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+@media(max-width:1150px){
+.root[data-clinic-brand="true"] .desktopNav{display:none}
+.root[data-clinic-brand="true"] .bar{grid-template-columns:auto 1fr}
+.root[data-clinic-brand="true"] .actions{justify-self:end}
+.root[data-clinic-brand="true"] .mobileToggle{display:block}
+.root[data-clinic-brand="true"] .mobileDrawer{display:grid;padding:12px 20px;background:white;max-height:calc(100dvh - 130px);overflow:auto}
+.root[data-clinic-brand="true"] .mobileDrawer nav{display:grid}
+.root[data-clinic-brand="true"] .mobileSectionButton,.root[data-clinic-brand="true"] .mobileDrawer nav>a{display:flex;width:100%;min-height:48px;align-items:center;justify-content:space-between;border:0;background:white;color:var(--ink);text-decoration:none;font:700 14px Arial;padding:12px 8px}
+.root[data-clinic-brand="true"] .mobileSectionButton svg{width:11px;fill:none;stroke:currentColor;stroke-width:2}
+.root[data-clinic-brand="true"] .mobileDrawer .dropdown{position:static;transform:none;width:100%;box-shadow:none;border:0}
+.root[data-clinic-brand="true"] .mobileIdentity{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px}
+.root[data-clinic-brand="true"] .mobileIdentity>span{display:grid;gap:4px}
+}
+@media(max-width:820px){.root[data-clinic-brand="true"] .logo img{max-width:150px;height:36px}.root[data-clinic-brand="true"] .bar{min-height:68px}}

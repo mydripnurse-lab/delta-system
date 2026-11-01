@@ -1,14 +1,11 @@
-import Image from "next/image";
+import { publicWebsiteAccounts } from "@/lib/publicWebsiteAccounts";
+import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import type { PublicPartnerProfile } from "@/lib/partnerProfiles";
-import Link from "next/link";
-import clinicStyles from "@/components/clinics/clinic.module.css";
 import MarketingHeaderEmbed, {
   type MarketingHeaderMenuLink,
   type MarketingHeaderNavLink,
 } from "@/components/marketing/MarketingHeaderEmbed";
-import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
 import { loadPartnerCalendarServices, partnerServiceSlug } from "@/lib/myDripNurseServices";
-import { getPartnerPortalSession } from "@/lib/partnerPortalAuth";
 import type { PartnerService } from "@/lib/partnerProfiles";
 
 type PartnerPublicHeaderProfile = {
@@ -29,18 +26,10 @@ export default async function PartnerPublicHeader({
   profile: PartnerPublicHeaderProfile;
   preview?: string;
 }) {
-  if ((profile.clinicManaged || profile.clinicBrand) && !preview) return <header className={`${clinicStyles.shell} ${clinicStyles.publicHeader}`}>
-    <nav className={clinicStyles.head} aria-label="Professional website navigation">
-      <Link href={`/${profile.slug}`}><span className={clinicStyles.eyebrow}>{profile.clinicBrand?.logoUrl ? <Image src={profile.clinicBrand.logoUrl} alt={profile.clinicBrand.name} width={180} height={64} unoptimized style={{ objectFit: "contain", maxHeight: 64 }} /> : profile.clinicBrand?.name || "My Drip Nurse"}</span><strong>{profile.displayName}</strong></Link>
-      <div className={clinicStyles.actions}><Link className={clinicStyles.secondary} href={`/${profile.slug}/services`}>Services & booking</Link>
-        <Link className={clinicStyles.secondary} href={profile.clinicBrand ? `/clinics/${profile.clinicBrand.slug}` : "/clinics"}>{profile.clinicBrand ? "Our clinic" : "Find a clinic"}</Link><Link className={clinicStyles.secondary} href="/login">Partner sign in</Link></div>
-    </nav></header>;
-  const [clientAccount, partnerSession, services] = await Promise.all([
-    getAuthenticatedClient(),
-    getPartnerPortalSession(),
+  const [accounts, services] = await Promise.all([
+    publicWebsiteAccounts(),
     loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id),
   ]);
-  const isCurrentPartner = partnerSession?.profile_id === profile.id;
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const serviceLink = (service: (typeof services)[number]): MarketingHeaderMenuLink => [
     service.name,
@@ -54,24 +43,17 @@ export default async function PartnerPublicHeader({
     `https://partners.mydripnurse.com/${profile.slug}/become-a-partner${previewQuery}`,
   ]];
 
+  if (profile.clinicBrand) additionalNavLinks.unshift(["Our clinic", `https://partners.mydripnurse.com/clinics/${profile.clinicBrand.slug}`]);
+
   return (
     <MarketingHeaderEmbed
-      account={clientAccount ? {
-        fullName: clientAccount.fullName,
-        email: clientAccount.email,
-        photoUrl: clientAccount.profilePhotoUrl,
-        photoUpdatedAt: clientAccount.profilePhotoUpdatedAt,
-      } : null}
-      partnerAccount={partnerSession ? {
-        fullName: partnerSession.display_name,
-        email: partnerSession.email,
-        photoUrl: isCurrentPartner ? profile.profilePhotoUrl : "",
-        photoUpdatedAt: "",
-        profileHref: `https://partners.mydripnurse.com/${partnerSession.slug}`,
-      } : null}
+      {...accounts}
+      brand={profile.clinicBrand ? { name: profile.clinicBrand.name, logoUrl: profile.clinicBrand.logoUrl, ...clinicWebsiteBrand(profile.clinicBrand) } : undefined}
+      teamLoginHref={profile.clinicBrand ? `https://partners.mydripnurse.com/clinic-login/${encodeURIComponent(profile.clinicBrand.slug)}` : undefined}
+      refreshServiceMedia={false}
       location="your area"
       phone="321-989-6446"
-      websiteUrl="https://mydripnurse.com"
+      websiteUrl={`https://partners.mydripnurse.com/${profile.slug}${previewQuery}`}
       bannerText="Licensed Nurses · Same-Day Appointments · Verified Mobile IV Care"
       showPartnerPortal
       showDirectory={false}

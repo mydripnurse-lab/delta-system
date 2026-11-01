@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 
+import { brandTextColor } from "@/lib/clinicPolicy";
 import ClientProfileAvatar from "@/components/client/ClientProfileAvatar";
 import styles from "./marketingHeaderEmbed.module.css";
 
-type MenuName = "iv" | "nad" | "weight" | "account" | null;
+type MenuName = "iv" | "nad" | "weight" | "vitamins" | "account" | null;
 type MobileSection = Exclude<MenuName, "account" | null>;
 export type MarketingHeaderMenuLink = readonly [label: string, path: string, imageUrl?: string];
 export type MarketingHeaderNavLink = readonly [label: string, path: string];
@@ -20,6 +21,9 @@ export type MarketingHeaderAccount = {
 
 type PartnerHeaderAccount = MarketingHeaderAccount & {
   profileHref?: string;
+  portalHref?: string;
+  portalLabel?: string;
+  profileLabel?: string;
 };
 
 const IV_LINKS = [
@@ -70,7 +74,11 @@ export default function MarketingHeaderEmbed({
   ivMenuLinks = IV_LINKS,
   nadMenuLinks = NAD_LINKS,
   additionalNavLinks = [],
+  vitaminMenuLinks = [],
   nativeNavigation = false,
+  brand,
+  teamLoginHref,
+  refreshServiceMedia = true,
 }: {
   account: MarketingHeaderAccount | null;
   partnerAccount?: PartnerHeaderAccount | null;
@@ -87,7 +95,11 @@ export default function MarketingHeaderEmbed({
   ivMenuLinks?: readonly MarketingHeaderMenuLink[];
   nadMenuLinks?: readonly MarketingHeaderMenuLink[];
   additionalNavLinks?: readonly MarketingHeaderNavLink[];
+  vitaminMenuLinks?: readonly MarketingHeaderMenuLink[];
   nativeNavigation?: boolean;
+  brand?: { name: string; logoUrl: string | null; primaryColor: string; accentColor: string };
+  teamLoginHref?: string;
+  refreshServiceMedia?: boolean;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const [openMenu, setOpenMenu] = useState<MenuName>(null);
@@ -97,14 +109,16 @@ export default function MarketingHeaderEmbed({
   const [serviceMediaByPath, setServiceMediaByPath] = useState<Record<string, string>>({});
   const primaryAccount = partnerAccount || account;
   const firstName = primaryAccount?.fullName.trim().split(/\s+/)[0] || "";
-  const primaryPortalLabel = partnerAccount ? "Partner Portal" : "Client Portal";
+  const primaryPortalLabel = partnerAccount ? partnerAccount.portalLabel || "Partner Portal" : "Client Portal";
   const phoneHref = `tel:${phone.replace(/[^\d+]/g, "")}`;
   const href = (path: string) => `${resolvedWebsiteUrl}${path}`;
-  const menuHref = (path: string) => /^https?:\/\//i.test(path) ? path : href(path);
+  const menuHref = (path: string) => /^https?:\/\//i.test(path) || (nativeNavigation && path.startsWith("/")) ? path : href(path);
   const directoryReturnTo = "https://partners.mydripnurse.com/directory";
   const clientReturnTo = showPartnerPortal ? directoryReturnTo : resolvedWebsiteUrl;
   const clientLoginHref = `https://care.mydripnurse.com/login?returnTo=${encodeURIComponent(clientReturnTo)}`;
-  const partnerLoginHref = "https://partners.mydripnurse.com/partner-login?returnTo=%2F";
+  const partnerLoginHref = teamLoginHref || "https://partners.mydripnurse.com/partner-login?returnTo=%2F";
+  const partnerLoginLabel = teamLoginHref ? "Nurse / Clinic login" : "Partner login";
+  const partnerPortalHref = partnerAccount?.portalHref || "https://partners.mydripnurse.com/portal";
 
   useEffect(() => {
     if (!preferPreviousMdnOrigin || !document.referrer) return;
@@ -120,6 +134,7 @@ export default function MarketingHeaderEmbed({
   }, [preferPreviousMdnOrigin]);
 
   useEffect(() => {
+    if (!refreshServiceMedia) return;
     let active = true;
     fetch("/api/public/service-media", { cache: "force-cache" })
       .then((response) => {
@@ -140,7 +155,7 @@ export default function MarketingHeaderEmbed({
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshServiceMedia]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -165,6 +180,11 @@ export default function MarketingHeaderEmbed({
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && rootRef.current?.contains(active)) {
+          const expanded = rootRef.current.querySelector<HTMLButtonElement>('button[aria-expanded="true"]');
+          expanded?.focus();
+        }
         setOpenMenu(null);
         setMobileOpen(false);
         setMobileSection(null);
@@ -201,7 +221,7 @@ export default function MarketingHeaderEmbed({
         const resolvedImageUrl = serviceMediaByPath[path] || imageUrl;
         const imageDescription = `${label} in ${location}`;
         return <a key={path} className={resolvedImageUrl ? styles.serviceLink : ""} href={menuHref(path)} target="_top" onClick={() => setOpenMenu(null)}>
-          {resolvedImageUrl ? <><span className={styles.serviceThumb}><Image src={resolvedImageUrl} alt={imageDescription} title={imageDescription} width={52} height={52} loading="lazy" /></span><b>{label}</b></> : label}
+          {resolvedImageUrl ? <><span className={styles.serviceThumb}><Image src={resolvedImageUrl} alt={imageDescription} title={imageDescription} width={52} height={52} loading="lazy" unoptimized={Boolean(brand)} /></span><b>{label}</b></> : label}
           <span className={styles.linkArrow}>→</span>
         </a>;
       })}
@@ -231,6 +251,8 @@ export default function MarketingHeaderEmbed({
     <header
       ref={rootRef}
       className={styles.root}
+      data-clinic-brand={brand ? "true" : undefined}
+      style={brand ? { "--teal": brand.primaryColor, "--bright": brand.primaryColor, "--header-primary": brand.primaryColor, "--header-primary-ink": brandTextColor(brand.primaryColor), "--header-accent": brand.accentColor, "--header-accent-ink": brandTextColor(brand.accentColor) } as CSSProperties : undefined}
       data-mdn-site-header-embed="true"
       data-open-menu={openMenu || ""}
       data-mobile-open={mobileOpen ? "true" : "false"}
@@ -246,13 +268,14 @@ export default function MarketingHeaderEmbed({
         {bannerText || <>Licensed Nurses <span>♡</span> Same-Day Appointments <span>♡</span> Mobile IV Therapy in {location}</>}
       </div>
       <div className={styles.bar}>
-        <a className={styles.logo} href={resolvedWebsiteUrl} target="_top" aria-label="My Drip Nurse home">
-          <Image src="/mdn-logo.png" alt="My Drip Nurse" width={240} height={51} priority />
+        <a className={styles.logo} href={resolvedWebsiteUrl} target="_top" aria-label={`${brand?.name || "My Drip Nurse"} home`}>
+          {brand && !brand.logoUrl ? <strong>{brand.name}</strong> : <Image src={brand?.logoUrl || "/mdn-logo.png"} alt={brand?.name || "My Drip Nurse"} width={240} height={51} unoptimized={Boolean(brand)} priority />}
         </a>
 
         <nav className={styles.desktopNav} aria-label="Main navigation">
           {ivMenuLinks.length ? <div>{menuButton("iv", "IV Therapy")}{openMenu === "iv" ? menuLinks(ivMenuLinks, true) : null}</div> : null}
           {nadMenuLinks.length ? <div>{menuButton("nad", "NAD+")}{openMenu === "nad" ? menuLinks(nadMenuLinks) : null}</div> : null}
+          {vitaminMenuLinks.length ? <div>{menuButton("vitamins", "Vitamins")}{openMenu === "vitamins" ? menuLinks(vitaminMenuLinks) : null}</div> : null}
           {showWeightLoss ? <div>{menuButton("weight", "Weight Loss")}{openMenu === "weight" ? menuLinks(WEIGHT_LINKS) : null}</div> : null}
           {showDirectory ? <a href="https://partners.mydripnurse.com/directory" target="_top">Directory</a> : null}
           {showContact ? <a href={href("/contact-us")} target="_top">Contact</a> : null}
@@ -270,14 +293,14 @@ export default function MarketingHeaderEmbed({
               {openMenu === "account" ? <div className={`${styles.dropdown} ${styles.accountDropdown}`}>
                 <div className={styles.accountIdentity}><strong>{primaryAccount.fullName}</strong><small>{primaryAccount.email}</small></div>
                 {partnerAccount ? <>
-                  <a href="https://partners.mydripnurse.com/portal" target="_top">Partner Portal<span>→</span></a>
-                  <a href={partnerAccount.profileHref || "https://partners.mydripnurse.com/portal/profile"} target="_top">Professional Profile<span>→</span></a>
+                  <a href={partnerPortalHref} target="_top">{primaryPortalLabel}<span>→</span></a>
+                  <a href={partnerAccount.profileHref || "https://partners.mydripnurse.com/portal/profile"} target="_top">{partnerAccount.profileLabel || "Professional Profile"}<span>→</span></a>
                 </> : null}
                 {account ? <>
                   <a href="https://care.mydripnurse.com" target="_top">Client Portal<span>→</span></a>
                   <a href="https://care.mydripnurse.com/appointments" target="_top">Appointments<span>→</span></a>
                 </> : null}
-                {showPartnerPortal && !partnerAccount ? <a href={partnerLoginHref} target="_top">Partner login<span>→</span></a> : null}
+                {showPartnerPortal && !partnerAccount ? <a href={partnerLoginHref} target="_top">{partnerLoginLabel}<span>→</span></a> : null}
                 {!account ? <a href={clientLoginHref} target="_top">Client login<span>→</span></a> : null}
               </div> : null}
             </div>
@@ -287,7 +310,7 @@ export default function MarketingHeaderEmbed({
               {openMenu === "account" ? <div className={`${styles.dropdown} ${styles.accountDropdown} ${styles.portalChooser}`}>
                 <div className={styles.accountIdentity}><strong>Choose your portal</strong><small>Secure access for clients and professionals</small></div>
                 <a href={clientLoginHref} target="_top">Client login<span>→</span></a>
-                <a href={partnerLoginHref} target="_top">Partner login<span>→</span></a>
+                <a href={partnerLoginHref} target="_top">{partnerLoginLabel}<span>→</span></a>
               </div> : null}
             </div>
           ) : <a className={styles.login} href={clientLoginHref} target="_top">Log in</a>}
@@ -301,14 +324,15 @@ export default function MarketingHeaderEmbed({
         <nav aria-label="Mobile navigation">
           {ivMenuLinks.length ? mobileAccordion("iv", "IV Therapy", ivMenuLinks) : null}
           {nadMenuLinks.length ? mobileAccordion("nad", "NAD+", nadMenuLinks) : null}
+          {vitaminMenuLinks.length ? mobileAccordion("vitamins", "Vitamins", vitaminMenuLinks) : null}
           {showWeightLoss ? mobileAccordion("weight", "Weight Loss", WEIGHT_LINKS) : null}
           {showDirectory ? <a href="https://partners.mydripnurse.com/directory" target="_top">Directory<span>→</span></a> : null}
           {showContact ? <a href={href("/contact-us")} target="_top">Contact<span>→</span></a> : null}
           {additionalNavLinks.map(([label, path]) => <a key={path} href={menuHref(path)} target="_top">{label}<span>→</span></a>)}
           {account ? <a href="https://care.mydripnurse.com" target="_top">Client Portal<span>→</span></a> : <a href={clientLoginHref} target="_top">Client login<span>→</span></a>}
           {showPartnerPortal ? (partnerAccount
-            ? <a href="https://partners.mydripnurse.com/portal" target="_top">Partner Portal<span>→</span></a>
-            : <a href={partnerLoginHref} target="_top">Partner login<span>→</span></a>) : null}
+            ? <a href={partnerPortalHref} target="_top">{primaryPortalLabel}<span>→</span></a>
+            : <a href={partnerLoginHref} target="_top">{partnerLoginLabel}<span>→</span></a>) : null}
         </nav>
         {primaryAccount ? <div className={styles.mobileIdentity}>
           <ClientProfileAvatar className={styles.avatar} fullName={primaryAccount.fullName} photoUrl={primaryAccount.photoUrl} photoUpdatedAt={primaryAccount.photoUpdatedAt} sizes="42px" />
