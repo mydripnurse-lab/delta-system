@@ -105,7 +105,6 @@ export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialI
     <div className={`${styles.shell} ${styles.portalContent}`} style={theme}>
 
  {clinics.length > 1 ? <label className={styles.field}>Clinic workspace<select value={clinic?.id || ''} disabled={busy} onChange={e => { setTab('Overview'); setFocusAppointment(undefined); void load(e.target.value); }}>{clinics.map(c => <option key={c.id} value={c.id}>{c.name} · {c.status}</option>)}</select></label> : null}
- {!bookingsEnabled ? <p className={styles.setupNotice} role="status">Setup is open. Online clinic bookings are coming soon.</p> : null}
  {error ? <p role="alert" className={styles.error}>{error}</p> : null}{notice ? <div role="status" aria-live="polite" aria-atomic="true" className={styles.saveToast}><span className={styles.saveToastIcon} aria-hidden="true">✓</span><span>{notice.message}</span></div> : null}{busy ? <p role="status">Working…</p> : null}
  {tab === 'Support' ? <section className={styles.card}><h2>How can we help?</h2><p>Contact the My Drip Nurse partner team for help with your clinic, team access or services.</p><a className={styles.primary} href="mailto:info@mydripnurse.com">Contact support →</a></section> : null}
  {!clinic && tab === 'Affiliates' ? <>

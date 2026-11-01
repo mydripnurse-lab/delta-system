@@ -72,7 +72,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut
                 </details></div>
             </header>
             <main className={styles.content} id="clinic-content">
-                <div className={styles.pageHeading}><div><h1>{clinic ? section === 'Profile' ? 'Clinic profile' : section === 'Website' ? 'Clinic website' : section : section === 'Support' ? 'Support' : section === 'Affiliates' ? 'Affiliates' : 'Your clinics'}</h1></div>{clinic ? <span className={styles.status}>{clinic.status}</span> : <Link prefetch={false} href="/clinics/register">Register a clinic <span aria-hidden="true">→</span></Link>}</div>
+                <div className={styles.pageHeading}><div><h1>{clinic ? section === 'Profile' ? 'Clinic profile' : section === 'Website' ? 'Clinic website' : section : section === 'Support' ? 'Support' : section === 'Affiliates' ? 'Affiliates' : 'Your clinics'}</h1></div>{clinic ? clinic.status !== 'approved' ? <span className={styles.status}>{clinic.status}</span> : null : <Link prefetch={false} href="/clinics/register">Register a clinic <span aria-hidden="true">→</span></Link>}</div>
                 {children}
             </main>
         </div>
