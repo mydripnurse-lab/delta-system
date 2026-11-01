@@ -139,6 +139,10 @@ async function main(){
  assert.deepEqual(await clinics.listClinics('nurse@example.invalid'), [], 'Team nurses use their nurse portal');
  assert.deepEqual((await booking.clinicBookingContext(id,'fixture-calendar',orlando)).partnerIds,[]);
  identity={email:input.email};
+ await query('update app.partner_profiles set profile_consent_at=null where id=$1',[member.partner_profile_id]);
+ await assert.rejects(()=>clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id]}),/consent/);
+ assert.equal((await query('select status from app.clinic_memberships where id=$1',[member.id])).rows[0].status,'pending','Incomplete team profile cannot be silently activated');
+ await query('update app.partner_profiles set profile_consent_at=now() where id=$1',[member.partner_profile_id]);
  await clinics.updateClinicMember(id,{id:member.id,status:'active',coverageIds:[orlando.id]});
  const {getClinicPortalBrand}=load('src/lib/clinicPortalBrand.ts');
  const brandReadStart=queryCount;

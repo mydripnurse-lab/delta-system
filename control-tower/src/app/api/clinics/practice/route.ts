@@ -21,7 +21,8 @@ export async function POST(request:Request) {
         const raw=await request.text();
         if(raw.length>100000) return NextResponse.json({error:'Request too large.'},{status:413,headers});
         const body=JSON.parse(raw);
-        await saveOwnerPractice(z.string().uuid().parse(body.clinicId),body);
-        return NextResponse.json({ok:true},{headers});
+        const clinicId=z.string().uuid().parse(body.clinicId);
+        await saveOwnerPractice(clinicId,body);
+        return NextResponse.json({ok:true,data:await getOwnerPractice(clinicId)},{headers});
     } catch(error){return failure(error);}
 }

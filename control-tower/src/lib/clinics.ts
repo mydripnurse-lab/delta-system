@@ -9,7 +9,7 @@ import { getDbPool } from '@/lib/db';
 import { getMyDripNurseOrganizationId } from '@/lib/myDripNurseServiceCatalog';
 import { hashPassword, validatePasswordStrength } from '@/lib/password';
 import { getClinicIdentity, hashClinicToken, requireClinicManager, requireClinicsEnabled } from '@/lib/clinicAuth';
-import { CLINIC_CACHE_TAG, type ClinicRole, type ClinicStatus } from '@/lib/clinicPolicy';
+import { CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG, type ClinicRole, type ClinicStatus } from '@/lib/clinicPolicy';
 import { loadSelectablePricingRegions } from '@/lib/regionalPricingCatalog';
 import { SERVICE_PRICING_TAG, type PricingRegion } from '@/lib/regionalPricing';
 import { resolveNewClinicReferral } from '@/lib/clinicAffiliate';
@@ -51,7 +51,7 @@ export async function coverageFromIds(ids: string[]) {
     return [...new Set(ids)].map(id => { const region = index.get(id); if (!region)
         throw new Error('Select active locations from the coverage catalog.'); return region; });
 }
-export function invalidateClinics() { revalidateTag(CLINIC_CACHE_TAG, { expire: 0 }); }
+export function invalidateClinics() { revalidateTag(CLINIC_CACHE_TAG, { expire: 0 }); revalidateTag(CLINIC_TEAM_CACHE_TAG, { expire: 0 }); }
 export async function registerClinic(raw: unknown) {
     requireClinicsEnabled();
     const input = basic.extend({ description: z.string().trim().min(20, 'Tell us about your clinic in at least 20 characters.').max(4000), contactPhone: z.string().trim().min(7, 'Enter a private clinic phone number.').max(40), locationId: z.string().min(1, 'Choose the city where your clinic operates.').max(300), coverageIds: z.array(z.string().max(300)).max(500).default([]), fullName: z.string().trim().min(2).max(120), email: z.string().trim().email().max(254), password: z.string().max(200).optional(), referralCode: z.string().max(87).optional(), affiliatePolicyAccepted: z.literal(true, { error: 'Accept the clinic affiliate policy before continuing.' }), affiliatePolicyVersion: z.literal(CLINIC_AFFILIATE_POLICY_VERSION) }).parse(raw);
@@ -241,10 +241,15 @@ export async function updateClinicMember(clinicId: string, raw: unknown) {
         }
         const serviceIds = member.role === 'nurse' && input.serviceIds !== undefined
             ? await validateClinicMemberServices(client, clinicId, input.serviceIds) : member.service_ids;
+        if (input.status === 'active' && member.role === 'nurse') {
+            const ready = await client.query(`select id from app.partner_profiles where id=$1
+                and nullif(trim(professional_credentials),'') is not null and profile_consent_at is not null for update`, [member.partner_profile_id]);
+            if (!ready.rowCount) throw new Error('The nurse must complete their credentials and consent to their public profile before activation.');
+        }
         await client.query(`update app.clinic_memberships set status=$3,coverage=$4::jsonb,authorized_by=$5,authorized_at=now(),service_ids=$6::uuid[],updated_at=now() where id=$1 and clinic_id=$2`, [input.id, clinicId, input.status, JSON.stringify(coverage), actor.email, serviceIds]);
         if (input.status === 'active' && member.partner_profile_id) await ensureClinicMemberServices(client, clinicId, member.partner_profile_id);
         if (input.status === 'active' && member.role === 'nurse' && member.partner_profile_id)
-            await client.query(`update app.partner_profiles set website_status='published',directory_status='published',updated_at=now() where id=$1 and clinic_managed and profile_consent_at is not null`, [member.partner_profile_id]);
+            await client.query(`update app.partner_profiles set website_status='published',directory_status='published',updated_at=now() where id=$1 and profile_consent_at is not null and (website_status<>'published' or directory_status<>'published')`, [member.partner_profile_id]);
         await client.query(`insert into app.clinic_audit(clinic_id,actor,action,subject_id) values($1,$2,$3,$4)`, [clinicId, actor.email, member.status !== input.status || !member.authorized_at ? `member_${input.status}` : "member_coverage_updated", input.id]);
         await client.query('commit');
         scheduleClinicCommunications(clinicId);
