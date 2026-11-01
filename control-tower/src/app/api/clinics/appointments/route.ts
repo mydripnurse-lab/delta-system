@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireClinicsEnabled, requireClinicOrigin } from '@/lib/clinicAuth';
-import { clinicCalendar, clinicCalendarStaff, clinicVisit, clinicReassignmentCandidates, reassignClinicAppointment, ClinicAppointmentError } from '@/lib/clinicAppointments';
+import { clinicCalendar, clinicCalendarStaff, clinicVisit, clinicReassignmentCandidates, reassignClinicAppointment, ClinicAppointmentError, clinicAppointmentWriteGuard, validateClinicReschedule } from '@/lib/clinicAppointments';
 import { consumeClinicRequestBudget } from '@/lib/clinicRequestBudget';
-import { advancePartnerAppointment, declinePartnerAppointment } from '@/lib/partnerAppointments';
+import { advancePartnerAppointment, declinePartnerAppointment, reschedulePartnerAppointment } from '@/lib/partnerAppointments';
 export const dynamic='force-dynamic';
 const headers={'Cache-Control':'private, no-store'};
 const uuid=z.string().uuid();
@@ -42,21 +42,27 @@ export async function POST(request:Request) {
     } catch(error) {return failure(error);}
 }
 
-// A clinic administrator responds only as the nurse assigned to this visit.
-// The existing nurse lifecycle locks the assignment again before mutating it.
+// Clinic managers use the same nurse lifecycle with transactional clinic authorization.
 export async function PATCH(request:Request) {
     if (!consumeClinicRequestBudget(request,'clinic-operations-write',30,60000)) return NextResponse.json({error:'Please wait a moment and try again.'},{status:429,headers});
     try {
         requireClinicsEnabled();requireClinicOrigin(request);
-        const body=z.object({clinicId:uuid,appointmentId:uuid,action:z.enum(['acknowledge','decline','start','complete']),reason:z.string().trim().max(1000).default('')}).strict().parse(await request.json());
+        const body=z.object({clinicId:uuid,appointmentId:uuid,action:z.enum(['acknowledge','decline','start','complete','reschedule']),version:z.string().min(10).max(50),newDate:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),newTime:z.string().regex(/^\d{2}:\d{2}$/).optional(),timezone:z.string().max(100).optional(),reason:z.string().trim().max(1000).default('')}).strict().parse(await request.json());
         const visit=await clinicVisit(body.clinicId,body.appointmentId);
-        if(!visit.canRespond||!visit.nurseId) throw new ClinicAppointmentError('You can only respond to your own assigned nursing visits.',403);
+        if(!visit.canRespond||!visit.nurseId) throw new ClinicAppointmentError('Assign a nurse before managing this appointment.',403);
+        const authorizeWrite=await clinicAppointmentWriteGuard(body.clinicId,{appointmentId:visit.id,nurseId:visit.nurseId,version:body.version,action:body.action});
+        if(body.action==='reschedule') {
+            if(!body.newDate||!body.newTime||!body.timezone||body.reason.length<3) throw new ClinicAppointmentError('Choose a date, time, time zone and reason.',400);
+            await reschedulePartnerAppointment({profileId:visit.nurseId,appointmentId:visit.id,newDate:body.newDate,newTime:body.newTime,timezone:body.timezone,reason:body.reason,authorizeWrite,
+                validateSchedule:(db,start,end)=>validateClinicReschedule(db,body.clinicId,visit.id,start,end)});
+            return NextResponse.json({ok:true,message:'Appointment rescheduled.'},{headers});
+        }
         if(body.action==='decline'){
             if(body.reason.length<3) throw new ClinicAppointmentError('Enter a reason for declining.',400);
-            const result=await declinePartnerAppointment({profileId:visit.nurseId,appointmentId:visit.id,reason:body.reason});
+            const result=await declinePartnerAppointment({profileId:visit.nurseId,appointmentId:visit.id,reason:body.reason,authorizeWrite});
             return NextResponse.json({ok:true,message:result.outcome==='reassigned'?'The appointment was offered to another available nurse.':'No replacement was available. The appointment was cancelled; review its payment status.'},{headers});
         }
-        await advancePartnerAppointment({profileId:visit.nurseId,appointmentId:visit.id,action:body.action,earlyStartReason:body.reason});
+        await advancePartnerAppointment({profileId:visit.nurseId,appointmentId:visit.id,action:body.action,earlyStartReason:body.reason,authorizeWrite});
         return NextResponse.json({ok:true,message:'Appointment updated.'},{headers});
     } catch(error){return failure(error);}
 }

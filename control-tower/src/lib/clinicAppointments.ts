@@ -16,14 +16,15 @@ export async function requireClinicOperations(clinicId: string) {
     if (identity.status !== 'approved') throw new ClinicAppointmentError('Your clinic must be approved to manage appointments.', 403);
     return identity;
 }
+const accepted = "a.status in ('partner_acknowledged','in_progress','completed')";
 const projection = `a.id,a.public_reference as reference,a.status,a.starts_at as "startsAt",a.ends_at as "endsAt",a.timezone,
  a.updated_at::text as version,a.partner_profile_id as "nurseId",coalesce(p.display_name,'Unassigned') as "nurseName",
- s.name as "serviceName",c.full_name as "customerName",a.service_price::text as price,a.deposit_amount::text as deposit,a.currency,
+ s.name as "serviceName",case when ${accepted} then c.full_name else '' end as "customerName",a.city,a.state,(${accepted}) as "detailsVisible",a.service_price::text as price,a.deposit_amount::text as deposit,a.currency,
  coalesce(a.metadata->'client_reward'->>'platformFunded','false')='true' as "platformFunded"`;
 const joins = `join app.services s on s.id=a.service_id join app.booking_customers c on c.id=a.customer_id left join app.partner_profiles p on p.id=a.partner_profile_id`;
 export type ClinicCalendarVisit = {
     id: string; reference: string; status: string; startsAt: string; endsAt: string; timezone: string;
-    version: string; nurseId: string | null; nurseName: string; serviceName: string; customerName: string;
+    version: string; nurseId: string | null; nurseName: string; serviceName: string; customerName: string; city: string; state: string; detailsVisible: boolean;
     price: string; deposit: string; currency: string; platformFunded: boolean;
 };
 export async function clinicCalendar(clinicId: string, input: { from: string; to: string; nurseId?: string; nurseIds?: string[]; staffMode?: 'all'|'include'|'exclude'; includeUnassigned?: boolean; status?: string; cursorTime?: string; cursorId?: string }) {
@@ -39,18 +40,22 @@ export async function clinicCalendar(clinicId: string, input: { from: string; to
     return { items, next: rows.length > 100 && last ? { time: last.startsAt, id: last.id } : null };
 }
 export async function clinicVisit(clinicId: string, id: string) {
-    const actor=await requireClinicOperations(clinicId);
+    await requireClinicOperations(clinicId);
     const { rows } = await getDbPool().query<ClinicCalendarVisit & { address: string; customerEmail: string; customerPhone: string; canRespond: boolean }>(`select ${projection},
-      (lower(p.email)=$3 and exists(select 1 from app.clinic_memberships m where m.clinic_id=a.clinic_id and m.partner_profile_id=p.id and m.email=$3 and m.status='active' and m.accepted_at is not null and m.authorized_at is not null and ${CLINIC_CARE_MEMBER_SQL})) as "canRespond",
-      concat_ws(', ',a.address_line_1,nullif(a.address_line_2,''),a.city,a.state,a.postal_code) as address,
-      c.email as "customerEmail",c.phone as "customerPhone" from app.appointments a ${joins} where a.clinic_id=$1 and a.id=$2`, [clinicId,id,actor.email]);
+      (p.id is not null) as "canRespond",
+      case when ${accepted} then concat_ws(', ',a.address_line_1,nullif(a.address_line_2,''),a.city,a.state,a.postal_code) else '' end as address,
+      case when ${accepted} then c.email else '' end as "customerEmail",
+      case when ${accepted} then c.phone else '' end as "customerPhone" from app.appointments a ${joins} where a.clinic_id=$1 and a.id=$2`, [clinicId,id]);
     if (!rows[0]) throw new ClinicAppointmentError('Appointment not found in this clinic.',404);
     return rows[0];
 }
 // A keyset-paged staff search also includes former staff who still have clinic visits.
 export async function clinicCalendarStaff(clinicId: string, search: string, cursor?: string) {
     await requireClinicOperations(clinicId);
-    const { rows } = await getDbPool().query<{ id: string; name: string }>(`select p.id,p.display_name as name from app.partner_profiles p
+    const { rows } = await getDbPool().query<{ id: string; name: string; memberId: string | null }>(`select p.id,p.display_name as name,
+      (select m.id from app.clinic_memberships m where m.clinic_id=$1 and m.partner_profile_id=p.id
+        and ${CLINIC_CARE_MEMBER_SQL} and m.status='active' and m.accepted_at is not null and m.authorized_at is not null limit 1) as "memberId"
+      from app.partner_profiles p
       where (exists(select 1 from app.clinic_memberships m where m.clinic_id=$1 and m.partner_profile_id=p.id and ${CLINIC_CARE_MEMBER_SQL})
       or exists(select 1 from app.appointments a where a.clinic_id=$1 and a.partner_profile_id=p.id))
       and strpos(lower(p.display_name),lower($2))>0 and ($3::uuid is null or p.id>$3)
@@ -137,4 +142,33 @@ export async function reassignClinicAppointment(clinicId: string, input: { appoi
         await db.query('commit');
         return { id:visit.id, nurseName:eligible.items[0].name };
     } catch(error) { await db.query('rollback'); throw error; } finally { db.release(); }
+}
+
+// Executed inside the existing appointment lifecycle transaction, before any mutation.
+export async function clinicAppointmentWriteGuard(clinicId: string, input: {appointmentId:string; nurseId:string; version:string; action:string}) {
+    const actor = await requireClinicOperations(clinicId);
+    return async (db: PoolClient) => {
+        await db.query("set local lock_timeout='5s'");
+        const permission = await db.query(`select m.id from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
+          where c.id=$1 and c.status='approved' and m.email=$2 and ${CLINIC_MANAGER_SQL}
+          and m.status='active' and m.accepted_at is not null for share of c,m`, [clinicId,actor.email]);
+        if (!permission.rowCount) throw new ClinicAppointmentError('Clinic access denied.',403);
+        const visit = await db.query<{version:string;status:string}>(`select updated_at::text as version,status from app.appointments
+          where clinic_id=$1 and id=$2 and partner_profile_id=$3 for update`,[clinicId,input.appointmentId,input.nurseId]);
+        if (!visit.rows[0] || visit.rows[0].version!==input.version) throw new ClinicAppointmentError('This appointment changed. Close and reopen it before continuing.');
+        if (!['confirmed','partner_acknowledged','in_progress'].includes(visit.rows[0].status)) throw new ClinicAppointmentError('This appointment cannot be changed in its current status.');
+        await db.query(`insert into app.clinic_audit(clinic_id,actor,action,subject_id) values($1,$2,$3,$4)`,[clinicId,actor.email,`appointment_${input.action}`,input.appointmentId]);
+    };
+}
+export async function validateClinicReschedule(db: PoolClient, clinicId:string, appointmentId:string, start:string, end:string) {
+    const visit = await readVisit(db,clinicId,appointmentId);
+    await db.query('select id from app.partner_profiles where id=$1 for update',[visit.partner_profile_id]);
+    const result=await db.query<{id:string;coverage:PricingRegion[];clinicCoverage:PricingRegion[]}>(`select p.id,m.coverage,c.coverage as "clinicCoverage" from app.partner_profiles p
+      join app.clinic_memberships m on m.partner_profile_id=p.id and m.clinic_id=$6
+      join app.clinics c on c.id=m.clinic_id and c.status='approved' and c.organization_id=p.organization_id
+      join app.clinic_service_prices prices on prices.clinic_id=m.clinic_id and prices.service_id=$2 and prices.enabled and prices.availability_status='active'
+      where p.id=$1 and ${CLINIC_CARE_MEMBER_SQL} and m.status='active' and m.accepted_at is not null and m.authorized_at is not null
+      and (m.service_ids is null or $2::uuid=any(m.service_ids)) and ${available}`,
+      [visit.partner_profile_id,visit.service_id,start,end,visit.id,clinicId]);
+    if(!result.rows[0] || !clinicNurseCovers(result.rows[0].clinicCoverage,result.rows[0].coverage,visit)) throw new ClinicAppointmentError('The assigned nurse is unavailable at this time. Choose another time or reassign the visit.');
 }

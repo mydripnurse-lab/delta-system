@@ -29,7 +29,7 @@ function load(relative) {
  if(modules.has(relative))return modules.get(relative).exports;
  const module={exports:{}};modules.set(relative,module);
  const code=ts.transpileModule(fs.readFileSync(path.join(root,relative),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
- new Function('require','module','exports',code)(name=>name in mocks?mocks[name]:name.startsWith('@/')?(name.endsWith('.json')?JSON.parse(fs.readFileSync(path.join(root,'src',name.slice(2)),'utf8')):load(`src/${name.slice(2)}.ts`)):require(name),module,module.exports);
+ new Function('require','module','exports',code)(name=>name in mocks?mocks[name]:name.startsWith('@/')?(name.endsWith('.json')?JSON.parse(fs.readFileSync(path.join(root,'src',name.slice(2)),'utf8')):load(`src/${name.slice(2)}.ts`)):name.startsWith('.')?load(path.join(path.dirname(relative),name+(path.extname(name)?'':'.ts'))):require(name),module,module.exports);
  return module.exports;
 }
 const pricing=load('src/lib/regionalPricing.ts');

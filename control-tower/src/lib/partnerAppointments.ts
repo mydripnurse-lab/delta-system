@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import { clinicReassignmentPartners } from "@/lib/clinicBooking";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { getDbPool } from "@/lib/db";
@@ -96,11 +97,16 @@ export async function listPartnerPortalAppointments(profileId: string): Promise<
             service.image_alt as service_image_alt,
             appointment.starts_at::text, appointment.ends_at::text,
             appointment.timezone, appointment.status,
-            customer.full_name, customer.email, customer.phone,
-            appointment.metadata,
-            appointment.address_line_1, appointment.address_line_2,
-            appointment.county,
-            appointment.city, appointment.state, appointment.postal_code,
+            case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then customer.full_name else '' end as full_name,
+            case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then customer.email else '' end as email,
+            case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then customer.phone else '' end as phone,
+            jsonb_build_object('clinic',appointment.metadata->'clinic',
+              'primary_patient',case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then appointment.metadata->'primary_patient' end,
+              'additional_patients',case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then appointment.metadata->'additional_patients' else '[]'::jsonb end) as metadata,
+            case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then appointment.address_line_1 else '' end as address_line_1,
+            case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then appointment.address_line_2 else '' end as address_line_2,
+            case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then appointment.county else '' end as county,
+            appointment.city, appointment.state, case when (to_jsonb(appointment)->>'clinic_id' is null or appointment.status in ('partner_acknowledged','in_progress','completed')) then appointment.postal_code else '' end as postal_code,
             case
               when coalesce((appointment.metadata #>> '{client_reward,platformFunded}')::boolean, false) then '0'
               else greatest(appointment.service_price - appointment.deposit_amount, 0)::text
@@ -131,7 +137,7 @@ export async function listPartnerPortalAppointments(profileId: string): Promise<
     endsAt: row.ends_at,
     timezone: row.timezone,
     status: row.status,
-    customerName: row.full_name,
+    customerName: row.full_name || [row.city,row.state].filter(Boolean).join(", ") || "Awaiting acceptance",
     customerEmail: row.email,
     customerPhone: row.phone,
     customerDateOfBirth: row.metadata?.primary_patient?.dateOfBirth || "",
@@ -167,6 +173,7 @@ export async function advancePartnerAppointment(opts: {
   appointmentId: string;
   action: "acknowledge" | "start" | "complete";
   earlyStartReason?: string;
+  authorizeWrite?: (client: PoolClient) => Promise<void>;
 }) {
   await ensureBookingEngineSchema();
   const earlyStartReason = opts.earlyStartReason?.trim() || "";
@@ -180,6 +187,7 @@ export async function advancePartnerAppointment(opts: {
   const client = await pool.connect();
   try {
     await client.query("begin");
+    if (opts.authorizeWrite) await opts.authorizeWrite(client);
     const lockedAppointment = await client.query<{ starts_at: string; status: string; metadata: unknown }>(
       `select starts_at::text, status, metadata
          from app.appointments
@@ -358,6 +366,8 @@ export async function reschedulePartnerAppointment(opts: {
   newTime: string;
   timezone: string;
   reason?: string;
+  authorizeWrite?: (client: PoolClient) => Promise<void>;
+  validateSchedule?: (client: PoolClient, start: string, end: string) => Promise<void>;
 }) {
   await ensureBookingEngineSchema();
   const pool = getDbPool();
@@ -367,6 +377,7 @@ export async function reschedulePartnerAppointment(opts: {
   let rescheduleContext: import("@/lib/appointmentCreatedWebhook").AppointmentRescheduleContext | undefined;
   try {
     await client.query("begin");
+    if (opts.authorizeWrite) await opts.authorizeWrite(client);
     const locked = await client.query<{
       id: string;
       public_reference: string;
@@ -409,6 +420,8 @@ export async function reschedulePartnerAppointment(opts: {
     const durationMs = new Date(appointment.ends_at).getTime() - new Date(appointment.starts_at).getTime();
     if (!(durationMs > 0)) throw new Error("The appointment duration is invalid.");
     const newEnd = new Date(new Date(newStart).getTime() + durationMs).toISOString();
+    await client.query('select id from app.partner_profiles where id=$1 for update',[opts.profileId]);
+    if (opts.validateSchedule) await opts.validateSchedule(client,String(newStart),newEnd);
     const conflict = await client.query(
       `select 1 from app.appointments
         where partner_profile_id = $1::uuid and id <> $2
@@ -470,6 +483,7 @@ export async function declinePartnerAppointment(opts: {
   profileId: string;
   appointmentId: string;
   reason: string;
+  authorizeWrite?: (client: PoolClient) => Promise<void>;
 }) {
   const reason = opts.reason.trim();
   if (reason.length < 3 || reason.length > 1000) throw new Error("Please provide a reason between 3 and 1,000 characters.");
@@ -482,6 +496,7 @@ export async function declinePartnerAppointment(opts: {
   let declineContext: import("@/lib/appointmentCreatedWebhook").AppointmentDeclineContext;
   try {
     await client.query("begin");
+    if (opts.authorizeWrite) await opts.authorizeWrite(client);
     const locked = await client.query<{
       id: string; organization_id: string; service_id: string; partner_profile_id: string;
       state: string; county: string; city: string; starts_at: string; ends_at: string; clinic_id: string | null;

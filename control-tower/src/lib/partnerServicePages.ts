@@ -1,5 +1,4 @@
-import { publicClinicServices } from "@/lib/clinicBooking";
-import { redirect } from "next/navigation";
+import { loadClinicNurseCatalog } from "@/lib/clinicNurseCatalog";
 import { cache } from "react";
 
 import {
@@ -18,13 +17,18 @@ export const loadPartnerServicePage = cache(async function loadPartnerServicePag
   const profile = await getPartnerProfileForPublicPage(partnerSlug, preview);
   if (!profile) return null;
   if ((profile.clinicManaged || profile.clinicBrand) && !preview) {
-    const clinic = profile.clinicBrand;
-    if (!clinic) redirect(`/${profile.slug}/services`);
-    const services = await publicClinicServices(clinic.id, profile.id);
+    const affiliation = profile.clinicBrand;
+    if (!affiliation) return null;
+    const catalog = await loadClinicNurseCatalog(profile);
+    if (!catalog) return null;
     const definition = definitionForServiceSlug(serviceSlug);
-    const service = services.find(s => s.slug === serviceSlug || s.slug === definition?.id);
-    if (!service) return null;
-    redirect(`/clinics/${clinic.slug}/services/${service.slug}?nurse=${encodeURIComponent(profile.id)}`);
+    const index = catalog.rows.findIndex((row, index) => row.slug === serviceSlug || row.slug === definition?.id
+      || partnerServiceSlug(catalog.services[index]) === serviceSlug);
+    if (index < 0) return null;
+    const serviceAreas = catalog.coverage.map(r => ({ state: r.state, county: r.county || '', city: r.city || '', locationId: '' }));
+    return { profile: { ...profile, serviceAreas }, service: catalog.services[index], services: catalog.services,
+      cities: catalog.coverage.filter(r => r.city).map(r => ({ name: r.city!, state: r.state, county: r.county || '' })) };
+
   }
   const [services, cities] = await Promise.all([
     loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id),

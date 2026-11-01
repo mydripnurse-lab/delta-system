@@ -1,0 +1,26 @@
+// Run after clinic appointment/owner suites. Local synthetic data only.
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript'),{Pool}=require('pg');
+const url=new URL(process.env.CLINIC_TEST_DATABASE_URL||'postgresql://axel@127.0.0.1:55487/mdn_clinic_test');
+if(url.hostname!=='127.0.0.1'||url.pathname!=='/mdn_clinic_test')throw Error('Dedicated local database required');
+const db=new Pool({connectionString:url.toString()}),root=path.join(__dirname,'..'),modules=new Map(),noop=async()=>{};
+const mocks={'server-only':{},'@/lib/db':{getDbPool:()=>db},'@/lib/bookingEngineSchema':{ensureBookingEngineSchema:noop},'@/lib/clinicBooking':{},'@/lib/clinicAuth':{requireClinicManager:async()=>({email:'owner@example.invalid',status:'approved'})},'@/lib/partnerAppointmentNotifications':{sendPartnerAppointmentNotification:noop},'@/lib/customerAppointmentNotifications':{sendCustomerAppointmentNotification:noop},'@/lib/appointmentCreatedWebhook':{sendAppointmentLifecycleWebhook:noop},'@/lib/stripeCheckout':{refundStripePayment:async()=>{throw Error('Payment forbidden');}},'@/lib/stripePaymentLifecycle':{}};
+function load(relative){if(modules.has(relative))return modules.get(relative).exports;const m={exports:{}};modules.set(relative,m);new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,relative),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText)(n=>n in mocks?mocks[n]:n.startsWith('@/')?load('src/'+n.slice(2)+'.ts'):n.startsWith('.')?load(path.join(path.dirname(relative),n)+'.ts'):require(n),m,m.exports);return m.exports;}
+global.fetch=async()=>{throw Error('External request forbidden');};
+(async()=>{
+ const {clinicId,appointmentId}=JSON.parse(fs.readFileSync('/tmp/mdn-clinic-calendar-fixture.json','utf8'));
+ const sql=fs.readFileSync(path.join(root,'db/migrations/042_mdn_booking_foundation.sql'),'utf8'),begin=sql.indexOf('create table if not exists app.customer_partner_affinities (');await db.query(sql.slice(begin,sql.indexOf('\n);',begin)+4));
+ await db.query('alter table app.appointments add column if not exists completed_at timestamptz');
+ await db.query('update app.appointments a set organization_id=c.organization_id from app.clinics c where a.id=$1 and c.id=a.clinic_id',[appointmentId]);
+ await db.query('delete from app.customer_partner_affinities where partner_profile_id=(select partner_profile_id from app.appointments where id=$1)',[appointmentId]);
+ await db.query("update app.appointments set status='confirmed',metadata=metadata||$2::jsonb,updated_at=now() where id=$1",[appointmentId,JSON.stringify({primary_patient:{dateOfBirth:'2000-01-01'},additional_patients:[{fullName:'Private second person',email:'private@example.invalid'}]})]);
+ const ops=load('src/lib/clinicAppointments.ts'),life=load('src/lib/partnerAppointments.ts');let visit=await ops.clinicVisit(clinicId,appointmentId);const nurseId=visit.nurseId,payments=(await db.query('select * from app.appointment_payments order by id')).rows;
+ assert.equal(visit.detailsVisible,false);for(const key of ['customerName','customerEmail','customerPhone','address'])assert.equal(visit[key],'');assert(visit.city&&visit.state);
+ let nurse=(await life.listPartnerPortalAppointments(nurseId)).find(v=>v.id===appointmentId);assert(nurse);assert.equal(nurse.customerEmail,'');assert.equal(nurse.customerDateOfBirth,'');assert.deepEqual(nurse.additionalPatients,[]);assert(!nurse.address.includes('Test St'));
+ const stale=visit.version;const advance=async(action,version=visit.version)=>life.advancePartnerAppointment({profileId:nurseId,appointmentId,action,earlyStartReason:'Synthetic early-start validation',authorizeWrite:await ops.clinicAppointmentWriteGuard(clinicId,{appointmentId,nurseId,version,action})});
+ await advance('acknowledge');visit=await ops.clinicVisit(clinicId,appointmentId);assert.equal(visit.detailsVisible,true);assert(visit.customerName&&visit.customerEmail&&visit.address);assert.equal(visit.status,'partner_acknowledged');
+ nurse=(await life.listPartnerPortalAppointments(nurseId)).find(v=>v.id===appointmentId);assert(nurse.customerEmail);assert.equal(nurse.customerDateOfBirth,'2000-01-01');assert.equal(nurse.additionalPatients.length,1);
+ await assert.rejects(()=>advance('start',stale),/changed/);assert.equal((await ops.clinicVisit(clinicId,appointmentId)).status,'partner_acknowledged');
+ await advance('start');visit=await ops.clinicVisit(clinicId,appointmentId);assert.equal(visit.status,'in_progress');await advance('complete');visit=await ops.clinicVisit(clinicId,appointmentId);assert.equal(visit.status,'completed');await assert.rejects(()=>advance('complete'),/current status/);
+ assert.deepEqual((await db.query('select * from app.appointment_payments order by id')).rows,payments);assert.equal((await db.query('select successful_appointments from app.customer_partner_affinities where partner_profile_id=$1',[nurseId])).rows[0].successful_appointments,1);
+ console.log('PASS: real shared lifecycle, masked clinic/nurse PII before acceptance, reveal after acceptance, stale-write rollback, start/complete guards, unchanged payments, no external sends.');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>db.end());

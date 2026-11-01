@@ -1,3 +1,4 @@
+import { definitionForCalendar } from "@/lib/myDripNurseServices";
 import { publicWebsiteAccounts } from "@/lib/publicWebsiteAccounts";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { publicClinicServices } from "@/lib/clinicBooking";
@@ -32,9 +33,11 @@ export default async function PartnerPublicHeader({
     // Reuse the nurse-filtered public clinic cache, including its assignment invalidation.
     // Clinic-only profiles must never fall back to the independent partner catalog.
     profile.clinicBrand && !preview
-      ? publicClinicServices(profile.clinicBrand.id, profile.id).then(rows => rows.map(service => ({
-          id: service.slug, name: service.name, imageUrl: service.imageUrl, landingPath: `/${service.slug}`,
-        })))
+      ? publicClinicServices(profile.clinicBrand.id, profile.id).then(rows => rows.map(service => {
+          const definition = definitionForCalendar(service.name);
+          return { id: definition?.id || service.slug, name: service.name, imageUrl: service.imageUrl,
+            landingPath: `/${definition ? partnerServiceSlug(definition) : service.slug}` };
+        }))
       : profile.clinicManaged && !preview
         ? Promise.resolve([])
         : loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id),

@@ -240,7 +240,8 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
   }
   const config = eventConfig[event];
   const webhookUrl = validWebhookUrl(row[config.field]) || (config.fallback ? validWebhookUrl(row[config.fallback]) : "");
-  const clinicRouting = !!row.clinic_id && clinicCommunicationsEnabled();
+  const clinicRouting = !!row.clinic_id;
+  if (clinicRouting && !clinicCommunicationsEnabled()) return { sent: false as const, reason: "not_configured" as const };
   if (!webhookUrl && !clinicRouting) return { sent: false as const, reason: "not_configured" as const };
 
   const metadata = record(row.appointment_metadata);
@@ -481,7 +482,7 @@ export async function sendAppointmentLifecycleWebhook(appointmentId: string, eve
 
   if (clinicRouting && row.clinic_id) {
     return queueClinicAppointment({ clinicId: row.clinic_id, key: payload.idempotencyKey, event,
-      message: { serviceName: row.service_name, serviceImageUrl: serviceImageUrl(row.service_image_url), dateTime: appointmentDateTimeFormatted, reference: row.public_reference, balance: currency(clientAmountDueAtVisit, earningsCurrency), platformFunded, collectionInstructions, outcome: decline?.outcome, refundAmount: refund ? currency(refund.totalRefundedAmount, refund.currency) : undefined },
+      message: { location: [row.city,row.state].filter(Boolean).join(", "), serviceName: row.service_name, serviceImageUrl: serviceImageUrl(row.service_image_url), dateTime: appointmentDateTimeFormatted, reference: row.public_reference, balance: currency(clientAmountDueAtVisit, earningsCurrency), platformFunded, collectionInstructions, outcome: decline?.outcome, refundAmount: refund ? currency(refund.totalRefundedAmount, refund.currency) : undefined },
       nurse: partner ? { name: partner.fullName, email: partner.email, phone: partner.phone } : undefined,
       client: { name: row.customer_full_name, email: row.customer_email, phone: row.customer_phone },
     });

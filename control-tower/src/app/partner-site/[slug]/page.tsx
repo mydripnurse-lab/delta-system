@@ -1,3 +1,4 @@
+import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { providerCoverage, coverageSummary, publishedServiceNames } from "@/lib/providerSeo";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -102,7 +103,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
   };
 
   return (
-    <PartnerExperience branding={profile.clinicBrand}>
+    <PartnerExperience branding={profile.clinicBrand ? clinicWebsiteBrand(profile.clinicBrand) : undefined}>
       <main className={styles.page}>
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? (
@@ -267,7 +268,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
           items={faqItems}
         />
 
-        <PartnerFooter />
+        <PartnerFooter branding={profile.clinicBrand} />
       </main>
     </PartnerExperience>
   );

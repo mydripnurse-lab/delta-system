@@ -1,4 +1,3 @@
-import { clinicCommunicationsEnabled } from "@/lib/clinicCommunications";
 import { appointmentCommunicationRoles } from "@/lib/appointmentCommunicationRoles";
 import { ensureBookingEngineSchema } from "@/lib/bookingEngineSchema";
 import { ensureStaffSchema } from "@/lib/publicStaffProvisioning";
@@ -113,7 +112,7 @@ export async function sendPartnerAppointmentNotification(appointmentId: string, 
     return { sent: false, reason: error instanceof Error ? error.message : "query_failed" };
   }
   const row = result.rows[0];
-  if (row?.clinic_id && clinicCommunicationsEnabled() && event !== 'visit_started') return { sent: false, reason: "clinic_role_workflows" as const };
+  if (row?.clinic_id && event !== 'visit_started') return { sent: false, reason: "clinic_role_workflows" as const };
   const webhookUrl = text(row?.webhook_url);
 	  if (!row || !webhookUrl) return { sent: false, reason: "not_configured" as const };
 	  const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)

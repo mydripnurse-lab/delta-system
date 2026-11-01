@@ -1,6 +1,7 @@
+import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { pricingCoverage, publicPriceSummary, publicPriceOffer } from "@/lib/publicServicePricing";
 import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
-import { ClinicNurseServices } from '@/components/clinics/ClinicNurseServices';
+import { loadClinicNurseCatalog } from "@/lib/clinicNurseCatalog";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -46,23 +47,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function PartnerServicesPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { preview = "" } = await searchParams;
-  const profile = await getPartnerProfileForPublicPage(slug, preview);
+  let profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
-  if ((profile.clinicManaged || profile.clinicBrand) && !preview) return <PartnerExperience branding={profile.clinicBrand}><main className={styles.page}>
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ "@context": "https://schema.org", "@graph": [
-      ...buildPartnerStructuredData(profile)["@graph"].filter(entity => entity["@type"] !== "ProfilePage"),
-      { "@type": "CollectionPage", url: partnerPublicUrl(profile.slug, "services"), name: `Services with ${profile.displayName}`, about: { "@id": `${partnerPublicUrl(profile.slug)}#partner` } },
-    ] }) }}/>
-    <PartnerPublicHeader profile={profile} />
-    <section className={styles.servicesHero}><div className={styles.shell}><span className={styles.eyebrow}>Care with {profile.displayName}</span>
-      <h1>Services with <em>{profile.displayName}.</em></h1><p>Choose your clinic below. Its services, regional prices and collection instructions apply to your visit.</p>
-      {profile.publicTitle ? <p>{profile.publicTitle}{profile.professionalCredentials ? ` · ${profile.professionalCredentials}` : ""}</p> : null}
-      <div className={styles.cityGrid}>{providerCoverage(profile.serviceAreas).map(area => <span key={area.label}>{area.label}</span>)}</div>
-    </div></section><div className={styles.shell}><ClinicNurseServices profile={profile}/></div><PartnerFooter/>
-  </main></PartnerExperience>;
+  const clinicCatalog = profile.clinicBrand && !preview
+    ? await loadClinicNurseCatalog(profile) : null;
+  if ((profile.clinicManaged || profile.clinicBrand) && !preview && !clinicCatalog) notFound();
+  if (clinicCatalog) profile = { ...profile, serviceAreas: clinicCatalog.coverage.map(r => ({ state: r.state, county: r.county || '', city: r.city || '', locationId: '' })) };
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
-  const services = await loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id);
+  const services = clinicCatalog?.services ?? await loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id);
   const coverage = pricingCoverage(profile.serviceAreas);
   const structuredData = {
     "@context": "https://schema.org",
@@ -119,7 +112,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
   };
 
   return (
-    <PartnerExperience branding={profile.clinicBrand}>
+    <PartnerExperience branding={profile.clinicBrand ? clinicWebsiteBrand(profile.clinicBrand) : undefined}>
       <main className={styles.page}>
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? (
@@ -152,7 +145,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
                 <span className={styles.eyebrow}>Available treatments</span>
                 <h2>Choose your service.</h2>
               </div>
-              <p>Only services enabled for this website are shown. Prices come from the calendar setup managed in admin.mydripnurse.com.</p>
+              <p>Explore available services, review ingredients and pricing, and choose a time for your visit.</p>
             </div>
             <div className={styles.serviceGrid}>
               {services.map((service) => (
@@ -198,7 +191,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           items={faqItems}
         />
 
-        <PartnerFooter />
+        <PartnerFooter branding={profile.clinicBrand} />
       </main>
     </PartnerExperience>
   );

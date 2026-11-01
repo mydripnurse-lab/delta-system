@@ -126,3 +126,10 @@
 /* Product artwork sits directly on the hero, without a surrounding card. */
 .serviceDetailVisual{border:0;background:transparent;box-shadow:none;border-radius:0}.serviceDetailVisual img{height:clamp(280px,34vw,480px);aspect-ratio:auto;object-fit:contain;padding:0;filter:drop-shadow(0 18px 24px rgba(23,53,58,.12))}.serviceBookingCard{flex-wrap:wrap}.serviceBookingCard{color:var(--partner-ink)}.serviceBookingCard>div{min-width:0;max-width:100%;margin:0}
 @media(max-width:620px){.serviceDetailVisual{border:0}.serviceDetailVisual img{height:280px}}
+
+/* Clinic-affiliated nurses use the same layout with their website palette. */
+:global([data-clinic-booking="true"]) .serviceImageWrap { background:var(--partner-ice); }
+:global([data-clinic-booking="true"]) .serviceCard a { color:var(--partner-button-ink); }
+:global([data-clinic-booking="true"]) .serviceCard a:hover { background:var(--partner-teal); filter:brightness(.94); }
+:global([data-clinic-booking="true"]) .servicePrice { color:var(--partner-accent-ink); }
+:global([data-clinic-booking="true"]) .bookingServiceVisual { background:transparent; border:0; box-shadow:none; }

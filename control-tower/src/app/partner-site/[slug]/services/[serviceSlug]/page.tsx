@@ -1,7 +1,7 @@
+import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
+import { partnerServiceSlug } from "@/lib/myDripNurseServices";
 import { ClinicServicePrice } from "@/components/clinics/ClinicServicePrice";
 import { pricingCoverage, publicPriceSummary, publicPriceOffer } from "@/lib/publicServicePricing";
-import { loadClinicNurseServicePage } from "@/lib/clinicNurseServicePage";
-import { ClinicNurseServicePage } from "@/components/clinics/ClinicNurseServicePage";
 import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -35,20 +35,12 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
-  const clinicData = await loadClinicNurseServicePage(slug, serviceSlug, preview);
-  if (clinicData) {
-    const area = coverageSummary(clinicData.coverage);
-    return buildPartnerMetadata({ profile: clinicData.profile, pathname: `services/${clinicData.slug}`,
-      title: `${clinicData.service.name} | ${clinicData.profile.displayName}${area ? ` · ${area}` : ''}`,
-      description: `${clinicData.service.name} with ${clinicData.profile.displayName}, through ${clinicData.clinic.name}${area ? ` in ${area}` : ''}. ${clinicData.service.description}`,
-    });
-  }
   const data = await loadPartnerServicePage(slug, serviceSlug, preview);
   if (!data) return { title: "IV Therapy Service | My Drip Nurse" };
   const citySummary = coverageSummary(data.profile.serviceAreas);
   return buildPartnerMetadata({
     profile: data.profile,
-    pathname: `services/${serviceSlug}`,
+    pathname: `services/${partnerServiceSlug(data.service)}`,
     title: `${data.service.name} | ${data.profile.displayName}${citySummary ? ` · ${citySummary}` : ""}`,
     description: `${data.service.description} Review ingredients, pricing and appointment information${citySummary ? ` for ${citySummary}` : ""}.`,
     keywords: [
@@ -63,14 +55,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function PartnerServiceLandingPage({ params, searchParams }: Props) {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
-  const clinicData = await loadClinicNurseServicePage(slug, serviceSlug, preview);
-  if (clinicData) return <ClinicNurseServicePage data={clinicData}/>;
   const data = await loadPartnerServicePage(slug, serviceSlug, preview);
   if (!data) notFound();
   const { profile, service } = data;
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
-  const landingUrl = partnerPublicUrl(profile.slug, `services/${serviceSlug}`);
+  const canonicalSlug = partnerServiceSlug(service);
+  const landingUrl = partnerPublicUrl(profile.slug, `services/${canonicalSlug}`);
   const outOfStock = service.availabilityStatus === "out_of_stock";
   const coverage = pricingCoverage(profile.serviceAreas);
   const priceLabel = service.pricing ? publicPriceSummary(service.pricing, coverage).label : service.price;
@@ -141,7 +132,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
   };
 
   return (
-    <PartnerExperience branding={profile.clinicBrand}>
+    <PartnerExperience branding={profile.clinicBrand ? clinicWebsiteBrand(profile.clinicBrand) : undefined}>
       <main className={styles.page}>
         <PartnerDirectoryAttribution partnerProfileId={profile.id} disabled={Boolean(preview)} />
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · This page is not published yet</div> : null}
@@ -156,7 +147,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
               <p>{service.description} Appointments are provided by {profile.displayName}{profile.professionalCredentials ? ` (${profile.professionalCredentials})` : ""} in {cityLabel}, subject to eligibility and availability.</p>
               <div className={`${styles.serviceBookingCard} ${outOfStock ? styles.serviceBookingCardOutOfStock : ""}`} id="availability-status">
                 {service.pricing ? <ClinicServicePrice service={service.pricing} coverage={coverage}/> : <div className={styles.servicePriceDisplay}><span>Per visit</span><strong>{priceLabel || "Available at booking"}</strong></div>}
-                {outOfStock ? <span className={styles.outOfStockAction}>Out of Stock</span> : <Link href={partnerHref(`/services/${serviceSlug}/book`)} className={styles.primaryAction}>
+                {outOfStock ? <span className={styles.outOfStockAction}>Out of Stock</span> : <Link href={partnerHref(`/services/${canonicalSlug}/book`)} className={styles.primaryAction}>
                   Book {service.name} <span aria-hidden="true">→</span>
                 </Link>}
               </div>
@@ -213,10 +204,10 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
           <div className={styles.shell}>
             <span className={styles.eyebrow}>{outOfStock ? "Temporarily unavailable" : "Ready to view availability?"}</span>
             <h2>{outOfStock ? `${service.name} is currently out of stock.` : `Book ${service.name} with ${profile.displayName}.`}</h2>
-            {outOfStock ? <p>Booking will reopen automatically when this Partner marks the service back in stock.</p> : <Link href={partnerHref(`/services/${serviceSlug}/book`)} className={styles.primaryAction}>Open secure booking <span aria-hidden="true">→</span></Link>}
+            {outOfStock ? <p>Booking will reopen automatically when this Partner marks the service back in stock.</p> : <Link href={partnerHref(`/services/${canonicalSlug}/book`)} className={styles.primaryAction}>Open secure booking <span aria-hidden="true">→</span></Link>}
           </div>
         </section>
-        <PartnerFooter />
+        <PartnerFooter branding={profile.clinicBrand} />
       </main>
     </PartnerExperience>
   );

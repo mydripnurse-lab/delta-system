@@ -6,7 +6,7 @@ const db=new Pool({connectionString:url.toString(),max:3}),root=path.join(__dirn
 let email='owner@example.invalid',invalidations=0,calls=[];
 const fl={id:'state:florida::',level:'state',state:'Florida',county:'',city:'',label:'Florida',urls:[]};
 const mocks={'server-only':{},'next/server':{NextResponse:Response,after:()=>{}},'react':{cache:f=>f},'next/headers':{cookies:async()=>({get:()=>undefined})},'next/cache':{unstable_cache:f=>f,revalidateTag:()=>invalidations++},'@/lib/db':{getDbPool:()=>db},'@/lib/bookingEngineSchema':{ensureBookingEngineSchema:async()=>{}},'@/lib/clinics':{coverageFromIds:async ids=>{if(ids.some(id=>id!==fl.id))throw Error('Invalid coverage');return ids.map(()=>fl);}},'@/lib/partnerPortalAuth':{getPartnerPortalSession:async()=>email?{email,display_name:'Fixture owner',profile_id:''}:null},'@/lib/partnerAppointments':{advancePartnerAppointment:async input=>{calls.push(input);return [];},declinePartnerAppointment:async input=>{calls.push(input);return {outcome:'reassigned'};}}};
-function load(relative){if(modules.has(relative))return modules.get(relative).exports;const m={exports:{}};modules.set(relative,m);new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,relative),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText)(n=>n in mocks?mocks[n]:n.startsWith('@/')?load('src/'+n.slice(2)+'.ts'):require(n),m,m.exports);return m.exports;}
+function load(relative){if(modules.has(relative))return modules.get(relative).exports;const m={exports:{}};modules.set(relative,m);new Function('require','module','exports',ts.transpileModule(fs.readFileSync(path.join(root,relative),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText)(n=>n in mocks?mocks[n]:n.startsWith('@/')?load('src/'+n.slice(2)+'.ts'):n.startsWith('.')?load(path.join(path.dirname(relative),n)+'.ts'):require(n),m,m.exports);return m.exports;}
 process.env.CLINIC_PARTNERS_ENABLED='true';process.env.CLINIC_BOOKINGS_ENABLED='true';process.env.CLINIC_COMMUNICATIONS_ENABLED='false';
 global.fetch=async()=>{throw Error('External requests forbidden');};
 (async()=>{
@@ -41,19 +41,22 @@ global.fetch=async()=>{throw Error('External requests forbidden');};
  assert.equal((await ops.clinicVisit(clinicId,appointmentId)).canRespond,true);
  await assert.rejects(()=>api.saveOwnerPractice(clinicId,{...input,enabled:false}),/open clinic appointments/);
  const route=load('src/app/api/clinics/appointments/route.ts');
- const request=(origin='http://localhost')=>new Request('http://localhost/api/clinics/appointments',{method:'PATCH',headers:{origin,'content-type':'application/json'},body:JSON.stringify({clinicId,appointmentId,action:'acknowledge'})});
+ const version=(await ops.clinicVisit(clinicId,appointmentId)).version;
+ const request=(origin='http://localhost')=>new Request('http://localhost/api/clinics/appointments',{method:'PATCH',headers:{origin,'content-type':'application/json'},body:JSON.stringify({clinicId,appointmentId,action:'acknowledge',version})});
  assert.equal((await route.PATCH(request())).status,200);assert.equal(calls[0].profileId,ownerId);
  assert.equal((await route.PATCH(request('https://evil.invalid'))).status,403);assert.equal(calls.length,1);
- email='manager@example.invalid';assert.equal((await ops.clinicVisit(clinicId,appointmentId)).canRespond,false);assert.equal((await route.PATCH(request())).status,403);assert.equal(calls.length,1);email='owner@example.invalid';
+ email='manager@example.invalid';assert.equal((await ops.clinicVisit(clinicId,appointmentId)).canRespond,true);assert.equal((await route.PATCH(request())).status,200);assert.equal(calls.length,2);email='owner@example.invalid';
  await db.query("update app.appointments set status='completed' where id=$1",[appointmentId]);
  await api.saveOwnerPractice(clinicId,{...input,enabled:false});
  assert(!(await booking.clinicBookingContext(clinicId,'fixture-calendar',{state:'Florida',county:'Orange',city:'Orlando'})).partnerIds.includes(ownerId));
- assert.equal((await ops.clinicVisit(clinicId,appointmentId)).canRespond,false);assert(invalidations>=4);
+ assert.equal((await ops.clinicVisit(clinicId,appointmentId)).canRespond,true);assert(invalidations>=4);
+ await api.saveOwnerPractice(clinicId,input);
  const scheduleRoute=load('src/app/api/clinics/practice/availability/route.ts');
  const scheduleUrl=`http://localhost/api/clinics/practice/availability?clinicId=${clinicId}`;
  await db.query("insert into app.partner_availability_exceptions(partner_profile_id,starts_at,ends_at,kind,reason) values($1,now()+interval '10 days',now()+interval '11 days','unavailable','Partner blocked day')",[ownerId]);
  const blocksBefore=(await db.query('select * from app.partner_availability_exceptions where partner_profile_id=$1 order by id',[ownerId])).rows;
  const response=await scheduleRoute.GET(new Request(scheduleUrl));assert.equal(response.status,200);const schedule=(await response.json()).data;
+ delete schedule.blockedDates;delete schedule.blockedRanges;
  schedule.days[1]={dayOfWeek:1,enabled:true,startTime:'09:00',endTime:'17:00'};
  const saveSchedule=()=>scheduleRoute.PUT(new Request(scheduleUrl,{method:'PUT',headers:{origin:'http://localhost','content-type':'application/json'},body:JSON.stringify(schedule)}));
  assert.equal((await saveSchedule()).status,200);
@@ -82,5 +85,5 @@ global.fetch=async()=>{throw Error('External requests forbidden');};
  assert.equal((await db.query('select status from app.staff_applications where id=$1',[created[0].application_id])).rows[0].status,'under_review','Clinic authorization does not fabricate an MDN review');
  assert.equal((await scheduleRoute.GET(new Request(`http://localhost/api/clinics/practice/availability?clinicId=${secondClinic}`))).status,200,'New owner immediately opens existing nurse schedule');
  console.log('PASS: inline owner onboarding; consent and approval enforced; concurrent requests create only one profile; automatic website/directory publication; immediate schedule access.');
- console.log('PASS: migration repeatable; explicit approved-owner opt-in; profile/history preserved; service/coverage validation; owner booking inclusion; out-of-area exclusion; manager/CSRF denial; lifecycle routed only to own nurse identity; open-visit deactivation blocked; opt-out removes bookability; shared-cache invalidation. No production, payment or notification calls.');
+ console.log('PASS: migration repeatable; explicit approved-owner opt-in; profile/history preserved; service/coverage validation; owner booking inclusion; out-of-area exclusion; manager/CSRF denial; lifecycle uses assigned nurse identity with manager authorization; open-visit deactivation blocked; opt-out removes bookability; shared-cache invalidation. No production, payment or notification calls.');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>db.end());

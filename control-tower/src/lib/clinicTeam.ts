@@ -86,10 +86,10 @@ export async function clinicTeamSchedule(clinicId:string,memberId:string) {
     return getPartnerWeeklyAvailability(await scheduleTarget(getDbPool(),clinicId,memberId,actor.email),true);
 }
 export async function saveClinicTeamSchedule(clinicId:string,memberId:string,raw:unknown) {
-    const {timezone,days}=scheduleSchema.parse(raw);
+    const {timezone,days,blockedDates,blockedRanges}=scheduleSchema.parse(raw);
     const actor=await approvedManager(clinicId);
     const profileId=await scheduleTarget(getDbPool(),clinicId,memberId,actor.email);
-    return savePartnerWeeklyAvailability({profileId,timezone,days,schemaReady:true,authorizeWrite:async client=>{
+    return savePartnerWeeklyAvailability({profileId,timezone,days,...(raw&&typeof raw==='object'&&'blockedDates' in raw?{blockedDates}:{}),...(raw&&typeof raw==='object'&&'blockedRanges' in raw?{blockedRanges}:{}),schemaReady:true,authorizeWrite:async client=>{
         const current=await scheduleTarget(client,clinicId,memberId,actor.email,true);
         if(current!==profileId)throw new Error('Member profile changed. Reload and try again.');
         await client.query('select id from app.partner_profiles where id=$1 for update',[profileId]);

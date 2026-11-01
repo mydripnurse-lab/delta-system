@@ -1,7 +1,9 @@
+import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
+import { clinicBookingsEnabled } from "@/lib/clinicFeature";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { BookingCalendarClient } from "@/components/booking/BookingCalendarClient";
 import BookingIdentityPanel from "@/components/booking/BookingIdentityPanel";
@@ -10,7 +12,6 @@ import {
   PartnerFooter,
 } from "@/components/partner/PartnerBrand";
 import PartnerPublicHeader from "@/components/partner/PartnerPublicHeader";
-import { loadClinicNurseServicePage } from "@/lib/clinicNurseServicePage";
 import { loadPartnerServicePage } from "@/lib/partnerServicePages";
 import { buildPartnerMetadata } from "@/lib/partnerSeo";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
@@ -27,8 +28,6 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
-  const clinicNurse = await loadClinicNurseServicePage(slug, serviceSlug, preview);
-  if (clinicNurse) return { title: `Book ${clinicNurse.service.name} with ${clinicNurse.profile.displayName}`, robots: { index: false, follow: true } };
   const data = await loadPartnerServicePage(slug, serviceSlug, preview);
   if (!data) return { title: "Secure Booking | My Drip Nurse", robots: { index: false, follow: false } };
   return buildPartnerMetadata({
@@ -43,19 +42,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function PartnerServiceBookingPage({ params, searchParams }: Props) {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
-  const clinicNurse = await loadClinicNurseServicePage(slug, serviceSlug, preview);
-  if (clinicNurse) {
-    const destination = new URL(`https://care.mydripnurse.com/booking/${encodeURIComponent(clinicNurse.service.publicKey)}`);
-    destination.searchParams.set("clinicId", clinicNurse.clinic.id);
-    destination.searchParams.set("partnerId", clinicNurse.profile.id);
-    redirect(destination.toString());
-  }
   const [data, clientAccount] = await Promise.all([
     loadPartnerServicePage(slug, serviceSlug, preview),
     getAuthenticatedClient(),
   ]);
   if (!data) notFound();
   const { profile, service, cities } = data;
+  const bookingsOpen = !profile.clinicBrand || clinicBookingsEnabled();
   const outOfStock = service.availabilityStatus === "out_of_stock";
   const coverageCities = cities.slice(0, 3).map((city) => city.name);
   const coverageLabel = coverageCities.length
@@ -71,7 +64,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
   const bookingReturnUrl = `https://partners.mydripnurse.com/${profile.slug}/services/${serviceSlug}/book`;
 
   return (
-    <PartnerExperience branding={profile.clinicBrand}>
+    <PartnerExperience branding={profile.clinicBrand ? clinicWebsiteBrand(profile.clinicBrand) : undefined}>
       <main className={styles.page}>
         {preview ? <div role="status" className={styles.previewBanner}>Private website preview · Booking pages remain hidden from search engines</div> : null}
         <PartnerPublicHeader profile={profile} preview={preview} />
@@ -84,7 +77,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
               <p>
                 Live availability for {profile.displayName}. Current coverage includes {coverageLabel}
                 {coverageMore ? ` and ${coverageMore} more area${coverageMore === 1 ? "" : "s"}` : ""}.
-                If coverage was confirmed directly for another nearby location, you can continue with your booking.
+                Enter your visit address to confirm coverage, pricing and available times.
               </p>
               <div className={styles.bookingSummary}>
                 <span>Service</span><strong>{service.name}</strong>
@@ -104,7 +97,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
                 <strong>{service.name} is currently out of stock.</strong>
                 <p>This Partner is temporarily unable to accept appointments for this service. Review the service page or check again after inventory has been restored.</p>
               </div>
-            ) : service.calendarId && !service.calendarId.startsWith("preview-") ? (
+            ) : bookingsOpen && service.calendarId && !service.calendarId.startsWith("preview-") ? (
               <div className={styles.calendarFrame}>
                 <BookingIdentityPanel
                   connectedName={clientAccount?.fullName.split(/\s+/)[0] || ""}
@@ -114,6 +107,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
                   <BookingCalendarClient
                     publicKey={service.calendarId}
                     partnerId={profile.id}
+                    clinicId={profile.clinicBrand?.id}
                     partnerView
                     serviceName={service.name}
                     serviceImageUrl={service.imageUrl}
@@ -155,7 +149,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
             </div>
           </div>
         </section>
-        <PartnerFooter />
+        <PartnerFooter branding={profile.clinicBrand} />
       </main>
     </PartnerExperience>
   );

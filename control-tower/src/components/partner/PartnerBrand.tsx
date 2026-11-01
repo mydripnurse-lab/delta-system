@@ -24,7 +24,21 @@ type PartnerHeaderProps = {
 };
 
 export function PartnerExperience({ children, className = "", branding }: PartnerExperienceProps) {
-  return <div style={branding ? { "--partner-teal": branding.primaryColor, "--partner-ice": branding.accentColor, "--partner-mint": branding.accentColor, "--partner-button-ink": brandTextColor(branding.primaryColor), "--partner-accent-ink": brandTextColor(branding.accentColor), "--partner-footer-bg": branding.primaryColor, "--partner-footer-ink": brandTextColor(branding.primaryColor), "--partner-footer-logo-filter": brandTextColor(branding.primaryColor) === "#ffffff" ? "brightness(0) invert(1)" : "brightness(0)" } as CSSProperties : undefined} className={`${styles.experience} ${className}`.trim()}>{children}</div>;
+  const style = branding ? {
+    "--partner-teal": branding.primaryColor,
+    "--partner-ice": branding.accentColor,
+    "--partner-mint": branding.accentColor,
+    "--partner-button-ink": brandTextColor(branding.primaryColor),
+    "--partner-accent-ink": brandTextColor(branding.accentColor),
+    "--partner-footer-bg": branding.primaryColor,
+    "--partner-footer-ink": brandTextColor(branding.primaryColor),
+    "--partner-footer-logo-filter": brandTextColor(branding.primaryColor) === "#ffffff" ? "brightness(0) invert(1)" : "brightness(0)",
+    "--booking-primary": branding.primaryColor,
+    "--booking-ink": brandTextColor(branding.primaryColor),
+    "--booking-soft": branding.accentColor,
+    "--booking-soft-ink": brandTextColor(branding.accentColor),
+  } as CSSProperties : undefined;
+  return <div data-clinic-booking={branding ? "true" : undefined} style={style} className={`${styles.experience} ${className}`.trim()}>{children}</div>;
 }
 
 export function PartnerHeader({ navItems = [], action, loginItems = [] }: PartnerHeaderProps) {
@@ -90,19 +104,20 @@ export function PartnerHeader({ navItems = [], action, loginItems = [] }: Partne
   );
 }
 
-export function PartnerFooter() {
+export function PartnerFooter({ branding }: { branding?: { name: string; logoUrl: string } } = {}) {
   return (
     <footer className={styles.footer}>
       <div className={styles.shell}>
         <div>
-          <Image
-            src={MDN_LOGO}
-            alt="My Drip Nurse"
-            title="My Drip Nurse mobile IV therapy"
+          {branding && !branding.logoUrl ? <strong>{branding.name}</strong> : <Image
+            src={branding?.logoUrl || MDN_LOGO}
+            alt={branding?.name || "My Drip Nurse"}
+            title={branding?.name || "My Drip Nurse mobile IV therapy"}
             width={240}
             height={51}
             className={styles.footerLogo}
-          />
+            style={branding?.logoUrl ? { filter: "none" } : undefined}
+          />}
           <p>Personalized care, powered by trusted local professionals.</p>
         </div>
         <div className={styles.footerContact}>

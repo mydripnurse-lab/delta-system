@@ -105,6 +105,7 @@ export async function savePartnerWeeklyAvailability(opts: {
   try {
     await client.query("begin");
     if (opts.authorizeWrite) await opts.authorizeWrite(client);
+    await client.query("select id from app.partner_profiles where id=$1 for update",[opts.profileId]);
     await client.query(
       `delete from app.partner_availability_rules
         where partner_profile_id = $1 and service_id is null`,
@@ -130,7 +131,8 @@ export async function savePartnerWeeklyAvailability(opts: {
         [opts.profileId],
       );
       const fullDayRanges = [...new Set(opts.blockedDates || [])].sort().map((date) => ({ date, startTime: "00:00", endTime: "24:00" }));
-      const ranges = [...fullDayRanges, ...(opts.blockedRanges || [])];
+      const ranges = [...new Map([...fullDayRanges, ...(opts.blockedRanges || [])]
+        .map(range => [`${range.date}:${range.startTime}:${range.endTime}`,range])).values()];
       for (const blockedRange of ranges) {
         await client.query(
           blockedRange.startTime === "00:00" && blockedRange.endTime === "24:00"

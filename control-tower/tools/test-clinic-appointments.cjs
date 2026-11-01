@@ -40,6 +40,22 @@ const migration=name=>fs.readFileSync(path.join(root,'db/migrations',name),'utf8
  let first=await ops.clinicCalendarStaff(clinic,'');assert.equal(first.items.length,50);assert(first.next);const tail=await ops.clinicCalendarStaff(clinic,'',first.next);assert.equal(tail.items.length,5);assert.equal(new Set([...first.items,...tail.items].map(x=>x.id)).size,55);
  assert.equal((await ops.clinicCalendarStaff(clinic,'Nurse 54')).items.length,1);
  let snap=await ops.clinicVisit(clinic,a);assert.equal(snap.price,'229');
+ assert.equal(snap.detailsVisible,false);assert.equal(snap.customerName,'');assert.equal(snap.customerEmail,'');assert.equal(snap.customerPhone,'');assert.equal(snap.address,'');assert.equal(snap.city,'Orlando');assert.equal(snap.state,'Florida');
+ const privacyRange={from:new Date(+start-86400000).toISOString(),to:new Date(+start+86400000).toISOString()};
+ assert((await ops.clinicCalendar(clinic,privacyRange)).items.every(v=>v.customerName===''));
+ await db.query("update app.appointments set status='partner_acknowledged',updated_at=now() where id=$1",[a]);
+ const accepted=await ops.clinicVisit(clinic,a);assert.equal(accepted.detailsVisible,true);assert.equal(accepted.customerName,'Test Client');assert.equal(accepted.customerEmail,'client@example.invalid');assert(accepted.address.includes('Orlando'));
+ snap=accepted;
+ const movedStart=new Date(+start+2*86400000),movedEnd=new Date(+end+2*86400000);
+ const guard=await ops.clinicAppointmentWriteGuard(clinic,{appointmentId:a,nurseId:nurses[0],version:snap.version,action:'reschedule'});
+ const tx=await db.connect();try{await tx.query('begin');await guard(tx);await ops.validateClinicReschedule(tx,clinic,a,movedStart.toISOString(),movedEnd.toISOString());await tx.query('rollback');}finally{tx.release();}
+ await db.query("insert into app.partner_availability_exceptions(partner_profile_id,starts_at,ends_at,kind) values($1,$2,$3,'unavailable')",[nurses[0],movedStart,movedEnd]);
+ await assert.rejects(()=>ops.validateClinicReschedule(db,clinic,a,movedStart.toISOString(),movedEnd.toISOString()),/unavailable/);
+ await db.query("delete from app.partner_availability_exceptions where partner_profile_id=$1 and kind='unavailable'",[nurses[0]]);
+ await db.query("update app.clinic_memberships set coverage='[]' where clinic_id=$1 and partner_profile_id=$2",[clinic,nurses[0]]);
+ await assert.rejects(()=>ops.validateClinicReschedule(db,clinic,a,movedStart.toISOString(),movedEnd.toISOString()),/unavailable/);
+ await db.query('update app.clinic_memberships set coverage=$3 where clinic_id=$1 and partner_profile_id=$2',[clinic,nurses[0],JSON.stringify(fl)]);
+
  await db.query("insert into app.appointment_events(appointment_id,event_type,actor_type) values($1,'appointment_confirmed','system')",[a]);
  const feed=await inbox.clinicNotificationFeed(clinic);assert(feed.items.some(x=>x.appointmentId===a));assert(!feed.items.some(x=>x.appointmentId===foreign));
  await inbox.readClinicNotifications(clinic,feed.items.map(x=>x.id));assert.equal((await inbox.clinicNotificationFeed(clinic)).unread,0);
@@ -58,6 +74,7 @@ const migration=name=>fs.readFileSync(path.join(root,'db/migrations',name),'utf8
  await db.query("update app.clinic_memberships set coverage='[]' where clinic_id=$1 and partner_profile_id=$2",[clinic,nurses[1]]);assert.equal((await ops.clinicReassignmentCandidates(clinic,a,'Nurse 01')).items.length,0);await db.query('update app.clinic_memberships set coverage=$3 where clinic_id=$1 and partner_profile_id=$2',[clinic,nurses[1],JSON.stringify(fl)]);
  const before=(await db.query('select service_price,deposit_amount,metadata,currency from app.appointments where id=$1',[a])).rows[0],paymentBefore=(await db.query('select * from app.appointment_payments where appointment_id=$1',[a])).rows[0];
  await ops.reassignClinicAppointment(clinic,{appointmentId:a,nurseId:nurses[1],version:snap.version,reason:'Coverage adjustment'});
+ const privateAgain=await ops.clinicVisit(clinic,a);assert.equal(privateAgain.detailsVisible,false);assert.equal(privateAgain.customerEmail,'');assert.equal(privateAgain.customerName,'');assert.equal(privateAgain.address,'');
  let after=(await db.query('select * from app.appointments where id=$1',[a])).rows[0];assert.equal(after.partner_profile_id,nurses[1]);assert.equal(after.status,'confirmed');for(const key of ['service_price','deposit_amount','currency'])assert.equal(after[key],before[key]);assert.equal(after.metadata.keep,'unchanged');assert.deepEqual((await db.query('select * from app.appointment_payments where appointment_id=$1',[a])).rows[0],paymentBefore);
  await assert.rejects(()=>ops.reassignClinicAppointment(clinic,{appointmentId:a,nurseId:nurses[2],version:snap.version,reason:'Stale browser'}),/changed/);
  const notices=(await db.query('select partner_profile_id,event_type from app.partner_portal_notifications where appointment_id=$1',[a])).rows;assert.equal(notices.length,2);assert(notices.some(n=>n.partner_profile_id===nurses[1]&&n.event_type==='appointment_reassigned'));assert(notices.some(n=>n.partner_profile_id===nurses[0]&&n.event_type==='appointment_assignment_removed'));

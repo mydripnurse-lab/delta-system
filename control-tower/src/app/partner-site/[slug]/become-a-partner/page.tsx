@@ -1,3 +1,4 @@
+import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -94,7 +95,7 @@ export default async function AffiliateLandingPage({ params, searchParams }: Pro
   };
 
   return (
-    <PartnerExperience>
+    <PartnerExperience branding={profile.clinicBrand ? clinicWebsiteBrand(profile.clinicBrand) : undefined}>
       <PartnerPublicHeader profile={profile} preview={preview} />
 
       <main className={styles.page}>
@@ -266,7 +267,7 @@ export default async function AffiliateLandingPage({ params, searchParams }: Pro
           <Link href={partnerHref()} className={styles.returnLink}>Return to {profile.displayName}&apos;s website</Link>
         </section>
       </main>
-      <PartnerFooter />
+      <PartnerFooter branding={profile.clinicBrand} />
     </PartnerExperience>
   );
 }
