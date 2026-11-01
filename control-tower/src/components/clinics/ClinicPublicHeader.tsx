@@ -15,7 +15,7 @@ export async function ClinicPublicHeader({ name, slug, logoUrl, home, services, 
         bannerText="Licensed Nurses · Same-Day Appointments · Verified Mobile IV Care"
         showPartnerPortal showDirectory={false} showWeightLoss={false} showContact={false} showPhone={false}
         ivMenuLinks={links('iv-therapy')} nadMenuLinks={links('nad')} vitaminMenuLinks={links('vitamins')}
-        additionalNavLinks={[["Our team", `${home}#team`], ["Directory", `${PARTNER_ORIGIN}/directory/clinics`], ["Become a Partner", `${home}/become-a-partner`]]}
+        additionalNavLinks={[["Our team", `${home}#team`], ["Become a Partner", `${home}/become-a-partner`]]}
         teamLoginHref={`${PARTNER_ORIGIN}/clinic-login/${encodeURIComponent(slug)}`}
         nativeNavigation refreshServiceMedia={false}
     />;
