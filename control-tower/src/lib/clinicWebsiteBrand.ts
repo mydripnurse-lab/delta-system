@@ -1,5 +1,5 @@
 import { brandColor, brandTextColor } from './clinicPolicy';
-export const DEFAULT_CLINIC_HERO = '/clinic-assets/wellness-lounge.webp';
+export const DEFAULT_CLINIC_HERO = '/clinic-assets/mobile-iv-home.webp';
 export type ClinicWebsiteSettings = { heroImageUrl?: string; primaryColor?: string; secondaryColor?: string };
 function luminance(hex: string) {
     const channels = hex.slice(1).match(/../g)!.map(value => { const v = parseInt(value, 16) / 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });

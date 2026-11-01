@@ -53,6 +53,7 @@ async function main(){
  assert.equal(policy.normalizeClinicDomain(' Care.SomeClinic.com. '),'care.someclinic.com');
  for(const p of ['/','/services','/services/alleviate','/become-a-partner','/login','/robots.txt','/sitemap.xml'])assert.equal(routing.clinicDomainPath(p),'public');
  assert.equal(routing.clinicDomainPath('/clinic-assets/wellness-lounge.webp'),'asset');
+ assert.equal(routing.clinicDomainPath('/clinic-assets/mobile-iv-home.webp'),'asset');
  for(const p of ['/clinic-assets/private.json','/become-a-partner/admin','/api/clinics','/portal','/clinics/other','/clinic-domain/other','/services/foo/book','/partner-admin','/login/reset','//login'])assert.equal(routing.clinicDomainPath(p),'deny');
  const {unstable_doesMiddlewareMatch}=require('next/experimental/testing/server');
  const proxy=load('src/proxy.ts');
