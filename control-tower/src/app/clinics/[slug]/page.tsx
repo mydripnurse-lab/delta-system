@@ -65,7 +65,6 @@ export default async function Page({ params }: Props) {
         ] }) }} />
         <section className={`${styles.hero} ${styles.homeHero}`}><div><span className={styles.eyebrow}>{clinic.name} · Mobile wellness</span><h1>Mobile wellness care<br /><em>with {clinic.name}.</em></h1><p>{clinic.description || 'Connect with our clinic’s professionals for mobile wellness care in your community.'}</p>{area ? <p>Serving {area}. Explore all service areas below.</p> : null}<div className={styles.heroActions}><Link className={styles.action} href={`${site.home}/services`}>Explore services <span aria-hidden="true">→</span></Link><a className={styles.textLink} href="#team">Meet your care team</a></div></div><figure className={styles.heroPhoto}><Image unoptimized src={clinic.websiteSettings?.heroImageUrl || DEFAULT_CLINIC_HERO} className={!clinic.websiteSettings?.heroImageUrl ? styles.defaultHeroImage : undefined} alt={clinic.websiteSettings?.heroImageUrl ? `${clinic.name} mobile wellness care` : "A nurse providing mobile IV care to a client in the comfort of her home"} width={1200} height={800} priority/></figure></section>
         <ClinicVisitSteps/>
-        <div className={styles.trust} aria-label="Your care experience"><span>Clinic-authorized professionals</span><span>Care at your location</span><span>Clear pricing before payment</span><span>Connected through My Care</span></div>
         {groups.length ? <div className={styles.careSections}>
             {groups.map(group => {
                 const content = categoryContent[group.id];
