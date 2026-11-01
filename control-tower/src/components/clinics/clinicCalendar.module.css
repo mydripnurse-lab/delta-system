@@ -31,3 +31,51 @@
  .monthScroll{overflow:visible}.calendar{padding:12px}.viewTabs button{font-size:11px;min-width:0;flex:1;padding:8px 2px}
  .dialog{padding:18px;max-height:calc(100dvh - 24px)}
 }
+
+/* A full-day hit area, with appointment controls layered above it. */
+.monthDay{position:relative;isolation:isolate}
+.calendar .daySurface{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:inherit;background:transparent;z-index:0}
+.calendar .daySurface:hover:not(:disabled){background:color-mix(in srgb,var(--clinic-primary,#075c68) 5%,transparent)}
+.calendar .daySurface:focus-visible{outline-offset:-3px}
+.monthDay>header{position:relative;pointer-events:none;z-index:1;padding:2px;font-size:12px}
+.monthDay>.compact,.monthDay>.moreVisits{position:relative;z-index:2}
+.availabilityDialog{width:min(720px,calc(100vw - 32px));padding:0;overflow:hidden}
+.availabilityDialog[open]{display:flex;flex-direction:column}
+.availabilityDialog>header{flex-shrink:0;padding:24px 28px;margin:0;border-bottom:1px solid #e6edeb;gap:16px;background:white}
+.availabilityDialog>header h2{margin:8px 0 0;font-size:24px;line-height:1.25}
+.availabilityDialog>header>button{width:44px;height:44px;flex-shrink:0;padding:0;border-radius:50%}
+.availabilityBody{padding:24px 28px;overflow-y:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.availabilityIntro{margin:0 0 22px;font-size:14px;line-height:1.6;color:#657e83}
+.nurseSelection{border:0;padding:0;margin:0;min-width:0}
+.nurseSelection legend{padding:0;margin-bottom:10px;font-size:12px;font-weight:700}
+.inlineStaffOptions{position:static;width:100%;max-width:none;max-height:260px;box-sizing:border-box;margin-top:10px;box-shadow:none;overscroll-behavior:contain}
+.inlineStaffOptions label{position:sticky;top:-12px;background:white;padding-block:10px;z-index:1}
+.inlineStaffOptions>button{min-height:44px}
+.scheduleEditor{margin-top:24px}
+.scheduleTabs{display:flex;gap:4px;padding:4px;background:#f4f7f6;border-radius:12px;margin-bottom:24px}
+.calendar .scheduleTabs button{flex:1;border:0;background:transparent;min-height:44px}
+.calendar .scheduleTabs button[aria-pressed=true]{background:var(--clinic-primary,#075c68);color:var(--clinic-ink,#fff);box-shadow:0 2px 8px #173b4110}
+.scheduleEditor h3{font-size:18px;margin:0 0 10px}
+.scheduleEditor p{font-size:13px;line-height:1.65}
+.scheduleEditor fieldset{margin:0}
+.scheduleEditor fieldset>div>div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:16px;padding:16px 0;align-items:center}
+.scheduleEditor input[type=checkbox]{width:18px;height:18px;min-height:18px;margin:0 8px 0 0;accent-color:var(--clinic-primary);vertical-align:middle}
+.scheduleEditor label{font-size:13px}
+.scheduleEditor fieldset>div>div label{margin-bottom:0}
+.scheduleEditor fieldset>button{margin-top:12px;min-height:44px;background:var(--clinic-primary);color:var(--clinic-ink);border-color:var(--clinic-primary)}
+.scheduleEditor fieldset>button:hover:not(:disabled){background:var(--clinic-primary);filter:brightness(.95)}
+.timezoneNote{font-size:12px;color:#657e83}
+.dayAppointments{border:1px solid #e1eaea;border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px}
+.dayAppointments summary{cursor:pointer;font-weight:700}
+.dayAppointments>button{display:flex;flex-wrap:wrap;gap:10px;width:100%;text-align:left;margin-top:10px}
+@media(max-width:700px){
+ .monthDay>header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;margin:0;padding:6px 0;box-sizing:border-box}
+ .monthDay>header>span{font-size:9px}
+ .availabilityDialog{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);padding:0;border-radius:20px}
+ .availabilityDialog>header{padding:18px}
+ .availabilityDialog>header h2{font-size:20px}
+ .availabilityBody{padding:18px}
+ .scheduleEditor fieldset>div>div{grid-template-columns:1fr;gap:10px}
+ .scheduleEditor fieldset>div>div>div{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ .scheduleEditor fieldset>button{width:100%}
+}
