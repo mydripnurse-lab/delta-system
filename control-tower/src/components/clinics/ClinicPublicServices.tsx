@@ -6,19 +6,22 @@ import { resolveClinicPrice, clinicCovers } from '@/lib/clinicPolicy';
 import { readRegionalPrices, type PricingRegion } from '@/lib/regionalPricing';
 import type { publicClinicServices } from '@/lib/clinicBooking';
 import styles from './clinicWebsite.module.css';
+import { clinicServiceGroups } from '@/lib/clinicServiceNavigation';
 
 export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverage, services, partnerId, bookingsEnabled = false }: {
     clinicId: string; clinicSlug?: string; clinicHome?: string; bookingsEnabled?: boolean; partnerId?: string;
     coverage: PricingRegion[]; services: Awaited<ReturnType<typeof publicClinicServices>>;
 }) {
     const [region, setRegion] = useState('');
+    const groups = clinicServiceGroups<(typeof services)[number]>(services);
     const choices = [...new Map([...coverage, ...services.flatMap(s => [...readRegionalPrices(s.clinicRegions), ...(s.clinicPrice === null ? readRegionalPrices(s.regionalPrices) : [])].map(rule => rule.region).filter(r => clinicCovers(coverage, r)))].map(r => [r.id, r])).values()].sort((a, b) => a.label.localeCompare(b.label));
     const location = choices.find(r => r.id === region);
     return <div>
         <div className={styles.catalogHeading}><div><span className={styles.eyebrow}>Designed around your visit</span><h2>{clinicSlug ? 'Find your care.' : 'Your service. Your area.'}</h2><p>Explore available services and local pricing. Your final price and deposit are confirmed using your service address before payment.</p></div>
             {choices.length ? <label className={styles.regionLabel}>Your service area<select value={region} onChange={e => setRegion(e.target.value)}><option value="">Choose your area</option>{choices.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label> : null}
         </div>
-        <div className={`${styles.services} ${services.length === 1 ? styles.singleService : ''}`}>{services.map(s => {
+        {groups.length > 1 ? <nav className={styles.categoryTabs} aria-label="Service categories">{groups.map(group => <a key={group.id} href={`#${group.id}`}>{group.label}</a>)}</nav> : null}
+        {groups.map(group => <section id={group.id} className={styles.serviceGroup} key={group.id} aria-label={group.label}>{groups.length > 1 ? <h3>{group.label}</h3> : null}<div className={`${styles.services} ${services.length === 1 ? styles.singleService : ''}`}>{group.services.map(s => {
             const rules = readRegionalPrices(s.clinicRegions), general = readRegionalPrices(s.regionalPrices);
             const quote = resolveClinicPrice(s.price, general, { price: s.clinicPrice, regionalPrices: rules }, location);
             const variable = rules.length > 0 || (s.clinicPrice === null && general.length > 0);
@@ -31,7 +34,7 @@ export function ClinicPublicServices({ clinicId, clinicSlug, clinicHome, coverag
                     </div>
                 </div>
             </article>;
-        })}</div>
+        })}</div></section>)}
         {!services.length ? <p className={styles.empty}>Services are being prepared. <a className={styles.textLink} href="mailto:info@mydripnurse.com">Contact My Drip Nurse</a> for information.</p> : <p className={styles.note}>The clinic collects the remaining balance and any voluntary tip directly. Eligible My Drip Nurse-funded rewards have separate terms. Treatment suitability is reviewed by a qualified healthcare professional.</p>}
     </div>;
 }

@@ -51,8 +51,9 @@ async function main(){
  const policy=load('src/lib/clinicDomainPolicy.ts'),routing=load('src/lib/clinicDomainRouting.ts');
  for(const host of ['mydripnurse.com','care.mydripnurse.com','a.vercel.app','localhost','127.0.0.1','https://care.someclinic.com','care.someclinic.com/path','*.someclinic.com','care.someclinic.com:443','care..com','-care.someclinic.com','care.someclinic.com@evil.com'])assert.throws(()=>policy.normalizeClinicDomain(host),host);
  assert.equal(policy.normalizeClinicDomain(' Care.SomeClinic.com. '),'care.someclinic.com');
- for(const p of ['/','/services','/services/alleviate','/login','/robots.txt','/sitemap.xml'])assert.equal(routing.clinicDomainPath(p),'public');
- for(const p of ['/api/clinics','/portal','/clinics/other','/clinic-domain/other','/services/foo/book','/partner-admin','/login/reset','//login'])assert.equal(routing.clinicDomainPath(p),'deny');
+ for(const p of ['/','/services','/services/alleviate','/become-a-partner','/login','/robots.txt','/sitemap.xml'])assert.equal(routing.clinicDomainPath(p),'public');
+ assert.equal(routing.clinicDomainPath('/clinic-assets/wellness-lounge.webp'),'asset');
+ for(const p of ['/clinic-assets/private.json','/become-a-partner/admin','/api/clinics','/portal','/clinics/other','/clinic-domain/other','/services/foo/book','/partner-admin','/login/reset','//login'])assert.equal(routing.clinicDomainPath(p),'deny');
  const {unstable_doesMiddlewareMatch}=require('next/experimental/testing/server');
  const proxy=load('src/proxy.ts');
  assert.equal(unstable_doesMiddlewareMatch({config:proxy.config,nextConfig:{},url:'https://care.someclinic.com/api/private'}),true);

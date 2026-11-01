@@ -19,7 +19,7 @@ const load = cache(async (slug: string, serviceSlug: string) => {
     if (!clinic) return null;
     const [services, team] = await Promise.all([publicClinicServices(clinic.id), publicClinicTeam(clinic.id)]);
     const service = services.find(s => s.slug === serviceSlug);
-    return service ? { clinic, service, team: team.filter(n => n.serviceIds.includes(service.id)) } : null;
+    return service ? { clinic, service, services, team: team.filter(n => n.serviceIds.includes(service.id)) } : null;
 });
 export async function generateMetadata({ params }: Props) {
     const { slug, serviceSlug } = await params, data = await load(slug, serviceSlug);
@@ -45,7 +45,7 @@ export default async function Page({ params, searchParams }: Props) {
         { question: 'Who collects the remaining balance?', answer: 'The clinic collects the remaining balance and any voluntary tip directly. My Drip Nurse does not collect or pay out this balance. Eligible My Drip Nurse-funded rewards have separate terms.' },
         { question: 'Is my visit confirmed immediately?', answer: 'Your request is sent to an eligible professional for acceptance. Track the appointment in your secure Care portal.' },
     ];
-    return <ClinicPublicWebsite clinic={clinic}><main id="clinic-content"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ '@context': 'https://schema.org', '@graph': [
+    return <ClinicPublicWebsite clinic={clinic} services={data.services}><main id="clinic-content"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ '@context': 'https://schema.org', '@graph': [
         { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: clinic.name, item: site.canonicalHome }, { '@type': 'ListItem', position: 2, name: 'Services', item: `${site.canonicalHome}/services` }, { '@type': 'ListItem', position: 3, name: service.name, item: url }] },
         { '@type': 'Service', name: service.name, description: service.description, image: service.imageUrl || undefined, url, provider: { '@type': 'Organization', name: clinic.name, url: site.canonicalHome }, areaServed: clinic.coverage.map(r => ({ '@type': 'Place', name: r.label })) },
         { '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) },

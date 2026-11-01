@@ -2,23 +2,20 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { CSSProperties, ReactNode } from 'react';
 import type { PublicClinic } from '@/lib/clinics';
-import type { publicClinicTeam } from '@/lib/clinicBooking';
+import { publicClinicServices, type publicClinicTeam } from '@/lib/clinicBooking';
 import { PartnerExperience, PartnerFooter } from '@/components/partner/PartnerBrand';
 import { brandTextColor } from '@/lib/clinicPolicy';
 import { clinicSiteAddress } from '@/lib/clinicDomains';
 import { PARTNER_ORIGIN } from '@/lib/clinicDomainPolicy';
 import styles from './clinicWebsite.module.css';
+import { ClinicPublicHeader } from './ClinicPublicHeader';
 
-export async function ClinicPublicWebsite({ clinic, children }: { clinic: PublicClinic; children: ReactNode }) {
-    const { home } = await clinicSiteAddress(clinic);
+export async function ClinicPublicWebsite({ clinic, children, services }: { clinic: PublicClinic; children: ReactNode; services?: Awaited<ReturnType<typeof publicClinicServices>> }) {
+    const [{ home }, catalog] = await Promise.all([clinicSiteAddress(clinic), services ?? publicClinicServices(clinic.id)]);
     return <PartnerExperience branding={clinic}><div data-mdn-clinic-website className={styles.site} style={{ '--clinic-primary': clinic.primaryColor, '--clinic-accent': clinic.accentColor, '--clinic-ink': brandTextColor(clinic.primaryColor), '--clinic-accent-ink': brandTextColor(clinic.accentColor) } as CSSProperties}>
         <a href="#clinic-content" className={styles.skip}>Skip to content</a>
         <div className={styles.topline}>Local care. A connected team. <span>Powered by My Drip Nurse.</span></div>
-        <header className={styles.header}>
-            <Link href={home} className={styles.brand} aria-label={`${clinic.name} home`}>{clinic.logoUrl ? <Image src={clinic.logoUrl} alt={clinic.name} width={220} height={70} unoptimized priority /> : <strong>{clinic.name}</strong>}</Link>
-            <nav aria-label="Clinic navigation"><Link href={`${home}/services`}>Services</Link><Link href={`${home}#team`}>Our team</Link><Link href={`${home}#coverage`}>Areas we serve</Link><Link href={`${PARTNER_ORIGIN}/directory/clinics`}>Directory</Link><a href={`${PARTNER_ORIGIN}/clinic-login/${clinic.slug}`}>Log in</a></nav>
-            <a className={styles.headerAction} href="https://care.mydripnurse.com">My Care <span aria-hidden="true">↗</span></a>
-        </header>
+        <ClinicPublicHeader name={clinic.name} slug={clinic.slug} logoUrl={clinic.logoUrl} home={home} services={catalog.map(({ id, slug, name, imageUrl }) => ({ id, slug, name, imageUrl }))}/>
         {children}<PartnerFooter />
     </div></PartnerExperience>;
 }
