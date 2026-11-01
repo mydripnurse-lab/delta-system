@@ -1,4 +1,4 @@
-import { coverageSummary, publicProviderMetadata, clinicEntity, clinicServiceEntities } from "@/lib/providerSeo";
+import { clinicKeywords, coverageSummary, publicProviderMetadata, clinicEntity, clinicServiceEntities } from "@/lib/providerSeo";
 import { clinicSiteAddress } from '@/lib/clinicDomains';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props) {
     const [clinic] = await publicClinics((await params).slug);
     const site = clinic ? await clinicSiteAddress(clinic) : null;
     const area = clinic ? coverageSummary(clinic.coverage) : '';
-    return clinic ? publicProviderMetadata(`IV services | ${clinic.name}${area ? ` · ${area}` : ''}`, `Explore services offered by ${clinic.name}${area ? ` in ${area}` : ''}. View local pricing, ingredients and care professionals.`, `${site!.canonicalHome}/services`, clinic.logoUrl) : { robots: { index: false } };
+    return clinic ? publicProviderMetadata(`IV services | ${clinic.name}${area ? ` · ${area}` : ''}`, `Explore services offered by ${clinic.name}${area ? ` in ${area}` : ''}. View local pricing, ingredients and care professionals.`, `${site!.canonicalHome}/services`, clinic.logoUrl, clinicKeywords(clinic, ["IV services"])) : { robots: { index: false } };
 }
 export default async function Page({ params }: Props) {
     if (!clinicsEnabled()) notFound();

@@ -30,10 +30,10 @@ export function publishedServiceNames(services: readonly { name: string; status:
     return [...new Set(services.filter(s => ['active', 'out_of_stock'].includes(s.status.toLowerCase())).map(s => s.name.trim()).filter(Boolean))];
 }
 
-export function publicProviderMetadata(title: string, description: string, canonical: string, image?: string): Metadata {
+export function publicProviderMetadata(title: string, description: string, canonical: string, image?: string, keywords?: string[]): Metadata {
     return {
         metadataBase: new URL(canonical),
-        title, description, alternates: { canonical },
+        title, description, ...(keywords?.length ? { keywords } : {}), alternates: { canonical },
         robots: { index: true, follow: true },
         openGraph: { type: 'website', title, description, url: canonical, ...(image ? { images: [image] } : {}) },
         twitter: { card: image ? 'summary_large_image' : 'summary', title, description, ...(image ? { images: [image] } : {}) },
@@ -51,4 +51,19 @@ export function clinicServiceEntities(services: readonly { slug: string; name: s
         name: service.name, description: service.description, image: service.imageUrl || undefined,
         url: `${home}/services/${service.slug}`, provider: { '@id': `${home}#clinic` },
         areaServed: providerCoverage(areas).map(area => area.schema) }));
+}
+
+/** Descriptive metadata only, never a ranking guarantee or invented coverage. */
+export function clinicKeywords(clinic: { name: string; coverage: Coverage[] }, services: readonly string[] = []) {
+    return [...new Set([clinic.name, ...services, ...providerCoverage(clinic.coverage).slice(0, 6).map(a => a.label)])];
+}
+export function clinicServiceIntroduction(clinic: { name: string; description: string; coverage: Coverage[] }, service: { name: string }, team: readonly { name: string; credentials: string }[]) {
+    const area = coverageSummary(clinic.coverage, 3);
+    const professionals = team.slice(0, 4).map(n => [n.name, n.credentials].filter(Boolean).join(', '));
+    return {
+        heading: `${service.name} with ${clinic.name}`,
+        description: clinic.description.trim(),
+        coverage: area ? `${clinic.name} lists ${service.name} for ${area}. Enter the visit address to check which team members can attend at your selected time.` : 'Enter your visit address to check coverage and available professionals.',
+        team: professionals.length ? `The clinic team offering this service includes ${professionals.join('; ')}. Availability varies by address and appointment time.` : 'Available clinic professionals will appear when coverage and an appointment time are confirmed.',
+    };
 }

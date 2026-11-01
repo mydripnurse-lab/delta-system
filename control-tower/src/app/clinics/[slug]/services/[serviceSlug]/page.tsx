@@ -1,4 +1,4 @@
-import { coverageSummary, publicProviderMetadata, clinicEntity, clinicServiceEntities } from "@/lib/providerSeo";
+import { clinicKeywords, clinicServiceIntroduction, coverageSummary, publicProviderMetadata, clinicEntity, clinicServiceEntities } from "@/lib/providerSeo";
 import { clinicSiteAddress } from '@/lib/clinicDomains';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props) {
     const { slug, serviceSlug } = await params, data = await load(slug, serviceSlug);
     const site = data ? await clinicSiteAddress(data.clinic) : null;
     const area = data ? coverageSummary(data.clinic.coverage) : '';
-    return data ? publicProviderMetadata(`${data.service.name} | ${data.clinic.name}${area ? ` · ${area}` : ''}`, `${data.service.name} with ${data.clinic.name}${area ? ` in ${area}` : ''}. ${data.service.description} View service details, local pricing and the care team.`, `${site!.canonicalHome}/services/${serviceSlug}`, data.service.imageUrl) : { robots: { index: false } };
+    return data ? publicProviderMetadata(`${data.service.name} | ${data.clinic.name}${area ? ` · ${area}` : ''}`, `${data.service.name} with ${data.clinic.name}${area ? ` in ${area}` : ''}. ${data.service.description} View service details, local pricing and the care team.`, `${site!.canonicalHome}/services/${serviceSlug}`, data.service.imageUrl, clinicKeywords(data.clinic, [data.service.name])) : { robots: { index: false } };
 }
 export default async function Page({ params, searchParams }: Props) {
     const { slug, serviceSlug } = await params, data = await load(slug, serviceSlug);
@@ -43,8 +43,10 @@ export default async function Page({ params, searchParams }: Props) {
     const site = await clinicSiteAddress(clinic);
     const url = `${site.canonicalHome}/services/${serviceSlug}`;
     const area = coverageSummary(coverage, 4);
+    const introduction = clinicServiceIntroduction({ ...clinic, coverage }, service, nurse ? [nurse] : team);
     const faq = [
         { question: `Where does ${clinic.name} offer ${service.name}?`, answer: area ? `${service.name} is listed for ${area}. Your full service address and the professional’s availability are checked before booking.` : 'Contact My Drip Nurse to check coverage for your address.' },
+        { question: `Who offers ${service.name} at ${clinic.name}?`, answer: introduction.team },
         { question: 'What will my visit cost?', answer: 'Choose your service area below to see applicable pricing. Your final price and deposit are confirmed from the service address before payment.' },
         { question: 'Who collects the remaining balance?', answer: 'The clinic collects the remaining balance and any voluntary tip directly. My Drip Nurse does not collect or pay out this balance. Eligible My Drip Nurse-funded rewards have separate terms.' },
         { question: 'Is my visit confirmed immediately?', answer: 'Your request is sent to an eligible professional for acceptance. Track the appointment in your secure Care portal.' },
@@ -58,6 +60,7 @@ export default async function Page({ params, searchParams }: Props) {
     ] }) }} />
         <section className={styles.hero}><div><Link className={styles.back} href={`${site.home}/services`}>← All services</Link><h1>{service.name}</h1><p>{service.description}</p><p>Provided through {clinic.name}{area ? ` in ${area}` : ""}. See the service areas below and confirm availability for your address.</p>{nurse ? <p>Requested professional: {nurse.name}</p> : null}<div className={styles.heroActions}><a className={styles.action} href="#booking">View pricing & availability →</a></div></div><div className={styles.visual}>{service.imageUrl ? <Image unoptimized priority src={service.imageUrl} alt={service.name} width={500} height={500}/> : null}</div></section>
         <section className={styles.section}><span className={styles.eyebrow}>Your experience</span><h2>Personal attention, wherever you are.</h2><div className={styles.facts}><article><h3>Service details</h3><p>{service.ingredients?.length ? service.ingredients.join(' · ') : service.description}</p></article><article><h3>Professional review</h3><p>Eligibility, ingredients and treatment suitability are reviewed by an appropriately qualified professional before administration.</p></article><article><h3>Care, connected</h3><p>Use your Care portal for appointment details and updates. This service is not emergency care.</p></article></div></section>
+        <section className={styles.section} aria-labelledby="clinic-service-context"><span className={styles.eyebrow}>About your clinic</span><h2 id="clinic-service-context">{introduction.heading}</h2>{introduction.description ? <p>{introduction.description}</p> : null}<p>{introduction.coverage}</p><p>{introduction.team}</p></section>
         <section className={styles.section} id="booking"><ClinicPublicServices clinicId={clinic.id} partnerId={nurse?.id} services={[nurseService || service]} coverage={coverage} bookingsEnabled={clinicBookingsEnabled()}/></section>
         <ClinicCoverageSection clinic={{ ...clinic, coverage }}/><ClinicTeam team={nurse ? [nurse] : team}/><PartnerFaq title="Before your visit" items={faq}/>
     </main></ClinicPublicWebsite>;

@@ -41,6 +41,7 @@ export async function GET() {
     ...clinics.flatMap(clinic => [
       urlEntry({loc: `${PARTNER_SITE_ORIGIN}/clinics/${clinic.slug}`, priority: '0.8', changeFrequency: 'weekly'}),
       urlEntry({loc: `${PARTNER_SITE_ORIGIN}/clinics/${clinic.slug}/services`, priority: '0.75', changeFrequency: 'weekly'}),
+      urlEntry({loc: `${PARTNER_SITE_ORIGIN}/clinics/${clinic.slug}/become-a-partner`, priority: '0.6', changeFrequency: 'monthly'}),
       ...clinic.services.map(slug => urlEntry({loc: `${PARTNER_SITE_ORIGIN}/clinics/${clinic.slug}/services/${slug}`, priority: '0.75', changeFrequency: 'weekly'})),
     ]),
     ...profiles.flatMap((profile) => {

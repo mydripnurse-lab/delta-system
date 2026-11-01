@@ -458,7 +458,9 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
   const [date, setDate] = useState(todayDate);
   const [availability, setAvailability] = useState<BookingAvailability | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<BookingAvailabilitySlot | null>(null);
-  const quotedPrice = selectedSlot?.partners[0]?.price ?? availability?.calendar.price ?? 0;
+  const [selectedNurseId, setSelectedNurseId] = useState('');
+  const selectedNurse = clinicId ? selectedSlot?.partners.find(n => n.id === (partnerId || selectedNurseId)) : undefined;
+  const quotedPrice = selectedNurse?.price ?? selectedSlot?.partners[0]?.price ?? availability?.calendar.price ?? 0;
   const quotedDeposit = Math.min(quotedPrice, availability?.calendar.depositType === "percentage"
     ? Math.round(quotedPrice * (availability.calendar.depositValue || 0)) / 100
     : availability?.calendar.depositValue || 0);
@@ -952,6 +954,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
 
   const submit = useCallback(async () => {
     if (!availability || !selectedSlot) return;
+    if (clinicId && !selectedNurse) { setError("Choose an available nurse for this appointment time."); return; }
     if (!contactIsComplete || !additionalPatientsAreComplete || !address.addressLine1) {
       setError("Your patient details, all additional patient details and appointment address are required.");
       return;
@@ -977,8 +980,8 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           expectedPrice: quotedPrice,
           clinicId: clinicId || undefined,
           timezone: selectedSlot.timezone,
-          assignmentStrategy: partnerView ? "requested" : "balanced",
-          requestedPartnerId: partnerView ? partnerId || undefined : undefined,
+          assignmentStrategy: clinicId || partnerView ? "requested" : "balanced",
+          requestedPartnerId: clinicId ? selectedNurse?.id : partnerView ? partnerId || undefined : undefined,
           customer: normalizedPerson(contact),
           attendees: additionalPatients.map((patient) => normalizedPerson(patient)),
           address,
@@ -1033,7 +1036,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
     } finally {
       setSubmitting(false);
     }
-  }, [clinicId, quotedPrice, additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, partnerView, publicKey, screeningIsClear, screeningSelected, selectedSlot, sourceContext]);
+  }, [clinicId, selectedNurse, quotedPrice, additionalPatients, additionalPatientsAreComplete, address, availability, contact, contactIsComplete, date, finalizeCheckout, partnerId, partnerView, publicKey, screeningIsClear, screeningSelected, selectedSlot, sourceContext]);
 
   const submitDemand = useCallback(async () => {
     if (!contactIsComplete) {
@@ -1346,7 +1349,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
               <label>City<input value={address.city} onChange={(event) => { setAddress((current) => ({ ...current, city: event.target.value, longitude: undefined, latitude: undefined })); setAddressVerifiedLabel(""); setAddressFeatureId(""); setSelectedSavedAddressId(""); setAddressSaved(false); setAvailability(null); setSelectedSlot(null); }} autoComplete="address-level2" /></label>
               <label>State<input value={address.state} onChange={(event) => { setAddress((current) => ({ ...current, state: event.target.value, longitude: undefined, latitude: undefined })); setAddressVerifiedLabel(""); setAddressFeatureId(""); setSelectedSavedAddressId(""); setAddressSaved(false); setAvailability(null); setSelectedSlot(null); }} autoComplete="address-level1" /></label>
               <label>ZIP code<input value={address.postalCode} onChange={(event) => { setAddress((current) => ({ ...current, postalCode: event.target.value, longitude: undefined, latitude: undefined })); setAddressVerifiedLabel(""); setAddressFeatureId(""); setSelectedSavedAddressId(""); setAddressSaved(false); setAvailability(null); setSelectedSlot(null); }} autoComplete="postal-code" /></label>
-              <label className={styles.wide}>Appointment date<input type="date" min={todayDate()} value={date} onChange={(event) => setDate(event.target.value)} /></label>
+              <label className={styles.wide}>Appointment date<input type="date" min={todayDate()} value={date} onChange={(event) => { setDate(event.target.value); setAvailability(null); setSelectedSlot(null); setSelectedNurseId(''); }} /></label>
             </div>
             {initialProfile?.accountConnected && !selectedSavedAddressId && addressFeatureId ? <div className={styles.saveAddressChoice}>
               <label><input type="checkbox" checked={saveNewAddress} onChange={(event) => setSaveNewAddress(event.target.checked)} /> Save this verified address to my Care profile</label>
@@ -1361,7 +1364,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
             <span className={styles.step}>4 · Available times</span>
             <div className={styles.serviceSummary}>
               <div><strong>{availability.calendar.serviceName}</strong><span>{availability.calendar.durationMinutes} minutes · book at least {Math.round(availability.calendar.minimumNoticeMinutes / 60)} hours ahead</span></div>
-              <strong>{money(selectedSlot?.partners[0]?.price ?? availability.calendar.price, availability.calendar.currency)}</strong>
+              <strong>{money(quotedPrice, availability.calendar.currency)}</strong>
             </div>
             <div className={styles.slots}>
               {availability?.slots.map((slot) => (
@@ -1371,6 +1374,7 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
                   type="button"
                   onClick={() => {
                     setSelectedSlot(slot);
+                    setSelectedNurseId(partnerId || (slot.partners.length === 1 ? slot.partners[0].id : ''));
                     window.setTimeout(() => document.getElementById("booking-confirmation")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
                   }}
                 >
@@ -1386,13 +1390,20 @@ export function BookingCalendarClient({ publicKey, partnerId = "", partnerView =
           {screeningIsClear && selectedSlot ? (
             <section className={`${styles.card} ${styles.confirmCard}`} id="booking-confirmation">
               <span className={styles.step}>5 · Confirm your details</span>
+              {clinicId ? <fieldset className={styles.nursePicker}><legend>Choose your nurse</legend><p>Available for your selected address, service and appointment time.</p>
+                {selectedSlot.partners.map(nurse => <label className={styles.partnerOption} key={nurse.id}>
+                  <input type="radio" name="clinic-nurse" value={nurse.id} checked={selectedNurse?.id === nurse.id} onChange={() => setSelectedNurseId(nurse.id)}/>
+                  {nurse.profilePhotoUrl ? <Image unoptimized src={nurse.profilePhotoUrl} alt="" width={48} height={48}/> : <span aria-hidden="true" className={styles.nurseAvatar}>{nurse.displayName.slice(0, 1)}</span>}
+                  <span><strong>{nurse.displayName}</strong>{nurse.businessName ? <small>{nurse.businessName}</small> : null}</span>
+                </label>)}
+              </fieldset> : null}
               <div className={styles.confirmSummary}><strong>{fullName(contact)}</strong><span>{contact.email} · {phoneForDisplay(contact)}</span><small>{additionalPatients.length ? `${additionalPatients.length} additional patient${additionalPatients.length === 1 ? "" : "s"} included` : "Primary patient only"}</small></div>
               <div className={styles.depositNote}><strong>Service total</strong><span>{money(quotedPrice, availability?.calendar.currency || "USD")}</span></div>
               <small className={styles.security}>Price for the verified service address in {[availability?.geography.placeName, availability?.geography.countyName, availability?.geography.stateName].filter(Boolean).join(", ")}. {quotedPrice !== availability?.calendar.price ? "A professional-specific price applies." : ""}</small>
               <div className={styles.depositNote}><strong>Appointment deposit</strong><span>{money(quotedDeposit, availability?.calendar.currency || "USD")}</span></div>
               <div className={styles.depositNote}><strong>{clinicId ? "Pay the clinic at the visit" : "Pay your professional at the visit"}</strong><span>{money(Math.max(0, quotedPrice - quotedDeposit), availability?.calendar.currency || "USD")} + optional tip</span></div>
-              <button className={styles.primaryButton} type="button" disabled={submitting} onClick={() => void submit()}>{submitting ? "Reserving your appointment…" : "Continue to secure payment"}</button>
-              <small className={styles.security}>Your appointment is confirmed only after Stripe verifies the deposit.</small>
+              <button className={styles.primaryButton} type="button" disabled={submitting || Boolean(clinicId && !selectedNurse)} onClick={() => void submit()}>{submitting ? "Reserving your appointment…" : "Continue to secure payment"}</button>
+              <small className={styles.security}>Your deposit secures your booking request. The assigned professional must accept before your appointment is confirmed.</small>
             </section>
           ) : null}
 

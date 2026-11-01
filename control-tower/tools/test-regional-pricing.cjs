@@ -14,6 +14,7 @@ function load(relative, mocks = {}) {
     if (name === 'server-only') return {};
     if (name.startsWith('@/') && name.endsWith('.json')) return require(path.join(root, 'src', name.slice(2)));
     if (name.startsWith('@/')) return load(`src/${name.slice(2)}.ts`, mocks);
+    if (name.startsWith('./') || name.startsWith('../')) return load(path.join(path.dirname(relative), `${name}.ts`), mocks);
     return require(name);
   }, module, module.exports);
   return module.exports;
@@ -213,7 +214,7 @@ function cacheHarness() {
   assert.equal(availabilityQueries, 2, 'Regional quotes reuse the existing expiration and availability queries');
   await assert.rejects(() => available.loadBookingAvailability({ publicKey: 'test', date: '2027-01-01', coverage: { state: 'FL', county: 'Orange' } }), /verify the complete/);
   // Exercise the real checkout function with a synthetic database and Stripe adapter.
-  const calls = []; let charged = 0;
+  const calls = []; let charged = 0, checkoutBrand;
   const startsAt = new Date(Date.now() + 86_400_000).toISOString();
   let facts = { service_id: 'service', calendar_id: 'calendar', organization_id: 'org', service_name: 'Test IV', service_slug: 'test', duration_minutes: 60, buffer_before_minutes: 0, buffer_after_minutes: 0, price: '219', price_override: null, regional_prices: rules, deposit_type: 'percentage', deposit_value: '40', currency: 'USD' };
   const query = async (sql, args = []) => {
@@ -224,13 +225,13 @@ function cacheHarness() {
     if (sql.includes('insert into app.appointments (')) return { rows: [{ id: 'appointment' }] };
     return { rows: [] };
   };
-  let clinicQuote = { id: 'clinic-test', name: 'Fixture Clinic', price: 239, source: 'Clinic · City', regionId: orlando.id, partnerIds: ['partner'] };
+  let clinicQuote = { brand: { primaryColor: '#453a30' }, id: 'clinic-test', name: 'Fixture Clinic', price: 239, source: 'Clinic · City', regionId: orlando.id, partnerIds: ['partner'] };
   const checkout = load('src/lib/appointmentBooking.ts', {
     '@/lib/clinicBooking': { clinicBookingContext: async () => clinicQuote },
     '@/lib/db': { getDbPool: () => ({ query, connect: async () => ({ query, release() {} }) }) },
     '@/lib/bookingEngineSchema': { ensureBookingEngineSchema: async () => {} },
     '@/lib/serviceBookingAvailability': { loadBookingAvailability: async () => ({ calendar: { serviceName: 'Test IV', currency: 'USD' }, geography: { stateName: 'Florida', countyName: 'Orange County', placeName: 'Orlando city', stateFips: '12', countyFips: '095', countyGeoid: '12095', placeGeoid: '1253000', source: 'census_coordinates' }, coverageAvailable: true, slots: [{ startsAt, partners: [{ id: 'partner' }] }] }) },
-    '@/lib/stripeCheckout': { getStripePublishableKey: () => 'pk_test', createStripeCheckoutSession: async args => { charged = args.amountCents; return { id: 'fake', status: 'open', url: 'https://example.test' }; } },
+    '@/lib/stripeCheckout': { getStripePublishableKey: () => 'pk_test', createStripeCheckoutSession: async args => { charged = args.amountCents; checkoutBrand = args.clinicBrand; return { id: 'fake', status: 'open', url: 'https://example.test' }; } },
     '@/lib/bookingPolicy': { BOOKING_MINIMUM_NOTICE_MINUTES: 120 },
     '@/lib/stripePaymentLifecycle': { sendConfirmedAppointmentAutomations: async () => {} },
     '@/lib/clientRewards': {}, '@/lib/clientPortalAuth': { ensureClientPortalSchema: async () => {} },
@@ -256,6 +257,7 @@ function cacheHarness() {
   const clinicInput = { ...input, clinicId: clinicQuote.id, expectedPrice: 239 };
   await checkout.createAppointmentCheckout(clinicInput);
   assert.equal(charged, 9560, 'Clinic deposit uses 40% of the clinic address quote');
+  assert.deepEqual(checkoutBrand, {name: 'Fixture Clinic', primaryColor: '#453a30'}, 'Checkout uses the server-validated clinic branding');
   assert.equal(calls.find(call => call.sql.includes('insert into app.appointments (')).args[27], 239);
   const clinicMetadata = JSON.parse(calls.find(call => call.sql.includes('metadata = metadata') && call.sql.includes('update app.appointments')).args[1]);
   assert.equal(clinicMetadata.clinic.balanceCollector, 'clinic');

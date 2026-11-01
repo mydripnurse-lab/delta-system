@@ -619,3 +619,27 @@
   .primaryLink,
   .secondaryLink { width: 100%; }
 }
+
+/* Inherit the validated clinic theme; independent booking keeps its existing defaults. */
+:global([data-clinic-booking="true"]) .page { background:var(--booking-soft,linear-gradient(145deg,#f7f5ef 0%,#eef8f7 55%,#e2f3f2 100%)); }
+:global([data-clinic-booking="true"]) .primaryButton, :global([data-clinic-booking="true"]) .addPatientButton { background:var(--booking-primary,linear-gradient(120deg,#066d79,#0a929b)); color:var(--booking-ink,#fff); }
+:global([data-clinic-booking="true"]) .primaryButton:hover, :global([data-clinic-booking="true"]) .addPatientButton:hover { background:var(--booking-primary,#045762); filter:brightness(.94); }
+:global([data-clinic-booking="true"]) .intro { color:var(--booking-soft-ink,#163b40); }
+:global([data-clinic-booking="true"]) .intro p, :global([data-clinic-booking="true"]) .selectedServiceHero strong { color:var(--booking-soft-ink,#5e7779); }
+:global([data-clinic-booking="true"]) .intro .eyebrow { color:var(--booking-soft-ink,#087887); }
+:global([data-clinic-booking="true"]) .selectedSlot, :global([data-clinic-booking="true"]) .embeddedPage .selectedSlot { background:var(--booking-soft,#dff5f1); color:var(--booking-soft-ink,#19464b); border-color:var(--booking-primary,#078597); }
+:global([data-clinic-booking="true"]) .selectedSlot span { color:inherit; }
+.nursePicker { border:0; padding:0; margin:22px 0; display:grid; gap:12px; min-width:0; }
+.nursePicker legend { font-weight:800; font-size:1.1rem; margin-bottom:8px; }
+.nursePicker p { font-size:.88rem; line-height:1.5; margin:0 0 4px; }
+.nursePicker input { width:20px; height:20px; accent-color:var(--booking-primary,#066d79); }
+.nursePicker .partnerOption { min-height:76px; margin:0; }
+.nursePicker .partnerOption:has(input:checked) { background:var(--booking-soft,#eef9f7); color:var(--booking-soft-ink,#163b40); border-color:var(--booking-primary,#16909c); }
+.nursePicker .partnerOption:focus-within { outline:2px solid var(--booking-primary,#066d79); outline-offset:3px; }
+.nursePicker img,.nurseAvatar { width:48px; height:48px; border-radius:50%; object-fit:cover; }
+.nurseAvatar { display:grid; place-items:center; background:#f1f4f4; color:#173d42; }
+.nursePicker strong,.nursePicker small { display:block; color:inherit; }
+.nursePicker small { margin-top:4px; font-size:.8rem; }
+
+:global([data-clinic-booking="true"]) .confirmSummary, :global([data-clinic-booking="true"]) .depositNote, :global([data-clinic-booking="true"]) .selectedServiceImage { background:var(--booking-soft); color:var(--booking-soft-ink); }
+:global([data-clinic-booking="true"]) .confirmSummary strong, :global([data-clinic-booking="true"]) .confirmSummary span, :global([data-clinic-booking="true"]) .confirmSummary small, :global([data-clinic-booking="true"]) .depositNote span { color:inherit; }

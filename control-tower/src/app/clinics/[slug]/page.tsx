@@ -1,4 +1,4 @@
-import { coverageSummary, publicProviderMetadata, clinicEntity, clinicServiceEntities } from "@/lib/providerSeo";
+import { clinicKeywords, coverageSummary, publicProviderMetadata, clinicEntity, clinicServiceEntities } from "@/lib/providerSeo";
 import { DEFAULT_CLINIC_HERO } from '@/lib/clinicWebsiteBrand';
 import { clinicSiteAddress } from '@/lib/clinicDomains';
 import Image from 'next/image';
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props) {
     const [clinic] = await publicClinics((await params).slug);
     const site = clinic ? await clinicSiteAddress(clinic) : null;
     const area = clinic ? coverageSummary(clinic.coverage) : '';
-    return clinic ? publicProviderMetadata(`${clinic.name} | Mobile IV care${area ? ` in ${area}` : ''}`, `${clinic.name}${area ? ` serves ${area}` : ''}. Explore its care team, available IV services and appointment options. ${clinic.description}`.slice(0, 300), site!.canonicalHome, clinic.websiteSettings?.heroImageUrl || clinic.logoUrl) : { robots: { index: false } };
+    return clinic ? publicProviderMetadata(`${clinic.name} | Mobile IV care${area ? ` in ${area}` : ''}`, `${clinic.name}${area ? ` serves ${area}` : ''}. Explore its care team, available IV services and appointment options. ${clinic.description}`.slice(0, 300), site!.canonicalHome, clinic.websiteSettings?.heroImageUrl || clinic.logoUrl, clinicKeywords(clinic, ["Mobile IV care"])) : { robots: { index: false } };
 }
 export default async function Page({ params }: Props) {
     if (!clinicsEnabled()) notFound();

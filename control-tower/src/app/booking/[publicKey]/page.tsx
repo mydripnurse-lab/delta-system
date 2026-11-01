@@ -1,6 +1,12 @@
+import type { CSSProperties } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { loadClinicBookingPage } from "@/lib/clinicBookingPage";
+import { clinicSiteAddress } from "@/lib/clinicDomains";
+import brandStyles from "@/components/booking/clinicBookingBrand.module.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BookingCalendarClient } from "@/components/booking/BookingCalendarClient";
 import BookingIdentityPanel from "@/components/booking/BookingIdentityPanel";
@@ -9,10 +15,20 @@ import { loadPublicBookingCalendarSummary } from "@/lib/serviceBookingAvailabili
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const bookingMetadata: Metadata = {
+  robots: { index: false, follow: true },
   title: "Book Mobile IV Therapy | My Drip Nurse",
   icons: { icon: "https://sitemaps.mydripnurse.com/favicon.ico" },
 };
+
+export async function generateMetadata({ params, searchParams }: {
+  params: Promise<{ publicKey: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const { publicKey } = await params, query = await searchParams;
+  const data = typeof query.clinicId === 'string' ? await loadClinicBookingPage(query.clinicId, publicKey, typeof query.partnerId === 'string' ? query.partnerId : '') : null;
+  return { ...bookingMetadata, ...(data ? { title: `Book ${data.service.name} | ${data.clinic.name}`, description: `Request an appointment with ${data.clinic.name}. Choose an available nurse for your service address and review your price before payment.` } : {}) };
+}
 
 export default async function BookingCalendarPage({
   params,
@@ -33,9 +49,20 @@ export default async function BookingCalendarPage({
     });
     redirect(destination.toString());
   }
+  const clinicId = typeof query.clinicId === 'string' ? query.clinicId : '';
+  const nurseId = typeof query.partnerId === 'string' ? query.partnerId : '';
+  const clinicBooking = clinicId ? await loadClinicBookingPage(clinicId, publicKey, nurseId) : null;
+  if (query.clinicId !== undefined && !clinicBooking) notFound();
+  const site = clinicBooking ? await clinicSiteAddress(clinicBooking.clinic) : null;
+  const brandStyle = clinicBooking ? {
+    '--booking-primary': clinicBooking.brand.primaryColor,
+    '--booking-soft': clinicBooking.brand.accentColor,
+    '--booking-ink': clinicBooking.brand.ink,
+    '--booking-soft-ink': clinicBooking.brand.accentInk,
+  } as CSSProperties : undefined;
   const [clientAccount, calendarSummary] = await Promise.all([
     getAuthenticatedClient(),
-    loadPublicBookingCalendarSummary(publicKey).catch(() => null),
+    clinicBooking ? Promise.resolve({ serviceName: clinicBooking.service.name, serviceImageUrl: clinicBooking.service.imageUrl, serviceImageAlt: clinicBooking.service.name }) : loadPublicBookingCalendarSummary(publicKey).catch(() => null),
   ]);
   const embedded = query.embed === "1";
   const requestedReturnTo = Array.isArray(query.returnTo) ? query.returnTo[0] : query.returnTo;
@@ -47,6 +74,14 @@ export default async function BookingCalendarPage({
   const bookingReturnTo = bookingReturnUrl.toString();
   const returnTo = embedded ? safeClientReturnUrl(requestedReturnTo) || bookingReturnTo : bookingReturnTo;
   return (
+    <div data-clinic-booking={clinicBooking ? "true" : undefined} className={clinicBooking ? brandStyles.page : undefined} style={brandStyle}>
+    {clinicBooking ? <header className={brandStyles.header}>
+      <Link href={site!.canonicalHome} className={brandStyles.logo} aria-label={`Back to ${clinicBooking.clinic.name}`}>
+        {clinicBooking.clinic.logoUrl ? <Image unoptimized src={clinicBooking.clinic.logoUrl} alt={clinicBooking.clinic.name} width={200} height={64}/> : clinicBooking.clinic.name}
+      </Link>
+      <div><strong>{clinicBooking.clinic.name}</strong><span>Secure booking · Powered by My Drip Nurse</span></div>
+      <Link href={`${site!.canonicalHome}/services/${clinicBooking.service.slug}`} className={brandStyles.back}>← Back to service</Link>
+    </header> : null}
     <BookingIdentityPanel
       connectedName={clientAccount?.fullName.split(/\s+/)[0] || ""}
       embedded={embedded}
@@ -84,5 +119,6 @@ export default async function BookingCalendarPage({
         } : undefined}
       />
     </BookingIdentityPanel>
+    </div>
   );
 }

@@ -155,6 +155,7 @@ export async function createAppointmentCheckout(opts: {
   let appointmentReference = "";
   let customerEmail = opts.customer.email.toLowerCase();
   let serviceName = availability.calendar.serviceName;
+  let clinicCheckoutBrand: { name: string; primaryColor: string } | undefined;
   let amountCents = 0;
   let standardDepositCents = 0;
   let partnerEarningsCents = 0;
@@ -177,6 +178,7 @@ export async function createAppointmentCheckout(opts: {
   try {
     await client.query("begin");
     const clinic = opts.clinicId ? await clinicBookingContext(opts.clinicId, opts.publicKey, {state:availability.geography.stateName,county:availability.geography.countyName,city:availability.geography.placeName}, client) : null;
+    if (clinic) clinicCheckoutBrand = { name: clinic.name, primaryColor: clinic.brand.primaryColor };
     if (clinic && opts.expectedPrice === undefined) throw new Error("Review the clinic price before continuing to payment.");
     const email = opts.customer.email.toLowerCase();
     const phone = normalizedPhone(opts.customer.phone);
@@ -547,6 +549,7 @@ export async function createAppointmentCheckout(opts: {
       cancelUrl: opts.checkoutCancelUrl,
       returnUrl: opts.checkoutReturnUrl,
       embedded: embeddedCheckout,
+      clinicBrand: clinicCheckoutBrand,
     });
     await pool.query(
       `update app.appointment_payments

@@ -83,6 +83,7 @@ export async function createStripeCheckoutSession(opts: {
   cancelUrl?: string;
   returnUrl?: string;
   embedded?: boolean;
+  clinicBrand?: { name: string; primaryColor: string };
 }) {
   const secretKey = requiredEnvironment("STRIPE_SECRET_KEY");
   const bookingBaseUrl = String(opts.returnBaseUrl || process.env.BOOKING_PUBLIC_BASE_URL || "https://admin.mydripnurse.com")
@@ -102,9 +103,9 @@ export async function createStripeCheckoutSession(opts: {
     returnUrl.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
     returnUrl.hash = "";
     form.set("ui_mode", "embedded");
-    form.set("branding_settings[display_name]", "My Drip Nurse Care");
+    form.set("branding_settings[display_name]", opts.clinicBrand ? `${opts.clinicBrand.name} · My Drip Nurse`.slice(0, 100) : "My Drip Nurse Care");
     form.set("branding_settings[background_color]", "#FFFFFF");
-    form.set("branding_settings[button_color]", "#066D79");
+    form.set("branding_settings[button_color]", opts.clinicBrand?.primaryColor || "#066D79");
     form.set("branding_settings[border_style]", "pill");
     form.set("branding_settings[font_family]", "inter");
     // URLSearchParams encodes the braces, but Stripe needs the literal

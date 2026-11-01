@@ -1,3 +1,4 @@
+import { clinicWebsiteBrand, type ClinicWebsiteSettings } from "@/lib/clinicWebsiteBrand";
 import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import type { PoolClient } from 'pg';
@@ -15,10 +16,13 @@ export async function clinicBookingContext(clinicId: string, publicKey: string, 
         coverage: PricingRegion[];
         price: string | null;
         regional_prices: unknown;
+        primaryColor: string;
+        accentColor: string;
+        websiteSettings: ClinicWebsiteSettings;
         general_price: string;
         general_regions: unknown;
         service_id: string;
-    }>(`select c.id,c.name,c.coverage,p.price::text,p.regional_prices,s.price::text as general_price,s.source_metadata->'regionalPrices' as general_regions,s.id as service_id from app.clinics c join app.clinic_service_prices p on p.clinic_id=c.id and p.enabled and p.availability_status='active' join app.services s on s.id=p.service_id and s.organization_id=c.organization_id and s.is_active join app.service_calendars cal on cal.service_id=s.id and cal.status='active' where c.id=$1 and c.status='approved' and c.published and cal.public_key=$2 ${client ? 'for share of c,p,s,cal' : ''}`, [clinicId, publicKey]);
+    }>(`select c.id,c.name,c.coverage,c.primary_color as "primaryColor",c.accent_color as "accentColor",coalesce(to_jsonb(c)->'website_settings','{}'::jsonb) as "websiteSettings",p.price::text,p.regional_prices,s.price::text as general_price,s.source_metadata->'regionalPrices' as general_regions,s.id as service_id from app.clinics c join app.clinic_service_prices p on p.clinic_id=c.id and p.enabled and p.availability_status='active' join app.services s on s.id=p.service_id and s.organization_id=c.organization_id and s.is_active join app.service_calendars cal on cal.service_id=s.id and cal.status='active' where c.id=$1 and c.status='approved' and c.published and cal.public_key=$2 ${client ? 'for share of c,p,s,cal' : ''}`, [clinicId, publicKey]);
     const clinic = rows[0];
     if (!clinic)
         throw new Error('This clinic is not accepting bookings for this service.');
@@ -28,7 +32,7 @@ export async function clinicBookingContext(clinicId: string, publicKey: string, 
     }>(`select m.partner_profile_id,m.coverage from app.clinic_memberships m where m.clinic_id=$1 and ${CLINIC_CARE_MEMBER_SQL} and m.status='active' and m.partner_profile_id is not null and m.accepted_at is not null and m.authorized_at is not null and (m.service_ids is null or $2::uuid=any(m.service_ids)) ${client ? 'for share of m' : ''}`, [clinicId, clinic.service_id]);
     const partnerIds = members.rows.filter(m => clinicNurseCovers(clinic.coverage, m.coverage, location)).map(m => m.partner_profile_id);
     const price = resolveClinicPrice(Number(clinic.general_price), readRegionalPrices(clinic.general_regions), { price: clinic.price === null ? null : Number(clinic.price), regionalPrices: readRegionalPrices(clinic.regional_prices) }, location);
-    return { id: clinic.id, name: clinic.name, partnerIds, ...price };
+    return { id: clinic.id, name: clinic.name, partnerIds, brand: clinicWebsiteBrand(clinic), ...price };
 }
 export const publicClinicServices = unstable_cache(async (id: string, nurseId?: string) => {
     const { rows } = await getDbPool().query<{

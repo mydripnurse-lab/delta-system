@@ -274,6 +274,12 @@ export const publicClinics = unstable_cache(async (slug: string = '', offset = 0
     return rows;
 }, ['clinics-public-v3-website-settings'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
 
+// A bounded public lookup for booking branding, shared across requests and invalidated on saves.
+export const publicClinicById = unstable_cache(async (id: string) => {
+    const { rows } = await getDbPool().query<PublicClinic>(`select ${publicColumns} from app.clinics c where c.id=$1 and c.status='approved' and c.published=true limit 1`, [id]);
+    return rows[0] || null;
+}, ['clinic-public-booking-v1'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
+
 // A branding save cannot overwrite profile details, coverage, publication or pricing.
 export async function saveClinicBranding(id: string, raw: unknown) {
     await requireClinicManager(id);

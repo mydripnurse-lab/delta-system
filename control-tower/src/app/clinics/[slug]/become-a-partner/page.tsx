@@ -1,3 +1,4 @@
+import { publicProviderMetadata, clinicKeywords } from "@/lib/providerSeo";
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { publicClinics } from '@/lib/clinics';
@@ -8,7 +9,13 @@ import { ClinicPublicWebsite } from '@/components/clinics/ClinicPublicWebsite';
 import { PartnerFaq } from '@/components/partner/PartnerFaq';
 import styles from '@/components/clinics/clinicWebsite.module.css';
 
-export const metadata = { title: 'Become a Partner | My Drip Nurse', description: 'Join the My Drip Nurse network as an independent nurse or clinic.', robots: { index: false, follow: true } };
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+    if (!clinicsEnabled()) return { robots: { index: false } };
+    const [clinic] = await publicClinics((await params).slug);
+    if (!clinic) return { robots: { index: false } };
+    const site = await clinicSiteAddress(clinic);
+    return publicProviderMetadata(`Join My Drip Nurse through ${clinic.name}`, `Explore an independent nurse or clinic application through ${clinic.name}. Learn about the referral, service coverage and appointment process.`, `${site.canonicalHome}/become-a-partner`, clinic.logoUrl, clinicKeywords(clinic, ['Nurse network', 'Clinic registration']));
+}
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
     if (!clinicsEnabled()) notFound();
     const [clinic] = await publicClinics((await params).slug);
