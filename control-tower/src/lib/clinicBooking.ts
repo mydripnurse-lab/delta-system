@@ -58,15 +58,16 @@ export const publicClinicTeam = unstable_cache(async (id: string) => {
         name: string;
         photo: string;
         credentials: string;
+        publicTitle: string;
         biography: string;
         serviceIds: string[];
         coverage: PricingRegion[];
-    }>(`select p.id,p.slug,p.display_name as name,coalesce(p.profile_photo_url,'') as photo,coalesce(p.professional_credentials,'') as credentials,coalesce(p.biography,'') as biography,m.coverage,array(select prices.service_id from app.clinic_service_prices prices
+    }>(`select p.id,p.slug,p.display_name as name,coalesce(p.profile_photo_url,'') as photo,coalesce(p.professional_credentials,'') as credentials,coalesce(p.public_title,'') as "publicTitle",coalesce(p.biography,'') as biography,m.coverage,array(select prices.service_id from app.clinic_service_prices prices
           join app.services s on s.id=prices.service_id and s.organization_id=c.organization_id and s.is_active
           join app.partner_service_assignments a on a.partner_profile_id=p.id and a.service_id=s.id and a.status in ('active','out_of_stock')
           where prices.clinic_id=c.id and prices.enabled and prices.availability_status<>'paused' and (m.service_ids is null or s.id=any(m.service_ids))) as "serviceIds" from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id and c.status='approved' and c.published join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 and m.status='active' and ${CLINIC_CARE_MEMBER_SQL} and m.accepted_at is not null and m.authorized_at is not null and p.profile_consent_at is not null and p.website_status='published' and p.directory_status='published' order by p.display_name limit 100`, [id]);
     return rows;
-}, ['public-clinic-team-v4-service-selection'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG] });
+}, ['public-clinic-team-v5-professional-title'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, CLINIC_TEAM_CACHE_TAG] });
 // Existing appointments may be declined even if the clinic stops taking new bookings.
 // An unavailable clinic returns no replacements, never independent professionals.
 export async function clinicReassignmentPartners(clinicId: string, serviceId: string, location: PricingLocation, client: PoolClient) {

@@ -1,3 +1,4 @@
+import type { ClinicWebsiteSettings } from '@/lib/clinicWebsiteBrand';
 import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { validateClinicMemberServices, ensureClinicMemberServices } from '@/lib/clinicMemberServices';
@@ -22,6 +23,7 @@ export type Clinic = {
     status: ClinicStatus;
     description: string;
     logoUrl: string;
+    websiteSettings?: ClinicWebsiteSettings;
     primaryColor: string;
     accentColor: string;
     contactEmail: string;
@@ -43,7 +45,7 @@ export type ClinicMember = {
     publicationReady: boolean;
     serviceIds: string[] | null;
 };
-const columns = `c.id,c.slug,c.name,c.status,c.description,c.logo_url as "logoUrl",c.primary_color as "primaryColor",c.accent_color as "accentColor",c.contact_email as "contactEmail",c.contact_phone as "contactPhone",c.coverage,c.published`;
+const columns = `c.id,c.slug,c.name,c.status,c.description,c.logo_url as "logoUrl",c.primary_color as "primaryColor",c.accent_color as "accentColor",c.contact_email as "contactEmail",c.contact_phone as "contactPhone",c.coverage,c.published,coalesce(to_jsonb(c)->'website_settings','{}'::jsonb) as "websiteSettings"`;
 const basic = z.object({ name: z.string().trim().min(2).max(120), slug: z.string().trim().min(3).max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).refine(value => !['register', 'invite'].includes(value), 'Choose a different website address.'), contactEmail: z.string().trim().email().max(254), contactPhone: z.string().trim().max(40), description: z.string().trim().max(4000) });
 export const clinicInput = basic.extend({ logoUrl: z.union([z.literal(''), z.string().url().max(2000).refine(v => v.startsWith('https://'))]), primaryColor: z.string().regex(/^#[a-f0-9]{6}$/i), accentColor: z.string().regex(/^#[a-f0-9]{6}$/i), coverageIds: z.array(z.string().max(300)).max(500), published: z.boolean().optional() });
 export async function coverageFromIds(ids: string[]) {
@@ -266,16 +268,31 @@ export async function updateClinicMember(clinicId: string, raw: unknown) {
     }
 }
 // Public reads deliberately exclude private clinic contact details at the SQL boundary.
-const publicColumns = `c.id,c.slug,c.name,c.status,c.description,c.logo_url as "logoUrl",c.primary_color as "primaryColor",c.accent_color as "accentColor",c.coverage,c.published`;
+const publicColumns = `c.id,c.slug,c.name,c.status,c.description,c.logo_url as "logoUrl",c.primary_color as "primaryColor",c.accent_color as "accentColor",c.coverage,c.published,coalesce(to_jsonb(c)->'website_settings','{}'::jsonb) as "websiteSettings"`;
 export const publicClinics = unstable_cache(async (slug: string = '', offset = 0) => {
     const { rows } = await getDbPool().query<PublicClinic>(`select ${publicColumns} from app.clinics c where c.status='approved' and c.published=true and ($1='' or c.slug=$1) order by c.name,c.id limit 24 offset $2`, [slug, offset]);
     return rows;
-}, ['clinics-public-v2-private-contacts'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
+}, ['clinics-public-v3-website-settings'], { revalidate: 300, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
 
 // A branding save cannot overwrite profile details, coverage, publication or pricing.
 export async function saveClinicBranding(id: string, raw: unknown) {
     await requireClinicManager(id);
     const input = clinicInput.pick({ logoUrl: true, primaryColor: true, accentColor: true }).parse(raw);
     await getDbPool().query(`update app.clinics set logo_url=$2,primary_color=$3,accent_color=$4,updated_at=now() where id=$1`, [id, input.logoUrl, input.primaryColor, input.accentColor]);
+    invalidateClinics();
+}
+
+// This action cannot change portal branding, prices, coverage or publication status.
+export async function saveClinicWebsite(id: string, raw: unknown) {
+    await requireClinicManager(id);
+    const color = z.string().regex(/^#[a-f0-9]{6}$/i);
+    const input = z.object({
+        heroImageUrl: z.union([z.literal(''), z.string().url().max(2000).refine(value => {
+            const url = new URL(value);
+            return url.protocol === 'https:' && !url.username && !url.password && url.hostname.endsWith('.public.blob.vercel-storage.com') && url.pathname.startsWith(`/clinics/${id}/hero-`);
+        }, 'Upload a hero image for this clinic.')]),
+        primaryColor: color, secondaryColor: color,
+    }).parse(raw);
+    await getDbPool().query(`update app.clinics set website_settings=$2::jsonb,updated_at=now() where id=$1`, [id, JSON.stringify(input)]);
     invalidateClinics();
 }
