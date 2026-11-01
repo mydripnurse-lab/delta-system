@@ -10,8 +10,9 @@ import { PARTNER_ORIGIN } from '@/lib/clinicDomainPolicy';
 import styles from './clinicWebsite.module.css';
 import { ClinicPublicHeader } from './ClinicPublicHeader';
 
-export async function ClinicPublicWebsite({ clinic, children, services }: { clinic: PublicClinic; children: ReactNode; services?: Awaited<ReturnType<typeof publicClinicServices>> }) {
-    const [{ home }, catalog] = await Promise.all([clinicSiteAddress(clinic), services ?? publicClinicServices(clinic.id)]);
+export async function ClinicPublicWebsite({ clinic, children, services, absoluteNavigation = false }: { clinic: PublicClinic; children: ReactNode; absoluteNavigation?: boolean; services?: Awaited<ReturnType<typeof publicClinicServices>> }) {
+    const [site, catalog] = await Promise.all([clinicSiteAddress(clinic), services ?? publicClinicServices(clinic.id)]);
+    const home = absoluteNavigation ? site.canonicalHome : site.home;
     const brand = clinicWebsiteBrand(clinic);
     return <PartnerExperience branding={brand}><div data-mdn-clinic-website className={styles.site} style={{ '--clinic-primary': brand.primaryColor, '--clinic-accent': brand.accentColor, '--clinic-ink': brand.ink, '--clinic-accent-ink': brand.accentInk } as CSSProperties}>
         <a href="#clinic-content" className={styles.skip}>Skip to content</a>

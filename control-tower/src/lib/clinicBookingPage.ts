@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { clinicBookingsEnabled } from './clinicFeature';
 import { publicClinicById } from './clinics';
 import { publicClinicServices, publicClinicTeam } from './clinicBooking';
+import { clinicCovers } from './clinicPolicy';
 import { clinicWebsiteBrand } from './clinicWebsiteBrand';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -14,6 +15,11 @@ export const loadClinicBookingPage = cache(async (clinicId: string, publicKey: s
     const services = await publicClinicServices(clinicId, nurseId || undefined);
     const service = services.find(s => s.publicKey === publicKey && s.availabilityStatus === 'active');
     if (!service) return null;
-    if (nurseId && !(await publicClinicTeam(clinicId)).some(n => n.id === nurseId && n.serviceIds.includes(service.id))) return null;
-    return { clinic, service, brand: clinicWebsiteBrand(clinic) };
+    const nurse = nurseId ? (await publicClinicTeam(clinicId)).find(n => n.id === nurseId && n.serviceIds.includes(service.id)) : undefined;
+    if (nurseId && !nurse) return null;
+    const coverage = nurse ? [...new Map([
+        ...nurse.coverage.filter(r => clinicCovers(clinic.coverage, r)),
+        ...clinic.coverage.filter(r => clinicCovers(nurse.coverage, r)),
+    ].map(r => [r.id, r])).values()] : clinic.coverage;
+    return { clinic, service, nurse, coverage, brand: clinicWebsiteBrand(clinic) };
 });

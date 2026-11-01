@@ -1,8 +1,6 @@
 import type { CSSProperties } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { loadClinicBookingPage } from "@/lib/clinicBookingPage";
-import { clinicSiteAddress } from "@/lib/clinicDomains";
+import { ClinicBookingExperience } from "@/components/booking/ClinicBookingExperience";
 import brandStyles from "@/components/booking/clinicBookingBrand.module.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
@@ -53,7 +51,6 @@ export default async function BookingCalendarPage({
   const nurseId = typeof query.partnerId === 'string' ? query.partnerId : '';
   const clinicBooking = clinicId ? await loadClinicBookingPage(clinicId, publicKey, nurseId) : null;
   if (query.clinicId !== undefined && !clinicBooking) notFound();
-  const site = clinicBooking ? await clinicSiteAddress(clinicBooking.clinic) : null;
   const brandStyle = clinicBooking ? {
     '--booking-primary': clinicBooking.brand.primaryColor,
     '--booking-soft': clinicBooking.brand.accentColor,
@@ -73,15 +70,7 @@ export default async function BookingCalendarPage({
   }
   const bookingReturnTo = bookingReturnUrl.toString();
   const returnTo = embedded ? safeClientReturnUrl(requestedReturnTo) || bookingReturnTo : bookingReturnTo;
-  return (
-    <div data-clinic-booking={clinicBooking ? "true" : undefined} className={clinicBooking ? brandStyles.page : undefined} style={brandStyle}>
-    {clinicBooking ? <header className={brandStyles.header}>
-      <Link href={site!.canonicalHome} className={brandStyles.logo} aria-label={`Back to ${clinicBooking.clinic.name}`}>
-        {clinicBooking.clinic.logoUrl ? <Image unoptimized src={clinicBooking.clinic.logoUrl} alt={clinicBooking.clinic.name} width={200} height={64}/> : clinicBooking.clinic.name}
-      </Link>
-      <div><strong>{clinicBooking.clinic.name}</strong><span>Secure booking · Powered by My Drip Nurse</span></div>
-      <Link href={`${site!.canonicalHome}/services/${clinicBooking.service.slug}`} className={brandStyles.back}>← Back to service</Link>
-    </header> : null}
+  const booking = (
     <BookingIdentityPanel
       connectedName={clientAccount?.fullName.split(/\s+/)[0] || ""}
       embedded={embedded}
@@ -119,6 +108,7 @@ export default async function BookingCalendarPage({
         } : undefined}
       />
     </BookingIdentityPanel>
-    </div>
   );
+  if (clinicBooking && !embedded) return <ClinicBookingExperience data={clinicBooking} style={brandStyle}>{booking}</ClinicBookingExperience>;
+  return <div data-clinic-booking={clinicBooking ? "true" : undefined} className={clinicBooking ? brandStyles.page : undefined} style={brandStyle}>{booking}</div>;
 }

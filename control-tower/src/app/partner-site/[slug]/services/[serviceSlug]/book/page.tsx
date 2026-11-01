@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BookingCalendarClient } from "@/components/booking/BookingCalendarClient";
 import BookingIdentityPanel from "@/components/booking/BookingIdentityPanel";
@@ -10,6 +10,7 @@ import {
   PartnerFooter,
 } from "@/components/partner/PartnerBrand";
 import PartnerPublicHeader from "@/components/partner/PartnerPublicHeader";
+import { loadClinicNurseServicePage } from "@/lib/clinicNurseServicePage";
 import { loadPartnerServicePage } from "@/lib/partnerServicePages";
 import { buildPartnerMetadata } from "@/lib/partnerSeo";
 import { getAuthenticatedClient } from "@/lib/clientPortalAuth";
@@ -26,6 +27,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
+  const clinicNurse = await loadClinicNurseServicePage(slug, serviceSlug, preview);
+  if (clinicNurse) return { title: `Book ${clinicNurse.service.name} with ${clinicNurse.profile.displayName}`, robots: { index: false, follow: true } };
   const data = await loadPartnerServicePage(slug, serviceSlug, preview);
   if (!data) return { title: "Secure Booking | My Drip Nurse", robots: { index: false, follow: false } };
   return buildPartnerMetadata({
@@ -40,6 +43,13 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 export default async function PartnerServiceBookingPage({ params, searchParams }: Props) {
   const { slug, serviceSlug } = await params;
   const { preview = "" } = await searchParams;
+  const clinicNurse = await loadClinicNurseServicePage(slug, serviceSlug, preview);
+  if (clinicNurse) {
+    const destination = new URL(`https://care.mydripnurse.com/booking/${encodeURIComponent(clinicNurse.service.publicKey)}`);
+    destination.searchParams.set("clinicId", clinicNurse.clinic.id);
+    destination.searchParams.set("partnerId", clinicNurse.profile.id);
+    redirect(destination.toString());
+  }
   const [data, clientAccount] = await Promise.all([
     loadPartnerServicePage(slug, serviceSlug, preview),
     getAuthenticatedClient(),

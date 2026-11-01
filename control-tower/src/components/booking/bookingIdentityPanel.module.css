@@ -17,3 +17,5 @@
 :global([data-clinic-booking="true"]) .panel, :global([data-clinic-booking="true"]) .connected, :global([data-clinic-booking="true"]) .guest { background:var(--booking-soft,linear-gradient(120deg,#eaf8f5,#fff)); color:var(--booking-soft-ink,#173d42); }
 :global([data-clinic-booking="true"]) .heading p, :global([data-clinic-booking="true"]) .connected p, :global([data-clinic-booking="true"]) .guest p, :global([data-clinic-booking="true"]) .heading small, :global([data-clinic-booking="true"]) .connected small, :global([data-clinic-booking="true"]) .guest small { color:var(--booking-soft-ink,#61797b); }
 :global([data-clinic-booking="true"]) .emailPanel form>button, :global([data-clinic-booking="true"]) .guestActions .continueGuest, :global([data-clinic-booking="true"]) .connected>span { background:var(--booking-primary,#076d79); color:var(--booking-ink,#fff); border-color:var(--booking-primary,#076d79); }
+:global([data-clinic-booking="true"]) .actions .email,
+:global([data-clinic-booking="true"]) .actions .guestButton { color:var(--booking-soft-ink,#173d42); border-color:color-mix(in srgb,var(--booking-primary) 25%,white); }
