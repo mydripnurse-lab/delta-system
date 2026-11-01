@@ -28,6 +28,23 @@ export default async function Page({ params }: Props) {
     if (!clinic) notFound();
     const [services, team] = await Promise.all([publicClinicServices(clinic.id), publicClinicTeam(clinic.id)]);
     const groups = clinicServiceGroups(services);
+    const categoryContent: Record<string, { title: string; intro: string; detail: string }> = {
+        'iv-therapy': {
+            title: 'Mobile IV therapy, on your terms.',
+            intro: `Make room for your wellness without the extra trip. ${clinic.name} brings mobile IV therapy to eligible homes, hotels and other private settings in the communities we serve.`,
+            detail: 'Explore our IV options, compare ingredients and regional pricing, and choose a visit that fits your schedule. Your care professional reviews your health history and service suitability before treatment.',
+        },
+        nad: {
+            title: 'NAD+ care, in your own space.',
+            intro: `Explore NAD+ services with ${clinic.name} and plan a visit around your day. Our mobile care team comes to your eligible location, so you can settle into a familiar, comfortable setting.`,
+            detail: 'Compare the NAD+ options available through our clinic, then check pricing and available professionals for your address. Your care team will review suitability and what to expect before your visit.',
+        },
+        vitamins: {
+            title: 'Vitamin care that comes to you.',
+            intro: `${clinic.name} makes it easier to explore vitamin and injection services close to home. Choose from the options our clinic offers and connect with a care professional serving your area.`,
+            detail: 'View each service’s ingredients and pricing, then enter your address to find available appointments. Your health history and eligibility are reviewed before any service is provided.',
+        },
+    };
     const site = await clinicSiteAddress(clinic);
     const url = site.canonicalHome;
     const area = coverageSummary(clinic.coverage, 3);
@@ -47,7 +64,23 @@ export default async function Page({ params }: Props) {
         ] }) }} />
         <section className={styles.hero}><div><span className={styles.eyebrow}>{clinic.name} · Mobile wellness</span><h1>Mobile wellness care<br /><em>with {clinic.name}.</em></h1><p>{clinic.description || 'Connect with our clinic’s professionals for mobile wellness care in your community.'}</p>{area ? <p>Serving {area}. Explore all service areas below.</p> : null}<div className={styles.heroActions}><Link className={styles.action} href={`${site.home}/services`}>Explore services <span aria-hidden="true">→</span></Link><a className={styles.textLink} href="#team">Meet your care team</a></div></div><figure className={styles.heroPhoto}><Image unoptimized src={clinic.websiteSettings?.heroImageUrl || DEFAULT_CLINIC_HERO} className={!clinic.websiteSettings?.heroImageUrl ? styles.defaultHeroImage : undefined} alt={clinic.websiteSettings?.heroImageUrl ? `${clinic.name} mobile wellness care` : "A nurse providing mobile IV care to a client in the comfort of her home"} width={1200} height={800} priority/></figure></section>
         <div className={styles.trust} aria-label="Your care experience"><span>Clinic-authorized professionals</span><span>Care at your location</span><span>Clear pricing before payment</span><span>Connected through My Care</span></div>
-        <section className={styles.section} aria-labelledby="clinic-care-options"><div className={styles.sectionHeading}><div><span className={styles.eyebrow}>Wellness, with a personal touch</span><h2 id="clinic-care-options">Find your kind of care.</h2></div><p>Explore the services offered by {clinic.name}, with professional guidance at every step.</p></div><div className={styles.categories}>{groups.map(group => <Link key={group.id} className={styles.category} href={`${site.home}/services#${group.id}`}><span className={styles.categoryImage}><Image unoptimized src={group.image} alt={group.imageAlt} width={1000} height={667} loading="lazy"/></span><h3>{group.label}</h3><p>{group.description}</p><strong>Explore {group.label} <span aria-hidden="true">→</span></strong></Link>)}</div></section>
+        {groups.length ? <div className={styles.careSections}>
+            {groups.map(group => {
+                const content = categoryContent[group.id];
+                return <section key={group.id} id={`care-${group.id}`} className={styles.careSection} aria-labelledby={`care-${group.id}-title`}>
+                    <div className={styles.careImage}><Image unoptimized src={group.image} alt={group.imageAlt} width={1000} height={667} sizes="(max-width: 760px) 100vw, 50vw" loading="lazy" /></div>
+                    <div className={styles.careCopy}>
+                        <span className={styles.eyebrow}>{group.label} · {clinic.name}</span>
+                        <h2 id={`care-${group.id}-title`}>{content.title}</h2>
+                        <p>{content.intro}</p><p>{content.detail}</p>
+                        <ul className={styles.careServices} aria-label={`${group.label} services`}>
+                            {group.services.slice(0, 3).map(service => <li key={service.id}><Link href={`${site.home}/services/${service.slug}`}>{service.name}<span aria-hidden="true"> ↗</span></Link></li>)}
+                        </ul>
+                        <Link className={styles.action} href={`${site.home}/services#${group.id}`}>Explore {group.label}<span aria-hidden="true">→</span></Link>
+                    </div>
+                </section>;
+            })}
+        </div> : null}
         <section className={styles.section} id="services"><ClinicPublicServices clinicSlug={clinic.slug} clinicHome={site.home} bookingsEnabled={clinicBookingsEnabled()} clinicId={clinic.id} coverage={clinic.coverage} services={services}/></section>
         <ClinicCoverageSection clinic={clinic}/><ClinicTeam team={team}/><ClinicVisitSteps/>
         <ClinicNetworkReviews/>
