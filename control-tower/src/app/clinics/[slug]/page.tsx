@@ -9,6 +9,7 @@ import { clinicsEnabled, clinicBookingsEnabled } from '@/lib/clinicFeature';
 import { publicClinicServices, publicClinicTeam } from '@/lib/clinicBooking';
 import { ClinicPublicServices } from '@/components/clinics/ClinicPublicServices';
 import { ClinicPublicWebsite, ClinicTeam, ClinicCoverageSection } from '@/components/clinics/ClinicPublicWebsite';
+import { ClinicNetworkInvitation } from '@/components/clinics/ClinicNetworkInvitation';
 import { ClinicVisitSteps } from '@/components/clinics/ClinicVisitSteps';
 import { ClinicNetworkReviews } from '@/components/clinics/ClinicNetworkReviews';
 import { clinicServiceGroups } from '@/lib/clinicServiceNavigation';
@@ -86,6 +87,6 @@ export default async function Page({ params }: Props) {
         <ClinicCoverageSection clinic={clinic}/><ClinicTeam team={team}/>
         <ClinicNetworkReviews/>
         <PartnerFaq title="Your visit, explained" items={faq}/>
-        <section className={styles.section}><div className={styles.recruit}><div><span className={styles.eyebrow}>Grow with our network</span><h2>Your expertise. More connections.</h2><p>Are you a nurse or clinic owner? Join My Drip Nurse through {clinic.name} and build your presence in our USA &amp; Puerto Rico network.</p></div><Link className={styles.action} href={`${site.home}/become-a-partner`}>Become a Partner →</Link></div><div className={styles.closing}><h2>Your care starts with a connection.</h2><p>Explore your options with this clinic, or visit My Care to follow an existing appointment.</p><Link className={styles.action} href={`${site.home}/services`}>Find your service →</Link></div></section>
+        <section className={styles.section}><ClinicNetworkInvitation clinicName={clinic.name} href={`${site.home}/become-a-partner`} /><div className={styles.closing}><h2>Your care starts with a connection.</h2><p>Explore your options with this clinic, or visit My Care to follow an existing appointment.</p><Link className={styles.action} href={`${site.home}/services`}>Find your service →</Link></div></section>
     </main></ClinicPublicWebsite>;
 }
