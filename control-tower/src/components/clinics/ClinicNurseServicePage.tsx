@@ -1,3 +1,6 @@
+import Image from 'next/image';
+import { ClinicPricingProvider, ClinicServicePrice } from './ClinicServicePrice';
+import { publicPriceOffer, publicPriceSummary } from '@/lib/publicServicePricing';
 import type { CSSProperties } from 'react';
 import { clinicWebsiteBrand } from '@/lib/clinicWebsiteBrand';
 import clinicStyles from './clinicWebsite.module.css';
@@ -20,29 +23,29 @@ export function ClinicNurseServicePage({ data }: { data: NonNullable<Awaited<Ret
     const faq = [
         { question: `Who provides ${service.name}?`, answer: `${profile.displayName}${profile.professionalCredentials ? ` (${profile.professionalCredentials})` : ''} offers this service through ${clinic.name}. ${profile.publicTitle || ''} Treatment suitability is reviewed before care.` },
         { question: `Where can I book with ${profile.displayName}?`, answer: area ? `Listed coverage includes ${area}. See all service areas on this page. Your address, service and the professional’s availability are checked during booking.` : 'Contact My Drip Nurse to confirm service coverage.' },
-        { question: 'How are price and payment confirmed?', answer: 'Choose your area to see local pricing. The final price and deposit are confirmed using your service address before payment. The clinic collects the remaining balance and any voluntary tip directly; eligible My Drip Nurse-funded rewards have separate terms.' },
+        { question: 'How are price and payment confirmed?', answer: `${publicPriceSummary(service, coverage).label} per visit. Choose your area to see local pricing. The final price and deposit are confirmed using your service address before payment. The clinic collects the remaining balance and any voluntary tip directly; eligible My Drip Nurse-funded rewards have separate terms.` },
     ];
     const schema = { '@context': 'https://schema.org', '@graph': [
         { '@type': 'Person', '@id': `${home}#partner`, name: profile.displayName, url: home, image: profile.profilePhotoUrl || undefined, jobTitle: profile.publicTitle || undefined, honorificSuffix: profile.professionalCredentials || undefined },
-        { '@type': 'Service', '@id': `${url}#service`, name: service.name, description: service.description, url, image: service.imageUrl || undefined, provider: { '@id': `${home}#partner` }, areaServed: providerCoverage(coverage).map(area => area.schema) },
+        { '@type': 'Service', '@id': `${url}#service`, name: service.name, description: service.description, url, image: service.imageUrl || undefined, provider: { '@id': `${home}#partner` }, offers: publicPriceOffer(service, coverage, url, service.availabilityStatus === 'out_of_stock'), areaServed: providerCoverage(coverage).map(area => area.schema) },
         { '@type': 'WebPage', url, name: `${service.name} with ${profile.displayName}`, mainEntity: { '@id': `${url}#service` } },
         { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: profile.displayName, item: home }, { '@type': 'ListItem', position: 2, name: 'Services', item: `${home}/services` }, { '@type': 'ListItem', position: 3, name: service.name, item: url }] },
         { '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) },
     ] };
-    return <PartnerExperience branding={profile.clinicBrand}><main className={styles.page}>
+    return <PartnerExperience branding={profile.clinicBrand}><ClinicPricingProvider><main className={styles.page}>
         <PartnerPublicHeader profile={profile}/><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(schema) }}/>
-        <section className={styles.servicesHero}><div className={styles.shell}>
+        <section className={styles.serviceDetailHero}><div className={styles.shell}><div className={styles.serviceDetailCopy}>
             <Link href={`/${profile.slug}/services`}>← All services</Link>
             <h1>{service.name}<br/><em>with {profile.displayName}.</em></h1>
             <p>{profile.publicTitle}{profile.professionalCredentials ? ` · ${profile.professionalCredentials}` : ''}</p>
             <p>{service.description}</p><p>Care through <Link href={`/clinics/${clinic.slug}`}>{clinic.name}</Link>{area ? ` in ${area}` : ''}.</p>
-            {profile.biography ? <p>{profile.biography}</p> : null}
-        </div></section>
-        <section className={`${styles.serviceCatalog} ${clinicStyles.site}`} style={{ "--clinic-primary": brand.primaryColor, "--clinic-accent": brand.accentColor, "--clinic-ink": brand.ink, "--clinic-accent-ink": brand.accentInk, minHeight: "auto" } as CSSProperties}><div className={styles.shell}>
+            <div className={styles.serviceBookingCard}><ClinicServicePrice service={service} coverage={coverage}/><a className={styles.primaryAction} href="#booking">Check availability →</a></div>
+        </div><div className={styles.serviceDetailVisual}>{service.imageUrl ? <Image src={service.imageUrl} alt={`${service.name} mobile wellness service`} width={900} height={760} priority sizes="(max-width: 900px) 100vw, 45vw"/> : null}</div></div></section>
+        <section id="booking" className={`${styles.serviceCatalog} ${clinicStyles.site}`} style={{ "--clinic-primary": brand.primaryColor, "--clinic-accent": brand.accentColor, "--clinic-ink": brand.ink, "--clinic-accent-ink": brand.accentInk, minHeight: "auto" } as CSSProperties}><div className={styles.shell}>
             <ClinicPublicServices clinicId={clinic.id} partnerId={profile.id} coverage={coverage} services={[service]} bookingsEnabled={clinicBookingsEnabled()}/>
             {service.ingredients?.length ? <><h2>Service ingredients</h2><p>{service.ingredients.join(' · ')}</p></> : null}
         </div></section>
         <section className={styles.localServiceSection}><div className={styles.shell}><h2>Where {profile.displayName} provides care</h2><div className={styles.cityGrid}>{providerCoverage(coverage).map(area => <span key={area.label}>{area.label}</span>)}</div></div></section>
         <PartnerFaq title={`Questions about ${service.name}`} items={faq}/><PartnerFooter/>
-    </main></PartnerExperience>;
+    </main></ClinicPricingProvider></PartnerExperience>;
 }

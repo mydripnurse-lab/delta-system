@@ -1,3 +1,4 @@
+import { pricingCoverage, publicPriceSummary, publicPriceOffer } from "@/lib/publicServicePricing";
 import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
 import { ClinicNurseServices } from '@/components/clinics/ClinicNurseServices';
 import type { Metadata } from "next";
@@ -62,12 +63,13 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
   const services = await loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id);
+  const coverage = pricingCoverage(profile.serviceAreas);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: `Mobile IV therapy services with ${profile.displayName}`,
     itemListElement: services.map((service, index) => {
-      const numericPrice = service.price.replace(/[^0-9.]/g, "");
+
       return {
         "@type": "ListItem",
         position: index + 1,
@@ -79,9 +81,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           url: partnerPublicUrl(profile.slug, `services/${partnerServiceSlug(service)}`),
           provider: { "@type": "Person", "@id": `${partnerPublicUrl(profile.slug)}#partner`, name: profile.displayName, url: partnerPublicUrl(profile.slug), jobTitle: profile.publicTitle || undefined, honorificSuffix: profile.professionalCredentials || undefined },
           areaServed: providerCoverage(profile.serviceAreas).map(area => area.schema),
-          offers: numericPrice
-            ? { "@type": "Offer", price: numericPrice, priceCurrency: "USD", availability: service.availabilityStatus === "out_of_stock" ? "https://schema.org/OutOfStock" : "https://schema.org/InStock" }
-            : undefined,
+          offers: service.pricing ? publicPriceOffer(service.pricing, coverage, partnerPublicUrl(profile.slug, `services/${partnerServiceSlug(service)}`), service.availabilityStatus === "out_of_stock") : undefined,
         },
       };
     }),
@@ -93,15 +93,15 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
     },
     {
       question: "Are the service prices current?",
-      answer: "The prices on this page come from the service and calendar configuration managed in admin.mydripnurse.com. Any applicable deposit or additional booking terms are shown during booking.",
+      answer: "Prices reflect the service areas covered by your nurse. Where prices vary, a starting price is shown. Your address confirms the total and deposit before payment.",
     },
     {
       question: `How do I book with ${profile.displayName}?`,
-      answer: `Choose a service, review its complete landing page, and open the dedicated secure calendar to view live availability with ${profile.displayName}.`,
+      answer: `Choose a service and a convenient time to book your visit with ${profile.displayName}.`,
     },
     {
       question: "Is every service available in every location?",
-      answer: "Service and appointment availability can vary by location and calendar activation. The booking calendar shows the current options for this website.",
+      answer: "Availability depends on your address, selected service and preferred time. Enter your visit address to see available appointments.",
     },
     {
       question: "What if I need urgent or emergency medical care?",
@@ -171,7 +171,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
                     </div>
                     <div className={styles.serviceCardBody}>
                       <div className={styles.servicePrice}>
-                        <strong>{service.price || "Available at booking"}</strong>
+                        <strong>{service.pricing ? publicPriceSummary(service.pricing, coverage).label : service.price || "Available at booking"}</strong>
                       </div>
                       <h3>{service.name}</h3>
                     <p>{service.description}</p>

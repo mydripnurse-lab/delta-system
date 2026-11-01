@@ -63,7 +63,7 @@ export function clinicServiceIntroduction(clinic: { name: string; description: s
     return {
         heading: `${service.name} with ${clinic.name}`,
         description: clinic.description.trim(),
-        coverage: area ? `${clinic.name} lists ${service.name} for ${area}. Enter the visit address to check which team members can attend at your selected time.` : 'Enter your visit address to check coverage and available professionals.',
+        coverage: area ? `Book ${service.name} with ${clinic.name} in ${area}. Choose a convenient time for care at your location.` : 'Enter your visit address to check coverage and available professionals.',
         team: professionals.length ? `The clinic team offering this service includes ${professionals.join('; ')}. Availability varies by address and appointment time.` : 'Available clinic professionals will appear when coverage and an appointment time are confirmed.',
     };
 }

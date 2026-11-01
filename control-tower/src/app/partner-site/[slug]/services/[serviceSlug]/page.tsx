@@ -1,3 +1,5 @@
+import { ClinicServicePrice } from "@/components/clinics/ClinicServicePrice";
+import { pricingCoverage, publicPriceSummary, publicPriceOffer } from "@/lib/publicServicePricing";
 import { loadClinicNurseServicePage } from "@/lib/clinicNurseServicePage";
 import { ClinicNurseServicePage } from "@/components/clinics/ClinicNurseServicePage";
 import { coverageSummary, providerCoverage } from "@/lib/providerSeo";
@@ -70,7 +72,8 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
   const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
   const landingUrl = partnerPublicUrl(profile.slug, `services/${serviceSlug}`);
   const outOfStock = service.availabilityStatus === "out_of_stock";
-  const numericPrice = service.price.replace(/[^0-9.]/g, "");
+  const coverage = pricingCoverage(profile.serviceAreas);
+  const priceLabel = service.pricing ? publicPriceSummary(service.pricing, coverage).label : service.price;
   const cityLabel = coverageSummary(profile.serviceAreas, 4) || "the service areas confirmed during booking";
   const faqItems: PartnerFaqItem[] = [
     {
@@ -79,8 +82,8 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
     },
     {
       question: `How much does ${service.name} cost?`,
-      answer: service.price
-        ? `The current listed price is ${service.price}. Any required deposit and final booking terms appear before the appointment is confirmed.`
+      answer: priceLabel
+        ? `The current listed price is ${priceLabel} per visit. Your service address confirms the final price and deposit before payment. Any additional and final booking terms appear before the appointment is confirmed.`
         : "Current pricing and any applicable deposit are displayed during the secure booking process.",
     },
     {
@@ -116,9 +119,7 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
           honorificSuffix: profile.professionalCredentials || undefined,
         },
         areaServed: providerCoverage(profile.serviceAreas).map(area => area.schema),
-        offers: numericPrice
-          ? { "@type": "Offer", price: numericPrice, priceCurrency: "USD", availability: outOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock" }
-          : undefined,
+        offers: service.pricing ? publicPriceOffer(service.pricing, coverage, landingUrl, outOfStock) : undefined,
       },
       {
         "@type": "BreadcrumbList",
@@ -154,16 +155,12 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
               <h1>{service.name}<br /><em>delivered to you.</em></h1>
               <p>{service.description} Appointments are provided by {profile.displayName}{profile.professionalCredentials ? ` (${profile.professionalCredentials})` : ""} in {cityLabel}, subject to eligibility and availability.</p>
               <div className={`${styles.serviceBookingCard} ${outOfStock ? styles.serviceBookingCardOutOfStock : ""}`} id="availability-status">
-                <div className={styles.servicePriceDisplay}>
-                  <span>Current service price</span>
-                  <strong>{service.price || "Available at booking"}</strong>
-                  <small>Final booking terms are shown before confirmation.</small>
-                </div>
+                {service.pricing ? <ClinicServicePrice service={service.pricing} coverage={coverage}/> : <div className={styles.servicePriceDisplay}><span>Per visit</span><strong>{priceLabel || "Available at booking"}</strong></div>}
                 {outOfStock ? <span className={styles.outOfStockAction}>Out of Stock</span> : <Link href={partnerHref(`/services/${serviceSlug}/book`)} className={styles.primaryAction}>
                   Book {service.name} <span aria-hidden="true">→</span>
                 </Link>}
               </div>
-              {outOfStock ? <p className={styles.outOfStockNotice}>This service is temporarily out of stock with this Partner. The service information remains available, but new appointments cannot be booked until inventory is restored.</p> : null}
+              {outOfStock ? <p className={styles.outOfStockNotice}>This service is temporarily unavailable. Explore another service or check back for new appointments.</p> : null}
             </div>
             <div className={styles.serviceDetailVisual}>
               <Image src={service.imageUrl} alt={`${service.name} mobile IV therapy`} title={`${service.name} mobile IV therapy with ${profile.displayName}`} width={900} height={760} priority sizes="(max-width: 900px) 100vw, 45vw" />
@@ -176,11 +173,11 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
             <div>
               <span className={styles.eyebrow}>Treatment overview</span>
               <h2>A clear, professional booking experience.</h2>
-              <p>Review the service details, select the dedicated booking option, and choose from the current appointment availability for {profile.displayName}.</p>
+              <p>Review the service details, check availability, and choose from the current appointment availability for {profile.displayName}.</p>
             </div>
             <div className={styles.serviceFacts}>
-              <article><span>01</span><h3>Service-specific availability</h3><p>The booking page opens the calendar created specifically for this service.</p></article>
-              <article><span>02</span><h3>Transparent pricing</h3><p>The price shown here is synchronized with the service setup managed in My Drip Nurse Admin.</p></article>
+              <article><span>01</span><h3>Service-specific availability</h3><p>Choose an available time for your visit at home, at your hotel or at work.</p></article>
+              <article><span>02</span><h3>Transparent pricing</h3><p>See your service price and deposit before paying. Pricing is confirmed for your visit address.</p></article>
               <article><span>03</span><h3>Clinical review</h3><p>Treatment eligibility and final ingredients are confirmed by an appropriately qualified healthcare professional.</p></article>
             </div>
           </div>

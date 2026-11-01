@@ -19,6 +19,7 @@ export type MyDripNurseServiceDefinition = {
 export type MyDripNurseServiceWithPrice = MyDripNurseServiceDefinition & {
   price: string;
   priceUpdatedAt: string;
+  pricing?: import("./publicServicePricing").PublicPrice;
   calendarId?: string;
   availabilityStatus?: "active" | "out_of_stock";
 };
@@ -372,12 +373,14 @@ export const loadPartnerCalendarServices = cache(async function loadPartnerCalen
     short_description: string;
     ingredients: string[] | null;
     price: string;
+    currency: string;
+    regional_prices: unknown;
     image_url: string;
     updated_at: string;
     public_key: string | null;
   }>(
     `select s.slug, s.name, s.short_description, s.ingredients,
-            s.price::text, s.image_url, s.updated_at::text,
+            s.price::text, s.currency, s.source_metadata->'regionalPrices' as regional_prices, s.image_url, s.updated_at::text,
             c.public_key
        from app.services s
        left join lateral (
@@ -410,6 +413,7 @@ export const loadPartnerCalendarServices = cache(async function loadPartnerCalen
       ingredients: current.ingredients || definition.ingredients,
       imageUrl: current.image_url || definition.imageUrl,
       price: displayPrice(effectivePrice),
+      pricing: { price: Number(current.price), currency: current.currency || "USD", regionalPrices: readRegionalPrices(current.regional_prices), partnerOverride: hasPartnerOverride ? Number(service.priceOverride) : null },
       priceUpdatedAt: s(current.updated_at),
       availabilityStatus: service.status === "out_of_stock" ? "out_of_stock" : "active",
       calendarId: service.calendarId?.startsWith("preview-")

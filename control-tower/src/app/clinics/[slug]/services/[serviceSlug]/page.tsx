@@ -1,3 +1,5 @@
+import { ClinicPricingProvider, ClinicServicePrice } from '@/components/clinics/ClinicServicePrice';
+import { publicPriceSummary, publicPriceOffer } from '@/lib/publicServicePricing';
 import { clinicKeywords, clinicServiceIntroduction, coverageSummary, publicProviderMetadata, clinicEntity, clinicServiceEntities } from "@/lib/providerSeo";
 import { clinicSiteAddress } from '@/lib/clinicDomains';
 import Image from 'next/image';
@@ -44,24 +46,25 @@ export default async function Page({ params, searchParams }: Props) {
     const url = `${site.canonicalHome}/services/${serviceSlug}`;
     const area = coverageSummary(coverage, 4);
     const introduction = clinicServiceIntroduction({ ...clinic, coverage }, service, nurse ? [nurse] : team);
+    const price = publicPriceSummary(nurseService || service, coverage);
     const faq = [
         { question: `Where does ${clinic.name} offer ${service.name}?`, answer: area ? `${service.name} is listed for ${area}. Your full service address and the professional’s availability are checked before booking.` : 'Contact My Drip Nurse to check coverage for your address.' },
         { question: `Who offers ${service.name} at ${clinic.name}?`, answer: introduction.team },
-        { question: 'What will my visit cost?', answer: 'Choose your service area below to see applicable pricing. Your final price and deposit are confirmed from the service address before payment.' },
-        { question: 'Who collects the remaining balance?', answer: 'The clinic collects the remaining balance and any voluntary tip directly. My Drip Nurse does not collect or pay out this balance. Eligible My Drip Nurse-funded rewards have separate terms.' },
+        { question: 'What will my visit cost?', answer: `${price.label} per visit${price.variable ? ", depending on your service area" : ""}. Your final price and deposit are confirmed from the service address before payment.` },
+        { question: 'Who collects the remaining balance?', answer: 'The clinic collects the remaining balance and any voluntary tip directly. Eligible My Drip Nurse-funded rewards have separate terms.' },
         { question: 'Is my visit confirmed immediately?', answer: 'Your request is sent to an eligible professional for acceptance. Track the appointment in your secure Care portal.' },
     ];
-    return <ClinicPublicWebsite clinic={clinic} services={data.services}><main id="clinic-content"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ '@context': 'https://schema.org', '@graph': [
+    return <ClinicPublicWebsite clinic={clinic} services={data.services}><ClinicPricingProvider><main id="clinic-content"><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData({ '@context': 'https://schema.org', '@graph': [
         { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: clinic.name, item: site.canonicalHome }, { '@type': 'ListItem', position: 2, name: 'Services', item: `${site.canonicalHome}/services` }, { '@type': 'ListItem', position: 3, name: service.name, item: url }] },
         clinicEntity(clinic, site.canonicalHome),
-        ...clinicServiceEntities([service], site.canonicalHome, coverage),
+        ...clinicServiceEntities([service], site.canonicalHome, coverage).map(entity => ({ ...entity, offers: publicPriceOffer(nurseService || service, coverage, url, (nurseService || service).availabilityStatus === "out_of_stock") })),
         { '@type': 'WebPage', '@id': `${url}#webpage`, url, name: `${service.name} | ${clinic.name}`, mainEntity: { '@id': `${url}#service` } },
         { '@type': 'FAQPage', mainEntity: faq.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) },
     ] }) }} />
-        <section className={styles.hero}><div><Link className={styles.back} href={`${site.home}/services`}>← All services</Link><h1>{service.name}</h1><p>{service.description}</p><p>Provided through {clinic.name}{area ? ` in ${area}` : ""}. See the service areas below and confirm availability for your address.</p>{nurse ? <p>Requested professional: {nurse.name}</p> : null}<div className={styles.heroActions}><a className={styles.action} href="#booking">View pricing & availability →</a></div></div><div className={styles.visual}>{service.imageUrl ? <Image unoptimized priority src={service.imageUrl} alt={service.name} width={500} height={500}/> : null}</div></section>
+        <section className={styles.hero}><div><Link className={styles.back} href={`${site.home}/services`}>← All services</Link><span className={styles.eyebrow}>Mobile wellness with {clinic.name}</span><h1>{service.name}<br/><em>delivered to you.</em></h1><p>{service.description}</p><p>Enjoy care at home, at your hotel or at work with {clinic.name}{area ? `, serving ${area}` : ""}. Choose a time that fits your day.</p>{nurse ? <p>Requested professional: {nurse.name}</p> : null}<ClinicServicePrice service={nurseService || service} coverage={coverage}/><div className={styles.heroActions}><a className={styles.action} href="#booking">Check availability →</a></div></div><div className={styles.serviceHeroVisual}>{service.imageUrl ? <Image unoptimized priority src={service.imageUrl} alt={service.name} width={500} height={500}/> : null}</div></section>
         <section className={styles.section}><span className={styles.eyebrow}>Your experience</span><h2>Personal attention, wherever you are.</h2><div className={styles.facts}><article><h3>Service details</h3><p>{service.ingredients?.length ? service.ingredients.join(' · ') : service.description}</p></article><article><h3>Professional review</h3><p>Eligibility, ingredients and treatment suitability are reviewed by an appropriately qualified professional before administration.</p></article><article><h3>Care, connected</h3><p>Use your Care portal for appointment details and updates. This service is not emergency care.</p></article></div></section>
         <section className={styles.section} aria-labelledby="clinic-service-context"><span className={styles.eyebrow}>About your clinic</span><h2 id="clinic-service-context">{introduction.heading}</h2>{introduction.description ? <p>{introduction.description}</p> : null}<p>{introduction.coverage}</p><p>{introduction.team}</p></section>
         <section className={styles.section} id="booking"><ClinicPublicServices clinicId={clinic.id} partnerId={nurse?.id} services={[nurseService || service]} coverage={coverage} bookingsEnabled={clinicBookingsEnabled()}/></section>
         <ClinicCoverageSection clinic={{ ...clinic, coverage }}/><ClinicTeam team={nurse ? [nurse] : team}/><PartnerFaq title="Before your visit" items={faq}/>
-    </main></ClinicPublicWebsite>;
+    </main></ClinicPricingProvider></ClinicPublicWebsite>;
 }
