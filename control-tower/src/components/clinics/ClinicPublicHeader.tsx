@@ -28,12 +28,12 @@ export function ClinicPublicHeader({ name, slug, logoUrl, home, services }: { na
         <Link href={home} className={styles.brand} onClick={close} aria-label={`${name} home`}>{logoUrl ? <Image src={logoUrl} alt={name} width={200} height={48} unoptimized priority/> : <strong>{name}</strong>}</Link>
         <button ref={mobileTrigger} className={styles.mobileToggle} aria-expanded={mobileOpen} aria-controls="clinic-navigation" onClick={() => { setMobileOpen(!mobileOpen); setOpen(null); }}>{mobileOpen ? 'Close' : 'Menu'} <span aria-hidden="true">{mobileOpen ? '×' : '☰'}</span></button>
         <nav id="clinic-navigation" className={styles.nav} data-open={mobileOpen} aria-label="Clinic navigation">
-            {groups.map(group => <div key={group.id} className={styles.dropdown}>
-                <button ref={node => { triggers.current[group.id] = node; }} className={styles.trigger} aria-expanded={open === group.id} aria-controls={`clinic-menu-${group.id}`} onClick={() => setOpen(open === group.id ? null : group.id)}>{group.label}<span className={open === group.id ? styles.rotated : ''} aria-hidden="true">⌄</span></button>
+            {groups.map(group => <div key={group.id} className={styles.dropdown} data-compact={group.services.length <= 2}>
+                <button ref={node => { triggers.current[group.id] = node; }} className={styles.trigger} aria-expanded={open === group.id} aria-controls={`clinic-menu-${group.id}`} onClick={() => setOpen(open === group.id ? null : group.id)}>{group.label}<svg className={styles.chevron} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></button>
                 <div id={`clinic-menu-${group.id}`} className={styles.panel} hidden={open !== group.id} data-compact={group.services.length <= 2}>
                     <div className={styles.panelHeading}><strong>{group.label}</strong><Link href={`${home}/services#${group.id}`} onClick={close}>View services →</Link></div>
                     <ul>{group.services.map(service => <li key={service.id}><Link prefetch={false} href={`${home}/services/${encodeURIComponent(service.slug)}`} onClick={close}>
-                        <span className={styles.thumbnail}>{service.imageUrl ? <Image unoptimized src={service.imageUrl} alt="" width={64} height={64}/> : <span aria-hidden="true">✦</span>}</span><span>{service.name}</span><span aria-hidden="true">→</span>
+                        <span className={styles.thumbnail}>{service.imageUrl ? <Image unoptimized src={service.imageUrl} alt="" width={64} height={64}/> : <span aria-hidden="true">✦</span>}</span><span>{service.name}</span><svg className={styles.serviceArrow} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg>
                     </Link></li>)}</ul>
                 </div>
             </div>)}
