@@ -45,7 +45,7 @@ export function ClinicPortalShell({ clinic, theme, section, onSection, onSignOut
                 {clinic?.logoUrl && failedLogo !== clinic.logoUrl ? <Image unoptimized width={160} height={64} src={clinic.logoUrl} alt={title} onError={() => setFailedLogo(clinic.logoUrl)} /> : clinic ? <span className={styles.monogram}>{title.slice(0, 2).toUpperCase()}</span> : <Image width={160} height={34} src="/mdn-logo.png" alt="My Drip Nurse" className={styles.defaultLogo} />}
             </div>
             <nav className={styles.navigation} aria-label="Clinic portal">
-                {sections.filter(([name]) => name !== 'Affiliates' || owner).map(([name, icon]) => <button key={name} type="button" disabled={busy || (!clinic && name !== 'Overview' && name !== 'Support' && name !== 'Affiliates') || (clinic?.status !== 'approved' && ['Appointments', 'Directory', 'Services', 'Team'].includes(name))} aria-current={section === name ? 'page' : undefined} onClick={() => select(name)}>
+                {sections.filter(([name]) => name !== 'Affiliates' || owner || !!clinic).map(([name, icon]) => <button key={name} type="button" disabled={busy || (!clinic && name !== 'Overview' && name !== 'Support' && name !== 'Affiliates') || (clinic?.status !== 'approved' && ['Appointments', 'Directory', 'Services', 'Team'].includes(name))} aria-current={section === name ? 'page' : undefined} onClick={() => select(name)}>
                     <PortalIcon name={icon} /><span>{name === 'Profile' ? 'Clinic profile' : name === 'Website' ? 'Clinic website' : name === 'Team' ? 'My team' : name}</span>
                     {name === 'Products' || name === 'Rewards' ? <small>Coming soon</small> : null}
                 </button>)}

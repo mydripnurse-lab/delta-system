@@ -42,7 +42,7 @@ export async function POST(request:Request) {
     } catch(error) {return failure(error);}
 }
 
-// Owner responds only as the nurse actually assigned to this clinic visit.
+// A clinic administrator responds only as the nurse assigned to this visit.
 // The existing nurse lifecycle locks the assignment again before mutating it.
 export async function PATCH(request:Request) {
     if (!consumeClinicRequestBudget(request,'clinic-operations-write',30,60000)) return NextResponse.json({error:'Please wait a moment and try again.'},{status:429,headers});

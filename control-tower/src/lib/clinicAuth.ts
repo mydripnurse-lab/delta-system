@@ -1,3 +1,4 @@
+import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { createHash, randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
@@ -55,7 +56,7 @@ export async function requireClinicManager(clinicId: string) {
     const { rows } = await getDbPool().query<{
         role: 'owner' | 'manager';
         status: string;
-    }>(`select m.role,c.status from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id where m.clinic_id=$1 and m.email=$2 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') and c.status <> 'suspended' limit 1`, [clinicId, identity.email]);
+    }>(`select case when m.role='owner' then 'owner' else 'manager' end as role,c.status from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id where m.clinic_id=$1 and m.email=$2 and m.status='active' and m.accepted_at is not null and ${CLINIC_MANAGER_SQL} and c.status <> 'suspended' limit 1`, [clinicId, identity.email]);
     if (!rows[0])
         throw new Error('Clinic access denied.');
     return { ...identity, ...rows[0] };

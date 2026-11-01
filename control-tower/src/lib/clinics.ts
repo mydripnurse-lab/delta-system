@@ -1,3 +1,4 @@
+import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { validateClinicMemberServices, ensureClinicMemberServices } from '@/lib/clinicMemberServices';
 import { scheduleClinicCommunications } from '@/lib/clinicCommunications';
@@ -97,19 +98,19 @@ export async function listClinics(email?: string, offset = 0) {
     requireClinicsEnabled();
     const { rows } = await getDbPool().query<Clinic & {
         role?: ClinicRole;
-    }>(`select ${columns}${email ? ',m.role' : ''} from app.clinics c ${email ? `join app.clinic_memberships m on m.clinic_id=c.id and m.email=$1 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') and c.status <> 'suspended'` : ''} order by c.name,c.id limit 50 offset $${email ? 2 : 1}`, email ? [email, offset] : [offset]);
+    }>(`select ${columns}${email ? ',m.role' : ''} from app.clinics c ${email ? `join app.clinic_memberships m on m.clinic_id=c.id and m.email=$1 and m.status='active' and m.accepted_at is not null and ${CLINIC_MANAGER_SQL} and c.status <> 'suspended'` : ''} order by c.name,c.id limit 50 offset $${email ? 2 : 1}`, email ? [email, offset] : [offset]);
     return rows;
 }
 const cachedClinicWorkspace = unstable_cache(async (id: string, approved: boolean) => {
     const pool = getDbPool();
     const [clinic, members, appointments, services] = await Promise.all([
         pool.query<Clinic>(`select ${columns} from app.clinics c where c.id=$1`, [id]),
-        approved ? pool.query<ClinicMember>(`select m.id,m.email,m.role,m.status,m.partner_profile_id as "partnerId",coalesce(p.display_name,m.email) as name,m.coverage,m.service_ids as "serviceIds",m.accepted_at::text as "acceptedAt",p.slug as "profileSlug",coalesce(p.profile_consent_at is not null and p.website_status='published' and m.status='active',false) as "publicationReady" from app.clinic_memberships m left join app.partner_profiles p on p.id=m.partner_profile_id where m.clinic_id=$1 order by m.created_at desc limit 100`, [id]) : Promise.resolve({ rows: [] }),
+        Promise.resolve({ rows: [] as ClinicMember[] }), // Paged team is loaded on demand.
         Promise.resolve({ rows: [] }), // Appointment details are loaded on demand by the paged calendar.
         approved ? pool.query(`select s.id,s.name,s.image_url as "imageUrl",s.short_description as description,s.ingredients,coalesce(p.availability_status,'paused') as "availabilityStatus",coalesce(p.enabled,true) as "canOffer",(p.service_id is not null and p.enabled) as configured,s.price::text as "defaultPrice",s.currency,s.deposit_type as "depositType",s.deposit_value::text as "depositValue",p.price::text as "clinicPrice",p.regional_prices as "regionalPrices" from app.clinics c join app.services s on s.organization_id=c.organization_id left join app.clinic_service_prices p on p.clinic_id=c.id and p.service_id=s.id where c.id=$1 and s.is_active order by s.name limit 100`, [id]) : Promise.resolve({ rows: [] }),
     ]);
     return { clinic: clinic.rows[0], members: members.rows, appointments: appointments.rows, services: services.rows };
-}, ['clinic-workspace-v5-service-selection'], { revalidate: 60, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
+}, ['clinic-workspace-v6-paged-team'], { revalidate: 60, tags: [CLINIC_CACHE_TAG, SERVICE_PRICING_TAG] });
 export async function clinicWorkspace(id: string) {
     const actor = await requireClinicManager(id);
     const workspace = await cachedClinicWorkspace(id, actor.status === 'approved');
@@ -133,10 +134,10 @@ export async function inviteClinicMember(id: string, raw: unknown) {
     const client = await getDbPool().connect();
     try {
         await client.query('begin');
-        const access = await client.query(`select c.id from app.clinics c join app.clinic_memberships m on m.clinic_id=c.id where c.id=$1 and c.status='approved' and m.email=$2 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') and ($3<>'manager' or m.role='owner') for share of c,m`, [id, actor.email, input.role]);
+        const access = await client.query(`select c.id from app.clinics c join app.clinic_memberships m on m.clinic_id=c.id where c.id=$1 and c.status='approved' and m.email=$2 and m.status='active' and m.accepted_at is not null and ${CLINIC_MANAGER_SQL} and ($3<>'manager' or m.role='owner') for share of c,m`, [id, actor.email, input.role]);
         if (!access.rowCount) throw new Error('Clinic access denied.');
         const serviceIds = input.role === 'nurse' && input.serviceIds !== undefined ? await validateClinicMemberServices(client, id, input.serviceIds) : null;
-        const result = await client.query(`insert into app.clinic_memberships(clinic_id,email,role,invite_hash,invite_expires_at,service_ids) values($1,$2,$3,$4,now()+interval '7 days',$5::uuid[]) on conflict(clinic_id,email) do update set role=excluded.role,invite_hash=excluded.invite_hash,invite_expires_at=excluded.invite_expires_at,service_ids=excluded.service_ids,status='invited',updated_at=now() where clinic_memberships.status in ('invited','removed') and clinic_memberships.role <> 'owner' returning id`, [id, input.email.toLowerCase(), input.role, hashClinicToken(token), serviceIds]);
+        const result = await client.query(`insert into app.clinic_memberships(clinic_id,email,role,invite_hash,invite_expires_at,service_ids) values($1,$2,$3,$4,now()+interval '7 days',$5::uuid[]) on conflict(clinic_id,email) do update set can_manage_clinic=false,role=excluded.role,invite_hash=excluded.invite_hash,invite_expires_at=excluded.invite_expires_at,service_ids=excluded.service_ids,status='invited',updated_at=now() where clinic_memberships.status in ('invited','removed') and clinic_memberships.role <> 'owner' returning id`, [id, input.email.toLowerCase(), input.role, hashClinicToken(token), serviceIds]);
         if (!result.rows.length) throw new Error('This person already belongs to the clinic.');
         await client.query('commit');
         invalidateClinics();
@@ -219,18 +220,19 @@ export async function updateClinicMember(clinicId: string, raw: unknown) {
     const client = await getDbPool().connect();
     try {
         await client.query('begin');
-        const access = await client.query(`select c.id from app.clinics c join app.clinic_memberships m on m.clinic_id=c.id where c.id=$1 and c.status='approved' and m.email=$2 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') for share of c,m`, [clinicId, actor.email]);
+        const access = await client.query(`select c.id from app.clinics c join app.clinic_memberships m on m.clinic_id=c.id where c.id=$1 and c.status='approved' and m.email=$2 and m.status='active' and m.accepted_at is not null and ${CLINIC_MANAGER_SQL} for share of c,m`, [clinicId, actor.email]);
         if (!access.rowCount) throw new Error('Clinic access denied.');
         const { rows } = await client.query<{
+            can_manage_clinic: boolean;
             service_ids: string[] | null;
             role: ClinicRole;
             status: string;
             authorized_at: string | null;
             accepted_at: string | null;
             partner_profile_id: string | null;
-        }>(`select role,status,authorized_at,accepted_at,partner_profile_id,service_ids from app.clinic_memberships where id=$1 and clinic_id=$2 for update`, [input.id, clinicId]);
+        }>(`select coalesce(to_jsonb(m)->>'can_manage_clinic','false')='true' as can_manage_clinic,role,status,authorized_at,accepted_at,partner_profile_id,service_ids from app.clinic_memberships m where id=$1 and clinic_id=$2 for update`, [input.id, clinicId]);
         const member = rows[0];
-        if (!member || member.role === 'owner' || (member.role === 'manager' && actor.role !== 'owner'))
+        if (!member || member.role === 'owner' || ((member.role === 'manager' || member.can_manage_clinic) && actor.role !== 'owner'))
             throw new Error('You cannot change this membership.');
         if (!member.accepted_at)
             throw new Error('The invitation must be accepted first.');

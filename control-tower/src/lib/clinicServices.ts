@@ -1,3 +1,4 @@
+import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { ensureClinicMemberServices } from '@/lib/clinicMemberServices';
 import { z } from 'zod';
@@ -16,7 +17,7 @@ export async function changeClinicService(clinicId: string, raw: unknown, sugges
     try {
         await client.query('begin');
         // Lock the current grant so approval or membership revocation cannot race this write.
-        const access = await client.query(`select c.id from app.clinics c join app.clinic_memberships m on m.clinic_id=c.id where c.id=$1 and c.status='approved' and m.email=$2 and m.status='active' and m.accepted_at is not null and m.role in ('owner','manager') for share of c,m`, [clinicId, actor.email]);
+        const access = await client.query(`select c.id from app.clinics c join app.clinic_memberships m on m.clinic_id=c.id where c.id=$1 and c.status='approved' and m.email=$2 and m.status='active' and m.accepted_at is not null and ${CLINIC_MANAGER_SQL} for share of c,m`, [clinicId, actor.email]);
         if (!access.rowCount) throw new Error('An approved clinic and active manager access are required.');
         if ('serviceId' in input) {
             const updated = await client.query(`insert into app.clinic_service_prices(clinic_id,service_id,availability_status)

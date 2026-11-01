@@ -1,3 +1,4 @@
+import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { Resolver } from 'node:dns/promises';
@@ -38,7 +39,7 @@ export async function changeClinicDomain(clinicId: string, action: 'connect' | '
         await client.query('begin');
         await client.query('select pg_advisory_xact_lock(hashtext($1))', [`clinic-domain:${clinicId}`]);
         // Check membership again inside the mutation, not from a cached workspace.
-        const access = await client.query(`select m.id from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id where c.id=$1 and c.status='approved' and m.email=$2 and m.role in ('owner','manager') and m.status='active' and m.accepted_at is not null for share of m,c`, [clinicId, identity.email]);
+        const access = await client.query(`select m.id from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id where c.id=$1 and c.status='approved' and m.email=$2 and ${CLINIC_MANAGER_SQL} and m.status='active' and m.accepted_at is not null for share of m,c`, [clinicId, identity.email]);
         if (!access.rows.length) throw new Error('Clinic access denied.');
         let row = (await client.query<DomainRow>('select * from app.clinic_domains where clinic_id=$1 for update', [clinicId])).rows[0];
         if (action === 'connect') {

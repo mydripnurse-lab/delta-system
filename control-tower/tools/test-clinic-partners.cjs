@@ -62,7 +62,7 @@ async function main(){
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
  // Migration must be repeatable, including indexes and additive columns.
  await pool.query(fs.readFileSync(path.join(root,'db/migrations/048_clinic_partners.sql'),'utf8'));
- for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql','051_clinic_account_photos.sql','051_clinic_account_photos.sql','053_clinic_services.sql','053_clinic_services.sql','056_clinic_nurse_services.sql','056_clinic_nurse_services.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
+ for (const migration of ['049_clinic_affiliates.sql','050_clinic_to_clinic_referrals.sql','050_clinic_to_clinic_referrals.sql','051_clinic_account_photos.sql','051_clinic_account_photos.sql','053_clinic_services.sql','053_clinic_services.sql','056_clinic_nurse_services.sql','056_clinic_nurse_services.sql','058_clinic_team_access.sql','058_clinic_team_access.sql']) await pool.query(fs.readFileSync(path.join(root,'db/migrations',migration),'utf8'));
  await pool.query("alter table app.staff_applications add constraint fixture_application_status check (status in ('under_review','submitted','completed'))");
  await pool.query('insert into app.organizations values($1)',[org]);
  await pool.query("insert into app.services(id,organization_id,slug,name,price) values($1,$2,'alleviate','Alleviate',219)",[service,org]);
@@ -160,8 +160,8 @@ async function main(){
  assert.equal((await getClinicPortalBrand(member.partner_profile_id)).primaryColor,'#121212','Saved white label settings invalidate the cached nurse brand');
  await clinics.saveClinicBranding(id,{logoUrl:afterBranding.logo_url,primaryColor:afterBranding.primary_color,accentColor:afterBranding.accent_color});
  const workspace = await clinics.clinicWorkspace(id);
- assert.equal(workspace.members.filter(m=>m.role==='nurse').length,1);
- const nurseRow=workspace.members.find(m=>m.role==='nurse');
+ assert.equal(workspace.members.length,0,'Workspace does not download team profiles');
+ const nurseRow=await load('src/lib/clinicTeam.ts').clinicTeamMember(id,member.id);
  assert.equal(nurseRow.publicationReady,true,'Clinic authorization publishes the consented professional');
  assert.match(nurseRow.profileSlug,/^fixture-nurse-/);
  const profiles=load('src/lib/partnerProfiles.ts');
@@ -410,7 +410,7 @@ async function main(){
  await assert.rejects(()=>affiliates.getClinicAffiliateDashboard(id),/denied/);
  await query("insert into app.clinic_memberships(clinic_id,email,role,status,accepted_at) values($1,'manager@example.invalid','manager','active',now())",[id]);
  identity={email:'manager@example.invalid'};
- await assert.rejects(()=>affiliates.getClinicAffiliateDashboard(id),/Only the clinic owner/);
+ assert.deepEqual((await affiliates.getClinicAffiliateDashboard(id)).metrics,dashboard.metrics,'Clinic administrators can read the same clinic affiliate reports');
  // A nurse becoming a clinic owner must not keep earning personal affiliate
  // commissions from accepted members of their own team. Existing ledger stays intact.
  await query(`alter table app.partner_profiles add column if not exists affiliate_commission_rate numeric;

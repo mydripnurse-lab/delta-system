@@ -92,6 +92,7 @@ export async function getPartnerWeeklyAvailability(profileId: string, schemaRead
 export async function savePartnerWeeklyAvailability(opts: {
   // Clinic routes require the booking migrations; avoid runtime DDL there.
   schemaReady?: boolean;
+  authorizeWrite?: (client: import('pg').PoolClient) => Promise<void>;
   profileId: string;
   timezone: string;
   days: WeeklyAvailabilityDay[];
@@ -103,6 +104,7 @@ export async function savePartnerWeeklyAvailability(opts: {
   const client = await pool.connect();
   try {
     await client.query("begin");
+    if (opts.authorizeWrite) await opts.authorizeWrite(client);
     await client.query(
       `delete from app.partner_availability_rules
         where partner_profile_id = $1 and service_id is null`,

@@ -4,12 +4,11 @@ import type { Clinic, ClinicMember } from '@/lib/clinics';
 import { brandTextColor } from '@/lib/clinicPolicy';
 import { ClinicPortalShell, type ClinicSection } from './ClinicPortalShell';
 import { ClinicServiceCatalog, type ClinicService } from './ClinicServiceCatalog';
-import { ClinicMemberServices } from './ClinicMemberServices';
+import { ClinicTeam } from './ClinicTeam';
 import { ClinicCoverage } from './ClinicCoverage';
 import { ClinicCalendar } from './ClinicCalendar';
 import { ClinicDashboard } from './ClinicDashboard';
 import { ClinicAffiliates } from './ClinicAffiliates';
-import { CLINIC_AFFILIATE_POLICY_TEXT } from '@/lib/clinicAffiliatePolicy';
 import styles from './clinic.module.css';
 import branding from './clinicBranding.module.css';
 import { ClinicWhiteLabel } from './ClinicWhiteLabel';
@@ -44,10 +43,8 @@ export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialI
     initialClinics: ListedClinic[];
     initialIdentity: ClinicIdentity;
 }) {
-    const [clinics, setClinics] = useState<ListedClinic[]>(initialClinics), [data, setData] = useState<Workspace | null>(initialWorkspace), [tab, setTab] = useState<ClinicSection>(initialAppointment ? 'Appointments' : 'Overview'), [error, setError] = useState(''), [notice, setNotice] = useState<{ message: string } | null>(null), [busy, setBusy] = useState(false), [editing, setEditing] = useState<ClinicMember | null>(null), [invitation, setInvitation] = useState(''), [identity, setIdentity] = useState<ClinicIdentity>(initialIdentity);
+    const [clinics, setClinics] = useState<ListedClinic[]>(initialClinics), [data, setData] = useState<Workspace | null>(initialWorkspace), [tab, setTab] = useState<ClinicSection>(initialAppointment ? 'Appointments' : 'Overview'), [error, setError] = useState(''), [notice, setNotice] = useState<{ message: string } | null>(null), [busy, setBusy] = useState(false), [identity, setIdentity] = useState<ClinicIdentity>(initialIdentity);
     const [focusAppointment, setFocusAppointment] = useState<{id:string;request:number} | undefined>(initialAppointment ? {id:initialAppointment,request:0} : undefined);
-    const [inviteRole, setInviteRole] = useState<'nurse' | 'manager'>('nurse');
-    const [inviteServices, setInviteServices] = useState<string[]>([]);
     const [myAppointmentsId, setMyAppointmentsId] = useState<string | undefined>();
     const [notificationRevision, setNotificationRevision] = useState(0);
     useEffect(() => {
@@ -80,15 +77,9 @@ export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialI
         const p = await r.json();
         if (!r.ok)
             throw new Error(p.error);
-        if (p.inviteUrl) {
-            setInvitation(p.inviteUrl);
-            if (data) await load(data.clinic.id);
-        }
-        else {
-            setNotice({ message: 'Changes saved.' });
-            if (data)
-                await load(data.clinic.id);
-        }
+        setNotice({ message: 'Changes saved.' });
+        if (data)
+            await load(data.clinic.id);
         return true;
     }
     catch (e) {
@@ -107,12 +98,12 @@ export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialI
     function update(patch: Partial<Clinic>) { setData(old => old ? { ...old, clinic: { ...old.clinic, ...patch } } : old); }
     const save = () => clinic && action({ action: 'save', ...clinic, coverageIds: clinic.coverage.map(r => r.id) });
     return <ClinicPortalShell clinic={clinic} theme={theme} section={tab} owner={data ? data.role === 'owner' : ownedClinics.length > 0} hasPractice={!!identity?.partnerId} accountName={identity?.name} accountPhotoUrl={identity?.photoUrl} busy={busy} notificationRevision={notificationRevision} onAppointment={id => { setFocusAppointment({id,request:Date.now()}); setTab('Appointments'); }}
-        onSection={next => { setTab(next); setEditing(null); setFocusAppointment(undefined); }}
+        onSection={next => { setTab(next); setFocusAppointment(undefined); }}
 
         onSignOut={() => { void fetch('/api/public/partner-portal/logout', { method: 'POST' }).then(r => { if (r.ok) window.location.assign('/login'); else setError('Unable to sign out. Please try again.'); }).catch(() => setError('Unable to sign out. Please try again.')); }}>
     <div className={`${styles.shell} ${styles.portalContent}`} style={theme}>
 
- {clinics.length > 1 ? <label className={styles.field}>Clinic workspace<select value={clinic?.id || ''} disabled={busy} onChange={e => { setTab('Overview'); setFocusAppointment(undefined); setEditing(null); setInvitation(''); void load(e.target.value); }}>{clinics.map(c => <option key={c.id} value={c.id}>{c.name} · {c.status}</option>)}</select></label> : null}
+ {clinics.length > 1 ? <label className={styles.field}>Clinic workspace<select value={clinic?.id || ''} disabled={busy} onChange={e => { setTab('Overview'); setFocusAppointment(undefined); void load(e.target.value); }}>{clinics.map(c => <option key={c.id} value={c.id}>{c.name} · {c.status}</option>)}</select></label> : null}
  {!bookingsEnabled ? <p className={styles.setupNotice} role="status">Setup is open. Online clinic bookings are coming soon.</p> : null}
  {error ? <p role="alert" className={styles.error}>{error}</p> : null}{notice ? <div role="status" aria-live="polite" aria-atomic="true" className={styles.saveToast}><span className={styles.saveToastIcon} aria-hidden="true">✓</span><span>{notice.message}</span></div> : null}{busy ? <p role="status">Working…</p> : null}
  {tab === 'Support' ? <section className={styles.card}><h2>How can we help?</h2><p>Contact the My Drip Nurse partner team for help with your clinic, team access or services.</p><a className={styles.primary} href="mailto:info@mydripnurse.com">Contact support →</a></section> : null}
@@ -122,11 +113,9 @@ export function ClinicPortal({ bookingsEnabled = false, initialClinics, initialI
  </> : null}
  {clinic && data ? <>
 
- {tab === 'Affiliates' && data.role === 'owner' ? <ClinicAffiliates key={clinic.id} clinicId={clinic.id} published={clinic.published}/> : null}
+ {tab === 'Affiliates' ? <ClinicAffiliates key={clinic.id} clinicId={clinic.id} published={clinic.published}/> : null}
  {tab === 'Overview' ? clinic.status === 'approved' ? <ClinicDashboard key={clinic.id} clinic={clinic}/> : <section className={styles.card} aria-labelledby="clinic-review-title"><span className={styles.badge}>Application received</span><h2 id="clinic-review-title">Your clinic is under review.</h2><p>My Drip Nurse reviews every clinic before activation. Your application has been submitted to the Admin team. You can prepare your private profile, branding and coverage while you wait.</p><p>Team invitations, public listings and clinic operations become available after approval.</p><div className={styles.actions}><button className={styles.primary} onClick={() => setTab('Profile')}>Review clinic profile</button><button className={styles.secondary} disabled={busy} onClick={() => void load(clinic.id)}>Check approval status</button></div></section> : null}
- {tab === 'Team' ? <section className={styles.card}>{editing ? <><button className={styles.secondary} onClick={() => setEditing(null)}>← Team</button><h2>{editing.name}</h2><p>{editing.email} · {editing.status}</p><p className={styles.muted}>Verify professional credentials before authorizing this nurse. Their public profile appears when your clinic is published and their publication consent is recorded.</p>{editing.role === 'nurse' ? <><ClinicMemberServices services={data.services} value={editing.serviceIds} onChange={serviceIds => setEditing({ ...editing, serviceIds })} disabled={busy}/><ClinicCoverage value={editing.coverage} onChange={coverage => setEditing({ ...editing, coverage })}/></> : null}<div className={styles.actions}><button disabled={busy || !editing.acceptedAt} className={styles.primary} onClick={() => void action({ action: 'member', id: editing.id, status: 'active', coverageIds: editing.coverage.map(r => r.id), serviceIds: editing.serviceIds === null ? undefined : editing.serviceIds.filter(id => data.services.some(s => s.id === id && s.canOffer && s.configured)) }).then(ok => { if (ok)
-            setEditing(null); })}>Authorize & save</button><button disabled={busy || !editing.acceptedAt} className={styles.secondary} onClick={() => void action({ action: 'member', id: editing.id, status: 'suspended', coverageIds: editing.coverage.map(r => r.id), serviceIds: editing.serviceIds === null ? undefined : editing.serviceIds.filter(id => data.services.some(s => s.id === id && s.canOffer && s.configured)) }).then(ok => { if (ok)
-            setEditing(null); })}>Suspend membership</button></div></> : <><h2>Your team</h2><p className={styles.notice}>{CLINIC_AFFILIATE_POLICY_TEXT}</p><p>Invite a nurse or manager. Existing professionals keep their account, website and calendar. Once an invited nurse activates their account, your authorization publishes their website and directory listing with their consent.</p><form onSubmit={e => { e.preventDefault(); const form = new FormData(e.currentTarget); void action({ action: 'invite', email: form.get('email'), role: inviteRole, serviceIds: inviteRole === 'nurse' ? inviteServices : undefined }); }}><div className={styles.grid}><label className={styles.field}>Email<input name="email" type="email" required/></label><label className={styles.field}>Role<select name="role" value={inviteRole} onChange={e => setInviteRole(e.target.value as 'nurse' | 'manager')}><option value="nurse">Nurse</option><option value="manager">Clinic manager</option></select></label></div>{inviteRole === 'nurse' ? <ClinicMemberServices services={data.services} value={inviteServices} onChange={setInviteServices} disabled={busy}/> : null}<button disabled={busy || clinic.status !== 'approved'} className={styles.primary}>Create invitation</button></form>{invitation ? <div className={styles.notice}><p>Share this private invitation with the intended recipient. It expires in 7 days.</p><input className={styles.search} readOnly value={invitation} aria-label="Private invitation link"/><button className={styles.secondary} onClick={() => void navigator.clipboard.writeText(invitation).then(() => setNotice({ message: 'Invitation copied.' }))}>Copy link</button></div> : null}{data.members.map(m => <div className={styles.row} key={m.id}><div><strong>{m.name}</strong><p className={styles.muted}>{m.role} · {m.status}{m.role === 'nurse' ? ` · ${m.publicationReady && clinic.published ? 'Website & directory live' : 'Publication pending'}` : ''}</p>{m.publicationReady && clinic.published && m.profileSlug ? <a href={`https://partners.mydripnurse.com/${m.profileSlug}`} target="_blank" rel="noreferrer">View professional website ↗</a> : null}</div>{m.role !== 'owner' ? <button className={styles.secondary} onClick={() => setEditing(m)}>Review member →</button> : null}</div>)}</>}</section> : null}
+ {tab === 'Team' ? <ClinicTeam key={clinic.id} clinic={clinic} services={data.services} owner={data.role === 'owner'}/> : null}
  {tab === 'Appointments' && clinic.status === 'approved' ? <ClinicCalendar key={clinic.id} clinicId={clinic.id} focusAppointment={focusAppointment} myNurseId={myAppointmentsId} onChange={() => setNotificationRevision(value => value + 1)} /> : null}
  {tab === 'Services' ? <ClinicServiceCatalog key={data.clinic.id} clinicId={data.clinic.id} services={data.services} onRefresh={() => load(data.clinic.id)} /> : null}
  {tab === 'Coverage' ? <section className={styles.card}><h2>Where your team provides care</h2><ClinicCoverage value={clinic.coverage} onChange={coverage => update({ coverage })}/><button className={styles.primary} disabled={busy} onClick={() => void save()}>Save coverage</button></section> : null}

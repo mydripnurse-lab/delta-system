@@ -103,8 +103,7 @@ const dashboard = unstable_cache(async (clinicId: string) => {
 }, ['clinic-affiliate-dashboard-v2'], { revalidate: 60 });
 
 export async function getClinicAffiliateDashboard(clinicId: string) {
-    const actor = await requireClinicManager(clinicId);
-    if (actor.role !== 'owner') throw new Error('Only the clinic owner can view affiliate earnings.');
+    await requireClinicManager(clinicId);
     return dashboard(clinicId);
 }
 export type ClinicAffiliateDashboard = Awaited<ReturnType<typeof getClinicAffiliateDashboard>>;

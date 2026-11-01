@@ -4,6 +4,8 @@ export const CLINIC_CACHE_TAG = 'mdn-clinics';
 export type ClinicRole = 'owner' | 'manager' | 'nurse';
 // Static alias, never request input. Compatible with reads before migration 057.
 export const CLINIC_CARE_MEMBER_SQL = "(m.role='nurse' or (m.role='owner' and coalesce(to_jsonb(m)->>'owner_practice_enabled','false')='true'))";
+// Static membership alias; a missing column fails closed until migration 058 is applied.
+export const CLINIC_MANAGER_SQL = "(m.role in ('owner','manager') or (m.role='nurse' and coalesce(to_jsonb(m)->>'can_manage_clinic','false')='true' and m.authorized_at is not null))";
 export type ClinicStatus = 'pending' | 'approved' | 'suspended';
 export type ClinicPrice = {
     price: number | null;

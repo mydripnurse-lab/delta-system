@@ -1,3 +1,4 @@
+import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { randomUUID } from 'node:crypto';
@@ -40,9 +41,9 @@ export async function clinicCalendar(clinicId: string, input: { from: string; to
 export async function clinicVisit(clinicId: string, id: string) {
     const actor=await requireClinicOperations(clinicId);
     const { rows } = await getDbPool().query<ClinicCalendarVisit & { address: string; customerEmail: string; customerPhone: string; canRespond: boolean }>(`select ${projection},
-      ($3::text='owner' and lower(p.email)=$4 and exists(select 1 from app.clinic_memberships m where m.clinic_id=a.clinic_id and m.partner_profile_id=p.id and m.email=$4 and m.role='owner' and m.status='active' and coalesce(to_jsonb(m)->>'owner_practice_enabled','false')='true')) as "canRespond",
+      (lower(p.email)=$3 and exists(select 1 from app.clinic_memberships m where m.clinic_id=a.clinic_id and m.partner_profile_id=p.id and m.email=$3 and m.status='active' and m.accepted_at is not null and m.authorized_at is not null and ${CLINIC_CARE_MEMBER_SQL})) as "canRespond",
       concat_ws(', ',a.address_line_1,nullif(a.address_line_2,''),a.city,a.state,a.postal_code) as address,
-      c.email as "customerEmail",c.phone as "customerPhone" from app.appointments a ${joins} where a.clinic_id=$1 and a.id=$2`, [clinicId,id,actor.role,actor.email]);
+      c.email as "customerEmail",c.phone as "customerPhone" from app.appointments a ${joins} where a.clinic_id=$1 and a.id=$2`, [clinicId,id,actor.email]);
     if (!rows[0]) throw new ClinicAppointmentError('Appointment not found in this clinic.',404);
     return rows[0];
 }
@@ -103,7 +104,7 @@ export async function reassignClinicAppointment(clinicId: string, input: { appoi
         await db.query("set local lock_timeout='5s'");
         // Lock authorization and clinic settings so a concurrent revocation cannot race the assignment.
         const permission=await db.query(`select m.id from app.clinic_memberships m join app.clinics c on c.id=m.clinic_id
-          where c.id=$1 and c.status='approved' and m.email=$2 and m.role in ('owner','manager') and m.status='active' and m.accepted_at is not null for share of c,m`,[clinicId,identity.email]);
+          where c.id=$1 and c.status='approved' and m.email=$2 and ${CLINIC_MANAGER_SQL} and m.status='active' and m.accepted_at is not null for share of c,m`,[clinicId,identity.email]);
         if (!permission.rowCount) throw new ClinicAppointmentError('Clinic access denied.',403);
         const visit=await readVisit(db,clinicId,input.appointmentId,true);
         if (visit.version!==input.version) throw new ClinicAppointmentError('This appointment changed. Refresh it before reassigning.');
