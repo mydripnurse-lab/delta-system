@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import type { ClinicDomainSettings } from '@/lib/clinicDomainPolicy';
+import type { ClinicDomainSettings, ClinicDomainStatus } from '@/lib/clinicDomainPolicy';
+import { dnsHostForZone, isDnsZoneForHost } from '@/lib/clinicDnsDisplay';
 import styles from './clinicDomain.module.css';
 
 type DomainAction = 'connect' | 'verify' | 'disconnect';
@@ -33,6 +34,55 @@ function CopyField({ label, value, recordLabel }: { label: string; value: string
         </div>
         <span role="status" className={feedback === 'error' ? styles.copyError : styles.srOnly}>{feedback === 'copied' ? `${recordLabel} ${label} copied.` : feedback === 'error' ? 'Copy unavailable. Select the text above and copy it manually.' : ''}</span>
     </div>;
+}
+
+function DnsRecords({ domain }: { domain: ClinicDomainStatus }) {
+    // This is the parent DNS zone, not a guess at the registrable domain.
+    // A delegated or nested subdomain can use a different zone below.
+    const [zoneInput, setZoneInput] = useState(() => domain.hostname.split('.').slice(1).join('.'));
+    const [fullNames, setFullNames] = useState(false);
+    const zone = zoneInput.trim().toLowerCase().replace(/\.$/, '');
+    const validZone = isDnsZoneForHost(domain.hostname, zone);
+    return <>
+        <div className={styles.zoneSummary}>
+            <strong>Add these records in {validZone ? zone : 'your domain'} DNS settings</strong>
+            <p>{fullNames ? 'Full record names are shown below.' : validZone ? `Name / Host contains only the part before .${zone}. Copy it as shown; do not add the domain again.` : 'Choose a valid DNS domain below. Full record names are shown until then.'}</p>
+            <details className={styles.dnsOptions}>
+                <summary>My provider uses a different DNS domain or full names</summary>
+                <div className={styles.dnsOptionsFields}>
+                    <label className={styles.zoneLabel}>Domain selected at your DNS provider
+                        <input value={zoneInput} onChange={event => setZoneInput(event.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={!validZone} aria-describedby="clinic-dns-zone-help"/>
+                    </label>
+                    <p id="clinic-dns-zone-help">Use the domain whose DNS records you are editing. This changes the instructions only.</p>
+                    {!validZone ? <p role="alert" className={styles.error}>Enter {domain.hostname} or one of its parent domains, without https:// or a path.</p> : null}
+                    <label className={styles.nameMode}><input type="checkbox" checked={fullNames} onChange={event => setFullNames(event.target.checked)}/><span>My provider requires the full record name</span></label>
+                </div>
+            </details>
+        </div>
+            <div className={styles.records}>
+                {domain.records.map((record, index) => {
+                    const recordLabel = `record ${index + 1} ${record.type}`;
+                    return <article className={styles.record} key={`${record.type}-${record.name}-${record.value}`} aria-label={record.purpose}>
+                        <div className={styles.recordHeader}>
+                            <span className={styles.recordNumber}>{String(index + 1).padStart(2, '0')}</span>
+                            <div><h3>{record.purpose === 'Clinic ownership verification' ? 'Verify domain ownership' : record.type === 'CNAME' ? 'Connect your website' : record.purpose}</h3><p>{record.type === 'TXT' ? 'A verification record to confirm you control this domain.' : 'Points your web address to your clinic website.'}</p></div>
+                        </div>
+                        <div className={styles.recordFields}>
+                            <CopyField label="Type" value={record.type} recordLabel={recordLabel}/>
+                            <CopyField label="Name / Host" value={fullNames || !validZone ? record.name : dnsHostForZone(record.name, zone)} recordLabel={recordLabel}/>
+                            <CopyField label={record.type === 'CNAME' ? 'Value / Target' : 'Value / Content'} value={record.value} recordLabel={recordLabel}/>
+                        </div>
+                        {validZone && !isDnsZoneForHost(record.name, zone) ? <p className={styles.recordHint}>Add this record in the DNS settings for its own domain. The full name is shown.</p> : null}
+                    </article>;
+                })}
+            </div>
+        <details className={styles.help}>
+            <summary>Help with values and other DNS settings</summary>
+            <div><p><strong>Name / Host:</strong> Use the name shown in each card. An @ means the domain selected above itself. If your provider requires full names, enable that option above.</p>
+                <p><strong>Value / Target:</strong> Paste the entire value exactly as shown. For TTL, keep your provider’s default or choose “Auto”.</p>
+                <p>For a CNAME, use “DNS only” if your provider offers a proxy setting. Keep your email and unrelated DNS records unchanged.</p></div>
+        </details>
+    </>;
 }
 
 export function ClinicBrandedDomain({ clinicId, approved }: { clinicId: string; approved: boolean }) {
@@ -90,28 +140,7 @@ export function ClinicBrandedDomain({ clinicId, approved }: { clinicId: string; 
                 <li><span aria-hidden="true">2</span><div><strong>Add the records below</strong><p>Create one record per card. Copy each field into the matching box at your provider.</p></div></li>
                 <li><span aria-hidden="true">3</span><div><strong>Save, then verify</strong><p>Save the records at your provider, then return here and select “Verify connection”.</p></div></li>
             </ol>
-            <div className={styles.records}>
-                {domain.records.map((record, index) => {
-                    const recordLabel = `record ${index + 1} ${record.type}`;
-                    return <article className={styles.record} key={`${record.type}-${record.name}-${record.value}`} aria-label={record.purpose}>
-                        <div className={styles.recordHeader}>
-                            <span className={styles.recordNumber}>{String(index + 1).padStart(2, '0')}</span>
-                            <div><h3>{record.purpose === 'Clinic ownership verification' ? 'Verify domain ownership' : record.type === 'CNAME' ? 'Connect your website' : record.purpose}</h3><p>{record.type === 'TXT' ? 'A verification record to confirm you control this domain.' : 'Points your web address to your clinic website.'}</p></div>
-                        </div>
-                        <div className={styles.recordFields}>
-                            <CopyField label="Type" value={record.type} recordLabel={recordLabel}/>
-                            <CopyField label="Name / Host" value={record.name} recordLabel={recordLabel}/>
-                            <CopyField label={record.type === 'CNAME' ? 'Value / Target' : 'Value / Content'} value={record.value} recordLabel={recordLabel}/>
-                        </div>
-                    </article>;
-                })}
-            </div>
-            <details className={styles.help}>
-                <summary>Not sure what to enter at your DNS provider?</summary>
-                <div><p><strong>Name / Host:</strong> The full record name is shown above. If your provider adds your domain automatically, enter only the part before it. For example, for <code>care.yourclinic.com</code>, enter <code>care</code> when the provider already shows <code>.yourclinic.com</code>. Do not add the domain twice.</p>
-                    <p><strong>Value / Target:</strong> Paste the entire value exactly as shown. For TTL, keep your provider’s default or choose “Auto”.</p>
-                    <p>For a CNAME, use “DNS only” if your provider offers a proxy setting. Keep your email and unrelated DNS records unchanged.</p></div>
-            </details>
+            <DnsRecords key={domain.hostname} domain={domain}/>
             <div className={styles.verification} aria-busy={action === 'verify'}>
                 <div className={styles.verificationHeading}>
                     <div><h3>{verified ? 'Your DNS is verified' : domain.status === 'disconnecting' ? 'Disconnection in progress' : 'Ready to check your connection?'}</h3><p>{verified ? 'HTTPS may take a few minutes to become available. Your website also needs to be published by My Drip Nurse.' : domain.status === 'disconnecting' ? 'Complete the disconnection before reconnecting this address.' : 'DNS changes can take time to appear. If a record is not found yet, check the fields and try again later.'}</p></div>

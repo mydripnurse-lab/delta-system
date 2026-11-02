@@ -77,3 +77,15 @@
     .form > button { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .card button { transition: none; } }
+
+.zoneSummary { padding: 18px 20px; margin: 0 0 20px; border: 1px solid var(--domain-border); border-radius: 12px; background: #f9fafb; }
+.zoneSummary > strong { display: block; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.zoneSummary > p { font-size: 12px; }
+.dnsOptions { margin-top: 12px; font-size: 12px; }
+.dnsOptions summary { cursor: pointer; font-weight: 650; line-height: 1.7; padding: 8px 0; }
+.dnsOptionsFields { max-width: 640px; padding-top: 12px; }
+.zoneLabel { display: grid; gap: 8px; font-size: 12px; font-weight: 700; }
+.zoneLabel input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--domain-border); border-radius: 8px; background: #fff; color: inherit; padding: 10px 12px; font: inherit; font-size: 16px; }
+.nameMode { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 12px; cursor: pointer; }
+.nameMode input { flex: 0 0 18px; width: 18px; height: 18px; margin: 0; accent-color: var(--domain-brand); }
+.card .recordHint { font-size: 12px; margin-top: 12px; }
