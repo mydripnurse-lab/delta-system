@@ -79,3 +79,28 @@
  .scheduleEditor fieldset>div>div>div{display:grid;grid-template-columns:1fr 1fr;gap:12px}
  .scheduleEditor fieldset>button{width:100%}
 }
+
+/* The day agenda and schedule editor share one accessible, scrollable dialog. */
+.dayTabs{display:flex;gap:4px;padding:4px;background:#f3f6f5;border-radius:14px;margin:0 0 24px}
+.calendar .dayTabs button{flex:1;border:0;background:transparent;border-radius:10px;min-height:44px;font-size:13px;padding:12px}
+.calendar .dayTabs button[aria-pressed=true]{background:var(--clinic-primary,#075664);color:var(--clinic-ink,#fff);box-shadow:0 2px 6px #173b4110}
+.calendar .backToDay{border:0;background:transparent;padding:0;margin-bottom:12px;color:inherit;font-weight:600}
+.agendaHeading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}
+.agendaHeading h3{margin:0;font-size:18px}
+.agendaHeading p{margin:6px 0 0;font-size:12px;color:#657e83;line-height:1.6}
+.agendaList{display:grid;gap:12px}
+.calendar .agendaVisit{display:grid;gap:10px;position:relative;width:100%;text-align:left;border:1px solid #dbe6e8;border-radius:16px;padding:18px 20px;background:#fff;font-weight:400;min-width:0;transition:border-color .15s,background .15s}
+.calendar .agendaVisit:hover{border-color:var(--clinic-primary,#075664);background:#f8faf9}
+.agendaVisitTop{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.agendaVisitTop time{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.agendaStatus{font-size:11px;font-weight:600;padding:5px 9px;border-radius:20px;background:#f2f5f4;color:#3e6066}
+.agendaVisit>strong{font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+.agendaNurse{display:flex;align-items:center;gap:8px;font-size:13px}
+.agendaNurse i{width:9px;height:9px;border-radius:50%;background:var(--staff-color);flex-shrink:0}
+.agendaLocation{font-size:12px;color:#657e83;line-height:1.5;overflow-wrap:anywhere}
+.agendaOpen{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #edf1f1;padding-top:12px;margin-top:2px;font-size:12px;font-weight:700}
+.agendaEmpty{padding:28px 20px;text-align:center;background:#f7f9f8;border:1px dashed #dbe6e8;border-radius:16px}
+.agendaEmpty h3{font-size:16px;margin:0 0 8px}
+.agendaEmpty p{color:#657e83;font-size:13px;line-height:1.6;margin:0 0 16px}
+.agendaFooter{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px;font-size:12px;color:#657e83}
+@media(max-width:700px){.dayTabs{margin-bottom:20px}.calendar .dayTabs button{font-size:12px;padding:10px 8px}.calendar .agendaVisit{padding:16px}.agendaHeading h3{font-size:17px}.agendaFooter{align-items:stretch}.agendaFooter button{width:100%}}
