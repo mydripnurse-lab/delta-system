@@ -1,3 +1,4 @@
+import { partnerPublicUrl } from "@/lib/partnerSeo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,7 +25,7 @@ export default async function PartnerApplicationPage({ params, searchParams }: P
   const profile = await getPartnerProfileForPublicPage(slug, preview);
   if (!profile) notFound();
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
-  const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
+  const partnerHref = (pathname = "") => `${partnerPublicUrl(profile, pathname)}${previewQuery}`;
   const embeddedApplicationUrl = `/partner-application.html?embedded=1&v=20260812-primary-county-fix&ref=${encodeURIComponent(profile.affiliateCode)}`;
 
   return (

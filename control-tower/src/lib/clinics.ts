@@ -1,3 +1,4 @@
+import { getRequestClinicTenant } from './clinicDomainRequest';
 import type { ClinicWebsiteSettings } from '@/lib/clinicWebsiteBrand';
 import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
@@ -98,9 +99,10 @@ export async function registerClinic(raw: unknown) {
 }
 export async function listClinics(email?: string, offset = 0) {
     requireClinicsEnabled();
+    const tenant = await getRequestClinicTenant();
     const { rows } = await getDbPool().query<Clinic & {
         role?: ClinicRole;
-    }>(`select ${columns}${email ? ',m.role' : ''} from app.clinics c ${email ? `join app.clinic_memberships m on m.clinic_id=c.id and m.email=$1 and m.status='active' and m.accepted_at is not null and ${CLINIC_MANAGER_SQL} and c.status <> 'suspended'` : ''} order by c.name,c.id limit 50 offset $${email ? 2 : 1}`, email ? [email, offset] : [offset]);
+    }>(`select ${columns}${email ? ',m.role' : ''} from app.clinics c ${email ? `join app.clinic_memberships m on m.clinic_id=c.id and m.email=$1 and m.status='active' and m.accepted_at is not null and ${CLINIC_MANAGER_SQL} and c.status <> 'suspended'` : ''} ${tenant ? `where c.id=$${email ? 3 : 2}` : ''} order by c.name,c.id limit 50 offset $${email ? 2 : 1}`, [...(email ? [email, offset] : [offset]), ...(tenant ? [tenant.clinicId] : [])]);
     return rows;
 }
 const cachedClinicWorkspace = unstable_cache(async (id: string, approved: boolean) => {

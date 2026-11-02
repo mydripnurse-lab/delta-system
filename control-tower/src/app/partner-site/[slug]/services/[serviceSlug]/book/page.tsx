@@ -1,3 +1,4 @@
+import { partnerPublicUrl } from "@/lib/partnerSeo";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
 import { clinicBookingsEnabled } from "@/lib/clinicFeature";
 import type { Metadata } from "next";
@@ -51,7 +52,7 @@ export default async function PartnerServiceBookingPage({ params, searchParams }
   const bookingsOpen = !profile.clinicBrand || clinicBookingsEnabled();
   const outOfStock = service.availabilityStatus === "out_of_stock";
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
-  const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
+  const partnerHref = (pathname = "") => `${partnerPublicUrl(profile, pathname)}${previewQuery}`;
   const bookingReturnUrl = `https://partners.mydripnurse.com/${profile.slug}/services/${serviceSlug}/book`;
 
   return (

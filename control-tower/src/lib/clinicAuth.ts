@@ -1,3 +1,5 @@
+import { getRequestClinicTenant } from './clinicDomainRequest';
+import { clinicLoginDestination } from './clinicLogin';
 import { CLINIC_MANAGER_SQL } from '@/lib/clinicPolicy';
 import 'server-only';
 import { createHash, randomBytes } from 'node:crypto';
@@ -34,6 +36,8 @@ export const getClinicIdentity = cache(async () => {
         name: string;
         photoUrl: string;
     }>(`select a.email, a.full_name as name, coalesce(a.profile_photo_url, '') as "photoUrl" from app.clinic_sessions s join app.clinic_accounts a on a.id=s.account_id where s.token_hash=$1 and s.expires_at>now() and a.is_active=true`, [hashClinicToken(token)]);
+    const tenant = await getRequestClinicTenant();
+    if (tenant && rows[0] && !await clinicLoginDestination(tenant.slug, rows[0].email)) return null;
     return rows[0] ? { ...rows[0], partnerId: '' } : null;
 });
 export async function loginClinicAccount(email: string, password: string) {
@@ -50,6 +54,8 @@ export async function loginClinicAccount(email: string, password: string) {
     return token;
 }
 export async function requireClinicManager(clinicId: string) {
+    const tenant = await getRequestClinicTenant();
+    if (tenant && tenant.clinicId !== clinicId) throw new Error('Clinic access denied.');
     const identity = await getClinicIdentity();
     if (!identity)
         throw new Error('Sign in to your partner account.');

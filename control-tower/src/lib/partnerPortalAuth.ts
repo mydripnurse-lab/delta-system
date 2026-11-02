@@ -1,3 +1,6 @@
+import { cache } from 'react';
+import { getRequestClinicTenant } from './clinicDomainRequest';
+import { clinicLoginDestination } from './clinicLogin';
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 
@@ -146,11 +149,18 @@ export async function readPartnerPortalSession(rawToken: string) {
   return result.rows[0] || null;
 }
 
-export async function getPartnerPortalSession() {
+export const getPartnerPortalSession = cache(async () => {
   const cookieStore = await cookies();
   const token = cookieStore.get(PARTNER_PORTAL_COOKIE)?.value || "";
-  return readPartnerPortalSession(token);
-}
+  if (!token) return null;
+  const session = await readPartnerPortalSession(token);
+  const tenant = await getRequestClinicTenant();
+  if (tenant && session) {
+    const access = await clinicLoginDestination(tenant.slug, session.email);
+    if (!access || access.partnerId !== session.profile_id) return null;
+  }
+  return session;
+});
 
 export async function revokePartnerPortalSession(rawToken: string) {
   if (!rawToken) return;
@@ -171,7 +181,7 @@ export async function revokeAllPartnerPortalSessions(profileId: string) {
   );
 }
 
-export function partnerPortalCookieOptions() {
+export function partnerPortalCookieOptions(hostname?: string) {
   const production = process.env.NODE_ENV === "production";
   return {
     httpOnly: true,
@@ -179,6 +189,6 @@ export function partnerPortalCookieOptions() {
     sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 24 * 90,
-    ...(production ? { domain: ".mydripnurse.com" } : {}),
+    ...(production && (!hostname || hostname === "mydripnurse.com" || hostname.endsWith(".mydripnurse.com")) ? { domain: ".mydripnurse.com" } : {}),
   };
 }

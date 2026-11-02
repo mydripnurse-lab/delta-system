@@ -1,3 +1,5 @@
+import { clinicNurseSiteAddress } from './clinicDomainLookup';
+import { getRequestClinicTenant } from './clinicDomainRequest';
 import { CLINIC_CARE_MEMBER_SQL } from '@/lib/clinicPolicy';
 import { cache } from "react";
 import { clinicsEnabled } from '@/lib/clinicFeature';
@@ -31,6 +33,7 @@ export type PartnerService = {
 };
 
 export type PublicPartnerProfile = {
+  publicWebsiteUrl?: string;
   id: string;
   organizationId: string;
   slug: string;
@@ -196,9 +199,13 @@ export const getPublicPartnerProfile = cache(async function getPublicPartnerProf
 
 export async function getPartnerProfileForPublicPage(slugRaw: string, previewApplicationId?: string) {
   const slug = s(slugRaw).toLowerCase();
+  const tenant = await getRequestClinicTenant();
+  if (tenant && (previewApplicationId || slug === TEMPLATE_PREVIEW_PROFILE.slug)) return null;
   if (slug === TEMPLATE_PREVIEW_PROFILE.slug) return TEMPLATE_PREVIEW_PROFILE;
   if (previewApplicationId) return getPartnerProfileForWebsitePreview(slug, previewApplicationId);
-  return getPublicPartnerProfile(slug);
+  const profile = await getPublicPartnerProfile(slug);
+  if (!profile || (tenant && profile.clinicBrand?.id !== tenant.clinicId)) return null;
+  return { ...profile, publicWebsiteUrl: await clinicNurseSiteAddress(profile) };
 }
 
 export async function getPartnerProfileForWebsitePreview(slugRaw: string, applicationIdRaw: string) {

@@ -1,3 +1,4 @@
+import { validPartnerPortalOrigin } from '@/lib/partnerPortalOrigin';
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { CLINIC_TEAM_CACHE_TAG } from "@/lib/clinicPolicy";
@@ -28,16 +29,7 @@ function editableProfile(profile: Awaited<ReturnType<typeof getPartnerProfileFor
   };
 }
 
-function validRequestOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  if (!origin) return true;
-  try {
-    const hostname = new URL(origin).hostname;
-    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "mydripnurse.com" || hostname.endsWith(".mydripnurse.com");
-  } catch {
-    return false;
-  }
-}
+
 
 export async function GET() {
   const session = await getPartnerPortalSession();
@@ -48,7 +40,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  if (!validRequestOrigin(request)) {
+  if (!await validPartnerPortalOrigin(request)) {
     return NextResponse.json({ ok: false, error: "Invalid request origin." }, { status: 403 });
   }
   const session = await getPartnerPortalSession();

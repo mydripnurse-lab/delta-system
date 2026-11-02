@@ -3,12 +3,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useId, useRef, useState } from 'react';
-import { PARTNER_ORIGIN } from '@/lib/clinicDomainPolicy';
 import site from './clinicWebsite.module.css';
 import styles from './clinicPublicTeam.module.css';
 
 type TeamMember = {
-    id: string; slug: string; name: string; photo: string;
+    id: string; slug: string; href: string; name: string; photo: string;
     credentials: string; publicTitle: string; area: string;
 };
 const PAGE_SIZE = 6;
@@ -38,7 +37,7 @@ export function ClinicPublicTeam({ team }: { team: TeamMember[] }) {
         </div>
         <ul className={styles.grid} id={`${id}-results`}>
             {visible.map(nurse => <li key={nurse.id}>
-                <Link prefetch={false} className={styles.card} href={`${PARTNER_ORIGIN}/${nurse.slug}`}>
+                <Link prefetch={false} className={styles.card} href={nurse.href}>
                     <div className={styles.portrait}>
                         {nurse.photo ? <Image unoptimized src={nurse.photo} width={420} height={460} loading="lazy" alt={nurse.name}/> : <span className={styles.initials} aria-hidden="true">{nurse.name.split(/\s+/).slice(0, 2).map(n => n[0]).join('')}</span>}
                         {nurse.credentials ? <span className={styles.credentials}>{nurse.credentials}</span> : null}

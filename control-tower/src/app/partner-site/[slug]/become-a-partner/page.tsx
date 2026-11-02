@@ -44,7 +44,7 @@ export default async function AffiliateLandingPage({ params, searchParams }: Pro
   if (!profile) notFound();
 
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
-  const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
+  const partnerHref = (pathname = "") => `${partnerPublicUrl(profile, pathname)}${previewQuery}`;
   const applicationUrl = partnerHref("/apply");
   const faqItems = [
     {
@@ -77,8 +77,8 @@ export default async function AffiliateLandingPage({ params, searchParams }: Pro
     "@graph": [
       {
         "@type": "WebPage",
-        "@id": `${partnerPublicUrl(profile.slug, "become-a-partner")}#webpage`,
-        url: partnerPublicUrl(profile.slug, "become-a-partner"),
+        "@id": `${partnerPublicUrl(profile, "become-a-partner")}#webpage`,
+        url: partnerPublicUrl(profile, "become-a-partner"),
         name: "My Drip Nurse Mobile IV Therapy Partner Program",
         description: "Join the My Drip Nurse Partner network for confirmed mobile IV therapy appointment opportunities, connected booking, and a professional Partner platform.",
         about: { "@type": "Service", name: "My Drip Nurse Partner Program" },

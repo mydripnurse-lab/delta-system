@@ -1,3 +1,4 @@
+import { partnerPublicUrl } from "@/lib/partnerSeo";
 import { nurseLocationContext, nurseIdentity, nurseCareIntroduction } from "@/lib/partnerPublicContent";
 import { ClinicCoverageSearch } from "@/components/clinics/ClinicCoverageSearch";
 import { clinicWebsiteBrand } from "@/lib/clinicWebsiteBrand";
@@ -63,7 +64,7 @@ export default async function PartnerSitePage({ params, searchParams }: Props) {
     ? { summary: { averageRating: 0, reviewCount: 0 }, reviews: [] }
     : await getPublicPartnerReviews(profile.id);
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
-  const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
+  const partnerHref = (pathname = "") => `${partnerPublicUrl(profile, pathname)}${previewQuery}`;
 
   const coverage = providerCoverage(profile.serviceAreas);
   const offeredNames = publishedServiceNames(profile.services);

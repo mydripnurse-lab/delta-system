@@ -1,3 +1,4 @@
+import { getRequestClinicTenant } from '@/lib/clinicDomainRequest';
 import Image from 'next/image';
 import Link from 'next/link';
 import { headers } from 'next/headers';
@@ -14,13 +15,15 @@ export const metadata = { title: 'Team sign in | My Drip Nurse', robots: { index
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
     if (!clinicsEnabled()) notFound();
     const { slug } = await params;
-    if (process.env.NODE_ENV === 'production' && (await headers()).get('host') !== 'partners.mydripnurse.com') redirect(`${PARTNER_ORIGIN}/clinic-login/${encodeURIComponent(slug)}`);
+    const tenant = await getRequestClinicTenant();
+    if (tenant && tenant.slug !== slug) notFound();
+    if (!tenant && process.env.NODE_ENV === 'production' && (await headers()).get('host') !== 'partners.mydripnurse.com') redirect(`${PARTNER_ORIGIN}/clinic-login/${encodeURIComponent(slug)}`);
     const [clinic] = await publicClinics(slug);
     if (!clinic) notFound();
     const identity = await getClinicIdentity();
     if (identity) {
         const access = await clinicLoginDestination(slug, identity.email);
-        if (access && (access.role !== 'nurse' || identity.partnerId === access.partnerId)) redirect(access.redirectTo);
+        if (access && (access.canManage || identity.partnerId === access.partnerId)) redirect(access.redirectTo);
     }
     const site = await clinicSiteAddress(clinic);
     return <PartnerExperience branding={clinic}><main className={styles.page}><div className={styles.card}>

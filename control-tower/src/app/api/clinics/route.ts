@@ -1,3 +1,4 @@
+import { getRequestClinicTenant } from '@/lib/clinicDomainRequest';
 import { changeClinicService } from '@/lib/clinicServices';
 import { consumeClinicRequestBudget } from "@/lib/clinicRequestBudget";
 import { NextResponse } from 'next/server';
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
         if (raw.length > 100000)
             return json({ error: 'Request too large.' }, 413);
         const body = JSON.parse(raw);
+        if (['register', 'accept'].includes(body.action) && await getRequestClinicTenant()) return json({ error: 'Use the My Drip Nurse registration or invitation link.' }, 403);
         if (!consumeClinicRequestBudget(request, body.action === 'register' ? 'clinic-registration' : 'clinic-write', body.action === 'register' ? 10 : 100))
             return json({ error: 'Too many requests. Please try again later.' }, 429);
         if (body.action === 'register')

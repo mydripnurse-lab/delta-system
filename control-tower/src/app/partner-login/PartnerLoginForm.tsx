@@ -54,7 +54,7 @@ export function PartnerLoginForm({ returnTo = "", clinicsAvailable = false, init
         <input id="partner-email" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" required readOnly={busy} />
       </div>
       <div className={styles.field}>
-        <div className={styles.fieldHeading}><label htmlFor="partner-password">Password</label><a className={styles.forgot} href="/forgot-password">Forgot password?</a></div>
+        <div className={styles.fieldHeading}><label htmlFor="partner-password">Password</label><a className={styles.forgot} href={clinicSlug ? "https://partners.mydripnurse.com/forgot-password" : "/forgot-password"}>Forgot password?</a></div>
         <div className={styles.passwordField}>
           <input id="partner-password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" required readOnly={busy} />
           <button className={styles.passwordToggle} type="button" aria-label={showPassword ? "Hide password" : "Show password"} aria-controls="partner-password" onClick={() => setShowPassword(value => !value)}>

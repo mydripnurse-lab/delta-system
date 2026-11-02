@@ -1,3 +1,4 @@
+import { getRequestClinicTenant } from '@/lib/clinicDomainRequest';
 import { consumeClinicRequestBudget } from "@/lib/clinicRequestBudget";
 import { clinicsEnabled } from "@/lib/clinicFeature";
 import { NextResponse } from "next/server";
@@ -18,6 +19,14 @@ export async function POST(request: Request) {
   try {
     if(clinicsEnabled() && !consumeClinicRequestBudget(request,"partner-clinic-login")) return NextResponse.json({ok:false,error:"Too many attempts. Please try again later."},{status:429});
     const body = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ok:false,error:"Invalid sign-in request."},{status:400});
+    const tenant = await getRequestClinicTenant();
+    const hostname = (request.headers.get('host') || new URL(request.url).host).split(':')[0].toLowerCase();
+    if (tenant) {
+      requireClinicOrigin(request);
+      if (body.clinicSlug && body.clinicSlug !== tenant.slug) return NextResponse.json({ok:false,error:'Clinic access denied.'},{status:403});
+      body.clinicSlug = tenant.slug;
+    }
     let clinicAccess: Awaited<ReturnType<typeof clinicLoginDestination>> = null;
     if (body?.clinicSlug !== undefined) {
       requireClinicOrigin(request);
@@ -32,26 +41,26 @@ export async function POST(request: Request) {
     if (role === "clinic" && !clinicsEnabled()) {
       return NextResponse.json({ ok: false, error: "Clinic sign-in is not available." }, { status: 403 });
     }
-    const session = await createPartnerPortalPasswordSession(
+    let session = await createPartnerPortalPasswordSession(
       String(body?.email || ""),
       String(body?.password || ""),
     );
+    if (session && clinicAccess && session.profile.id !== clinicAccess.partnerId) {
+      await revokePartnerPortalSession(session.token);
+      session = null;
+    }
     if (!session) {
-      const clinicToken = role === "nurse" || clinicAccess?.role === 'nurse' ? null : await loginClinicAccount(String(body?.email || ""), String(body?.password || ""));
+      const clinicToken = role === "nurse" || (clinicAccess && !clinicAccess.canManage) ? null : await loginClinicAccount(String(body?.email || ""), String(body?.password || ""));
       if (clinicToken) {
         const response = NextResponse.json({ok:true,redirectTo:clinicAccess?.redirectTo || "/portal/clinics"});
         response.cookies.set(CLINIC_COOKIE, clinicToken, clinicCookieOptions());
-        response.cookies.set(PARTNER_PORTAL_COOKIE, "", {...partnerPortalCookieOptions(), maxAge:0});
+        response.cookies.set(PARTNER_PORTAL_COOKIE, "", {...partnerPortalCookieOptions(hostname), maxAge:0});
         return response;
       }
       return NextResponse.json({ ok: false, error: clinicAccess ? "Check your credentials and accepted clinic invitation." : "Email or password is incorrect." }, { status: 401 });
     }
-    if (clinicAccess?.role === 'nurse' && session.profile.id !== clinicAccess.partnerId) {
-      await revokePartnerPortalSession(session.token);
-      return NextResponse.json({ ok: false, error: 'Check your credentials and accepted clinic invitation.' }, { status: 401 });
-    }
     const response = NextResponse.json({ ok: true, redirectTo: clinicAccess?.redirectTo || (role === "clinic" ? "/portal/clinics" : body?.returnTo === "/" ? "/" : "/portal") });
-    response.cookies.set(PARTNER_PORTAL_COOKIE, session.token, partnerPortalCookieOptions());
+    response.cookies.set(PARTNER_PORTAL_COOKIE, session.token, partnerPortalCookieOptions(hostname));
     response.cookies.delete(CLINIC_COOKIE);
     return response;
   } catch (error) {

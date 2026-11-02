@@ -1,3 +1,12 @@
+// Notification links stay in the authenticated portal on this origin.
+function portalNotificationUrl(value) {
+  try {
+    const target = new URL(value || "/portal", self.location.origin);
+    const pathname = target.pathname.replace(/^\/partner-portal(?=\/|$)/, "/portal");
+    if (pathname !== "/portal" && !pathname.startsWith("/portal/")) return self.location.origin + "/portal";
+    return self.location.origin + pathname + target.search + target.hash;
+  } catch { return self.location.origin + "/portal"; }
+}
 /* My Drip Nurse Partner Portal service worker.
  * Patient, appointment, API, and authenticated HTML responses are intentionally
  * never cached on the device.
@@ -19,7 +28,7 @@ self.addEventListener("push", (event) => {
   }
   const title = payload.title || "My Drip Nurse Partner Portal";
   const message = payload.message || "You have a new Partner Portal notification.";
-  const url = payload.url || "/partner-portal";
+  const url = portalNotificationUrl(payload.url);
   const badgeCount = Number(payload.badgeCount || 0);
   event.waitUntil((async () => {
     if ("setAppBadge" in self.navigator) {
@@ -42,7 +51,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const data = event.notification.data || {};
-  const targetUrl = new URL(data.url || "/partner-portal", self.location.origin).href;
+  const targetUrl = portalNotificationUrl(data.url);
   event.waitUntil((async () => {
     if (data.notificationId) {
       try {

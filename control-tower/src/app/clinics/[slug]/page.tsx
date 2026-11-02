@@ -84,7 +84,7 @@ export default async function Page({ params }: Props) {
             })}
         </div> : null}
         <section className={styles.section} id="services"><ClinicPublicServices clinicSlug={clinic.slug} clinicHome={site.home} bookingsEnabled={clinicBookingsEnabled()} clinicId={clinic.id} coverage={clinic.coverage} services={services}/></section>
-        <ClinicCoverageSection clinic={clinic}/><ClinicTeam team={team}/>
+        <ClinicCoverageSection clinic={clinic}/><ClinicTeam clinic={clinic} team={team}/>
         <ClinicNetworkReviews/>
         <PartnerFaq title="Your visit, explained" items={faq}/>
         <section className={styles.section}><ClinicNetworkInvitation clinicName={clinic.name} href={`${site.home}/become-a-partner`} /><div className={styles.closing}><h2>Your care starts with a connection.</h2><p>Explore your options with this clinic, or visit My Care to follow an existing appointment.</p><Link className={styles.action} href={`${site.home}/services`}>Find your service →</Link></div></section>

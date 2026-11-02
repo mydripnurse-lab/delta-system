@@ -94,7 +94,7 @@ export default async function Page({ params, searchParams }: Props) {
             <div className={layout.shell}><div><span className={layout.eyebrow}>Service ingredients</span><h2>What this service may include.</h2></div><div className={layout.ingredientCards}>{service.ingredients.map(ingredient => <span key={ingredient}>{ingredient}</span>)}</div></div>
         </section> : null}
         <section className={styles.section} aria-labelledby="clinic-service-context"><span className={styles.eyebrow}>About your clinic</span><h2 id="clinic-service-context">{introduction.heading}</h2>{introduction.description ? <p>{introduction.description}</p> : null}<p>{introduction.coverage}</p><p>{introduction.team}</p></section>
-        <ClinicCoverageSection clinic={{ ...clinic, coverage }}/><ClinicTeam team={nurse ? [nurse] : team}/>
+        <ClinicCoverageSection clinic={{ ...clinic, coverage }}/><ClinicTeam clinic={clinic} team={nurse ? [nurse] : team}/>
         <ClinicNetworkReviews/>
         <PartnerFaq eyebrow={`${service.name} FAQ`} title={`Questions about ${service.name}.`} introduction={`Helpful information before your visit with ${clinic.name}.`} items={faq}/>
         <section className={layout.serviceBookCta} id="booking"><div className={layout.shell}>

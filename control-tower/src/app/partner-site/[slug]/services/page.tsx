@@ -56,7 +56,7 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
   if ((profile.clinicManaged || profile.clinicBrand) && !preview && !clinicCatalog) notFound();
   if (clinicCatalog) profile = { ...profile, serviceAreas: clinicCatalog.coverage.map(r => ({ state: r.state, county: r.county || '', city: r.city || '', locationId: '' })) };
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
-  const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
+  const partnerHref = (pathname = "") => `${partnerPublicUrl(profile, pathname)}${previewQuery}`;
   const services = clinicCatalog?.services ?? await loadPartnerCalendarServices(profile.organizationId, profile.services, profile.id);
   const coverage = pricingCoverage(profile.serviceAreas);
   const structuredData = {
@@ -73,10 +73,10 @@ export default async function PartnerServicesPage({ params, searchParams }: Prop
           name: service.name,
           description: service.description,
           image: service.imageUrl,
-          url: partnerPublicUrl(profile.slug, `services/${partnerServiceSlug(service)}`),
-          provider: { "@type": "Person", "@id": `${partnerPublicUrl(profile.slug)}#partner`, name: profile.displayName, url: partnerPublicUrl(profile.slug), jobTitle: profile.publicTitle || undefined, honorificSuffix: profile.professionalCredentials || undefined },
+          url: partnerPublicUrl(profile, `services/${partnerServiceSlug(service)}`),
+          provider: { "@type": "Person", "@id": `${partnerPublicUrl(profile)}#partner`, name: profile.displayName, url: partnerPublicUrl(profile), jobTitle: profile.publicTitle || undefined, honorificSuffix: profile.professionalCredentials || undefined },
           areaServed: providerCoverage(profile.serviceAreas).map(area => area.schema),
-          offers: service.pricing ? publicPriceOffer(service.pricing, coverage, partnerPublicUrl(profile.slug, `services/${partnerServiceSlug(service)}`), service.availabilityStatus === "out_of_stock") : undefined,
+          offers: service.pricing ? publicPriceOffer(service.pricing, coverage, partnerPublicUrl(profile, `services/${partnerServiceSlug(service)}`), service.availabilityStatus === "out_of_stock") : undefined,
         },
       };
     }),

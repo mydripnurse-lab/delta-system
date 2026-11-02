@@ -61,9 +61,9 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
   if (!data) notFound();
   const { profile, service } = data;
   const previewQuery = preview ? `?preview=${encodeURIComponent(preview)}` : "";
-  const partnerHref = (pathname = "") => `/${profile.slug}${pathname}${previewQuery}`;
+  const partnerHref = (pathname = "") => `${partnerPublicUrl(profile, pathname)}${previewQuery}`;
   const canonicalSlug = partnerServiceSlug(service);
-  const landingUrl = partnerPublicUrl(profile.slug, `services/${canonicalSlug}`);
+  const landingUrl = partnerPublicUrl(profile, `services/${canonicalSlug}`);
   const outOfStock = service.availabilityStatus === "out_of_stock";
   const coverage = pricingCoverage(profile.serviceAreas);
   const priceLabel = service.pricing ? publicPriceSummary(service.pricing, coverage).label : service.price;
@@ -105,8 +105,8 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
           "@type": "Person",
           name: profile.displayName,
           image: profile.profilePhotoUrl || undefined,
-          "@id": `${partnerPublicUrl(profile.slug)}#partner`,
-          url: partnerPublicUrl(profile.slug),
+          "@id": `${partnerPublicUrl(profile)}#partner`,
+          url: partnerPublicUrl(profile),
           jobTitle: profile.publicTitle || undefined,
           honorificSuffix: profile.professionalCredentials || undefined,
         },
@@ -116,8 +116,8 @@ export default async function PartnerServiceLandingPage({ params, searchParams }
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: profile.displayName, item: partnerPublicUrl(profile.slug) },
-          { "@type": "ListItem", position: 2, name: "Services", item: partnerPublicUrl(profile.slug, "services") },
+          { "@type": "ListItem", position: 1, name: profile.displayName, item: partnerPublicUrl(profile) },
+          { "@type": "ListItem", position: 2, name: "Services", item: partnerPublicUrl(profile, "services") },
           { "@type": "ListItem", position: 3, name: service.name, item: landingUrl },
         ],
       },

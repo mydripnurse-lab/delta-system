@@ -10,7 +10,11 @@ function cleanPath(pathname: string) {
   return path === "/" ? path : path.replace(/\/+$/, "");
 }
 
-export function partnerPublicUrl(slug: string, pathname = "") {
+export function partnerPublicUrl(profile: string | { slug: string; publicWebsiteUrl?: string }, pathname = "") {
+  const slug = typeof profile === "string" ? profile : profile.slug;
+  if (typeof profile !== "string" && profile.publicWebsiteUrl && !/(?:^|\/)(?:book|apply)$/.test(pathname)) {
+    return `${profile.publicWebsiteUrl}${pathname ? cleanPath(pathname) : ""}`;
+  }
   const suffix = cleanPath(`/${slug}${pathname ? `/${pathname.replace(/^\/+/, "")}` : ""}`);
   return `${PARTNER_SITE_ORIGIN}${suffix}`;
 }
@@ -23,7 +27,7 @@ export function buildPartnerMetadata(opts: {
   indexable?: boolean;
   keywords?: string[];
 }): Metadata {
-  const canonical = partnerPublicUrl(opts.profile.slug, opts.pathname || "");
+  const canonical = partnerPublicUrl(opts.profile, opts.pathname || "");
   const socialImage = partnerPublicUrl(opts.profile.slug, "opengraph-image");
   const imageAlt = `${opts.profile.displayName}, ${opts.profile.professionalCredentials || "My Drip Nurse Partner"}`;
   const keywords = [...new Set([
@@ -62,7 +66,7 @@ export function buildPartnerMetadata(opts: {
 }
 
 export function buildPartnerStructuredData(profile: PublicPartnerProfile) {
-  const url = partnerPublicUrl(profile.slug);
+  const url = partnerPublicUrl(profile);
   const services = publishedServiceNames(profile.services);
   const person = {
     "@type": "Person", "@id": `${url}#partner`, name: profile.displayName, url,
@@ -80,7 +84,7 @@ export function buildPartnerStructuredData(profile: PublicPartnerProfile) {
       { "@type": "ProfilePage", "@id": `${url}#webpage`, url, name: profile.displayName, mainEntity: { "@id": person["@id"] } },
       ...services.map((name, index) => ({
         "@type": "Service", "@id": `${url}#offered-service-${index + 1}`, name,
-        url: partnerPublicUrl(profile.slug, "services"), provider: { "@id": person["@id"] },
+        url: partnerPublicUrl(profile, "services"), provider: { "@id": person["@id"] },
         areaServed: providerCoverage(profile.serviceAreas).map(area => area.schema),
       })),
     ],

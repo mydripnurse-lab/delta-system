@@ -19,8 +19,9 @@ export async function ClinicPublicWebsite({ clinic, children, services, team, ab
         {children}<PartnerFooter />
     </div></PartnerExperience>;
 }
-export function ClinicTeam({ team }: { team: Awaited<ReturnType<typeof publicClinicTeam>> }) {
-    return <ClinicPublicTeam team={team.map(nurse => ({ id: nurse.id, slug: nurse.slug, name: nurse.name, photo: nurse.photo, credentials: nurse.credentials, publicTitle: nurse.publicTitle, area: nurse.coverage.slice(0, 3).map(r => r.label).join(' · ') }))}/>;
+export async function ClinicTeam({ team, clinic }: { team: Awaited<ReturnType<typeof publicClinicTeam>>; clinic: PublicClinic }) {
+    const site = await clinicSiteAddress(clinic);
+    return <ClinicPublicTeam team={team.map(nurse => ({ id: nurse.id, slug: nurse.slug, href: site.home.startsWith('https://') ? `${site.home}/nurses/${encodeURIComponent(nurse.slug)}` : `https://partners.mydripnurse.com/${encodeURIComponent(nurse.slug)}`, name: nurse.name, photo: nurse.photo, credentials: nurse.credentials, publicTitle: nurse.publicTitle, area: nurse.coverage.slice(0, 3).map(r => r.label).join(' · ') }))}/>;
 }
 export function ClinicCoverageSection({ clinic }: { clinic: PublicClinic }) {
     return <section className={styles.section} id="coverage"><div><span className={styles.eyebrow}>Closer to you</span><h2>Care in your community.</h2><p>Find the areas served by {clinic.name}. Your address and your nurse’s availability are confirmed when you book.</p></div><ClinicCoverageSearch areas={clinic.coverage.map(area => area.label)}/></section>;

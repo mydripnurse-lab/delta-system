@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deploymentSurface } from "@/lib/deployment-surface";
 import { clinicDomainsEnabled, isClinicDomainCandidate } from "@/lib/clinicDomainPolicy";
-import { clinicDomainPath } from "@/lib/clinicDomainRouting";
+import { clinicDomainDestination, clinicDomainPath, sameClinicOrigin } from "@/lib/clinicDomainRouting";
 
 const SESSION_COOKIE_NAME = "ct_session";
 const PARTNER_ADMIN_SESSION_COOKIE_NAME = "mdn_partner_admin_session";
@@ -70,10 +70,12 @@ export function proxy(req: NextRequest) {
   if (isClinicDomainCandidate(hostname)) {
     if (!clinicDomainsEnabled() || surface === 'telahagocrecer') return new NextResponse('Not found', { status: 404 });
     const kind = clinicDomainPath(pathname);
-    if (!['GET', 'HEAD'].includes(req.method) || kind === 'deny') return new NextResponse('Not found', { status: 404 });
-    if (kind === 'asset') return NextResponse.next();
+    const read = ['GET', 'HEAD'].includes(req.method);
+    if (kind === 'deny' || (!read && kind !== 'api')) return new NextResponse('Not found', { status: 404 });
+    if (!read && !sameClinicOrigin(req.headers.get('origin'), req.headers.get('host') || '')) return new NextResponse('Invalid origin', { status: 403 });
+    if (kind === 'asset' || kind === 'api') return NextResponse.next();
     const target = req.nextUrl.clone();
-    target.pathname = `/clinic-domain/${hostname}${pathname === '/' ? '' : pathname}`;
+    target.pathname = clinicDomainDestination(hostname, pathname)!;
     return NextResponse.rewrite(target);
   }
 
@@ -194,9 +196,9 @@ export function proxy(req: NextRequest) {
       return NextResponse.redirect(partnerUrl, 308);
     }
     if (pathname === "/directory" || pathname === "/directory/clinics" || pathname === "/partner-network") return NextResponse.next();
-    if (pathname.startsWith("/clinics/") || pathname === "/clinic-portal" || pathname.startsWith("/api/")) return NextResponse.next();
-    if (pathname === "/portal/clinics") {
-      partnerUrl.pathname = "/clinic-portal";
+    if (pathname.startsWith("/clinics/") || (pathname === "/clinic-portal" || pathname.startsWith("/clinic-portal/")) || pathname.startsWith("/api/")) return NextResponse.next();
+    if (pathname === "/portal/clinics" || pathname.startsWith("/portal/clinics/")) {
+      partnerUrl.pathname = pathname.replace("/portal/clinics", "/clinic-portal");
       return NextResponse.rewrite(partnerUrl);
     }
     if (pathname === "/activate") {
@@ -227,7 +229,7 @@ export function proxy(req: NextRequest) {
       partnerUrl.pathname = "/partner-reset-password";
       return NextResponse.rewrite(partnerUrl);
     }
-    if (pathname === "/portal") {
+    if (pathname === "/portal" || pathname === "/portal/overview") {
       partnerUrl.pathname = "/partner-portal";
       return NextResponse.rewrite(partnerUrl);
     }

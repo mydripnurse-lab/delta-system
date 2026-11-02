@@ -1,3 +1,5 @@
+import { getRequestClinicTenant } from "@/lib/clinicDomainRequest";
+import { clinicNurseSiteAddress } from "@/lib/clinicDomainLookup";
 import { getClinicPortalBrand } from "@/lib/clinicPortalBrand";
 import { clinicsEnabled } from "@/lib/clinicAuth";
 import { headers } from "next/headers";
@@ -10,13 +12,15 @@ import PartnerPortalClient, { type PartnerPortalScreen } from "./PartnerPortalCl
 
 export async function renderPartnerPortal(screen: PartnerPortalScreen) {
   const host = (await headers()).get("host")?.split(":")[0].toLowerCase();
-  if (process.env.NODE_ENV === "production" && host !== "partners.mydripnurse.com") {
+  const tenant = await getRequestClinicTenant();
+  if (!tenant && process.env.NODE_ENV === "production" && host !== "partners.mydripnurse.com") {
     redirect("https://partners.mydripnurse.com/portal");
   }
   const session = await getPartnerPortalSession();
-  if (!session) redirect(process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/partner-login" : "/partner-login");
+  if (!session) redirect(tenant ? "/login" : "/partner-login");
   const [profile, clinicBrand] = await Promise.all([getPartnerProfileForPortal(session.profile_id), getClinicPortalBrand(session.profile_id)]);
-  if (!profile) redirect(process.env.NODE_ENV === "production" ? "https://partners.mydripnurse.com/partner-login" : "/partner-login");
+  if (!profile) redirect(tenant ? "/login" : "/partner-login");
+  const publicWebsiteUrl = await clinicNurseSiteAddress({ slug: profile.slug, clinicBrand });
   const clinicsAvailable = clinicsEnabled();
-  return <PartnerPortalClient initialProfile={profile} screen={screen} clinicsAvailable={clinicsAvailable} clinicBrand={clinicBrand} />;
+  return <PartnerPortalClient initialProfile={profile} publicWebsiteUrl={publicWebsiteUrl} brandedDomain={!!tenant} screen={screen} clinicsAvailable={clinicsAvailable} clinicBrand={clinicBrand} />;
 }

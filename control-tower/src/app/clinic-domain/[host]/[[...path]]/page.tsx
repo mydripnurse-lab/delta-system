@@ -1,10 +1,10 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import ClinicReferralLanding from '@/app/clinics/[slug]/become-a-partner/page';
 import ClinicHome, { generateMetadata as homeMetadata } from '@/app/clinics/[slug]/page';
 import ClinicServices, { generateMetadata as servicesMetadata } from '@/app/clinics/[slug]/services/page';
 import ClinicService, { generateMetadata as serviceMetadata } from '@/app/clinics/[slug]/services/[serviceSlug]/page';
 import { requirePublicClinicDomain } from '@/lib/clinicDomainRequest';
-import { PARTNER_ORIGIN } from '@/lib/clinicDomainPolicy';
+import ClinicLogin from '@/app/clinic-login/[slug]/page';
 
 type Props = { params: Promise<{ host: string; path?: string[] }>; searchParams: Promise<{ nurse?: string }> };
 async function resolve(props: Props) {
@@ -28,7 +28,7 @@ export async function generateMetadata(props: Props) {
 export default async function Page(props: Props) {
     const route = await resolve(props);
     if (route.kind === 'referral') return <ClinicReferralLanding params={route.params}/>;
-    if (route.kind === 'login') redirect(`${PARTNER_ORIGIN}/clinic-login/${route.clinic.slug}`);
+    if (route.kind === 'login') return <ClinicLogin params={route.params}/>;
     if (route.kind === 'home') return <ClinicHome params={route.params}/>;
     if (route.kind === 'services') return <ClinicServices params={route.params}/>;
     return <ClinicService params={route.params} searchParams={props.searchParams}/>;

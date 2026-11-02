@@ -23,7 +23,7 @@ import AppointmentOfferMap, { type AppointmentMapRoute } from "./AppointmentOffe
 import PartnerOnboardingTour, { type PartnerTourPhase } from "./PartnerOnboardingTour";
 
 export type PartnerPortalScreen = "overview" | "appointments" | "availability" | "profile" | "website" | "directory" | "services" | "affiliates" | "support" | "rewards" | "products";
-type Props = { initialProfile: PartnerPortalProfile; screen?: PartnerPortalScreen; clinicsAvailable?: boolean; clinicBrand?: ClinicPortalBrand | null };
+type Props = { publicWebsiteUrl?: string; brandedDomain?: boolean; initialProfile: PartnerPortalProfile; screen?: PartnerPortalScreen; clinicsAvailable?: boolean; clinicBrand?: ClinicPortalBrand | null };
 type AvailabilityDay = { dayOfWeek: number; enabled: boolean; startTime: string; endTime: string };
 type CalendarViewMode = "month" | "week" | "list";
 type BlockRange = { date: string; startTime: string; endTime: string };
@@ -408,16 +408,16 @@ function offerArea(appointment: PartnerPortalAppointment) {
 function notificationDestination(notification: PartnerPortalNotification) {
   if (notification.actionUrl) return notification.actionUrl;
   if (notification.appointmentId) {
-    return `/partner-portal/appointments?appointment=${encodeURIComponent(notification.appointmentId)}&offer=1`;
+    return `/portal/appointments?appointment=${encodeURIComponent(notification.appointmentId)}&offer=1`;
   }
   const eventType = notification.eventType.toLowerCase();
-  if (eventType.includes("profile")) return "/partner-portal/profile";
-  if (eventType.includes("website")) return "/partner-portal/website";
-  if (eventType.includes("service")) return "/partner-portal/services";
-  if (eventType.includes("affiliate") || eventType.includes("commission") || eventType.includes("payout")) return "/partner-portal/affiliates";
-  if (eventType.includes("support") || eventType.includes("ticket")) return "/partner-portal/support";
-  if (eventType.includes("availability") || eventType.includes("schedule")) return "/partner-portal/availability";
-  return "/partner-portal";
+  if (eventType.includes("profile")) return "/portal/profile";
+  if (eventType.includes("website")) return "/portal/website";
+  if (eventType.includes("service")) return "/portal/services";
+  if (eventType.includes("affiliate") || eventType.includes("commission") || eventType.includes("payout")) return "/portal/affiliates";
+  if (eventType.includes("support") || eventType.includes("ticket")) return "/portal/support";
+  if (eventType.includes("availability") || eventType.includes("schedule")) return "/portal/availability";
+  return "/portal";
 }
 
 function pushApplicationServerKey(value: string) {
@@ -426,7 +426,7 @@ function pushApplicationServerKey(value: string) {
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
-export default function PartnerPortalClient({ initialProfile, screen = "overview", clinicsAvailable = false, clinicBrand = null }: Props) {
+export default function PartnerPortalClient({ initialProfile, screen = "overview", clinicsAvailable = false, clinicBrand = null, publicWebsiteUrl, brandedDomain = false }: Props) {
   const { locale, t } = usePortalLocale();
   const [profile, setProfile] = useState(initialProfile);
   const [displayName, setDisplayName] = useState(initialProfile.displayName);
@@ -530,7 +530,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
   const [supportReply, setSupportReply] = useState<Record<string, string>>({});
   const [supportSubmitting, setSupportSubmitting] = useState(false);
   const offerMapToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() || "";
-  const websiteUrl = `https://partners.mydripnurse.com/${profile.slug}`;
+  const websiteUrl = publicWebsiteUrl || `https://partners.mydripnurse.com/${profile.slug}`;
   const websitePreviewUrl = `${websiteUrl}?preview=${encodeURIComponent(profile.applicationId)}`;
   const affiliateUrl = `${websiteUrl}/become-a-partner`;
   const affiliateDisplayDashboard = partnerTourPhase === "affiliate-walkthrough"
@@ -907,7 +907,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
     else setPwaInstallState(isIos ? "ios" : "manual");
 
     if ("serviceWorker" in navigator && window.isSecureContext) {
-      void navigator.serviceWorker.register("/partner-sw.js", { scope: "/partner-portal" }).catch(() => {
+      void navigator.serviceWorker.register("/partner-sw.js", { scope: "/portal" }).catch(() => {
         // The portal remains fully functional in browsers without service workers.
       });
     }
@@ -1195,7 +1195,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
 
   async function signOut() {
     await fetch("/api/public/partner-portal/logout", { method: "POST" });
-    window.location.href = "/partner-login";
+    window.location.href = brandedDomain ? "/login" : "/partner-login";
   }
 
   async function installApp() {
@@ -1575,32 +1575,32 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
     <PartnerExperience branding={clinicBrand || undefined} className={`${styles.experience} ${clinicBrand ? styles.clinicBranded : ""}`}>
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
-          <Link href="/partner-portal" className={styles.brand} aria-label={clinicBrand ? `${clinicBrand.name} nurse portal` : "My Drip Nurse Partner Portal"}>
+          <Link href="/portal" className={styles.brand} aria-label={clinicBrand ? `${clinicBrand.name} nurse portal` : "My Drip Nurse Partner Portal"}>
             {clinicBrand?.logoUrl ? <Image className={styles.clinicLogo} unoptimized src={clinicBrand.logoUrl} alt={clinicBrand.name} width={180} height={60} /> : clinicBrand ? <span className={styles.clinicWordmark}>{clinicBrand.name}</span> : <span className={styles.brandMark} aria-hidden="true" />}
           </Link>
           <nav className={styles.navigation} aria-label="Partner Portal">
-            <Link href="/partner-portal" className={screen === "overview" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="home" /></span>{t("nav.overview")}</Link>
-            <Link href="/partner-portal/appointments" className={screen === "appointments" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="calendar" /></span>{t("nav.appointments")}</Link>
-            <Link href="/partner-portal/profile" className={screen === "profile" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="user" /></span>{t("nav.profile")}</Link>
-            <Link href="/partner-portal/website" className={screen === "website" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="website" /></span>{t("nav.website")}</Link>
-            <Link href="/partner-portal/directory" className={screen === "directory" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="directory" /></span>{t("nav.directory")}</Link>
-            <Link href="/partner-portal/services" className={screen === "services" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="services" /></span>{t("nav.services")}</Link>
-            <Link href="/partner-portal/affiliates" className={screen === "affiliates" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="affiliates" /></span>{t("nav.affiliates")}</Link>
-            <Link href="/partner-portal/rewards" className={screen === "rewards" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="rewards" /></span>{t("nav.rewards")}<small>{t("common.comingSoon")}</small></Link>
-            <Link href="/partner-portal/products" className={screen === "products" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="products" /></span>{t("nav.products")}<small>{t("common.comingSoon")}</small></Link>
-            <Link href="/partner-portal/support" className={`${styles.mobileSupportLink} ${screen === "support" ? styles.active : ""}`}><span className={styles.navIcon}><PortalIcon name="support" /></span>{t("nav.support")}</Link>
+            <Link href="/portal" className={screen === "overview" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="home" /></span>{t("nav.overview")}</Link>
+            <Link href="/portal/appointments" className={screen === "appointments" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="calendar" /></span>{t("nav.appointments")}</Link>
+            <Link href="/portal/profile" className={screen === "profile" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="user" /></span>{t("nav.profile")}</Link>
+            <Link href="/portal/website" className={screen === "website" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="website" /></span>{t("nav.website")}</Link>
+            <Link href="/portal/directory" className={screen === "directory" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="directory" /></span>{t("nav.directory")}</Link>
+            <Link href="/portal/services" className={screen === "services" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="services" /></span>{t("nav.services")}</Link>
+            <Link href="/portal/affiliates" className={screen === "affiliates" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="affiliates" /></span>{t("nav.affiliates")}</Link>
+            <Link href="/portal/rewards" className={screen === "rewards" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="rewards" /></span>{t("nav.rewards")}<small>{t("common.comingSoon")}</small></Link>
+            <Link href="/portal/products" className={screen === "products" ? styles.active : ""}><span className={styles.navIcon}><PortalIcon name="products" /></span>{t("nav.products")}<small>{t("common.comingSoon")}</small></Link>
+            <Link href="/portal/support" className={`${styles.mobileSupportLink} ${screen === "support" ? styles.active : ""}`}><span className={styles.navIcon}><PortalIcon name="support" /></span>{t("nav.support")}</Link>
           </nav>
           <div className={styles.sidebarHelp}>
             <strong>{t("partner.needHelp")}</strong>
             <p>{t("partner.helpCopy")}</p>
-            <Link href="/partner-portal/support">{t("partner.contactSupport")} <span aria-hidden="true">→</span></Link>
+            <Link href="/portal/support">{t("partner.contactSupport")} <span aria-hidden="true">→</span></Link>
           </div>
         </aside>
 
         <main className={styles.main}>
           {clinicsAvailable && !clinicBrand ? <PartnerClinicEntry profileId={initialProfile.id} /> : null}
           <header className={styles.topbar}>
-            <Link href="/partner-portal" className={styles.mobileTopbarBrand} aria-label={clinicBrand ? `${clinicBrand.name} nurse portal` : "My Drip Nurse Partner Portal"}>
+            <Link href="/portal" className={styles.mobileTopbarBrand} aria-label={clinicBrand ? `${clinicBrand.name} nurse portal` : "My Drip Nurse Partner Portal"}>
               {clinicBrand?.logoUrl ? <Image className={styles.clinicLogo} unoptimized src={clinicBrand.logoUrl} alt={clinicBrand.name} width={180} height={60} /> : clinicBrand ? <span className={styles.clinicWordmark}>{clinicBrand.name}</span> : <span className={styles.brandMark} aria-hidden="true" />}
             </Link>
             <div><small>{clinicBrand ? "Nurse workspace" : t("partner.workspace")}</small><strong>{profile.businessName || profile.displayName}</strong></div>
@@ -1644,7 +1644,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
                         <span className={styles.notificationItemMeta}><small>{new Date(notification.createdAt).toLocaleString(displayLocale, { dateStyle: "medium", timeStyle: "short" })}</small><span aria-hidden="true">→</span></span>
                       </a>
                     ))}
-                    <Link className={styles.notificationMenuLink} href="/partner-portal/appointments" onClick={() => setNotificationsOpen(false)}>{t("partner.viewAppointments")} <span aria-hidden="true">→</span></Link>
+                    <Link className={styles.notificationMenuLink} href="/portal/appointments" onClick={() => setNotificationsOpen(false)}>{t("partner.viewAppointments")} <span aria-hidden="true">→</span></Link>
                   </div>
                 ) : null}
               </div>
@@ -1679,7 +1679,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
                 </button>
                 {menuOpen ? (
                   <div className={styles.accountMenu}>
-                    <Link href="/partner-portal/profile" onClick={() => setMenuOpen(false)}>{t("menu.editProfile")}</Link>
+                    <Link href="/portal/profile" onClick={() => setMenuOpen(false)}>{t("menu.editProfile")}</Link>
                     <button type="button" onClick={() => { void installApp(); }}>{pwaInstallState === "installed" ? t("menu.installed") : t("menu.install")}</button>
                     <button type="button" onClick={() => { void enablePushNotifications(); }}>{pushState === "subscribed" ? t("menu.alertsEnabled") : t("menu.enableAlerts")}</button>
                     <PortalLanguageSelector />
@@ -2075,7 +2075,7 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
                 </div>
                 <div className={styles.profileFootnote} data-tour-id="profile-website-sync">
                   <div><span className={styles.profileFootnoteIcon} aria-hidden="true">↗</span><div><strong>Connected to your Partner website</strong><p>Your photo and professional details automatically keep your website profile consistent after you save.</p></div></div>
-                  <Link href="/partner-portal/website">Review website</Link>
+                  <Link href="/portal/website">Review website</Link>
                 </div>
                 {message ? <p className={styles.success}>{message}</p> : null}
                 {error ? <p className={styles.error}>{error}</p> : null}
@@ -2267,23 +2267,23 @@ export default function PartnerPortalClient({ initialProfile, screen = "overview
             <div className={styles.mobileMoreBackdrop} role="presentation" onClick={() => setMobileMoreOpen(false)}>
               <section id="mobile-navigation-drawer" className={styles.mobileMoreSheet} role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title" onClick={(event) => event.stopPropagation()}>
                 <header>
-                  <Link href="/partner-portal/profile" className={styles.mobileDrawerProfile} onClick={() => setMobileMoreOpen(false)}>
+                  <Link href="/portal/profile" className={styles.mobileDrawerProfile} onClick={() => setMobileMoreOpen(false)}>
                     {profile.profilePhotoUrl ? <img src={profile.profilePhotoUrl} alt="" /> : <span>{initials(profile.displayName)}</span>}
                     <div><small>Partner account</small><strong id="mobile-menu-title">{profile.displayName}</strong><p>{profile.businessName || profile.email}</p></div>
                   </Link>
                   <button type="button" onClick={() => setMobileMoreOpen(false)} aria-label="Close navigation menu">×</button>
                 </header>
                 <nav aria-label="Partner Portal mobile navigation">
-                  <Link href="/partner-portal" className={screen === "overview" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="home" /></span><div><strong>{t("nav.overview")}</strong><small>Your activity at a glance</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/appointments" className={screen === "appointments" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="calendar" /></span><div><strong>{t("nav.appointments")}</strong><small>Review and manage patient visits</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/profile" className={screen === "profile" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="user" /></span><div><strong>{t("nav.profile")}</strong><small>Keep your professional profile current</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/website" className={screen === "website" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="website" /></span><div><strong>{t("nav.website")}</strong><small>Preview your Partner website</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/directory" className={screen === "directory" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="directory" /></span><div><strong>{t("nav.directory")}</strong><small>Review your discovery and booking results</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/services" className={screen === "services" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="services" /></span><div><strong>{t("nav.services")}</strong><small>Manage what patients can book</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/affiliates" className={screen === "affiliates" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="affiliates" /></span><div><strong>{t("nav.affiliates")}</strong><small>Track referrals and commissions</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/rewards" className={screen === "rewards" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="rewards" /></span><div><strong>{t("nav.rewards")}</strong><small>{t("common.comingSoon")}</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/products" className={screen === "products" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="products" /></span><div><strong>{t("nav.products")}</strong><small>{t("common.comingSoon")}</small></div><b>→</b></Link>
-                  <Link href="/partner-portal/support" className={screen === "support" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="support" /></span><div><strong>{t("nav.support")}</strong><small>Get help from our Partner team</small></div><b>→</b></Link>
+                  <Link href="/portal" className={screen === "overview" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="home" /></span><div><strong>{t("nav.overview")}</strong><small>Your activity at a glance</small></div><b>→</b></Link>
+                  <Link href="/portal/appointments" className={screen === "appointments" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="calendar" /></span><div><strong>{t("nav.appointments")}</strong><small>Review and manage patient visits</small></div><b>→</b></Link>
+                  <Link href="/portal/profile" className={screen === "profile" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="user" /></span><div><strong>{t("nav.profile")}</strong><small>Keep your professional profile current</small></div><b>→</b></Link>
+                  <Link href="/portal/website" className={screen === "website" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="website" /></span><div><strong>{t("nav.website")}</strong><small>Preview your Partner website</small></div><b>→</b></Link>
+                  <Link href="/portal/directory" className={screen === "directory" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="directory" /></span><div><strong>{t("nav.directory")}</strong><small>Review your discovery and booking results</small></div><b>→</b></Link>
+                  <Link href="/portal/services" className={screen === "services" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="services" /></span><div><strong>{t("nav.services")}</strong><small>Manage what patients can book</small></div><b>→</b></Link>
+                  <Link href="/portal/affiliates" className={screen === "affiliates" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="affiliates" /></span><div><strong>{t("nav.affiliates")}</strong><small>Track referrals and commissions</small></div><b>→</b></Link>
+                  <Link href="/portal/rewards" className={screen === "rewards" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="rewards" /></span><div><strong>{t("nav.rewards")}</strong><small>{t("common.comingSoon")}</small></div><b>→</b></Link>
+                  <Link href="/portal/products" className={screen === "products" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="products" /></span><div><strong>{t("nav.products")}</strong><small>{t("common.comingSoon")}</small></div><b>→</b></Link>
+                  <Link href="/portal/support" className={screen === "support" ? styles.mobileDrawerActive : ""} onClick={() => setMobileMoreOpen(false)}><span><PortalIcon name="support" /></span><div><strong>{t("nav.support")}</strong><small>Get help from our Partner team</small></div><b>→</b></Link>
                 </nav>
                 <footer className={styles.mobileDrawerUtilities}>
                   <button type="button" onClick={() => { setMobileMoreOpen(false); void installApp(); }}>{pwaInstallState === "installed" ? t("menu.installed") : t("menu.install")}</button>

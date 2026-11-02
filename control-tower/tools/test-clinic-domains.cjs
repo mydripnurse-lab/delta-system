@@ -11,11 +11,13 @@ const pool = new Pool({connectionString:url.toString(),max:3});
 const root = path.join(__dirname,'..');
 const memo = new Map(), modules = new Map(), calls=[];
 let identity, proofVisible=false, misconfigured=true, deleteFailure=false, configFailure=false, dbReads=0;
+let tenant=null;
 let partnerSession=null, clinicToken=null, revoked=0;
 const query = pool.query.bind(pool);
 pool.query=(...args)=>{dbReads++;return query(...args);};
 const mocks={
  'server-only':{},
+ '@/lib/clinicDomainRequest':{getRequestClinicTenant:async()=>tenant},
  'next/cache':{unstable_cache:(fn,keys)=>async(...args)=>{const key=JSON.stringify([keys,args]);if(!memo.has(key))memo.set(key,await fn(...args));return memo.get(key);},revalidateTag:()=>memo.clear()},
  'node:dns/promises':{Resolver:class{async resolveTxt(name){if(!proofVisible)return [];const {rows}=await query('select verification_token from app.clinic_domains where hostname=$1',[name.replace(/^_mdn-verify\./,'')]);return rows[0]?[['mdn-clinic=',rows[0].verification_token]]:[];}}},
  '@/lib/db':{getDbPool:()=>pool},
@@ -54,14 +56,19 @@ async function main(){
  for(const p of ['/','/services','/services/alleviate','/become-a-partner','/login','/robots.txt','/sitemap.xml'])assert.equal(routing.clinicDomainPath(p),'public');
  assert.equal(routing.clinicDomainPath('/clinic-assets/wellness-lounge.webp'),'asset');
  assert.equal(routing.clinicDomainPath('/clinic-assets/mobile-iv-home.webp'),'asset');
- for(const p of ['/clinic-assets/private.json','/become-a-partner/admin','/api/clinics','/portal','/clinics/other','/clinic-domain/other','/services/foo/book','/partner-admin','/login/reset','//login'])assert.equal(routing.clinicDomainPath(p),'deny');
+ for(const p of ['/clinic-assets/private.json','/become-a-partner/admin','/clinics/other','/clinic-domain/other','/services/foo/book','/partner-admin','/login/reset','//login'])assert.equal(routing.clinicDomainPath(p),'deny');
  const {unstable_doesMiddlewareMatch}=require('next/experimental/testing/server');
  const proxy=load('src/proxy.ts');
  assert.equal(unstable_doesMiddlewareMatch({config:proxy.config,nextConfig:{},url:'https://care.someclinic.com/api/private'}),true);
  assert.equal(unstable_doesMiddlewareMatch({config:proxy.config,nextConfig:{},url:'https://care.mydripnurse.com/api/private'}),false,'No new middleware on existing MDN APIs');
  const {NextRequest}=require('next/server');
  const req=(host,p,method='GET')=>new NextRequest('https://'+host+p,{method,headers:{host}});
- assert.equal(proxy.proxy(req('care.someclinic.com','/api/clinics')).status,404);
+ assert.equal(proxy.proxy(req('care.someclinic.com','/api/clinics')).status,200);
+ assert.equal(proxy.proxy(req('care.someclinic.com','/api/clinics','POST')).status,403);
+ for(const [url,dest] of [['/portal','/partner-portal'],['/portal/appointments','/partner-portal/appointments'],['/portal/clinics/profile/branding','/clinic-portal/profile/branding'],['/nurses/jane/services/alleviate','/partner-site/jane/services/alleviate']])assert.equal(routing.clinicDomainDestination('care.someclinic.com',url),dest);
+ const screens=load('src/lib/clinicPortalRoutes.ts');
+ for(const key of Object.keys(screens.clinicScreens))assert.ok(screens.parseClinicScreen([key]));
+ for(const parts of [['__proto__'],['profile','bad'],['team','branding'],['profile','branding','extra']])assert.equal(screens.parseClinicScreen(parts),null);
  assert.equal(proxy.proxy(req('care.someclinic.com','/','POST')).status,404);
  assert.ok(proxy.proxy(req('care.someclinic.com','/services/alleviate')).headers.get('x-middleware-rewrite').endsWith('/clinic-domain/care.someclinic.com/services/alleviate'));
  assert.equal(proxy.proxy(req('partners.mydripnurse.com','/clinic-domain/care.someclinic.com')).status,404);
@@ -84,7 +91,10 @@ async function main(){
  await query("update app.clinic_memberships set status='active' where clinic_id=$1 and email=$2",[c.id,nurse.email]);
  const post=load('src/app/api/public/partner-portal/login/route.ts').POST;
  const signIn=body=>post(new Request('https://partners.mydripnurse.com/api/public/partner-portal/login',{method:'POST',headers:{origin:'https://partners.mydripnurse.com','content-type':'application/json'},body:JSON.stringify(body)}));
- clinicToken='synthetic-clinic-cookie';let response=await signIn({clinicSlug:'fixture-clinic',email:owner.email,password:'synthetic'});assert.equal(response.status,200);assert.equal((await response.json()).redirectTo,`/portal/clinics?clinic=${c.id}`);
+ clinicToken='synthetic-clinic-cookie';
+ assert.equal((await signIn(null)).status,400);
+ tenant={slug:'other-clinic',clinicId:'other'};assert.equal((await signIn({clinicSlug:'fixture-clinic',email:owner.email,password:'synthetic'})).status,403);tenant=null;
+ let response=await signIn({clinicSlug:'fixture-clinic',email:owner.email,password:'synthetic'});assert.equal(response.status,200);assert.equal((await response.json()).redirectTo,`/portal/clinics?clinic=${c.id}`);
  assert.equal((await signIn({clinicSlug:'fixture-clinic',email:'outsider@example.invalid',password:'synthetic'})).status,401);
  partnerSession={token:'synthetic-partner-cookie',profile:{id:nurse.partner_profile_id}};
  response=await signIn({clinicSlug:'fixture-clinic',email:nurse.email,password:'synthetic',role:'clinic'});assert.equal((await response.json()).redirectTo,'/portal','Submitted role cannot elevate nurse');
